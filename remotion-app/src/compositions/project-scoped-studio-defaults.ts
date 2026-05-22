@@ -194,7 +194,9 @@ export const buildProjectScopedStudioTypographySampleCaptionChunks = (
 
 export const PROJECT_SCOPED_STUDIO_TYPOGRAPHY_SAMPLE_PROP_GUIDANCE = `{
   "studioSampleId": "${PROJECT_SCOPED_STUDIO_DEFAULT_SAMPLE_ID}",
-  "studioTypographySample": true
+  "studioTypographySample": true,
+  "captionProfileId": "longform_svg_typography_v1",
+  "motionTier": "premium"
 }`;
 
 export const buildProjectScopedStudioSampleProps = (

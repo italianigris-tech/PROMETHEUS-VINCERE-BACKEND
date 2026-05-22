@@ -5,3 +5,7 @@ dist
 *.log
 coverage
 out/*.tmp
+public/fonts/house/**/*.otf
+public/fonts/house/**/*.ttf
+public/fonts/house/**/*.woff
+public/fonts/house/**/*.woff2

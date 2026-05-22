@@ -1,0 +1,10 @@
+{
+  "audio_format": "mp3",
+  "audio_quality": "0",
+  "embed_metadata": true,
+  "keep_video": false,
+  "output_directory": "downloads",
+  "skip_errors": true,
+  "skip_duplicates": true,
+  "duplicate_threshold": 0.85
+}

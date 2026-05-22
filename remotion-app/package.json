@@ -30,6 +30,7 @@
     "embed-fonts": "tsx scripts/font-embed.ts",
     "build-font-graph": "tsx scripts/font-build-graph.ts",
     "font-pipeline-all": "tsx scripts/font-pipeline-all.ts",
+    "fonts:check": "tsx scripts/fonts-check.ts",
     "ingest-fonts-to-milvus": "tsx scripts/font-ingest-to-milvus.ts",
     "typography:audit": "npx tsx scripts/typography-audit.ts",
     "typography:graph": "npx tsx scripts/typography-graph.ts",

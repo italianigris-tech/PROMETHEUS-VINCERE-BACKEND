@@ -6,6 +6,13 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
+    "music:rehearsal": "tsx src/music/scripts/run-music-rehearsal.ts",
+    "music:preflight": "tsx src/music/scripts/validate-music-preflight.ts",
+    "music:preview-mix": "tsx src/music/scripts/render-music-preview-mix.ts",
+    "music:dj:smoke": "tsx src/music/scripts/music-dj-smoke.ts",
+    "music:catalog:normalize": "tsx src/music/scripts/normalize-r2-music-catalog.ts",
+    "music:catalog:smoke": "tsx src/music/scripts/smoke-music-catalog-api.ts",
+    "music:upload:r2": "tsx src/music/scripts/upload-music-library-to-r2.ts",
     "test": "vitest run --configLoader native --pool threads",
     "test:watch": "vitest --configLoader native --pool threads",
     "typecheck": "tsc --noEmit"
@@ -16,11 +23,13 @@
     "@fastify/cors": "^8.5.0",
     "@fastify/multipart": "^8.3.1",
     "@zilliz/milvus2-sdk-node": "^2.6.13",
+    "adm-zip": "^0.5.17",
     "dotenv": "^17.4.2",
     "fastify": "^4.29.1",
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@types/adm-zip": "^0.5.8",
     "@types/node": "^25.3.0",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",

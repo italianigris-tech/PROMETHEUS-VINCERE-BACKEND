@@ -1,5 +1,30 @@
 import {z} from "zod";
 
+export const renderFeatureActivationSchema = z.object({
+  requested: z.boolean(),
+  activated: z.boolean(),
+  fallbackUsed: z.boolean(),
+  fallbackReason: z.string().optional(),
+  artifactPath: z.string().optional(),
+  evidence: z.array(z.string()).default([])
+});
+
+export type RenderFeatureActivation = z.infer<typeof renderFeatureActivationSchema>;
+
+export const renderStyleAuthoritySchema = z.object({
+  requestedStyle: z.string().nullable(),
+  appliedStyle: z.string().nullable(),
+  motionPreset: z.string().nullable(),
+  typographyMode: z.string().nullable(),
+  speechRateEstimate: z.number().nonnegative().nullable(),
+  materialChangesVerified: z.boolean(),
+  deviations: z.array(z.string()).default([]),
+  styleDeviationWarnings: z.array(z.string()).default([]),
+  evidence: z.array(z.string()).default([])
+});
+
+export type RenderStyleAuthority = z.infer<typeof renderStyleAuthoritySchema>;
+
 export const renderDiagnosticsSchema = z.object({
   jobId: z.string(),
   previewEngine: z.enum(["hyperframes", "remotion"]),
@@ -37,6 +62,13 @@ export const renderDiagnosticsSchema = z.object({
     fallbackAnimationUsed: z.boolean(),
     fallbackReasons: z.array(z.string())
   }),
+  features: z.object({
+    gsap: renderFeatureActivationSchema,
+    kineticTypography: renderFeatureActivationSchema,
+    audioMix: renderFeatureActivationSchema.optional(),
+    fonts: renderFeatureActivationSchema
+  }),
+  styleAuthority: renderStyleAuthoritySchema.optional(),
   warnings: z.array(z.string()),
   pipelineTrace: z.object({
     jobId: z.string(),

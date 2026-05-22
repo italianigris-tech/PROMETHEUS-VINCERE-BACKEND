@@ -23,4 +23,36 @@ describe("creativeDecisionManifestSchema", () => {
     delete payload.typography;
     expect(() => creativeDecisionManifestSchema.parse(payload)).toThrowError();
   });
+
+  it("accepts explicit motion dialect payloads", async () => {
+    const raw = await readFile(fixturePath, "utf8");
+    const payload = JSON.parse(raw) as Record<string, any>;
+    payload.motionDialect = {
+      sceneRestraintApplied: false,
+      segments: [
+        {
+          label: "segment_1",
+          moment: "Pause/Restraint",
+          startMs: 1200,
+          endMs: 1900,
+          intensity: 0.24,
+          highIntensityDensity: 0.1,
+          text: "Wait for the silence.",
+          dialect: {
+            motionPreset: "pauseRestraint",
+            axis: "y",
+            yDriftPx: 18,
+            opacityRange: [0.92, 1],
+            whip: false,
+            heavyWeight: false,
+            durationScale: 1.2,
+            staggerMs: 42,
+            intensity: 0.24
+          }
+        }
+      ]
+    };
+
+    expect(() => creativeDecisionManifestSchema.parse(payload)).not.toThrow();
+  });
 });

@@ -557,7 +557,13 @@ export const CreativeAudioPreview: React.FC<CreativeAudioPreviewProps> = ({
         stabilizePreviewTimeline={false}
         previewTimelineResetVersion={previewTimelineResetVersion}
       />
-      {hideCaptionOverlays ? null : resolvedPresentationMode === "long-form" && longformCaptionRenderMode === "word-by-word" ? (
+      {hideCaptionOverlays ? null : resolvedPresentationMode === "long-form" && longformCaptionRenderMode === "svg" ? (
+        <SvgCaptionOverlay
+          chunks={svgCaptionChunks}
+          captionBias={motionModel.captionBias}
+          editorialContext={captionEditorialContext}
+        />
+      ) : resolvedPresentationMode === "long-form" && longformCaptionRenderMode === "word-by-word" ? (
         <LongformWordByWordOverlay
           captionProfileId={effectiveCaptionProfileId}
           chunks={captionChunks}

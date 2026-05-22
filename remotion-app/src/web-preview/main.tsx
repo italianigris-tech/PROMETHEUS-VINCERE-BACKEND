@@ -1,7 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 
-import {loadHouseTypographyFonts} from "../lib/cinematic-typography/house-font-loader";
 import {primeRuntimeFontBootstrap} from "../lib/font-intelligence/font-runtime-loader";
 import {PreviewApp} from "./PreviewApp";
 import "./preview.css";
@@ -11,8 +10,6 @@ const rootElement = document.getElementById("root");
 if (!rootElement) {
   throw new Error("Preview root element was not found.");
 }
-
-loadHouseTypographyFonts();
 
 type RootErrorBoundaryState = {
   hasError: boolean;

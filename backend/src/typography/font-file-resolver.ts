@@ -20,6 +20,7 @@ type FontManifestEntry = {
 type ResolvedFontCandidate = {
   family: string;
   filePath: string;
+  browserUrl: string;
   readabilityScore: number;
   expressivenessScore: number;
   roles: string[];
@@ -44,6 +45,8 @@ const isRenderableFontExtension = (extension: string | undefined): boolean => {
   const normalized = (extension ?? "").toLowerCase();
   return normalized === ".ttf" || normalized === ".otf";
 };
+
+const toBrowserFontUrl = (_filePath: string): string => "";
 
 const loadFontCandidates = (): ResolvedFontCandidate[] => {
   if (cachedCandidates) {
@@ -73,6 +76,7 @@ const loadFontCandidates = (): ResolvedFontCandidate[] => {
     return [{
       family,
       filePath,
+      browserUrl: toBrowserFontUrl(filePath),
       readabilityScore: Number(entry.inferred?.readabilityScore ?? 0),
       expressivenessScore: Number(entry.inferred?.expressivenessScore ?? 0),
       roles: Array.isArray(entry.inferred?.roles)

@@ -29,6 +29,38 @@ const sessionPlaceholderSchema = z.object({
   line2: z.string().nullable()
 });
 
+const hyperframesTypographySourceSchema = z.object({
+  publicPath: z.string(),
+  format: z.enum(["ttf", "otf", "woff", "woff2"]),
+  weight: z.number().int().positive().optional(),
+  style: z.string().optional()
+});
+
+const hyperframesTypographyFontSchema = z.object({
+  family: z.string(),
+  browserUrl: z.string().optional(),
+  sources: z.array(hyperframesTypographySourceSchema).default([])
+});
+
+const hyperframesPreviewDiagnosticsSchema = z.object({
+  fontProof: z.object({
+    fontsRequestedFromManifest: z.array(z.string()).default([]),
+    fontFilesResolved: z.array(z.string()).default([]),
+    fontFilesLoadedIntoComposition: z.array(z.string()).default([]),
+    fontCssGenerated: z.boolean().default(false),
+    fallbackFontsUsed: z.array(z.string()).default([]),
+    fallbackReasons: z.array(z.string()).default([])
+  }).optional(),
+  animationProof: z.object({
+    animationRequestedFromManifest: z.string().nullable().optional(),
+    animationRetrievedFromMilvus: z.boolean().optional(),
+    retrievedAnimationId: z.string().nullable().optional(),
+    gsapTimelineGenerated: z.boolean().optional(),
+    fallbackAnimationUsed: z.boolean().optional(),
+    fallbackReasons: z.array(z.string()).default([])
+  }).optional()
+}).passthrough();
+
 const previewSessionStateSchema = z.object({
   id: z.string(),
   status: z.string(),
@@ -100,6 +132,11 @@ export const hyperframesPreviewManifestSchema = z.object({
     transcriptWords: z.array(transcriptWordSchema),
     placeholder: sessionPlaceholderSchema
   }),
+  typography: z.object({
+    primaryFont: hyperframesTypographyFontSchema,
+    secondaryFont: hyperframesTypographyFontSchema.optional()
+  }).optional(),
+  diagnostics: hyperframesPreviewDiagnosticsSchema.optional(),
   export: z.object({
     remotion: z.object({
       available: z.boolean(),

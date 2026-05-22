@@ -37,7 +37,6 @@ import {
   type EditorialFontPalette,
   type EditorialFontPaletteId
 } from "./font-runtime-registry";
-import {loadHouseTypographyFonts} from "./house-font-loader";
 
 export {
   EDITORIAL_FONT_PALETTES,
@@ -234,6 +233,4 @@ export const loadEditorialCaptionFonts = (): void => {
       }
     }
   }
-
-  loadHouseTypographyFonts();
 };

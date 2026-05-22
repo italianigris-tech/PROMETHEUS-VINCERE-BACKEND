@@ -42,9 +42,32 @@ const buildVideoFallbackResult = async (
   };
 };
 
+const buildHtmlCompositionResult = async (
+  request: RenderRequest,
+  warning?: string
+): Promise<RenderResult> => {
+  const indexHtmlPath = path.join(request.compositionDir, "index.html");
+  await stat(indexHtmlPath);
+  return {
+    previewUrl: `/api/edit-sessions/${request.sessionId}/preview-artifact`,
+    localPath: indexHtmlPath,
+    engine: "hyperframes",
+    renderTimeMs: 0,
+    artifactKind: "html_composition",
+    contentType: "text/html; charset=utf-8",
+    warnings: warning ? [warning] : []
+  };
+};
+
 export class LocalHyperFramesRenderAdapter implements RenderAdapter {
   public async render(request: RenderRequest): Promise<RenderResult> {
     const startedAt = Date.now();
+    if (request.preferHtmlComposition) {
+      const result = await buildHtmlCompositionResult(request);
+      result.renderTimeMs = Date.now() - startedAt;
+      return result;
+    }
+
     const sourceMediaPath = request.sourceMediaPath?.trim() ?? "";
     if (!sourceMediaPath) {
       const fallback = await buildVideoFallbackResult(

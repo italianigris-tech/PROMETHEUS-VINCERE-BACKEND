@@ -6,6 +6,7 @@ export type RenderRequest = {
   outputDir: string;
   manifest: CreativeDecisionManifest;
   sourceMediaPath?: string | null;
+  preferHtmlComposition?: boolean;
 };
 
 export type RenderResult = {

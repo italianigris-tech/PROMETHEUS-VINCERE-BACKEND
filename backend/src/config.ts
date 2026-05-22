@@ -7,6 +7,7 @@ import {z} from "zod";
 const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(8000),
   STORAGE_DIR: z.string().default(path.join(process.cwd(), "data")),
+  REMOTION_ASSETS_DIR: z.string().default(""),
   MAX_UPLOAD_FILE_SIZE_BYTES: z.coerce.number().int().positive().default(500 * 1024 * 1024),
   CORS_ORIGINS: z
     .string()
@@ -37,13 +38,24 @@ const envSchema = z.object({
   GOD_MIN_OVERALL_SCORE: z.coerce.number().min(0).max(1).default(0.75),
   GOD_MAX_BRIEF_SIMILARITY: z.coerce.number().min(0).max(1).default(0.88),
   GOD_AUTO_PROMOTE: z.string().default("false"),
+  CLOUDFLARE_API_TOKEN: z.string().default(""),
+  CLOUDFLARE_ACCOUNT_ID: z.string().default(""),
   R2_ACCOUNT_ID: z.string().default(""),
   R2_ENDPOINT: z.string().default(""),
   R2_ACCESS_KEY_ID: z.string().default(""),
   R2_SECRET_ACCESS_KEY: z.string().default(""),
+  R2_BUCKET_NAME: z.string().default(""),
+  MUSIC_R2_CATALOG_PATH: z.string().default(""),
+  MUSIC_R2_PUBLIC_BASE_URL: z.string().default(""),
+  MUSIC_R2_SIGNED_PREVIEW_URLS_ENABLED: z
+    .union([z.literal("true"), z.literal("false"), z.boolean()])
+    .transform((value) => value === true || value === "true")
+    .default(false),
+  MUSIC_R2_SIGNED_PREVIEW_TTL_SECONDS: z.coerce.number().int().positive().default(900),
   R2_UPLOAD_BUCKET: z.string().default("prometheus-uploads"),
   R2_PUBLIC_UPLOADS_BASE: z.string().default(""),
   R2_UPLOAD_URL_EXPIRES_SECONDS: z.coerce.number().int().positive().default(600),
+  MUSIC_LIBRARY_PATH: z.string().default(""),
   ASSET_MILVUS_ENABLED: z
     .union([z.literal("true"), z.literal("false"), z.boolean()])
     .transform((value) => value === true || value === "true")
@@ -55,6 +67,7 @@ const envSchema = z.object({
   MILVUS_DATABASE: z.string().default("default"),
   MILVUS_COLLECTION: z.string().default("prometheus_creative_assets"),
   MILVUS_COLLECTION_ASSETS: z.string().default("unified_motion_graphics_assets"),
+  MILVUS_COLLECTION_FONTS: z.string().default("prometheus_fonts"),
   EMBEDDING_PROVIDER: z.enum(["openai", "local-test", "local-hf", "bge-m3-local"]).default("local-hf"),
   EMBEDDING_MODEL: z.string().default("BAAI/bge-small-en-v1.5"),
   EMBEDDING_DIMENSIONS: z.coerce.number().int().positive().default(384),
@@ -158,6 +171,7 @@ const normalizeMilvusAddress = (value: string): string => {
 const loadDotenvFallbacks = (): void => {
   const sharedRoot = path.resolve(process.cwd(), "..");
   const remotionRoot = path.resolve(sharedRoot, "remotion-app");
+  const consolidatedEnvPath = path.resolve(sharedRoot, "CONSOLIDATED.env");
 
   if (!overrideWarningLogged) {
     const backendLocalPath = path.resolve(process.cwd(), ".env.local");
@@ -194,6 +208,9 @@ const loadDotenvFallbacks = (): void => {
   loadDotenv();
   loadDotenv({
     path: path.resolve(sharedRoot, ".env")
+  });
+  loadDotenv({
+    path: consolidatedEnvPath
   });
   loadDotenv({
     path: path.resolve(remotionRoot, ".env")

@@ -58,6 +58,12 @@ const buildManifest = (overrides?: Partial<CreativeDecisionManifest["typography"
     allowHeavyEffectsInPreview: false,
     finalOnlyEffects: []
   },
+  style: {
+    requestedStyle: "cinematic-premium-clean",
+    motionTier: "premium",
+    captionProfileId: "longform_svg_typography_v1",
+    speechRateEstimate: 2.9
+  },
   diagnostics: {
     manifestCreatedAt: new Date().toISOString(),
     milvusUsed: true,
@@ -79,14 +85,21 @@ describe("PreviewRenderService", () => {
       const service = new PreviewRenderService();
       const result = await service.createPreviewArtifact({
         manifest: buildManifest(),
-        sessionRenderDir: tempRoot
+        sessionRenderDir: tempRoot,
+        enableGsapMotion: true,
+        enableKineticTypography: true,
+        preferHtmlComposition: true
       });
       expect(result.previewUrl).toBe("/api/edit-sessions/job_preview_1/preview-artifact");
       expect(result.localPath.endsWith(path.join("composition", "index.html"))).toBe(true);
       expect(result.engine).toBe("hyperframes");
       expect(result.artifactKind).toBe("html_composition");
       expect(result.contentType).toBe("text/html; charset=utf-8");
-      expect(result.diagnostics.warnings[0]).toContain("fell back to HTML composition");
+      expect(result.diagnostics.features.gsap.activated).toBe(true);
+      expect(result.diagnostics.features.gsap.evidence.length).toBeGreaterThan(0);
+      expect(result.diagnostics.features.kineticTypography.activated).toBe(false);
+      expect(result.diagnostics.styleAuthority.motionPreset).toBe("softSlideRight");
+      expect(result.diagnostics.styleAuthority.evidence.length).toBeGreaterThan(0);
     } finally {
       await rm(tempRoot, {recursive: true, force: true});
     }
@@ -146,7 +159,9 @@ describe("PreviewRenderService", () => {
           }
         },
         sessionRenderDir: tempRoot,
-        sourceMediaPath: sourceVideoPath
+        sourceMediaPath: sourceVideoPath,
+        enableGsapMotion: true,
+        preferHtmlComposition: false
       });
 
       expect(result.artifactKind).toBe("video");
@@ -154,6 +169,11 @@ describe("PreviewRenderService", () => {
       expect(result.localPath.endsWith("preview-artifact.mp4")).toBe(true);
       await expect(stat(result.localPath)).resolves.toBeDefined();
       expect(result.diagnostics.warnings).toEqual([]);
+      expect(result.diagnostics.animationProof.gsapTimelineGenerated).toBe(false);
+      expect(result.diagnostics.features.gsap.activated).toBe(false);
+      expect(result.diagnostics.features.gsap.fallbackUsed).toBe(true);
+      expect(result.diagnostics.features.gsap.fallbackReason).toContain("FFmpeg drawtext video path");
+      expect(result.diagnostics.styleAuthority.styleDeviationWarnings.join(" ")).toContain("video fallback path");
     } finally {
       await rm(tempRoot, {recursive: true, force: true});
     }

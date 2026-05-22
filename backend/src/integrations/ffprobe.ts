@@ -1,8 +1,5 @@
 import {execFile} from "node:child_process";
-import {promisify} from "node:util";
 import {z} from "zod";
-
-const execFileAsync = promisify(execFile);
 
 const ffprobeSchema = z.object({
   streams: z.array(
@@ -48,15 +45,24 @@ const parseFps = (value: string | undefined): number => {
 };
 
 export const probeVideoMetadata = async (videoPath: string): Promise<VideoProbeResult> => {
-  const {stdout} = await execFileAsync("ffprobe", [
-    "-v",
-    "error",
-    "-show_streams",
-    "-show_format",
-    "-of",
-    "json",
-    videoPath
-  ]);
+  const stdout = await new Promise<string>((resolve, reject) => {
+    execFile("ffprobe", [
+      "-v",
+      "error",
+      "-show_streams",
+      "-show_format",
+      "-of",
+      "json",
+      videoPath
+    ], (error, output) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+
+      resolve(output);
+    });
+  });
 
   const parsed = ffprobeSchema.parse(JSON.parse(stdout) as unknown);
   const videoStream = parsed.streams.find((stream) => stream.codec_type === "video");

@@ -16,7 +16,8 @@ import {createEditSessionId} from "../utils/ids";
 import {renderDiagnosticsSchema, type RenderDiagnostics} from "../contracts/render-diagnostics";
 import {type CreativeDecisionManifest} from "../contracts/creative-decision-manifest";
 import {generateTypographyDecision} from "../typography/typography-decision-engine";
-import {resolveRequestedOrFallbackFontPair} from "../typography/font-file-resolver";
+import {ZillizFontResolver} from "../typography/zilliz-font-resolver";
+import {buildMotionDialectPlan} from "../typography/motion-dialect-engine";
 import {selectTextAnimation} from "../animation/animation-retrieval-engine";
 import {PreviewRenderService} from "../render/preview-render-service";
 import {resolveRenderAuthority} from "../render/render-authority";
@@ -39,6 +40,7 @@ import {
   type EditSessionUploadCompleteRequest
 } from "./types";
 import {EditSessionStore} from "./store";
+import type {ResolvedVibeFont} from "../typography/zilliz-font-resolver";
 
 const PREVIEW_AUDIO_SAMPLE_RATE = 16000;
 const PREVIEW_AUDIO_CHUNK_MS = 50;
@@ -59,6 +61,11 @@ const RENDER_STAGE_PROGRESS: Record<string, number> = {
 
 const nowIso = (deps: EditSessionDependencies): string => {
   return deps.now ? deps.now() : new Date().toISOString();
+};
+
+type PreparedCreativeDecisionManifest = {
+  manifest: CreativeDecisionManifest;
+  previewManifestTypography?: EditSessionPreviewManifest["typography"];
 };
 
 const normalizeText = (value: string): string => {
@@ -230,6 +237,136 @@ const buildMotionGraphicsSummary = ({
   };
 };
 
+const readStringMetadata = (metadata: Record<string, unknown>, candidates: string[]): string | null => {
+  for (const candidate of candidates) {
+    const value = metadata[candidate];
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+
+  return null;
+};
+
+const readNumberMetadata = (metadata: Record<string, unknown>, candidates: string[]): number | null => {
+  for (const candidate of candidates) {
+    const value = metadata[candidate];
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value;
+    }
+  }
+
+  return null;
+};
+
+const inferManifestFontFormat = (publicPath: string): "ttf" | "otf" | "woff" | "woff2" | null => {
+  const normalized = publicPath.trim().replace(/[?#].*$/, "");
+  const match = normalized.toLowerCase().match(/\.(ttf|otf|woff2|woff)$/);
+  if (!match) {
+    return null;
+  }
+
+  return match[1] as "ttf" | "otf" | "woff" | "woff2";
+};
+
+const absolutizeManifestFontUrl = (candidate: string, fontBaseUrl?: string | null): string => {
+  if (/^https?:\/\//i.test(candidate)) {
+    return candidate;
+  }
+
+  if (!fontBaseUrl || !candidate.startsWith("/")) {
+    return candidate;
+  }
+
+  return `${fontBaseUrl.replace(/\/+$/, "")}${candidate}`;
+};
+
+const buildPreviewManifestTypography = (
+  session: EditSessionState,
+  {fontBaseUrl}: {fontBaseUrl?: string | null} = {}
+) => {
+  const metadata = session.metadata as Record<string, unknown>;
+  const typography = (metadata.previewManifestTypography ?? null) as Record<string, unknown> | null;
+  if (!typography) {
+    return undefined;
+  }
+
+  const mapFont = (candidate: unknown) => {
+    if (!candidate || typeof candidate !== "object") {
+      return null;
+    }
+
+    const record = candidate as Record<string, unknown>;
+    const family = typeof record.family === "string" ? record.family.trim() : "";
+    if (!family) {
+      return null;
+    }
+
+    const browserUrl = typeof record.browserUrl === "string" && record.browserUrl.trim()
+      ? absolutizeManifestFontUrl(record.browserUrl.trim(), fontBaseUrl)
+      : undefined;
+    const sources = Array.isArray(record.sources)
+      ? record.sources.flatMap((entry) => {
+          if (!entry || typeof entry !== "object") {
+            return [];
+          }
+
+          const sourceRecord = entry as Record<string, unknown>;
+          const publicPath = typeof sourceRecord.publicPath === "string" && sourceRecord.publicPath.trim()
+            ? absolutizeManifestFontUrl(sourceRecord.publicPath.trim(), fontBaseUrl)
+            : "";
+          const format = inferManifestFontFormat(publicPath);
+          if (!publicPath || !format) {
+            return [];
+          }
+
+          return [{
+            publicPath,
+            format,
+            weight: typeof sourceRecord.weight === "number" ? sourceRecord.weight : 400,
+            style: typeof sourceRecord.style === "string" ? sourceRecord.style : "normal"
+          }];
+        })
+      : [];
+
+    return {
+      family,
+      browserUrl,
+      sources
+    };
+  };
+
+  const primaryFont = mapFont(typography.primaryFont);
+  const secondaryFont = mapFont(typography.secondaryFont);
+  if (!primaryFont) {
+    return undefined;
+  }
+
+  return {
+    primaryFont,
+    secondaryFont: secondaryFont ?? undefined
+  };
+};
+
+const buildPreviewManifestFont = (
+  font: Pick<ResolvedVibeFont, "family" | "browserUrl" | "sources"> | undefined
+) => {
+  if (!font) {
+    return undefined;
+  }
+
+  return {
+    family: font.family,
+    browserUrl: font.browserUrl,
+    sources: font.sources.map((source) => ({
+      publicPath: source.browserUrl,
+      format: source.format,
+      weight: 400,
+      style: "normal"
+    }))
+  };
+};
+
 const buildPreviewDiagnostics = ({
   session,
   renderConfig,
@@ -266,6 +403,8 @@ const buildPreviewDiagnostics = ({
   const metadata = session.metadata as Record<string, unknown>;
   const fontProofFromMetadata = (metadata.previewFontProof ?? null) as Record<string, unknown> | null;
   const animationProofFromMetadata = (metadata.previewAnimationProof ?? null) as Record<string, unknown> | null;
+  const featureDiagnosticsFromMetadata = (metadata.previewFeatureDiagnostics ?? null) as Record<string, unknown> | null;
+  const styleAuthorityFromMetadata = (metadata.previewStyleAuthority ?? null) as Record<string, unknown> | null;
   const previewArtifactKind =
     metadata.previewArtifactKind === "html_composition" || metadata.previewArtifactKind === "video"
       ? metadata.previewArtifactKind
@@ -277,6 +416,28 @@ const buildPreviewDiagnostics = ({
   const previewArtifactWarnings = Array.isArray(metadata.previewArtifactWarnings)
     ? metadata.previewArtifactWarnings.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
     : [];
+  const gsapFeatureFromMetadata = (
+    featureDiagnosticsFromMetadata && typeof featureDiagnosticsFromMetadata.gsap === "object"
+      ? featureDiagnosticsFromMetadata.gsap
+      : null
+  ) as Record<string, unknown> | null;
+  const kineticFeatureFromMetadata = (
+    featureDiagnosticsFromMetadata && typeof featureDiagnosticsFromMetadata.kineticTypography === "object"
+      ? featureDiagnosticsFromMetadata.kineticTypography
+      : null
+  ) as Record<string, unknown> | null;
+  const fontFeatureFromMetadata = (
+    featureDiagnosticsFromMetadata && typeof featureDiagnosticsFromMetadata.fonts === "object"
+      ? featureDiagnosticsFromMetadata.fonts
+      : null
+  ) as Record<string, unknown> | null;
+
+  if (typeof gsapFeatureFromMetadata?.fallbackReason === "string" && gsapFeatureFromMetadata.fallbackReason.trim()) {
+    fallbackReasons.push(gsapFeatureFromMetadata.fallbackReason.trim());
+  }
+  if (typeof kineticFeatureFromMetadata?.fallbackReason === "string" && kineticFeatureFromMetadata.fallbackReason.trim()) {
+    fallbackReasons.push(kineticFeatureFromMetadata.fallbackReason.trim());
+  }
 
   return renderDiagnosticsSchema.parse({
     jobId: session.id,
@@ -301,7 +462,7 @@ const buildPreviewDiagnostics = ({
       ? animationProofFromMetadata.animationRequestedFromManifest
       : null,
     fallbackUsed: fallbackReasons.length > 0,
-    fallbackReasons,
+    fallbackReasons: [...new Set(fallbackReasons)],
     legacyOverlayUsed: renderConfig.ENABLE_LEGACY_OVERLAY,
     remotionUsed,
     hyperframesUsed: renderConfig.PREVIEW_ENGINE === "hyperframes",
@@ -338,6 +499,77 @@ const buildPreviewDiagnostics = ({
         ? animationProofFromMetadata.fallbackReasons as string[]
         : []
     },
+    features: {
+      gsap: {
+        requested: Boolean(gsapFeatureFromMetadata?.requested),
+        activated: Boolean(gsapFeatureFromMetadata?.activated),
+        fallbackUsed: Boolean(gsapFeatureFromMetadata?.fallbackUsed),
+        fallbackReason: typeof gsapFeatureFromMetadata?.fallbackReason === "string"
+          ? gsapFeatureFromMetadata.fallbackReason
+          : undefined,
+        artifactPath: typeof gsapFeatureFromMetadata?.artifactPath === "string"
+          ? gsapFeatureFromMetadata.artifactPath
+          : undefined,
+        evidence: Array.isArray(gsapFeatureFromMetadata?.evidence)
+          ? gsapFeatureFromMetadata.evidence as string[]
+          : []
+      },
+      kineticTypography: {
+        requested: Boolean(kineticFeatureFromMetadata?.requested),
+        activated: Boolean(kineticFeatureFromMetadata?.activated),
+        fallbackUsed: Boolean(kineticFeatureFromMetadata?.fallbackUsed),
+        fallbackReason: typeof kineticFeatureFromMetadata?.fallbackReason === "string"
+          ? kineticFeatureFromMetadata.fallbackReason
+          : undefined,
+        artifactPath: typeof kineticFeatureFromMetadata?.artifactPath === "string"
+          ? kineticFeatureFromMetadata.artifactPath
+          : undefined,
+        evidence: Array.isArray(kineticFeatureFromMetadata?.evidence)
+          ? kineticFeatureFromMetadata.evidence as string[]
+          : []
+      },
+      fonts: {
+        requested: Boolean(fontFeatureFromMetadata?.requested),
+        activated: Boolean(fontFeatureFromMetadata?.activated),
+        fallbackUsed: Boolean(fontFeatureFromMetadata?.fallbackUsed),
+        fallbackReason: typeof fontFeatureFromMetadata?.fallbackReason === "string"
+          ? fontFeatureFromMetadata.fallbackReason
+          : undefined,
+        artifactPath: typeof fontFeatureFromMetadata?.artifactPath === "string"
+          ? fontFeatureFromMetadata.artifactPath
+          : undefined,
+        evidence: Array.isArray(fontFeatureFromMetadata?.evidence)
+          ? fontFeatureFromMetadata.evidence as string[]
+          : []
+      }
+    },
+    styleAuthority: styleAuthorityFromMetadata ? {
+      requestedStyle: typeof styleAuthorityFromMetadata.requestedStyle === "string"
+        ? styleAuthorityFromMetadata.requestedStyle
+        : null,
+      appliedStyle: typeof styleAuthorityFromMetadata.appliedStyle === "string"
+        ? styleAuthorityFromMetadata.appliedStyle
+        : null,
+      motionPreset: typeof styleAuthorityFromMetadata.motionPreset === "string"
+        ? styleAuthorityFromMetadata.motionPreset
+        : null,
+      typographyMode: typeof styleAuthorityFromMetadata.typographyMode === "string"
+        ? styleAuthorityFromMetadata.typographyMode
+        : null,
+      speechRateEstimate: typeof styleAuthorityFromMetadata.speechRateEstimate === "number"
+        ? styleAuthorityFromMetadata.speechRateEstimate
+        : null,
+      materialChangesVerified: Boolean(styleAuthorityFromMetadata.materialChangesVerified),
+      deviations: Array.isArray(styleAuthorityFromMetadata.deviations)
+        ? styleAuthorityFromMetadata.deviations as string[]
+        : [],
+      styleDeviationWarnings: Array.isArray(styleAuthorityFromMetadata.styleDeviationWarnings)
+        ? styleAuthorityFromMetadata.styleDeviationWarnings as string[]
+        : [],
+      evidence: Array.isArray(styleAuthorityFromMetadata.evidence)
+        ? styleAuthorityFromMetadata.evidence as string[]
+        : []
+    } : undefined,
     warnings: [
       ...warnings,
       ...previewArtifactWarnings,
@@ -439,6 +671,21 @@ const CONTENT_TYPE_BY_EXTENSION: Record<string, string> = {
 
 const inferMediaContentType = (filePath: string): string => {
   return CONTENT_TYPE_BY_EXTENSION[path.extname(filePath).toLowerCase()] ?? "application/octet-stream";
+};
+
+const inferMaybeVideoSource = ({
+  sourcePath,
+  sourceFilename
+}: {
+  sourcePath: string | null;
+  sourceFilename: string | null;
+}): boolean => {
+  const candidate = sourcePath ?? sourceFilename ?? "";
+  if (!candidate) {
+    return false;
+  }
+
+  return inferMediaContentType(candidate).startsWith("video/");
 };
 
 const sourcePathExists = async (candidatePath: string | null): Promise<boolean> => {
@@ -686,6 +933,7 @@ export class EditSessionManager {
   private readonly renderQueue = new InProcessQueue(1);
   private readonly renderDriver: EditSessionRenderDriver;
   private readonly previewRenderService: PreviewRenderService;
+  private readonly zillizFontResolver: ZillizFontResolver;
 
   public constructor({
     store,
@@ -702,6 +950,7 @@ export class EditSessionManager {
     this.deps = deps ?? {};
     this.renderDriver = this.deps.renderDriver ?? createDefaultRenderDriver();
     this.previewRenderService = this.deps.previewRenderService ?? new PreviewRenderService();
+    this.zillizFontResolver = new ZillizFontResolver(env);
   }
 
   public async initialize(): Promise<void> {
@@ -863,7 +1112,12 @@ export class EditSessionManager {
     };
   }
 
-  public async getPreviewManifest(sessionId: string): Promise<EditSessionPreviewManifest> {
+  public async getPreviewManifest(
+    sessionId: string,
+    options?: {
+      fontBaseUrl?: string | null;
+    }
+  ): Promise<EditSessionPreviewManifest> {
     let session = await this.loadSession(sessionId);
     let artifactUrl: string | null = null;
     try {
@@ -922,6 +1176,9 @@ export class EditSessionManager {
         transcriptWords: session.transcriptWords,
         placeholder: session.previewPlaceholder
       },
+        typography: buildPreviewManifestTypography(session, {
+          fontBaseUrl: options?.fontBaseUrl
+        }),
       diagnostics: buildPreviewDiagnostics({
         session,
         renderConfig: this.renderConfig,
@@ -1244,7 +1501,7 @@ export class EditSessionManager {
     };
   }
 
-  private buildCreativeDecisionManifest(session: EditSessionState): CreativeDecisionManifest | null {
+  private async buildCreativeDecisionManifest(session: EditSessionState): Promise<PreparedCreativeDecisionManifest | null> {
     const sourceUrl = resolvePreviewManifestSourceUrl(session);
     const transcriptText = normalizeText(session.previewText ?? session.transcriptText ?? "");
     const fallbackPlaceholder = normalizeText(session.previewPlaceholder.copy || PREVIEW_PLACEHOLDER_COPY);
@@ -1259,17 +1516,6 @@ export class EditSessionManager {
       endMs: word.end_ms,
       confidence: word.confidence
     }));
-    const resolvedFontPair = resolveRequestedOrFallbackFontPair("Satoshi", "Canela");
-    const primaryFont = resolvedFontPair?.primary ?? {
-      family: "Arial",
-      filePath: undefined,
-      readabilityScore: 0,
-      expressivenessScore: 0,
-      roles: []
-    };
-    const secondaryFont = resolvedFontPair?.secondary;
-    const fontFallbackReasons = resolvedFontPair?.fallbackReasons ?? ["No ingested custom font pair could be resolved."];
-    const fallbackUsed = transcriptText.length === 0 || fontFallbackReasons.length > 0;
     const sceneWidth = session.sourceWidth ?? 1920;
     const sceneHeight = session.sourceHeight ?? 1080;
     const isPortrait = sceneHeight > sceneWidth;
@@ -1279,108 +1525,194 @@ export class EditSessionManager {
       ? {top: 112, right: 72, bottom: 144, left: 72}
       : {top: 72, right: 96, bottom: 84, left: 96};
     const maxWidthPercent = isPortrait ? 58 : isSquare ? 64 : 72;
+    const metadata = session.metadata as Record<string, unknown>;
+    const requestedStyle = readStringMetadata(metadata, [
+      "user_intent.tone_target",
+      "toneTarget",
+      "style.requestedStyle"
+    ]) ?? (session.motionTier.includes("premium") ? "cinematic-premium-clean" : session.motionTier);
+    const pacingStyle = readStringMetadata(metadata, [
+      "timing_pacing.pacing_style",
+      "pacingStyle"
+    ]);
+    const speechRateEstimate = readNumberMetadata(metadata, [
+      "timing_pacing.speech_rate_estimate",
+      "speechRateEstimate"
+    ]);
+    const motionDialect = buildMotionDialectPlan({
+      metadata: session.metadata as any,
+      transcriptWords: session.transcriptWords
+    });
+    const fontVibeDescriptor = [
+      requestedStyle,
+      pacingStyle ?? "",
+      String(readStringMetadata(metadata, ["user_intent.intent_summary", "intentSummary"]) ?? ""),
+      String(readStringMetadata(metadata, ["user_intent.tone_target", "toneTarget"]) ?? "")
+    ].filter(Boolean).join(" | ");
+    const fontFallbackReasons: string[] = [];
+    type ResolvedManifestFont = Pick<ResolvedVibeFont, "family" | "filePath" | "browserUrl" | "sources"> & {
+      readabilityScore: number;
+      expressivenessScore: number;
+      roles: string[];
+    };
+    let primaryFont: ResolvedManifestFont = {
+      family: "DM Sans",
+      filePath: "",
+      browserUrl: "",
+      sources: [],
+      readabilityScore: 0,
+      expressivenessScore: 0,
+      roles: []
+    };
+    let secondaryFont: typeof primaryFont | undefined;
+    let fontPairReason = "Could not resolve requested Zilliz-backed font pair during manifest bridge phase.";
+    try {
+      const resolvedFontPair = await this.zillizFontResolver.resolveFontsByVibe(
+        fontVibeDescriptor || "premium editorial restraint",
+        2
+      );
+      fontPairReason = resolvedFontPair.query;
+      primaryFont = {
+        family: resolvedFontPair.primary.family,
+        filePath: resolvedFontPair.primary.filePath,
+        browserUrl: resolvedFontPair.primary.browserUrl,
+        sources: resolvedFontPair.primary.sources,
+        readabilityScore: resolvedFontPair.primary.score,
+        expressivenessScore: resolvedFontPair.primary.confidence,
+        roles: [resolvedFontPair.primary.recommendedUsage]
+      };
+      secondaryFont = resolvedFontPair.secondary ? {
+        family: resolvedFontPair.secondary.family,
+        filePath: resolvedFontPair.secondary.filePath,
+        browserUrl: resolvedFontPair.secondary.browserUrl,
+        sources: resolvedFontPair.secondary.sources,
+        readabilityScore: resolvedFontPair.secondary.score,
+        expressivenessScore: resolvedFontPair.secondary.confidence,
+        roles: [resolvedFontPair.secondary.recommendedUsage]
+        } : undefined;
+      fontFallbackReasons.push(...resolvedFontPair.fallbackReasons);
+    } catch (error) {
+      console.error("[ZILLIZ] Cluster unreachable — falling back to system fonts.", error);
+      fontFallbackReasons.push(error instanceof Error ? error.message : String(error));
+    }
+    const fallbackUsed = transcriptText.length === 0 || fontFallbackReasons.length > 0;
+    const previewManifestTypography = {
+      primaryFont: buildPreviewManifestFont(primaryFont)!,
+      secondaryFont: buildPreviewManifestFont(secondaryFont)
+    };
 
     return {
-      manifestVersion: "1.0.0",
-      jobId: session.id,
-      sceneId: `${session.id}-scene-1`,
-      source: {
-        videoUrl: sourceUrl,
-        transcriptSegment: {
-          text: sceneText,
-          startMs: 0,
-          endMs: session.sourceDurationMs ?? 8000,
-          words
+      manifest: {
+        manifestVersion: "1.0.0",
+        jobId: session.id,
+        sceneId: `${session.id}-scene-1`,
+        source: {
+          videoUrl: sourceUrl,
+          transcriptSegment: {
+            text: sceneText,
+            startMs: 0,
+            endMs: session.sourceDurationMs ?? 8000,
+            words
+          }
+        },
+        scene: {
+          durationMs: session.sourceDurationMs ?? 8000,
+          aspectRatio: sceneAspectRatio,
+          width: sceneWidth,
+          height: sceneHeight,
+          fps: session.sourceFps ?? 30
+        },
+        intent: {
+          rhetoricalIntent: "premium_explain",
+          emotionalTone: "cinematic",
+          intensity: 0.62
+        },
+        typography: {
+          mode: "svg_longform_typography_v1",
+          primaryFont: {
+            family: primaryFont.family,
+            source: primaryFont.filePath ? "custom_ingested" : "fallback",
+            fileUrl: primaryFont.filePath || undefined,
+            role: "headline"
+          },
+          secondaryFont: secondaryFont ? {
+            family: secondaryFont.family,
+            source: secondaryFont.filePath ? "custom_ingested" : "fallback",
+            fileUrl: secondaryFont.filePath || undefined,
+            role: "support"
+          } : undefined,
+          fontPairing: {
+            graphUsed: this.renderConfig.ENABLE_FONT_GRAPH,
+            score: 0.9,
+            reason: fontPairReason
+          },
+          coreWords: [],
+          linePlan: {
+            lines: session.previewLines.length > 0 ? session.previewLines : [sceneText],
+            maxLines: 3,
+            maxCharsPerLine: 28,
+            allowWidows: false
+          }
+        },
+        animation: {
+          engine: "gsap",
+          family: "svg_longform_typography_v1",
+          retrievedFromMilvus: this.renderConfig.ENABLE_MILVUS_ANIMATION_RETRIEVAL,
+          easing: "power3.out",
+          staggerMs: 50,
+          entryMs: 300,
+          holdMs: 700,
+          exitMs: 250,
+          motionIntensity: 0.55,
+          avoid: []
+        },
+        layout: {
+          region: "center",
+          safeArea,
+          maxWidthPercent,
+          alignment: "center",
+          preventOverlap: true,
+          zIndexPlan: [
+            {layer: "video", zIndex: 1},
+            {layer: "typography", zIndex: 20}
+          ]
+        },
+        renderBudget: {
+          previewResolution: "720p",
+          previewFps: 30,
+          finalResolution: "1080p",
+          allowHeavyEffectsInPreview: false,
+          finalOnlyEffects: []
+        },
+        motionDialect,
+        style: {
+          requestedStyle,
+          motionTier: session.motionTier,
+          captionProfileId: session.captionProfileId,
+          pacingStyle: pacingStyle ?? undefined,
+          speechRateEstimate
+        },
+        diagnostics: {
+          manifestCreatedAt: nowIso(this.deps),
+          milvusUsed: this.renderConfig.ENABLE_MILVUS_ANIMATION_RETRIEVAL,
+          fontGraphUsed: this.renderConfig.ENABLE_FONT_GRAPH,
+          customFontsUsed: Boolean(primaryFont.filePath),
+          fallbackUsed,
+          fallbackReasons: [
+            ...(transcriptText.length === 0 ? ["Transcript not ready; using placeholder typography copy."] : []),
+            ...fontFallbackReasons
+          ],
+          legacyOverlayUsed: this.renderConfig.ENABLE_LEGACY_OVERLAY,
+          remotionUsed: false,
+          hyperframesUsed: true,
+          overlapCheckPassed: undefined,
+          warnings: [
+            ...(transcriptText.length === 0 ? ["Preview built from placeholder copy while transcript resolves."] : []),
+            ...(fontFallbackReasons.length > 0 ? ["Preview typography requested unavailable families and used explicit ingested fallback files."] : [])
+          ]
         }
       },
-      scene: {
-        durationMs: session.sourceDurationMs ?? 8000,
-        aspectRatio: sceneAspectRatio,
-        width: sceneWidth,
-        height: sceneHeight,
-        fps: session.sourceFps ?? 30
-      },
-      intent: {
-        rhetoricalIntent: "premium_explain",
-        emotionalTone: "cinematic",
-        intensity: 0.62
-      },
-      typography: {
-        mode: "svg_longform_typography_v1",
-        primaryFont: {
-          family: primaryFont.family,
-          source: primaryFont.filePath ? "custom_ingested" : "fallback",
-          fileUrl: primaryFont.filePath,
-          role: "headline"
-        },
-        secondaryFont: secondaryFont ? {
-          family: secondaryFont.family,
-          source: secondaryFont.filePath ? "custom_ingested" : "fallback",
-          fileUrl: secondaryFont.filePath,
-          role: "support"
-        } : undefined,
-        fontPairing: {
-          graphUsed: this.renderConfig.ENABLE_FONT_GRAPH,
-          score: 0.9,
-          reason: resolvedFontPair?.reason ?? "Could not resolve requested ingested font pair during manifest bridge phase."
-        },
-        coreWords: [],
-        linePlan: {
-          lines: session.previewLines.length > 0 ? session.previewLines : [sceneText],
-          maxLines: 3,
-          maxCharsPerLine: 28,
-          allowWidows: false
-        }
-      },
-      animation: {
-        engine: "gsap",
-        family: "svg_longform_typography_v1",
-        retrievedFromMilvus: this.renderConfig.ENABLE_MILVUS_ANIMATION_RETRIEVAL,
-        easing: "power3.out",
-        staggerMs: 50,
-        entryMs: 300,
-        holdMs: 700,
-        exitMs: 250,
-        motionIntensity: 0.55,
-        avoid: []
-      },
-      layout: {
-        region: "center",
-        safeArea,
-        maxWidthPercent,
-        alignment: "center",
-        preventOverlap: true,
-        zIndexPlan: [
-          {layer: "video", zIndex: 1},
-          {layer: "typography", zIndex: 20}
-        ]
-      },
-      renderBudget: {
-        previewResolution: "720p",
-        previewFps: 30,
-        finalResolution: "1080p",
-        allowHeavyEffectsInPreview: false,
-        finalOnlyEffects: []
-      },
-      diagnostics: {
-        manifestCreatedAt: nowIso(this.deps),
-        milvusUsed: this.renderConfig.ENABLE_MILVUS_ANIMATION_RETRIEVAL,
-        fontGraphUsed: this.renderConfig.ENABLE_FONT_GRAPH,
-        customFontsUsed: Boolean(primaryFont.filePath),
-        fallbackUsed,
-        fallbackReasons: [
-          ...(transcriptText.length === 0 ? ["Transcript not ready; using placeholder typography copy."] : []),
-          ...fontFallbackReasons
-        ],
-        legacyOverlayUsed: this.renderConfig.ENABLE_LEGACY_OVERLAY,
-        remotionUsed: false,
-        hyperframesUsed: true,
-        overlapCheckPassed: undefined,
-        warnings: [
-          ...(transcriptText.length === 0 ? ["Preview built from placeholder copy while transcript resolves."] : []),
-          ...(fontFallbackReasons.length > 0 ? ["Preview typography requested unavailable families and used explicit ingested fallback files."] : [])
-        ]
-      }
+      previewManifestTypography
     };
   }
 
@@ -1388,10 +1720,11 @@ export class EditSessionManager {
     if (!this.renderConfig.ENABLE_SERVER_RENDERED_PREVIEW) {
       return null;
     }
-    const manifest = this.buildCreativeDecisionManifest(session);
-    if (!manifest) {
+    const preparedManifest = await this.buildCreativeDecisionManifest(session);
+    if (!preparedManifest) {
       return null;
     }
+    const {manifest, previewManifestTypography} = preparedManifest;
 
     const signature = JSON.stringify({
       previewText: session.previewText ?? "",
@@ -1412,7 +1745,10 @@ export class EditSessionManager {
     const rendered = await this.previewRenderService.createPreviewArtifact({
       manifest,
       sessionRenderDir: this.store.renderDir(session.id),
-      sourceMediaPath: resolveLocalSourcePath(session)
+      sourceMediaPath: resolveLocalSourcePath(session),
+      enableGsapMotion: manifest.animation.engine === "gsap",
+      enableKineticTypography: (manifest.source.transcriptSegment.words?.length ?? 0) > 0,
+      preferHtmlComposition: manifest.animation.engine === "gsap" && this.renderConfig.ENABLE_MANIFEST_TYPOGRAPHY
     });
 
     const relativePath = path.relative(this.store.renderDir(session.id), rendered.localPath);
@@ -1427,8 +1763,11 @@ export class EditSessionManager {
         previewArtifactWarnings: rendered.diagnostics.warnings,
         previewCompositionGenerationTimeMs: rendered.compositionGenerationTimeMs,
         previewRenderTimeMs: rendered.renderTimeMs,
+        previewManifestTypography,
         previewFontProof: rendered.diagnostics.fontProof,
-        previewAnimationProof: rendered.diagnostics.animationProof
+        previewAnimationProof: rendered.diagnostics.animationProof,
+        previewFeatureDiagnostics: rendered.diagnostics.features,
+        previewStyleAuthority: rendered.diagnostics.styleAuthority
       }
     }));
     return rendered.previewUrl;
@@ -1877,7 +2216,11 @@ export class EditSessionManager {
   ): Promise<EditSessionPublicState> {
     const input = editSessionPreviewStartRequestSchema.parse(payload ?? {});
     const current = await this.loadSession(sessionId);
-    if (current.sourceHasVideo !== true) {
+    const maybeVideoSource = inferMaybeVideoSource({
+      sourcePath: current.sourcePath,
+      sourceFilename: current.sourceFilename
+    });
+    if (current.sourceHasVideo !== true && !maybeVideoSource) {
       throw new Error("Live compositor requires a video file with a real video track. Audio-only sources are not allowed in this lane.");
     }
     if (current.previewStartedAt) {

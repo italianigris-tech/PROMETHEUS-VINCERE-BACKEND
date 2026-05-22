@@ -29,6 +29,18 @@ export const registerEditSessionRoutes = async (
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : undefined;
   };
+  const resolveRequestOrigin = (req: FastifyRequest): string | null => {
+    const hostHeader = typeof req.headers.host === "string" ? req.headers.host.trim() : "";
+    if (!hostHeader) {
+      return null;
+    }
+
+    const forwardedProto = typeof req.headers["x-forwarded-proto"] === "string"
+      ? req.headers["x-forwarded-proto"].split(",")[0]?.trim()
+      : "";
+    const protocol = forwardedProto || "http";
+    return `${protocol}://${hostHeader}`;
+  };
 
   app.post("/api/edit-sessions/live-preview", async (req, reply) => {
     try {
@@ -189,7 +201,9 @@ export const registerEditSessionRoutes = async (
   app.get("/api/edit-sessions/:id/preview-manifest", async (req, reply) => {
     try {
       const params = req.params as {id: string};
-      return await manager.getPreviewManifest(params.id);
+      return await manager.getPreviewManifest(params.id, {
+        fontBaseUrl: resolveRequestOrigin(req)
+      });
     } catch (error) {
       reply.code(404);
       return {

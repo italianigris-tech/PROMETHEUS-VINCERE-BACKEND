@@ -1,17 +1,24 @@
-import React, {useEffect, useMemo, useRef} from "react";
+import React, {useCallback, useEffect, useMemo, useRef} from "react";
 import * as THREE from "three";
+import {useCurrentFrame, useVideoConfig} from "remotion";
 
 import {NativePreviewOverlayStage} from "./NativePreviewStage";
 import type {PreviewPlaybackHealth} from "./preview-telemetry";
 import type {PreviewPerformanceMode} from "../lib/types";
 import type {DisplayTimeline, DisplayTimelineLayer} from "./display-god/display-timeline";
 import type {HyperframesPreviewManifest} from "./hyperframes/manifest-schema";
-import {useHyperframesGsapExecutor} from "./hyperframes/gsap-executor";
+import {CinematicBlurText} from "./hyperframes/CinematicBlurText";
+import {
+  useManifestFonts,
+  resolveHyperframesFontFamily
+} from "./hyperframes/manifest-typography";
 import {
   filterCompetingHyperframesTextLayers,
   shouldSuppressNativeCaptionsForHyperframes
 } from "./hyperframes/text-governance";
 import {useHyperframesTimelineController} from "./hyperframes/timeline-controller";
+import {useDirectFrameStyles} from "./hyperframes/useDirectFrameStyles";
+import {useTimelineWorker} from "./hyperframes/useTimelineWorker";
 
 type HyperframesPreviewProps = {
   readonly displayTimeline: DisplayTimeline;
@@ -53,11 +60,21 @@ const resolveTrackLayerPlacementStyle = (layer: DisplayTimelineLayer): React.CSS
   };
 };
 
-const resolveTrackCardStyle = (layer: DisplayTimelineLayer): React.CSSProperties => {
+const resolveTrackCardStyle = ({
+  layer,
+  manifest
+}: {
+  layer: DisplayTimelineLayer;
+  manifest?: HyperframesPreviewManifest | null;
+}): React.CSSProperties => {
   const styleMetadata = layer.styleMetadata ?? {};
   const trackType = typeof styleMetadata["trackType"] === "string" ? styleMetadata["trackType"] : "text";
   const backgroundStyle = typeof styleMetadata["backgroundStyle"] === "string" ? styleMetadata["backgroundStyle"] : "glass-gradient";
-  const fontFamily = trackType === "text" ? "\"DM Serif Display\", \"Playfair Display\", serif" : "\"DM Sans\", sans-serif";
+  const resolvedFamily = resolveHyperframesFontFamily({
+    manifest,
+    trackType
+  });
+  const fontFamily = resolvedFamily.includes(",") ? resolvedFamily : `"${resolvedFamily}"`;
 
   const background =
     backgroundStyle === "subtle-animated-background-grid"
@@ -198,8 +215,11 @@ const HyperframesThreeSceneOverlay: React.FC<{
 
 const HyperframesTrackLayer: React.FC<{
   layer: DisplayTimelineLayer;
-  register: (element: HTMLDivElement | null) => void;
-}> = ({layer, register}) => {
+  manifest?: HyperframesPreviewManifest | null;
+  containerRef: React.RefCallback<HTMLDivElement>;
+  sharpRef: React.RefCallback<HTMLSpanElement>;
+  blurredRef: React.RefCallback<HTMLSpanElement>;
+}> = ({layer, manifest, containerRef, sharpRef, blurredRef}) => {
   const styleMetadata = layer.styleMetadata ?? {};
   const trackType = typeof styleMetadata["trackType"] === "string" ? styleMetadata["trackType"] : "text";
   const title = typeof styleMetadata["title"] === "string" ? styleMetadata["title"] : null;
@@ -209,12 +229,12 @@ const HyperframesTrackLayer: React.FC<{
 
   return (
     <div
-      ref={register}
+      ref={containerRef}
       style={resolveTrackLayerPlacementStyle(layer)}
       data-hyperframes-layer-id={layer.id}
       data-hyperframes-track-type={trackType}
     >
-      <div style={resolveTrackCardStyle(layer)}>
+      <div style={resolveTrackCardStyle({layer, manifest})}>
         {mediaKind === "iframe" && layer.src ? (
           <iframe
             src={layer.src}
@@ -258,9 +278,13 @@ const HyperframesTrackLayer: React.FC<{
         ) : (
           <>
             {title ? (
-              <strong style={{fontSize: "clamp(24px, 2.8vw, 42px)", lineHeight: 1.04, letterSpacing: "-0.02em"}}>
-                {title}
-              </strong>
+              <div style={{position: "relative", minHeight: "clamp(24px, 2.8vw, 42px)"}}>
+                <CinematicBlurText
+                  text={title}
+                  sharpRef={sharpRef}
+                  blurredRef={blurredRef}
+                />
+              </div>
             ) : null}
             {text ? (
               <span style={{fontSize: title ? 16 : "clamp(20px, 2.1vw, 32px)", lineHeight: 1.35, whiteSpace: "pre-wrap"}}>
@@ -293,7 +317,12 @@ export const HyperframesPreview: React.FC<HyperframesPreviewProps> = ({
 }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const layerRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const currentFrame = useCurrentFrame();
+  const {fps} = useVideoConfig();
+  const fontsLoaded = useManifestFonts(manifest);
+  const containerRefs = useRef(new Map<string, HTMLDivElement>());
+  const sharpRefs = useRef(new Map<string, HTMLSpanElement>());
+  const blurredRefs = useRef(new Map<string, HTMLSpanElement>());
   const timelineState = useHyperframesTimelineController(videoRef, displayTimeline.id);
   const interactiveTrackLayers = useMemo(() => {
     return displayTimeline.layers.filter((layer) => layer.kind === "creative-track" && layer.visual);
@@ -318,11 +347,55 @@ export const HyperframesPreview: React.FC<HyperframesPreviewProps> = ({
     };
   }, [displayTimeline.baseVideo]);
 
-  useHyperframesGsapExecutor({
-    layers: visibleTrackLayers,
-    currentTimeMs: timelineState.currentTimeMs,
-    layerElements: layerRefs.current
+  const frameData = useTimelineWorker({
+    manifest: manifest ? {
+      hyperframes: visibleTrackLayers.map((layer) => ({
+        id: layer.id,
+        startX: layer.transform?.translateX ?? 0,
+        endX: layer.transform?.translateX ?? 0,
+        startY: (layer.transform?.translateY ?? 0) + 22,
+        endY: layer.transform?.translateY ?? 0,
+        duration: Math.max(1, Math.round(((layer.endMs - layer.startMs) / 1000) * fps)),
+        startTime: Math.round((layer.startMs / 1000) * fps),
+        ease: layer.easing?.enter ?? "power2.out",
+        text: typeof layer.styleMetadata?.["title"] === "string"
+          ? String(layer.styleMetadata?.["title"])
+          : typeof layer.styleMetadata?.["text"] === "string"
+            ? String(layer.styleMetadata?.["text"])
+            : layer.label
+      }))
+    } : null,
+    fps,
+    durationInFrames: videoMetadata.durationInFrames
   });
+  useDirectFrameStyles(containerRefs, sharpRefs, blurredRefs, frameData);
+
+  const setContainerRef = useCallback((id: string) => (element: HTMLDivElement | null) => {
+    if (element) {
+      containerRefs.current.set(id, element);
+      return;
+    }
+
+    containerRefs.current.delete(id);
+  }, []);
+
+  const setSharpRef = useCallback((id: string) => (element: HTMLSpanElement | null) => {
+    if (element) {
+      sharpRefs.current.set(id, element);
+      return;
+    }
+
+    sharpRefs.current.delete(id);
+  }, []);
+
+  const setBlurredRef = useCallback((id: string) => (element: HTMLSpanElement | null) => {
+    if (element) {
+      blurredRefs.current.set(id, element);
+      return;
+    }
+
+    blurredRefs.current.delete(id);
+  }, []);
 
   useEffect(() => {
     onHealthChange?.(timelineState.health);
@@ -385,15 +458,16 @@ export const HyperframesPreview: React.FC<HyperframesPreviewProps> = ({
       />
 
       <div className="hyperframes-creative-track-host">
-        {visibleTrackLayers.map((layer) => (
+        {fontsLoaded ? visibleTrackLayers.map((layer) => (
           <HyperframesTrackLayer
             key={layer.id}
             layer={layer}
-            register={(element) => {
-              layerRefs.current[layer.id] = element;
-            }}
+            manifest={manifest}
+            containerRef={setContainerRef(layer.id)}
+            sharpRef={setSharpRef(layer.id)}
+            blurredRef={setBlurredRef(layer.id)}
           />
-        ))}
+        )) : null}
       </div>
 
       <div className="hyperframes-preview-pill">
@@ -408,3 +482,9 @@ export const HyperframesPreview: React.FC<HyperframesPreviewProps> = ({
     </div>
   );
 };
+
+export default React.memo(HyperframesPreview, (prev, next) => {
+  return prev.manifest === next.manifest &&
+    prev.displayTimeline === next.displayTimeline &&
+    prev.previewPerformanceMode === next.previewPerformanceMode;
+});

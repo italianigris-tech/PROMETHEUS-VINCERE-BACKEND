@@ -73,36 +73,6 @@ export const clearCachedEnv = (): void => {
   cachedEnv = null;
 };
 
-export const loadEnv = (): AppEnv => {
-  if (cachedEnv) {
-    return cachedEnv;
-  }
-
-  const nodeRequire = (0, eval)("require") as (specifier: string) => unknown;
-  const {config: loadDotenv} = nodeRequire("dotenv") as {
-    config: (options?: {path?: string; override?: boolean}) => void;
-  };
-  const path = nodeRequire("node:path") as {
-    resolve: (...segments: string[]) => string;
-  };
-
-  loadDotenv();
-  loadDotenv({
-    path: path.resolve(process.cwd(), "..", ".env")
-  });
-  loadDotenv({
-    path: path.resolve(process.cwd(), ".env.local"),
-    override: true
-  });
-  loadDotenv({
-    path: path.resolve(process.cwd(), "..", ".env.local"),
-    override: true
-  });
-
-  cachedEnv = parseEnv(process.env);
-  return cachedEnv;
-};
-
 export const parseEnv = (rawEnv: NodeJS.ProcessEnv): AppEnv => {
   const parsed = envSchema.safeParse(rawEnv);
   if (!parsed.success) {

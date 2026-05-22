@@ -5,6 +5,8 @@ import type {
   AudioCreativePreviewAudioStatus,
   AudioCreativePreviewState
 } from "./audio-creative-preview-session";
+import {MusicDjControlPanel} from "../components/music/MusicDjControlPanel";
+import {isMusicCatalogPanelEnabled} from "../components/music/MusicCatalogPanel";
 import {getCaptionStyleProfile} from "../lib/stylebooks/caption-style-profiles";
 
 type CaptionProfileId =
@@ -127,6 +129,12 @@ export const resolveDevLivePreviewLaunchFromSearch = (search: string): DevLivePr
     captionProfileId: resolveCaptionProfileIdFromSearch(params.get("captionProfileId")),
     motionTier: resolveMotionTierFromSearch(params.get("motionTier"))
   };
+};
+
+export const resolveMusicDjJobIdFromSearch = (search: string): string | null => {
+  const params = new URLSearchParams(search);
+  const jobId = params.get("jobId")?.trim() ?? "";
+  return jobId || null;
 };
 
 const isLiveAudioPreviewLane = (deliveryMode: DeliveryMode): boolean => {
@@ -548,7 +556,15 @@ export const PreviewApp: React.FC = () => {
 
     return resolveLivePreviewRendererFromSearch(window.location.search);
   });
+  const [musicDjJobId] = useState<string | null>(() => {
+    if (typeof window === "undefined") {
+      return null;
+    }
+
+    return resolveMusicDjJobIdFromSearch(window.location.search);
+  });
   const previewShellConfig = useMemo(() => resolvePreviewShellConfig(livePreviewRenderer), [livePreviewRenderer]);
+  const showMusicCatalogPanel = import.meta.env.DEV && isMusicCatalogPanelEnabled();
   const isRemotionOnlyShell = previewShellConfig.variant === "remotion-only";
   const [cleanRun, setCleanRun] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -1426,6 +1442,8 @@ export const PreviewApp: React.FC = () => {
             </div>
           </div>
         ) : null}
+
+        {showMusicCatalogPanel ? <MusicDjControlPanel jobId={musicDjJobId} /> : null}
       </aside>
     </div>
   );

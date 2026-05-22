@@ -127,6 +127,8 @@ export const inputManifestSchema = z.object({
   has_sound_design_manifest: z.boolean()
 });
 
+export type InputManifest = z.infer<typeof inputManifestSchema>;
+
 export const jobStageSchema = z.enum([
   "received",
   "analyzing",
@@ -458,6 +460,11 @@ export const jobRecordSchema = z.object({
     motion_plan: z.string().nullable(),
     execution_plan: z.string().nullable(),
     fallback_log: z.string().nullable(),
+    video_aware_audio_plan: z.string().nullable(),
+    video_aware_sound_manifest: z.string().nullable(),
+    video_aware_music_preflight: z.string().nullable().default(null),
+    video_aware_music_overrides: z.string().nullable().default(null),
+    video_aware_audio_preview_mix: z.string().nullable().default(null),
     audio_render_plan: z.string().nullable(),
     audio_master: z.string().nullable(),
     audio_master_aac: z.string().nullable(),

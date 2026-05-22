@@ -1,5 +1,5 @@
-import path from "node:path";
-import {existsSync, readFileSync} from "node:fs";
+﻿import path from "node:path";
+import {readFileSync} from "node:fs";
 
 import {describe, expect, it} from "vitest";
 
@@ -29,8 +29,7 @@ import {
   PROJECT_SCOPED_STUDIO_TYPOGRAPHY_SAMPLE_PROP_GUIDANCE,
   PROJECT_SCOPED_STUDIO_VIDEO_SRC_PROP_GUIDANCE
 } from "../project-scoped-studio-defaults";
-import {getHouseTypographyRuntimeState} from "../../lib/cinematic-typography/house-font-loader";
-import {validateHouseFontRegistry} from "../../lib/cinematic-typography/house-font-registry";
+import {isSvgCaptionChunk} from "../../components/SvgCaptionOverlay";
 import {getLongformCaptionRenderMode} from "../../lib/stylebooks/caption-style-profiles";
 
 describe("Remotion Studio root", () => {
@@ -161,7 +160,7 @@ describe("Remotion Studio root", () => {
         svgCaptionChunks: []
       })
     ).toEqual({
-      activeCaptionRenderer: "word-by-word",
+      activeCaptionRenderer: "svg",
       captionDomNodesExpected: false
     });
     expect(diagnosticWarnings).toContain(PROJECT_SCOPED_STUDIO_ASSET_BINDING_MESSAGE);
@@ -245,11 +244,14 @@ describe("Remotion Studio root", () => {
 
     expect(sampleProps.studioTypographySample).toBe(true);
     expect(PROJECT_SCOPED_STUDIO_TYPOGRAPHY_SAMPLE_PROP_GUIDANCE).toContain("\"studioTypographySample\": true");
+    expect(PROJECT_SCOPED_STUDIO_TYPOGRAPHY_SAMPLE_PROP_GUIDANCE).toContain("\"captionProfileId\": \"longform_svg_typography_v1\"");
+    expect(PROJECT_SCOPED_STUDIO_TYPOGRAPHY_SAMPLE_PROP_GUIDANCE).toContain("\"motionTier\": \"premium\"");
     expect(captionChunks.map((chunk) => chunk.text)).toEqual([
       "PROMETHEUS PREVIEW",
       "TYPOGRAPHY SYSTEM ONLINE",
       "CLIENT DATA ONLY"
     ]);
+    expect(captionChunks.every((chunk) => isSvgCaptionChunk(chunk))).toBe(true);
   });
 
   it("resolves a known studioSampleId to a curated public video asset", () => {
@@ -298,7 +300,7 @@ describe("Remotion Studio root", () => {
     expect(captionChunks.map((chunk) => chunk.text).join(" ")).toContain("Project");
   });
 
-  it("keeps captions visible and reports fallback typography honestly when house fonts are unavailable", () => {
+  it("keeps captions visible and reports typography diagnostics without ghost house-font warnings", () => {
     const sampleProps = buildProjectScopedStudioTypographySampleProps(
       "male-head-longform-dataset",
       "longform_svg_typography_v1"
@@ -315,29 +317,23 @@ describe("Remotion Studio root", () => {
       longformCaptionRenderMode: getLongformCaptionRenderMode("longform_svg_typography_v1"),
       captionChunks,
       cinematicCaptionChunks: [],
-      svgCaptionChunks: []
+      svgCaptionChunks: captionChunks.filter((chunk) => isSvgCaptionChunk(chunk))
     });
     const typographyDiagnostics = resolveProjectScopedTypographyDiagnostics({
       captionChunks,
       activeCaptionRenderer: captionRuntime.activeCaptionRenderer,
-      captionProfileId: "longform_svg_typography_v1",
-      studioTypographySample: true,
       fontRuntimeLoaded: true,
       fontRuntimeWarning: null,
-      requestedFontFamilies: ["Fraunces", "\"DM Sans\", sans-serif"],
-      houseFontRuntimeState: getHouseTypographyRuntimeState()
+      requestedFontFamilies: ["Great Vibes", "Bebas Neue"]
     });
 
     expect(captionRuntime).toEqual({
-      activeCaptionRenderer: "word-by-word",
+      activeCaptionRenderer: "svg",
       captionDomNodesExpected: true
     });
-    expect(typographyDiagnostics.houseFontsAvailable).toBe(false);
-    expect(typographyDiagnostics.enabledHouseFontCount).toBe(0);
-    expect(typographyDiagnostics.loadedHouseFontCount).toBe(0);
-    expect(typographyDiagnostics.activeFallbackFamily).toBe("Fraunces");
+    expect(typographyDiagnostics.activeFallbackFamily).toBe("Great Vibes");
     expect(typographyDiagnostics.fontRuntimeLoaded).toBe(true);
-    expect(typographyDiagnostics.warning).toBe("House fonts unavailable — using fallback typography.");
+    expect(typographyDiagnostics.warning).toBeNull();
     expect(
       buildProjectScopedDiagnosticWarnings({
         videoSrc: "/sample.mp4",
@@ -348,37 +344,31 @@ describe("Remotion Studio root", () => {
         captionChunks,
         fontRuntimeWarning: typographyDiagnostics.warning
       })
-    ).toContain("House fonts unavailable — using fallback typography.");
+    ).not.toContain("House fonts unavailable — using fallback typography.");
   });
 
-  it("reports the disabled and missing house font registry state without faking availability", () => {
-    const registryValidation = validateHouseFontRegistry({
-      fileExists: (fontPath) => existsSync(path.resolve("public", ...fontPath.split("/")))
-    });
+  it("uses a live-preview-specific warning when no session caption data is ready yet", () => {
+    expect(
+      buildProjectScopedDiagnosticWarnings({
+        videoSrc: "http://127.0.0.1:8000/api/edit-sessions/project-a/source",
+        studioSampleId: null,
+        invalidStudioSampleId: null,
+        videoValidationState: "ready",
+        videoValidationMessage: null,
+        captionChunks: [],
+        fontRuntimeWarning: null,
+        diagnosticSurface: "live-preview"
+      })
+    ).toContain(
+      "No caption chunks are available yet. Waiting for session.transcriptWords, previewMotionSequence, or previewLines before rendering typography."
+    );
+  });
 
-    expect(registryValidation.expectedFontFamilies).toEqual([
-      "Jugendreisen",
-      "Louize",
-      "Ivar Script",
-      "Sokoli"
-    ]);
-    expect(registryValidation.expectedFontPaths).toEqual([
-      "fonts/house/jugendreisen/Jugendreisen-Regular.otf",
-      "fonts/house/louize/Louize-Regular.otf",
-      "fonts/house/louize/Louize-Italic.otf",
-      "fonts/house/ivar-script/IvarScript-Regular.otf",
-      "fonts/house/sokoli/Sokoli-Regular.otf"
-    ]);
-    expect(registryValidation.enabledHouseFontCount).toBe(0);
-    expect(registryValidation.houseFontsAvailable).toBe(false);
-    expect(registryValidation.missingExpectedFontPaths).toEqual(registryValidation.expectedFontPaths);
-    expect(registryValidation.missingEnabledFontPaths).toEqual([]);
+  it("keeps the project-scoped video treatment mounted through the cinematic backdrop and vignette layers", () => {
+    const source = readFileSync(path.resolve("src/compositions/ProjectScopedMotionComposition.tsx"), "utf8");
 
-    expect(getHouseTypographyRuntimeState()).toMatchObject({
-      houseFontsAvailable: false,
-      enabledHouseFontCount: 0,
-      loadedHouseFontCount: 0
-    });
+    expect(source).toContain("<MotionVideoBackdrop");
+    expect(source).toContain("<CaptionFocusVignette");
   });
 
   it("surfaces a non-fatal invalid-video diagnostic without relying on polluted Studio defaults", () => {
@@ -432,3 +422,4 @@ describe("Remotion Studio root", () => {
     expect(resolved.invalidStudioSampleId).toBeNull();
   });
 });
+

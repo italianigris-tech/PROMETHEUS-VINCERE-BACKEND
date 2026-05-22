@@ -50,9 +50,17 @@ describe("backend startup", () => {
         method: "GET",
         url: "/health"
       });
+      const zillizHealth = await appContext.app.inject({
+        method: "GET",
+        url: "/health/zilliz"
+      });
 
       expect(response.statusCode).toBe(200);
       expect(response.json()).toEqual({ok: true});
+      expect(zillizHealth.statusCode).toBe(503);
+      expect(zillizHealth.json()).toMatchObject({
+        status: "suspended"
+      });
     } finally {
       await appContext.app.close();
     }

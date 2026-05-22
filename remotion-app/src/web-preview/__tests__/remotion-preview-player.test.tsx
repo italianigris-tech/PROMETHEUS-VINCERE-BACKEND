@@ -1,4 +1,4 @@
-import path from "node:path";
+﻿import path from "node:path";
 import {readFileSync} from "node:fs";
 
 import React from "react";
@@ -10,6 +10,8 @@ import {
   RemotionPreviewPlayer
 } from "../RemotionPreviewPlayer";
 import {resolveProjectScopedCaptionRuntimeDiagnostics} from "../../compositions/ProjectScopedMotionComposition";
+import {isSvgCaptionChunk} from "../../components/SvgCaptionOverlay";
+import type {CaptionChunk} from "../../lib/types";
 
 const playerSnapshots: Array<{
   componentName: string;
@@ -72,7 +74,7 @@ const createMotionModel = (tier: "minimal" | "premium") => ({
   chunks: []
 }) as any;
 
-const captionChunks = [{
+const captionChunks: CaptionChunk[] = [{
   id: "chunk-project-a-1",
   text: "Project A live preview",
   startMs: 0,
@@ -83,11 +85,12 @@ const captionChunks = [{
     {text: "live", startMs: 320, endMs: 520, confidence: 0.99},
     {text: "preview", startMs: 520, endMs: 900, confidence: 0.99}
   ],
-  styleKey: "longform-word-by-word",
-  motionKey: "word-by-word-rise",
+  styleKey: "svg_typography_v1:cinematic_text_preset_10",
+  motionKey: "svg_typography_v1:cinematic_text_preset_10",
   layoutVariant: "inline",
-  emphasisWordIndices: [2, 3]
-}] as any;
+  emphasisWordIndices: [2, 3],
+  profileId: "longform_svg_typography_v1"
+}];
 
 describe("RemotionPreviewPlayer", () => {
   it("routes the active preview through the canonical project-scoped motion composition", () => {
@@ -202,12 +205,12 @@ describe("RemotionPreviewPlayer", () => {
     expect(resolveProjectScopedCaptionRuntimeDiagnostics({
       presentationMode: "long-form",
       hideCaptionOverlays: false,
-      longformCaptionRenderMode: "word-by-word",
+      longformCaptionRenderMode: "svg",
       captionChunks,
       cinematicCaptionChunks: [],
-      svgCaptionChunks: []
+      svgCaptionChunks: captionChunks.filter((chunk) => isSvgCaptionChunk(chunk))
     })).toEqual({
-      activeCaptionRenderer: "word-by-word",
+      activeCaptionRenderer: "svg",
       captionDomNodesExpected: true
     });
   });
@@ -216,8 +219,8 @@ describe("RemotionPreviewPlayer", () => {
     const sourcePath = path.resolve("src/compositions/ProjectScopedMotionComposition.tsx");
     const source = readFileSync(sourcePath, "utf8");
 
-    expect(source).toContain("primeHouseTypographyFonts");
-    expect(source).toContain("House fonts unavailable — using fallback typography.");
+    expect(source).not.toContain("primeHouseTypographyFonts");
+    expect(source).not.toContain("House fonts unavailable — using fallback typography.");
     expect(source).toContain("[ProjectScopedMotionComposition] typography");
   });
 
@@ -237,3 +240,4 @@ describe("RemotionPreviewPlayer", () => {
     expect(source).toContain("data-player-instance-id");
   });
 });
+

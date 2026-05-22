@@ -5,13 +5,8 @@ import {
   type ManifestBackedEditorialFontPalette,
   type ManifestBackedPaletteId
 } from "../font-intelligence/runtime-font-bridge";
-import {
-  getActiveHouseFontDefinitions,
-  type HouseFontPaletteId
-} from "./house-font-registry";
 
 export type EditorialFontPaletteId =
-  | HouseFontPaletteId
   | ManifestBackedPaletteId
   | "fraunces-editorial"
   | "playfair-contrast"
@@ -163,50 +158,6 @@ const toManifestBackedEditorialFontPalette = (
 
 const EDITORIAL_FONT_PALETTE_SEEDS: EditorialFontPaletteSeed[] = [
   {
-    id: "jugendreisen-house",
-    displayFamily: "\"Jugendreisen\", \"Times New Roman\", serif",
-    supportFamily: "\"DM Sans\", sans-serif",
-    italicFamily: "\"Jugendreisen\", \"Times New Roman\", serif",
-    displayWeight: 400,
-    supportWeight: 500,
-    availableWeights: [400],
-    moodTags: ["luxury", "prestige", "cinematic"],
-    doctrineRoleIds: ["hero_serif_primary"]
-  },
-  {
-    id: "louize-house",
-    displayFamily: "\"Louize\", \"Times New Roman\", serif",
-    supportFamily: "\"DM Sans\", sans-serif",
-    italicFamily: "\"Louize\", \"Times New Roman\", serif",
-    displayWeight: 400,
-    supportWeight: 500,
-    availableWeights: [400],
-    moodTags: ["luxury", "editorial", "soft-focus"],
-    doctrineRoleIds: ["hero_serif_alternate"]
-  },
-  {
-    id: "ivar-script-house",
-    displayFamily: "\"Ivar Script\", \"Times New Roman\", serif",
-    supportFamily: "\"DM Sans\", sans-serif",
-    italicFamily: "\"Ivar Script\", \"Times New Roman\", serif",
-    displayWeight: 400,
-    supportWeight: 500,
-    availableWeights: [400],
-    moodTags: ["luxury", "editorial", "accent"],
-    doctrineRoleIds: ["script_accent_rare"]
-  },
-  {
-    id: "sokoli-house",
-    displayFamily: "\"Sokoli\", \"Arial Narrow\", sans-serif",
-    supportFamily: "\"DM Sans\", sans-serif",
-    italicFamily: "\"Sokoli\", \"Arial Narrow\", sans-serif",
-    displayWeight: 400,
-    supportWeight: 500,
-    availableWeights: [400],
-    moodTags: ["directive", "pressure", "display"],
-    doctrineRoleIds: ["display_sans_pressure_release"]
-  },
-  {
     id: "fraunces-editorial",
     displayFamily: "\"Fraunces\", \"Times New Roman\", serif",
     supportFamily: "\"DM Sans\", sans-serif",
@@ -331,11 +282,6 @@ export const getRuntimePaletteIdForTypographyCandidate = (
   const manifestBackedPalette = getManifestBackedPaletteForCandidate(candidateId);
   if (manifestBackedPalette) {
     return manifestBackedPalette.id;
-  }
-
-  const activeHouseFont = getActiveHouseFontDefinitions().find((definition) => definition.candidateId === candidateId);
-  if (activeHouseFont) {
-    return activeHouseFont.paletteId;
   }
   return TYPOGRAPHY_RUNTIME_CANDIDATE_TO_PALETTE[candidateId] ?? null;
 };

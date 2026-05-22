@@ -175,6 +175,18 @@ The frontend panel uses:
 
 The backend also accepts the same request payload on `POST /api/jobs` for the broader orchestration flow.
 
+## Local House Fonts
+
+Licensed house fonts stay local-only under `public/fonts/house/<family>/<file>`.
+
+1. Place each licensed binary at the path referenced in `src/lib/cinematic-typography/house-font-registry.ts`, or update the registry path and format to match your local file.
+2. Set `enabled: true` only for entries whose files actually exist locally.
+3. Run `npm run fonts:check` to verify the expected paths and catch any enabled entry that still points at a missing file.
+4. Restart Remotion Studio or the Vite preview shell.
+5. Confirm the typography diagnostics report `loadedHouseFontCount > 0`.
+
+Do not commit commercial font binaries.
+
 ## Canonical Asset Embedding
 
 The canonical asset retrieval path uses:

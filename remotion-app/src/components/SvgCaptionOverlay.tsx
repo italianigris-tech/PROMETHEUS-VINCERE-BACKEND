@@ -8,6 +8,7 @@ import {
 import {sanitizeRenderableOverlayText, shouldRenderOverlayText} from "../lib/motion-platform/render-text-safety";
 import type {CaptionChunk, CaptionVerticalBias} from "../lib/types";
 import {
+  LONGFORM_SVG_TYPOGRAPHY_PROFILE_ID,
   SVG_TYPOGRAPHY_PROFILE_ID,
   getSvgVariantsForSlotSchema,
   getSvgSlotSchemaForWordCount,
@@ -161,10 +162,46 @@ export type SvgMotionState = {
 };
 
 export const isSvgCaptionChunk = (chunk: CaptionChunk): boolean => {
-  if (chunk.profileId === SVG_TYPOGRAPHY_PROFILE_ID) {
+  if (
+    chunk.profileId === SVG_TYPOGRAPHY_PROFILE_ID ||
+    chunk.profileId === LONGFORM_SVG_TYPOGRAPHY_PROFILE_ID
+  ) {
     return true;
   }
   return isSvgTypographyStyleKey(chunk.styleKey);
+};
+
+const GENERIC_FONT_FAMILY_TOKENS = new Set([
+  "serif",
+  "sans-serif",
+  "cursive",
+  "monospace",
+  "system-ui"
+]);
+
+const extractConcreteFontFamilies = (fontStack: string): string[] => {
+  return fontStack
+    .split(",")
+    .map((segment) => segment.trim().replace(/^['"]|['"]$/g, ""))
+    .filter((segment) => segment.length > 0)
+    .filter((segment) => !GENERIC_FONT_FAMILY_TOKENS.has(segment.toLowerCase()));
+};
+
+export const getSvgCaptionChunkFontFamilies = (chunk?: CaptionChunk | null): string[] => {
+  if (!chunk) {
+    return [];
+  }
+
+  const variant = getSvgTypographyVariantFromStyleKey(chunk.styleKey);
+  if (!variant) {
+    return [];
+  }
+
+  const requestedFamilies = Object.values(variant.fontProfile).flatMap((fontSpec) =>
+    extractConcreteFontFamilies(fontSpec.family)
+  );
+
+  return Array.from(new Set(requestedFamilies));
 };
 
 export const resolveSvgSlotSchemaForChunkWords = (words: string[]): ReturnType<typeof getSvgSlotSchemaForWordCount> => {

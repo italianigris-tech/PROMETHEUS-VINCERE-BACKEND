@@ -17,7 +17,6 @@ import {
   LONGFORM_DRAFT_COMPOSITION_ID,
   LONGFORM_DRAFT_VIDEO_ASSET
 } from "./lib/draft-preview";
-import {HouseFontBootstrap} from "./lib/cinematic-typography/house-font-loader";
 import {RuntimeFontBootstrap} from "./lib/font-intelligence/font-runtime-loader";
 import {getPresentationPreset} from "./lib/presentation-presets";
 import {normalizeCaptionStyleProfileId} from "./lib/stylebooks/caption-style-profiles";
@@ -79,7 +78,6 @@ export const RemotionRoot: React.FC = () => {
 
   return (
     <>
-      <HouseFontBootstrap />
       <RuntimeFontBootstrap />
       <Composition
         id={PROJECT_SCOPED_PREVIEW_COMPOSITION_ID}

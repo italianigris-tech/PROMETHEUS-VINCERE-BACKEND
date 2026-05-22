@@ -7,6 +7,30 @@ const manifestWordSchema = z.object({
   confidence: z.number().min(0).max(1).optional()
 });
 
+const motionDialectSchema = z.object({
+  sceneRestraintApplied: z.boolean(),
+  segments: z.array(z.object({
+    label: z.string().min(1),
+    moment: z.enum(["Hook", "Expansion", "Reinforcement", "Pause/Restraint"]),
+    startMs: z.number().nonnegative(),
+    endMs: z.number().nonnegative(),
+    intensity: z.number().min(0).max(1),
+    highIntensityDensity: z.number().min(0).max(1),
+    text: z.string().min(1),
+    dialect: z.object({
+      motionPreset: z.enum(["hookWhip", "expansionGlide", "reinforcementLock", "pauseRestraint"]),
+      axis: z.enum(["x", "y"]),
+      yDriftPx: z.number(),
+      opacityRange: z.tuple([z.number().min(0).max(1), z.number().min(0).max(1)]),
+      whip: z.boolean(),
+      heavyWeight: z.boolean(),
+      durationScale: z.number().positive(),
+      staggerMs: z.number().nonnegative(),
+      intensity: z.number().min(0).max(1)
+    })
+  }))
+});
+
 export const creativeDecisionManifestSchema = z.object({
   manifestVersion: z.string().min(1),
   jobId: z.string().min(1),
@@ -144,6 +168,14 @@ export const creativeDecisionManifestSchema = z.object({
     allowHeavyEffectsInPreview: z.boolean(),
     finalOnlyEffects: z.array(z.string())
   }),
+  motionDialect: motionDialectSchema.optional(),
+  style: z.object({
+    requestedStyle: z.string().min(1).optional(),
+    motionTier: z.string().min(1).optional(),
+    captionProfileId: z.string().min(1).optional(),
+    pacingStyle: z.string().min(1).optional(),
+    speechRateEstimate: z.number().positive().nullable().optional()
+  }).optional(),
   diagnostics: z.object({
     manifestCreatedAt: z.string().min(1),
     milvusUsed: z.boolean(),

@@ -1,4 +1,6 @@
 import {createReadStream} from "node:fs";
+import {stat} from "node:fs/promises";
+import path from "node:path";
 
 import Fastify, {type FastifyInstance} from "fastify";
 import multipart from "@fastify/multipart";
@@ -22,6 +24,11 @@ import {registerThumbnailRoutes} from "./thumbnail";
 import {AssetRetrievalService} from "./assets/service";
 import {registerAssetRoutes} from "./assets/routes";
 import {VectorRetrievalService} from "./assets/vector-service";
+import {registerMusicCatalogRoutes} from "./music/routes";
+import {createSignedMusicPreviewUrl, type MusicPreviewUrlSigner} from "./music/catalog/r2-preview-url-signer";
+import {FONT_SERVE_PATH, resolveRetrievedFontsDir} from "./config/font-assets";
+import {ZillizHealthMonitor} from "./health/zilliz-keepalive";
+import {resetRetrievedFontsDir} from "./typography/zilliz-font-materializer";
 import {z} from "zod";
 
 const PATTERN_MEMORY_UPDATE_SCHEMA = z.object({
@@ -51,6 +58,7 @@ export type BackendAppContext = {
 export type BackendDependencies = PipelineDependencies & EditSessionDependencies & {
   r2Service?: R2TransferService;
   extractAudioPreviewFile?: LocalPreviewRunnerDependencies["extractAudioPreviewFile"];
+  musicPreviewUrlSigner?: MusicPreviewUrlSigner;
 };
 
 const parseCorsOrigins = (value: string): string[] => {
@@ -81,6 +89,17 @@ const publicStageForJob = (stage: JobStage): string => {
     case "failed":
       return "failed";
   }
+};
+
+const FONT_CONTENT_TYPES: Record<string, string> = {
+  ".otf": "font/otf",
+  ".ttf": "font/ttf",
+  ".woff": "font/woff",
+  ".woff2": "font/woff2"
+};
+
+const inferFontContentType = (filePath: string): string => {
+  return FONT_CONTENT_TYPES[path.extname(filePath).toLowerCase()] ?? "application/octet-stream";
 };
 
 const parseByteRange = (
@@ -143,6 +162,13 @@ export const createBackendApp = async ({
     logger: false,
     bodyLimit: env.MAX_UPLOAD_FILE_SIZE_BYTES
   });
+  const retrievedFontsDir = resolveRetrievedFontsDir(env.REMOTION_ASSETS_DIR);
+  await resetRetrievedFontsDir(retrievedFontsDir);
+  const zillizHealthMonitor = new ZillizHealthMonitor(env);
+  zillizHealthMonitor.start();
+  app.addHook("onClose", async () => {
+    zillizHealthMonitor.stop();
+  });
   const allowedOrigins = parseCorsOrigins(env.CORS_ORIGINS);
   await app.register(cors, {
     origin: (origin, cb) => {
@@ -194,10 +220,53 @@ export const createBackendApp = async ({
   const assetRetrieval = new AssetRetrievalService(env);
   const vectorRetrieval = env.ASSET_MILVUS_ENABLED ? new VectorRetrievalService(env) : undefined;
   const r2Service = deps?.r2Service ?? createR2TransferService(env);
+  const musicPreviewUrlSigner = deps?.musicPreviewUrlSigner ?? createSignedMusicPreviewUrl;
 
   app.get("/health", async () => ({
     ok: true
   }));
+
+  app.get("/health/zilliz", async (_req, reply) => {
+    const snapshot = await zillizHealthMonitor.checkNow();
+    reply.code(snapshot.status === "healthy" ? 200 : 503);
+    return snapshot;
+  });
+
+  app.get(`${FONT_SERVE_PATH}/*`, async (req, reply) => {
+    const wildcard = String(((req.params as {"*": string})["*"] ?? "")).trim();
+    if (!wildcard) {
+      reply.code(404);
+      return {
+        error: "Font asset not found."
+      };
+    }
+
+    const normalizedRelativePath = wildcard.replace(/^[/\\]+/, "");
+    const resolvedFilePath = path.resolve(retrievedFontsDir, normalizedRelativePath);
+    const relativePath = path.relative(retrievedFontsDir, resolvedFilePath);
+    if (relativePath.startsWith("..") || path.isAbsolute(relativePath)) {
+      reply.code(400);
+      return {
+        error: "Invalid font asset path."
+      };
+    }
+
+    try {
+      const fileStats = await stat(resolvedFilePath);
+      if (!fileStats.isFile()) {
+        throw new Error("Not a file.");
+      }
+
+      reply.header("Content-Type", inferFontContentType(resolvedFilePath));
+      reply.header("Cache-Control", "public, max-age=3600, immutable");
+      return reply.send(createReadStream(resolvedFilePath));
+    } catch {
+      reply.code(404);
+      return {
+        error: "Font asset not found."
+      };
+    }
+  });
 
   registerAssetRoutes(app, assetRetrieval, vectorRetrieval);
 
@@ -575,6 +644,11 @@ export const createBackendApp = async ({
 
   await registerEditSessionRoutes(app, editSessions, editSessionStore);
   await registerGodRoutes(app, god);
+  await registerMusicCatalogRoutes(app, {
+    env,
+    repository,
+    signMusicPreviewUrl: musicPreviewUrlSigner
+  });
   await registerThumbnailRoutes(app, {
     app,
     service,

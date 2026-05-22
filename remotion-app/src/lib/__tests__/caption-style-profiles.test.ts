@@ -70,7 +70,7 @@ describe("caption style profiles", () => {
     expect(getDefaultCaptionBiasForProfile("longform_eve_typography_v1")).toBe("bottom");
   });
 
-  it("keeps longform SVG typography in word-by-word mode while EVE hybrid routing can fall back to semantic overlays", () => {
+  it("keeps longform SVG typography in the SVG renderer while EVE hybrid routing can fall back to semantic overlays", () => {
     const sparseChunk = makeChunk({
       text: "Gary Vee",
       words: [
@@ -115,8 +115,8 @@ describe("caption style profiles", () => {
       ]
     });
 
-    expect(getLongformCaptionRenderModeForChunk("longform_svg_typography_v1", sparseChunk)).toBe("word-by-word");
-    expect(getLongformCaptionRenderModeForChunk("longform_svg_typography_v1", genericSparseChunk)).toBe("word-by-word");
+    expect(getLongformCaptionRenderModeForChunk("longform_svg_typography_v1", sparseChunk)).toBe("svg");
+    expect(getLongformCaptionRenderModeForChunk("longform_svg_typography_v1", genericSparseChunk)).toBe("svg");
     expect(getLongformCaptionRenderModeForChunk("longform_eve_typography_v1", sparseChunk)).toBe("word-by-word");
     expect(getLongformCaptionRenderModeForChunk("longform_eve_typography_v1", eveChunk)).toBe("semantic-sidecall");
     expect(getLongformCaptionRenderModeForChunk("longform_eve_typography_v1", graphicChunk)).toBe("semantic-sidecall");

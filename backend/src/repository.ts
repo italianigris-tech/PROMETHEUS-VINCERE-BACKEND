@@ -13,6 +13,10 @@ type JobArtifactKey =
   | "motion_plan"
   | "execution_plan"
   | "fallback_log"
+  | "video_aware_audio_plan"
+  | "video_aware_sound_manifest"
+  | "video_aware_music_preflight"
+  | "video_aware_music_overrides"
   | "audio_render_plan";
 
 const ARTIFACT_FILE_NAMES: Record<JobArtifactKey, string> = {
@@ -24,6 +28,10 @@ const ARTIFACT_FILE_NAMES: Record<JobArtifactKey, string> = {
   motion_plan: "motion-plan.json",
   execution_plan: "execution-plan.json",
   fallback_log: "fallback-log.json",
+  video_aware_audio_plan: path.join("audio", "video-aware-audio-plan.json"),
+  video_aware_sound_manifest: path.join("audio", "video-aware-sound-manifest.json"),
+  video_aware_music_preflight: path.join("audio", "video-aware-music-preflight.json"),
+  video_aware_music_overrides: path.join("audio", "video-aware-music-overrides.json"),
   audio_render_plan: path.join("audio", "audio-render-plan.json")
 };
 
@@ -161,6 +169,22 @@ export class FileJobRepository {
 
   public async writeFallbackLog(jobId: string, events: FallbackEvent[]): Promise<string> {
     return this.writeArtifact(jobId, "fallback_log", events);
+  }
+
+  public async writeVideoAwareAudioPlan(jobId: string, plan: unknown): Promise<string> {
+    return this.writeArtifact(jobId, "video_aware_audio_plan", plan);
+  }
+
+  public async writeVideoAwareSoundManifest(jobId: string, plan: unknown): Promise<string> {
+    return this.writeArtifact(jobId, "video_aware_sound_manifest", plan);
+  }
+
+  public async writeVideoAwareMusicPreflight(jobId: string, report: unknown): Promise<string> {
+    return this.writeArtifact(jobId, "video_aware_music_preflight", report);
+  }
+
+  public async writeVideoAwareMusicOverrides(jobId: string, overrides: unknown): Promise<string> {
+    return this.writeArtifact(jobId, "video_aware_music_overrides", overrides);
   }
 
   public async writeAudioRenderPlan(jobId: string, plan: unknown): Promise<string> {

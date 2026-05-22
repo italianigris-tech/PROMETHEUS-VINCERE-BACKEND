@@ -138,7 +138,7 @@ export const isLiveAudioPreviewLane = (deliveryMode: "speed-draft" | "master-ren
 
 export const resolveAudioCreativePreviewDurationMs = (input: ResolveAudioCreativePreviewDurationInput): number => {
   const normalizeDurationCandidate = (value?: number | null): number | null => {
-    if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+    if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
       return null;
     }
 
@@ -150,10 +150,12 @@ export const resolveAudioCreativePreviewDurationMs = (input: ResolveAudioCreativ
     normalizeDurationCandidate(input.creativeTimelineDurationMs) ??
     normalizeDurationCandidate(input.lastTrackEndMs) ??
     normalizeDurationCandidate(input.lastCaptionEndMs) ??
-    normalizeDurationCandidate(input.fallbackDurationMs) ??
-    30000;
+    normalizeDurationCandidate(input.fallbackDurationMs);
+  if (candidate !== null) {
+    return Math.max(42, candidate);
+  }
 
-  return Math.max(1000, Math.round(candidate));
+  return 60000;
 };
 
 export const resolveAudioCreativePreviewVideoMetadata = (input: {

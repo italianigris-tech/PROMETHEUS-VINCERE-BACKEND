@@ -144,6 +144,14 @@ describe("CreativeAudioLivePlayer project scope", () => {
     expect(source).toContain("api/edit-sessions/live-preview");
   });
 
+  it("passes live caption chunks into the canonical project-scoped Remotion player", () => {
+    const sourcePath = path.resolve("src/web-preview/CreativeAudioLivePlayer.tsx");
+    const source = readFileSync(sourcePath, "utf8");
+
+    expect(source).toContain("captionChunks={session?.captionChunks ?? []}");
+    expect(source).toContain("livePreviewSession={livePreviewSessionData}");
+  });
+
   it("keeps the sidebar stack above the preview player containment layer", () => {
     const sourcePath = path.resolve("src/web-preview/preview.css");
     const source = readFileSync(sourcePath, "utf8");

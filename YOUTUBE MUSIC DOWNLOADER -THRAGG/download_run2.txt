@@ -1,0 +1,876 @@
+﻿Scanned library: 60 existing songs
+Enabled: Enhanced deduplication, Genre organization (metadata)
+
+Starting batch download: 146 URLs
+(Duplicates enabled: True)
+
+[1/146] 
+python : ERROR: [youtube] 5jZ7OvZdfkA: Sign in to confirm youÆre not a bot. 
+Use --cookies-from-browser or --cookies for the authentication. See  
+https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp  for 
+how to manually pass cookies. Also see  
+https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies  
+for tips on effectively exporting YouTube cookies
+At line:1 char:1
++ python downloader.py batch urls.txt --organize-by-genre 2>&1 | Out-Fi ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (ERROR: [youtube...YouTube cookies 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Downloading: https://music.youtube.com/watch?v=5jZ7OvZdfkA&list=PL5MCq-2iorOk5LrCv2zMQrjoX0wR7oIGX
+[youtube:tab] Extracting URL: https://music.youtube.com/watch?v=5jZ7OvZdfkA&list=PL5MCq-2iorOk5LrCv2zMQrjoX0wR7oIGX
+WARNING: [youtube:tab] YouTube Music is not directly supported. Redirecting to 
+https://www.youtube.com/watch?v=5jZ7OvZdfkA&list=PL5MCq-2iorOk5LrCv2zMQrjoX0wR7
+oIGX
+[youtube:tab] Downloading playlist PL5MCq-2iorOk5LrCv2zMQrjoX0wR7oIGX - add --no-playlist to download just the video 5jZ7OvZdfkA
+[youtube:tab] PL5MCq-2iorOk5LrCv2zMQrjoX0wR7oIGX: Downloading webpage
+[youtube:tab] Extracting URL: https://music.youtube.com/playlist?list=PL5MCq-2iorOk5LrCv2zMQrjoX0wR7oIGX
+WARNING: [youtube:tab] YouTube Music is not directly supported. Redirecting to 
+https://www.youtube.com/playlist?list=PL5MCq-2iorOk5LrCv2zMQrjoX0wR7oIGX
+[youtube:tab] PL5MCq-2iorOk5LrCv2zMQrjoX0wR7oIGX: Downloading webpage
+[youtube:tab] PL5MCq-2iorOk5LrCv2zMQrjoX0wR7oIGX: Redownloading playlist API JSON with unavailable videos
+[download] Downloading playlist: CLASSICAL ME
+[youtube:tab] PL5MCq-2iorOk5LrCv2zMQrjoX0wR7oIGX page 1: Downloading API JSON
+Deleting existing file downloads\CLASSICAL ME.jpg
+[info] Downloading playlist thumbnail 3 ...
+[info] Writing playlist thumbnail 3 to: downloads\CLASSICAL ME.jpg
+[youtube:tab] Playlist CLASSICAL ME: Downloading 26 items of 26
+[download] Downloading item 1 of 26
+[youtube] Extracting URL: https://music.youtube.com/watch?v=5jZ7OvZdfkA
+[youtube] 5jZ7OvZdfkA: Downloading webpage
+WARNING: [youtube] No supported JavaScript runtime could be found. Only deno 
+is enabled by default; to use another runtime add  --js-runtimes 
+RUNTIME[:PATH]  to your command/config. YouTube extraction without a JS 
+runtime has been deprecated, and some formats may be missing. See  
+https://github.com/yt-dlp/yt-dlp/wiki/EJS  for details on installing one
+[youtube] 5jZ7OvZdfkA: Downloading android vr player API JSON
+[info] 5jZ7OvZdfkA: Downloading 1 format(s): 251
+Deleting existing file downloads\Piano Concerto no. 1 in B-flat Minor (excerpt).webp
+[info] Downloading video thumbnail 41 ...
+[info] Writing video thumbnail 41 to: downloads\Piano Concerto no. 1 in B-flat Minor (excerpt).webp
+[download] Destination: downloads\Piano Concerto no. 1 in B-flat Minor (excerpt).webm
+
+[download]   0.0% of    3.33MiB at    6.33KiB/s ETA 08:58
+[download]   0.1% of    3.33MiB at   18.85KiB/s ETA 03:00
+[download]   0.2% of    3.33MiB at   43.74KiB/s ETA 01:17
+[download]   0.4% of    3.33MiB at   93.19KiB/s ETA 00:36
+[download]   0.9% of    3.33MiB at   73.91KiB/s ETA 00:45
+[download]   1.8% of    3.33MiB at  118.27KiB/s ETA 00:28
+[download]   3.7% of    3.33MiB at  151.85KiB/s ETA 00:21
+[download]   7.5% of    3.33MiB at  246.05KiB/s ETA 00:12
+[download]  15.0% of    3.33MiB at  414.25KiB/s ETA 00:06
+[download]  30.0% of    3.33MiB at  693.56KiB/s ETA 00:03
+[download]  60.0% of    3.33MiB at    1.03MiB/s ETA 00:01
+[download] 100.0% of    3.33MiB at  854.92KiB/s ETA 00:00
+[download] 100% of    3.33MiB in 00:00:05 at 622.68KiB/s 
+[ExtractAudio] Destination: downloads\Piano Concerto no. 1 in B-flat Minor (excerpt).mp3
+Deleting original file downloads\Piano Concerto no. 1 in B-flat Minor (excerpt).webm (pass -k to keep)
+[Metadata] Adding metadata to "downloads\Piano Concerto no. 1 in B-flat Minor (excerpt).mp3"
+[download] Downloading item 2 of 26
+[youtube] Extracting URL: https://music.youtube.com/watch?v=qmX0a6Ftjyw
+[youtube] qmX0a6Ftjyw: Downloading webpage
+WARNING: [youtube] No supported JavaScript runtime could be found. Only deno 
+is enabled by default; to use another runtime add  --js-runtimes 
+RUNTIME[:PATH]  to your command/config. YouTube extraction without a JS 
+runtime has been deprecated, and some formats may be missing. See  
+https://github.com/yt-dlp/yt-dlp/wiki/EJS  for details on installing one
+[youtube] qmX0a6Ftjyw: Downloading android vr player API JSON
+[info] qmX0a6Ftjyw: Downloading 1 format(s): 251
+Deleting existing file downloads\Vivaldi The Four Seasons, Summer, Violin Concerto in G Minor, Op. 82, RV 315 III. Presto.webp
+[info] Downloading video thumbnail 41 ...
+[info] Writing video thumbnail 41 to: downloads\Vivaldi The Four Seasons, Summer, Violin Concerto in G Minor, Op. 82, RV 315 III. Presto.webp
+[download] Destination: downloads\Vivaldi The Four Seasons, Summer, Violin Concerto in G Minor, Op. 82, RV 315 III. Presto.webm
+
+[download]   0.0% of    2.57MiB at    5.99KiB/s ETA 07:20
+[download]   0.1% of    2.57MiB at   17.80KiB/s ETA 02:27
+[download]   0.3% of    2.57MiB at   41.05KiB/s ETA 01:04
+[download]   0.6% of    2.57MiB at   87.37KiB/s ETA 00:30
+[download]   1.2% of    2.57MiB at  145.48KiB/s ETA 00:17
+[download]   2.4% of    2.57MiB at  157.65KiB/s ETA 00:16
+[download]   4.8% of    2.57MiB at  225.26KiB/s ETA 00:11
+[download]   9.7% of    2.57MiB at  310.89KiB/s ETA 00:07
+[download]  19.4% of    2.57MiB at  473.71KiB/s ETA 00:04
+[download]  38.8% of    2.57MiB at  781.01KiB/s ETA 00:02
+[download]  77.6% of    2.57MiB at  927.89KiB/s ETA 00:00
+[download] 100.0% of    2.57MiB at    1.15MiB/s ETA 00:00
+[download] 100% of    2.57MiB in 00:00:03 at 705.17KiB/s 
+[ExtractAudio] Destination: downloads\Vivaldi The Four Seasons, Summer, Violin Concerto in G Minor, Op. 82, RV 315 III. Presto.mp3
+Deleting original file downloads\Vivaldi The Four Seasons, Summer, Violin Concerto in G Minor, Op. 82, RV 315 III. Presto.webm (pass -k to keep)
+[Metadata] Adding metadata to "downloads\Vivaldi The Four Seasons, Summer, Violin Concerto in G Minor, Op. 82, RV 315 III. Presto.mp3"
+[download] Downloading item 3 of 26
+[youtube] Extracting URL: https://music.youtube.com/watch?v=iUx4ygVz82k
+[youtube] iUx4ygVz82k: Downloading webpage
+WARNING: [youtube] No supported JavaScript runtime could be found. Only deno 
+is enabled by default; to use another runtime add  --js-runtimes 
+RUNTIME[:PATH]  to your command/config. YouTube extraction without a JS 
+runtime has been deprecated, and some formats may be missing. See  
+https://github.com/yt-dlp/yt-dlp/wiki/EJS  for details on installing one
+[youtube] iUx4ygVz82k: Downloading android vr player API JSON
+[info] iUx4ygVz82k: Downloading 1 format(s): 251
+Deleting existing file downloads\Florian Christl - Aurora.webp
+[info] Downloading video thumbnail 45 ...
+[info] Writing video thumbnail 45 to: downloads\Florian Christl - Aurora.webp
+[download] Destination: downloads\Florian Christl - Aurora.webm
+
+[download]   0.0% of    2.22MiB at   67.37KiB/s ETA 00:33
+[download]   0.1% of    2.22MiB at  187.83KiB/s ETA 00:12
+[download]   0.3% of    2.22MiB at  413.07KiB/s ETA 00:05
+[download]   0.7% of    2.22MiB at  837.22KiB/s ETA 00:02
+[download]   1.4% of    2.22MiB at  118.55KiB/s ETA 00:18
+[download]   2.8% of    2.22MiB at  116.83KiB/s ETA 00:18
+[download]   5.6% of    2.22MiB at  161.70KiB/s ETA 00:13
+[download]  11.2% of    2.22MiB at  256.02KiB/s ETA 00:07
+[download]  22.5% of    2.22MiB at  422.92KiB/s ETA 00:04
+[download]  45.0% of    2.22MiB at  699.61KiB/s ETA 00:01
+[download]  90.0% of    2.22MiB at  986.47KiB/s ETA 00:00
+[download] 100.0% of    2.22MiB at    1.03MiB/s ETA 00:00
+[download] 100% of    2.22MiB in 00:00:04 at 566.37KiB/s 
+[ExtractAudio] Destination: downloads\Florian Christl - Aurora.mp3
+Deleting original file downloads\Florian Christl - Aurora.webm (pass -k to keep)
+[Metadata] Adding metadata to "downloads\Florian Christl - Aurora.mp3"
+[download] Downloading item 4 of 26
+[youtube] Extracting URL: https://music.youtube.com/watch?v=-ZP8f2xTde8
+[youtube] -ZP8f2xTde8: Downloading webpage
+WARNING: [youtube] No supported JavaScript runtime could be found. Only deno 
+is enabled by default; to use another runtime add  --js-runtimes 
+RUNTIME[:PATH]  to your command/config. YouTube extraction without a JS 
+runtime has been deprecated, and some formats may be missing. See  
+https://github.com/yt-dlp/yt-dlp/wiki/EJS  for details on installing one
+[youtube] -ZP8f2xTde8: Downloading android vr player API JSON
+[info] -ZP8f2xTde8: Downloading 1 format(s): 251
+Deleting existing file downloads\Experience - Ludovico Einaudi - violin cover by Daniel Jang.webp
+[info] Downloading video thumbnail 41 ...
+[info] Writing video thumbnail 41 to: downloads\Experience - Ludovico Einaudi - violin cover by Daniel Jang.webp
+[download] Destination: downloads\Experience - Ludovico Einaudi - violin cover by Daniel Jang.webm
+
+[download]   0.0% of    2.98MiB at    6.33KiB/s ETA 08:02
+[download]   0.1% of    2.98MiB at   18.86KiB/s ETA 02:41
+[download]   0.2% of    2.98MiB at   43.67KiB/s ETA 01:09
+[download]   0.5% of    2.98MiB at   92.90KiB/s ETA 00:32
+[download]   1.0% of    2.98MiB at  139.31KiB/s ETA 00:21
+[download]   2.1% of    2.98MiB at  162.46KiB/s ETA 00:18
+[download]   4.2% of    2.98MiB at  217.48KiB/s ETA 00:13
+[download]   8.3% of    2.98MiB at  222.46KiB/s ETA 00:12
+[download]  15.8% of    2.98MiB at  289.62KiB/s ETA 00:08
+[download]  30.1% of    2.98MiB at  343.24KiB/s ETA 00:06
+[download]  44.2% of    2.98MiB at  381.61KiB/s ETA 00:04
+[download]  60.6% of    2.98MiB at  417.42KiB/s ETA 00:02
+[download]  78.9% of    2.98MiB at  451.23KiB/s ETA 00:01
+[download]  99.1% of    2.98MiB at  473.89KiB/s ETA 00:00
+[download] 100.0% of    2.98MiB at  475.70KiB/s ETA 00:00
+[download] 100% of    2.98MiB in 00:00:08 at 370.65KiB/s 
+[ExtractAudio] Destination: downloads\Experience - Ludovico Einaudi - violin cover by Daniel Jang.mp3
+Deleting original file downloads\Experience - Ludovico Einaudi - violin cover by Daniel Jang.webm (pass -k to keep)
+[Metadata] Adding metadata to "downloads\Experience - Ludovico Einaudi - violin cover by Daniel Jang.mp3"
+[download] Downloading item 5 of 26
+[youtube] Extracting URL: https://music.youtube.com/watch?v=eLqa-Wm9Uqk
+[youtube] eLqa-Wm9Uqk: Downloading webpage
+WARNING: [youtube] No supported JavaScript runtime could be found. Only deno 
+is enabled by default; to use another runtime add  --js-runtimes 
+RUNTIME[:PATH]  to your command/config. YouTube extraction without a JS 
+runtime has been deprecated, and some formats may be missing. See  
+https://github.com/yt-dlp/yt-dlp/wiki/EJS  for details on installing one
+[youtube] eLqa-Wm9Uqk: Downloading android vr player API JSON
+[info] eLqa-Wm9Uqk: Downloading 1 format(s): 251
+Deleting existing file downloads\Embers of the Past.webp
+[info] Downloading video thumbnail 41 ...
+[info] Writing video thumbnail 41 to: downloads\Embers of the Past.webp
+[download] Destination: downloads\Embers of the Past.webm
+
+[download]   0.1% of    1.71MiB at   24.75KiB/s ETA 01:10
+[download]   0.2% of    1.71MiB at   71.43KiB/s ETA 00:24
+[download]   0.4% of    1.71MiB at  161.08KiB/s ETA 00:10
+[download]   0.9% of    1.71MiB at  334.43KiB/s ETA 00:05
+[download]   1.8% of    1.71MiB at  131.18KiB/s ETA 00:13
+[download]   3.6% of    1.71MiB at  159.87KiB/s ETA 00:10
+[download]   7.3% of    1.71MiB at  227.69KiB/s ETA 00:07
+[download]  14.6% of    1.71MiB at  350.33KiB/s ETA 00:04
+[download]  29.2% of    1.71MiB at  560.36KiB/s ETA 00:02
+[download]  58.5% of    1.71MiB at  815.82KiB/s ETA 00:00
+[download] 100.0% of    1.71MiB at    1.10MiB/s ETA 00:00
+[download] 100% of    1.71MiB in 00:00:02 at 617.18KiB/s 
+[ExtractAudio] Destination: downloads\Embers of the Past.mp3
+Deleting original file downloads\Embers of the Past.webm (pass -k to keep)
+[Metadata] Adding metadata to "downloads\Embers of the Past.mp3"
+[download] Downloading item 6 of 26
+[youtube] Extracting URL: https://music.youtube.com/watch?v=cC9iI1VtDLo
+[youtube] cC9iI1VtDLo: Downloading webpage
+WARNING: [youtube] No supported JavaScript runtime could be found. Only deno 
+is enabled by default; to use another runtime add  --js-runtimes 
+RUNTIME[:PATH]  to your command/config. YouTube extraction without a JS 
+runtime has been deprecated, and some formats may be missing. See  
+https://github.com/yt-dlp/yt-dlp/wiki/EJS  for details on installing one
+[youtube] cC9iI1VtDLo: Downloading android vr player API JSON
+[info] cC9iI1VtDLo: Downloading 1 format(s): 251
+Deleting existing file downloads\Transcend.webp
+[info] Downloading video thumbnail 41 ...
+[info] Writing video thumbnail 41 to: downloads\Transcend.webp
+[download] Destination: downloads\Transcend.webm
+
+[download]   0.0% of    2.08MiB at   21.70KiB/s ETA 01:38
+[download]   0.1% of    2.08MiB at   62.22KiB/s ETA 00:34
+[download]   0.3% of    2.08MiB at  141.41KiB/s ETA 00:15
+[download]   0.7% of    2.08MiB at  293.50KiB/s ETA 00:07
+[download]   1.5% of    2.08MiB at  115.95KiB/s ETA 00:18
+[download]   3.0% of    2.08MiB at  145.06KiB/s ETA 00:14
+[download]   6.0% of    2.08MiB at  219.11KiB/s ETA 00:09
+[download]  12.0% of    2.08MiB at  331.82KiB/s ETA 00:05
+[download]  24.0% of    2.08MiB at  527.56KiB/s ETA 00:03
+[download]  48.0% of    2.08MiB at  855.86KiB/s ETA 00:01
+[download]  96.1% of    2.08MiB at    1.07MiB/s ETA 00:00
+[download] 100.0% of    2.08MiB at    1.10MiB/s ETA 00:00
+[download] 100% of    2.08MiB in 00:00:03 at 656.22KiB/s 
+[ExtractAudio] Destination: downloads\Transcend.mp3
+Deleting original file downloads\Transcend.webm (pass -k to keep)
+[Metadata] Adding metadata to "downloads\Transcend.mp3"
+[download] Downloading item 7 of 26
+[youtube] Extracting URL: https://music.youtube.com/watch?v=xk0miYEDgjA
+[youtube] xk0miYEDgjA: Downloading webpage
+WARNING: [youtube] No supported JavaScript runtime could be found. Only deno 
+is enabled by default; to use another runtime add  --js-runtimes 
+RUNTIME[:PATH]  to your command/config. YouTube extraction without a JS 
+runtime has been deprecated, and some formats may be missing. See  
+https://github.com/yt-dlp/yt-dlp/wiki/EJS  for details on installing one
+[youtube] xk0miYEDgjA: Downloading android vr player API JSON
+[info] xk0miYEDgjA: Downloading 1 format(s): 251
+Deleting existing file downloads\Tchaikovsky Piano Concerto No. 1 in B-Flat Minor, Op. 23, TH 55 1. Allegro non troppo e molto....webp
+[info] Downloading video thumbnail 41 ...
+[info] Writing video thumbnail 41 to: downloads\Tchaikovsky Piano Concerto No. 1 in B-Flat Minor, Op. 23, TH 55 1. Allegro non troppo e molto....webp
+[download] Destination: downloads\Tchaikovsky Piano Concerto No. 1 in B-Flat Minor, Op. 23, TH 55 1. Allegro non troppo e molto....webm
+
+[download]   0.0% of    3.57MiB at   13.26KiB/s ETA 04:35
+[download]   0.1% of    3.57MiB at   39.07KiB/s ETA 01:33
+[download]   0.2% of    3.57MiB at   89.83KiB/s ETA 00:40
+[download]   0.4% of    3.57MiB at  190.52KiB/s ETA 00:19
+[download]   0.8% of    3.57MiB at  138.45KiB/s ETA 00:26
+[download]   1.7% of    3.57MiB at  171.32KiB/s ETA 00:20
+[download]   3.5% of    3.57MiB at  216.54KiB/s ETA 00:16
+[download]   7.0% of    3.57MiB at  319.59KiB/s ETA 00:10
+[download]  14.0% of    3.57MiB at  483.92KiB/s ETA 00:06
+[download]  28.0% of    3.57MiB at  755.43KiB/s ETA 00:03
+[download]  56.0% of    3.57MiB at    1.10MiB/s ETA 00:01
+[download] 100.0% of    3.57MiB at    1.23MiB/s ETA 00:00
+[download] 100% of    3.57MiB in 00:00:04 at 770.50KiB/s 
+[ExtractAudio] Destination: downloads\Tchaikovsky Piano Concerto No. 1 in B-Flat Minor, Op. 23, TH 55 1. Allegro non troppo e molto....mp3
+Deleting original file downloads\Tchaikovsky Piano Concerto No. 1 in B-Flat Minor, Op. 23, TH 55 1. Allegro non troppo e molto....webm (pass -k to keep)
+[Metadata] Adding metadata to "downloads\Tchaikovsky Piano Concerto No. 1 in B-Flat Minor, Op. 23, TH 55 1. Allegro non troppo e molto....mp3"
+[download] Downloading item 8 of 26
+[youtube] Extracting URL: https://music.youtube.com/watch?v=3wF3Hb9Ugq0
+[youtube] 3wF3Hb9Ugq0: Downloading webpage
+WARNING: [youtube] No supported JavaScript runtime could be found. Only deno 
+is enabled by default; to use another runtime add  --js-runtimes 
+RUNTIME[:PATH]  to your command/config. YouTube extraction without a JS 
+runtime has been deprecated, and some formats may be missing. See  
+https://github.com/yt-dlp/yt-dlp/wiki/EJS  for details on installing one
+[youtube] 3wF3Hb9Ugq0: Downloading android vr player API JSON
+[info] 3wF3Hb9Ugq0: Downloading 1 format(s): 251
+Deleting existing file downloads\La Traviata Drinking Song.webp
+[info] Downloading video thumbnail 41 ...
+[info] Writing video thumbnail 41 to: downloads\La Traviata Drinking Song.webp
+[download] Destination: downloads\La Traviata Drinking Song.webm
+
+[download]   0.0% of    2.76MiB at    6.58KiB/s ETA 07:09
+[download]   0.1% of    2.76MiB at   19.56KiB/s ETA 02:24
+[download]   0.2% of    2.76MiB at   45.35KiB/s ETA 01:02
+[download]   0.5% of    2.76MiB at   96.55KiB/s ETA 00:29
+[download]   1.1% of    2.76MiB at  147.34KiB/s ETA 00:18
+[download]   2.2% of    2.76MiB at  174.77KiB/s ETA 00:15
+[download]   4.5% of    2.76MiB at  228.81KiB/s ETA 00:11
+[download]   9.0% of    2.76MiB at  341.61KiB/s ETA 00:07
+[download]  18.1% of    2.76MiB at  536.56KiB/s ETA 00:04
+[download]  36.2% of    2.76MiB at  870.09KiB/s ETA 00:02
+[download]  72.4% of    2.76MiB at    1.28MiB/s ETA 00:00
+[download] 100.0% of    2.76MiB at    1.33MiB/s ETA 00:00
+[download] 100% of    2.76MiB in 00:00:03 at 837.94KiB/s 
+[ExtractAudio] Destination: downloads\La Traviata Drinking Song.mp3
+Deleting original file downloads\La Traviata Drinking Song.webm (pass -k to keep)
+[Metadata] Adding metadata to "downloads\La Traviata Drinking Song.mp3"
+[download] Downloading item 9 of 26
+[youtube] Extracting URL: https://music.youtube.com/watch?v=FGZCdUM20qI
+[youtube] FGZCdUM20qI: Downloading webpage
+WARNING: [youtube] No supported JavaScript runtime could be found. Only deno 
+is enabled by default; to use another runtime add  --js-runtimes 
+RUNTIME[:PATH]  to your command/config. YouTube extraction without a JS 
+runtime has been deprecated, and some formats may be missing. See  
+https://github.com/yt-dlp/yt-dlp/wiki/EJS  for details on installing one
+[youtube] FGZCdUM20qI: Downloading android vr player API JSON
+[info] FGZCdUM20qI: Downloading 1 format(s): 251
+Deleting existing file downloads\Daylight - David Kushner Cover (Pink Violin).webp
+[info] Downloading video thumbnail 41 ...
+[info] Writing video thumbnail 41 to: downloads\Daylight - David Kushner Cover (Pink Violin).webp
+[download] Destination: downloads\Daylight - David Kushner Cover (Pink Violin).webm
+
+[download]   0.0% of    3.67MiB at    6.17KiB/s ETA 10:09
+[download]   0.1% of    3.67MiB at   18.34KiB/s ETA 03:25
+[download]   0.2% of    3.67MiB at   42.50KiB/s ETA 01:28
+[download]   0.4% of    3.67MiB at   90.39KiB/s ETA 00:41
+[download]   0.8% of    3.67MiB at  120.03KiB/s ETA 00:31
+[download]   1.7% of    3.67MiB at  147.67KiB/s ETA 00:25
+[download]   3.4% of    3.67MiB at  202.90KiB/s ETA 00:17
+[download]   6.8% of    3.67MiB at  315.27KiB/s ETA 00:11
+[download]  13.6% of    3.67MiB at  496.56KiB/s ETA 00:06
+[download]  27.2% of    3.67MiB at  798.88KiB/s ETA 00:03
+[download]  54.4% of    3.67MiB at    1.02MiB/s ETA 00:01
+[download]  94.5% of    3.67MiB at    1.21MiB/s ETA 00:00
+[download] 100.0% of    3.67MiB at    1.25MiB/s ETA 00:00
+[download] 100% of    3.67MiB in 00:00:04 at 867.05KiB/s 
+[ExtractAudio] Destination: downloads\Daylight - David Kushner Cover (Pink Violin).mp3
+Deleting original file downloads\Daylight - David Kushner Cover (Pink Violin).webm (pass -k to keep)
+[Metadata] Adding metadata to "downloads\Daylight - David Kushner Cover (Pink Violin).mp3"
+[download] Downloading item 10 of 26
+[youtube] Extracting URL: https://music.youtube.com/watch?v=2mlUL-NUJRM
+[youtube] 2mlUL-NUJRM: Downloading webpage
+WARNING: [youtube] No supported JavaScript runtime could be found. Only deno 
+is enabled by default; to use another runtime add  --js-runtimes 
+RUNTIME[:PATH]  to your command/config. YouTube extraction without a JS 
+runtime has been deprecated, and some formats may be missing. See  
+https://github.com/yt-dlp/yt-dlp/wiki/EJS  for details on installing one
+[youtube] 2mlUL-NUJRM: Downloading android vr player API JSON
+[info] 2mlUL-NUJRM: Downloading 1 format(s): 251
+Deleting existing file downloads\Andrea Vanzo - The Butterfly (Official Visualizer).webp
+[info] Downloading video thumbnail 46 ...
+[info] Writing video thumbnail 46 to: downloads\Andrea Vanzo - The Butterfly (Official Visualizer).webp
+[download] Destination: downloads\Andrea Vanzo - The Butterfly (Official Visualizer).webm
+
+[download]   0.0% of    3.03MiB at    6.39KiB/s ETA 08:05
+[download]   0.1% of    3.03MiB at   19.03KiB/s ETA 02:42
+[download]   0.2% of    3.03MiB at   44.14KiB/s ETA 01:10
+[download]   0.5% of    3.03MiB at   94.06KiB/s ETA 00:32
+[download]   1.0% of    3.03MiB at  140.34KiB/s ETA 00:21
+[download]   2.0% of    3.03MiB at  110.60KiB/s ETA 00:27
+[download]   4.1% of    3.03MiB at  156.52KiB/s ETA 00:19
+[download]   8.2% of    3.03MiB at  227.66KiB/s ETA 00:12
+[download]  16.5% of    3.03MiB at  366.55KiB/s ETA 00:07
+[download]  33.0% of    3.03MiB at  611.21KiB/s ETA 00:03
+[download]  66.0% of    3.03MiB at  919.61KiB/s ETA 00:01
+[download] 100.0% of    3.03MiB at    1.16MiB/s ETA 00:00
+[download] 100% of    3.03MiB in 00:00:04 at 742.77KiB/s 
+[ExtractAudio] Destination: downloads\Andrea Vanzo - The Butterfly (Official Visualizer).mp3
+Deleting original file downloads\Andrea Vanzo - The Butterfly (Official Visualizer).webm (pass -k to keep)
+[Metadata] Adding metadata to "downloads\Andrea Vanzo - The Butterfly (Official Visualizer).mp3"
+[download] Downloading item 11 of 26
+[youtube] Extracting URL: https://music.youtube.com/watch?v=AKuFMZju41c
+[youtube] AKuFMZju41c: Downloading webpage
+WARNING: [youtube] No supported JavaScript runtime could be found. Only deno 
+is enabled by default; to use another runtime add  --js-runtimes 
+RUNTIME[:PATH]  to your command/config. YouTube extraction without a JS 
+runtime has been deprecated, and some formats may be missing. See  
+https://github.com/yt-dlp/yt-dlp/wiki/EJS  for details on installing one
+[youtube] AKuFMZju41c: Downloading android vr player API JSON
+[info] AKuFMZju41c: Downloading 1 format(s): 251
+Deleting existing file downloads\Je te laisserai des mots (Piano Slowed & Rain).webp
+[info] Downloading video thumbnail 41 ...
+[info] Writing video thumbnail 41 to: downloads\Je te laisserai des mots (Piano Slowed & Rain).webp
+[download] Destination: downloads\Je te laisserai des mots (Piano Slowed & Rain).webm
+
+[download]   0.0% of    2.81MiB at    4.88KiB/s ETA 09:48
+[download]   0.1% of    2.81MiB at   14.57KiB/s ETA 03:17
+[download]   0.2% of    2.81MiB at   33.76KiB/s ETA 01:24
+[download]   0.5% of    2.81MiB at   72.01KiB/s ETA 00:39
+[download]   1.1% of    2.81MiB at  101.73KiB/s ETA 00:27
+[download]   2.2% of    2.81MiB at  131.32KiB/s ETA 00:21
+[download]   4.4% of    2.81MiB at  205.07KiB/s ETA 00:13
+[download]   8.9% of    2.81MiB at  297.53KiB/s ETA 00:08
+[download]  17.8% of    2.81MiB at  417.76KiB/s ETA 00:05
+[download]  35.6% of    2.81MiB at  639.70KiB/s ETA 00:02
+[download]  71.2% of    2.81MiB at    1.00MiB/s ETA 00:00
+[download] 100.0% of    2.81MiB at    1.17MiB/s ETA 00:00
+[download] 100% of    2.81MiB in 00:00:03 at 733.53KiB/s 
+[ExtractAudio] Destination: downloads\Je te laisserai des mots (Piano Slowed & Rain).mp3
+Deleting original file downloads\Je te laisserai des mots (Piano Slowed & Rain).webm (pass -k to keep)
+[Metadata] Adding metadata to "downloads\Je te laisserai des mots (Piano Slowed & Rain).mp3"
+[download] Downloading item 12 of 26
+[youtube] Extracting URL: https://music.youtube.com/watch?v=v3kHI_lgaCo
+[youtube] v3kHI_lgaCo: Downloading webpage
+WARNING: [youtube] No supported JavaScript runtime could be found. Only deno 
+is enabled by default; to use another runtime add  --js-runtimes 
+RUNTIME[:PATH]  to your command/config. YouTube extraction without a JS 
+runtime has been deprecated, and some formats may be missing. See  
+https://github.com/yt-dlp/yt-dlp/wiki/EJS  for details on installing one
+[youtube] v3kHI_lgaCo: Downloading android vr player API JSON
+[info] v3kHI_lgaCo: Downloading 1 format(s): 251
+Deleting existing file downloads\Waltz of Cecilia.webp
+[info] Downloading video thumbnail 41 ...
+[info] Writing video thumbnail 41 to: downloads\Waltz of Cecilia.webp
+[download] Destination: downloads\Waltz of Cecilia.webm
+
+[download]   0.0% of    3.44MiB at    6.34KiB/s ETA 09:16
+[download]   0.1% of    3.44MiB at   18.89KiB/s ETA 03:06
+[download]   0.2% of    3.44MiB at   43.89KiB/s ETA 01:20
+[download]   0.4% of    3.44MiB at   93.47KiB/s ETA 00:37
+[download]   0.9% of    3.44MiB at  140.72KiB/s ETA 00:24
+[download]   1.8% of    3.44MiB at  160.95KiB/s ETA 00:21
+[download]   3.6% of    3.44MiB at  216.24KiB/s ETA 00:15
+[download]   7.2% of    3.44MiB at  321.41KiB/s ETA 00:10
+[download]  14.5% of    3.44MiB at  512.25KiB/s ETA 00:05
+[download]  29.0% of    3.44MiB at  720.11KiB/s ETA 00:03
+[download]  58.1% of    3.44MiB at  990.75KiB/s ETA 00:01
+[download] 100.0% of    3.44MiB at    1.02MiB/s ETA 00:00
+[download] 100% of    3.44MiB in 00:00:04 at 815.30KiB/s 
+[ExtractAudio] Destination: downloads\Waltz of Cecilia.mp3
+Deleting original file downloads\Waltz of Cecilia.webm (pass -k to keep)
+[Metadata] Adding metadata to "downloads\Waltz of Cecilia.mp3"
+[download] Downloading item 13 of 26
+[youtube] Extracting URL: https://music.youtube.com/watch?v=fu8tCI5TPoY
+[youtube] fu8tCI5TPoY: Downloading webpage
+WARNING: [youtube] No supported JavaScript runtime could be found. Only deno 
+is enabled by default; to use another runtime add  --js-runtimes 
+RUNTIME[:PATH]  to your command/config. YouTube extraction without a JS 
+runtime has been deprecated, and some formats may be missing. See  
+https://github.com/yt-dlp/yt-dlp/wiki/EJS  for details on installing one
+[youtube] fu8tCI5TPoY: Downloading android vr player API JSON
+[info] fu8tCI5TPoY: Downloading 1 format(s): 251
+Deleting existing file downloads\L'amour Toujours (Organ Penguin).webp
+[info] Downloading video thumbnail 41 ...
+[info] Writing video thumbnail 41 to: downloads\L'amour Toujours (Organ Penguin).webp
+[download] Destination: downloads\L'amour Toujours (Organ Penguin).webm
+
+[download]   0.0% of    2.27MiB at    4.34KiB/s ETA 08:55
+[download]   0.1% of    2.27MiB at   12.97KiB/s ETA 02:59
+[download]   0.3% of    2.27MiB at   30.14KiB/s ETA 01:16
+[download]   0.6% of    2.27MiB at   64.34KiB/s ETA 00:35
+[download]   1.3% of    2.27MiB at   95.05KiB/s ETA 00:24
+[download]   2.7% of    2.27MiB at  106.81KiB/s ETA 00:21
+[download]   5.5% of    2.27MiB at  154.45KiB/s ETA 00:14
+[download]  11.0% of    2.27MiB at  234.80KiB/s ETA 00:08
+[download]  22.0% of    2.27MiB at  344.47KiB/s ETA 00:05
+[download]  44.0% of    2.27MiB at  542.17KiB/s ETA 00:02
+[download]  88.0% of    2.27MiB at  744.07KiB/s ETA 00:00
+[download] 100.0% of    2.27MiB at  836.50KiB/s ETA 00:00
+[download] 100% of    2.27MiB in 00:00:04 at 527.52KiB/s 
+[ExtractAudio] Destination: downloads\L'amour Toujours (Organ Penguin).mp3
+Deleting original file downloads\L'amour Toujours (Organ Penguin).webm (pass -k to keep)
+[Metadata] Adding metadata to "downloads\L'amour Toujours (Organ Penguin).mp3"
+[download] Downloading item 14 of 26
+[youtube] Extracting URL: https://music.youtube.com/watch?v=5LRwYKpV-6A
+[youtube] 5LRwYKpV-6A: Downloading webpage
+WARNING: [youtube] No supported JavaScript runtime could be found. Only deno 
+is enabled by default; to use another runtime add  --js-runtimes 
+RUNTIME[:PATH]  to your command/config. YouTube extraction without a JS 
+runtime has been deprecated, and some formats may be missing. See  
+https://github.com/yt-dlp/yt-dlp/wiki/EJS  for details on installing one
+[youtube] 5LRwYKpV-6A: Downloading android vr player API JSON
+[info] 5LRwYKpV-6A: Downloading 1 format(s): 251
+Deleting existing file downloads\Ludovico Einaudi - Einaudi Fly (Official Visualiser).webp
+[info] Downloading video thumbnail 45 ...
+[info] Writing video thumbnail 45 to: downloads\Ludovico Einaudi - Einaudi Fly (Official Visualiser).webp
+[download] Destination: downloads\Ludovico Einaudi - Einaudi Fly (Official Visualiser).webm
+
+[download]   0.0% of    4.95MiB at    6.12KiB/s ETA 13:48
+[download]   0.1% of    4.95MiB at   18.23KiB/s ETA 04:37
+[download]   0.1% of    4.95MiB at   42.30KiB/s ETA 01:59
+[download]   0.3% of    4.95MiB at   90.18KiB/s ETA 00:56
+[download]   0.6% of    4.95MiB at  136.93KiB/s ETA 00:36
+[download]   1.2% of    4.95MiB at  164.87KiB/s ETA 00:30
+[download]   2.5% of    4.95MiB at  228.25KiB/s ETA 00:21
+[download]   5.0% of    4.95MiB at  305.94KiB/s ETA 00:15
+[download]  10.1% of    4.95MiB at  488.56KiB/s ETA 00:09
+[download]  20.2% of    4.95MiB at  815.34KiB/s ETA 00:04
+[download]  40.4% of    4.95MiB at    1.16MiB/s ETA 00:02
+[download]  80.8% of    4.95MiB at    1.45MiB/s ETA 00:00
+[download] 100.0% of    4.95MiB at    1.61MiB/s ETA 00:00
+[download] 100% of    4.95MiB in 00:00:04 at 1.03MiB/s   
+[ExtractAudio] Destination: downloads\Ludovico Einaudi - Einaudi Fly (Official Visualiser).mp3
+Deleting original file downloads\Ludovico Einaudi - Einaudi Fly (Official Visualiser).webm (pass -k to keep)
+[Metadata] Adding metadata to "downloads\Ludovico Einaudi - Einaudi Fly (Official Visualiser).mp3"
+[download] Downloading item 15 of 26
+[youtube] Extracting URL: https://music.youtube.com/watch?v=_wdIbEpIU4k
+[youtube] _wdIbEpIU4k: Downloading webpage
+WARNING: [youtube] No supported JavaScript runtime could be found. Only deno 
+is enabled by default; to use another runtime add  --js-runtimes 
+RUNTIME[:PATH]  to your command/config. YouTube extraction without a JS 
+runtime has been deprecated, and some formats may be missing. See  
+https://github.com/yt-dlp/yt-dlp/wiki/EJS  for details on installing one
+[youtube] _wdIbEpIU4k: Downloading android vr player API JSON
+[info] _wdIbEpIU4k: Downloading 1 format(s): 251
+Deleting existing file downloads\Telemann Suite in A minor, for Recorder, Strings & Continuo, TWV 55a2 RΘjouissance.webp
+[info] Downloading video thumbnail 41 ...
+[info] Writing video thumbnail 41 to: downloads\Telemann Suite in A minor, for Recorder, Strings & Continuo, TWV 55a2 RΘjouissance.webp
+[download] Destination: downloads\Telemann Suite in A minor, for Recorder, Strings & Continuo, TWV 55a2 RΘjouissance.webm
+
+[download]   0.0% of    2.28MiB at    4.90KiB/s ETA 07:55
+[download]   0.1% of    2.28MiB at   14.62KiB/s ETA 02:39
+[download]   0.3% of    2.28MiB at   33.97KiB/s ETA 01:08
+[download]   0.6% of    2.28MiB at   72.53KiB/s ETA 00:31
+[download]   1.3% of    2.28MiB at   86.72KiB/s ETA 00:26
+[download]   2.7% of    2.28MiB at  115.81KiB/s ETA 00:19
+[download]   5.4% of    2.28MiB at  164.19KiB/s ETA 00:13
+[download]  10.9% of    2.28MiB at  226.30KiB/s ETA 00:09
+[download]  21.9% of    2.28MiB at  295.34KiB/s ETA 00:06
+[download]  40.1% of    2.28MiB at  441.14KiB/s ETA 00:03
+[download]  76.5% of    2.28MiB at  660.00KiB/s ETA 00:00
+[download] 100.0% of    2.28MiB at  808.93KiB/s ETA 00:00
+[download] 100% of    2.28MiB in 00:00:06 at 352.73KiB/s 
+[ExtractAudio] Destination: downloads\Telemann Suite in A minor, for Recorder, Strings & Continuo, TWV 55a2 RΘjouissance.mp3
+Deleting original file downloads\Telemann Suite in A minor, for Recorder, Strings & Continuo, TWV 55a2 RΘjouissance.webm (pass -k to keep)
+[Metadata] Adding metadata to "downloads\Telemann Suite in A minor, for Recorder, Strings & Continuo, TWV 55a2 RΘjouissance.mp3"
+[download] Downloading item 16 of 26
+[youtube] Extracting URL: https://music.youtube.com/watch?v=nSRNN5UGKng
+[youtube] nSRNN5UGKng: Downloading webpage
+WARNING: [youtube] No supported JavaScript runtime could be found. Only deno 
+is enabled by default; to use another runtime add  --js-runtimes 
+RUNTIME[:PATH]  to your command/config. YouTube extraction without a JS 
+runtime has been deprecated, and some formats may be missing. See  
+https://github.com/yt-dlp/yt-dlp/wiki/EJS  for details on installing one
+[youtube] nSRNN5UGKng: Downloading android vr player API JSON
+[info] nSRNN5UGKng: Downloading 1 format(s): 251
+Deleting existing file downloads\Perpetual.webp
+[info] Downloading video thumbnail 41 ...
+[info] Writing video thumbnail 41 to: downloads\Perpetual.webp
+[download] Destination: downloads\Perpetual.webm
+
+[download]   0.0% of    3.09MiB at   33.11KiB/s ETA 01:35
+[download]   0.1% of    3.09MiB at   96.14KiB/s ETA 00:32
+[download]   0.2% of    3.09MiB at  215.67KiB/s ETA 00:14
+[download]   0.5% of    3.09MiB at  449.50KiB/s ETA 00:07
+[download]   1.0% of    3.09MiB at  136.28KiB/s ETA 00:22
+[download]   2.0% of    3.09MiB at  136.40KiB/s ETA 00:22
+[download]   4.0% of    3.09MiB at  188.23KiB/s ETA 00:16
+[download]   8.1% of    3.09MiB at  286.89KiB/s ETA 00:10
+[download]  16.1% of    3.09MiB at  461.47KiB/s ETA 00:05
+[download]  32.3% of    3.09MiB at  746.92KiB/s ETA 00:02
+[download]  64.7% of    3.09MiB at    1.10MiB/s ETA 00:00
+[download] 100.0% of    3.09MiB at    1.32MiB/s ETA 00:00
+[download] 100% of    3.09MiB in 00:00:04 at 790.57KiB/s 
+[ExtractAudio] Destination: downloads\Perpetual.mp3
+Deleting original file downloads\Perpetual.webm (pass -k to keep)
+[Metadata] Adding metadata to "downloads\Perpetual.mp3"
+[download] Downloading item 17 of 26
+[youtube] Extracting URL: https://music.youtube.com/watch?v=5bsk4k4i5yo
+[youtube] 5bsk4k4i5yo: Downloading webpage
+WARNING: [youtube] No supported JavaScript runtime could be found. Only deno 
+is enabled by default; to use another runtime add  --js-runtimes 
+RUNTIME[:PATH]  to your command/config. YouTube extraction without a JS 
+runtime has been deprecated, and some formats may be missing. See  
+https://github.com/yt-dlp/yt-dlp/wiki/EJS  for details on installing one
+[youtube] 5bsk4k4i5yo: Downloading android vr player API JSON
+[info] 5bsk4k4i5yo: Downloading 1 format(s): 251
+Deleting existing file downloads\Give Me Everything (Stripped Down).webp
+[info] Downloading video thumbnail 41 ...
+[info] Writing video thumbnail 41 to: downloads\Give Me Everything (Stripped Down).webp
+[download] Destination: downloads\Give Me Everything (Stripped Down).webm
+
+[download]   0.0% of    2.15MiB at    5.86KiB/s ETA 06:16
+[download]   0.1% of    2.15MiB at   17.44KiB/s ETA 02:06
+[download]   0.3% of    2.15MiB at   40.43KiB/s ETA 00:54
+[download]   0.7% of    2.15MiB at   86.15KiB/s ETA 00:25
+[download]   1.4% of    2.15MiB at  140.45KiB/s ETA 00:15
+[download]   2.9% of    2.15MiB at  152.31KiB/s ETA 00:14
+[download]   5.8% of    2.15MiB at  196.14KiB/s ETA 00:10
+[download]  11.6% of    2.15MiB at  227.58KiB/s ETA 00:08
+[download]  23.2% of    2.15MiB at  371.58KiB/s ETA 00:04
+[download]  46.4% of    2.15MiB at  460.96KiB/s ETA 00:02
+[download]  73.9% of    2.15MiB at  616.19KiB/s ETA 00:00
+[download] 100.0% of    2.15MiB at  717.21KiB/s ETA 00:00
+[download] 100% of    2.15MiB in 00:00:05 at 428.91KiB/s 
+[ExtractAudio] Destination: downloads\Give Me Everything (Stripped Down).mp3
+Deleting original file downloads\Give Me Everything (Stripped Down).webm (pass -k to keep)
+[Metadata] Adding metadata to "downloads\Give Me Everything (Stripped Down).mp3"
+[download] Downloading item 18 of 26
+[youtube] Extracting URL: https://music.youtube.com/watch?v=FgMdQRBcuqo
+[youtube] FgMdQRBcuqo: Downloading webpage
+WARNING: [youtube] No supported JavaScript runtime could be found. Only deno 
+is enabled by default; to use another runtime add  --js-runtimes 
+RUNTIME[:PATH]  to your command/config. YouTube extraction without a JS 
+runtime has been deprecated, and some formats may be missing. See  
+https://github.com/yt-dlp/yt-dlp/wiki/EJS  for details on installing one
+[youtube] FgMdQRBcuqo: Downloading android vr player API JSON
+[info] FgMdQRBcuqo: Downloading 1 format(s): 251
+Deleting existing file downloads\LANNE & Blaze U - Winter (The Four Seasons)(Techno Mix).webp
+[info] Downloading video thumbnail 45 ...
+[info] Writing video thumbnail 45 to: downloads\LANNE & Blaze U - Winter (The Four Seasons)(Techno Mix).webp
+[download] Destination: downloads\LANNE & Blaze U - Winter (The Four Seasons)(Techno Mix).webm
+
+[download]   0.0% of    2.09MiB at    5.71KiB/s ETA 06:15
+[download]   0.1% of    2.09MiB at   17.01KiB/s ETA 02:05
+[download]   0.3% of    2.09MiB at   39.44KiB/s ETA 00:54
+[download]   0.7% of    2.09MiB at   84.01KiB/s ETA 00:25
+[download]   1.4% of    2.09MiB at  124.47KiB/s ETA 00:16
+[download]   2.9% of    2.09MiB at  141.46KiB/s ETA 00:14
+[download]   5.9% of    2.09MiB at  203.03KiB/s ETA 00:09
+[download]  11.9% of    2.09MiB at  270.74KiB/s ETA 00:06
+[download]  23.8% of    2.09MiB at  407.47KiB/s ETA 00:04
+[download]  47.7% of    2.09MiB at  567.23KiB/s ETA 00:01
+[download]  91.2% of    2.09MiB at  839.41KiB/s ETA 00:00
+[download] 100.0% of    2.09MiB at  887.88KiB/s ETA 00:00
+[download] 100% of    2.09MiB in 00:00:04 at 531.62KiB/s 
+[ExtractAudio] Destination: downloads\LANNE & Blaze U - Winter (The Four Seasons)(Techno Mix).mp3
+Deleting original file downloads\LANNE & Blaze U - Winter (The Four Seasons)(Techno Mix).webm (pass -k to keep)
+[Metadata] Adding metadata to "downloads\LANNE & Blaze U - Winter (The Four Seasons)(Techno Mix).mp3"
+[download] Downloading item 19 of 26
+[youtube] Extracting URL: https://music.youtube.com/watch?v=lrEWpppIwmU
+[youtube] lrEWpppIwmU: Downloading webpage
+WARNING: [youtube] No supported JavaScript runtime could be found. Only deno 
+is enabled by default; to use another runtime add  --js-runtimes 
+RUNTIME[:PATH]  to your command/config. YouTube extraction without a JS 
+runtime has been deprecated, and some formats may be missing. See  
+https://github.com/yt-dlp/yt-dlp/wiki/EJS  for details on installing one
+[youtube] lrEWpppIwmU: Downloading android vr player API JSON
+[info] lrEWpppIwmU: Downloading 1 format(s): 251
+Deleting existing file downloads\The Friendly Lucas (feat. Giani Caserotto).webp
+[info] Downloading video thumbnail 41 ...
+[info] Writing video thumbnail 41 to: downloads\The Friendly Lucas (feat. Giani Caserotto).webp
+[download] Destination: downloads\The Friendly Lucas (feat. Giani Caserotto).webm
+
+[download]   0.0% of    2.17MiB at    6.84KiB/s ETA 05:25
+[download]   0.1% of    2.17MiB at   20.34KiB/s ETA 01:49
+[download]   0.3% of    2.17MiB at   47.03KiB/s ETA 00:47
+[download]   0.7% of    2.17MiB at   99.95KiB/s ETA 00:22
+[download]   1.4% of    2.17MiB at  145.42KiB/s ETA 00:15
+[download]   2.8% of    2.17MiB at  158.77KiB/s ETA 00:13
+[download]   5.7% of    2.17MiB at  190.20KiB/s ETA 00:11
+[download]  11.5% of    2.17MiB at  245.92KiB/s ETA 00:08
+[download]  23.0% of    2.17MiB at  310.07KiB/s ETA 00:05
+[download]  41.8% of    2.17MiB at  453.80KiB/s ETA 00:02
+[download]  79.5% of    2.17MiB at  703.94KiB/s ETA 00:00
+[download] 100.0% of    2.17MiB at  798.39KiB/s ETA 00:00
+[download] 100% of    2.17MiB in 00:00:04 at 540.75KiB/s 
+[ExtractAudio] Destination: downloads\The Friendly Lucas (feat. Giani Caserotto).mp3
+Deleting original file downloads\The Friendly Lucas (feat. Giani Caserotto).webm (pass -k to keep)
+[Metadata] Adding metadata to "downloads\The Friendly Lucas (feat. Giani Caserotto).mp3"
+[download] Downloading item 20 of 26
+[youtube] Extracting URL: https://music.youtube.com/watch?v=P_PzvVmZjQI
+[youtube] P_PzvVmZjQI: Downloading webpage
+WARNING: [youtube] No supported JavaScript runtime could be found. Only deno 
+is enabled by default; to use another runtime add  --js-runtimes 
+RUNTIME[:PATH]  to your command/config. YouTube extraction without a JS 
+runtime has been deprecated, and some formats may be missing. See  
+https://github.com/yt-dlp/yt-dlp/wiki/EJS  for details on installing one
+[youtube] P_PzvVmZjQI: Downloading android vr player API JSON
+[info] P_PzvVmZjQI: Downloading 1 format(s): 251
+Deleting existing file downloads\Tony Ann - DESIRE (Official Music Video).webp
+[info] Downloading video thumbnail 46 ...
+[info] Writing video thumbnail 46 to: downloads\Tony Ann - DESIRE (Official Music Video).webp
+[download] Destination: downloads\Tony Ann - DESIRE (Official Music Video).webm
+
+[download]   0.0% of    4.39MiB at  715.26KiB/s ETA 00:06
+[download]   0.1% of    4.39MiB at    1.19MiB/s ETA 00:03
+[download]   0.2% of    4.39MiB at    2.04MiB/s ETA 00:02
+[download]   0.3% of    4.39MiB at    3.44MiB/s ETA 00:01
+[download]   0.7% of    4.39MiB at  132.16KiB/s ETA 00:33
+[download]   1.4% of    4.39MiB at  141.29KiB/s ETA 00:31
+[download]   2.8% of    4.39MiB at  185.38KiB/s ETA 00:23
+[download]   5.7% of    4.39MiB at  277.71KiB/s ETA 00:15
+[download]  11.4% of    4.39MiB at  429.63KiB/s ETA 00:09
+[download]  22.8% of    4.39MiB at  680.38KiB/s ETA 00:05
+[download]  45.5% of    4.39MiB at  975.93KiB/s ETA 00:02
+[download]  83.9% of    4.39MiB at    1.35MiB/s ETA 00:00
+[download] 100.0% of    4.39MiB at    1.47MiB/s ETA 00:00
+[download] 100% of    4.39MiB in 00:00:04 at 1.07MiB/s   
+[ExtractAudio] Destination: downloads\Tony Ann - DESIRE (Official Music Video).mp3
+Deleting original file downloads\Tony Ann - DESIRE (Official Music Video).webm (pass -k to keep)
+[Metadata] Adding metadata to "downloads\Tony Ann - DESIRE (Official Music Video).mp3"
+[download] Downloading item 21 of 26
+[youtube] Extracting URL: https://music.youtube.com/watch?v=ZT0aOrjIcVE
+[youtube] ZT0aOrjIcVE: Downloading webpage
+WARNING: [youtube] No supported JavaScript runtime could be found. Only deno 
+is enabled by default; to use another runtime add  --js-runtimes 
+RUNTIME[:PATH]  to your command/config. YouTube extraction without a JS 
+runtime has been deprecated, and some formats may be missing. See  
+https://github.com/yt-dlp/yt-dlp/wiki/EJS  for details on installing one
+[youtube] ZT0aOrjIcVE: Downloading android vr player API JSON
+[info] ZT0aOrjIcVE: Downloading 1 format(s): 251
+Deleting existing file downloads\Jamie Duffy - Solas (Official Video).webp
+[info] Downloading video thumbnail 46 ...
+[info] Writing video thumbnail 46 to: downloads\Jamie Duffy - Solas (Official Video).webp
+[download] Destination: downloads\Jamie Duffy - Solas (Official Video).webm
+
+[download]   0.0% of    2.69MiB at    5.66KiB/s ETA 08:07
+[download]   0.1% of    2.69MiB at   16.87KiB/s ETA 02:43
+[download]   0.3% of    2.69MiB at   39.14KiB/s ETA 01:10
+[download]   0.5% of    2.69MiB at   83.44KiB/s ETA 00:32
+[download]   1.1% of    2.69MiB at  129.40KiB/s ETA 00:21
+[download]   2.3% of    2.69MiB at  163.14KiB/s ETA 00:16
+[download]   4.6% of    2.69MiB at  149.65KiB/s ETA 00:17
+[download]   9.2% of    2.69MiB at  245.28KiB/s ETA 00:10
+[download]  18.5% of    2.69MiB at  396.15KiB/s ETA 00:05
+[download]  37.1% of    2.69MiB at  533.02KiB/s ETA 00:03
+[download]  66.6% of    2.69MiB at  740.17KiB/s ETA 00:01
+[download] 100.0% of    2.69MiB at  918.16KiB/s ETA 00:00
+[download] 100% of    2.69MiB in 00:00:04 at 621.18KiB/s 
+[ExtractAudio] Destination: downloads\Jamie Duffy - Solas (Official Video).mp3
+Deleting original file downloads\Jamie Duffy - Solas (Official Video).webm (pass -k to keep)
+[Metadata] Adding metadata to "downloads\Jamie Duffy - Solas (Official Video).mp3"
+[download] Downloading item 22 of 26
+[youtube] Extracting URL: https://music.youtube.com/watch?v=qmydsR7N3p8
+[youtube] qmydsR7N3p8: Downloading webpage
+WARNING: [youtube] No supported JavaScript runtime could be found. Only deno 
+is enabled by default; to use another runtime add  --js-runtimes 
+RUNTIME[:PATH]  to your command/config. YouTube extraction without a JS 
+runtime has been deprecated, and some formats may be missing. See  
+https://github.com/yt-dlp/yt-dlp/wiki/EJS  for details on installing one
+[youtube] qmydsR7N3p8: Downloading android vr player API JSON
+[info] qmydsR7N3p8: Downloading 1 format(s): 251
+Deleting existing file downloads\Bird Waltz.webp
+[info] Downloading video thumbnail 41 ...
+[info] Writing video thumbnail 41 to: downloads\Bird Waltz.webp
+[download] Destination: downloads\Bird Waltz.webm
+
+[download]   0.0% of    2.39MiB at    5.75KiB/s ETA 07:05
+[download]   0.1% of    2.39MiB at   17.12KiB/s ETA 02:22
+[download]   0.3% of    2.39MiB at   39.68KiB/s ETA 01:01
+[download]   0.6% of    2.39MiB at   84.43KiB/s ETA 00:28
+[download]   1.3% of    2.39MiB at  135.09KiB/s ETA 00:17
+[download]   2.6% of    2.39MiB at  159.89KiB/s ETA 00:14
+[download]   5.2% of    2.39MiB at  229.09KiB/s ETA 00:10
+[download]  10.4% of    2.39MiB at  341.30KiB/s ETA 00:06
+[download]  20.9% of    2.39MiB at  547.53KiB/s ETA 00:03
+[download]  41.8% of    2.39MiB at  777.27KiB/s ETA 00:01
+[download]  83.7% of    2.39MiB at 1004.46KiB/s ETA 00:00
+[download] 100.0% of    2.39MiB at    1.06MiB/s ETA 00:00
+[download] 100% of    2.39MiB in 00:00:02 at 868.41KiB/s 
+[ExtractAudio] Destination: downloads\Bird Waltz.mp3
+Deleting original file downloads\Bird Waltz.webm (pass -k to keep)
+[Metadata] Adding metadata to "downloads\Bird Waltz.mp3"
+[download] Downloading item 23 of 26
+[youtube] Extracting URL: https://music.youtube.com/watch?v=4Yjnv7leViU
+[youtube] 4Yjnv7leViU: Downloading webpage
+WARNING: [youtube] No supported JavaScript runtime could be found. Only deno 
+is enabled by default; to use another runtime add  --js-runtimes 
+RUNTIME[:PATH]  to your command/config. YouTube extraction without a JS 
+runtime has been deprecated, and some formats may be missing. See  
+https://github.com/yt-dlp/yt-dlp/wiki/EJS  for details on installing one
+[youtube] 4Yjnv7leViU: Downloading android vr player API JSON
+[info] 4Yjnv7leViU: Downloading 1 format(s): 251
+Deleting existing file downloads\Il gigante e la balena.webp
+[info] Downloading video thumbnail 41 ...
+[info] Writing video thumbnail 41 to: downloads\Il gigante e la balena.webp
+[download] Destination: downloads\Il gigante e la balena.webm
+
+[download]   0.0% of    4.23MiB at    2.13KiB/s ETA 33:50
+[download]   0.1% of    4.23MiB at    6.39KiB/s ETA 11:18
+[download]   0.2% of    4.23MiB at   14.88KiB/s ETA 04:51
+[download]   0.3% of    4.23MiB at   31.81KiB/s ETA 02:15
+[download]   0.7% of    4.23MiB at   56.75KiB/s ETA 01:15
+[download]   1.5% of    4.23MiB at   63.58KiB/s ETA 01:07
+[download]   2.9% of    4.23MiB at  100.32KiB/s ETA 00:41
+[download]   5.9% of    4.23MiB at  160.34KiB/s ETA 00:25
+[download]  11.8% of    4.23MiB at  277.69KiB/s ETA 00:13
+[download]  23.6% of    4.23MiB at  461.81KiB/s ETA 00:07
+[download]  47.2% of    4.23MiB at  780.64KiB/s ETA 00:02
+[download]  94.4% of    4.23MiB at    1.02MiB/s ETA 00:00
+[download] 100.0% of    4.23MiB at    1.05MiB/s ETA 00:00
+[download] 100% of    4.23MiB in 00:00:07 at 610.38KiB/s 
+[ExtractAudio] Destination: downloads\Il gigante e la balena.mp3
+Deleting original file downloads\Il gigante e la balena.webm (pass -k to keep)
+[Metadata] Adding metadata to "downloads\Il gigante e la balena.mp3"
+[download] Downloading item 24 of 26
+[youtube] Extracting URL: https://music.youtube.com/watch?v=mVCPm9gLPLk
+[youtube] mVCPm9gLPLk: Downloading webpage
+WARNING: [youtube] No supported JavaScript runtime could be found. Only deno 
+is enabled by default; to use another runtime add  --js-runtimes 
+RUNTIME[:PATH]  to your command/config. YouTube extraction without a JS 
+runtime has been deprecated, and some formats may be missing. See  
+https://github.com/yt-dlp/yt-dlp/wiki/EJS  for details on installing one
+[youtube] mVCPm9gLPLk: Downloading android vr player API JSON
+[info] mVCPm9gLPLk: Downloading 1 format(s): 251
+Deleting existing file downloads\Give Me Everything (Bridgerton Version).webp
+[info] Downloading video thumbnail 41 ...
+[info] Writing video thumbnail 41 to: downloads\Give Me Everything (Bridgerton Version).webp
+[download] Destination: downloads\Give Me Everything (Bridgerton Version).webm
+
+[download]   0.1% of    1.75MiB at   19.52KiB/s ETA 01:31
+[download]   0.2% of    1.75MiB at   57.24KiB/s ETA 00:31
+[download]   0.4% of    1.75MiB at  131.00KiB/s ETA 00:13
+[download]   0.8% of    1.75MiB at  275.44KiB/s ETA 00:06
+[download]   1.7% of    1.75MiB at  132.35KiB/s ETA 00:13
+[download]   3.5% of    1.75MiB at  154.55KiB/s ETA 00:11
+[download]   7.1% of    1.75MiB at  213.45KiB/s ETA 00:07
+[download]  14.2% of    1.75MiB at  336.83KiB/s ETA 00:04
+[download]  28.5% of    1.75MiB at  525.39KiB/s ETA 00:02
+[download]  57.0% of    1.75MiB at  857.16KiB/s ETA 00:00
+[download] 100.0% of    1.75MiB at    1.11MiB/s ETA 00:00
+[download] 100% of    1.75MiB in 00:00:03 at 542.06KiB/s 
+[ExtractAudio] Destination: downloads\Give Me Everything (Bridgerton Version).mp3
+Deleting original file downloads\Give Me Everything (Bridgerton Version).webm (pass -k to keep)
+[Metadata] Adding metadata to "downloads\Give Me Everything (Bridgerton Version).mp3"
+[download] Downloading item 25 of 26
+[youtube] Extracting URL: https://music.youtube.com/watch?v=F2xnvyMp8Us
+[youtube] F2xnvyMp8Us: Downloading webpage
+WARNING: [youtube] No supported JavaScript runtime could be found. Only deno 
+is enabled by default; to use another runtime add  --js-runtimes 
+RUNTIME[:PATH]  to your command/config. YouTube extraction without a JS 
+runtime has been deprecated, and some formats may be missing. See  
+https://github.com/yt-dlp/yt-dlp/wiki/EJS  for details on installing one
+[youtube] F2xnvyMp8Us: Downloading android vr player API JSON
+[info] F2xnvyMp8Us: Downloading 1 format(s): 251
+Deleting existing file downloads\Love Story - Indila.webp
+[info] Downloading video thumbnail 41 ...
+[info] Writing video thumbnail 41 to: downloads\Love Story - Indila.webp
+[download] Destination: downloads\Love Story - Indila.webm
+
+[download]   0.0% of    1.99MiB at    6.34KiB/s ETA 05:20
+[download]   0.1% of    1.99MiB at   18.88KiB/s ETA 01:47
+[download]   0.3% of    1.99MiB at   43.78KiB/s ETA 00:46
+[download]   0.7% of    1.99MiB at   93.27KiB/s ETA 00:21
+[download]   1.5% of    1.99MiB at  147.09KiB/s ETA 00:13
+[download]   3.1% of    1.99MiB at  170.71KiB/s ETA 00:11
+[download]   6.2% of    1.99MiB at  236.09KiB/s ETA 00:08
+[download]  12.5% of    1.99MiB at  348.92KiB/s ETA 00:05
+[download]  25.1% of    1.99MiB at  508.89KiB/s ETA 00:02
+[download]  50.3% of    1.99MiB at  850.46KiB/s ETA 00:01
+[download] 100.0% of    1.99MiB at    1.06MiB/s ETA 00:00
+[download] 100% of    1.99MiB in 00:00:03 at 619.77KiB/s 
+[ExtractAudio] Destination: downloads\Love Story - Indila.mp3
+Deleting original file downloads\Love Story - Indila.webm (pass -k to keep)
+[Metadata] Adding metadata to "downloads\Love Story - Indila.mp3"
+[download] Downloading item 26 of 26
+[youtube] Extracting URL: https://music.youtube.com/watch?v=0m3z8Jd937A
+[youtube] 0m3z8Jd937A: Downloading webpage
+WARNING: [youtube] No supported JavaScript runtime could be found. Only deno 
+is enabled by default; to use another runtime add  --js-runtimes 
+RUNTIME[:PATH]  to your command/config. YouTube extraction without a JS 
+runtime has been deprecated, and some formats may be missing. See  
+https://github.com/yt-dlp/yt-dlp/wiki/EJS  for details on installing one
+[youtube] 0m3z8Jd937A: Downloading android vr player API JSON
+[info] 0m3z8Jd937A: Downloading 1 format(s): 251
+Deleting existing file downloads\Cinematic Trailer.webp
+[info] Downloading video thumbnail 41 ...
+[info] Writing video thumbnail 41 to: downloads\Cinematic Trailer.webp
+[download] Destination: downloads\Cinematic Trailer.webm
+
+[download]   0.0% of    2.65MiB at    3.05KiB/s ETA 14:49
+[download]   0.1% of    2.65MiB at    9.13KiB/s ETA 04:57
+[download]   0.3% of    2.65MiB at   21.24KiB/s ETA 02:07
+[download]   0.6% of    2.65MiB at   45.33KiB/s ETA 00:59
+[download]   1.1% of    2.65MiB at   59.96KiB/s ETA 00:44
+[download]   2.3% of    2.65MiB at   83.55KiB/s ETA 00:31
+[download]   4.7% of    2.65MiB at  110.18KiB/s ETA 00:23
+[download]   9.4% of    2.65MiB at  159.39KiB/s ETA 00:15
+[download]  18.8% of    2.65MiB at  250.98KiB/s ETA 00:08
+[download]  37.7% of    2.65MiB at  417.93KiB/s ETA 00:04
+[download]  75.3% of    2.65MiB at  707.03KiB/s ETA 00:00
+[download] 100.0% of    2.65MiB at  713.80KiB/s ETA 00:00
+[download] 100% of    2.65MiB in 00:00:05 at 490.72KiB/s 
+[ExtractAudio] Destination: downloads\Cinematic Trailer.mp3
+Deleting original file downloads\Cinematic Trailer.webm (pass -k to keep)
+[Metadata] Adding metadata to "downloads\Cinematic Trailer.mp3"
+[download] Finished downloading playlist: CLASSICAL ME
+Downloaded: CLASSICAL ME
+
+[2/146] 
+Failed: https://music.youtube.com/watch?v=qmX0a6Ftjyw&list=PL5MCq-2iorOk5LrCv2zMQrjoX0wR7oIGX
+Error: 'charmap' codec can't encode character '\u2298' in position 0: character maps to <undefined>
+
+[3/146] 
+Failed: https://music.youtube.com/watch?v=iUx4ygVz82k&list=PL5MCq-2iorOk5LrCv2zMQrjoX0wR7oIGX
+Error: 'charmap' codec can't encode character '\u2298' in position 0: character maps to <undefined>
+
+[4/146] 
+Failed: https://music.youtube.com/watch?v=-ZP8f2xTde8&list=PL5MCq-2iorOk5LrCv2zMQrjoX0wR7oIGX
+Error: 'charmap' codec can't encode character '\u2298' in position 0: character maps to <undefined>
+
+[5/146] 
+Failed: https://music.youtube.com/watch?v=eLqa-Wm9Uqk&list=PL5MCq-2iorOk5LrCv2zMQrjoX0wR7oIGX
+Error: 'charmap' codec can't encode character '\u2298' in position 0: character maps to <undefined>
+
+[6/146] 
+Failed: https://music.youtube.com/watch?v=cC9iI1VtDLo&list=PL5MCq-2iorOk5LrCv2zMQrjoX0wR7oIGX
+Error: 'charmap' codec can't encode character '\u2298' in position 0: character maps to <undefined>
+
+[7/146] 
+Failed: https://music.youtube.com/watch?v=xk0miYEDgjA&list=PL5MCq-2iorOk5LrCv2zMQrjoX0wR7oIGX
+Error: 'charmap' codec can't encode character '\u2298' in position 0: character maps to <undefined>
+
+[8/146] 

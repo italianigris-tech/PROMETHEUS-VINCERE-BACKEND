@@ -1,0 +1,10 @@
+# Sample URL file for batch downloads
+# Add one YouTube URL per line
+# Lines starting with # are comments and will be ignored
+
+# Example URLs (replace with your own):
+# https://www.youtube.com/watch?v=example1
+# https://www.youtube.com/watch?v=example2
+# https://www.youtube.com/watch?v=example3
+
+# Copy this file as urls.txt and add your YouTube links

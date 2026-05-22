@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo, useState} from "react";
+﻿import React, {useEffect, useMemo, useState} from "react";
 import {AbsoluteFill, useRemotionEnvironment} from "remotion";
 import {loadFont as loadAllura} from "@remotion/google-fonts/Allura";
 import {loadFont as loadAnton} from "@remotion/google-fonts/Anton";
@@ -33,13 +33,13 @@ import {CinematicPiPOverlay} from "../components/CinematicPiPOverlay";
 import {MotionTransitionOverlay} from "../components/MotionTransitionOverlay";
 import {MotionSoundDesign} from "../components/MotionSoundDesign";
 import {MotionShowcaseOverlay} from "../components/MotionShowcaseOverlay";
-import {SvgCaptionOverlay, isSvgCaptionChunk} from "../components/SvgCaptionOverlay";
+import {
+  SvgCaptionOverlay,
+  getSvgCaptionChunkFontFamilies,
+  isSvgCaptionChunk
+} from "../components/SvgCaptionOverlay";
 import reelVideoMetadata from "../data/video.metadata.json" with {type: "json"};
 import {loadEditorialCaptionFonts} from "../lib/cinematic-typography/editorial-fonts";
-import {
-  getHouseTypographyRuntimeState,
-  primeHouseTypographyFonts
-} from "../lib/cinematic-typography/house-font-loader";
 import {deterministicChunkWords, mapWordChunksToCaptionChunks} from "../lib/caption-chunker";
 import {LONGFORM_SAFE_MOTION_ASSET_FAMILIES} from "../lib/motion-platform/asset-manifests";
 import {
@@ -283,20 +283,10 @@ export const resolveProjectScopedCaptionChunks = ({
   return [];
 };
 
-const isPremiumStudioTypographyProfile = (captionProfileId: CaptionStyleProfileId): boolean => {
-  return captionProfileId === "longform_svg_typography_v1" ||
-    captionProfileId === "longform_eve_typography_v1" ||
-    captionProfileId === "longform_docked_inverse_v1" ||
-    captionProfileId === "longform_semantic_sidecall_v1";
-};
-
 export type ProjectScopedTypographyDiagnostics = {
   captionChunksCount: number;
   activeCaptionRenderer: "hidden" | "word-by-word" | "docked-inverse" | "semantic-sidecall" | "cinematic" | "svg" | "none";
   requestedFontFamilies: string[];
-  houseFontsAvailable: boolean;
-  enabledHouseFontCount: number;
-  loadedHouseFontCount: number;
   activeFallbackFamily: string | null;
   fontRuntimeLoaded: boolean;
   warning: string | null;
@@ -305,45 +295,23 @@ export type ProjectScopedTypographyDiagnostics = {
 export const resolveProjectScopedTypographyDiagnostics = ({
   captionChunks,
   activeCaptionRenderer,
-  captionProfileId,
-  studioTypographySample,
   fontRuntimeLoaded,
   fontRuntimeWarning,
-  requestedFontFamilies,
-  houseFontRuntimeState
+  requestedFontFamilies
 }: {
   captionChunks: CaptionChunk[];
   activeCaptionRenderer: ProjectScopedTypographyDiagnostics["activeCaptionRenderer"];
-  captionProfileId: CaptionStyleProfileId;
-  studioTypographySample: boolean;
   fontRuntimeLoaded: boolean;
   fontRuntimeWarning: string | null;
   requestedFontFamilies: string[];
-  houseFontRuntimeState: ReturnType<typeof getHouseTypographyRuntimeState>;
 }): ProjectScopedTypographyDiagnostics => {
-  const activeFallbackFamily =
-    !houseFontRuntimeState.houseFontsAvailable && requestedFontFamilies.length > 0
-      ? requestedFontFamilies[0]
-      : null;
-  const showHouseFontWarning =
-    fontRuntimeLoaded &&
-    captionChunks.length > 0 &&
-    !houseFontRuntimeState.houseFontsAvailable &&
-    (studioTypographySample || isPremiumStudioTypographyProfile(captionProfileId));
-  const warning = showHouseFontWarning
-    ? "House fonts unavailable — using fallback typography."
-    : fontRuntimeWarning;
-
   return {
     captionChunksCount: captionChunks.length,
     activeCaptionRenderer,
     requestedFontFamilies,
-    houseFontsAvailable: houseFontRuntimeState.houseFontsAvailable,
-    enabledHouseFontCount: houseFontRuntimeState.enabledHouseFontCount,
-    loadedHouseFontCount: houseFontRuntimeState.loadedHouseFontCount,
-    activeFallbackFamily,
+    activeFallbackFamily: requestedFontFamilies[0] ?? null,
     fontRuntimeLoaded,
-    warning
+    warning: fontRuntimeWarning
   };
 };
 
@@ -391,6 +359,13 @@ export const resolveProjectScopedCaptionRuntimeDiagnostics = ({
   }
 
   if (presentationMode === "long-form") {
+    if (longformCaptionRenderMode === "svg") {
+      return {
+        activeCaptionRenderer: "svg",
+        captionDomNodesExpected: svgCaptionChunks.length > 0
+      };
+    }
+
     if (longformCaptionRenderMode === "word-by-word") {
       return {
         activeCaptionRenderer: "word-by-word",
@@ -545,7 +520,8 @@ export const buildProjectScopedDiagnosticWarnings = ({
   videoValidationState,
   videoValidationMessage,
   captionChunks,
-  fontRuntimeWarning
+  fontRuntimeWarning,
+  diagnosticSurface = "studio"
 }: {
   videoSrc: string | null;
   studioSampleId?: string | null;
@@ -554,6 +530,7 @@ export const buildProjectScopedDiagnosticWarnings = ({
   videoValidationMessage: string | null;
   captionChunks: CaptionChunk[];
   fontRuntimeWarning: string | null;
+  diagnosticSurface?: "studio" | "live-preview";
 }): string[] => {
   const warnings: string[] = [];
 
@@ -578,7 +555,11 @@ export const buildProjectScopedDiagnosticWarnings = ({
   }
 
   if (captionChunks.length === 0) {
-    warnings.push("No caption chunks are loaded. Paste real caption data into the Studio props panel.");
+    warnings.push(
+      diagnosticSurface === "live-preview"
+        ? "No caption chunks are available yet. Waiting for session.transcriptWords, previewMotionSequence, or previewLines before rendering typography."
+        : "No caption chunks are loaded. Paste real caption data into the Studio props panel."
+    );
   }
 
   if (fontRuntimeWarning) {
@@ -812,15 +793,6 @@ export const ProjectScopedMotionComposition: React.FC<ProjectScopedMotionComposi
     () => getLongformCaptionRenderMode(resolvedCaptionProfileId),
     [resolvedCaptionProfileId]
   );
-  const [fontRuntimeState, setFontRuntimeState] = useState<{
-    ready: boolean;
-    warning: string | null;
-    runtimeState: ReturnType<typeof getHouseTypographyRuntimeState>;
-  }>({
-    ready: typeof document === "undefined",
-    warning: null,
-    runtimeState: getHouseTypographyRuntimeState()
-  });
   const [videoValidation, setVideoValidation] = useState<{
     state: ProjectScopedVideoValidationState;
     message: string | null;
@@ -904,27 +876,35 @@ export const ProjectScopedMotionComposition: React.FC<ProjectScopedMotionComposi
     resolvedCaptionProfileId,
     resolvedPresentationMode
   ]);
-  const typographyDiagnostics = useMemo(() => resolveProjectScopedTypographyDiagnostics({
-    captionChunks,
-    activeCaptionRenderer: captionRuntimeDiagnostics.activeCaptionRenderer,
-    captionProfileId: resolvedCaptionProfileId,
-    studioTypographySample,
-    fontRuntimeLoaded: fontRuntimeState.ready,
-    fontRuntimeWarning: fontRuntimeState.warning,
-    requestedFontFamilies: firstCaptionEditorialDecision
-      ? [
-        firstCaptionEditorialDecision.fontSelection.palette.primaryFamilyName,
-        firstCaptionEditorialDecision.fontSelection.palette.supportFamily
-      ]
-      : [],
-    houseFontRuntimeState: fontRuntimeState.runtimeState
-  }), [
+  const requestedTypographyFamilies = useMemo(() => {
+    if (captionRuntimeDiagnostics.activeCaptionRenderer === "svg") {
+      return getSvgCaptionChunkFontFamilies(svgCaptionChunks[0] ?? captionChunks[0] ?? null);
+    }
+
+    if (!firstCaptionEditorialDecision) {
+      return [];
+    }
+
+    return [
+      firstCaptionEditorialDecision.fontSelection.palette.primaryFamilyName,
+      firstCaptionEditorialDecision.fontSelection.palette.supportFamily
+    ];
+  }, [
     captionChunks,
     captionRuntimeDiagnostics.activeCaptionRenderer,
     firstCaptionEditorialDecision,
-    fontRuntimeState.ready,
-    fontRuntimeState.runtimeState,
-    fontRuntimeState.warning,
+    svgCaptionChunks
+  ]);
+  const typographyDiagnostics = useMemo(() => resolveProjectScopedTypographyDiagnostics({
+    captionChunks,
+    activeCaptionRenderer: captionRuntimeDiagnostics.activeCaptionRenderer,
+    fontRuntimeLoaded: true,
+    fontRuntimeWarning: null,
+    requestedFontFamilies: requestedTypographyFamilies
+  }), [
+    captionChunks,
+    captionRuntimeDiagnostics.activeCaptionRenderer,
+    requestedTypographyFamilies,
     resolvedCaptionProfileId,
     studioTypographySample
   ]);
@@ -935,43 +915,6 @@ export const ProjectScopedMotionComposition: React.FC<ProjectScopedMotionComposi
   }), [debugMotionArtifacts, pipMode, resolvedPreviewPerformanceMode]);
   const shouldRenderCaptionLayer = captionRuntimeDiagnostics.captionDomNodesExpected;
   const shouldRenderMotionArtifacts = explicitDataState.hasExplicitMotion || debugMotionArtifacts;
-
-  useEffect(() => {
-    if (typeof document === "undefined") {
-      return;
-    }
-
-    let cancelled = false;
-
-    void primeHouseTypographyFonts()
-      .then(() => {
-        if (!cancelled) {
-          setFontRuntimeState({
-            ready: true,
-            warning: null,
-            runtimeState: getHouseTypographyRuntimeState()
-          });
-        }
-      })
-      .catch((error) => {
-        if (cancelled) {
-          return;
-        }
-
-        const message = error instanceof Error
-          ? error.message
-          : "Typography runtime could not hydrate custom font assets.";
-        setFontRuntimeState({
-          ready: false,
-          warning: message,
-          runtimeState: getHouseTypographyRuntimeState()
-        });
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   useEffect(() => {
     if (remotionEnvironment.isRendering) {
@@ -1051,9 +994,11 @@ export const ProjectScopedMotionComposition: React.FC<ProjectScopedMotionComposi
     videoValidationState: videoValidation.state,
     videoValidationMessage: videoValidation.message,
     captionChunks,
-    fontRuntimeWarning: typographyDiagnostics.warning
+    fontRuntimeWarning: typographyDiagnostics.warning,
+    diagnosticSurface: livePreviewSession ? "live-preview" : "studio"
   }), [
     captionChunks,
+    livePreviewSession,
     resolvedVideoBinding.invalidStudioSampleId,
     resolvedVideoBinding.normalizedStudioSampleId,
     resolvedVideoBinding.resolvedVideoSrc,
@@ -1097,9 +1042,6 @@ export const ProjectScopedMotionComposition: React.FC<ProjectScopedMotionComposi
       captionChunksCount: typographyDiagnostics.captionChunksCount,
       activeCaptionRenderer: typographyDiagnostics.activeCaptionRenderer,
       requestedFontFamilies: typographyDiagnostics.requestedFontFamilies,
-      houseFontsAvailable: typographyDiagnostics.houseFontsAvailable,
-      enabledHouseFontCount: typographyDiagnostics.enabledHouseFontCount,
-      loadedHouseFontCount: typographyDiagnostics.loadedHouseFontCount,
       activeFallbackFamily: typographyDiagnostics.activeFallbackFamily,
       fontRuntimeLoaded: typographyDiagnostics.fontRuntimeLoaded,
       warning: typographyDiagnostics.warning
@@ -1108,10 +1050,7 @@ export const ProjectScopedMotionComposition: React.FC<ProjectScopedMotionComposi
     typographyDiagnostics.activeCaptionRenderer,
     typographyDiagnostics.activeFallbackFamily,
     typographyDiagnostics.captionChunksCount,
-    typographyDiagnostics.enabledHouseFontCount,
     typographyDiagnostics.fontRuntimeLoaded,
-    typographyDiagnostics.houseFontsAvailable,
-    typographyDiagnostics.loadedHouseFontCount,
     typographyDiagnostics.requestedFontFamilies,
     typographyDiagnostics.warning
   ]);
@@ -1221,7 +1160,13 @@ export const ProjectScopedMotionComposition: React.FC<ProjectScopedMotionComposi
           previewTimelineResetVersion={previewTimelineResetVersion}
         />
       ) : null}
-      {!shouldRenderCaptionLayer ? null : resolvedPresentationMode === "long-form" && longformCaptionRenderMode === "word-by-word" ? (
+      {!shouldRenderCaptionLayer ? null : resolvedPresentationMode === "long-form" && longformCaptionRenderMode === "svg" ? (
+        <SvgCaptionOverlay
+          chunks={svgCaptionChunks}
+          captionBias={motionModel.captionBias}
+          editorialContext={captionEditorialContext}
+        />
+      ) : resolvedPresentationMode === "long-form" && longformCaptionRenderMode === "word-by-word" ? (
         <LongformWordByWordOverlay
           captionProfileId={resolvedCaptionProfileId}
           chunks={captionChunks}
@@ -1264,3 +1209,4 @@ export const ProjectScopedMotionComposition: React.FC<ProjectScopedMotionComposi
 };
 
 ProjectScopedMotionComposition.displayName = "ProjectScopedMotionComposition";
+

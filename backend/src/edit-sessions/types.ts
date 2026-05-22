@@ -327,6 +327,28 @@ export const editSessionPreviewManifestSchema = z.object({
     transcriptWords: z.array(transcribedWordSchema).default([]),
     placeholder: editSessionPlaceholderSchema
   }),
+  typography: z.object({
+    primaryFont: z.object({
+      family: z.string(),
+      browserUrl: z.string().optional(),
+      sources: z.array(z.object({
+        publicPath: z.string(),
+        format: z.enum(["ttf", "otf", "woff", "woff2"]),
+        weight: z.number().int().positive().optional(),
+        style: z.string().optional()
+      })).default([])
+    }),
+    secondaryFont: z.object({
+      family: z.string(),
+      browserUrl: z.string().optional(),
+      sources: z.array(z.object({
+        publicPath: z.string(),
+        format: z.enum(["ttf", "otf", "woff", "woff2"]),
+        weight: z.number().int().positive().optional(),
+        style: z.string().optional()
+      })).default([])
+    }).optional()
+  }).optional(),
   previewArtifactUrl: z.string().nullable().optional(),
   previewArtifactKind: z.enum(["html_composition", "video"]).nullable().optional(),
   previewArtifactContentType: z.string().nullable().optional(),

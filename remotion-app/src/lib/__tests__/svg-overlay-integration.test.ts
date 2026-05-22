@@ -44,5 +44,13 @@ describe("svg overlay integration guards", () => {
 
     expect(isSvgCaptionChunk(chunk)).toBe(true);
   });
-});
 
+  it("treats longform svg profile chunks as svg-capable even before a variant key is resolved", () => {
+    const chunk = makeChunk({
+      profileId: "longform_svg_typography_v1",
+      styleKey: "longform-generic-fallback"
+    });
+
+    expect(isSvgCaptionChunk(chunk)).toBe(true);
+  });
+});

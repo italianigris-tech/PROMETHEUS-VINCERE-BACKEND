@@ -49,5 +49,4 @@ export const resolveFocusedStudioCaptionCompositor = ({
 export const FemaleCoachDeanGraziosi: React.FC<FemaleCoachDeanGraziosiProps> = (props) => {
   return <ProjectScopedMotionComposition {...props} />;
 };
-
 FemaleCoachDeanGraziosi.displayName = "FemaleCoachDeanGraziosi";

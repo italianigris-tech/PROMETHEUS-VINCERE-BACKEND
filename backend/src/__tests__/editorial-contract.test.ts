@@ -7,9 +7,9 @@ import {
 } from "../editorial-contract";
 
 describe("editorial contract", () => {
-  it("keeps EVE as the default long-form preview and render house style", () => {
-    expect(DEFAULT_LOCAL_PREVIEW_CAPTION_PROFILE_ID).toBe("longform_eve_typography_v1");
-    expect(LOCAL_PREVIEW_CAPTION_PROFILE_IDS).toContain("longform_eve_typography_v1");
+  it("keeps the SVG long-form profile as the default local preview and render house style", () => {
+    expect(DEFAULT_LOCAL_PREVIEW_CAPTION_PROFILE_ID).toBe("longform_svg_typography_v1");
+    expect(LOCAL_PREVIEW_CAPTION_PROFILE_IDS).toContain("longform_svg_typography_v1");
   });
 
   it("normalizes legacy and house-style aliases into supported long-form profiles", () => {
@@ -17,6 +17,6 @@ describe("editorial contract", () => {
     expect(normalizeLocalPreviewCaptionProfileId("eve_typography_v1")).toBe("longform_eve_typography_v1");
     expect(normalizeLocalPreviewCaptionProfileId("svg_typography_v1")).toBe("longform_svg_typography_v1");
     expect(normalizeLocalPreviewCaptionProfileId("hormozi_word_lock_v1")).toBe("longform_svg_typography_v1");
-    expect(normalizeLocalPreviewCaptionProfileId("unknown")).toBe("longform_eve_typography_v1");
+    expect(normalizeLocalPreviewCaptionProfileId("unknown")).toBe("longform_svg_typography_v1");
   });
 });

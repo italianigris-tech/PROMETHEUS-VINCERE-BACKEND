@@ -142,6 +142,9 @@ describe("edit session preview manifest route", () => {
     expect(Array.isArray(overlayPlan.previewLines)).toBe(true);
     expect(Array.isArray(overlayPlan.previewMotionSequence)).toBe(true);
     expect(Array.isArray(overlayPlan.transcriptWords)).toBe(true);
+    const typography = manifest["typography"] as Record<string, unknown>;
+    expect((typography["primaryFont"] as Record<string, unknown>).family).toBeTruthy();
+    expect(Array.isArray((typography["primaryFont"] as Record<string, unknown>).sources)).toBe(true);
     expect(manifest["previewArtifactKind"]).toBe("html_composition");
     expect(manifest["previewArtifactContentType"]).toBe("text/html; charset=utf-8");
   });

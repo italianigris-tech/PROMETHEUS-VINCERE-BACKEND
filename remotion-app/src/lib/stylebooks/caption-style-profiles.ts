@@ -31,6 +31,7 @@ export const LONGFORM_SEMANTIC_SIDECALL_PROFILE_ID: CaptionStyleProfileId = "lon
 export const LONGFORM_SEMANTIC_SIDECALL_DISPLAY_NAME = "Long-form Semantic Sidecall v1";
 export type LongformCaptionRenderMode =
   | "word-by-word"
+  | "svg"
   | "docked-inverse"
   | "semantic-sidecall"
   | "standard";
@@ -317,7 +318,7 @@ export const getLongformCaptionRenderMode = (
     return "semantic-sidecall";
   }
   if (normalized === LONGFORM_SVG_TYPOGRAPHY_PROFILE_ID) {
-    return "word-by-word";
+    return "svg";
   }
 
   return "standard";
@@ -346,8 +347,7 @@ export const getLongformCaptionRenderModeForChunk = (
   }
 
   if (normalized === LONGFORM_SVG_TYPOGRAPHY_PROFILE_ID) {
-    // Premium preview lane governance: keep longform SVG authoritative per chunk.
-    return "word-by-word";
+    return "svg";
   }
 
   return getLongformCaptionRenderMode(profileId);
