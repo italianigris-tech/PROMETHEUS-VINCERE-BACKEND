@@ -214,21 +214,26 @@ const LoadingShell: React.FC<{
   buildState: BuildState;
   mediaStatus: AudioCreativePreviewAudioStatus;
 }> = ({buildState, mediaStatus}) => {
+  const isAwaitingTranscript = buildState === "building-timeline";
+  const title = isAwaitingTranscript ? "The engine is analyzing your speech." : "The native browser compositor is warming up.";
+  const subtitle = isAwaitingTranscript 
+    ? "AssemblyAI is currently extracting every word from your video to build the cinematic timeline. This usually takes 5-10 seconds."
+    : "AssemblyAI and the overlay timeline are locking to the source. The stage appears as soon as the first real moments land.";
+
   return (
     <div style={loadingStyles}>
       <div style={panelStyles}>
         <div style={statusChipStyles}>
           <span>Live Compositor Preview</span>
           <span>|</span>
-          <span>{buildState === "building-timeline" ? "Building timeline" : "Waiting"}</span>
+          <span>{isAwaitingTranscript ? "Analyzing" : "Synchronizing"}</span>
         </div>
         <div style={{marginTop: 16, display: "grid", gap: 10}}>
           <strong style={{fontSize: "clamp(24px, 4vw, 42px)", lineHeight: 1.04}}>
-            The native browser compositor is warming up.
+            {title}
           </strong>
           <span style={{fontSize: 15, lineHeight: 1.55, color: "#CBD5E1"}}>
-            AssemblyAI and the overlay timeline are locking to the source. The stage appears as soon as the first real
-            moments land.
+            {subtitle}
           </span>
           <span style={{fontSize: 13, lineHeight: 1.45, color: "#94A3B8"}}>
             Media status: {mediaStatus}. Video sources stay on the native browser playback path whenever they are
@@ -336,7 +341,7 @@ const normalizeSessionSnapshot = (payload: LiveEditSessionPublicState): LiveEdit
   };
 };
 
-const buildSessionSignature = (
+export const buildSessionSignature = (
   state: LiveEditSessionPublicState,
   input: {
     captionProfileId: CaptionStyleProfileId;
@@ -407,6 +412,49 @@ const toActionableBuildErrorMessage = (message: string, apiBase: string): string
     ? `Cannot reach the local backend at ${apiBase.replace(/\/+$/, "")}. Start the backend so AssemblyAI captions and live motion can load.`
     : message;
 };
+
+export const determineBuildState = (
+  session: AudioCreativePreviewSession | null,
+  liveSessionState: LiveEditSessionPublicState | null,
+  isArtifactReady: boolean,
+  currentBuildState: BuildState
+): BuildState => {
+  if (currentBuildState === "error") {
+    return "error";
+  }
+
+  if (!liveSessionState) {
+    return "idle";
+  }
+
+  const hasVideoDuration = (liveSessionState.sourceDurationMs ?? 0) > 0;
+  const hasTranscript = liveSessionState.transcriptWords.length > 0;
+
+  if (!hasVideoDuration) {
+    return "idle";
+  }
+
+  if (!hasTranscript) {
+    return "building-timeline";
+  }
+
+  if (!session && !isArtifactReady) {
+    return "building-timeline";
+  }
+
+  return "ready";
+};
+
+export const shouldBlockInteractivePreview = (buildState: BuildState): boolean =>
+  buildState === "idle" || buildState === "building-timeline";
+
+export const resolveHasSession = (liveSessionId?: string | null): boolean =>
+  (liveSessionId?.trim().length ?? 0) > 0;
+
+export const shouldRenderBlockingLoader = (
+  buildState: BuildState,
+  interactivePreviewSurface: InteractivePreviewSurface
+): boolean => shouldBlockInteractivePreview(buildState) && interactivePreviewSurface !== "artifact";
 
 const buildBaseVideoMetadata = (
   state: LiveEditSessionPublicState | null
@@ -620,12 +668,14 @@ export const createProjectScopedPreviewResetState = (): {
   buildState: BuildState;
   buildError: null;
   sessionBuildSignature: string;
+  isArtifactReady: boolean;
 } => ({
   session: null,
   liveSessionState: null,
   buildState: "building-timeline",
   buildError: null,
-  sessionBuildSignature: ""
+  sessionBuildSignature: "",
+  isArtifactReady: false
 });
 
 export const resolveInteractivePreviewSurface = ({
@@ -654,6 +704,104 @@ export const resolveInteractivePreviewSurface = ({
   return "native-stage";
 };
 
+const ArtifactStage: React.FC<{
+  url: string;
+  kind: "video" | "html_composition";
+  contentType?: string | null;
+  width: number;
+  height: number;
+  onRuntimeError?: (message: string) => void;
+  onReady?: () => void;
+}> = ({url, kind, width, height, onRuntimeError, onReady}) => {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [runtimeStatus, setRuntimeStatus] = useState<string>("loading");
+  const runtimeStatusRef = useRef(runtimeStatus);
+  const pollTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    runtimeStatusRef.current = runtimeStatus;
+  }, [runtimeStatus]);
+
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === "HYPERFRAMES_STATUS" && event.data?.status === "READY") {
+        onReady?.();
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, [onReady]);
+
+  useEffect(() => {
+    if (kind !== "html_composition") {
+      return;
+    }
+
+    let cancelled = false;
+    const pollStatus = () => {
+      if (cancelled || !iframeRef.current?.contentWindow) {
+        return;
+      }
+
+      try {
+        const win = iframeRef.current.contentWindow as any;
+        const status = win.hyperframesStatus;
+        const error = win.hyperframesErrorMessage;
+
+        if (status && status !== runtimeStatusRef.current) {
+          runtimeStatusRef.current = status;
+          setRuntimeStatus(status);
+          if (status === "error" && error) {
+            onRuntimeError?.(error);
+          }
+          if (status === "ready" || status === "playing") {
+            onReady?.();
+          }
+        }
+      } catch (e) {
+        // CORS or not yet loaded
+      }
+
+      pollTimeoutRef.current = window.setTimeout(pollStatus, 500);
+    };
+
+    pollStatus();
+    return () => {
+      cancelled = true;
+      if (pollTimeoutRef.current !== null) {
+        window.clearTimeout(pollTimeoutRef.current);
+        pollTimeoutRef.current = null;
+      }
+    };
+  }, [kind, onRuntimeError, onReady]);
+
+  const aspectRatio = `${Math.max(1, width)} / ${Math.max(1, height)}`;
+  const frameStyles: React.CSSProperties = {
+    width: "100%",
+    aspectRatio,
+    minHeight: 420,
+    border: "1px solid rgba(148, 163, 184, 0.2)",
+    borderRadius: 16,
+    background: "#020617",
+    display: "block"
+  };
+
+  if (kind === "video") {
+    return <video src={url} controls playsInline style={frameStyles} />;
+  }
+
+  return (
+    <iframe
+      ref={iframeRef}
+      title="HyperFrames Composition Preview"
+      src={url}
+      scrolling="no"
+      style={{...frameStyles, background: "transparent"}}
+    />
+  );
+};
+
 export const CreativeAudioLivePlayer: React.FC<CreativeAudioLivePlayerProps> = ({
   jobId,
   captionProfileId,
@@ -673,6 +821,7 @@ export const CreativeAudioLivePlayer: React.FC<CreativeAudioLivePlayerProps> = (
   onLiveSessionChange
 }) => {
   const [buildState, setBuildState] = useState<BuildState>("idle");
+  const [isArtifactReady, setIsArtifactReady] = useState(false);
   const [session, setSession] = useState<AudioCreativePreviewSession | null>(null);
   const [buildError, setBuildError] = useState<string | null>(null);
   const [resolvedAudioSrc, setResolvedAudioSrc] = useState("");
@@ -734,6 +883,17 @@ export const CreativeAudioLivePlayer: React.FC<CreativeAudioLivePlayerProps> = (
   const previewArtifactKind = liveSessionState?.previewArtifactKind ?? null;
   const previewArtifactContentType = liveSessionState?.previewArtifactContentType ?? null;
   const previewDiagnostics = liveSessionState?.previewDiagnostics ?? null;
+  const hasSession = useMemo(() => resolveHasSession(liveSessionState?.id), [liveSessionState?.id]);
+  const effectiveArtifactReady = previewArtifactKind === "video" ? true : isArtifactReady;
+
+  useEffect(() => {
+    setBuildState((current) => determineBuildState(session, liveSessionState, effectiveArtifactReady, current));
+  }, [effectiveArtifactReady, liveSessionState, session]);
+
+  useEffect(() => {
+    setIsArtifactReady(false);
+  }, [previewArtifactUrl, previewTimelineResetVersion]);
+
   const fallbackVideoMetadata = useMemo(() => {
     const liveVideoMetadata = buildBaseVideoMetadata(liveSessionState);
     const fallbackDurationMs = liveSessionState?.sourceDurationMs ??
@@ -1052,12 +1212,16 @@ export const CreativeAudioLivePlayer: React.FC<CreativeAudioLivePlayerProps> = (
       }
       setLiveSessionState(nextState);
 
-      const hasRenderableData =
-        nextState.transcriptWords.length > 0 ||
-        nextState.previewMotionSequence.length > 0 ||
-        nextState.previewLines.length > 0;
+      const hasVideoDuration = (nextState.sourceDurationMs ?? 0) > 0;
+      const hasTranscript = nextState.transcriptWords.length > 0;
 
-      if (!hasRenderableData) {
+      if (!hasVideoDuration) {
+        setBuildState("idle");
+        previewStateCallbackRef.current?.("building-timeline");
+        return;
+      }
+
+      if (!hasTranscript) {
         setBuildState("building-timeline");
         previewStateCallbackRef.current?.("building-timeline");
         return;
@@ -1153,6 +1317,7 @@ export const CreativeAudioLivePlayer: React.FC<CreativeAudioLivePlayerProps> = (
         setLiveSessionState(null);
         setBuildState("idle");
         setBuildError(null);
+        setIsArtifactReady(false);
         sessionBuildSignatureRef.current = "";
         previewStateCallbackRef.current?.("idle");
         return;
@@ -1163,6 +1328,7 @@ export const CreativeAudioLivePlayer: React.FC<CreativeAudioLivePlayerProps> = (
       setLiveSessionState(resetState.liveSessionState);
       setBuildState(resetState.buildState);
       setBuildError(resetState.buildError);
+      setIsArtifactReady(resetState.isArtifactReady);
       sessionBuildSignatureRef.current = resetState.sessionBuildSignature;
       previewTimingRef.current = createPreviewTimingState(jobId, previewTimelineResetVersion);
       lastBackendUpdateAtRef.current = 0;
@@ -1362,7 +1528,8 @@ export const CreativeAudioLivePlayer: React.FC<CreativeAudioLivePlayerProps> = (
     console.info("[CreativeAudioLivePlayer]", {
       jobId,
       buildState,
-      hasSession: Boolean(session),
+      hasSession,
+      hasRenderableSession: Boolean(session),
       liveSessionId: liveSessionState?.id ?? null,
       previewStatus: liveSessionState?.previewStatus ?? "idle",
       transcriptStatus: liveSessionState?.transcriptStatus ?? "idle",
@@ -1403,6 +1570,7 @@ export const CreativeAudioLivePlayer: React.FC<CreativeAudioLivePlayerProps> = (
     previewDiagnostics,
     resolvedAudioSrc,
     resolvedVideoSrc,
+    hasSession,
     session,
     sourceLabel,
     sourceMediaSrc
@@ -1441,6 +1609,7 @@ export const CreativeAudioLivePlayer: React.FC<CreativeAudioLivePlayerProps> = (
     canRenderNativeVideoStage,
     shouldUseDisplayGod
   });
+  const shouldRenderGlobalLoadingShell = shouldRenderBlockingLoader(buildState, interactivePreviewSurface);
   const artifactWidth = previewManifest?.baseVideo.width ??
     liveSessionState?.sourceWidth ??
     browserVideoMetadata?.width ??
@@ -1463,24 +1632,30 @@ export const CreativeAudioLivePlayer: React.FC<CreativeAudioLivePlayerProps> = (
   if (interactivePreviewSurface === "artifact" && previewArtifactUrl) {
     return (
       <div style={{display: "grid", gap: 10}}>
-        {shouldRenderVideoArtifact ? (
-          <video
-            src={previewArtifactUrl}
-            controls
-            playsInline
-            style={artifactFrameStyles}
-          />
-        ) : (
-          <iframe
-            title="HyperFrames Composition Preview"
-            src={previewArtifactUrl}
-            scrolling="no"
-            style={{
-              ...artifactFrameStyles,
-              background: "transparent"
-            }}
-          />
-        )}
+        <div style={{display: "grid"}}>
+          <div style={{gridArea: "1 / 1"}}>
+            <ArtifactStage
+              url={previewArtifactUrl}
+              kind={previewArtifactKind === "video" ? "video" : "html_composition"}
+              contentType={previewArtifactContentType}
+              width={artifactWidth}
+              height={artifactHeight}
+              onRuntimeError={(message) => {
+                setBuildError(message);
+                setBuildState("error");
+              }}
+              onReady={() => setIsArtifactReady(true)}
+            />
+          </div>
+          {shouldBlockInteractivePreview(buildState) ? (
+            <div style={{gridArea: "1 / 1", position: "relative"}}>
+              <LoadingShell
+                mediaStatus={shellMediaStatus}
+                buildState={buildState}
+              />
+            </div>
+          ) : null}
+        </div>
         {previewDiagnostics ? (
           <pre style={{
             margin: 0,
@@ -1498,11 +1673,20 @@ export const CreativeAudioLivePlayer: React.FC<CreativeAudioLivePlayerProps> = (
           </pre>
         ) : null}
         <div style={{fontSize: 12, color: "#94a3b8"}}>
-          {shouldRenderVideoArtifact
+          {previewArtifactKind === "video"
             ? `Artifact kind: video${previewArtifactContentType ? ` (${previewArtifactContentType})` : ""}`
             : `Artifact kind: html composition${previewArtifactContentType ? ` (${previewArtifactContentType})` : ""}`}
         </div>
       </div>
+    );
+  }
+
+  if (shouldRenderGlobalLoadingShell) {
+    return (
+      <LoadingShell
+        mediaStatus={shellMediaStatus}
+        buildState={buildState}
+      />
     );
   }
 
