@@ -16,6 +16,7 @@ import {createEditSessionId} from "../utils/ids";
 import {renderDiagnosticsSchema, type RenderDiagnostics} from "../contracts/render-diagnostics";
 import {type CreativeDecisionManifest} from "../contracts/creative-decision-manifest";
 import {generateTypographyDecision} from "../typography/typography-decision-engine";
+import {resolveLocalFontPairByVibe} from "../typography/font-file-resolver";
 import {ZillizFontResolver} from "../typography/zilliz-font-resolver";
 import {buildMotionDialectPlan} from "../typography/motion-dialect-engine";
 import {selectTextAnimation} from "../animation/animation-retrieval-engine";
@@ -46,6 +47,8 @@ const PREVIEW_AUDIO_SAMPLE_RATE = 16000;
 const PREVIEW_AUDIO_CHUNK_MS = 50;
 const DEFAULT_PREVIEW_SECONDS = 8;
 const PREVIEW_PROMOTION_DEBOUNCE_MS = 180;
+const SESSION_INACTIVITY_EVICTION_MS = 60 * 60 * 1000;
+const SESSION_EVICTION_SWEEP_MS = Math.max(5 * 60 * 1000, SESSION_INACTIVITY_EVICTION_MS / 4);
 const PREVIEW_PLACEHOLDER_COPY = "Loading the first typographic beat.";
 const PREVIEW_PLACEHOLDER_LINE_2 = "Keep the motion lane warm.";
 const PREVIEW_CAPTION_PROFILE_ID = "longform_svg_typography_v1";
@@ -148,14 +151,18 @@ const buildMotionSequenceFromEngines = async ({
   renderConfig: RenderConfig;
 }): Promise<{lines: string[]; motionSequence: EditSessionMotionCue[]}> => {
   const rhetoricalIntent = inferRhetoricalIntent(text);
+  const localFontPair = resolveLocalFontPairByVibe(`${rhetoricalIntent} ${text}`, 2);
   const typographyDecision = generateTypographyDecision({
     text,
     rhetoricalIntent,
-    availableFonts: [
-      {family: "Satoshi", source: "custom_ingested"},
-      {family: "Canela", source: "custom_ingested"},
-      {family: "Arial", source: "system"}
-    ],
+    availableFonts: localFontPair
+      ? [
+          {family: localFontPair.primary.family, source: "custom_ingested" as const},
+          ...(localFontPair.secondary
+            ? [{family: localFontPair.secondary.family, source: "custom_ingested" as const}]
+            : [])
+        ]
+      : [],
     renderConfig,
     maxLines: 3,
     maxCharsPerLine: 28,
@@ -355,15 +362,22 @@ const buildPreviewManifestFont = (
     return undefined;
   }
 
+  const browserUrl = font.browserUrl.trim();
+  const sources = font.sources.map((source) => ({
+    publicPath: source.browserUrl,
+    format: source.format,
+    weight: 400,
+    style: "normal"
+  }));
+
+  if (!browserUrl && sources.length === 0) {
+    return undefined;
+  }
+
   return {
     family: font.family,
-    browserUrl: font.browserUrl,
-    sources: font.sources.map((source) => ({
-      publicPath: source.browserUrl,
-      format: source.format,
-      weight: 400,
-      style: "normal"
-    }))
+    browserUrl: browserUrl || undefined,
+    sources
   };
 };
 
@@ -928,12 +942,16 @@ export class EditSessionManager {
   private readonly renderConfig: RenderConfig;
   private readonly deps: EditSessionDependencies;
   private readonly sessions = new Map<string, EditSessionState>();
+  private readonly sessionLastAccessAt = new Map<string, number>();
   private readonly subscribers = new Map<string, Set<(event: EditSessionEvent) => void>>();
-  private readonly persistChains = new Map<string, Promise<void>>();
+  private readonly mutationChains = new Map<string, Promise<EditSessionState>>();
+  private readonly activeMutationCounts = new Map<string, number>();
+  private readonly artifactRefreshChains = new Map<string, Promise<void>>();
   private readonly renderQueue = new InProcessQueue(1);
   private readonly renderDriver: EditSessionRenderDriver;
   private readonly previewRenderService: PreviewRenderService;
   private readonly zillizFontResolver: ZillizFontResolver;
+  private evictionTimer: ReturnType<typeof setInterval> | null = null;
 
   public constructor({
     store,
@@ -955,6 +973,19 @@ export class EditSessionManager {
 
   public async initialize(): Promise<void> {
     await this.store.initialize();
+    if (!this.evictionTimer) {
+      this.evictionTimer = setInterval(() => {
+        void this.evictInactiveSessions();
+      }, SESSION_EVICTION_SWEEP_MS);
+      this.evictionTimer.unref?.();
+    }
+  }
+
+  public destroy(): void {
+    if (this.evictionTimer) {
+      clearInterval(this.evictionTimer);
+      this.evictionTimer = null;
+    }
   }
 
   private transcriptCacheDir(): string {
@@ -1001,6 +1032,44 @@ export class EditSessionManager {
       transcriptWords: session?.transcriptWords.length ?? 0,
       ...detail
     });
+  }
+
+  private touchSession(sessionId: string): void {
+    this.sessionLastAccessAt.set(sessionId, Date.now());
+  }
+
+  private async evictInactiveSessions(): Promise<void> {
+    const cutoff = Date.now() - SESSION_INACTIVITY_EVICTION_MS;
+    for (const [sessionId, lastAccessAt] of this.sessionLastAccessAt.entries()) {
+      if (lastAccessAt > cutoff) {
+        continue;
+      }
+
+      if ((this.subscribers.get(sessionId)?.size ?? 0) > 0) {
+        continue;
+      }
+
+      if ((this.activeMutationCounts.get(sessionId) ?? 0) > 0) {
+        continue;
+      }
+
+      this.sessions.delete(sessionId);
+      this.sessionLastAccessAt.delete(sessionId);
+      this.mutationChains.delete(sessionId);
+      this.artifactRefreshChains.delete(sessionId);
+    }
+  }
+
+  private queuePreviewArtifactRefresh(sessionId: string): void {
+    const previous = this.artifactRefreshChains.get(sessionId) ?? Promise.resolve();
+    const next = previous
+      .catch(() => undefined)
+      .then(async () => {
+        const session = await this.loadSession(sessionId);
+        await this.ensurePreviewArtifact(session);
+      })
+      .catch(() => undefined);
+    this.artifactRefreshChains.set(sessionId, next);
   }
 
   public async createSession(payload: unknown): Promise<EditSessionPublicState> {
@@ -1061,7 +1130,8 @@ export class EditSessionManager {
     });
 
     this.sessions.set(sessionId, session);
-    await this.persistSession(sessionId);
+    this.touchSession(sessionId);
+    await this.store.writeSession(session);
     return toPublicSession(session, this.renderConfig);
   }
 
@@ -1070,16 +1140,8 @@ export class EditSessionManager {
   }
 
   public async getPreview(sessionId: string): Promise<Record<string, unknown>> {
-    let session = await this.loadSession(sessionId);
-    let artifactUrl: string | null = null;
-    try {
-      artifactUrl = await this.ensurePreviewArtifact(session);
-      if (artifactUrl) {
-        session = await this.loadSession(sessionId);
-      }
-    } catch {
-      artifactUrl = null;
-    }
+    const session = await this.loadSession(sessionId);
+    const {previewArtifactUrl: artifactUrl, previewArtifactKind, previewArtifactContentType} = resolvePublicPreviewArtifact(session);
     const diagnostics = buildPreviewDiagnostics({
       session,
       renderConfig: this.renderConfig,
@@ -1100,14 +1162,8 @@ export class EditSessionManager {
       analysisStatus: session.analysisStatus,
       motionGraphicsStatus: session.motionGraphicsStatus,
       previewArtifactUrl: artifactUrl,
-      previewArtifactKind:
-        session.metadata.previewArtifactKind === "html_composition" || session.metadata.previewArtifactKind === "video"
-          ? session.metadata.previewArtifactKind
-          : null,
-      previewArtifactContentType:
-        typeof session.metadata.previewArtifactContentType === "string"
-          ? session.metadata.previewArtifactContentType
-          : null,
+      previewArtifactKind,
+      previewArtifactContentType,
       diagnostics
     };
   }
@@ -1118,16 +1174,8 @@ export class EditSessionManager {
       fontBaseUrl?: string | null;
     }
   ): Promise<EditSessionPreviewManifest> {
-    let session = await this.loadSession(sessionId);
-    let artifactUrl: string | null = null;
-    try {
-      artifactUrl = await this.ensurePreviewArtifact(session);
-      if (artifactUrl) {
-        session = await this.loadSession(sessionId);
-      }
-    } catch {
-      artifactUrl = null;
-    }
+    const session = await this.loadSession(sessionId);
+    const {previewArtifactUrl: artifactUrl, previewArtifactKind, previewArtifactContentType} = resolvePublicPreviewArtifact(session);
     const sourceUrl = resolvePreviewManifestSourceUrl(session);
     const sourceKind = resolvePreviewManifestSourceKind(session);
     const sourceLabel =
@@ -1176,9 +1224,9 @@ export class EditSessionManager {
         transcriptWords: session.transcriptWords,
         placeholder: session.previewPlaceholder
       },
-        typography: buildPreviewManifestTypography(session, {
-          fontBaseUrl: options?.fontBaseUrl
-        }),
+      typography: buildPreviewManifestTypography(session, {
+        fontBaseUrl: options?.fontBaseUrl
+      }),
       diagnostics: buildPreviewDiagnostics({
         session,
         renderConfig: this.renderConfig,
@@ -1194,24 +1242,17 @@ export class EditSessionManager {
         }
       },
       previewArtifactUrl: artifactUrl,
-      previewArtifactKind:
-        session.metadata.previewArtifactKind === "html_composition" || session.metadata.previewArtifactKind === "video"
-          ? session.metadata.previewArtifactKind
-          : null,
-      previewArtifactContentType:
-        typeof session.metadata.previewArtifactContentType === "string"
-          ? session.metadata.previewArtifactContentType
-          : null
+      previewArtifactKind,
+      previewArtifactContentType
     });
   }
 
   public async getPreviewArtifact(sessionId: string): Promise<EditSessionPreviewArtifactAsset> {
-    let session = await this.loadSession(sessionId);
-    const artifactUrl = await this.ensurePreviewArtifact(session);
+    const session = await this.loadSession(sessionId);
+    const {previewArtifactUrl: artifactUrl, previewArtifactContentType} = resolvePublicPreviewArtifact(session);
     if (!artifactUrl) {
       throw new Error("Preview artifact not available.");
     }
-    session = await this.loadSession(sessionId);
 
     const relativePath = String(session.metadata.previewArtifactRelativePath ?? "").trim();
     if (!relativePath) {
@@ -1222,8 +1263,8 @@ export class EditSessionManager {
     return {
       filePath,
       contentType:
-        typeof session.metadata.previewArtifactContentType === "string" && session.metadata.previewArtifactContentType.trim()
-          ? session.metadata.previewArtifactContentType
+        typeof previewArtifactContentType === "string" && previewArtifactContentType.trim()
+          ? previewArtifactContentType
           : "application/octet-stream"
     };
   }
@@ -1556,7 +1597,7 @@ export class EditSessionManager {
       roles: string[];
     };
     let primaryFont: ResolvedManifestFont = {
-      family: "DM Sans",
+      family: "HyperframesPrimary",
       filePath: "",
       browserUrl: "",
       sources: [],
@@ -1564,7 +1605,15 @@ export class EditSessionManager {
       expressivenessScore: 0,
       roles: []
     };
-    let secondaryFont: typeof primaryFont | undefined;
+    let secondaryFont: typeof primaryFont | undefined = {
+      family: "HyperframesSecondary",
+      filePath: "",
+      browserUrl: "",
+      sources: [],
+      readabilityScore: 0,
+      expressivenessScore: 0,
+      roles: []
+    };
     let fontPairReason = "Could not resolve requested Zilliz-backed font pair during manifest bridge phase.";
     try {
       const resolvedFontPair = await this.zillizFontResolver.resolveFontsByVibe(
@@ -1594,12 +1643,41 @@ export class EditSessionManager {
     } catch (error) {
       console.error("[ZILLIZ] Cluster unreachable — falling back to system fonts.", error);
       fontFallbackReasons.push(error instanceof Error ? error.message : String(error));
+      const localFallback = resolveLocalFontPairByVibe(fontVibeDescriptor, 2);
+      if (localFallback) {
+        fontPairReason = localFallback.reason;
+        primaryFont = {
+          family: localFallback.primary.family,
+          filePath: localFallback.primary.filePath,
+          browserUrl: localFallback.primary.browserUrl,
+          sources: [],
+          readabilityScore: localFallback.primary.readabilityScore,
+          expressivenessScore: localFallback.primary.expressivenessScore,
+          roles: localFallback.primary.roles
+        };
+        secondaryFont = localFallback.secondary
+          ? {
+              family: localFallback.secondary.family,
+              filePath: localFallback.secondary.filePath,
+              browserUrl: localFallback.secondary.browserUrl,
+              sources: [],
+              readabilityScore: localFallback.secondary.readabilityScore,
+              expressivenessScore: localFallback.secondary.expressivenessScore,
+              roles: localFallback.secondary.roles
+            }
+          : undefined;
+        fontFallbackReasons.push(...localFallback.fallbackReasons);
+      }
     }
     const fallbackUsed = transcriptText.length === 0 || fontFallbackReasons.length > 0;
-    const previewManifestTypography = {
-      primaryFont: buildPreviewManifestFont(primaryFont)!,
-      secondaryFont: buildPreviewManifestFont(secondaryFont)
-    };
+    const previewPrimaryFont = buildPreviewManifestFont(primaryFont);
+    const previewSecondaryFont = buildPreviewManifestFont(secondaryFont);
+    const previewManifestTypography = previewPrimaryFont
+      ? {
+          primaryFont: previewPrimaryFont,
+          secondaryFont: previewSecondaryFont
+        }
+      : undefined;
 
     return {
       manifest: {
@@ -1895,6 +1973,7 @@ export class EditSessionManager {
                 this.logPreviewStage(sessionId, "preview_text_ready", {
                   source: turn.endOfTurn ? "final_transcript" : "streaming_turn"
                 });
+                this.queuePreviewArtifactRefresh(sessionId);
               }
             });
           },
@@ -1986,6 +2065,12 @@ export class EditSessionManager {
       words: EditSessionState["transcriptWords"],
       source: "assemblyai" | "cache"
     ): Promise<void> => {
+      const currentSessionCheck = await this.loadSession(sessionId);
+      if (currentSessionCheck.status === "failed") {
+        console.warn(`[edit-session] Session ${sessionId} already failed, ignoring delayed transcript result from ${source}.`);
+        return;
+      }
+
       const transcriptText = normalizeText(words.map((word) => word.text).join(" "));
       const previewPlan = await buildMotionSequenceFromEngines({
         sessionId,
@@ -2050,6 +2135,7 @@ export class EditSessionManager {
         source,
         transcriptWords: words.length
       });
+      this.queuePreviewArtifactRefresh(sessionId);
     };
 
     const session = await this.loadSession(sessionId);
@@ -2140,11 +2226,13 @@ export class EditSessionManager {
   private async loadSession(sessionId: string): Promise<EditSessionState> {
     const cached = this.sessions.get(sessionId);
     if (cached) {
+      this.touchSession(sessionId);
       return cached;
     }
 
     const session = await this.store.readSession(sessionId);
     this.sessions.set(sessionId, session);
+    this.touchSession(sessionId);
     return session;
   }
 
@@ -2154,41 +2242,46 @@ export class EditSessionManager {
     eventType?: EditSessionEvent["type"],
     detail?: Record<string, unknown>
   ): Promise<EditSessionState> {
-    const current = await this.loadSession(sessionId);
-    const now = nowIso(this.deps);
-    const merged = editSessionStateSchema.parse({
-      ...current,
-      ...updater(current),
-      updatedAt: now,
-      lastEventType: eventType ?? current.lastEventType
-    });
-    this.sessions.set(sessionId, merged);
-
-    const persist = this.persistSession(sessionId);
-    if (eventType) {
-      this.broadcast(sessionId, {
-        type: eventType,
-        at: now,
-        session: toPublicSession(merged, this.renderConfig),
-        detail
-      });
-    }
-    await persist;
-    return merged;
-  }
-
-  private async persistSession(sessionId: string): Promise<void> {
-    const previous = this.persistChains.get(sessionId) ?? Promise.resolve();
+    const previous = this.mutationChains.get(sessionId) ?? Promise.resolve(this.loadSession(sessionId));
     const next = previous
-      .catch(() => undefined)
+      .catch(() => this.loadSession(sessionId))
       .then(async () => {
-        const current = this.sessions.get(sessionId);
-        if (current) {
-          await this.store.writeSession(current);
+        const activeCount = this.activeMutationCounts.get(sessionId) ?? 0;
+        this.activeMutationCounts.set(sessionId, activeCount + 1);
+        try {
+          const current = await this.loadSession(sessionId);
+          const now = nowIso(this.deps);
+          const merged = editSessionStateSchema.parse({
+            ...current,
+            ...updater(current),
+            updatedAt: now,
+            lastEventType: eventType ?? current.lastEventType
+          });
+          this.sessions.set(sessionId, merged);
+          this.touchSession(sessionId);
+
+          if (eventType) {
+            this.broadcast(sessionId, {
+              type: eventType,
+              at: now,
+              session: toPublicSession(merged, this.renderConfig),
+              detail
+            });
+          }
+
+          await this.store.writeSession(merged);
+          return merged;
+        } finally {
+          const remaining = Math.max(0, (this.activeMutationCounts.get(sessionId) ?? 1) - 1);
+          if (remaining === 0) {
+            this.activeMutationCounts.delete(sessionId);
+          } else {
+            this.activeMutationCounts.set(sessionId, remaining);
+          }
         }
-      })
-      .catch(() => undefined);
-    this.persistChains.set(sessionId, next);
+      });
+
+    this.mutationChains.set(sessionId, next.catch(() => this.loadSession(sessionId)));
     return next;
   }
 

@@ -2,6 +2,8 @@ import {existsSync, readFileSync} from "node:fs";
 import path from "node:path";
 import {fileURLToPath} from "node:url";
 
+import {FONT_SERVE_PATH} from "../config/font-assets";
+
 type FontManifestEntry = {
   observed?: {
     familyName?: string;
@@ -43,10 +45,13 @@ const normalizeFontName = (value: string): string => value.toLowerCase().replace
 
 const isRenderableFontExtension = (extension: string | undefined): boolean => {
   const normalized = (extension ?? "").toLowerCase();
-  return normalized === ".ttf" || normalized === ".otf";
+  return normalized === ".ttf" || normalized === ".otf" || normalized === ".woff" || normalized === ".woff2";
 };
 
-const toBrowserFontUrl = (_filePath: string): string => "";
+const toBrowserFontUrl = (filePath: string): string => {
+  const fileName = path.basename(filePath);
+  return `${FONT_SERVE_PATH}/${fileName}`;
+};
 
 const loadFontCandidates = (): ResolvedFontCandidate[] => {
   if (cachedCandidates) {
@@ -88,6 +93,48 @@ const loadFontCandidates = (): ResolvedFontCandidate[] => {
   return cachedCandidates;
 };
 
+const tokenizeVibeDescriptor = (value: string): string[] => {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter(Boolean);
+};
+
+const vibeSignalWeights: Record<string, number> = {
+  luxury: 3,
+  premium: 3,
+  cinematic: 2,
+  editorial: 2,
+  authority: 2,
+  calm: 1.5,
+  clean: 1.25,
+  minimal: 1.25,
+  refined: 1.5,
+  expressive: 1.75,
+  bold: 1.25,
+  headline: 1,
+  support: 0.75,
+  serif: 1.5,
+  sans: 1.25,
+  display: 1.5
+};
+
+const scoreFontForVibe = (candidate: ResolvedFontCandidate, tokens: string[]): number => {
+  const family = normalizeFontName(candidate.family);
+  const roles = candidate.roles.map((role) => normalizeFontName(role));
+
+  const signalScore = tokens.reduce((score, token) => {
+    const weight = vibeSignalWeights[token] ?? 0.25;
+    const matchesFamily = family.includes(token);
+    const matchesRole = roles.some((role) => role.includes(token));
+    return score + (matchesFamily ? weight * 2 : 0) + (matchesRole ? weight : 0);
+  }, 0);
+
+  return (candidate.readabilityScore * 0.55) + (candidate.expressivenessScore * 0.45) + signalScore;
+};
+
 const resolveRequestedFont = (family: string): ResolvedFontCandidate | null => {
   const requested = normalizeFontName(family);
   const exact = loadFontCandidates().find((candidate) => normalizeFontName(candidate.family) === requested);
@@ -97,6 +144,42 @@ const resolveRequestedFont = (family: string): ResolvedFontCandidate | null => {
 
   const partial = loadFontCandidates().find((candidate) => normalizeFontName(candidate.family).includes(requested));
   return partial ?? null;
+};
+
+export const resolveLocalFontPairByVibe = (
+  vibeDescriptor: string,
+  limit = 2
+): ResolvedFontPair | null => {
+  const candidates = loadFontCandidates();
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  const tokens = tokenizeVibeDescriptor(vibeDescriptor);
+  const ranked = [...candidates]
+    .map((candidate) => ({
+      candidate,
+      score: scoreFontForVibe(candidate, tokens)
+    }))
+    .sort((left, right) => right.score - left.score || right.candidate.readabilityScore - left.candidate.readabilityScore);
+
+  const primary = ranked[0]?.candidate ?? null;
+  if (!primary) {
+    return null;
+  }
+
+  const secondary = ranked.slice(1).find((entry) => normalizeFontName(entry.candidate.family) !== normalizeFontName(primary.family))?.candidate;
+
+  return {
+    primary,
+    secondary: limit > 1 ? secondary : undefined,
+    reason: tokens.length > 0
+      ? "Resolved preview typography from the local ingested catalog using vibe signals."
+      : "Resolved preview typography from the local ingested catalog using catalog ranking.",
+    fallbackReasons: tokens.length > 0
+      ? [`Zilliz-backed resolution failed, so local font ranking used vibe tokens: ${tokens.join(", ")}.`]
+      : ["Zilliz-backed resolution failed, so local font ranking used catalog scores."]
+  };
 };
 
 const pickReadableFallbackFont = (excludedFamilies: string[] = []): ResolvedFontCandidate | null => {
@@ -147,4 +230,3 @@ export const resolveRequestedOrFallbackFontPair = (
     fallbackReasons
   };
 };
-

@@ -42,6 +42,6 @@ describe("font-file-resolver", () => {
     const primary = fontPair.primary as typeof fontPair.primary & {browserUrl?: string};
 
     expect(primary.filePath).toContain("C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING");
-    expect(primary.browserUrl).toBe("");
+    expect(primary.browserUrl).toBe("/fonts/retrieved/Satoshi-Bold.otf");
   });
 });

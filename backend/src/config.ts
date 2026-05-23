@@ -143,7 +143,8 @@ const envSchema = z.object({
   ENABLE_PREVIEW_PIPELINE_TRACE: z
     .union([z.literal("true"), z.literal("false"), z.boolean()])
     .transform((value) => value === true || value === "true")
-    .default(true)
+    .default(true),
+  API_BASE: z.string().default("http://127.0.0.1:8000")
 });
 
 export type BackendEnv = z.infer<typeof envSchema>;

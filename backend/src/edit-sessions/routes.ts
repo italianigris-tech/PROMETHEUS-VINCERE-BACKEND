@@ -14,6 +14,11 @@ const writeSseEvent = (reply: FastifyReply, event: EditSessionEvent): void => {
   reply.raw.write(`data: ${JSON.stringify(event)}\n\n`);
 };
 
+export const resolveSseAccessControlOrigin = (originHeader?: string | null): string | null => {
+  const trimmed = originHeader?.trim() ?? "";
+  return trimmed.length > 0 ? trimmed : null;
+};
+
 export const registerEditSessionRoutes = async (
   app: FastifyInstance,
   manager: EditSessionManager,
@@ -276,13 +281,25 @@ export const registerEditSessionRoutes = async (
       };
     }
 
+    const corsOrigin = resolveSseAccessControlOrigin(
+      typeof req.headers.origin === "string" ? req.headers.origin : null
+    );
+
     reply.hijack();
-    reply.raw.writeHead(200, {
+    const headers: Record<string, string> = {
       "content-type": "text/event-stream; charset=utf-8",
       "cache-control": "no-cache, no-transform",
       connection: "keep-alive",
       "x-accel-buffering": "no"
-    });
+    };
+
+    if (corsOrigin) {
+      headers["access-control-allow-origin"] = corsOrigin;
+      headers["access-control-allow-credentials"] = "true";
+      headers.vary = "Origin";
+    }
+
+    reply.raw.writeHead(200, headers);
     reply.raw.write("\n");
 
     const unsubscribe = manager.subscribe(params.id, (event) => {

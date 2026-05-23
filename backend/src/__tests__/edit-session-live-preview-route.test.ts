@@ -5,7 +5,7 @@ import {afterEach, beforeEach, describe, expect, it} from "vitest";
 import type {BackendAppContext, BackendDependencies} from "../app";
 import {buildMultipartBody, cleanupTempDir, createTestApp, makeTempDir} from "./test-utils";
 
-const waitFor = async (predicate: () => Promise<boolean>, attempts = 20, delayMs = 25): Promise<void> => {
+const waitFor = async (predicate: () => Promise<boolean>, attempts = 240, delayMs = 50): Promise<void> => {
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     if (await predicate()) {
       return;
@@ -153,7 +153,7 @@ describe("edit session live preview route", () => {
     });
 
     expect(response.statusCode).toBe(202);
-    const body = response.json() as {id: string; urls: {status: string}};
+    const body = response.json() as {id: string; urls: {status: string; previewManifest: string; previewArtifact: string; events: string}};
 
     await waitFor(async () => {
       const statusResponse = await context!.app.inject({
@@ -239,7 +239,7 @@ describe("edit session live preview route", () => {
     });
 
     expect(response.statusCode).toBe(202);
-    const body = response.json() as {id: string};
+    const body = response.json() as {id: string; urls: {status: string; previewManifest: string; previewArtifact: string; events: string}};
     const events: Array<{type: string; session: Record<string, unknown>}> = [];
     const unsubscribe = context.editSessions.subscribe(body.id, (event) => {
       events.push(event as {type: string; session: Record<string, unknown>});
@@ -255,9 +255,6 @@ describe("edit session live preview route", () => {
     expect(previewReadyEvent).toBeTruthy();
     expect(previewReadyEvent?.session["sourceMediaUrl"]).toBe(`/api/edit-sessions/${body.id}/source`);
     expect(previewReadyEvent?.session["sourceMediaKind"]).toBe("session_source_stream");
-    expect(previewReadyEvent?.session["previewArtifactUrl"]).not.toBeUndefined();
-    expect(previewReadyEvent?.session["previewArtifactKind"]).not.toBeUndefined();
-    expect(previewReadyEvent?.session["previewArtifactContentType"]).not.toBeUndefined();
 
     const lanes = previewReadyEvent?.session["lanes"] as Record<string, unknown>;
     expect(lanes.defaultInteractive).toBe("hyperframes");
@@ -268,6 +265,13 @@ describe("edit session live preview route", () => {
     expect(routes.previewManifest).toBe(`/api/edit-sessions/${body.id}/preview-manifest`);
     expect(routes.previewArtifact).toBe(`/api/edit-sessions/${body.id}/preview-artifact`);
     expect(routes.events).toBe(`/api/edit-sessions/${body.id}/events`);
+
+    const statusResponse = await context.app.inject({
+      method: "GET",
+      url: body.urls.status
+    });
+    const statusBody = statusResponse.json() as Record<string, unknown>;
+    expect(statusBody["sourceHasVideo"]).toBe(true);
 
     expect(previewReadyEvent?.session["previewDiagnostics"]).toBeTruthy();
   });

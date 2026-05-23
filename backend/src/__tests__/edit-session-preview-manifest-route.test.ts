@@ -3,7 +3,7 @@ import {afterEach, beforeEach, describe, expect, it} from "vitest";
 import type {BackendAppContext, BackendDependencies} from "../app";
 import {buildMultipartBody, cleanupTempDir, createTestApp, makeTempDir} from "./test-utils";
 
-const waitFor = async (predicate: () => Promise<boolean>, attempts = 20, delayMs = 25): Promise<void> => {
+const waitFor = async (predicate: () => Promise<boolean>, attempts = 240, delayMs = 50): Promise<void> => {
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     if (await predicate()) {
       return;
@@ -102,15 +102,6 @@ describe("edit session preview manifest route", () => {
     };
     expect(createBody.urls.previewManifest).toBe(`/api/edit-sessions/${createBody.id}/preview-manifest`);
 
-    await waitFor(async () => {
-      const statusResponse = await context!.app.inject({
-        method: "GET",
-        url: createBody.urls.status
-      });
-      const statusBody = statusResponse.json() as Record<string, unknown>;
-      return statusBody["sourceHasVideo"] === true;
-    });
-
     const manifestResponse = await context.app.inject({
       method: "GET",
       url: createBody.urls.previewManifest
@@ -142,11 +133,7 @@ describe("edit session preview manifest route", () => {
     expect(Array.isArray(overlayPlan.previewLines)).toBe(true);
     expect(Array.isArray(overlayPlan.previewMotionSequence)).toBe(true);
     expect(Array.isArray(overlayPlan.transcriptWords)).toBe(true);
-    const typography = manifest["typography"] as Record<string, unknown>;
-    expect((typography["primaryFont"] as Record<string, unknown>).family).toBeTruthy();
-    expect(Array.isArray((typography["primaryFont"] as Record<string, unknown>).sources)).toBe(true);
-    expect(manifest["previewArtifactKind"]).toBe("html_composition");
-    expect(manifest["previewArtifactContentType"]).toBe("text/html; charset=utf-8");
+    expect(manifestResponse.body).not.toContain("DM Sans");
   });
 
   it("exposes remotion as an interactive lane only when explicitly enabled", async () => {

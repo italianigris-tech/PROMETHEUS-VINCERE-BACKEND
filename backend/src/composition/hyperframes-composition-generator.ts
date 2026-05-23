@@ -62,6 +62,9 @@ const clamp = (value: number, min: number, max: number): number =>
 const escapeJs = (value: string): string =>
   value.replace(/\\/g, "\\\\").replace(/`/g, "\\`").replace(/\$/g, "\\$");
 
+const escapeCssString = (value: string): string =>
+  value.replace(/\\/g, "\\\\").replace(/"/g, "\\\"");
+
 const fileExists = async (filePath: string): Promise<boolean> => {
   try {
     await access(filePath, fsConstants.F_OK);
@@ -413,10 +416,14 @@ export const generateHyperFramesComposition = async ({
   const videoDir = path.join(assetsDir, "video");
   const imagesDir = path.join(assetsDir, "images");
   const vendorDir = path.join(assetsDir, "vendor");
+
   await mkdir(fontsDir, {recursive: true});
   await mkdir(videoDir, {recursive: true});
   await mkdir(imagesDir, {recursive: true});
   await mkdir(vendorDir, {recursive: true});
+
+  const baseTag = `<base href="/api/edit-sessions/${escapeHtml(parsed.jobId)}/preview/">`;
+
 
   const indexHtmlPath = path.join(compositionDir, "index.html");
   const manifestPath = path.join(compositionDir, "manifest.json");
@@ -441,6 +448,8 @@ export const generateHyperFramesComposition = async ({
 
   const primaryFontRequest = parsed.typography.primaryFont.fileUrl?.trim() ?? "";
   const secondaryFontRequest = parsed.typography.secondaryFont?.fileUrl?.trim() ?? "";
+  const primaryFontFamily = parsed.typography.primaryFont.family.trim() || "HyperframesPrimary";
+  const primaryFontCssStack = `"${escapeCssString(primaryFontFamily)}", "DM Sans", sans-serif`;
   const premiumMotionPlan = resolvePremiumMotionPlan(parsed);
   const segmentMotionDialect = resolveSegmentMotionDialect(parsed);
   const motionDialectPayload = JSON.stringify(parsed.motionDialect ?? null);
@@ -518,10 +527,10 @@ export const generateHyperFramesComposition = async ({
       : "0 2px 24px rgba(2, 6, 23, 0.82), 0 1px 4px rgba(0,0,0,0.62)";
   const fontFaceBlocks = [
     primaryFontAsset.browserUrl
-      ? `@font-face { font-family: "${parsed.typography.primaryFont.family}"; src: url("${escapeHtml(primaryFontAsset.browserUrl)}"); font-display: swap; }`
+      ? `@font-face { font-family: "${escapeCssString(primaryFontFamily)}"; src: url("${escapeHtml(primaryFontAsset.browserUrl)}"); font-display: swap; }`
       : "",
     secondaryFontAsset.browserUrl
-      ? `@font-face { font-family: "${parsed.typography.secondaryFont?.family ?? ""}"; src: url("${escapeHtml(secondaryFontAsset.browserUrl)}"); font-display: swap; }`
+      ? `@font-face { font-family: "${escapeCssString(parsed.typography.secondaryFont?.family ?? "")}"; src: url("${escapeHtml(secondaryFontAsset.browserUrl)}"); font-display: swap; }`
       : ""
   ].filter(Boolean).join("\n");
   const supportsWordTypography = kineticWordTimingActive;
@@ -586,6 +595,7 @@ export const generateHyperFramesComposition = async ({
   const html = `<!doctype html>
 <html lang="en">
 <head>
+  ${baseTag}
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>HyperFrames Composition</title>
@@ -600,6 +610,7 @@ export const generateHyperFramesComposition = async ({
       --line-font-size: ${fontSizePx}px;
       --line-gap: ${lineGapPx}px;
       --copy-max-width: ${maxTextWidthPx}px;
+      --hf-primary-font-family: ${primaryFontCssStack};
     }
     ${fontFaceBlocks}
     html, body {
@@ -639,7 +650,7 @@ export const generateHyperFramesComposition = async ({
       place-content: center;
       z-index: 20;
       text-align: ${parsed.layout.alignment};
-      font-family: "${parsed.typography.primaryFont.family}", sans-serif;
+      font-family: var(--hf-primary-font-family, "DM Sans", sans-serif);
       pointer-events: none;
     }
     .copy-block {
@@ -672,6 +683,40 @@ export const generateHyperFramesComposition = async ({
       max-width: min(100%, calc(var(--copy-max-width) * 0.98));
     }
     ${cssAnimationRules}
+    #play-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 100;
+      display: none;
+      place-items: center;
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(8px);
+      cursor: pointer;
+      transition: opacity 0.3s ease;
+    }
+    #play-overlay.is-visible {
+      display: grid;
+    }
+    .play-button {
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.95);
+      display: grid;
+      place-items: center;
+      box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
+      transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .play-button:hover {
+      transform: scale(1.12);
+      background: #ffffff;
+    }
+    .play-button svg {
+      width: 36px;
+      height: 36px;
+      fill: #020617;
+      margin-left: 6px;
+    }
   </style>
 </head>
 <body>
@@ -681,15 +726,40 @@ export const generateHyperFramesComposition = async ({
       <div class="typography-layer">
         <div class="copy-block">${lineHtml}</div>
       </div>
+      <div id="play-overlay">
+        <div class="play-button">
+          <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </div>
+      </div>
     </div>
   </div>
 ${motionRuntimeScriptTags}  <script>
     (() => {
       const root = document.getElementById("root");
       const video = root?.querySelector("video");
+      const playOverlay = document.getElementById("play-overlay");
       const lines = Array.from(document.querySelectorAll(".line"));
       const words = Array.from(document.querySelectorAll("[data-word-start-ms]"));
       const stageEl = root;
+
+      const showPlayOverlay = () => {
+        if (playOverlay) {
+          playOverlay.classList.add("is-visible");
+        }
+      };
+
+      const hidePlayOverlay = () => {
+        if (playOverlay) {
+          playOverlay.classList.remove("is-visible");
+        }
+      };
+
+      if (playOverlay && video) {
+        playOverlay.addEventListener("click", () => {
+          video.play().then(hidePlayOverlay).catch(console.error);
+        });
+      }
+
       const motionDialect = ${escapeJs(motionDialectPayload)};
       const selectedSegmentDialect = motionDialect?.segments?.[0]?.dialect ?? null;
       const selectedMotionPreset = selectedSegmentDialect?.motionPreset === "pauseRestraint"
@@ -823,24 +893,63 @@ ${motionRuntimeScriptTags}  <script>
       applyScale();
       syncWordStates();
       ${gsapMotionActive ? "activateGsapTimeline();" : ""}
+
+      // Genesis Block: Notify parent that HyperFrames is materialized and ready
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: "HYPERFRAMES_STATUS", status: "READY" }, "*");
+      }
     })();
   </script>
   <script>
     (() => {
+      window.hyperframesStatus = "loading";
+      window.hyperframesErrorMessage = null;
+
       const video = document.querySelector("video");
       if (!video) {
+        window.hyperframesStatus = "error";
+        window.hyperframesErrorMessage = "Video element not found in composition.";
         return;
       }
+
+      video.addEventListener("error", () => {
+        window.hyperframesStatus = "error";
+        window.hyperframesErrorMessage = "Video loading error: " + (video.error ? video.error.message : "Unknown error");
+        console.error("[hyperframes] Video error:", video.error);
+      });
 
       const startPlayback = () => {
         const maybePromise = video.play?.();
         if (maybePromise && typeof maybePromise.catch === "function") {
-          maybePromise.catch(() => undefined);
+          maybePromise
+            .then(() => {
+              window.hyperframesStatus = "playing";
+              hidePlayOverlay();
+            })
+            .catch((err) => {
+              window.hyperframesStatus = "error";
+              window.hyperframesErrorMessage = "Playback failed: " + err.message;
+              console.error("[hyperframes] Playback failed:", err);
+              if (err.name === "NotAllowedError") {
+                showPlayOverlay();
+              }
+            });
+        } else {
+          window.hyperframesStatus = "playing";
+          hidePlayOverlay();
         }
       };
 
-      video.addEventListener("loadedmetadata", startPlayback, {once: true});
-      startPlayback();
+      video.addEventListener("loadedmetadata", () => {
+        if (window.hyperframesStatus !== "error") {
+          window.hyperframesStatus = "ready";
+        }
+        startPlayback();
+      }, {once: true});
+
+      if (video.readyState >= 1) {
+        startPlayback();
+      }
     })();
   </script>
 </body>

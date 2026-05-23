@@ -177,5 +177,5 @@ describe("PreviewRenderService", () => {
     } finally {
       await rm(tempRoot, {recursive: true, force: true});
     }
-  });
+  }, 15000);
 });

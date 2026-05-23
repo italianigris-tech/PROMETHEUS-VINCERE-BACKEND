@@ -212,6 +212,9 @@ export const createBackendApp = async ({
     deps: deps ?? {}
   });
   await editSessions.initialize();
+  app.addHook("onClose", async () => {
+    editSessions.destroy();
+  });
   const god = new GodService({
     env,
     fetchImpl: deps?.fetchImpl
