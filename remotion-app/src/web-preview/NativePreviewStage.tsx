@@ -1882,7 +1882,11 @@ const NativeCaptionOverlay: React.FC<{
       : "0 10px 22px rgba(43, 63, 188, 0.34)";
 
     return (
-      <div className="preview-native-overlay preview-native-overlay--captions">
+      <div
+        className="preview-native-overlay preview-native-overlay--captions"
+        data-caption-renderer={captionRenderMode}
+        data-caption-expected-font={editorialDecision.fontFamily}
+      >
         <div
           style={{
             position: "absolute",
@@ -1921,6 +1925,7 @@ const NativeCaptionOverlay: React.FC<{
                     data-animation-target-id={`${activeChunk?.id ?? "idle"}-word-${index}`}
                     data-animation-registry-ref={getLongformWordEmphasisWordKey(word)}
                     data-animation-tags={isDominant ? "word dominant-word focus-target" : "word focus-target"}
+                    data-caption-expected-font={editorialDecision.fontFamily}
                     style={{
                       display: "inline-flex",
                       alignItems: "center",
@@ -1958,9 +1963,14 @@ const NativeCaptionOverlay: React.FC<{
   }
 
   return (
-    <div className="preview-native-overlay preview-native-overlay--captions">
+    <div
+      className="preview-native-overlay preview-native-overlay--captions"
+      data-caption-renderer={captionRenderMode}
+      data-caption-expected-font={editorialDecision.fontFamily}
+    >
       <div
         data-preview-subtitle-safe-zone="bottom"
+        data-caption-expected-font={editorialDecision.fontFamily}
         style={{
           position: "absolute",
           left: `${subtitleSafeZone.leftPercent}%`,
@@ -1978,6 +1988,7 @@ const NativeCaptionOverlay: React.FC<{
       >
         <div
           data-preview-subtitle-mode={subtitleMode}
+          data-caption-expected-font={editorialDecision.fontFamily}
           style={{
             width: "100%",
             maxWidth: `${subtitleSafeZone.maxWidthPercent}%`,
@@ -2044,6 +2055,7 @@ const NativeCaptionOverlay: React.FC<{
               return (
                 <div
                   key={`${activeChunk.id}-${line.id}`}
+                  data-caption-expected-font={editorialDecision.fontFamily}
                   style={{
                     ...getPreviewSubtitleLineRevealStyle({
                       line,
@@ -2082,6 +2094,7 @@ const NativeCaptionOverlay: React.FC<{
                       data-animation-target-id={`${activeChunk.id}-${line.id}-${wordIndex}`}
                       data-animation-registry-ref={wordKey}
                       data-animation-tags={`${isHelper ? "word helper-word" : "word"} focus-target${isEmphasized ? " subtitle-emphasis" : ""}`}
+                      data-caption-expected-font={editorialDecision.fontFamily}
                       style={{
                         ...getPreviewSubtitleWordStyle({
                           chunk: activeChunk,

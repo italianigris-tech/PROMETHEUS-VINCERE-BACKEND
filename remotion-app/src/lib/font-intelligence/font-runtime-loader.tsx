@@ -1,5 +1,3 @@
-import React, {useEffect} from "react";
-
 import {
   RUNTIME_FONT_MANIFEST_PUBLIC_URL,
   buildRuntimeFontFaceCssForFamily,
@@ -268,38 +266,3 @@ export const primeRuntimeFontBootstrap = async ({
   });
 };
 
-export const RuntimeFontBootstrap: React.FC<{
-  debugSelectedFontId?: string | null;
-  debugSelectedFont?: ManualSelectedRuntimeFont | RuntimeFontAssetRecord | null;
-  selectedFontId?: string | null;
-  selectedFont?: ManualSelectedRuntimeFont | RuntimeFontAssetRecord | null;
-}> = ({
-  debugSelectedFontId = null,
-  debugSelectedFont = null,
-  selectedFontId = null,
-  selectedFont = null
-}) => {
-  useEffect(() => {
-    void primeRuntimeFontBootstrap({
-      debugSelectedFontId,
-      debugSelectedFont,
-      selectedFontId,
-      selectedFont
-    }).then((result) => {
-      if (result.diagnostics.length > 0) {
-        console.warn("[runtime-font-bootstrap]", result.diagnostics);
-      }
-    });
-  }, [
-    debugSelectedFont?.familyId,
-    debugSelectedFont?.familyName,
-    debugSelectedFont?.fontId,
-    debugSelectedFontId,
-    selectedFont?.familyId,
-    selectedFont?.familyName,
-    selectedFont?.fontId,
-    selectedFontId
-  ]);
-
-  return null;
-};

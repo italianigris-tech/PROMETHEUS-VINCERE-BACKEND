@@ -17,16 +17,12 @@ describe("manifest typography", () => {
     vi.unstubAllGlobals();
   });
 
-  it("loads manifest fonts with FontFace and releases the Remotion render gate after document.fonts.ready", async () => {
-    let resolveReady!: () => void;
-    const readyPromise = new Promise<void>((resolve) => {
-      resolveReady = resolve;
-    });
+  it("registers manifest fonts without using a Remotion render gate or document.fonts.ready", async () => {
     const mockDocument = {
       fonts: {
         add: vi.fn(),
         check: vi.fn(() => false),
-        ready: readyPromise
+        ready: Promise.resolve()
       }
     };
     const fontFaceLoad = vi.fn(async function (this: unknown) {
@@ -48,7 +44,7 @@ describe("manifest typography", () => {
     vi.stubGlobal("FontFace", FontFaceMock as unknown as typeof FontFace);
 
     const {loadManifestFontsForManifest} = await import("../hyperframes/manifest-typography");
-    const loadPromise = loadManifestFontsForManifest({
+    await loadManifestFontsForManifest({
       typography: {
         primaryFont: {
           family: "Ageya",
@@ -57,22 +53,16 @@ describe("manifest typography", () => {
       }
     } as any);
 
-    expect(remotionMocks.delayRender).toHaveBeenCalled();
+    expect(remotionMocks.delayRender).not.toHaveBeenCalled();
     expect(FontFaceMock).toHaveBeenCalledWith(
       "Ageya",
       "url(/fonts/retrieved/ageya/Ageya-Regular.woff2)"
     );
     expect(remotionMocks.continueRender).not.toHaveBeenCalled();
-
-    resolveReady();
-    await loadPromise;
-
-    expect(remotionMocks.continueRender).toHaveBeenCalledTimes(1);
     expect(mockDocument.fonts.add).toHaveBeenCalledTimes(1);
   });
 
-  it("times out safely and still releases the Remotion render gate when the font never becomes ready", async () => {
-    vi.useFakeTimers();
+  it("does not install timeout-based font recovery in the render path", async () => {
     const mockDocument = {
       fonts: {
         add: vi.fn(),
@@ -97,7 +87,7 @@ describe("manifest typography", () => {
     vi.stubGlobal("FontFace", FontFaceMock as unknown as typeof FontFace);
 
     const {loadManifestFontsForManifest} = await import("../hyperframes/manifest-typography");
-    const loadPromise = loadManifestFontsForManifest({
+    void loadManifestFontsForManifest({
       typography: {
         primaryFont: {
           family: "Ageya",
@@ -106,14 +96,10 @@ describe("manifest typography", () => {
       }
     } as any);
 
-    await vi.advanceTimersByTimeAsync(5005);
-    await loadPromise;
-
-    expect(remotionMocks.delayRender).toHaveBeenCalled();
-    expect(remotionMocks.continueRender).toHaveBeenCalledTimes(1);
-    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(remotionMocks.delayRender).not.toHaveBeenCalled();
+    expect(remotionMocks.continueRender).not.toHaveBeenCalled();
+    expect(warnSpy).not.toHaveBeenCalled();
 
     warnSpy.mockRestore();
-    vi.useRealTimers();
   });
 });

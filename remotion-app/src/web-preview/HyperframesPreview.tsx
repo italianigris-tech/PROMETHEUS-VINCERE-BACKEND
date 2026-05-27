@@ -8,10 +8,7 @@ import type {PreviewPerformanceMode} from "../lib/types";
 import type {DisplayTimeline, DisplayTimelineLayer} from "./display-god/display-timeline";
 import type {HyperframesPreviewManifest} from "./hyperframes/manifest-schema";
 import {CinematicBlurText} from "./hyperframes/CinematicBlurText";
-import {
-  useManifestFonts,
-  resolveHyperframesFontFamily
-} from "./hyperframes/manifest-typography";
+import {resolveHyperframesFontFamily} from "./hyperframes/manifest-typography";
 import {
   filterCompetingHyperframesTextLayers,
   shouldSuppressNativeCaptionsForHyperframes
@@ -36,6 +33,23 @@ const resolveTrackLayerContentLabel = (layer: DisplayTimelineLayer): string => {
   const text = typeof styleMetadata["text"] === "string" ? styleMetadata["text"] : null;
   const subtitle = typeof styleMetadata["subtitle"] === "string" ? styleMetadata["subtitle"] : null;
   return [title, text, subtitle, layer.label].filter(Boolean).join("\n");
+};
+
+const resolveTrackLayerFontFamily = ({
+  layer,
+  manifest
+}: {
+  layer: DisplayTimelineLayer;
+  manifest?: HyperframesPreviewManifest | null;
+}): string => {
+  const styleMetadata = layer.styleMetadata ?? {};
+  const trackType = typeof styleMetadata["trackType"] === "string" ? styleMetadata["trackType"] : "text";
+  const resolvedFamily = resolveHyperframesFontFamily({
+    manifest,
+    trackType
+  });
+
+  return resolvedFamily.includes(",") ? resolvedFamily : resolvedFamily ? `"${resolvedFamily}"` : "";
 };
 
 const resolveTrackLayerPlacementStyle = (layer: DisplayTimelineLayer): React.CSSProperties => {
@@ -70,11 +84,7 @@ const resolveTrackCardStyle = ({
   const styleMetadata = layer.styleMetadata ?? {};
   const trackType = typeof styleMetadata["trackType"] === "string" ? styleMetadata["trackType"] : "text";
   const backgroundStyle = typeof styleMetadata["backgroundStyle"] === "string" ? styleMetadata["backgroundStyle"] : "glass-gradient";
-  const resolvedFamily = resolveHyperframesFontFamily({
-    manifest,
-    trackType
-  });
-  const fontFamily = resolvedFamily.includes(",") ? resolvedFamily : `"${resolvedFamily}"`;
+  const fontFamily = resolveTrackLayerFontFamily({layer, manifest});
 
   const background =
     backgroundStyle === "subtle-animated-background-grid"
@@ -97,7 +107,7 @@ const resolveTrackCardStyle = ({
     backdropFilter: "blur(18px)",
     color: "#F8FAFC",
     overflow: "hidden",
-    fontFamily
+    ...(fontFamily ? {fontFamily} : {})
   };
 };
 
@@ -222,6 +232,7 @@ const HyperframesTrackLayer: React.FC<{
 }> = ({layer, manifest, containerRef, sharpRef, blurredRef}) => {
   const styleMetadata = layer.styleMetadata ?? {};
   const trackType = typeof styleMetadata["trackType"] === "string" ? styleMetadata["trackType"] : "text";
+  const expectedFontFamily = resolveTrackLayerFontFamily({layer, manifest});
   const title = typeof styleMetadata["title"] === "string" ? styleMetadata["title"] : null;
   const subtitle = typeof styleMetadata["subtitle"] === "string" ? styleMetadata["subtitle"] : null;
   const text = typeof styleMetadata["text"] === "string" ? styleMetadata["text"] : null;
@@ -233,6 +244,8 @@ const HyperframesTrackLayer: React.FC<{
       style={resolveTrackLayerPlacementStyle(layer)}
       data-hyperframes-layer-id={layer.id}
       data-hyperframes-track-type={trackType}
+      data-caption-renderer="hyperframes-text"
+      data-caption-expected-font={expectedFontFamily || undefined}
     >
       <div style={resolveTrackCardStyle({layer, manifest})}>
         {mediaKind === "iframe" && layer.src ? (
@@ -319,7 +332,6 @@ export const HyperframesPreview: React.FC<HyperframesPreviewProps> = ({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const currentFrame = useCurrentFrame();
   const {fps} = useVideoConfig();
-  const fontsLoaded = useManifestFonts(manifest);
   const containerRefs = useRef(new Map<string, HTMLDivElement>());
   const sharpRefs = useRef(new Map<string, HTMLSpanElement>());
   const blurredRefs = useRef(new Map<string, HTMLSpanElement>());
@@ -458,7 +470,7 @@ export const HyperframesPreview: React.FC<HyperframesPreviewProps> = ({
       />
 
       <div className="hyperframes-creative-track-host">
-        {fontsLoaded ? visibleTrackLayers.map((layer) => (
+        {visibleTrackLayers.map((layer) => (
           <HyperframesTrackLayer
             key={layer.id}
             layer={layer}
@@ -467,7 +479,7 @@ export const HyperframesPreview: React.FC<HyperframesPreviewProps> = ({
             sharpRef={setSharpRef(layer.id)}
             blurredRef={setBlurredRef(layer.id)}
           />
-        )) : null}
+        ))}
       </div>
 
       <div className="hyperframes-preview-pill">

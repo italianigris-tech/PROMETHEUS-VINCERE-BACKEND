@@ -278,16 +278,12 @@ describe("frontend obedience", () => {
     vi.unstubAllGlobals();
   });
 
-  test("Remotion stage triggers delayRender and waits for document.fonts.ready before continuing", async () => {
-    let resolveReady!: () => void;
-    const fontsReady = new Promise<void>((resolve) => {
-      resolveReady = resolve;
-    });
+  test("manifest typography registration does not gate rendering or wait on document.fonts.ready", async () => {
     const mockDocument = {
       fonts: {
         add: vi.fn(),
         check: vi.fn(() => false),
-        ready: fontsReady
+        ready: new Promise<void>(() => undefined)
       }
     };
     class MockFontFace {
@@ -304,14 +300,13 @@ describe("frontend obedience", () => {
 
     const loadPromise = loadManifestFontsForManifest(buildManifest());
 
-    expect(remotionMocks.delayRender).toHaveBeenCalled();
+    expect(remotionMocks.delayRender).not.toHaveBeenCalled();
     expect(remotionMocks.continueRender).not.toHaveBeenCalled();
 
-    resolveReady();
     await loadPromise;
 
     expect(mockDocument.fonts.add).toHaveBeenCalledTimes(2);
-    expect(remotionMocks.continueRender).toHaveBeenCalledTimes(1);
+    expect(remotionMocks.continueRender).not.toHaveBeenCalled();
   });
 
   test("gsap-executor does not auto-play; it strictly seeks timeline based on currentFrame / fps", () => {

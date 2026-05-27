@@ -34,6 +34,14 @@ import {
   resolveAudioPreviewUrl,
   resolveEditSessionSourceUrl
 } from "./audio-preview-source";
+import {
+  subscribeToFontSystemReady,
+  type FontPreloadBootstrapResult
+} from "./font-preload-bootstrap";
+import {
+  isRenderDebugEnabled,
+  traceCaptionFontRender
+} from "./font-render-trace";
 
 export type CreativeAudioLivePlayerProps = {
   readonly jobId: string;
@@ -68,6 +76,12 @@ type PreviewTimingState = {
   firstRenderableAtMs: number | null;
   firstReadyAtMs: number | null;
   fullReadyAtMs: number | null;
+};
+
+type RenderPipelineTraceState = {
+  runId: string;
+  lastTimestamp: number | null;
+  seenStages: Set<string>;
 };
 
 const STATUS_FALLBACK_POLL_INTERVAL_MS = 10000;
@@ -558,6 +572,64 @@ const logPreviewGovernorStage = (
   });
 };
 
+const createRenderPipelineTraceState = (
+  jobId: string,
+  resetVersion: number
+): RenderPipelineTraceState => ({
+  runId: `${jobId}:${resetVersion}:${Date.now()}`,
+  lastTimestamp: null,
+  seenStages: new Set()
+});
+
+const logRenderPipelineStage = (
+  traceState: RenderPipelineTraceState | null,
+  stage: string,
+  detail: Record<string, unknown> = {},
+  options: {once?: boolean} = {}
+): void => {
+  if (!traceState) {
+    return;
+  }
+
+  if (options.once && traceState.seenStages.has(stage)) {
+    return;
+  }
+
+  const timestamp = typeof performance !== "undefined" ? performance.now() : Date.now();
+  const deltaFromPrevious = traceState.lastTimestamp === null ? 0 : timestamp - traceState.lastTimestamp;
+  traceState.lastTimestamp = timestamp;
+  traceState.seenStages.add(stage);
+
+  const payload = {
+    stage,
+    timestamp,
+    deltaFromPreviousMs: Math.max(0, Math.round(deltaFromPrevious)),
+    runId: traceState.runId,
+    ...detail
+  };
+
+  if (!isRenderDebugEnabled()) {
+    return;
+  }
+
+  console.groupCollapsed(`[RENDER_PIPELINE] ${stage}`);
+  console.info(payload);
+  console.groupEnd();
+};
+
+const readCaptionTraceTarget = (): HTMLElement | null => {
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  return document.querySelector<HTMLElement>(
+    "[data-caption-expected-font], [data-caption-renderer], [data-hyperframes-track-type='text']"
+  );
+};
+
+const readCaptionTraceExpectedFont = (element: HTMLElement): string | null =>
+  element.dataset.captionExpectedFont ?? element.getAttribute("data-caption-expected-font");
+
 const toActionableBuildErrorMessage = (message: string, apiBase: string): string => {
   return /failed to fetch|networkerror|load failed/i.test(message)
     ? `Cannot reach the local backend at ${apiBase.replace(/\/+$/, "")}. Start the backend so AssemblyAI captions and live motion can load.`
@@ -990,6 +1062,9 @@ export const CreativeAudioLivePlayer: React.FC<CreativeAudioLivePlayerProps> = (
   const liveSessionCallbackRef = useRef(onLiveSessionChange);
   const sessionBuildSignatureRef = useRef("");
   const previewTimingRef = useRef<PreviewTimingState | null>(null);
+  const renderPipelineTraceRef = useRef<RenderPipelineTraceState | null>(null);
+  const captionMountTraceKeyRef = useRef("");
+  const backendPlanTraceKeyRef = useRef("");
   const lastBackendUpdateAtRef = useRef(0);
   const sourcePlan = useMemo(
     () =>
@@ -1000,6 +1075,40 @@ export const CreativeAudioLivePlayer: React.FC<CreativeAudioLivePlayerProps> = (
       }),
     [sourceFile, sourceMediaSrc, sourcePath]
   );
+
+  useEffect(() => {
+    renderPipelineTraceRef.current = createRenderPipelineTraceState(jobId, previewTimelineResetVersion);
+    captionMountTraceKeyRef.current = "";
+    backendPlanTraceKeyRef.current = "";
+    logRenderPipelineStage(renderPipelineTraceRef.current, "SESSION_INIT", {
+      sourceKind: sourcePlan.kind,
+      previewRenderer,
+      captionProfileId,
+      motionTier
+    }, {once: true});
+  }, [
+    captionProfileId,
+    jobId,
+    motionTier,
+    previewRenderer,
+    previewTimelineResetVersion,
+    sourcePlan.kind
+  ]);
+
+  useEffect(() => {
+    const logFontSystemReady = (result: FontPreloadBootstrapResult): void => {
+      logRenderPipelineStage(renderPipelineTraceRef.current, "FONT_SYSTEM_READY", {
+        ready: result.ready,
+        durationMs: Math.round(result.durationMs),
+        checkedFontCount: result.checkedFonts.length,
+        failureCount: result.failures.length,
+        runtimeRecordCount: result.runtimeRecordCount
+      }, {once: true});
+    };
+
+    return subscribeToFontSystemReady(logFontSystemReady, {replay: true});
+  }, []);
+
   const directBrowserVideoSrc = useMemo(() => {
     const candidate = sourceMediaSrc?.trim() ?? "";
     if (!candidate || !isLikelyVideoFileLike(sourceFile)) {
@@ -1024,6 +1133,32 @@ export const CreativeAudioLivePlayer: React.FC<CreativeAudioLivePlayerProps> = (
     () => liveSessionState ? buildBackendPreviewPlan(liveSessionState) : null,
     [liveSessionState]
   );
+
+  useEffect(() => {
+    if (!currentBackendPreviewPlan || !liveSessionState) {
+      return;
+    }
+
+    const traceKey = [
+      liveSessionState.id,
+      liveSessionState.previewStatus,
+      currentBackendPreviewPlan.previewMotionSequence?.length ?? 0,
+      currentBackendPreviewPlan.transcriptWords?.length ?? 0
+    ].join(":");
+
+    if (backendPlanTraceKeyRef.current === traceKey) {
+      return;
+    }
+
+    backendPlanTraceKeyRef.current = traceKey;
+    logRenderPipelineStage(renderPipelineTraceRef.current, "BACKEND_PLAN_RECEIVED", {
+      sessionId: liveSessionState.id,
+      previewStatus: liveSessionState.previewStatus,
+      motionCueCount: currentBackendPreviewPlan.previewMotionSequence?.length ?? 0,
+      transcriptWordCount: currentBackendPreviewPlan.transcriptWords?.length ?? 0
+    });
+  }, [currentBackendPreviewPlan, liveSessionState]);
+
   const livePreviewSessionData = useMemo(
     () => buildProjectScopedLivePreviewSessionData(liveSessionState),
     [liveSessionState]
@@ -1411,6 +1546,13 @@ export const CreativeAudioLivePlayer: React.FC<CreativeAudioLivePlayerProps> = (
           ? "backend-preview-plan"
           : "projection-only-awaiting-backend-plan";
         const buildStartedAtMs = performance.now();
+        logRenderPipelineStage(renderPipelineTraceRef.current, "PROJECTION_BUILD_START", {
+          sessionId: nextState.id,
+          governorMode,
+          previewStatus: nextState.previewStatus,
+          transcriptWordCount: nextState.transcriptWords.length,
+          motionCueCount: nextState.previewMotionSequence.length
+        });
         const nextSession = await buildAudioCreativePreviewSession({
           jobId: nextState.id,
           captionProfileId,
@@ -1672,6 +1814,97 @@ export const CreativeAudioLivePlayer: React.FC<CreativeAudioLivePlayerProps> = (
 
     audioStatusCallbackRef.current?.("loading", null);
   }, [nativePreviewErrorMessage, nativePreviewHealth, resolvedVideoSrc]);
+
+  useEffect(() => {
+    if (typeof document === "undefined" || typeof window === "undefined") {
+      return;
+    }
+
+    const traceKey = [
+      jobId,
+      previewTimelineResetVersion,
+      liveSessionState?.id ?? "no-session",
+      buildState
+    ].join(":");
+
+    if (captionMountTraceKeyRef.current === traceKey) {
+      return;
+    }
+
+    let observer: MutationObserver | null = null;
+    let firstAnimationFrameId = 0;
+    let firstPaintFrameId = 0;
+    let completed = false;
+
+    const traceCaptionMount = (element: HTMLElement): void => {
+      if (completed) {
+        return;
+      }
+
+      completed = true;
+      captionMountTraceKeyRef.current = traceKey;
+      observer?.disconnect();
+      const expectedFont = readCaptionTraceExpectedFont(element);
+
+      logRenderPipelineStage(renderPipelineTraceRef.current, "CAPTION_MOUNT", {
+        expectedFont,
+        renderer:
+          element.dataset.captionRenderer ??
+          element.getAttribute("data-caption-renderer") ??
+          element.getAttribute("data-hyperframes-track-type") ??
+          "unknown"
+      }, {once: true});
+
+      firstAnimationFrameId = window.requestAnimationFrame(() => {
+        logRenderPipelineStage(renderPipelineTraceRef.current, "FIRST_ANIMATION_FRAME", {
+          expectedFont
+        }, {once: true});
+
+        firstPaintFrameId = window.requestAnimationFrame(() => {
+          logRenderPipelineStage(renderPipelineTraceRef.current, "FIRST_PAINT", {
+            expectedFont
+          }, {once: true});
+          traceCaptionFontRender({
+            element,
+            expectedFontFamily: expectedFont
+          });
+        });
+      });
+    };
+
+    const existingCaption = readCaptionTraceTarget();
+    if (existingCaption) {
+      traceCaptionMount(existingCaption);
+    } else if (typeof MutationObserver !== "undefined" && document.body) {
+      observer = new MutationObserver(() => {
+        const nextCaption = readCaptionTraceTarget();
+        if (nextCaption) {
+          traceCaptionMount(nextCaption);
+        }
+      });
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true
+      });
+    }
+
+    return () => {
+      observer?.disconnect();
+      if (firstAnimationFrameId !== 0) {
+        window.cancelAnimationFrame(firstAnimationFrameId);
+      }
+      if (firstPaintFrameId !== 0) {
+        window.cancelAnimationFrame(firstPaintFrameId);
+      }
+    };
+  }, [
+    buildState,
+    displayTimeline,
+    jobId,
+    liveSessionState?.id,
+    previewTimelineResetVersion,
+    session
+  ]);
 
   useEffect(() => {
     if (!import.meta.env.DEV) {

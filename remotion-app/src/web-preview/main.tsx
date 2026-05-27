@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 
-import {primeRuntimeFontBootstrap} from "../lib/font-intelligence/font-runtime-loader";
+import {preloadFontSystem} from "./font-preload-bootstrap";
 import {PreviewApp} from "./PreviewApp";
 import "./preview.css";
 
@@ -89,10 +89,11 @@ const renderPreviewApp = (): void => {
   );
 };
 
-void primeRuntimeFontBootstrap()
-  .catch((error) => {
-    console.warn("[runtime-font-bootstrap] Preview bootstrap failed", error);
-  })
+if (typeof window !== "undefined" && typeof window.__RENDER_DEBUG__ === "undefined" && import.meta.env.DEV) {
+  window.__RENDER_DEBUG__ = true;
+}
+
+void preloadFontSystem()
   .finally(() => {
     renderPreviewApp();
   });

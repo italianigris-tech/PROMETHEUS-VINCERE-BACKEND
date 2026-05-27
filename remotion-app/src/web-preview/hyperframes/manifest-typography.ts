@@ -1,6 +1,3 @@
-import {useEffect, useState} from "react";
-import {continueRender, delayRender} from "remotion";
-
 import type {HyperframesPreviewManifest} from "./manifest-schema";
 
 type ManifestFontDefinition = NonNullable<HyperframesPreviewManifest["typography"]>["primaryFont"];
@@ -8,7 +5,6 @@ type ManifestFontDefinition = NonNullable<HyperframesPreviewManifest["typography
 const pendingManifestFontLoads = new Map<string, Promise<void>>();
 const loadedManifestFontKeys = new Set<string>();
 const warnedManifestFontKeys = new Set<string>();
-const SYSTEM_FALLBACK = "DM Sans, sans-serif";
 
 const FORMAT_PRIORITY: Record<string, number> = {
   woff2: 0,
@@ -125,80 +121,25 @@ export const loadManifestFontsForManifest = async (
     return;
   }
 
-  const gatedLoad = (async () => {
-    const handle = delayRender(`Loading Zilliz Aesthetic Fonts: ${fonts.map((font) => font.family).join(", ")}`);
-    let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
-    let released = false;
-
-    const release = (): void => {
-      if (released) {
-        return;
-      }
-
-      released = true;
-      continueRender(handle);
-    };
-
+  const fontLoad = (async () => {
     try {
-      await Promise.race([
-        (async () => {
-          await Promise.all(fonts.map((font) => loadManifestFont({
-            family: font.family,
-            fontUrl: font.fontUrl,
-            fontFaceSet
-          })));
-          await fontFaceSet.ready;
-        })(),
-        new Promise<never>((_, reject) => {
-          timeoutHandle = setTimeout(() => {
-            reject(new Error("Zilliz manifest font load timed out after 5000ms."));
-          }, 5000);
-        })
-      ]);
+      await Promise.all(fonts.map((font) => loadManifestFont({
+        family: font.family,
+        fontUrl: font.fontUrl,
+        fontFaceSet
+      })));
     } catch (error) {
       warnManifestFontIssue(loadKey, error);
-    } finally {
-      if (timeoutHandle !== null) {
-        clearTimeout(timeoutHandle);
-      }
-
-      release();
     }
   })();
 
-  pendingManifestFontLoads.set(loadKey, gatedLoad);
+  pendingManifestFontLoads.set(loadKey, fontLoad);
 
   try {
-    await gatedLoad;
+    await fontLoad;
   } finally {
     pendingManifestFontLoads.delete(loadKey);
   }
-};
-
-export const useManifestFonts = (manifest?: HyperframesPreviewManifest | null): boolean => {
-  const [fontsLoaded, setFontsLoaded] = useState(typeof document === "undefined" || !manifest?.typography);
-
-  useEffect(() => {
-    if (!manifest?.typography) {
-      setFontsLoaded(true);
-      return;
-    }
-
-    let cancelled = false;
-    setFontsLoaded(false);
-
-    void loadManifestFontsForManifest(manifest).finally(() => {
-      if (!cancelled) {
-        setFontsLoaded(true);
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [manifest]);
-
-  return fontsLoaded;
 };
 
 export const resolveHyperframesFontFamily = ({
@@ -212,8 +153,8 @@ export const resolveHyperframesFontFamily = ({
   const secondaryFamily = manifest?.typography?.secondaryFont?.family?.trim() ?? "";
 
   if (trackType === "text") {
-    return primaryFamily || secondaryFamily || SYSTEM_FALLBACK;
+    return primaryFamily || secondaryFamily;
   }
 
-  return secondaryFamily || primaryFamily || SYSTEM_FALLBACK;
+  return secondaryFamily || primaryFamily;
 };
