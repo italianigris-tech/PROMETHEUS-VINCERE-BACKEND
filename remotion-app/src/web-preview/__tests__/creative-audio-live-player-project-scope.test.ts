@@ -9,6 +9,7 @@ import {
   buildProjectScopedLivePreviewSessionData,
   createProjectScopedPreviewResetState,
   resolveLivePreviewSessionEndpoints,
+  summarizePreviewDiagnostics,
   type LiveEditSessionPublicState
 } from "../CreativeAudioLivePlayer";
 
@@ -68,6 +69,12 @@ const liveSessionState: LiveEditSessionPublicState = {
   previewArtifactContentType: "text/html; charset=utf-8",
   previewDiagnostics: {
     sessionId: "project-a"
+  },
+  liveActivity: {
+    activityCode: "ASSEMBLYAI_POLLING",
+    detail: "Attempt 45/240",
+    heartbeat: "2026-05-25T12:00:00.000Z",
+    lastActiveAt: "2026-05-25T12:00:00.000Z"
   }
 };
 
@@ -108,6 +115,12 @@ describe("CreativeAudioLivePlayer project scope", () => {
       sourceHeight: 1080,
       sourceFps: 30,
       sourceDurationMs: 12000,
+      liveActivity: {
+        activityCode: "ASSEMBLYAI_POLLING",
+        detail: "Attempt 45/240",
+        heartbeat: "2026-05-25T12:00:00.000Z",
+        lastActiveAt: "2026-05-25T12:00:00.000Z"
+      },
       previewLines: ["Project A live preview"],
       previewMotionSequence: [
         {
@@ -123,6 +136,31 @@ describe("CreativeAudioLivePlayer project scope", () => {
         {text: "A", start_ms: 160, end_ms: 260}
       ]
     });
+  });
+
+  it("summarizes backend diagnostics into visible preview health state", () => {
+    expect(summarizePreviewDiagnostics({
+      degradedStages: ["preview-render"],
+      fallbackReasons: ["html artifact unavailable"],
+      visibleFailureCount: 1,
+      cognitiveConfidence: 0.78,
+      temporalConfidence: 0.9,
+      hallucinationProbability: 0.24
+    })).toEqual({
+      status: "degraded",
+      degradedStages: ["preview-render"],
+      fallbackReasons: ["html artifact unavailable"],
+      visibleFailureCount: 1,
+      cognitiveConfidence: 0.78,
+      temporalConfidence: 0.9,
+      modelConfidence: null,
+      hallucinationProbability: 0.24
+    });
+
+    expect(summarizePreviewDiagnostics({
+      visibleFailures: [{code: "schema_mismatch"}],
+      modelConfidence: 0.5
+    })?.status).toBe("degraded");
   });
 
   it("clears stale manifest and backend-plan state on project switch reset", () => {

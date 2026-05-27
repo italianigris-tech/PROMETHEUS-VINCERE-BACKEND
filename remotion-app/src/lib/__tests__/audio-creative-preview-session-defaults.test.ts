@@ -3,7 +3,7 @@ import {describe, expect, it} from "vitest";
 import {buildAudioCreativePreviewSession} from "../../web-preview/audio-creative-preview-session";
 
 describe("audio creative preview session defaults", () => {
-  it("builds a usable live timeline by default for the audio preview lane", async () => {
+  it("defaults to projection-only preview data instead of local creative planning", async () => {
     const session = await buildAudioCreativePreviewSession({
       jobId: "job-audio-preview-defaults",
       captionProfileId: "longform_eve_typography_v1",
@@ -11,9 +11,11 @@ describe("audio creative preview session defaults", () => {
       presentationMode: "long-form"
     });
 
-    expect(session.creativeTimeline.moments.length).toBeGreaterThan(0);
-    expect(session.creativeTimeline.tracks.length).toBeGreaterThan(0);
-    expect(session.debugReport.finalCreativeTimeline.tracks.length).toBeGreaterThan(0);
+    expect(session.captionChunks.length).toBeGreaterThan(0);
+    expect(session.motionModel.scenes.length).toBeGreaterThan(0);
+    expect(session.creativeTimeline.moments).toHaveLength(0);
+    expect(session.creativeTimeline.tracks).toHaveLength(0);
+    expect(session.debugReport.finalCreativeTimeline.tracks).toHaveLength(0);
   }, 30000);
 
   it("preserves the source duration when the footage is ready before overlay cues land", async () => {

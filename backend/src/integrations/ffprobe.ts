@@ -31,7 +31,12 @@ export type VideoProbeResult = {
   bitrate_video?: number;
 };
 
-const DEFAULT_DURATION_MS = 60000;
+export class MediaProbeDeterminismError extends Error {
+  public constructor(message: string) {
+    super(`MEDIA_PROBE_DETERMINISM_FAILURE: ${message}`);
+    this.name = "MediaProbeDeterminismError";
+  }
+}
 
 const parseFps = (value: string | undefined): number => {
   if (!value) {
@@ -98,7 +103,7 @@ export const resolveDurationMsFromFfprobeJson = (ffprobeJson: string): number =>
     return streamTagDurationMs;
   }
 
-  return DEFAULT_DURATION_MS;
+  throw new MediaProbeDeterminismError("ffprobe did not return a valid media duration.");
 };
 
 export const probeVideoMetadata = async (videoPath: string): Promise<VideoProbeResult> => {
@@ -128,13 +133,18 @@ export const probeVideoMetadata = async (videoPath: string): Promise<VideoProbeR
   }
 
   const fps = parseFps(videoStream.avg_frame_rate || videoStream.r_frame_rate);
-  const durationMs = resolveDurationMsFromFfprobeJson(stdout);
-
-  if (durationMs === DEFAULT_DURATION_MS) {
-    console.warn(`[FFPROBE] Duration resolved to N/A. Forcing 60s fallback for ${path.basename(videoPath)}`);
+  if (!Number.isFinite(fps) || fps <= 0) {
+    throw new MediaProbeDeterminismError(`ffprobe returned an invalid FPS for ${path.basename(videoPath)}.`);
   }
-
+  const durationMs = resolveDurationMsFromFfprobeJson(stdout);
   const durationSeconds = durationMs / 1000;
+  if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) {
+    throw new MediaProbeDeterminismError(`ffprobe returned a non-positive duration for ${path.basename(videoPath)}.`);
+  }
+  const bitrateVideo = parsed.format.bit_rate ? Number(parsed.format.bit_rate) : undefined;
+  if (bitrateVideo !== undefined && (!Number.isFinite(bitrateVideo) || bitrateVideo <= 0)) {
+    throw new MediaProbeDeterminismError(`ffprobe returned an invalid bitrate for ${path.basename(videoPath)}.`);
+  }
 
   return {
     width: videoStream.width,
@@ -144,6 +154,6 @@ export const probeVideoMetadata = async (videoPath: string): Promise<VideoProbeR
     duration_in_frames: Math.max(1, Math.round(durationSeconds * fps)),
     codec_video: videoStream.codec_name,
     container_format: parsed.format.format_name,
-    bitrate_video: parsed.format.bit_rate ? Number(parsed.format.bit_rate) : undefined
+    bitrate_video: bitrateVideo
   };
 };

@@ -37,6 +37,7 @@ import {
   type EditSessionPlaceholder,
   type EditSessionPublicState,
   type EditSessionRenderStartRequest,
+  type EditSessionLiveActivity,
   type EditSessionState,
   type EditSessionUploadCompleteRequest
 } from "./types";
@@ -52,6 +53,7 @@ const SESSION_EVICTION_SWEEP_MS = Math.max(5 * 60 * 1000, SESSION_INACTIVITY_EVI
 const PREVIEW_PLACEHOLDER_COPY = "Loading the first typographic beat.";
 const PREVIEW_PLACEHOLDER_LINE_2 = "Keep the motion lane warm.";
 const PREVIEW_CAPTION_PROFILE_ID = "longform_svg_typography_v1";
+const ACTIVITY_HEARTBEAT_INTERVAL_MS = 5000;
 const RENDER_STAGE_PROGRESS: Record<string, number> = {
   idle: 0,
   cleaning: 5,
@@ -64,6 +66,24 @@ const RENDER_STAGE_PROGRESS: Record<string, number> = {
 
 const nowIso = (deps: EditSessionDependencies): string => {
   return deps.now ? deps.now() : new Date().toISOString();
+};
+
+const buildLiveActivity = ({
+  deps,
+  activityCode,
+  detail
+}: {
+  deps: EditSessionDependencies;
+  activityCode: string;
+  detail: string;
+}): EditSessionLiveActivity => {
+  const stamp = nowIso(deps);
+  return {
+    activityCode,
+    detail,
+    heartbeat: stamp,
+    lastActiveAt: stamp
+  };
 };
 
 type PreparedCreativeDecisionManifest = {
@@ -956,6 +976,7 @@ export class EditSessionManager {
   private readonly previewRenderService: PreviewRenderService;
   private readonly zillizFontResolver: ZillizFontResolver;
   private evictionTimer: ReturnType<typeof setInterval> | null = null;
+  private readonly heartbeatTimers = new Map<string, ReturnType<typeof setInterval>>();
 
   public constructor({
     store,
@@ -990,6 +1011,36 @@ export class EditSessionManager {
       clearInterval(this.evictionTimer);
       this.evictionTimer = null;
     }
+    this.heartbeatTimers.forEach((timer) => clearInterval(timer));
+    this.heartbeatTimers.clear();
+  }
+
+  private startActivityHeartbeat(sessionId: string, detail: string): void {
+    this.stopActivityHeartbeat(sessionId);
+    const timer = setInterval(() => {
+      void this.updateLiveActivity(sessionId, "TASK_HEARTBEAT", detail).catch(() => undefined);
+    }, ACTIVITY_HEARTBEAT_INTERVAL_MS);
+    timer.unref?.();
+    this.heartbeatTimers.set(sessionId, timer);
+  }
+
+  private stopActivityHeartbeat(sessionId: string): void {
+    const timer = this.heartbeatTimers.get(sessionId);
+    if (!timer) {
+      return;
+    }
+    clearInterval(timer);
+    this.heartbeatTimers.delete(sessionId);
+  }
+
+  private async updateLiveActivity(sessionId: string, activityCode: string, detail: string): Promise<void> {
+    await this.updateSession(sessionId, () => ({
+      liveActivity: buildLiveActivity({
+        deps: this.deps,
+        activityCode,
+        detail
+      })
+    }));
   }
 
   private transcriptCacheDir(): string {
@@ -1112,6 +1163,7 @@ export class EditSessionManager {
       renderProgress: 0,
       renderOutputUrl: null,
       renderOutputPath: null,
+      liveActivity: null,
       createdAt: now,
       updatedAt: now,
       startedAt: null,
@@ -1331,18 +1383,29 @@ export class EditSessionManager {
     ) {
       const probe = this.deps.probeVideoMetadata ?? probeVideoMetadata;
       try {
+        await this.updateLiveActivity(sessionId, "MEDIA_PROBE_RUNNING", "Probing uploaded media for deterministic duration.");
         const metadata = await probe(resolvedSourcePath);
         await this.updateSession(sessionId, (current) => ({
-          sourceDurationMs: current.sourceDurationMs ?? Math.round(metadata.duration_seconds * 1000),
+          sourceDurationMs: Math.round(metadata.duration_seconds * 1000),
           sourceAspectRatio: current.sourceAspectRatio ?? `${metadata.width}:${metadata.height}`,
-          sourceWidth: current.sourceWidth ?? metadata.width,
-          sourceHeight: current.sourceHeight ?? metadata.height,
-          sourceFps: current.sourceFps ?? metadata.fps,
+          sourceWidth: metadata.width,
+          sourceHeight: metadata.height,
+          sourceFps: metadata.fps,
           sourceHasVideo: true,
           sourceFilename: current.sourceFilename ?? path.basename(resolvedSourcePath)
         }));
-      } catch {
-        // Metadata is optional. The preview lane can still proceed with a fallback placeholder.
+        await this.updateLiveActivity(
+          sessionId,
+          "MEDIA_PROBE_READY",
+          `Duration ${Math.round(metadata.duration_seconds * 1000)}ms at ${metadata.fps.toFixed(2)}fps.`
+        );
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        await this.failSession(sessionId, {
+          errorCode: "media_probe_failed",
+          errorMessage: reason
+        });
+        throw error;
       }
     }
 
@@ -1468,6 +1531,7 @@ export class EditSessionManager {
       errorMessage: string;
     }
   ): Promise<EditSessionPublicState> {
+    this.stopActivityHeartbeat(sessionId);
     const failed = await this.updateSession(sessionId, (current) => {
       const previewResolved = current.previewStatus === "preview_text_ready";
       const previewPlaceholder = editSessionPlaceholderSchema.parse(
@@ -1909,8 +1973,10 @@ export class EditSessionManager {
     previewSeconds: number,
     resolvedSourcePath: string | null
   ): Promise<void> {
+    this.startActivityHeartbeat(sessionId, "Preview worker active.");
     const session = await this.loadSession(sessionId);
     if (!resolvedSourcePath || !(await sourcePathExists(resolvedSourcePath))) {
+      this.stopActivityHeartbeat(sessionId);
       return;
     }
 
@@ -1926,6 +1992,7 @@ export class EditSessionManager {
         sourcePath: resolvedSourcePath,
         previewSeconds
       });
+      await this.updateLiveActivity(sessionId, "PREVIEW_AUDIO_EXTRACTED", `Buffered ${previewSeconds}s preview audio.`);
 
       await streamImpl({
         audioBuffer,
@@ -1940,12 +2007,22 @@ export class EditSessionManager {
         endOfTurnConfidenceThreshold: 0.35,
         callbacks: {
           onBegin: ({sessionId: incomingSessionId}) => {
+            void this.updateLiveActivity(
+              sessionId,
+              "ASSEMBLYAI_STREAM_CONNECTED",
+              `Streaming session ${incomingSessionId} connected.`
+            );
             streamSessionId = incomingSessionId;
             void this.updateSession(sessionId, () => ({
               streamSessionId: incomingSessionId
             }));
           },
           onTurn: async (turn) => {
+            await this.updateLiveActivity(
+              sessionId,
+              "ASSEMBLYAI_STREAM_TURN",
+              `Turn ${turn.turnOrder ?? 0}${turn.endOfTurn ? " completed" : " partial"}`
+            );
             const candidate = normalizeText(turn.utterance || turn.transcript);
             if (!candidate) {
               return;
@@ -2031,6 +2108,11 @@ export class EditSessionManager {
             });
           },
           onTermination: ({audioDurationSeconds}) => {
+            void this.updateLiveActivity(
+              sessionId,
+              "ASSEMBLYAI_STREAM_TERMINATED",
+              `Preview audio duration ${audioDurationSeconds ?? 0}s received.`
+            );
             void this.updateSession(sessionId, (current) => ({
               previewPlaceholder: {
                 ...current.previewPlaceholder,
@@ -2047,6 +2129,7 @@ export class EditSessionManager {
             }));
           },
           onError: (error) => {
+            void this.updateLiveActivity(sessionId, "ASSEMBLYAI_STREAM_ERROR", error.message);
             void this.updateSession(sessionId, (current) => ({
               previewPlaceholder: {
                 ...current.previewPlaceholder,
@@ -2078,6 +2161,7 @@ export class EditSessionManager {
         }), "preview_placeholder_ready");
       }
     } catch (error) {
+      this.stopActivityHeartbeat(sessionId);
       await this.updateSession(sessionId, (current) => ({
         previewPlaceholder: {
           ...current.previewPlaceholder,
@@ -2093,7 +2177,9 @@ export class EditSessionManager {
         errorMessage: current.errorMessage ?? (error instanceof Error ? error.message : String(error)),
         streamSessionId: streamSessionId
       }), "failed");
+      return;
     }
+    this.stopActivityHeartbeat(sessionId);
   }
 
   private async runTranscriptWorker(sessionId: string, sourcePath: string): Promise<void> {
@@ -2107,12 +2193,14 @@ export class EditSessionManager {
     }
 
     const startedAt = nowIso(this.deps);
+    this.startActivityHeartbeat(sessionId, "Transcript worker active.");
     await this.updateSession(sessionId, (current) => ({
       transcriptStartedAt: current.transcriptStartedAt ?? startedAt,
       transcriptStatus: "full_transcript_pending",
       transcriptProgress: Math.max(current.transcriptProgress, 1)
     }), "transcript_started");
     this.logPreviewStage(sessionId, "transcript_started");
+    await this.updateLiveActivity(sessionId, "ASSEMBLYAI_UPLOAD_PENDING", "Uploading source media for transcript extraction.");
 
     const applyTranscriptResult = async (
       words: EditSessionState["transcriptWords"],
@@ -2217,8 +2305,13 @@ export class EditSessionManager {
         filePath: sourcePath,
         apiKey: this.env.ASSEMBLYAI_API_KEY,
         fetchImpl: this.deps.fetchImpl,
+        timeoutMs: this.env.PROVIDER_TIMEOUT_MS,
+        onActivity: async (detail) => {
+          await this.updateLiveActivity(sessionId, "ASSEMBLYAI_IO", detail);
+        },
         onPoll: ({attempt, maxPollAttempts, status}) => {
           const progress = status === "completed" ? 100 : Math.min(95, Math.round((attempt / Math.max(1, maxPollAttempts)) * 100));
+          void this.updateLiveActivity(sessionId, "ASSEMBLYAI_POLLING", `Attempt ${attempt}/${maxPollAttempts}`);
           void this.updateSession(sessionId, () => ({
             transcriptProgress: progress,
             transcriptStatus: status === "error" ? "failed" : "full_transcript_pending",
@@ -2239,7 +2332,9 @@ export class EditSessionManager {
         });
       }
       await applyTranscriptResult(words, "assemblyai");
+      await this.updateLiveActivity(sessionId, "TRANSCRIPT_READY", `Transcript ready with ${words.length} words.`);
     } catch (error) {
+      this.stopActivityHeartbeat(sessionId);
       await this.updateSession(sessionId, (current) => ({
         transcriptStatus: "failed",
         errorCode: current.errorCode ?? "transcript_failed",
@@ -2253,7 +2348,9 @@ export class EditSessionManager {
           line2: current.previewLines[1] ?? PREVIEW_PLACEHOLDER_LINE_2
         }
       }), "failed");
+      return;
     }
+    this.stopActivityHeartbeat(sessionId);
   }
 
   private async emitDerivedReadiness(sessionId: string): Promise<void> {

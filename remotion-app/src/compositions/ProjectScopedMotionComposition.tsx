@@ -147,6 +147,12 @@ export type ProjectScopedLivePreviewSessionData = {
   readonly sourceHeight: number | null;
   readonly sourceFps: number | null;
   readonly sourceDurationMs: number | null;
+  readonly liveActivity?: {
+    activityCode: string;
+    detail: string;
+    heartbeat: string;
+    lastActiveAt: string;
+  } | null;
   readonly previewLines: string[];
   readonly previewMotionSequence: Array<{
     cueId: string;

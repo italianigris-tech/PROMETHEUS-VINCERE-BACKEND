@@ -3,7 +3,7 @@ import {describe, expect, it} from "vitest";
 import {buildAudioCreativePreviewSession} from "../../web-preview/audio-creative-preview-session";
 
 describe("audio creative preview session from live data", () => {
-  it("builds a usable timeline from transcript words returned by the live edit session", async () => {
+  it("projects transcript words returned by the live edit session without local creative planning", async () => {
     const session = await buildAudioCreativePreviewSession({
       jobId: "live-audio-session-transcript",
       captionProfileId: "longform_eve_typography_v1",
@@ -19,12 +19,12 @@ describe("audio creative preview session from live data", () => {
     });
 
     expect(session.captionChunks.length).toBeGreaterThan(0);
-    expect(session.creativeTimeline.moments.length).toBeGreaterThan(0);
-    expect(session.creativeTimeline.tracks.length).toBeGreaterThan(0);
+    expect(session.creativeTimeline.moments).toHaveLength(0);
+    expect(session.creativeTimeline.tracks).toHaveLength(0);
     expect(session.motionModel.scenes.length).toBeGreaterThan(0);
   }, 15000);
 
-  it("can still build an early motion timeline from preview cues before the full transcript lands", async () => {
+  it("projects early preview cues before the full transcript lands without local creative planning", async () => {
     const session = await buildAudioCreativePreviewSession({
       jobId: "live-audio-session-preview-cues",
       captionProfileId: "longform_eve_typography_v1",
@@ -44,8 +44,8 @@ describe("audio creative preview session from live data", () => {
     });
 
     expect(session.captionChunks.length).toBeGreaterThan(0);
-    expect(session.creativeTimeline.moments.length).toBeGreaterThan(0);
-    expect(session.creativeTimeline.tracks.length).toBeGreaterThan(0);
-    expect(session.motionModel.showcasePlan.cues.length + session.motionModel.scenes.flatMap((scene) => scene.assets).length).toBeGreaterThan(0);
+    expect(session.creativeTimeline.moments).toHaveLength(0);
+    expect(session.creativeTimeline.tracks).toHaveLength(0);
+    expect(session.motionModel.chunks.length).toBeGreaterThan(0);
   }, 15000);
 });

@@ -56,7 +56,7 @@ export type CreativeAudioLivePlayerProps = {
 
 type BuildState = "idle" | "building-timeline" | "ready" | "error";
 
-type PreviewGovernorMode = "backend-preview-plan" | "browser-orchestration-fallback";
+type PreviewGovernorMode = "backend-preview-plan" | "projection-only-awaiting-backend-plan";
 type InteractivePreviewSurface = "artifact" | "remotion-player" | "display-god" | "native-stage";
 
 type PreviewTimingState = {
@@ -106,6 +106,12 @@ export type LiveEditSessionPublicState = {
   sourceHeight?: number | null;
   sourceFps?: number | null;
   sourceHasVideo?: boolean;
+  liveActivity?: {
+    activityCode: string;
+    detail: string;
+    heartbeat: string;
+    lastActiveAt: string;
+  } | null;
   routes?: {
     status: string;
     previewManifest: string;
@@ -151,6 +157,23 @@ export type LiveAudioPreviewBackendState = {
   sourceHeight: number | null;
   sourceFps: number | null;
   sourceDurationMs: number | null;
+  liveActivity: {
+    activityCode: string;
+    detail: string;
+    heartbeat: string;
+    lastActiveAt: string;
+  } | null;
+};
+
+export type PreviewDiagnosticsSummary = {
+  status: "healthy" | "degraded";
+  degradedStages: string[];
+  fallbackReasons: string[];
+  visibleFailureCount: number;
+  cognitiveConfidence: number | null;
+  temporalConfidence: number | null;
+  modelConfidence: number | null;
+  hallucinationProbability: number | null;
 };
 
 const loadingStyles: React.CSSProperties = {
@@ -210,6 +233,126 @@ const stageStatusCardStyles: React.CSSProperties = {
   textAlign: "left"
 };
 
+const readStringArray = (value: unknown): string[] =>
+  Array.isArray(value)
+    ? value
+        .map((entry) => typeof entry === "string" ? entry.trim() : "")
+        .filter(Boolean)
+    : [];
+
+const readNumber = (value: unknown): number | null =>
+  typeof value === "number" && Number.isFinite(value) ? value : null;
+
+export const summarizePreviewDiagnostics = (
+  diagnostics: Record<string, unknown> | null | undefined
+): PreviewDiagnosticsSummary | null => {
+  if (!diagnostics) {
+    return null;
+  }
+
+  const degradedStages = readStringArray(diagnostics.degradedStages);
+  const fallbackReasons = readStringArray(diagnostics.fallbackReasons);
+  const visibleFailures = Array.isArray(diagnostics.visibleFailures)
+    ? diagnostics.visibleFailures
+    : [];
+  const visibleFailureCount =
+    readNumber(diagnostics.visibleFailureCount) ??
+    visibleFailures.length ??
+    0;
+  const cognitiveConfidence = readNumber(diagnostics.cognitiveConfidence);
+  const temporalConfidence = readNumber(diagnostics.temporalConfidence);
+  const modelConfidence = readNumber(diagnostics.modelConfidence);
+  const hallucinationProbability = readNumber(diagnostics.hallucinationProbability);
+  const fallbackUsed = diagnostics.fallbackUsed === true || fallbackReasons.length > 0;
+  const status = degradedStages.length > 0 || visibleFailureCount > 0 || fallbackUsed
+    ? "degraded"
+    : "healthy";
+
+  return {
+    status,
+    degradedStages,
+    fallbackReasons,
+    visibleFailureCount,
+    cognitiveConfidence,
+    temporalConfidence,
+    modelConfidence,
+    hallucinationProbability
+  };
+};
+
+const formatConfidence = (value: number | null): string =>
+  value === null ? "n/a" : `${Math.round(Math.max(0, Math.min(1, value)) * 100)}%`;
+
+const PreviewDiagnosticsPanel: React.FC<{
+  diagnostics: Record<string, unknown>;
+}> = ({diagnostics}) => {
+  const summary = summarizePreviewDiagnostics(diagnostics);
+  if (!summary) {
+    return null;
+  }
+
+  const isDegraded = summary.status === "degraded";
+  const reasons = [
+    ...summary.degradedStages.map((stage) => `stage:${stage}`),
+    ...summary.fallbackReasons
+  ].slice(0, 4);
+
+  return (
+    <section
+      aria-label="Preview diagnostics"
+      style={{
+        display: "grid",
+        gap: 10,
+        padding: 12,
+        borderRadius: 8,
+        border: `1px solid ${isDegraded ? "rgba(251, 191, 36, 0.28)" : "rgba(34, 197, 94, 0.22)"}`,
+        background: isDegraded ? "rgba(69, 26, 3, 0.45)" : "rgba(5, 46, 22, 0.32)",
+        color: "#E5E7EB",
+        fontSize: 12,
+        lineHeight: 1.35
+      }}
+    >
+      <div style={{display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center"}}>
+        <strong style={{color: isDegraded ? "#FDE68A" : "#BBF7D0"}}>
+          {isDegraded ? "Degraded preview" : "Preview healthy"}
+        </strong>
+        <span>Failures: {summary.visibleFailureCount}</span>
+        <span>Cognitive: {formatConfidence(summary.cognitiveConfidence)}</span>
+        <span>Temporal: {formatConfidence(summary.temporalConfidence)}</span>
+        {summary.modelConfidence !== null ? (
+          <span>Model: {formatConfidence(summary.modelConfidence)}</span>
+        ) : null}
+        {summary.hallucinationProbability !== null ? (
+          <span>Hallucination: {formatConfidence(summary.hallucinationProbability)}</span>
+        ) : null}
+      </div>
+      {reasons.length > 0 ? (
+        <div style={{display: "grid", gap: 4, color: "#CBD5E1"}}>
+          {reasons.map((reason) => (
+            <span key={reason}>{reason}</span>
+          ))}
+        </div>
+      ) : null}
+      <details>
+        <summary style={{cursor: "pointer", color: "#93C5FD"}}>Diagnostics payload</summary>
+        <pre style={{
+          margin: "8px 0 0",
+          padding: 10,
+          borderRadius: 8,
+          background: "rgba(15, 23, 42, 0.72)",
+          color: "#CBD5E1",
+          fontSize: 11,
+          lineHeight: 1.4,
+          maxHeight: 160,
+          overflow: "auto"
+        }}>
+          {JSON.stringify(diagnostics, null, 2)}
+        </pre>
+      </details>
+    </section>
+  );
+};
+
 const LoadingShell: React.FC<{
   buildState: BuildState;
   mediaStatus: AudioCreativePreviewAudioStatus;
@@ -248,9 +391,11 @@ const LoadingShell: React.FC<{
 const StageStatusOverlay: React.FC<{
   buildState: BuildState;
   mediaStatus: AudioCreativePreviewAudioStatus;
+  liveActivity?: LiveAudioPreviewBackendState["liveActivity"];
   errorMessage?: string | null;
-}> = ({buildState, mediaStatus, errorMessage}) => {
+}> = ({buildState, mediaStatus, liveActivity, errorMessage}) => {
   const isError = Boolean(errorMessage) || buildState === "error";
+  const activitySummary = liveActivity ? `${liveActivity.activityCode}: ${liveActivity.detail}` : null;
 
   return (
     <div style={stageStatusOverlayStyles}>
@@ -278,6 +423,11 @@ const StageStatusOverlay: React.FC<{
         <span style={{fontSize: 12, lineHeight: 1.4, color: "#94A3B8"}}>
           Media status: {mediaStatus}.
         </span>
+        {activitySummary ? (
+          <span style={{fontSize: 12, lineHeight: 1.4, color: "#94A3B8"}}>
+            {activitySummary}
+          </span>
+        ) : null}
       </div>
     </div>
   );
@@ -334,6 +484,7 @@ const normalizeSessionSnapshot = (payload: LiveEditSessionPublicState): LiveEdit
       : undefined,
     sourceMediaUrl: payload.sourceMediaUrl ?? null,
     sourceLabel: payload.sourceLabel ?? null,
+    liveActivity: payload.liveActivity ?? null,
     previewArtifactUrl: payload.previewArtifactUrl ?? null,
     previewArtifactKind: payload.previewArtifactKind ?? null,
     previewArtifactContentType: payload.previewArtifactContentType ?? null,
@@ -629,6 +780,7 @@ export const buildProjectScopedLivePreviewSessionData = (
     sourceHeight: sessionState.sourceHeight ?? null,
     sourceFps: sessionState.sourceFps ?? null,
     sourceDurationMs: sessionState.sourceDurationMs ?? null,
+    liveActivity: sessionState.liveActivity ?? null,
     previewLines: sessionState.previewLines,
     previewMotionSequence: sessionState.previewMotionSequence,
     transcriptWords: sessionState.transcriptWords
@@ -983,7 +1135,8 @@ export const CreativeAudioLivePlayer: React.FC<CreativeAudioLivePlayerProps> = (
             sourceWidth: current.sourceWidth ?? null,
             sourceHeight: current.sourceHeight ?? null,
             sourceFps: current.sourceFps ?? null,
-            sourceDurationMs: current.sourceDurationMs ?? null
+            sourceDurationMs: current.sourceDurationMs ?? null,
+            liveActivity: current.liveActivity ?? null
           }
         : null
     );
@@ -1256,7 +1409,7 @@ export const CreativeAudioLivePlayer: React.FC<CreativeAudioLivePlayerProps> = (
         const backendPreviewPlan = buildBackendPreviewPlan(nextState);
         const governorMode: PreviewGovernorMode = backendPreviewPlan
           ? "backend-preview-plan"
-          : "browser-orchestration-fallback";
+          : "projection-only-awaiting-backend-plan";
         const buildStartedAtMs = performance.now();
         const nextSession = await buildAudioCreativePreviewSession({
           jobId: nextState.id,
@@ -1657,20 +1810,7 @@ export const CreativeAudioLivePlayer: React.FC<CreativeAudioLivePlayerProps> = (
           ) : null}
         </div>
         {previewDiagnostics ? (
-          <pre style={{
-            margin: 0,
-            padding: 12,
-            borderRadius: 12,
-            border: "1px solid rgba(148, 163, 184, 0.2)",
-            background: "rgba(15, 23, 42, 0.78)",
-            color: "#cbd5e1",
-            fontSize: 11,
-            lineHeight: 1.4,
-            maxHeight: 160,
-            overflow: "auto"
-          }}>
-            {JSON.stringify(previewDiagnostics, null, 2)}
-          </pre>
+          <PreviewDiagnosticsPanel diagnostics={previewDiagnostics} />
         ) : null}
         <div style={{fontSize: 12, color: "#94a3b8"}}>
           {previewArtifactKind === "video"
@@ -1782,6 +1922,7 @@ export const CreativeAudioLivePlayer: React.FC<CreativeAudioLivePlayerProps> = (
           <StageStatusOverlay
             buildState={buildState}
             mediaStatus={shellMediaStatus}
+            liveActivity={liveSessionState?.liveActivity ?? null}
             errorMessage={stageStatusMessage}
           />
         ) : null}

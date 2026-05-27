@@ -33,6 +33,43 @@ const transcriptStatusSchema = z.object({
 const transcriptionBaseUrl = "https://api.assemblyai.com/v2";
 const streamingBaseUrl = "https://streaming.assemblyai.com";
 
+const timedFetch = async ({
+  fetchImpl,
+  url,
+  init,
+  timeoutMs,
+  timeoutCode,
+  label,
+  onActivity
+}: {
+  fetchImpl: FetchLike;
+  url: string;
+  init: RequestInit;
+  timeoutMs: number;
+  timeoutCode: string;
+  label: string;
+  onActivity?: (detail: string) => void | Promise<void>;
+}): Promise<Response> => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    await onActivity?.(`${label}: request started`);
+    const response = await fetchImpl(url, {
+      ...init,
+      signal: controller.signal
+    });
+    await onActivity?.(`${label}: response ${response.status}`);
+    return response;
+  } catch (error) {
+    if ((error as {name?: string})?.name === "AbortError") {
+      throw new Error(`${timeoutCode}: ${label} exceeded ${timeoutMs}ms.`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
 const jsonHeaders = (apiKey: string): HeadersInit => ({
   authorization: apiKey,
   "content-type": "application/json"
@@ -49,13 +86,16 @@ export const transcribeWithAssemblyAI = async ({
   fetchImpl = fetch,
   pollIntervalMs = 2500,
   maxPollAttempts = 240,
-  onPoll
+  onPoll,
+  timeoutMs = 60000,
+  onActivity
 }: {
   filePath: string;
   apiKey: string;
   fetchImpl?: FetchLike;
   pollIntervalMs?: number;
   maxPollAttempts?: number;
+  timeoutMs?: number;
   onPoll?: (info: {
     attempt: number;
     maxPollAttempts: number;
@@ -63,25 +103,42 @@ export const transcribeWithAssemblyAI = async ({
     transcriptId: string;
     words: number;
   }) => void | Promise<void>;
+  onActivity?: (detail: string) => void | Promise<void>;
 }): Promise<TranscribedWord[]> => {
   const fileBuffer = await readFile(filePath);
-  const uploadResponse = await fetchImpl(`${transcriptionBaseUrl}/upload`, {
-    method: "POST",
-    headers: uploadHeaders(apiKey),
-    body: fileBuffer
+  const uploadResponse = await timedFetch({
+    fetchImpl,
+    url: `${transcriptionBaseUrl}/upload`,
+    init: {
+      method: "POST",
+      headers: uploadHeaders(apiKey),
+      body: fileBuffer
+    },
+    timeoutMs,
+    timeoutCode: "TRANSCRIPT_UPLOAD_TIMEOUT",
+    label: "AssemblyAI upload",
+    onActivity
   });
   if (!uploadResponse.ok) {
     throw new Error(`AssemblyAI upload failed (${uploadResponse.status}): ${await uploadResponse.text()}`);
   }
   const uploadPayload = uploadResponseSchema.parse(await uploadResponse.json());
 
-  const createResponse = await fetchImpl(`${transcriptionBaseUrl}/transcript`, {
-    method: "POST",
-    headers: jsonHeaders(apiKey),
-    body: JSON.stringify({
-      audio_url: uploadPayload.upload_url,
-      speech_model: "best"
-    })
+  const createResponse = await timedFetch({
+    fetchImpl,
+    url: `${transcriptionBaseUrl}/transcript`,
+    init: {
+      method: "POST",
+      headers: jsonHeaders(apiKey),
+      body: JSON.stringify({
+        audio_url: uploadPayload.upload_url,
+        speech_model: "best"
+      })
+    },
+    timeoutMs,
+    timeoutCode: "TRANSCRIPT_CREATE_TIMEOUT",
+    label: "AssemblyAI transcript create",
+    onActivity
   });
   if (!createResponse.ok) {
     throw new Error(`AssemblyAI transcript create failed (${createResponse.status}): ${await createResponse.text()}`);
@@ -89,9 +146,17 @@ export const transcribeWithAssemblyAI = async ({
   const createPayload = createTranscriptResponseSchema.parse(await createResponse.json());
 
   for (let attempt = 0; attempt < maxPollAttempts; attempt += 1) {
-    const statusResponse = await fetchImpl(`${transcriptionBaseUrl}/transcript/${createPayload.id}`, {
-      method: "GET",
-      headers: {authorization: apiKey}
+    const statusResponse = await timedFetch({
+      fetchImpl,
+      url: `${transcriptionBaseUrl}/transcript/${createPayload.id}`,
+      init: {
+        method: "GET",
+        headers: {authorization: apiKey}
+      },
+      timeoutMs,
+      timeoutCode: "TRANSCRIPT_POLL_TIMEOUT",
+      label: `AssemblyAI transcript poll ${attempt}/${maxPollAttempts}`,
+      onActivity
     });
     if (!statusResponse.ok) {
       throw new Error(

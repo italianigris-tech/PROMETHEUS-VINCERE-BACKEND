@@ -1,5 +1,5 @@
 import path from "node:path";
-import {mkdir, readFile, rename, stat, writeFile} from "node:fs/promises";
+import {mkdir, readdir, readFile, rename, stat, writeFile} from "node:fs/promises";
 
 import type {ClipSelection, EditPlan, ExecutionPlan, JobRecord, MetadataProfile, FallbackEvent} from "./schemas";
 import {jobRecordSchema} from "./schemas";
@@ -135,6 +135,26 @@ export class FileJobRepository {
 
   public async getJobRecord(jobId: string): Promise<JobRecord> {
     return jobRecordSchema.parse(await this.readArtifact<JobRecord>(jobId, "job"));
+  }
+
+  public async listJobRecords(): Promise<JobRecord[]> {
+    try {
+      const entries = await readdir(this.jobsRootDir(), {withFileTypes: true});
+      const jobs = await Promise.all(
+        entries
+          .filter((entry) => entry.isDirectory())
+          .map(async (entry) => {
+            try {
+              return await this.getJobRecord(entry.name);
+            } catch {
+              return null;
+            }
+          })
+      );
+      return jobs.filter((job): job is JobRecord => job !== null);
+    } catch {
+      return [];
+    }
   }
 
   public async updateJobRecord(

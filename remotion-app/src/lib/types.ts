@@ -97,7 +97,6 @@ export type VideoMetadata = {
   durationInFrames: number;
 };
 
-export type CaptionIntelligenceMode = "auto" | "off";
 export type CaptionStyleProfileId =
   | "slcp"
   | "hormozi_word_lock_v1"
@@ -973,11 +972,6 @@ export type MatteManifest = {
 
 export type AppEnv = {
   ASSEMBLYAI_API_KEY: string;
-  GROQ_API_KEY: string;
-  GROQ_MODEL: string;
-  GROQ_TEMPERATURE: number;
-  GROQ_MAX_TOKENS: number;
-  CAPTION_INTELLIGENCE_MODE: CaptionIntelligenceMode;
   CAPTION_STYLE_PROFILE: CaptionStyleProfileId;
   SUPABASE_URL: string;
   SUPABASE_SERVICE_ROLE_KEY: string;

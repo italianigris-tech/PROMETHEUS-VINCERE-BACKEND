@@ -4,7 +4,7 @@ import type {FastifyInstance} from "fastify";
 import {z} from "zod";
 
 import type {BackendEnv} from "./config";
-import type {InProcessQueue} from "./queue";
+import {QueueBacklogLimitError, type InProcessQueue} from "./queue";
 import {editTypographyStyleIdSchema} from "./edit-sessions/types";
 import type {EditSessionManager} from "./edit-sessions/service";
 import type {EditSessionStore} from "./edit-sessions/store";
@@ -59,7 +59,7 @@ const buildSessionUrls = (sessionId: string): {
 
 const createProcessErrorResponse = (error: unknown): {statusCode: number; body: {error: string}} => {
   const message = error instanceof Error ? error.message : String(error);
-  const statusCode = /not configured/i.test(message) ? 503 : 400;
+  const statusCode = error instanceof QueueBacklogLimitError || /not configured/i.test(message) ? 503 : 400;
   return {
     statusCode,
     body: {
@@ -128,41 +128,49 @@ export const registerUploadRoutes = async (
         }
       });
 
-      queue.enqueue(async () => {
-        try {
-          await editSessionStore.ensureSessionWorkspace(session.id);
-          const sourceFileName = sanitizeFileName(input.filename ?? path.basename(input.key));
-          const destinationPath = path.join(editSessionStore.sourceDir(session.id), sourceFileName);
+      try {
+        queue.enqueue(async () => {
+          try {
+            await editSessionStore.ensureSessionWorkspace(session.id);
+            const sourceFileName = sanitizeFileName(input.filename ?? path.basename(input.key));
+            const destinationPath = path.join(editSessionStore.sourceDir(session.id), sourceFileName);
 
-          await r2Service.downloadObject({
-            bucket,
-            key: input.key,
-            destinationPath
-          });
+            await r2Service.downloadObject({
+              bucket,
+              key: input.key,
+              destinationPath
+            });
 
-          await editSessions.completeUpload(session.id, {
-            mediaUrl: publicMediaUrl ?? undefined,
-            storageKey: input.key,
-            sourcePath: destinationPath,
-            sourceFilename: input.filename ?? sourceFileName,
-            metadata: {
-              ...input.metadata,
-              source: "r2",
-              r2Bucket: bucket,
-              r2Key: input.key,
-              r2UserId: input.userId ?? null,
-              r2ContentType: input.contentType ?? null,
-              r2MediaUrl: publicMediaUrl
-            },
-            autoStartPreview: input.autoStartPreview ?? true
-          });
-        } catch (error) {
-          await editSessions.failSession(session.id, {
-            errorCode: "r2_process_failed",
-            errorMessage: error instanceof Error ? error.message : String(error)
-          });
-        }
-      });
+            await editSessions.completeUpload(session.id, {
+              mediaUrl: publicMediaUrl ?? undefined,
+              storageKey: input.key,
+              sourcePath: destinationPath,
+              sourceFilename: input.filename ?? sourceFileName,
+              metadata: {
+                ...input.metadata,
+                source: "r2",
+                r2Bucket: bucket,
+                r2Key: input.key,
+                r2UserId: input.userId ?? null,
+                r2ContentType: input.contentType ?? null,
+                r2MediaUrl: publicMediaUrl
+              },
+              autoStartPreview: input.autoStartPreview ?? true
+            });
+          } catch (error) {
+            await editSessions.failSession(session.id, {
+              errorCode: "r2_process_failed",
+              errorMessage: error instanceof Error ? error.message : String(error)
+            });
+          }
+        });
+      } catch (error) {
+        await editSessions.failSession(session.id, {
+          errorCode: "queue_backlog_limit",
+          errorMessage: error instanceof Error ? error.message : String(error)
+        });
+        throw error;
+      }
 
       reply.code(202);
       return {

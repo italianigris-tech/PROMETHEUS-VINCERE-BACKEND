@@ -5,7 +5,7 @@ import {
   selectTypographyTreatment,
   type TypographySelection,
   type TypographyTextRole
-} from "../../lib/typography-intelligence";
+} from "../../lib/typography-policy";
 import type {AgentProposal, CreativeAgent, CreativeContext, CreativeMoment} from "../types";
 import {extractCreativeKeywords} from "../assets/asset-search";
 import {clamp01, hashString, normalizeText} from "../utils";

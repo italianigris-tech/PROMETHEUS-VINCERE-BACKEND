@@ -1,14 +1,28 @@
+export class QueueBacklogLimitError extends Error {
+  public constructor(maxPending: number) {
+    super(`Queue backlog limit of ${maxPending} pending tasks exceeded.`);
+    this.name = "QueueBacklogLimitError";
+  }
+}
+
 export class InProcessQueue {
   private readonly concurrency: number;
+  private readonly maxPending: number;
   private activeCount = 0;
   private readonly pending: Array<() => Promise<void>> = [];
   private idleResolvers: Array<() => void> = [];
 
-  public constructor(concurrency = 1) {
+  public constructor(concurrency = 1, maxPending = Number.POSITIVE_INFINITY) {
     this.concurrency = Math.max(1, concurrency);
+    this.maxPending = Number.isFinite(maxPending)
+      ? Math.max(0, Math.floor(maxPending))
+      : Number.POSITIVE_INFINITY;
   }
 
   public enqueue(task: () => Promise<void>): void {
+    if (this.pending.length >= this.maxPending) {
+      throw new QueueBacklogLimitError(this.maxPending);
+    }
     this.pending.push(task);
     this.drain();
   }

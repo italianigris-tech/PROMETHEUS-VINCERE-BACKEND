@@ -3,7 +3,7 @@ import type {
   TypographyContentEnergy,
   TypographyMood,
   TypographyTextRole
-} from "../typography-intelligence";
+} from "../typography-policy";
 import {getDynamicManifestTypographyCandidates} from "../font-intelligence/runtime-font-bridge";
 import type {MotionTier, PresentationMode} from "../types";
 import {

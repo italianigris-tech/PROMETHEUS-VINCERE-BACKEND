@@ -11,7 +11,7 @@ import {
   selectTypographyTreatment,
   type TypographySelection,
   type TypographyTextRole
-} from "../typography-intelligence";
+} from "../typography-policy";
 import {
   resolveSelectedRuntimeFont,
   type ManualSelectedRuntimeFont,

@@ -4,9 +4,9 @@ import {
   getTypographyPattern,
   selectTypographyTreatment,
   typographyTrainingExamples
-} from "../typography-intelligence";
+} from "../typography-policy";
 
-describe("typography intelligence", () => {
+describe("typography policy", () => {
   it("selects a readable premium subtitle pattern for medium-energy subtitle copy", () => {
     const selection = selectTypographyTreatment({
       text: "This changes everything",

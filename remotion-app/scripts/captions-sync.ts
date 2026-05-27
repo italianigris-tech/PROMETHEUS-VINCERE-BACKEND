@@ -9,7 +9,6 @@ import {
   mapWordChunksToCaptionChunks
 } from "../src/lib/caption-chunker";
 import {loadEnv, assertSupabaseDisabled} from "../src/lib/env.server";
-import {buildGroqEnhancedChunks} from "../src/lib/groq-intelligence";
 // @ts-ignore Native config loading needs the explicit extension for this Node-only import path.
 import {sha256File, sha256Text} from "../src/lib/hash.ts";
 import type {
@@ -808,11 +807,6 @@ const syncCaptions = async (): Promise<void> => {
     cliArgs,
     presentationMode: resolvedPresentationMode
   });
-  const pipelineEnv: AppEnv = {
-    ...env,
-    VIDEO_SOURCE_PATH: videoPath,
-    CAPTION_STYLE_PROFILE: resolvedCaptionProfileId
-  };
   const captionStyleProfile = getCaptionStyleProfile(resolvedCaptionProfileId);
   const activeSourceId = sha256Text(`${resolvedPresentationMode}|${videoFileHash}`);
   const outputTargets = buildVersionedVideoOutputTargets(
@@ -917,28 +911,10 @@ const syncCaptions = async (): Promise<void> => {
   const deterministicChunks = deterministicChunkWords(transcriptWords, {
     profileId: resolvedCaptionProfileId
   });
-  let finalChunks = deterministicChunks;
-  let emphasisOverrides: Record<number, number[]> | undefined;
-  let intelligenceSource = "deterministic";
-
-  if (pipelineEnv.CAPTION_INTELLIGENCE_MODE === "auto" && pipelineEnv.GROQ_API_KEY.trim().length > 0) {
-    try {
-      const groqResult = await buildGroqEnhancedChunks({
-        words: transcriptWords,
-        env: pipelineEnv
-      });
-      finalChunks = groqResult.chunks;
-      emphasisOverrides = groqResult.emphasisOverrides;
-      intelligenceSource = "groq-auto";
-      console.log("Groq caption intelligence applied successfully.");
-    } catch (error) {
-      console.warn(
-        `Groq caption intelligence failed. Falling back to deterministic chunks. Reason: ${
-          error instanceof Error ? error.message : String(error)
-        }`
-      );
-    }
-  }
+  const finalChunks = deterministicChunks;
+  const emphasisOverrides: Record<number, number[]> | undefined = undefined;
+  const intelligenceSource = "deterministic-projection";
+  console.log("Frontend caption sync uses deterministic projection only. Model routing is backend-owned.");
 
   const captionChunks: CaptionChunk[] = mapWordChunksToCaptionChunks(finalChunks, emphasisOverrides, {
     profileId: resolvedCaptionProfileId

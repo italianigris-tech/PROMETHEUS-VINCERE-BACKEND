@@ -5,11 +5,6 @@ import {CAPTION_STYLE_PROFILE_IDS} from "./stylebooks/caption-style-profiles";
 
 const envSchema = z.object({
   ASSEMBLYAI_API_KEY: z.string().default(""),
-  GROQ_API_KEY: z.string().default(""),
-  GROQ_MODEL: z.string().default("llama-3.3-70b-versatile"),
-  GROQ_TEMPERATURE: z.coerce.number().min(0).max(2).default(0.2),
-  GROQ_MAX_TOKENS: z.coerce.number().int().positive().default(900),
-  CAPTION_INTELLIGENCE_MODE: z.enum(["auto", "off"]).default("auto"),
   CAPTION_STYLE_PROFILE: z.enum(CAPTION_STYLE_PROFILE_IDS).default("slcp"),
   SUPABASE_URL: z.string().default(""),
   SUPABASE_SERVICE_ROLE_KEY: z.string().default(""),

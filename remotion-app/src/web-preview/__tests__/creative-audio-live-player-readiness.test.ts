@@ -72,6 +72,24 @@ describe("CreativeAudioLivePlayer readiness", () => {
     expect(shouldBlockInteractivePreview(buildState)).toBe(true);
   });
 
+  it("keeps the preview blocked when the backend session duration is invalid", () => {
+    const buildState = determineBuildState(
+      null,
+      buildLiveSessionState({
+        sourceDurationMs: 0,
+        transcriptStatus: "full_transcript_ready",
+        transcriptWords: [
+          {text: "Ready", start_ms: 0, end_ms: 120}
+        ]
+      }),
+      true,
+      "building-timeline"
+    );
+
+    expect(buildState).toBe("idle");
+    expect(shouldBlockInteractivePreview(buildState)).toBe(true);
+  });
+
   it("changes the session build signature when transcript words arrive over SSE", () => {
     const stateBeforeTranscript = buildLiveSessionState();
     const stateAfterTranscript = buildLiveSessionState({

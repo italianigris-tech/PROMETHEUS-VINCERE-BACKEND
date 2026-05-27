@@ -171,6 +171,13 @@ export const editSessionRenderStateSchema = z.object({
   outputPath: z.string().nullable()
 });
 
+export const editSessionLiveActivitySchema = z.object({
+  activityCode: z.string(),
+  detail: z.string(),
+  heartbeat: z.string(),
+  lastActiveAt: z.string()
+});
+
 export const editSessionPublicRoutesSchema = z.object({
   status: z.string(),
   previewManifest: z.string(),
@@ -253,6 +260,7 @@ export const editSessionStateSchema = z.object({
   renderProgress: z.number().min(0).max(100),
   renderOutputUrl: z.string().nullable(),
   renderOutputPath: z.string().nullable(),
+  liveActivity: editSessionLiveActivitySchema.nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
   startedAt: z.string().nullable(),
@@ -422,6 +430,7 @@ export type EditSessionTranscriptState = z.infer<typeof editSessionTranscriptSta
 export type EditSessionAnalysisState = z.infer<typeof editSessionAnalysisStateSchema>;
 export type EditSessionMotionGraphicsState = z.infer<typeof editSessionMotionGraphicsStateSchema>;
 export type EditSessionRenderState = z.infer<typeof editSessionRenderStateSchema>;
+export type EditSessionLiveActivity = z.infer<typeof editSessionLiveActivitySchema>;
 export type EditSessionCreateRequest = z.infer<typeof editSessionCreateRequestSchema>;
 export type EditSessionUploadCompleteRequest = z.infer<typeof editSessionUploadCompleteRequestSchema>;
 export type EditSessionPreviewStartRequest = z.infer<typeof editSessionPreviewStartRequestSchema>;

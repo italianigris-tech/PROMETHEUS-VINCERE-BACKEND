@@ -42,7 +42,7 @@ describe("ffprobe duration fallbacks", () => {
     expect(result.duration_in_frames).toBe(165);
   });
 
-  it("returns the 60000ms safety-net duration when ffprobe only reports N/A", async () => {
+  it("throws when ffprobe cannot resolve a deterministic duration", async () => {
     mockedStdout = JSON.stringify({
       streams: [
         {
@@ -62,10 +62,8 @@ describe("ffprobe duration fallbacks", () => {
     });
 
     const {probeVideoMetadata, resolveDurationMsFromFfprobeJson} = await import("../ffprobe");
-    const result = await probeVideoMetadata("C:\\clips\\na-only.mp4");
 
-    expect(resolveDurationMsFromFfprobeJson(mockedStdout)).toBe(60000);
-    expect(result.duration_seconds).toBe(60);
-    expect(result.duration_in_frames).toBe(1800);
+    expect(() => resolveDurationMsFromFfprobeJson(mockedStdout)).toThrow(/MEDIA_PROBE_DETERMINISM_FAILURE/i);
+    await expect(probeVideoMetadata("C:\\clips\\na-only.mp4")).rejects.toThrow(/MEDIA_PROBE_DETERMINISM_FAILURE/i);
   });
 });

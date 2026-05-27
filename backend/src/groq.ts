@@ -19,18 +19,21 @@ export const maybeCallGroqJson = async <T>({
   schema,
   systemPrompt,
   userPrompt,
-  fetchImpl = fetch
+  fetchImpl = fetch,
+  onActivity
 }: {
   env: BackendEnv;
   schema: z.ZodType<T>;
   systemPrompt: string;
   userPrompt: string;
   fetchImpl?: FetchLike;
+  onActivity?: (detail: string) => void | Promise<void>;
 }): Promise<T | null> => {
   if (!env.GROQ_API_KEY.trim()) {
     return null;
   }
 
+  await onActivity?.("Groq inference request started");
   const response = await fetchImpl("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -54,6 +57,7 @@ export const maybeCallGroqJson = async <T>({
       ]
     })
   });
+  await onActivity?.(`Groq inference response ${response.status}`);
 
   if (!response.ok) {
     throw new Error(`Groq API call failed (${response.status}): ${await response.text()}`);
@@ -65,5 +69,6 @@ export const maybeCallGroqJson = async <T>({
     throw new Error("Groq response was empty.");
   }
 
+  await onActivity?.("Groq inference payload parsed");
   return schema.parse(JSON.parse(content));
 };

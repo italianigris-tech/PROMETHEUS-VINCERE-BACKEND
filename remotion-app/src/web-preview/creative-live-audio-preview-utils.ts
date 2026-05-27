@@ -44,6 +44,14 @@ export const resolveLiveCreativePreviewDurationMs = (input: {
   const lastTrackEndMs = input.creativeTimeline?.tracks.reduce((max, track) => Math.max(max, track.endMs), 0) ?? null;
   const lastMomentEndMs = input.creativeTimeline?.moments.reduce((max, moment) => Math.max(max, moment.endMs), 0) ?? null;
 
+  if (
+    !input.creativeTimeline &&
+    input.providedDurationMs == null &&
+    input.fallbackDurationMs == null
+  ) {
+    return resolveAudioCreativePreviewDurationMs({});
+  }
+
   return resolveAudioCreativePreviewDurationMs({
     providedDurationMs: input.providedDurationMs,
     creativeTimelineDurationMs: input.creativeTimeline?.durationMs ?? null,

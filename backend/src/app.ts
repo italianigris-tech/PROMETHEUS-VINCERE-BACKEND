@@ -9,7 +9,7 @@ import cors from "@fastify/cors";
 import {loadEnv, type BackendEnv} from "./config";
 import {METADATA_CATALOG_ENTRIES, METADATA_GROUPS} from "./metadata-catalog";
 import {FileJobRepository} from "./repository";
-import {InProcessQueue} from "./queue";
+import {InProcessQueue, QueueBacklogLimitError} from "./queue";
 import {BackendService} from "./service";
 import type {PipelineDependencies} from "./pipeline";
 import type {FallbackEvent, JobStage} from "./schemas";
@@ -92,6 +92,10 @@ const publicStageForJob = (stage: JobStage): string => {
     case "failed":
       return "failed";
   }
+};
+
+const requestStatusCodeForError = (error: unknown): number => {
+  return error instanceof QueueBacklogLimitError ? 503 : 400;
 };
 
 const FONT_CONTENT_TYPES: Record<string, string> = {
@@ -197,7 +201,7 @@ export const createBackendApp = async ({
   });
 
   const repository = new FileJobRepository(env.STORAGE_DIR);
-  const queue = new InProcessQueue(env.JOB_QUEUE_CONCURRENCY);
+  const queue = new InProcessQueue(env.JOB_QUEUE_CONCURRENCY, env.JOB_QUEUE_MAX_PENDING);
   const localPreviewRunner = new LocalPreviewRunner({
     extractAudioPreviewFile: deps?.extractAudioPreviewFile
   });
@@ -431,7 +435,7 @@ export const createBackendApp = async ({
         updated_entry: result.updatedEntry
       };
     } catch (error) {
-      reply.code(400);
+      reply.code(requestStatusCodeForError(error));
       return {
         error: error instanceof Error ? error.message : String(error)
       };
@@ -468,7 +472,7 @@ export const createBackendApp = async ({
         }
       };
     } catch (error) {
-      reply.code(400);
+      reply.code(requestStatusCodeForError(error));
       return {
         error: error instanceof Error ? error.message : String(error)
       };

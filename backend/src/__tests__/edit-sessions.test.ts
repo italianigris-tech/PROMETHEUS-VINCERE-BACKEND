@@ -58,6 +58,16 @@ describe("edit sessions", () => {
     const context = await createTestApp({
       storageDir: tempDir,
       deps: {
+        probeVideoMetadata: async () => ({
+          width: 1920,
+          height: 1080,
+          fps: 30,
+          duration_seconds: 12,
+          duration_in_frames: 360,
+          bitrate_video: 4_000_000,
+          codec_video: "h264",
+          container_format: "mov,mp4"
+        }),
         extractPreviewAudioBuffer: async () => Buffer.alloc(2048),
         streamPreviewAudio: async ({callbacks}) => {
           await callbacks?.onBegin?.({sessionId: "stream_test", expiresAt: null});

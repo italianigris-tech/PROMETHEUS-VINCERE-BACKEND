@@ -9,7 +9,7 @@ import {z} from "zod";
 
 import type {BackendEnv} from "./config";
 import {FileJobRepository} from "./repository";
-import {InProcessQueue} from "./queue";
+import {InProcessQueue, QueueBacklogLimitError} from "./queue";
 import {
   createInitialJobRecord,
   type PipelineDependencies,
@@ -55,6 +55,12 @@ type MultipartNormalizationResult<TRequest> = {
   request_json: TRequest;
   source_video: NormalizedJobRequest["input_source_video"];
   assets: NormalizedJobRequest["input_assets"];
+};
+
+const TERMINAL_JOB_STAGES = new Set<JobRecord["current_stage"]>(["completed", "failed"]);
+
+const nowIso = (deps: PipelineDependencies): string => {
+  return deps.now ? deps.now() : new Date().toISOString();
 };
 
 const ensureJobHasInput = (request: NormalizedJobRequest): void => {
@@ -133,6 +139,73 @@ export class BackendService {
 
   public async initialize(): Promise<void> {
     await this.repository.initialize();
+    await this.reconcileStaleJobs();
+  }
+
+  private async failJob(jobId: string, reason: string, note: string): Promise<void> {
+    const stamp = nowIso(this.deps);
+    await this.repository.updateJobRecord(jobId, (current) =>
+      jobRecordSchema.parse({
+        ...current,
+        status: "failed",
+        current_stage: "failed",
+        updated_at: stamp,
+        completed_at: stamp,
+        error_message: reason,
+        warning_list: Array.from(new Set(current.warning_list.concat([reason]))),
+        stage_history: current.stage_history.concat([
+          {
+            stage: "failed",
+            at: stamp,
+            note
+          }
+        ]),
+        progress: {
+          current_step: 7,
+          total_steps: 7,
+          percent: 100
+        }
+      })
+    );
+  }
+
+  private async reconcileStaleJobs(): Promise<void> {
+    const jobs = await this.repository.listJobRecords();
+    if (jobs.length === 0) {
+      return;
+    }
+
+    const now = nowIso(this.deps);
+    const nowMs = Date.parse(now);
+    if (!Number.isFinite(nowMs)) {
+      return;
+    }
+
+    await Promise.all(
+      jobs.map(async (job) => {
+        if (TERMINAL_JOB_STAGES.has(job.current_stage)) {
+          return;
+        }
+
+        const updatedAtMs = Date.parse(job.updated_at);
+        if (!Number.isFinite(updatedAtMs)) {
+          return;
+        }
+
+        const staleForMs = nowMs - updatedAtMs;
+        if (staleForMs < this.env.JOB_STAGE_STALE_AFTER_MS) {
+          return;
+        }
+
+        const reason =
+          `Job became stale after ${staleForMs} ms in ${job.current_stage}. ` +
+          "The previous worker likely exited before completing the pipeline.";
+        const note =
+          `Startup reconciliation marked the stale ${job.current_stage} job as failed ` +
+          `after exceeding ${this.env.JOB_STAGE_STALE_AFTER_MS} ms.`;
+        await this.failJob(job.job_id, reason, note);
+      })
+    );
   }
 
   public async normalizeMultipartRequest<TRequest>({
@@ -315,41 +388,30 @@ export class BackendService {
       this.repository.writeArtifact(request.job_id, "input_manifest", inputManifest)
     ]);
 
-    this.queue.enqueue(async () => {
-      try {
-        await processJobPipeline({
-          request,
-          repository: this.repository,
-          env: this.env,
-          deps: this.deps
-        });
-      } catch (error) {
-        const reason = error instanceof Error ? error.message : String(error);
-        await this.repository.updateJobRecord(request.job_id, (current) =>
-          jobRecordSchema.parse({
-            ...current,
-            status: "failed",
-            current_stage: "failed",
-            updated_at: this.deps.now ? this.deps.now() : new Date().toISOString(),
-            completed_at: this.deps.now ? this.deps.now() : new Date().toISOString(),
-            error_message: reason,
-            warning_list: Array.from(new Set(current.warning_list.concat([reason]))),
-            stage_history: current.stage_history.concat([
-              {
-                stage: "failed",
-                at: this.deps.now ? this.deps.now() : new Date().toISOString(),
-                note: reason
-              }
-            ]),
-            progress: {
-              current_step: 7,
-              total_steps: 7,
-              percent: 100
-            }
-          })
+    try {
+      this.queue.enqueue(async () => {
+        try {
+          await processJobPipeline({
+            request,
+            repository: this.repository,
+            env: this.env,
+            deps: this.deps
+          });
+        } catch (error) {
+          const reason = error instanceof Error ? error.message : String(error);
+          await this.failJob(request.job_id, reason, reason);
+        }
+      });
+    } catch (error) {
+      if (error instanceof QueueBacklogLimitError) {
+        await this.failJob(
+          request.job_id,
+          error.message,
+          "Queue admission rejected the job because the pending backlog was full."
         );
       }
-    });
+      throw error;
+    }
 
     return jobRecord;
   }

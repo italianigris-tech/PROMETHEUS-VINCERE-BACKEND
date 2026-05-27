@@ -529,7 +529,7 @@ const buildIssues = (fontNodes: FontNode[], summary: TypographyAuditReport["summ
     issues.push({
       id: "hardcoded-escape-hatches",
       severity: "high",
-      title: "Hardcoded font choices are bypassing the typography intelligence layer",
+      title: "Hardcoded font choices are bypassing the backend typography policy",
       summary: "Several active runtime components still embed explicit font stacks instead of routing through a single governed font system. That makes consistency impossible even with better taste rules.",
       fontNames: hardcodedNodes.map((node) => node.name)
     });

@@ -25,6 +25,9 @@ const envSchema = z.object({
   TEMPORAL_MODEL: z.string().default("prometheus-temporal-deterministic"),
   OCULAR_MODEL: z.string().default("future-ocular-adapter"),
   JOB_QUEUE_CONCURRENCY: z.coerce.number().int().positive().default(1),
+  JOB_QUEUE_MAX_PENDING: z.coerce.number().int().nonnegative().default(250),
+  JOB_STAGE_STALE_AFTER_MS: z.coerce.number().int().positive().default(5 * 60 * 1000),
+  PROVIDER_TIMEOUT_MS: z.coerce.number().int().positive().default(60000),
   GOD_PROVIDER_KIND: z.string().default("local-template"),
   GOD_PROVIDER_ENDPOINT: z.string().default(""),
   GOD_PROVIDER_API_KEY: z.string().default(""),
@@ -66,6 +69,7 @@ const envSchema = z.object({
     .transform((value) => value === true || value === "true")
     .default(false),
   MILVUS_ADDRESS: z.string().default("127.0.0.1:19530"),
+  ZILLIZ_API_KEY: z.string().default(""),
   MILVUS_USERNAME: z.string().default(""),
   MILVUS_PASSWORD: z.string().default(""),
   MILVUS_TOKEN: z.string().default(""),
@@ -211,27 +215,33 @@ const loadDotenvFallbacks = (): void => {
     overrideWarningLogged = true;
   }
 
-  loadDotenv();
+  loadDotenv({quiet: true});
   loadDotenv({
-    path: path.resolve(sharedRoot, ".env")
+    path: path.resolve(sharedRoot, ".env"),
+    quiet: true
   });
   loadDotenv({
-    path: consolidatedEnvPath
+    path: consolidatedEnvPath,
+    quiet: true
   });
   loadDotenv({
-    path: path.resolve(remotionRoot, ".env")
+    path: path.resolve(remotionRoot, ".env"),
+    quiet: true
   });
   loadDotenv({
     path: path.resolve(process.cwd(), ".env.local"),
-    override: true
+    override: true,
+    quiet: true
   });
   loadDotenv({
     path: path.resolve(sharedRoot, ".env.local"),
-    override: true
+    override: true,
+    quiet: true
   });
   loadDotenv({
     path: path.resolve(remotionRoot, ".env.local"),
-    override: true
+    override: true,
+    quiet: true
   });
 };
 
@@ -244,7 +254,8 @@ export const loadEnv = (overrides?: Partial<NodeJS.ProcessEnv>): BackendEnv => {
     };
     cachedEnv = {
       ...envSchema.parse(mergedEnv),
-      MILVUS_ADDRESS: normalizeMilvusAddress(String(mergedEnv.MILVUS_ADDRESS ?? "127.0.0.1:19530"))
+      MILVUS_ADDRESS: normalizeMilvusAddress(String(mergedEnv.MILVUS_ADDRESS ?? "127.0.0.1:19530")),
+      MILVUS_TOKEN: String(mergedEnv.MILVUS_TOKEN || mergedEnv.ZILLIZ_API_KEY || "")
     };
   }
   return cachedEnv;
