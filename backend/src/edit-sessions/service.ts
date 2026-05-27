@@ -477,6 +477,10 @@ const buildPreviewDiagnostics = ({
       : null,
     fallbackUsed: fallbackReasons.length > 0,
     fallbackReasons: [...new Set(fallbackReasons)],
+    degradedStages: fallbackReasons.length > 0 ? ["preview-render"] : [],
+    visibleFailureCount: fallbackReasons.length,
+    cognitiveConfidence: fallbackReasons.length > 0 ? 0.78 : 0.96,
+    temporalConfidence: 0.9,
     legacyOverlayUsed: renderConfig.ENABLE_LEGACY_OVERLAY,
     remotionUsed,
     hyperframesUsed: renderConfig.PREVIEW_ENGINE === "hyperframes",
@@ -1787,7 +1791,56 @@ export class EditSessionManager {
           warnings: [
             ...(transcriptText.length === 0 ? ["Preview built from placeholder copy while transcript resolves."] : []),
             ...(fontFallbackReasons.length > 0 ? ["Preview typography requested unavailable families and used explicit ingested fallback files."] : [])
-          ]
+          ],
+          degradedStages: fallbackUsed ? ["preview-manifest"] : [],
+          visibleFailureCount: fallbackUsed ? 1 : 0,
+          cognitiveConfidence: fallbackUsed ? 0.78 : 0.96,
+          temporalConfidence: 0.9
+        },
+        authority: {
+          authorityVersion: "prometheus-preview-authority/v1",
+          solePreviewTruth: true,
+          timingTruth: {
+            durationMs: session.sourceDurationMs ?? 8000,
+            startMs: 0,
+            endMs: session.sourceDurationMs ?? 8000,
+            fps: session.sourceFps ?? 30
+          },
+          typographyTruth: {
+            mode: "svg_longform_typography_v1",
+            primaryFamily: primaryFont.family,
+            fallbackAllowed: true
+          },
+          cameraTruth: {},
+          transitionTruth: {},
+          assetTruth: {
+            requiredAssetIds: [],
+            missingAssetIds: []
+          },
+          pacingTruth: {
+            intensity: 0.62,
+            rhythmContinuityScore: 0.9,
+            pacingConfidenceScore: 0.9
+          },
+          diagnosticsTruth: {
+            degradedStages: fallbackUsed ? ["preview-manifest"] : [],
+            visibleFailureCount: fallbackUsed ? 1 : 0,
+            fallbackVisible: fallbackUsed
+          },
+          confidenceTruth: {
+            cognitiveConfidence: fallbackUsed ? 0.78 : 0.96,
+            renderConfidence: 0.9,
+            temporalConfidence: 0.9
+          },
+          temporalTruth: {
+            source: "single-preview-scene",
+            sequenceMemoryAvailable: false
+          },
+          stageTruth: {
+            currentStage: "preview-manifest",
+            allowedAdapters: ["hyperframes", "remotion"],
+            frontendMayPlan: false
+          }
         }
       },
       previewManifestTypography

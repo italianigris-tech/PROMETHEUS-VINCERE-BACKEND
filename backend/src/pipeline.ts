@@ -20,6 +20,10 @@ import {FileJobRepository} from "./repository";
 import {renderMasterTrack} from "./sound-engine";
 import {readPatternMemorySnapshot, recordPatternMemoryOutcome} from "./pattern-memory";
 import {
+  createFailureVisibilityRecord,
+  failureRecordToFallbackEvent
+} from "./failure-intelligence";
+import {
   type ClipCandidate,
   clipCandidateSchema,
   type ClipHeuristicSignals,
@@ -2328,7 +2332,7 @@ const tryLlmExecutionPlanRefinement = async ({
   });
 };
 
-const withGroqFallback = async <T>({
+const withVisibleModelRecovery = async <T>({
   attempt,
   warnings,
   fallbackEvents,
@@ -2347,14 +2351,29 @@ const withGroqFallback = async <T>({
     return await attempt();
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
-    warnings.push(`Groq fallback during ${stage}: ${reason}`);
+    const visibleFailure = createFailureVisibilityRecord({
+      stage,
+      code,
+      severity: "warning",
+      failureReason: reason,
+      schemaMismatch: /schema|json|parse|zod/i.test(reason) ? reason : null,
+      retryStatus: "not-attempted",
+      fallbackCause: "deterministic_recovery",
+      partialRecoveryState: "deterministic-recovery",
+      createdAt: nowIso(deps)
+    });
+    warnings.push(`Visible model degradation during ${stage}: ${reason}`);
+    fallbackEvents.push(failureRecordToFallbackEvent(visibleFailure));
     fallbackEvents.push(
       createFallbackEvent(
         stage,
         code,
         "warning",
-        "Groq refinement failed; deterministic fallback was used.",
-        {reason},
+        "Model refinement failed; deterministic recovery was used and exposed through failure visibility.",
+        {
+          reason,
+          visibleFailureId: visibleFailure.id
+        },
         deps
       )
     );
@@ -2585,7 +2604,7 @@ export const processJobPipeline = async ({
   fallbackEvents.push(...metadataResult.fallback_events);
   let metadataProfile = metadataResult.profile;
 
-  const llmMetadata = await withGroqFallback({
+  const llmMetadata = await withVisibleModelRecovery({
     attempt: () => tryLlmMetadataRefinement({env, deps, deterministicProfile: metadataProfile}),
     warnings,
     fallbackEvents,
@@ -2602,7 +2621,7 @@ export const processJobPipeline = async ({
     metadata: metadataProfile
   });
 
-  const llmEnrichment = await withGroqFallback({
+  const llmEnrichment = await withVisibleModelRecovery({
     attempt: () => tryLlmEnrichmentRefinement({env, deps, deterministicCandidates: enrichmentCandidates}),
     warnings,
     fallbackEvents,
@@ -2657,7 +2676,7 @@ export const processJobPipeline = async ({
     warnings: uniqueStrings(warnings.concat(clipSelection.warnings))
   });
 
-  const llmEditPlan = await withGroqFallback({
+  const llmEditPlan = await withVisibleModelRecovery({
     attempt: () => tryLlmEditPlanRefinement({env, deps, deterministicPlan: editPlan}),
     warnings,
     fallbackEvents,
@@ -2726,7 +2745,7 @@ export const processJobPipeline = async ({
     fallbackEvents
   });
 
-  const llmExecutionPlan = await withGroqFallback({
+  const llmExecutionPlan = await withVisibleModelRecovery({
     attempt: () => tryLlmExecutionPlanRefinement({env, deps, deterministicPlan: executionPlan}),
     warnings,
     fallbackEvents,

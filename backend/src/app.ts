@@ -12,7 +12,10 @@ import {FileJobRepository} from "./repository";
 import {InProcessQueue} from "./queue";
 import {BackendService} from "./service";
 import type {PipelineDependencies} from "./pipeline";
-import type {JobStage} from "./schemas";
+import type {FallbackEvent, JobStage} from "./schemas";
+import {buildDiagnosticsReport} from "./diagnostics";
+import {fallbackEventsToFailureRecords} from "./failure-intelligence";
+import {buildModelRoutingTable} from "./model-routing";
 import {LocalPreviewRunner, type LocalPreviewRunnerDependencies} from "./local-preview-runner";
 import {EditSessionManager, type EditSessionDependencies} from "./edit-sessions/service";
 import {EditSessionStore} from "./edit-sessions/store";
@@ -460,7 +463,8 @@ export const createBackendApp = async ({
           result: `/api/jobs/${job.job_id}/result`,
           plan: `/api/jobs/${job.job_id}/plan`,
           motion_plan: `/api/jobs/${job.job_id}/motion-plan`,
-          execution: `/api/jobs/${job.job_id}/execution`
+          execution: `/api/jobs/${job.job_id}/execution`,
+          diagnostics: `/api/jobs/${job.job_id}/diagnostics`
         }
       };
     } catch (error) {
@@ -475,12 +479,13 @@ export const createBackendApp = async ({
     try {
       const params = req.params as {jobId: string};
       const job = await service.getJob(params.jobId);
-      const [metadataReady, clipSelectionReady, planReady, motionPlanReady, executionReady] = await Promise.all([
+      const [metadataReady, clipSelectionReady, planReady, motionPlanReady, executionReady, fallbackLogReady] = await Promise.all([
         repository.artifactExists(params.jobId, "metadata_profile"),
         repository.artifactExists(params.jobId, "clip_selection"),
         repository.artifactExists(params.jobId, "edit_plan"),
         repository.artifactExists(params.jobId, "motion_plan"),
-        repository.artifactExists(params.jobId, "execution_plan")
+        repository.artifactExists(params.jobId, "execution_plan"),
+        repository.artifactExists(params.jobId, "fallback_log")
       ]);
       const [audioRenderPlanReady, audioMasterReady, audioAacReady, audioPreviewReady, audioWaveformReady, audioPeaksReady, audioStemsReady] = await Promise.all([
         repository.artifactExists(params.jobId, "audio_render_plan"),
@@ -507,7 +512,7 @@ export const createBackendApp = async ({
           edit_plan: planReady,
           motion_plan: motionPlanReady,
           execution_plan: executionReady,
-          fallback_log: Boolean(job.artifact_paths.fallback_log),
+          fallback_log: fallbackLogReady,
           audio_render_plan: audioRenderPlanReady,
           audio_master: audioMasterReady,
           audio_master_aac: audioAacReady,
@@ -523,6 +528,7 @@ export const createBackendApp = async ({
           plan: planReady ? `/api/jobs/${job.job_id}/plan` : null,
           motion_plan: motionPlanReady ? `/api/jobs/${job.job_id}/motion-plan` : null,
           execution: executionReady ? `/api/jobs/${job.job_id}/execution` : null,
+          diagnostics: `/api/jobs/${job.job_id}/diagnostics`,
           audio_render_plan: audioRenderPlanReady ? `/api/jobs/${job.job_id}/audio-render-plan` : null
         },
         stage_history: job.stage_history,
@@ -641,6 +647,35 @@ export const createBackendApp = async ({
       reply.code(404);
       return {
         error: "Audio render plan not found."
+      };
+    }
+  });
+
+  app.get("/api/jobs/:jobId/diagnostics", async (req, reply) => {
+    try {
+      const params = req.params as {jobId: string};
+      const job = await service.getJob(params.jobId);
+      const fallbackEvents = await repository.artifactExists(params.jobId, "fallback_log")
+        ? await repository.readArtifact<FallbackEvent[]>(params.jobId, "fallback_log")
+        : [];
+      const failures = fallbackEventsToFailureRecords(fallbackEvents);
+      const report = buildDiagnosticsReport({
+        failures,
+        modelRoutes: Object.values(buildModelRoutingTable(env)),
+        missingAssetStates: job.warning_list.filter((warning) => /asset|catalog/i.test(warning)),
+        fontLoadingStates: job.warning_list.filter((warning) => /font|typography/i.test(warning)),
+        renderWarnings: job.warning_list.filter((warning) => /render|preview|video|duration/i.test(warning))
+      });
+
+      return {
+        jobId: params.jobId,
+        currentStage: job.current_stage,
+        diagnostics: report
+      };
+    } catch {
+      reply.code(404);
+      return {
+        error: "Diagnostics not found."
       };
     }
   });

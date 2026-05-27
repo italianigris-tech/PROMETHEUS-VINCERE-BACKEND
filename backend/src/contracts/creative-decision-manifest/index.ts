@@ -31,6 +31,49 @@ const motionDialectSchema = z.object({
   }))
 });
 
+const manifestAuthoritySchema = z.object({
+  authorityVersion: z.string().min(1),
+  solePreviewTruth: z.boolean(),
+  timingTruth: z.object({
+    durationMs: z.number().positive(),
+    startMs: z.number().nonnegative(),
+    endMs: z.number().nonnegative(),
+    fps: z.number().positive()
+  }),
+  typographyTruth: z.object({
+    mode: z.string().min(1),
+    primaryFamily: z.string().min(1),
+    fallbackAllowed: z.boolean()
+  }),
+  cameraTruth: z.record(z.string(), z.unknown()).default({}),
+  transitionTruth: z.record(z.string(), z.unknown()).default({}),
+  assetTruth: z.object({
+    requiredAssetIds: z.array(z.string()),
+    missingAssetIds: z.array(z.string())
+  }),
+  pacingTruth: z.object({
+    intensity: z.number().min(0).max(1),
+    rhythmContinuityScore: z.number().min(0).max(1).optional(),
+    pacingConfidenceScore: z.number().min(0).max(1).optional()
+  }),
+  diagnosticsTruth: z.object({
+    degradedStages: z.array(z.string()),
+    visibleFailureCount: z.number().int().nonnegative(),
+    fallbackVisible: z.boolean()
+  }),
+  confidenceTruth: z.object({
+    cognitiveConfidence: z.number().min(0).max(1),
+    renderConfidence: z.number().min(0).max(1),
+    temporalConfidence: z.number().min(0).max(1)
+  }),
+  temporalTruth: z.record(z.string(), z.unknown()).default({}),
+  stageTruth: z.object({
+    currentStage: z.string().min(1),
+    allowedAdapters: z.array(z.string()),
+    frontendMayPlan: z.literal(false)
+  })
+});
+
 export const creativeDecisionManifestSchema = z.object({
   manifestVersion: z.string().min(1),
   jobId: z.string().min(1),
@@ -187,8 +230,14 @@ export const creativeDecisionManifestSchema = z.object({
     remotionUsed: z.boolean(),
     hyperframesUsed: z.boolean(),
     overlapCheckPassed: z.boolean().optional(),
-    warnings: z.array(z.string())
-  })
+    warnings: z.array(z.string()),
+    degradedStages: z.array(z.string()).optional(),
+    visibleFailureCount: z.number().int().nonnegative().optional(),
+    cognitiveConfidence: z.number().min(0).max(1).optional(),
+    temporalConfidence: z.number().min(0).max(1).optional()
+  }),
+  authority: manifestAuthoritySchema.optional()
 });
 
 export type CreativeDecisionManifest = z.infer<typeof creativeDecisionManifestSchema>;
+export type CreativeDecisionManifestAuthority = z.infer<typeof manifestAuthoritySchema>;

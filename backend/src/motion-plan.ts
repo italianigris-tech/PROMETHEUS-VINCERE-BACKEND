@@ -5,6 +5,7 @@ import {z} from "zod";
 
 import type {ClipSelection, EditPlan, MetadataProfile, TranscribedWord} from "./schemas";
 import {buildPatternMemorySignalTerms, buildPatternMemorySummary, readPatternMemorySnapshot} from "./pattern-memory";
+import {evaluateTemporalContinuity} from "./temporal-governor";
 
 const WORKSPACE_ROOT = path.resolve(process.cwd(), "..");
 const REMOTION_DATA_DIR = path.join(WORKSPACE_ROOT, "remotion-app", "src", "data");
@@ -48,6 +49,7 @@ export const motionPlanArtifactSchema = z.object({
   asset_assignments: z.array(z.record(z.string(), z.unknown())),
   timeline_events: z.array(z.record(z.string(), z.unknown())),
   paired_effects: z.array(z.record(z.string(), z.unknown())),
+  temporal_governor: z.record(z.string(), z.unknown()).optional(),
   validation: z.object({
     warnings: z.array(z.string()),
     errors: z.array(z.string()),
@@ -408,6 +410,19 @@ export const buildMotionPlanArtifact = async (input: MotionPlanBuilderInput): Pr
   const timelineEvents = buildTimelineEvents(input);
   const intensity = resolveIntensity(input);
   const policy = buildPolicy(input);
+  const temporalGovernor = evaluateTemporalContinuity(
+    timelineEvents.map((event) => ({
+      id: String(event.id),
+      startMs: Number(event.start_ms ?? 0),
+      endMs: Number(event.end_ms ?? Number(event.start_ms ?? 0) + 1000),
+      energy: Number(event.confidence ?? 0.5),
+      importance: String(event.kind) === "focus" ? 0.95 : String(event.kind) === "transition" ? 0.72 : 0.82,
+      momentType: String(event.kind),
+      typographyMode: String(input.metadata.typography.caption_style_profile ?? "unknown"),
+      motionMode: String(policy.motion_mode ?? "balanced"),
+      transitionKind: String(event.entry_style ?? "none")
+    }))
+  );
 
   return motionPlanArtifactSchema.parse({
     job_id: input.jobId,
@@ -476,10 +491,12 @@ export const buildMotionPlanArtifact = async (input: MotionPlanBuilderInput): Pr
         rationale: "Target focus zoom pairs with highlight and reveal logic for headline and category beats."
       }
     ],
+    temporal_governor: temporalGovernor,
     validation: {
       warnings: [
         ...(catalogs.authoringAssets.length === 0 ? ["The authoring motion asset catalog was empty or unavailable."] : []),
-        ...(catalogs.prototypeAssets.length === 0 ? ["The prototype motion catalog was empty or unavailable."] : [])
+        ...(catalogs.prototypeAssets.length === 0 ? ["The prototype motion catalog was empty or unavailable."] : []),
+        ...temporalGovernor.warnings
       ],
       errors: selectedAssets.length === 0 ? ["No motion assets were selected from the catalog or registry."] : [],
       rejected_assets: []

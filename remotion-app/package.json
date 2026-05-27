@@ -49,8 +49,8 @@
     "render:final": "npm run captions:sync && npm run render",
     "nolan:plan": "tsx scripts/nolan-clip-plan.ts",
     "nolan:extract": "tsx scripts/nolan-clip-extract.ts",
-    "test": "vitest run --configLoader native --pool threads",
-    "test:watch": "vitest --configLoader native --pool threads",
+    "test": "vitest run --pool threads",
+    "test:watch": "vitest --pool threads",
     "typecheck": "tsc --noEmit"
   },
   "keywords": [
