@@ -35,6 +35,25 @@ export const resolveProjectScopedCaptionChunks = ({
   return Array.isArray(motionModel.chunks) ? motionModel.chunks : [];
 };
 
+export const resolvePreviewPlayerVideoMetadata = (
+  videoMetadata: Pick<VideoMetadata, "width" | "height" | "fps" | "durationSeconds" | "durationInFrames">
+): Pick<VideoMetadata, "width" | "height" | "fps" | "durationSeconds" | "durationInFrames"> => {
+  if (!Number.isFinite(videoMetadata.fps) || videoMetadata.fps < 1) {
+    throw new Error("Invalid FPS configuration");
+  }
+
+  const durationSeconds = Number.isFinite(videoMetadata.durationSeconds) && videoMetadata.durationSeconds > 0
+    ? videoMetadata.durationSeconds
+    : videoMetadata.durationInFrames / videoMetadata.fps;
+  const durationInFrames = Math.max(1, Math.round(durationSeconds * videoMetadata.fps));
+
+  return {
+    ...videoMetadata,
+    durationSeconds,
+    durationInFrames
+  };
+};
+
 export const buildProjectScopedMotionInputProps = ({
   videoSrc,
   videoMetadata,
@@ -52,6 +71,7 @@ export const buildProjectScopedMotionInputProps = ({
   previewPerformanceMode: PreviewPerformanceMode;
   livePreviewSession?: ProjectScopedLivePreviewSessionData | null;
 }) => {
+  const resolvedVideoMetadata = resolvePreviewPlayerVideoMetadata(videoMetadata);
   const resolvedCaptionChunks = resolveProjectScopedCaptionChunks({
     captionChunks,
     motionModel
@@ -59,7 +79,7 @@ export const buildProjectScopedMotionInputProps = ({
 
   return {
     videoSrc,
-    videoMetadata,
+    videoMetadata: resolvedVideoMetadata,
     livePreviewSession: livePreviewSession ?? null,
     presentationMode: "long-form" as const,
     motionTier: motionModel.tier,
@@ -87,17 +107,18 @@ export const RemotionPreviewPlayer: React.FC<RemotionPreviewPlayerProps> = ({
   onErrorMessageChange
 }) => {
   const playerInstanceIdRef = useRef(`project-preview-player-${Math.random().toString(36).slice(2, 10)}`);
+  const resolvedVideoMetadata = useMemo(() => resolvePreviewPlayerVideoMetadata(videoMetadata), [videoMetadata]);
   const inputProps = useMemo(() => {
     return buildProjectScopedMotionInputProps({
       videoSrc,
-      videoMetadata,
+      videoMetadata: resolvedVideoMetadata,
       motionModel,
       captionChunks,
       captionProfileId,
       previewPerformanceMode,
       livePreviewSession
     });
-  }, [captionChunks, captionProfileId, livePreviewSession, motionModel, previewPerformanceMode, videoMetadata, videoSrc]);
+  }, [captionChunks, captionProfileId, livePreviewSession, motionModel, previewPerformanceMode, resolvedVideoMetadata, videoSrc]);
 
   useEffect(() => {
     onHealthChange?.("ready");
@@ -156,10 +177,10 @@ export const RemotionPreviewPlayer: React.FC<RemotionPreviewPlayerProps> = ({
       <Player
         component={ProjectScopedMotionComposition}
         inputProps={inputProps}
-        durationInFrames={videoMetadata.durationInFrames}
-        compositionWidth={videoMetadata.width}
-        compositionHeight={videoMetadata.height}
-        fps={videoMetadata.fps}
+        durationInFrames={resolvedVideoMetadata.durationInFrames}
+        compositionWidth={resolvedVideoMetadata.width}
+        compositionHeight={resolvedVideoMetadata.height}
+        fps={resolvedVideoMetadata.fps}
         controls
         clickToPlay
         doubleClickToFullscreen

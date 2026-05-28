@@ -2,10 +2,11 @@ import React, {useMemo, useEffect, useRef} from "react";
 
 import type {PreviewPerformanceMode} from "../lib/types";
 import type {MotionSoundCue} from "../lib/types";
-import {usePreviewCurrentTimeMs} from "./frame-store";
+import {type PreviewFrameSource, nativePreviewFrameSource, usePreviewCurrentTimeMs} from "./frame-store";
 
 type NativePreviewSoundDesignProps = {
   fps: number;
+  frameSource?: PreviewFrameSource;
   videoIsPlaying: boolean;
   videoPlaybackRate: number;
   audioUnlocked: boolean;
@@ -61,12 +62,13 @@ const getCueVolumeEnvelopeAtTimeMs = ({
 const NativePreviewAudioCue: React.FC<{
   cue: MotionSoundCue;
   fps: number;
+  frameSource: PreviewFrameSource;
   videoIsPlaying: boolean;
   videoPlaybackRate: number;
   audioUnlocked: boolean;
-}> = ({cue, fps, videoIsPlaying, videoPlaybackRate, audioUnlocked}) => {
+}> = ({cue, fps, frameSource, videoIsPlaying, videoPlaybackRate, audioUnlocked}) => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const currentTimeMs = usePreviewCurrentTimeMs(fps);
+  const currentTimeMs = usePreviewCurrentTimeMs(fps, frameSource);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -132,6 +134,7 @@ const NativePreviewAudioCue: React.FC<{
 
 export const NativePreviewSoundDesign: React.FC<NativePreviewSoundDesignProps> = ({
   fps,
+  frameSource = nativePreviewFrameSource,
   videoIsPlaying,
   videoPlaybackRate,
   audioUnlocked,
@@ -139,7 +142,7 @@ export const NativePreviewSoundDesign: React.FC<NativePreviewSoundDesignProps> =
   musicCues,
   soundCues
 }) => {
-  const currentTimeMs = usePreviewCurrentTimeMs(fps);
+  const currentTimeMs = usePreviewCurrentTimeMs(fps, frameSource);
   const renderableCues = useMemo(() => {
     const maxRenderableCues = previewPerformanceMode === "full" ? 3 : 1;
     const inWindow = (cue: MotionSoundCue): boolean => {
@@ -185,6 +188,7 @@ export const NativePreviewSoundDesign: React.FC<NativePreviewSoundDesignProps> =
           key={cue.id}
           cue={cue}
           fps={fps}
+          frameSource={frameSource}
           videoIsPlaying={videoIsPlaying}
           videoPlaybackRate={videoPlaybackRate}
           audioUnlocked={audioUnlocked}

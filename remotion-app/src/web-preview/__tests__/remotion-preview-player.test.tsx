@@ -18,17 +18,31 @@ const playerSnapshots: Array<{
   motionTier: string;
   livePreviewSessionId: string | null;
   captionChunkCount: number;
+  durationInFrames: number;
+  fps: number;
 }> = [];
 
 vi.mock("@remotion/player", async () => {
   return {
-    Player: ({component, inputProps}: {component: React.ComponentType<unknown>; inputProps: Record<string, unknown>}) => {
+    Player: ({
+      component,
+      inputProps,
+      durationInFrames,
+      fps
+    }: {
+      component: React.ComponentType<unknown>;
+      inputProps: Record<string, unknown>;
+      durationInFrames: number;
+      fps: number;
+    }) => {
       playerSnapshots.push({
         componentName: component.displayName ?? component.name ?? "unknown",
         motionTier: String(inputProps.motionTier ?? ""),
         captionChunkCount: Array.isArray(inputProps.captionChunksOverride)
           ? inputProps.captionChunksOverride.length
           : 0,
+        durationInFrames,
+        fps,
         livePreviewSessionId:
           inputProps.livePreviewSession &&
           typeof inputProps.livePreviewSession === "object" &&
@@ -51,6 +65,8 @@ vi.mock("@remotion/player", async () => {
               ? String((inputProps.livePreviewSession as {sessionId?: unknown}).sessionId ?? "")
               : ""
           }
+          data-duration-in-frames={durationInFrames}
+          data-fps={fps}
         />
       );
     }
@@ -238,6 +254,26 @@ describe("RemotionPreviewPlayer", () => {
 
     expect(source).not.toMatch(/<Player[\s\S]*?\bkey=/);
     expect(source).toContain("data-player-instance-id");
+  });
+
+  it("repairs stale one-second Player duration from explicit metadata duration", () => {
+    renderToStaticMarkup(
+      <RemotionPreviewPlayer
+        videoSrc="http://127.0.0.1:8000/api/edit-sessions/project-a/source"
+        videoMetadata={{
+          ...videoMetadata,
+          durationSeconds: 12,
+          durationInFrames: 30
+        }}
+        motionModel={createMotionModel("premium")}
+        captionChunks={captionChunks}
+        captionProfileId="longform_svg_typography_v1"
+        previewPerformanceMode="balanced"
+      />
+    );
+
+    expect(playerSnapshots.at(-1)?.durationInFrames).toBe(360);
+    expect(playerSnapshots.at(-1)?.fps).toBe(30);
   });
 });
 

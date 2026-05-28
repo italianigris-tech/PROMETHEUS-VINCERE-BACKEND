@@ -15,6 +15,7 @@ import {
   resolveLiveCreativePreviewDurationMs
 } from "./creative-live-audio-preview-utils";
 import {NativePreviewOverlayStage} from "./NativePreviewStage";
+import {createPreviewFrameSource} from "./frame-store";
 import type {
   AudioCreativePreviewAudioStatus,
   AudioCreativePreviewState
@@ -483,6 +484,7 @@ export const CreativeLiveAudioPreview: React.FC<CreativeLiveAudioPreviewProps> =
 }) => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const playbackIntervalRef = useRef<number | null>(null);
+  const frameSource = useMemo(() => createPreviewFrameSource(), []);
   const previewStateRef = useRef<AudioCreativePreviewState>("idle");
   const initialAudioStatus: AudioCreativePreviewAudioStatus = audioPreparationError
     ? "error"
@@ -501,6 +503,9 @@ export const CreativeLiveAudioPreview: React.FC<CreativeLiveAudioPreviewProps> =
   const [audioStatus, setAudioStatus] = useState<AudioCreativePreviewAudioStatus>(initialAudioStatus);
   const [audioErrorMessage, setAudioErrorMessage] = useState<string | null>(audioPreparationError);
   const [overlayStageError, setOverlayStageError] = useState<string | null>(null);
+  const syncFrameSource = (timeMs: number): void => {
+    frameSource.setFrame(Math.max(0, Math.round((timeMs / 1000) * videoMetadata.fps)));
+  };
   const resolvedDurationMs = useMemo(
     () =>
       resolveLiveCreativePreviewDurationMs({
@@ -546,6 +551,7 @@ export const CreativeLiveAudioPreview: React.FC<CreativeLiveAudioPreviewProps> =
     }
 
     setCurrentTimeMs(0);
+    syncFrameSource(0);
     lastCommittedTimeRef.current = 0;
     setIsPlaying(false);
     setAudioErrorMessage(audioPreparationError);
@@ -625,6 +631,7 @@ export const CreativeLiveAudioPreview: React.FC<CreativeLiveAudioPreviewProps> =
       if (Math.abs(nextTimeMs - lastCommittedTimeRef.current) >= PLAYBACK_SYNC_INTERVAL_MS || audio.paused || audio.ended) {
         lastCommittedTimeRef.current = nextTimeMs;
         setCurrentTimeMs(nextTimeMs);
+        syncFrameSource(nextTimeMs);
       }
     }, PLAYBACK_SYNC_INTERVAL_MS);
 
@@ -673,6 +680,7 @@ export const CreativeLiveAudioPreview: React.FC<CreativeLiveAudioPreviewProps> =
     const nextTimeMs = Math.max(0, audio.currentTime * 1000);
     lastCommittedTimeRef.current = nextTimeMs;
     setCurrentTimeMs(nextTimeMs);
+    syncFrameSource(nextTimeMs);
   };
 
   const requestPlayback = (): void => {
@@ -723,6 +731,7 @@ export const CreativeLiveAudioPreview: React.FC<CreativeLiveAudioPreviewProps> =
     const audio = audioRef.current;
     const clampedTimeMs = clamp(nextTimeMs, 0, resolvedDurationMs);
     setCurrentTimeMs(clampedTimeMs);
+    syncFrameSource(clampedTimeMs);
     lastCommittedTimeRef.current = clampedTimeMs;
     if (audio) {
       audio.currentTime = clampedTimeMs / 1000;
@@ -829,10 +838,10 @@ export const CreativeLiveAudioPreview: React.FC<CreativeLiveAudioPreviewProps> =
           }}
         >
           <NativePreviewOverlayStage
-            currentTimeMs={currentTimeMs}
             videoMetadata={videoMetadata}
             model={motionModel}
             captionProfileId={captionProfileId}
+            frameSource={frameSource}
             previewPerformanceMode="balanced"
           />
         </OverlayStageBoundary>

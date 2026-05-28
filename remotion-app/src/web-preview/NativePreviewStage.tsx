@@ -91,7 +91,12 @@ import {
 import {NativePreviewSoundDesign} from "./NativePreviewSoundDesign";
 import {MotionChoreographyStage} from "../components/MotionChoreographyOverlay";
 import {StageOverlayAsset} from "./native-preview-stage-cinematics";
-import {useFrameStore, usePreviewCurrentTimeMs} from "./frame-store";
+import {
+  frameToPreviewTimeMs,
+  nativePreviewFrameSource,
+  type PreviewFrameSource,
+  usePreviewCurrentTimeMs
+} from "./frame-store";
 
 type NativePreviewStageProps = {
   videoSrc: string;
@@ -1108,8 +1113,8 @@ const isVideoLikeAsset = (src: string): boolean => /\.(mp4|webm|ogg|m4v|mov)$/i.
 const NativeMotionGraphicsDecisionItem: React.FC<{
   decision: MotionGraphicsDecision;
   selectedAsset: MotionGraphicsDecisionAsset;
-  currentTimeMs: number;
   fps: number;
+  frameSource: PreviewFrameSource;
   outputWidth: number;
   outputHeight: number;
   videoIsPlaying: boolean;
@@ -1117,14 +1122,15 @@ const NativeMotionGraphicsDecisionItem: React.FC<{
 }> = ({
   decision,
   selectedAsset,
-  currentTimeMs,
   fps,
+  frameSource,
   outputWidth,
   outputHeight,
   videoIsPlaying,
   videoPlaybackRate
 }) => {
   const mediaRef = useRef<HTMLVideoElement | null>(null);
+  const currentTimeMs = usePreviewCurrentTimeMs(fps, frameSource);
   const asset = selectedAsset.asset;
 
   useEffect(() => {
@@ -1248,8 +1254,8 @@ const NativeMotionGraphicsDecisionItem: React.FC<{
 const NativeMotionAssetOverlay: React.FC<{
   activeScene: ResolvedMotionScene;
   activeDecision?: MotionGraphicsDecision | null;
-  currentTimeMs: number;
   fps: number;
+  frameSource: PreviewFrameSource;
   outputWidth: number;
   outputHeight: number;
   videoIsPlaying: boolean;
@@ -1259,8 +1265,8 @@ const NativeMotionAssetOverlay: React.FC<{
 }> = ({
   activeScene,
   activeDecision,
-  currentTimeMs,
   fps,
+  frameSource,
   outputWidth,
   outputHeight,
   videoIsPlaying,
@@ -1268,6 +1274,7 @@ const NativeMotionAssetOverlay: React.FC<{
   choreographyState,
   choreography3DEnabled = false
 }) => {
+  const currentTimeMs = usePreviewCurrentTimeMs(fps, frameSource);
   const decisionAssets = activeDecision?.selectedAssets ?? [];
   const renderLegacyAssets = decisionAssets.length === 0;
 
@@ -1287,8 +1294,8 @@ const NativeMotionAssetOverlay: React.FC<{
           key={`${activeScene.id}-${selectedAsset.role}-${selectedAsset.assetId}`}
           decision={activeDecision as MotionGraphicsDecision}
           selectedAsset={selectedAsset}
-          currentTimeMs={currentTimeMs}
           fps={fps}
+          frameSource={frameSource}
           outputWidth={outputWidth}
           outputHeight={outputHeight}
           videoIsPlaying={videoIsPlaying}
@@ -1362,15 +1369,16 @@ const NativeMotionAssetOverlay: React.FC<{
 
 const NativeBackgroundOverlay: React.FC<{
   cue: MotionCompositionModel["backgroundOverlayPlan"]["cues"][number];
-  currentTimeMs: number;
   fps: number;
+  frameSource: PreviewFrameSource;
   videoIsPlaying: boolean;
   videoPlaybackRate: number;
   outputWidth: number;
   outputHeight: number;
   captionBias: CaptionVerticalBias;
-}> = ({cue, currentTimeMs, fps, videoIsPlaying, videoPlaybackRate, outputWidth, outputHeight, captionBias}) => {
+}> = ({cue, fps, frameSource, videoIsPlaying, videoPlaybackRate, outputWidth, outputHeight, captionBias}) => {
   const overlayVideoRef = useRef<HTMLVideoElement | null>(null);
+  const currentTimeMs = usePreviewCurrentTimeMs(fps, frameSource);
   const visual = resolveBackgroundOverlayRenderState({
     cue,
     currentTimeMs,
@@ -1496,12 +1504,13 @@ const NativeBackgroundOverlay: React.FC<{
 
 const NativeTransitionOverlay: React.FC<{
   cue: MotionCompositionModel["transitionOverlayPlan"]["cues"][number];
-  currentTimeMs: number;
   fps: number;
+  frameSource: PreviewFrameSource;
   videoIsPlaying: boolean;
   videoPlaybackRate: number;
-}> = ({cue, currentTimeMs, fps, videoIsPlaying, videoPlaybackRate}) => {
+}> = ({cue, fps, frameSource, videoIsPlaying, videoPlaybackRate}) => {
   const overlayVideoRef = useRef<HTMLVideoElement | null>(null);
+  const currentTimeMs = usePreviewCurrentTimeMs(fps, frameSource);
   const visibility = getTransitionOverlayVisibility({cue, currentTimeMs});
   const driftScale = transitionLerp(1.01, 1, visibility) * transitionLerp(
     1,
@@ -1616,9 +1625,11 @@ const NativeTransitionOverlay: React.FC<{
 const NativeShowcaseOverlay: React.FC<{
   activeCue: MotionShowcaseCue;
   model: MotionCompositionModel;
-  currentTimeMs: number;
+  fps: number;
+  frameSource: PreviewFrameSource;
   previewViewportScale: number;
-}> = ({activeCue, model, currentTimeMs, previewViewportScale}) => {
+}> = ({activeCue, model, fps, frameSource, previewViewportScale}) => {
+  const currentTimeMs = usePreviewCurrentTimeMs(fps, frameSource);
   const cueChunk = useMemo(() => findCueChunk({chunks: model.chunks, cue: activeCue}), [activeCue, model.chunks]);
   const cueWord = useMemo(() => {
     if (!cueChunk) {
@@ -1768,15 +1779,16 @@ const NativeShowcaseOverlay: React.FC<{
 };
 
 const NativeCaptionOverlay: React.FC<{
-  currentTimeMs: number;
   videoMetadata: Pick<VideoMetadata, "width" | "height" | "fps">;
+  frameSource: PreviewFrameSource;
   chunks: CaptionChunk[];
   captionProfileId: CaptionStyleProfileId;
   captionBias: MotionCompositionModel["captionBias"];
   model: MotionCompositionModel;
   previewViewportScale: number;
   suppressCaptions?: boolean;
-}> = ({currentTimeMs, videoMetadata, chunks, captionProfileId, captionBias, model, previewViewportScale, suppressCaptions = false}) => {
+}> = ({videoMetadata, frameSource, chunks, captionProfileId, captionBias, model, previewViewportScale, suppressCaptions = false}) => {
+  const currentTimeMs = usePreviewCurrentTimeMs(videoMetadata.fps, frameSource) + (1000 / videoMetadata.fps) * 0.5;
   if (suppressCaptions) {
     return null;
   }
@@ -1851,7 +1863,7 @@ const NativeCaptionOverlay: React.FC<{
   }, [activeChunk, subtitleMode]);
 
   const isSilenced = subtitleSafeZone.physics.isSilenced;
-  const delayMs = (subtitleSafeZone.physics.impactDelayFrames / (videoMetadata.fps ?? 30)) * 1000;
+  const delayMs = (subtitleSafeZone.physics.impactDelayFrames / videoMetadata.fps) * 1000;
   const isDelayed = activeChunk && currentTimeMs < activeChunk.startMs + delayMs;
   
   if (!activeChunk || activeChunk.words.length === 0 || isSilenced || isDelayed) {
@@ -2123,38 +2135,122 @@ const NativeCaptionOverlay: React.FC<{
   );
 };
 
-export const NativePreviewOverlayStage: React.FC<{
-  videoMetadata: Pick<VideoMetadata, "width" | "height" | "fps">;
+const NativeBackdropShell: React.FC<{
   model: MotionCompositionModel;
-  captionProfileId: CaptionStyleProfileId;
   previewPerformanceMode: PreviewPerformanceMode;
-  videoIsPlaying?: boolean;
-  videoPlaybackRate?: number;
-  renderBackdrop?: boolean;
-  suppressCaptions?: boolean;
+  fps: number;
+  frameSource: PreviewFrameSource;
 }> = ({
-  videoMetadata,
   model,
-  captionProfileId,
   previewPerformanceMode,
-  videoIsPlaying = false,
-  videoPlaybackRate = 1,
-  renderBackdrop = true,
-  suppressCaptions = false
+  fps,
+  frameSource
 }) => {
-  const stageRef = useRef<HTMLDivElement | null>(null);
-  const [previewViewportScale, setPreviewViewportScale] = useState(1);
-  const currentTimeMs = usePreviewCurrentTimeMs(videoMetadata.fps);
-  const lastLoggedMotionDecisionSceneRef = useRef<string | null>(null);
-  const isLeanNativePreview = previewPerformanceMode === "turbo" || model.tier === "minimal";
+  const shellRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const syncTransform = (frame: number): void => {
+      const shell = shellRef.current;
+      if (!shell) {
+        return;
+      }
+
+      const cameraMotionState = getCameraMotionState({
+        model,
+        currentTimeMs: frameToPreviewTimeMs({frame, fps}),
+        previewPerformanceMode
+      });
+      const controlledPreviewShellScale = resolveControlledBackgroundScale(cameraMotionState.scale, 1.02);
+      shell.style.transform = `translate3d(${cameraMotionState.translateX.toFixed(2)}px, ${cameraMotionState.translateY.toFixed(2)}px, 0) scale(${controlledPreviewShellScale.toFixed(3)})`;
+    };
+
+    syncTransform(frameSource.getFrame());
+    return frameSource.subscribe(syncTransform);
+  }, [fps, frameSource, model, previewPerformanceMode]);
+
+  return (
+    <div
+      ref={shellRef}
+      className="preview-native-video-shell"
+      style={{
+        position: "absolute",
+        inset: 0
+      }}
+    >
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background:
+            "radial-gradient(circle at 14% 12%, rgba(214, 177, 107, 0.12), transparent 26%), radial-gradient(circle at 86% 84%, rgba(59, 130, 246, 0.1), transparent 22%), linear-gradient(180deg, rgba(4, 6, 10, 0.98), rgba(2, 4, 9, 1))",
+          borderRadius: 0
+        }}
+      />
+    </div>
+  );
+};
+
+const StaticGradeOverlays: React.FC<{
+  model: MotionCompositionModel;
+  previewPerformanceMode: PreviewPerformanceMode;
+  captionProfileId: CaptionStyleProfileId;
+}> = ({model, previewPerformanceMode, captionProfileId}) => {
   const captionRenderMode = useMemo(() => getLongformCaptionRenderMode(captionProfileId), [captionProfileId]);
   const shouldFavorFootageVisibility = previewPerformanceMode === "full" || captionRenderMode === "word-by-word";
-  const cameraMotionState = useMemo(() => getCameraMotionState({
-    model,
-    currentTimeMs,
-    previewPerformanceMode
-  }), [currentTimeMs, model, previewPerformanceMode]);
-  const controlledPreviewShellScale = resolveControlledBackgroundScale(cameraMotionState.scale, 1.02);
+
+  return (
+    <>
+      <div
+        className="preview-native-grade-overlay"
+        style={{
+          background: `radial-gradient(circle at 16% 14%, ${model.gradeProfile.highlightTint} 0%, rgba(255,255,255,0) 48%), radial-gradient(circle at 84% 82%, rgba(164,208,255,0.12) 0%, rgba(164,208,255,0) 54%), linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.04) 56%, ${model.gradeProfile.shadowTint} 100%)`,
+          opacity: shouldFavorFootageVisibility
+            ? Math.max(0.08, model.gradeProfile.vignette * 0.64)
+            : Math.max(0.18, model.gradeProfile.vignette * 1.12)
+        }}
+      />
+      <div
+        className="preview-native-vignette"
+        style={{
+          boxShadow: `inset 0 0 160px rgba(0,0,0,${(
+            shouldFavorFootageVisibility
+              ? 0.08 + model.gradeProfile.vignette * 0.28
+              : 0.13 + model.gradeProfile.vignette * 0.48
+          ).toFixed(3)})`
+        }}
+      />
+      <div
+        className="preview-native-bloom"
+        style={{
+          opacity: shouldFavorFootageVisibility
+            ? Math.min(0.72, (0.14 + model.gradeProfile.bloom * 0.32) * PREVIEW_STAGE_BLOOM_GAIN)
+            : Math.min(0.92, (0.26 + model.gradeProfile.bloom * 0.58) * PREVIEW_STAGE_BLOOM_GAIN)
+        }}
+      />
+      {previewPerformanceMode === "balanced" ? (
+        <div className="preview-native-motion-chrome" />
+      ) : null}
+    </>
+  );
+};
+
+const NativeBackgroundOverlayDriver: React.FC<{
+  model: MotionCompositionModel;
+  videoMetadata: Pick<VideoMetadata, "width" | "height" | "fps">;
+  frameSource: PreviewFrameSource;
+  previewPerformanceMode: PreviewPerformanceMode;
+  videoIsPlaying: boolean;
+  videoPlaybackRate: number;
+}> = ({
+  model,
+  videoMetadata,
+  frameSource,
+  previewPerformanceMode,
+  videoIsPlaying,
+  videoPlaybackRate
+}) => {
+  const currentTimeMs = usePreviewCurrentTimeMs(videoMetadata.fps, frameSource);
+  const isLeanNativePreview = previewPerformanceMode === "turbo" || model.tier === "minimal";
   const activeBackgroundOverlayCue = useMemo(() => {
     if (isLeanNativePreview || model.motionGraphicsPlan.disableLegacyBackgroundOverlay) {
       return null;
@@ -2172,6 +2268,42 @@ export const NativePreviewOverlayStage: React.FC<{
       return currentTimeMs >= cue.startMs - BACKGROUND_PRELOAD_LEAD_MS && currentTimeMs < cue.startMs;
     }) ?? null;
   }, [currentTimeMs, isLeanNativePreview, model.backgroundOverlayPlan.cues, model.motionGraphicsPlan.disableLegacyBackgroundOverlay]);
+
+  if (!activeBackgroundOverlayCue) {
+    return null;
+  }
+
+  return (
+    <NativeBackgroundOverlay
+      cue={activeBackgroundOverlayCue}
+      fps={videoMetadata.fps}
+      frameSource={frameSource}
+      videoIsPlaying={videoIsPlaying}
+      videoPlaybackRate={videoPlaybackRate}
+      outputWidth={videoMetadata.width}
+      outputHeight={videoMetadata.height}
+      captionBias={model.captionBias}
+    />
+  );
+};
+
+const NativeMotionOverlayDriver: React.FC<{
+  model: MotionCompositionModel;
+  videoMetadata: Pick<VideoMetadata, "width" | "height" | "fps">;
+  frameSource: PreviewFrameSource;
+  previewPerformanceMode: PreviewPerformanceMode;
+  videoIsPlaying: boolean;
+  videoPlaybackRate: number;
+}> = ({
+  model,
+  videoMetadata,
+  frameSource,
+  previewPerformanceMode,
+  videoIsPlaying,
+  videoPlaybackRate
+}) => {
+  const currentTimeMs = usePreviewCurrentTimeMs(videoMetadata.fps, frameSource);
+  const isLeanNativePreview = previewPerformanceMode === "turbo" || model.tier === "minimal";
   const activeMotionScene = useMemo(() => {
     if (isLeanNativePreview) {
       return null;
@@ -2203,26 +2335,6 @@ export const NativePreviewOverlayStage: React.FC<{
       currentTimeMs
     });
   }, [activeChoreographyScene, currentTimeMs]);
-  const activeShowcaseCue = useMemo(() => {
-    if (isLeanNativePreview) {
-      return null;
-    }
-    return selectActiveMotionShowcaseCueAtTime({
-      cues: model.showcasePlan.cues,
-      currentTimeMs
-    });
-  }, [currentTimeMs, isLeanNativePreview, model.showcasePlan.cues]);
-  const activeTransitionOverlayCue = useMemo(() => {
-    if (isLeanNativePreview) {
-      return null;
-    }
-
-    return selectActiveTransitionOverlayCueAtTime({
-      cues: model.transitionOverlayPlan.cues,
-      currentTimeMs
-    });
-  }, [currentTimeMs, isLeanNativePreview, model.transitionOverlayPlan.cues]);
-  const captionCurrentTimeMs = currentTimeMs + (1000 / videoMetadata.fps) * 0.5;
   const showMotionGraphicsDebugOverlay = useMemo(() => {
     if (typeof window === "undefined") {
       return false;
@@ -2231,6 +2343,7 @@ export const NativePreviewOverlayStage: React.FC<{
     const debugWindow = window as Window & {__MOTION_DEBUG__?: boolean};
     return Boolean(debugWindow.__MOTION_DEBUG__ || window.localStorage?.getItem("motion.debug") === "1");
   }, []);
+  const lastLoggedMotionDecisionSceneRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!showMotionGraphicsDebugOverlay || !activeMotionGraphicsDecision) {
@@ -2249,6 +2362,207 @@ export const NativePreviewOverlayStage: React.FC<{
       artifactMitigation: activeMotionGraphicsDecision.debug.artifactMitigation
     });
   }, [activeMotionGraphicsDecision, showMotionGraphicsDebugOverlay]);
+
+  if (previewPerformanceMode === "turbo" || !activeMotionScene) {
+    return null;
+  }
+
+  return (
+    <>
+      <NativeMotionAssetOverlay
+        activeScene={activeMotionScene}
+        activeDecision={activeMotionGraphicsDecision}
+        fps={videoMetadata.fps}
+        frameSource={frameSource}
+        outputWidth={videoMetadata.width}
+        outputHeight={videoMetadata.height}
+        videoIsPlaying={videoIsPlaying}
+        videoPlaybackRate={videoPlaybackRate}
+        choreographyState={activeChoreographyState}
+        choreography3DEnabled={model.motion3DPlan.enabled}
+      />
+      {showMotionGraphicsDebugOverlay && activeMotionGraphicsDecision ? (
+        <div
+          style={{
+            position: "absolute",
+            right: 14,
+            bottom: 14,
+            zIndex: 30,
+            width: 320,
+            maxWidth: "calc(100% - 28px)",
+            padding: "12px 14px",
+            borderRadius: 16,
+            background: "rgba(6, 10, 20, 0.88)",
+            border: "1px solid rgba(148, 163, 184, 0.18)",
+            boxShadow: "0 18px 40px rgba(0,0,0,0.35)",
+            color: "#E5EEF8",
+            fontSize: 12,
+            lineHeight: 1.45,
+            backdropFilter: "blur(18px)",
+            pointerEvents: "none"
+          }}
+        >
+          <div style={{display: "grid", gap: 4}}>
+            <strong style={{fontSize: 13, letterSpacing: "0.04em", textTransform: "uppercase"}}>Motion Graphics Agent</strong>
+            <span>Scene: {activeMotionGraphicsDecision.sceneId}</span>
+            <span>Transcript: {activeMotionGraphicsDecision.query.transcriptSegment}</span>
+            <span>Assets: {activeMotionGraphicsDecision.debug.selectedAssetIds.join(", ") || "none"}</span>
+            <span>Safe zones: {activeMotionGraphicsDecision.safeZones.map((zone) => zone.kind).join(", ")}</span>
+            <span>Legacy overlay disabled: {activeMotionGraphicsDecision.debug.legacyBackgroundOverlayDisabled ? "true" : "false"}</span>
+          </div>
+          <div style={{display: "grid", gap: 2, marginTop: 8, color: "#C6D3E4"}}>
+            <span>Rationale: {activeMotionGraphicsDecision.rationale}</span>
+            <span>Mitigation: {model.motionGraphicsPlan.debug.mitigationSummary.join(" | ")}</span>
+            <span>Layer stack: {activeMotionGraphicsDecision.debug.finalLayerStack.join(" > ")}</span>
+          </div>
+        </div>
+      ) : null}
+    </>
+  );
+};
+
+const NativeChoreographyOverlayDriver: React.FC<{
+  model: MotionCompositionModel;
+  fps: number;
+  frameSource: PreviewFrameSource;
+  previewPerformanceMode: PreviewPerformanceMode;
+}> = ({
+  model,
+  fps,
+  frameSource,
+  previewPerformanceMode
+}) => {
+  const currentTimeMs = usePreviewCurrentTimeMs(fps, frameSource);
+  const isLeanNativePreview = previewPerformanceMode === "turbo" || model.tier === "minimal";
+  const activeChoreographyScene = useMemo(() => {
+    if (isLeanNativePreview) {
+      return null;
+    }
+    return selectActiveMotionChoreographySceneAtTime({
+      plan: model.choreographyPlan,
+      currentTimeMs
+    });
+  }, [currentTimeMs, isLeanNativePreview, model.choreographyPlan]);
+
+  if (!activeChoreographyScene) {
+    return null;
+  }
+
+  return (
+    <MotionChoreographyStage
+      scene={activeChoreographyScene}
+      currentTimeMs={currentTimeMs}
+      zIndex={6}
+    />
+  );
+};
+
+const NativeShowcaseOverlayDriver: React.FC<{
+  model: MotionCompositionModel;
+  fps: number;
+  frameSource: PreviewFrameSource;
+  previewPerformanceMode: PreviewPerformanceMode;
+  previewViewportScale: number;
+}> = ({
+  model,
+  fps,
+  frameSource,
+  previewPerformanceMode,
+  previewViewportScale
+}) => {
+  const currentTimeMs = usePreviewCurrentTimeMs(fps, frameSource);
+  const isLeanNativePreview = previewPerformanceMode === "turbo" || model.tier === "minimal";
+  const activeShowcaseCue = useMemo(() => {
+    if (isLeanNativePreview) {
+      return null;
+    }
+    return selectActiveMotionShowcaseCueAtTime({
+      cues: model.showcasePlan.cues,
+      currentTimeMs
+    });
+  }, [currentTimeMs, isLeanNativePreview, model.showcasePlan.cues]);
+
+  if (!activeShowcaseCue) {
+    return null;
+  }
+
+  return (
+    <NativeShowcaseOverlay
+      activeCue={activeShowcaseCue}
+      model={model}
+      fps={fps}
+      frameSource={frameSource}
+      previewViewportScale={previewViewportScale}
+    />
+  );
+};
+
+const NativeTransitionOverlayDriver: React.FC<{
+  model: MotionCompositionModel;
+  fps: number;
+  frameSource: PreviewFrameSource;
+  previewPerformanceMode: PreviewPerformanceMode;
+  videoIsPlaying: boolean;
+  videoPlaybackRate: number;
+}> = ({
+  model,
+  fps,
+  frameSource,
+  previewPerformanceMode,
+  videoIsPlaying,
+  videoPlaybackRate
+}) => {
+  const currentTimeMs = usePreviewCurrentTimeMs(fps, frameSource);
+  const isLeanNativePreview = previewPerformanceMode === "turbo" || model.tier === "minimal";
+  const activeTransitionOverlayCue = useMemo(() => {
+    if (isLeanNativePreview) {
+      return null;
+    }
+
+    return selectActiveTransitionOverlayCueAtTime({
+      cues: model.transitionOverlayPlan.cues,
+      currentTimeMs
+    });
+  }, [currentTimeMs, isLeanNativePreview, model.transitionOverlayPlan.cues]);
+
+  if (!activeTransitionOverlayCue) {
+    return null;
+  }
+
+  return (
+    <NativeTransitionOverlay
+      cue={activeTransitionOverlayCue}
+      fps={fps}
+      frameSource={frameSource}
+      videoIsPlaying={videoIsPlaying}
+      videoPlaybackRate={videoPlaybackRate}
+    />
+  );
+};
+
+export const NativePreviewOverlayStage: React.FC<{
+  videoMetadata: Pick<VideoMetadata, "width" | "height" | "fps">;
+  model: MotionCompositionModel;
+  captionProfileId: CaptionStyleProfileId;
+  previewPerformanceMode: PreviewPerformanceMode;
+  frameSource?: PreviewFrameSource;
+  videoIsPlaying?: boolean;
+  videoPlaybackRate?: number;
+  renderBackdrop?: boolean;
+  suppressCaptions?: boolean;
+}> = ({
+  videoMetadata,
+  model,
+  captionProfileId,
+  previewPerformanceMode,
+  frameSource = nativePreviewFrameSource,
+  videoIsPlaying = false,
+  videoPlaybackRate = 1,
+  renderBackdrop = true,
+  suppressCaptions = false
+}) => {
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const [previewViewportScale, setPreviewViewportScale] = useState(1);
 
   useEffect(() => {
     const stageElement = stageRef.current;
@@ -2298,113 +2612,61 @@ export const NativePreviewOverlayStage: React.FC<{
       }}
     >
       {renderBackdrop ? (
-        <div
-          className="preview-native-video-shell"
-          style={{
-            position: "absolute",
-            inset: 0,
-            transform: `translate3d(${cameraMotionState.translateX.toFixed(2)}px, ${cameraMotionState.translateY.toFixed(2)}px, 0) scale(${controlledPreviewShellScale.toFixed(3)})`
-          }}
-        >
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              background:
-                "radial-gradient(circle at 14% 12%, rgba(214, 177, 107, 0.12), transparent 26%), radial-gradient(circle at 86% 84%, rgba(59, 130, 246, 0.1), transparent 22%), linear-gradient(180deg, rgba(4, 6, 10, 0.98), rgba(2, 4, 9, 1))",
-              borderRadius: 0
-            }}
-          />
-        </div>
-      ) : null}
-
-      {activeBackgroundOverlayCue ? (
-        <NativeBackgroundOverlay
-          cue={activeBackgroundOverlayCue}
-          currentTimeMs={currentTimeMs}
-          fps={videoMetadata.fps}
-          videoIsPlaying={videoIsPlaying}
-          videoPlaybackRate={videoPlaybackRate}
-          outputWidth={videoMetadata.width}
-          outputHeight={videoMetadata.height}
-          captionBias={model.captionBias}
-        />
-      ) : null}
-
-      <div
-        className="preview-native-grade-overlay"
-        style={{
-          background: `radial-gradient(circle at 16% 14%, ${model.gradeProfile.highlightTint} 0%, rgba(255,255,255,0) 48%), radial-gradient(circle at 84% 82%, rgba(164,208,255,0.12) 0%, rgba(164,208,255,0) 54%), linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.04) 56%, ${model.gradeProfile.shadowTint} 100%)`,
-          opacity: shouldFavorFootageVisibility
-            ? Math.max(0.08, model.gradeProfile.vignette * 0.64)
-            : Math.max(0.18, model.gradeProfile.vignette * 1.12)
-        }}
-      />
-      <div
-        className="preview-native-vignette"
-        style={{
-          boxShadow: `inset 0 0 160px rgba(0,0,0,${(
-            shouldFavorFootageVisibility
-              ? 0.08 + model.gradeProfile.vignette * 0.28
-              : 0.13 + model.gradeProfile.vignette * 0.48
-          ).toFixed(3)})`
-        }}
-      />
-      <div
-        className="preview-native-bloom"
-        style={{
-          opacity: shouldFavorFootageVisibility
-            ? Math.min(0.72, (0.14 + model.gradeProfile.bloom * 0.32) * PREVIEW_STAGE_BLOOM_GAIN)
-            : Math.min(0.92, (0.26 + model.gradeProfile.bloom * 0.58) * PREVIEW_STAGE_BLOOM_GAIN)
-        }}
-      />
-      {previewPerformanceMode === "balanced" ? (
-        <div className="preview-native-motion-chrome" />
-      ) : null}
-
-      {previewPerformanceMode !== "turbo" && activeMotionScene ? (
-        <NativeMotionAssetOverlay
-          activeScene={activeMotionScene}
-          activeDecision={activeMotionGraphicsDecision}
-          currentTimeMs={currentTimeMs}
-          fps={videoMetadata.fps}
-          outputWidth={videoMetadata.width}
-          outputHeight={videoMetadata.height}
-          videoIsPlaying={videoIsPlaying}
-          videoPlaybackRate={videoPlaybackRate}
-          choreographyState={activeChoreographyState}
-          choreography3DEnabled={model.motion3DPlan.enabled}
-        />
-      ) : null}
-      {activeChoreographyScene ? (
-        <MotionChoreographyStage
-          scene={activeChoreographyScene}
-          currentTimeMs={currentTimeMs}
-          zIndex={6}
-        />
-      ) : null}
-
-      {activeShowcaseCue ? (
-        <NativeShowcaseOverlay
-          activeCue={activeShowcaseCue}
+        <NativeBackdropShell
           model={model}
-          currentTimeMs={currentTimeMs}
-          previewViewportScale={previewViewportScale}
-        />
-      ) : null}
-      {activeTransitionOverlayCue ? (
-        <NativeTransitionOverlay
-          cue={activeTransitionOverlayCue}
-          currentTimeMs={currentTimeMs}
+          previewPerformanceMode={previewPerformanceMode}
           fps={videoMetadata.fps}
-          videoIsPlaying={videoIsPlaying}
-          videoPlaybackRate={videoPlaybackRate}
+          frameSource={frameSource}
         />
       ) : null}
+
+      <NativeBackgroundOverlayDriver
+        model={model}
+        videoMetadata={videoMetadata}
+        frameSource={frameSource}
+        previewPerformanceMode={previewPerformanceMode}
+        videoIsPlaying={videoIsPlaying}
+        videoPlaybackRate={videoPlaybackRate}
+      />
+      <StaticGradeOverlays
+        model={model}
+        previewPerformanceMode={previewPerformanceMode}
+        captionProfileId={captionProfileId}
+      />
+
+      <NativeMotionOverlayDriver
+        model={model}
+        videoMetadata={videoMetadata}
+        frameSource={frameSource}
+        previewPerformanceMode={previewPerformanceMode}
+        videoIsPlaying={videoIsPlaying}
+        videoPlaybackRate={videoPlaybackRate}
+      />
+      <NativeChoreographyOverlayDriver
+        model={model}
+        fps={videoMetadata.fps}
+        frameSource={frameSource}
+        previewPerformanceMode={previewPerformanceMode}
+      />
+      <NativeShowcaseOverlayDriver
+        model={model}
+        fps={videoMetadata.fps}
+        frameSource={frameSource}
+        previewPerformanceMode={previewPerformanceMode}
+        previewViewportScale={previewViewportScale}
+      />
+      <NativeTransitionOverlayDriver
+        model={model}
+        fps={videoMetadata.fps}
+        frameSource={frameSource}
+        previewPerformanceMode={previewPerformanceMode}
+        videoIsPlaying={videoIsPlaying}
+        videoPlaybackRate={videoPlaybackRate}
+      />
 
       <NativeCaptionOverlay
-        currentTimeMs={captionCurrentTimeMs}
         videoMetadata={videoMetadata}
+        frameSource={frameSource}
         chunks={model.chunks}
         captionProfileId={captionProfileId}
         captionBias={model.captionBias}
@@ -2412,43 +2674,6 @@ export const NativePreviewOverlayStage: React.FC<{
         previewViewportScale={previewViewportScale}
         suppressCaptions={suppressCaptions}
       />
-
-      {showMotionGraphicsDebugOverlay && activeMotionGraphicsDecision ? (
-        <div
-          style={{
-            position: "absolute",
-            right: 14,
-            bottom: 14,
-            zIndex: 30,
-            width: 320,
-            maxWidth: "calc(100% - 28px)",
-            padding: "12px 14px",
-            borderRadius: 16,
-            background: "rgba(6, 10, 20, 0.88)",
-            border: "1px solid rgba(148, 163, 184, 0.18)",
-            boxShadow: "0 18px 40px rgba(0,0,0,0.35)",
-            color: "#E5EEF8",
-            fontSize: 12,
-            lineHeight: 1.45,
-            backdropFilter: "blur(18px)",
-            pointerEvents: "none"
-          }}
-        >
-          <div style={{display: "grid", gap: 4}}>
-            <strong style={{fontSize: 13, letterSpacing: "0.04em", textTransform: "uppercase"}}>Motion Graphics Agent</strong>
-            <span>Scene: {activeMotionGraphicsDecision.sceneId}</span>
-            <span>Transcript: {activeMotionGraphicsDecision.query.transcriptSegment}</span>
-            <span>Assets: {activeMotionGraphicsDecision.debug.selectedAssetIds.join(", ") || "none"}</span>
-            <span>Safe zones: {activeMotionGraphicsDecision.safeZones.map((zone) => zone.kind).join(", ")}</span>
-            <span>Legacy overlay disabled: {activeMotionGraphicsDecision.debug.legacyBackgroundOverlayDisabled ? "true" : "false"}</span>
-          </div>
-          <div style={{display: "grid", gap: 2, marginTop: 8, color: "#C6D3E4"}}>
-            <span>Rationale: {activeMotionGraphicsDecision.rationale}</span>
-            <span>Mitigation: {model.motionGraphicsPlan.debug.mitigationSummary.join(" | ")}</span>
-            <span>Layer stack: {activeMotionGraphicsDecision.debug.finalLayerStack.join(" > ")}</span>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 };
@@ -2457,27 +2682,41 @@ const NativeFrameDrivenVideoShell = React.memo<{
   model: MotionCompositionModel;
   previewPerformanceMode: PreviewPerformanceMode;
   fps: number;
+  frameSource: PreviewFrameSource;
   children: React.ReactNode;
 }>(({
   model,
   previewPerformanceMode,
   fps,
+  frameSource,
   children
 }) => {
-  const currentTimeMs = usePreviewCurrentTimeMs(fps);
-  const cameraMotionState = useMemo(() => getCameraMotionState({
-    model,
-    currentTimeMs,
-    previewPerformanceMode
-  }), [currentTimeMs, model, previewPerformanceMode]);
-  const controlledPreviewShellScale = resolveControlledBackgroundScale(cameraMotionState.scale, 1.02);
+  const shellRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const syncTransform = (frame: number): void => {
+      const shell = shellRef.current;
+      if (!shell) {
+        return;
+      }
+
+      const cameraMotionState = getCameraMotionState({
+        model,
+        currentTimeMs: frameToPreviewTimeMs({frame, fps}),
+        previewPerformanceMode
+      });
+      const controlledPreviewShellScale = resolveControlledBackgroundScale(cameraMotionState.scale, 1.02);
+      shell.style.transform = `translate3d(${cameraMotionState.translateX.toFixed(2)}px, ${cameraMotionState.translateY.toFixed(2)}px, 0) scale(${controlledPreviewShellScale.toFixed(3)})`;
+    };
+
+    syncTransform(frameSource.getFrame());
+    return frameSource.subscribe(syncTransform);
+  }, [fps, frameSource, model, previewPerformanceMode]);
 
   return (
     <div
+      ref={shellRef}
       className="preview-native-video-shell"
-      style={{
-        transform: `translate3d(${cameraMotionState.translateX.toFixed(2)}px, ${cameraMotionState.translateY.toFixed(2)}px, 0) scale(${controlledPreviewShellScale.toFixed(3)})`
-      }}
     >
       {children}
     </div>
@@ -2547,8 +2786,7 @@ export const NativePreviewStage: React.FC<NativePreviewStageProps> = ({
       return;
     }
 
-    const nextTimeMs = Math.max(0, video.currentTime * 1000);
-    const nextFrame = Math.max(0, Math.round((nextTimeMs / 1000) * videoMetadata.fps));
+    const nextFrame = Math.max(0, Math.round(video.currentTime * videoMetadata.fps));
     const previousFrame = lastObservedFrameRef.current;
 
     telemetryRef.current.currentFrame = nextFrame;
@@ -2573,7 +2811,7 @@ export const NativePreviewStage: React.FC<NativePreviewStageProps> = ({
 
     suppressJumpTrackingRef.current = false;
     lastObservedFrameRef.current = nextFrame;
-    useFrameStore.getState().setFrame(nextFrame);
+    nativePreviewFrameSource.setFrame(nextFrame);
     publishTelemetry(options?.forceTelemetry === true);
   }, [publishTelemetry, videoMetadata.fps]);
 
@@ -2648,7 +2886,7 @@ export const NativePreviewStage: React.FC<NativePreviewStageProps> = ({
     bufferingStartedAtRef.current = null;
     suppressJumpTrackingRef.current = false;
     lastTelemetryPublishAtRef.current = 0;
-    useFrameStore.getState().setFrame(0);
+    nativePreviewFrameSource.setFrame(0);
     setHasLoadedFrame(false);
     setVideoIsPlaying(false);
     setVideoPlaybackRate(1);
@@ -2706,6 +2944,7 @@ export const NativePreviewStage: React.FC<NativePreviewStageProps> = ({
         {enablePreviewSoundDesign ? (
           <NativePreviewSoundDesign
             fps={videoMetadata.fps}
+            frameSource={nativePreviewFrameSource}
             videoIsPlaying={videoIsPlaying}
             videoPlaybackRate={videoPlaybackRate}
             audioUnlocked={audioUnlocked}
@@ -2718,6 +2957,7 @@ export const NativePreviewStage: React.FC<NativePreviewStageProps> = ({
           model={model}
           previewPerformanceMode={previewPerformanceMode}
           fps={videoMetadata.fps}
+          frameSource={nativePreviewFrameSource}
         >
           <video
             ref={videoRef}
@@ -2801,6 +3041,7 @@ export const NativePreviewStage: React.FC<NativePreviewStageProps> = ({
           model={model}
           captionProfileId={captionProfileId}
           previewPerformanceMode={previewPerformanceMode}
+          frameSource={nativePreviewFrameSource}
           videoIsPlaying={videoIsPlaying}
           videoPlaybackRate={videoPlaybackRate}
           renderBackdrop={false}

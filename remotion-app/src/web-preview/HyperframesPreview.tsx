@@ -3,7 +3,7 @@ import * as THREE from "three";
 import {useCurrentFrame, useVideoConfig} from "remotion";
 
 import {NativePreviewOverlayStage} from "./NativePreviewStage";
-import {useFrameStore} from "./frame-store";
+import {createPreviewFrameSource, type PreviewFrameSource} from "./frame-store";
 import type {PreviewPlaybackHealth} from "./preview-telemetry";
 import type {PreviewPerformanceMode} from "../lib/types";
 import type {DisplayTimeline, DisplayTimelineLayer} from "./display-god/display-timeline";
@@ -115,7 +115,8 @@ const resolveTrackCardStyle = ({
 const HyperframesThreeSceneOverlay: React.FC<{
   enabled: boolean;
   fps: number;
-}> = ({enabled, fps}) => {
+  frameSource: PreviewFrameSource;
+}> = ({enabled, fps, frameSource}) => {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const currentTimeRef = useRef(0);
 
@@ -125,11 +126,9 @@ const HyperframesThreeSceneOverlay: React.FC<{
       currentTimeRef.current = safeFps ? (frame / safeFps) * 1000 : 0;
     };
 
-    syncFrame(useFrameStore.getState().frame);
-    return useFrameStore.subscribe((state) => {
-      syncFrame(state.frame);
-    });
-  }, [fps]);
+    syncFrame(frameSource.getFrame());
+    return frameSource.subscribe(syncFrame);
+  }, [fps, frameSource]);
 
   useEffect(() => {
     const mountNode = mountRef.current;
@@ -339,6 +338,7 @@ export const HyperframesPreview: React.FC<HyperframesPreviewProps> = ({
 }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const frameSource = useMemo(() => createPreviewFrameSource(), []);
   const currentFrame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const containerRefs = useRef(new Map<string, HTMLDivElement>());
@@ -370,8 +370,8 @@ export const HyperframesPreview: React.FC<HyperframesPreviewProps> = ({
 
   useEffect(() => {
     const frame = Math.max(0, Math.round((timelineState.currentTimeMs / 1000) * videoMetadata.fps));
-    useFrameStore.getState().setFrame(frame);
-  }, [timelineState.currentTimeMs, videoMetadata.fps]);
+    frameSource.setFrame(frame);
+  }, [frameSource, timelineState.currentTimeMs, videoMetadata.fps]);
 
   const frameData = useTimelineWorker({
     manifest: manifest ? {
@@ -474,12 +474,14 @@ export const HyperframesPreview: React.FC<HyperframesPreviewProps> = ({
         model={displayTimeline.motionModel}
         captionProfileId={displayTimeline.captionProfileId}
         previewPerformanceMode={previewPerformanceMode}
+        frameSource={frameSource}
         suppressCaptions={suppressNativeCaptions}
       />
 
       <HyperframesThreeSceneOverlay
         enabled={displayTimeline.motionModel.motion3DPlan.enabled}
         fps={videoMetadata.fps}
+        frameSource={frameSource}
       />
 
       <div className="hyperframes-creative-track-host">
