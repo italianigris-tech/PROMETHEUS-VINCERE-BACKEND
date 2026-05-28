@@ -298,6 +298,7 @@ export const BackendViralClipFinderPanel: React.FC<BackendViralClipFinderPanelPr
         status: response.status,
         current_stage: response.stage,
         stage: response.stage,
+        executionVisibility: response.executionVisibility,
         urls: response.urls
       });
     } catch (submitError) {
@@ -639,7 +640,23 @@ export const BackendViralClipFinderPanel: React.FC<BackendViralClipFinderPanelPr
           </div>
           <div>
             <span>Backend stage</span>
-            <strong>{jobStatus?.current_stage ?? "idle"}</strong>
+            <strong>{jobStatus?.executionVisibility?.stageGraph.currentStage ?? jobStatus?.current_stage ?? "idle"}</strong>
+          </div>
+          <div>
+            <span>Overall progress</span>
+            <strong>{Math.round(jobStatus?.executionVisibility?.progress.overall ?? jobStatus?.progress?.percent ?? 0)}%</strong>
+          </div>
+          <div>
+            <span>ETA remaining</span>
+            <strong>
+              {jobStatus?.executionVisibility
+                ? `${Math.ceil(jobStatus.executionVisibility.eta.remainingMs / 1000)}s`
+                : "unknown"}
+            </strong>
+          </div>
+          <div>
+            <span>Compute</span>
+            <strong>{jobStatus?.executionVisibility?.compute.activeComputeType ?? "idle"}</strong>
           </div>
         </div>
         {payloadPreview ? (

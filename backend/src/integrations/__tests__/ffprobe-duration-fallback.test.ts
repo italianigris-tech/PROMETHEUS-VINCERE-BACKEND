@@ -66,4 +66,25 @@ describe("ffprobe duration fallbacks", () => {
     expect(() => resolveDurationMsFromFfprobeJson(mockedStdout)).toThrow(/MEDIA_PROBE_DETERMINISM_FAILURE/i);
     await expect(probeVideoMetadata("C:\\clips\\na-only.mp4")).rejects.toThrow(/MEDIA_PROBE_DETERMINISM_FAILURE/i);
   });
+
+  it("throws instead of substituting a hardcoded fps when ffprobe returns invalid frame rate metadata", async () => {
+    mockedStdout = JSON.stringify({
+      streams: [
+        {
+          codec_type: "video",
+          width: 1920,
+          height: 1080,
+          avg_frame_rate: "0/0",
+          r_frame_rate: "N/A"
+        }
+      ],
+      format: {
+        duration: "10"
+      }
+    });
+
+    const {probeVideoMetadata} = await import("../ffprobe");
+
+    await expect(probeVideoMetadata("C:\\clips\\invalid-fps.mp4")).rejects.toThrow(/invalid FPS/i);
+  });
 });

@@ -21,6 +21,7 @@ import {
   type AudioCreativePreviewState,
   type LivePreviewBackendWord,
   type LivePreviewMotionCue,
+  resolveAudioCreativePreviewDurationMs,
   resolveAudioCreativePreviewVideoMetadata
 } from "./audio-creative-preview-session";
 import {buildDisplayTimelineFromPreviewSession} from "./display-god/display-timeline";
@@ -636,6 +637,331 @@ const toActionableBuildErrorMessage = (message: string, apiBase: string): string
     : message;
 };
 
+export const hasRenderableTimeline = (state: LiveEditSessionPublicState | null): boolean => {
+  if (!state) {
+    return false;
+  }
+
+  return (
+    state.transcriptWords.length > 0 ||
+    state.previewMotionSequence.length > 0 ||
+    state.previewLines.some((line) => line.trim().length > 0)
+  );
+};
+
+type ReadinessFallbackReason =
+  | "missing_assets"
+  | "invalid_duration"
+  | "invalid_fps"
+  | "fallback_clipping"
+  | "timeline_unresolved"
+  | "compiled_typography_missing"
+  | "music_timeline_desync";
+
+type ReadinessFallbackEventType =
+  | "DEGRADED_RENDER_STATE"
+  | "MUSIC_TIMELINE_RECALCULATION_REQUIRED";
+
+type ReadinessFallbackEvent = {
+  type: ReadinessFallbackEventType;
+  reason: ReadinessFallbackReason;
+};
+
+export type PreviewReadinessState = {
+  status: "PREVIEW_BUILDING" | "PREVIEW_READY";
+  blockers: string[];
+  degradedEvents: string[];
+};
+
+export type RenderReadinessState = {
+  status: "RENDER_READY" | "DEGRADED_RENDER_STATE";
+  blockers: string[];
+  degradedEvents: string[];
+  fallbackEvents: ReadinessFallbackEvent[];
+  durationMs: number | null;
+  fps: number | null;
+  durationInFrames: number | null;
+  compiledTypography: boolean;
+  timelineResolved: boolean;
+  fallbackClippingActive: boolean;
+  assets: {
+    fonts: boolean;
+    vectors: boolean;
+    overlays: boolean;
+    motionAssets: boolean;
+  };
+  musicTimelineRecalculationRequired: boolean;
+};
+
+const isPositiveFiniteNumber = (value: unknown): value is number =>
+  typeof value === "number" && Number.isFinite(value) && value > 0;
+
+const asRecord = (value: unknown): Record<string, unknown> | null =>
+  value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+
+const recordFallbackEvent = (
+  events: ReadinessFallbackEvent[],
+  event: ReadinessFallbackEvent
+): void => {
+  events.push(event);
+};
+
+const resolveRenderDurationMs = (
+  liveSessionState: LiveEditSessionPublicState | null,
+  session: AudioCreativePreviewSession | null
+): number | null => {
+  if (typeof liveSessionState?.sourceDurationMs === "number") {
+    return liveSessionState.sourceDurationMs > 0 ? Math.round(liveSessionState.sourceDurationMs) : null;
+  }
+
+  if (isPositiveFiniteNumber(session?.durationMs)) {
+    return Math.round(session.durationMs);
+  }
+
+  if (isPositiveFiniteNumber(session?.videoMetadata.durationSeconds)) {
+    return Math.round(session.videoMetadata.durationSeconds * 1000);
+  }
+
+  return null;
+};
+
+const resolveRenderFps = (
+  liveSessionState: LiveEditSessionPublicState | null,
+  session: AudioCreativePreviewSession | null
+): number | null => {
+  if (typeof liveSessionState?.sourceFps === "number") {
+    return liveSessionState.sourceFps >= 1 ? liveSessionState.sourceFps : null;
+  }
+
+  if (isPositiveFiniteNumber(session?.videoMetadata.fps) && session.videoMetadata.fps >= 1) {
+    return session.videoMetadata.fps;
+  }
+
+  return null;
+};
+
+const hasCompiledTypography = (session: AudioCreativePreviewSession | null): boolean => {
+  const motionModel = session?.motionModel;
+  return Boolean(
+    session &&
+    session.captionChunks.length > 0 &&
+    motionModel &&
+    motionModel.chunks.length > 0 &&
+    motionModel.scenes.length > 0
+  );
+};
+
+const hasResolvedFontAssets = (diagnostics: Record<string, unknown> | null | undefined): boolean => {
+  const fontProof = asRecord(diagnostics?.fontProof);
+  if (!fontProof) {
+    return false;
+  }
+
+  const requested = readStringArray(fontProof.fontsRequestedFromManifest);
+  const resolved = readStringArray(fontProof.fontFilesResolved);
+  const loaded = readStringArray(fontProof.fontFilesLoadedIntoComposition);
+  const fallbackFonts = readStringArray(fontProof.fallbackFontsUsed);
+
+  return (
+    requested.length > 0 &&
+    resolved.length >= requested.length &&
+    loaded.length >= resolved.length &&
+    fontProof.fontCssGenerated === true &&
+    fallbackFonts.length === 0
+  );
+};
+
+const hasMissingMotionAssetCategories = (session: AudioCreativePreviewSession | null): boolean => {
+  const missingCategories =
+    session?.motionModel?.showcaseIntelligencePlan?.missingAssetCategories;
+  return Array.isArray(missingCategories) && missingCategories.length > 0;
+};
+
+const hasResolvedVectorAssets = (session: AudioCreativePreviewSession | null): boolean =>
+  Boolean(session?.motionModel?.showcaseIntelligencePlan) && !hasMissingMotionAssetCategories(session);
+
+const hasResolvedOverlayAssets = (session: AudioCreativePreviewSession | null): boolean =>
+  Boolean(
+    session?.motionModel?.backgroundOverlayPlan &&
+    session.motionModel.transitionOverlayPlan &&
+    session.motionModel.motionGraphicsPlan
+  ) && !hasMissingMotionAssetCategories(session);
+
+const hasResolvedMotionAssets = (session: AudioCreativePreviewSession | null): boolean =>
+  Boolean(session?.motionModel?.scenes?.length) && !hasMissingMotionAssetCategories(session);
+
+const hasFallbackClippingActive = (
+  diagnostics: Record<string, unknown> | null | undefined
+): boolean => {
+  const summary = [
+    ...readStringArray(diagnostics?.fallbackReasons),
+    ...readStringArray(diagnostics?.degradedStages)
+  ].join(" ");
+
+  return /\b(clip|clipping|truncate|truncated|single[- ]frame|one[- ]frame)\b/i.test(summary);
+};
+
+const hasResolvedRenderTimeline = (
+  liveSessionState: LiveEditSessionPublicState | null,
+  session: AudioCreativePreviewSession | null
+): boolean =>
+  hasRenderableTimeline(liveSessionState) && hasCompiledTypography(session);
+
+export const getPreviewState = ({
+  liveSessionState,
+  session,
+  isArtifactReady
+}: {
+  liveSessionState: LiveEditSessionPublicState | null;
+  session: AudioCreativePreviewSession | null;
+  isArtifactReady: boolean;
+}): PreviewReadinessState => {
+  const hasTimeline = hasRenderableTimeline(liveSessionState) || (session?.captionChunks.length ?? 0) > 0;
+  const hasPreviewSurface = Boolean(session || isArtifactReady || liveSessionState?.previewArtifactUrl);
+
+  if (hasTimeline && hasPreviewSurface) {
+    return {
+      status: "PREVIEW_READY",
+      blockers: [],
+      degradedEvents: []
+    };
+  }
+
+  return {
+    status: "PREVIEW_BUILDING",
+    blockers: hasTimeline ? ["preview_surface_pending"] : ["timeline_pending"],
+    degradedEvents: []
+  };
+};
+
+export const getRenderState = ({
+  liveSessionState,
+  session,
+  audioManifest
+}: {
+  liveSessionState: LiveEditSessionPublicState | null;
+  session: AudioCreativePreviewSession | null;
+  isArtifactReady: boolean;
+  audioManifest?: {
+    durationMs?: number | null;
+    musicTimelineDurationMs?: number | null;
+  } | null;
+}): RenderReadinessState => {
+  const blockers: string[] = [];
+  const fallbackEvents: ReadinessFallbackEvent[] = [];
+  const durationMs = resolveRenderDurationMs(liveSessionState, session);
+  const fps = resolveRenderFps(liveSessionState, session);
+
+  if (!durationMs || durationMs <= 0) {
+    blockers.push("invalid_duration");
+  }
+
+  if (!fps || fps < 1) {
+    blockers.push("invalid_fps");
+  }
+
+  const durationInFrames = durationMs && fps
+    ? Math.round((durationMs / 1000) * fps)
+    : null;
+  if (durationInFrames !== null && durationInFrames <= 0 && !blockers.includes("invalid_duration")) {
+    blockers.push("invalid_duration");
+  }
+
+  const compiledTypography = hasCompiledTypography(session);
+  if (!compiledTypography) {
+    blockers.push("compiled_typography_missing");
+  }
+
+  const timelineResolved = hasResolvedRenderTimeline(liveSessionState, session);
+  if (!timelineResolved) {
+    blockers.push("timeline_unresolved");
+  }
+
+  const assets = {
+    fonts: hasResolvedFontAssets(liveSessionState?.previewDiagnostics),
+    vectors: hasResolvedVectorAssets(session),
+    overlays: hasResolvedOverlayAssets(session),
+    motionAssets: hasResolvedMotionAssets(session)
+  };
+
+  if (!assets.fonts) {
+    blockers.push("font_assets_unhydrated");
+  }
+  if (!assets.vectors) {
+    blockers.push("vector_assets_unhydrated");
+  }
+  if (!assets.overlays) {
+    blockers.push("overlay_assets_unhydrated");
+  }
+  if (!assets.motionAssets) {
+    blockers.push("motion_assets_unhydrated");
+  }
+
+  const fallbackClippingActive = hasFallbackClippingActive(liveSessionState?.previewDiagnostics);
+  if (fallbackClippingActive) {
+    blockers.push("fallback_clipping_active");
+  }
+
+  const musicTimelineRecalculationRequired = Boolean(
+    durationMs &&
+    (
+      (isPositiveFiniteNumber(audioManifest?.durationMs) && audioManifest.durationMs < durationMs) ||
+      (isPositiveFiniteNumber(audioManifest?.musicTimelineDurationMs) && audioManifest.musicTimelineDurationMs < durationMs)
+    )
+  );
+  if (musicTimelineRecalculationRequired) {
+    blockers.push("music_timeline_desync");
+    recordFallbackEvent(fallbackEvents, {
+      type: "MUSIC_TIMELINE_RECALCULATION_REQUIRED",
+      reason: "music_timeline_desync"
+    });
+  }
+
+  if (blockers.length > 0) {
+    const reason: ReadinessFallbackReason =
+      blockers.includes("invalid_duration")
+        ? "invalid_duration"
+        : blockers.includes("invalid_fps")
+          ? "invalid_fps"
+          : blockers.some((blocker) => blocker.endsWith("_assets_unhydrated"))
+            ? "missing_assets"
+            : blockers.includes("fallback_clipping_active")
+              ? "fallback_clipping"
+              : blockers.includes("compiled_typography_missing")
+                ? "compiled_typography_missing"
+                : "timeline_unresolved";
+    recordFallbackEvent(fallbackEvents, {
+      type: "DEGRADED_RENDER_STATE",
+      reason
+    });
+  }
+
+  const degradedEvents = [...new Set(fallbackEvents.map((event) => event.type))];
+
+  return {
+    status: blockers.length > 0 ? "DEGRADED_RENDER_STATE" : "RENDER_READY",
+    blockers,
+    degradedEvents,
+    fallbackEvents,
+    durationMs,
+    fps,
+    durationInFrames,
+    compiledTypography,
+    timelineResolved,
+    fallbackClippingActive,
+    assets,
+    musicTimelineRecalculationRequired
+  };
+};
+
+export const isPreviewReady = (state: PreviewReadinessState): boolean =>
+  state.status === "PREVIEW_READY";
+
+export const isRenderReady = (state: RenderReadinessState): boolean =>
+  state.status === "RENDER_READY" && state.blockers.length === 0;
+
 export const determineBuildState = (
   session: AudioCreativePreviewSession | null,
   liveSessionState: LiveEditSessionPublicState | null,
@@ -650,22 +976,13 @@ export const determineBuildState = (
     return "idle";
   }
 
-  const hasVideoDuration = (liveSessionState.sourceDurationMs ?? 0) > 0;
-  const hasTranscript = liveSessionState.transcriptWords.length > 0;
-
-  if (!hasVideoDuration) {
-    return "idle";
-  }
-
-  if (!hasTranscript) {
-    return "building-timeline";
-  }
-
-  if (!session && !isArtifactReady) {
-    return "building-timeline";
-  }
-
-  return "ready";
+  return isPreviewReady(getPreviewState({
+    liveSessionState,
+    session,
+    isArtifactReady
+  }))
+    ? "ready"
+    : "building-timeline";
 };
 
 export const shouldBlockInteractivePreview = (buildState: BuildState): boolean =>
@@ -693,13 +1010,16 @@ const buildBaseVideoMetadata = (
     return null;
   }
 
-  const durationSeconds = Math.max(1, (state.sourceDurationMs ?? 0) / 1000);
+  const durationMs = resolveAudioCreativePreviewDurationMs({
+    providedDurationMs: state.sourceDurationMs
+  });
+  const durationSeconds = durationMs / 1000;
   return {
     width,
     height,
     fps,
     durationSeconds,
-    durationInFrames: Math.max(1, Math.ceil(durationSeconds * fps))
+    durationInFrames: Math.round((durationMs / 1000) * fps)
   };
 };
 
@@ -1291,7 +1611,9 @@ export const CreativeAudioLivePlayer: React.FC<CreativeAudioLivePlayerProps> = (
 
     let cancelled = false;
     const probeVideo = document.createElement("video");
-    const fallbackFps = liveSessionState?.sourceFps && liveSessionState.sourceFps > 0 ? liveSessionState.sourceFps : 30;
+    const fallbackFps = liveSessionState?.sourceFps && liveSessionState.sourceFps > 0
+      ? liveSessionState.sourceFps
+      : fallbackVideoMetadata.fps;
 
     const handleLoadedMetadata = (): void => {
       if (cancelled) {
@@ -1301,6 +1623,10 @@ export const CreativeAudioLivePlayer: React.FC<CreativeAudioLivePlayerProps> = (
       const width = Math.max(1, Math.round(probeVideo.videoWidth || 0));
       const height = Math.max(1, Math.round(probeVideo.videoHeight || 0));
       if (width <= 0 || height <= 0) {
+        return;
+      }
+      if (!fallbackFps || fallbackFps < 1) {
+        setBrowserVideoMetadata(null);
         return;
       }
 
@@ -1313,7 +1639,7 @@ export const CreativeAudioLivePlayer: React.FC<CreativeAudioLivePlayerProps> = (
         height,
         fps: fallbackFps,
         durationSeconds,
-        durationInFrames: Math.max(1, Math.ceil(durationSeconds * fallbackFps))
+        durationInFrames: Math.round(durationSeconds * fallbackFps)
       });
     };
 
@@ -1339,7 +1665,7 @@ export const CreativeAudioLivePlayer: React.FC<CreativeAudioLivePlayerProps> = (
       probeVideo.removeAttribute("src");
       probeVideo.load();
     };
-  }, [directBrowserVideoSrc, fallbackVideoMetadata.durationSeconds, liveSessionState?.sourceFps]);
+  }, [directBrowserVideoSrc, fallbackVideoMetadata.durationSeconds, fallbackVideoMetadata.fps, liveSessionState?.sourceFps]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1500,16 +1826,9 @@ export const CreativeAudioLivePlayer: React.FC<CreativeAudioLivePlayerProps> = (
       }
       setLiveSessionState(nextState);
 
-      const hasVideoDuration = (nextState.sourceDurationMs ?? 0) > 0;
-      const hasTranscript = nextState.transcriptWords.length > 0;
+      const hasTimeline = hasRenderableTimeline(nextState);
 
-      if (!hasVideoDuration) {
-        setBuildState("idle");
-        previewStateCallbackRef.current?.("building-timeline");
-        return;
-      }
-
-      if (!hasTranscript) {
+      if (!hasTimeline) {
         setBuildState("building-timeline");
         previewStateCallbackRef.current?.("building-timeline");
         return;
@@ -1975,7 +2294,7 @@ export const CreativeAudioLivePlayer: React.FC<CreativeAudioLivePlayerProps> = (
           : resolvedAudioSrc
             ? "loading"
             : "missing";
-  const captionsReadyForRender = liveSessionState?.transcriptStatus === "full_transcript_ready";
+  const captionsReadyForRender = hasRenderableTimeline(liveSessionState);
   const canRenderNativeVideoStage = Boolean(resolvedVideoSrc);
   const shouldUseDisplayGod = Boolean(
     previewRenderer === "hyperframes" &&

@@ -147,11 +147,11 @@ export const resolveAudioCreativePreviewDurationMs = (input: ResolveAudioCreativ
     normalizeDurationCandidate(input.lastCaptionEndMs) ??
     normalizeDurationCandidate(input.fallbackDurationMs);
   if (candidate !== null) {
-    return Math.max(42, candidate);
+    return candidate;
   }
 
   if (sawZeroDurationProbe) {
-    return 42;
+    return 60000;
   }
 
   if (allDurationInputsUndefined) {
@@ -174,11 +174,16 @@ export const resolveAudioCreativePreviewVideoMetadata = (input: {
     providedDurationMs: input.durationMs ?? (baseVideoMetadata.durationSeconds ? baseVideoMetadata.durationSeconds * 1000 : null)
   });
   const durationSeconds = durationMs / 1000;
+  const fps = baseVideoMetadata.fps;
+
+  if (!fps || fps < 1) {
+    throw new Error("Invalid FPS configuration");
+  }
 
   return {
     ...baseVideoMetadata,
     durationSeconds,
-    durationInFrames: Math.max(1, Math.ceil(durationSeconds * baseVideoMetadata.fps))
+    durationInFrames: Math.round((durationMs / 1000) * fps)
   };
 };
 
@@ -529,10 +534,6 @@ export const buildFastAudioCreativePreviewSession = async (input: {
     previewLines: input.previewLines,
     previewMotionSequence: input.previewMotionSequence,
     allowFallbackDemoData: input.allowFallbackDemoData
-  });
-  const resolvedVideoMetadata = resolveAudioCreativePreviewVideoMetadata({
-    presentationMode: input.presentationMode,
-    baseVideoMetadata: input.baseVideoMetadata
   });
   const resolvedRenderMode = resolveCreativePreviewRenderMode({
     baseVideoMetadata: input.baseVideoMetadata

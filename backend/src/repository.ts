@@ -179,6 +179,13 @@ export class FileJobRepository {
     return this.writeArtifact(jobId, "motion_plan", plan);
   }
 
+  public async writeMotionTraceLog(jobId: string, contents: string): Promise<string> {
+    const filePath = path.join(this.jobDir(jobId), "motion_trace.log");
+    await mkdir(path.dirname(filePath), {recursive: true});
+    await writeFile(filePath, contents.endsWith("\n") ? contents : `${contents}\n`, "utf-8");
+    return filePath;
+  }
+
   public async writeClipSelection(jobId: string, selection: ClipSelection): Promise<string> {
     return this.writeArtifact(jobId, "clip_selection", selection);
   }

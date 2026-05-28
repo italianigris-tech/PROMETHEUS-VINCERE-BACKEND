@@ -1,5 +1,5 @@
 import path from "node:path";
-import {mkdir, rm, writeFile} from "node:fs/promises";
+import {copyFile, mkdir, rm, writeFile} from "node:fs/promises";
 
 import AdmZip from "adm-zip";
 
@@ -14,7 +14,7 @@ export type MaterializedRetrievedFontAsset = {
 
 const fontFilePattern = /\.(woff2?|otf|ttf)$/i;
 
-const sanitizePathSegment = (value: string): string => {
+export const sanitizeFontPathSegment = (value: string): string => {
   const normalized = value.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/-+/g, "-").replace(/^-+|-+$/g, "");
   return normalized || "font";
 };
@@ -56,6 +56,37 @@ export const resetRetrievedFontsDir = async (targetRootDir = resolveRetrievedFon
   await mkdir(targetRootDir, {recursive: true});
 };
 
+export const materializeLocalFontAsset = async ({
+  family,
+  filePath,
+  targetRootDir = resolveRetrievedFontsDir(),
+  servePath = FONT_SERVE_PATH
+}: {
+  family: string;
+  filePath: string;
+  targetRootDir?: string;
+  servePath?: string;
+}): Promise<MaterializedRetrievedFontAsset> => {
+  const familyDir = sanitizeFontPathSegment(family);
+  const fileName = path.basename(filePath);
+  const targetDir = path.join(targetRootDir, familyDir);
+  const outputPath = path.join(targetDir, fileName);
+
+  await mkdir(targetDir, {recursive: true});
+  await copyFile(filePath, outputPath);
+
+  return {
+    fileName,
+    filePath: outputPath,
+    browserUrl: buildBrowserUrl({
+      familyDir,
+      fileName,
+      servePath
+    }),
+    format: inferFontFormat(fileName)
+  };
+};
+
 export const materializeRetrievedFontAsset = async ({
   family,
   sourceUrl,
@@ -75,7 +106,7 @@ export const materializeRetrievedFontAsset = async ({
   }
 
   const buffer = Buffer.from(await response.arrayBuffer());
-  const familyDir = sanitizePathSegment(family);
+  const familyDir = sanitizeFontPathSegment(family);
   const targetDir = path.join(targetRootDir, familyDir);
   await rm(targetDir, {recursive: true, force: true});
   await mkdir(targetDir, {recursive: true});

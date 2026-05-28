@@ -26,6 +26,57 @@ export const backendAssetDescriptorSchema = z.object({
 
 export type BackendAssetDescriptor = z.infer<typeof backendAssetDescriptorSchema>;
 
+export const backendExecutionVisibilitySchema = z
+  .object({
+    jobId: z.string(),
+    status: z.string(),
+    stages: z.array(
+      z
+        .object({
+          id: z.string(),
+          name: z.string(),
+          type: z.string(),
+          status: z.string(),
+          progress: z.number(),
+          estimatedDurationMs: z.number(),
+          computeType: z.string()
+        })
+        .passthrough()
+    ),
+    stageGraph: z
+      .object({
+        currentStage: z.string(),
+        completedStages: z.array(z.string()),
+        activeStage: z.record(z.string(), z.unknown()).nullable(),
+        nextStages: z.array(z.string())
+      })
+      .passthrough(),
+    progress: z
+      .object({
+        overall: z.number(),
+        perStage: z.record(z.string(), z.number()).optional()
+      })
+      .passthrough(),
+    eta: z
+      .object({
+        totalMs: z.number(),
+        remainingMs: z.number(),
+        confidence: z.string()
+      })
+      .passthrough(),
+    compute: z
+      .object({
+        cpuLoad: z.number(),
+        gpuLoad: z.number(),
+        ioLoad: z.number(),
+        activeComputeType: z.string().nullable().optional()
+      })
+      .passthrough()
+  })
+  .passthrough();
+
+export type BackendExecutionVisibility = z.infer<typeof backendExecutionVisibilitySchema>;
+
 export const backendPortraitFocusSchema = z.object({
   mode: z.enum(["center", "speaker_head", "semantic_anchor"]),
   aspect_ratio: z.literal("9:16"),
@@ -60,9 +111,12 @@ export const viralClipJobCreateResponseSchema = z.object({
   jobId: z.string(),
   status: z.string(),
   stage: z.string(),
+  executionVisibility: backendExecutionVisibilitySchema.optional(),
   urls: z
     .object({
       job: z.string().optional(),
+      events: z.string().optional(),
+      execution_visibility: z.string().optional(),
       result: z.string().optional()
     })
     .optional()
@@ -101,9 +155,12 @@ export const viralClipJobStatusSchema = z
     urls: z
       .object({
         job: z.string().nullable().optional(),
+        events: z.string().nullable().optional(),
+        execution_visibility: z.string().nullable().optional(),
         result: z.string().nullable().optional()
       })
       .optional(),
+    executionVisibility: backendExecutionVisibilitySchema.optional(),
     stage_history: z
       .array(
         z.object({

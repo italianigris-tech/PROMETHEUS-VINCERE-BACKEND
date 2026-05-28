@@ -3,6 +3,7 @@ import * as THREE from "three";
 import {useCurrentFrame, useVideoConfig} from "remotion";
 
 import {NativePreviewOverlayStage} from "./NativePreviewStage";
+import {useFrameStore} from "./frame-store";
 import type {PreviewPlaybackHealth} from "./preview-telemetry";
 import type {PreviewPerformanceMode} from "../lib/types";
 import type {DisplayTimeline, DisplayTimelineLayer} from "./display-god/display-timeline";
@@ -113,14 +114,22 @@ const resolveTrackCardStyle = ({
 
 const HyperframesThreeSceneOverlay: React.FC<{
   enabled: boolean;
-  currentTimeMs: number;
-}> = ({enabled, currentTimeMs}) => {
+  fps: number;
+}> = ({enabled, fps}) => {
   const mountRef = useRef<HTMLDivElement | null>(null);
-  const currentTimeRef = useRef(currentTimeMs);
+  const currentTimeRef = useRef(0);
 
   useEffect(() => {
-    currentTimeRef.current = currentTimeMs;
-  }, [currentTimeMs]);
+    const safeFps = Number.isFinite(fps) && fps > 0 ? fps : null;
+    const syncFrame = (frame: number): void => {
+      currentTimeRef.current = safeFps ? (frame / safeFps) * 1000 : 0;
+    };
+
+    syncFrame(useFrameStore.getState().frame);
+    return useFrameStore.subscribe((state) => {
+      syncFrame(state.frame);
+    });
+  }, [fps]);
 
   useEffect(() => {
     const mountNode = mountRef.current;
@@ -355,9 +364,14 @@ export const HyperframesPreview: React.FC<HyperframesPreviewProps> = ({
       height: displayTimeline.baseVideo.height,
       fps: displayTimeline.baseVideo.fps,
       durationSeconds,
-      durationInFrames: Math.max(1, Math.ceil(durationSeconds * displayTimeline.baseVideo.fps))
+      durationInFrames: Math.max(1, Math.round(durationSeconds * displayTimeline.baseVideo.fps))
     };
   }, [displayTimeline.baseVideo]);
+
+  useEffect(() => {
+    const frame = Math.max(0, Math.round((timelineState.currentTimeMs / 1000) * videoMetadata.fps));
+    useFrameStore.getState().setFrame(frame);
+  }, [timelineState.currentTimeMs, videoMetadata.fps]);
 
   const frameData = useTimelineWorker({
     manifest: manifest ? {
@@ -456,7 +470,6 @@ export const HyperframesPreview: React.FC<HyperframesPreviewProps> = ({
       ) : null}
 
       <NativePreviewOverlayStage
-        currentTimeMs={timelineState.currentTimeMs}
         videoMetadata={videoMetadata}
         model={displayTimeline.motionModel}
         captionProfileId={displayTimeline.captionProfileId}
@@ -466,7 +479,7 @@ export const HyperframesPreview: React.FC<HyperframesPreviewProps> = ({
 
       <HyperframesThreeSceneOverlay
         enabled={displayTimeline.motionModel.motion3DPlan.enabled}
-        currentTimeMs={timelineState.currentTimeMs}
+        fps={videoMetadata.fps}
       />
 
       <div className="hyperframes-creative-track-host">

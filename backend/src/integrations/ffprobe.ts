@@ -38,18 +38,19 @@ export class MediaProbeDeterminismError extends Error {
   }
 }
 
-const parseFps = (value: string | undefined): number => {
+const parseFps = (value: string | undefined): number | null => {
   if (!value) {
-    return 30;
+    return null;
   }
 
   const [numRaw, denRaw] = value.split("/");
   const numerator = Number(numRaw);
   const denominator = Number(denRaw ?? "1");
   if (!Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator === 0) {
-    return 30;
+    return null;
   }
-  return numerator / denominator;
+  const fps = numerator / denominator;
+  return Number.isFinite(fps) && fps > 0 ? fps : null;
 };
 
 const parseTimeTag = (timeStr: string | null | undefined): number | null => {
@@ -132,8 +133,8 @@ export const probeVideoMetadata = async (videoPath: string): Promise<VideoProbeR
     throw new Error("Could not resolve video stream metadata from ffprobe output.");
   }
 
-  const fps = parseFps(videoStream.avg_frame_rate || videoStream.r_frame_rate);
-  if (!Number.isFinite(fps) || fps <= 0) {
+  const fps = parseFps(videoStream.avg_frame_rate) ?? parseFps(videoStream.r_frame_rate);
+  if (fps === null || !Number.isFinite(fps) || fps <= 0) {
     throw new MediaProbeDeterminismError(`ffprobe returned an invalid FPS for ${path.basename(videoPath)}.`);
   }
   const durationMs = resolveDurationMsFromFfprobeJson(stdout);

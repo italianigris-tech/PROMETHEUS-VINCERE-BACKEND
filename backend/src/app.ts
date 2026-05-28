@@ -32,6 +32,11 @@ import {createSignedMusicPreviewUrl, type MusicPreviewUrlSigner} from "./music/c
 import {FONT_SERVE_PATH, resolveRetrievedFontsDir} from "./config/font-assets";
 import {ZillizHealthMonitor} from "./health/zilliz-keepalive";
 import {resetRetrievedFontsDir} from "./typography/zilliz-font-materializer";
+import {
+  buildExecutionVisibility,
+  ExecutionTelemetryBroker,
+  type ExecutionTelemetryEvent
+} from "./execution-telemetry";
 import {z} from "zod";
 
 const PATTERN_MEMORY_UPDATE_SCHEMA = z.object({
@@ -55,6 +60,7 @@ export type BackendAppContext = {
   queue: InProcessQueue;
   editSessions: EditSessionManager;
   god: GodService;
+  executionTelemetry: ExecutionTelemetryBroker;
   env: BackendEnv;
 };
 
@@ -108,6 +114,13 @@ const FONT_CONTENT_TYPES: Record<string, string> = {
 const inferFontContentType = (filePath: string): string => {
   return FONT_CONTENT_TYPES[path.extname(filePath).toLowerCase()] ?? "application/octet-stream";
 };
+
+const formatExecutionTelemetrySseEvent = (event: ExecutionTelemetryEvent): string => [
+  `id: ${event.id}`,
+  `event: ${event.type}`,
+  `data: ${JSON.stringify(event)}`,
+  ""
+].join("\n");
 
 const parseByteRange = (
   rangeHeader: string,
@@ -202,6 +215,13 @@ export const createBackendApp = async ({
 
   const repository = new FileJobRepository(env.STORAGE_DIR);
   const queue = new InProcessQueue(env.JOB_QUEUE_CONCURRENCY, env.JOB_QUEUE_MAX_PENDING);
+  const executionTelemetry = deps?.executionTelemetry instanceof ExecutionTelemetryBroker
+    ? deps.executionTelemetry
+    : new ExecutionTelemetryBroker();
+  const pipelineDeps: BackendDependencies = {
+    ...(deps ?? {}),
+    executionTelemetry
+  };
   const localPreviewRunner = new LocalPreviewRunner({
     extractAudioPreviewFile: deps?.extractAudioPreviewFile
   });
@@ -209,14 +229,14 @@ export const createBackendApp = async ({
     repository,
     queue,
     env,
-    deps: deps ?? {}
+    deps: pipelineDeps
   });
   await service.initialize();
   const editSessionStore = new EditSessionStore(env.STORAGE_DIR);
   const editSessions = new EditSessionManager({
     store: editSessionStore,
     env,
-    deps: deps ?? {}
+    deps: pipelineDeps
   });
   await editSessions.initialize();
   app.addHook("onClose", async () => {
@@ -460,8 +480,11 @@ export const createBackendApp = async ({
         status: job.status,
         current_stage: job.current_stage,
         stage: publicStageForJob(job.current_stage),
+        executionVisibility: buildExecutionVisibility(job),
         urls: {
           job: `/api/jobs/${job.job_id}`,
+          events: `/api/jobs/${job.job_id}/events`,
+          execution_visibility: `/api/jobs/${job.job_id}/execution-visibility`,
           metadata: `/api/jobs/${job.job_id}/metadata`,
           clips: `/api/jobs/${job.job_id}/clips`,
           result: `/api/jobs/${job.job_id}/result`,
@@ -507,6 +530,7 @@ export const createBackendApp = async ({
         current_stage: job.current_stage,
         stage: publicStageForJob(job.current_stage),
         progress: job.progress,
+        executionVisibility: buildExecutionVisibility(job),
         warnings: job.warning_list,
         error_message: job.error_message,
         artifact_availability: {
@@ -526,6 +550,8 @@ export const createBackendApp = async ({
           audio_stems_dir: audioStemsReady
         },
         urls: {
+          events: `/api/jobs/${job.job_id}/events`,
+          execution_visibility: `/api/jobs/${job.job_id}/execution-visibility`,
           metadata: metadataReady ? `/api/jobs/${job.job_id}/metadata` : null,
           clips: clipSelectionReady ? `/api/jobs/${job.job_id}/clips` : null,
           result: clipSelectionReady ? `/api/jobs/${job.job_id}/result` : null,
@@ -547,6 +573,81 @@ export const createBackendApp = async ({
     }
   });
 
+  app.get("/api/jobs/:jobId/execution-visibility", async (req, reply) => {
+    try {
+      const params = req.params as {jobId: string};
+      const job = await service.getJob(params.jobId);
+      executionTelemetry.ensureJobRegistered(job);
+      return buildExecutionVisibility(job);
+    } catch {
+      reply.code(404);
+      return {
+        error: "Execution visibility not found."
+      };
+    }
+  });
+
+  app.get("/api/jobs/:jobId/events", async (req, reply) => {
+    try {
+      const params = req.params as {jobId: string};
+      const query = req.query as {replay?: string};
+      const lastEventId = typeof req.headers["last-event-id"] === "string"
+        ? req.headers["last-event-id"]
+        : undefined;
+      const job = await service.getJob(params.jobId);
+      executionTelemetry.ensureJobRegistered(job);
+      const replayEvents = executionTelemetry.getReplayEvents(params.jobId, lastEventId);
+      const headers = {
+        "content-type": "text/event-stream; charset=utf-8",
+        "cache-control": "no-cache, no-transform",
+        connection: "keep-alive",
+        "x-accel-buffering": "no"
+      };
+
+      if (query.replay === "once") {
+        reply.headers(headers);
+        return replayEvents.map(formatExecutionTelemetrySseEvent).join("\n");
+      }
+
+      reply.hijack();
+      reply.raw.writeHead(200, headers);
+      reply.raw.write("\n");
+      replayEvents.forEach((event) => {
+        reply.raw.write(`${formatExecutionTelemetrySseEvent(event)}\n`);
+      });
+
+      const unsubscribe = executionTelemetry.subscribe(
+        params.jobId,
+        (event) => {
+          if (!reply.raw.writableEnded) {
+            reply.raw.write(`${formatExecutionTelemetrySseEvent(event)}\n`);
+          }
+        },
+        {replay: false}
+      );
+      const heartbeat = setInterval(() => {
+        if (!reply.raw.writableEnded) {
+          reply.raw.write(": heartbeat\n\n");
+        }
+      }, 15000);
+
+      req.raw.on("close", () => {
+        clearInterval(heartbeat);
+        unsubscribe();
+        try {
+          reply.raw.end();
+        } catch {
+          // Ignore transport cleanup failures.
+        }
+      });
+    } catch {
+      reply.code(404);
+      return {
+        error: "Execution events not found."
+      };
+    }
+  });
+
   app.post("/api/generate-viral-clips", async (req, reply) => {
     try {
       const job = req.isMultipart()
@@ -558,8 +659,11 @@ export const createBackendApp = async ({
         jobId: job.job_id,
         status: job.status,
         stage: publicStageForJob(job.current_stage),
+        executionVisibility: buildExecutionVisibility(job),
         urls: {
           job: `/api/jobs/${job.job_id}`,
+          events: `/api/jobs/${job.job_id}/events`,
+          execution_visibility: `/api/jobs/${job.job_id}/execution-visibility`,
           result: `/api/jobs/${job.job_id}/result`
         }
       };
@@ -698,6 +802,7 @@ export const createBackendApp = async ({
     queue,
     editSessions,
     god,
+    executionTelemetry,
     env
   });
   await registerUploadRoutes(app, {
@@ -715,6 +820,7 @@ export const createBackendApp = async ({
     queue,
     editSessions,
     god,
+    executionTelemetry,
     env
   };
 };

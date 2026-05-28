@@ -13,14 +13,14 @@ describe("governor duration", () => {
     })).toBe(60000);
   });
 
-  it("falls back to a single-frame floor when a duration probe resolves to zero", () => {
+  it("uses a preview-safe fallback instead of collapsing to a single-frame floor when duration is zero", () => {
     expect(resolveAudioCreativePreviewDurationMs({
       providedDurationMs: 0,
       creativeTimelineDurationMs: null,
       lastTrackEndMs: null,
       lastCaptionEndMs: null,
       fallbackDurationMs: null
-    })).toBe(42);
+    })).toBe(60000);
   });
 
   it("returns a valid provided duration without clamping to 1000ms", () => {

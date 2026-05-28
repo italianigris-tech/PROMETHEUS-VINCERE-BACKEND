@@ -88,6 +88,83 @@ describe("pipeline integration", () => {
     await context.app.close();
   });
 
+  it("bridges retrieved typography fonts into metadata and edit plans as browser-safe assets", async () => {
+    const context = await createTestApp({
+      storageDir: tempDir,
+      deps: {
+        resolveFontsByVibe: async () => ({
+          query: "luxury typography pairing | premium founder lesson",
+          fallbackReasons: [],
+          primary: {
+            assetId: "font_aesthetic",
+            family: "Aesthetic",
+            filePath: "C:\\tmp\\retrieved\\aesthetic\\Aesthetic-Regular.woff2",
+            browserUrl: "/fonts/retrieved/aesthetic/Aesthetic-Regular.woff2",
+            sources: [
+              {
+                fileName: "Aesthetic-Regular.woff2",
+                filePath: "C:\\tmp\\retrieved\\aesthetic\\Aesthetic-Regular.woff2",
+                browserUrl: "/fonts/retrieved/aesthetic/Aesthetic-Regular.woff2",
+                format: "woff2"
+              }
+            ],
+            score: 0.97,
+            confidence: 0.94,
+            recommendedUsage: "headline"
+          },
+          secondary: {
+            assetId: "font_ageya",
+            family: "Ageya",
+            filePath: "C:\\tmp\\retrieved\\ageya\\Ageya-Regular.woff2",
+            browserUrl: "/fonts/retrieved/ageya/Ageya-Regular.woff2",
+            sources: [
+              {
+                fileName: "Ageya-Regular.woff2",
+                filePath: "C:\\tmp\\retrieved\\ageya\\Ageya-Regular.woff2",
+                browserUrl: "/fonts/retrieved/ageya/Ageya-Regular.woff2",
+                format: "woff2"
+              }
+            ],
+            score: 0.91,
+            confidence: 0.9,
+            recommendedUsage: "support"
+          }
+        })
+      }
+    });
+
+    const createResponse = await context.app.inject({
+      method: "POST",
+      url: "/api/jobs",
+      payload: {
+        prompt: "Build a premium founder lesson with restrained luxury typography."
+      }
+    });
+    const {job_id: jobId} = createResponse.json();
+
+    await context.queue.onIdle();
+
+    const metadata = await context.service.getMetadataProfile(jobId);
+    const editPlan = await context.service.getEditPlan(jobId);
+
+    expect(metadata.typography.font_family_primary).toBe("Aesthetic");
+    expect(metadata.typography.primary_font_browser_url).toBe("/fonts/retrieved/aesthetic/Aesthetic-Regular.woff2");
+    expect(String(metadata.typography.primary_font_browser_url)).not.toMatch(/^file:|^[A-Z]:\\/i);
+    expect(String(metadata.typography.font_face_css)).toContain("@font-face");
+    expect(editPlan.typography_plan.font_family_primary).toBe("Aesthetic");
+    expect(editPlan.typography_plan.primary_font).toMatchObject({
+      family: "Aesthetic",
+      browserUrl: "/fonts/retrieved/aesthetic/Aesthetic-Regular.woff2",
+      source: "custom_ingested"
+    });
+    expect(editPlan.typography_plan.font_pairing).toMatchObject({
+      graphUsed: true,
+      source: "zilliz"
+    });
+
+    await context.app.close();
+  });
+
   it("uses a source-media reference with a probe stub and produces source metadata", async () => {
     const sourcePath = await createTempFile({
       dir: tempDir,

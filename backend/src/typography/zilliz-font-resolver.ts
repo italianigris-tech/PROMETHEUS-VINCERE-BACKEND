@@ -3,6 +3,7 @@ import path from "node:path";
 import type {BackendEnv} from "../config";
 import {AssetRetrievalService, type AssetRetrievalResponse} from "../assets/service";
 import {
+  materializeLocalFontAsset,
   materializeRetrievedFontAsset,
   type MaterializedRetrievedFontAsset
 } from "./zilliz-font-materializer";
@@ -64,12 +65,17 @@ const pickPreferredMaterializedSource = (sources: MaterializedRetrievedFontAsset
 export const isCompatibleFontPath = (filePath: string): boolean => /\.(woff2?|otf|ttf|zip)$/i.test(filePath.trim());
 
 const resolveCompatibleSourceUrl = (entry: Record<string, unknown>): string => {
+  const sourcePath = String(entry.path ?? "").trim();
+  if (isCompatibleFontPath(sourcePath)) {
+    return sourcePath;
+  }
+
   const publicPath = String(entry.public_path ?? "").trim();
   if (isCompatibleFontPath(publicPath)) {
     return publicPath;
   }
 
-  return String(entry.path ?? "").trim();
+  return sourcePath;
 };
 
 const resolveTypographyQueryText = (vibeDescriptor: string): string => {
@@ -81,6 +87,26 @@ const resolveTypographyQueryText = (vibeDescriptor: string): string => {
     "editorial restraint",
     "contextual empathy"
   ].filter(Boolean).join(" | ");
+};
+
+const isRemoteFontSource = (sourceUrl: string): boolean => /^https?:\/\//i.test(sourceUrl.trim());
+
+const materializeFontAssetFromSource = async ({
+  family,
+  sourceUrl
+}: {
+  family: string;
+  sourceUrl: string;
+}): Promise<MaterializedRetrievedFontAsset[]> => {
+  if (isRemoteFontSource(sourceUrl)) {
+    return materializeRetrievedFontAsset({family, sourceUrl});
+  }
+
+  const materialized = await materializeLocalFontAsset({
+    family,
+    filePath: sourceUrl
+  });
+  return [materialized];
 };
 
 export const resolveFontsByVibe = async (
@@ -106,7 +132,7 @@ export const resolveFontsByVibe = async (
     .map(async (entry) => {
       const sourceUrl = resolveCompatibleSourceUrl(entry as Record<string, unknown>);
       const family = inferFontFamilyFromPath(sourceUrl);
-      const materializedSources = await (dependency?.materialize ?? materializeRetrievedFontAsset)({
+      const materializedSources = await (dependency?.materialize ?? materializeFontAssetFromSource)({
         family,
         sourceUrl
       });
@@ -152,7 +178,8 @@ export class ZillizFontResolver {
 
   public async resolveFontsByVibe(vibeDescriptor: string, limit = 2): Promise<ResolvedVibeFontPair> {
     return resolveFontsByVibe(vibeDescriptor, limit, {
-      retrieve: (input) => this.retrievalService.retrieve(input) as Promise<Pick<AssetRetrievalResponse, "results" | "warnings">>
+      retrieve: (input) => this.retrievalService.retrieve(input) as Promise<Pick<AssetRetrievalResponse, "results" | "warnings">>,
+      materialize: materializeFontAssetFromSource
     });
   }
 }

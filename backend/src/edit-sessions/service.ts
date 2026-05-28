@@ -64,6 +64,14 @@ const RENDER_STAGE_PROGRESS: Record<string, number> = {
   failed: 100
 };
 
+const resolvePreviewCompositionFps = (env: BackendEnv): 24 | 30 => {
+  const fps = env.PREVIEW_COMPOSITION_FPS;
+  if (fps !== 24 && fps !== 30) {
+    throw new Error("Invalid FPS configuration");
+  }
+  return fps;
+};
+
 const nowIso = (deps: EditSessionDependencies): string => {
   return deps.now ? deps.now() : new Date().toISOString();
 };
@@ -1400,12 +1408,15 @@ export class EditSessionManager {
           `Duration ${Math.round(metadata.duration_seconds * 1000)}ms at ${metadata.fps.toFixed(2)}fps.`
         );
       } catch (error) {
-        const reason = error instanceof Error ? error.message : String(error);
+        const rawReason = error instanceof Error ? error.message : String(error);
+        const reason = updated.metadata.livePreviewLane === true
+          ? "Live compositor requires a video file with a real video track. Audio-only sources are not allowed in this lane."
+          : rawReason;
         await this.failSession(sessionId, {
           errorCode: "media_probe_failed",
           errorMessage: reason
         });
-        throw error;
+        throw new Error(reason);
       }
     }
 
@@ -1746,6 +1757,8 @@ export class EditSessionManager {
           secondaryFont: previewSecondaryFont
         }
       : undefined;
+    const previewCompositionFps = resolvePreviewCompositionFps(this.env);
+    const sceneFps = session.sourceFps ?? previewCompositionFps;
 
     return {
       manifest: {
@@ -1766,7 +1779,7 @@ export class EditSessionManager {
           aspectRatio: sceneAspectRatio,
           width: sceneWidth,
           height: sceneHeight,
-          fps: session.sourceFps ?? 30
+          fps: sceneFps
         },
         intent: {
           rhetoricalIntent: "premium_explain",
@@ -1825,7 +1838,7 @@ export class EditSessionManager {
         },
         renderBudget: {
           previewResolution: "720p",
-          previewFps: 30,
+          previewFps: previewCompositionFps,
           finalResolution: "1080p",
           allowHeavyEffectsInPreview: false,
           finalOnlyEffects: []
@@ -1868,7 +1881,7 @@ export class EditSessionManager {
             durationMs: session.sourceDurationMs ?? 8000,
             startMs: 0,
             endMs: session.sourceDurationMs ?? 8000,
-            fps: session.sourceFps ?? 30
+            fps: sceneFps
           },
           typographyTruth: {
             mode: "svg_longform_typography_v1",

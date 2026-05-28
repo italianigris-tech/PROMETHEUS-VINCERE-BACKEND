@@ -6,6 +6,7 @@ import {z} from "zod";
 import type {ClipSelection, EditPlan, MetadataProfile, TranscribedWord} from "./schemas";
 import {buildPatternMemorySignalTerms, buildPatternMemorySummary, readPatternMemorySnapshot} from "./pattern-memory";
 import {evaluateTemporalContinuity} from "./temporal-governor";
+import {buildMotionIntelligencePlan} from "./motion-intelligence";
 
 const WORKSPACE_ROOT = path.resolve(process.cwd(), "..");
 const REMOTION_DATA_DIR = path.join(WORKSPACE_ROOT, "remotion-app", "src", "data");
@@ -50,6 +51,23 @@ export const motionPlanArtifactSchema = z.object({
   timeline_events: z.array(z.record(z.string(), z.unknown())),
   paired_effects: z.array(z.record(z.string(), z.unknown())),
   temporal_governor: z.record(z.string(), z.unknown()).optional(),
+  motion_intelligence: z.record(z.string(), z.unknown()).default({}),
+  transform_ownership: z.record(z.string(), z.unknown()).default({}),
+  motion_driver_plan: z.record(z.string(), z.unknown()).default({}),
+  motion_trace: z.object({
+    file_name: z.string(),
+    path: z.string().nullable(),
+    line_count: z.number().int().nonnegative(),
+    selected_primitive_count: z.number().int().nonnegative(),
+    rejected_primitive_count: z.number().int().nonnegative()
+  }).default({
+    file_name: "motion_trace.log",
+    path: null,
+    line_count: 0,
+    selected_primitive_count: 0,
+    rejected_primitive_count: 0
+  }),
+  motion_trace_log: z.string().default(""),
   validation: z.object({
     warnings: z.array(z.string()),
     errors: z.array(z.string()),
@@ -384,6 +402,67 @@ const buildTimelineEvents = (input: MotionPlanBuilderInput): Record<string, unkn
   ].map((event, index) => ({...event, order: index, confidence: index === 0 ? 0.94 : index === 1 ? 0.84 : 0.8}));
 };
 
+const resolveMotionIntelligenceSceneType = (input: MotionPlanBuilderInput): string => {
+  const corpus = normalizeText([
+    input.prompt,
+    input.metadata.user_intent.content_type,
+    input.metadata.user_intent.tone_target,
+    input.metadata.user_intent.pace_target,
+    input.editPlan.intent_profile,
+    input.clipSelection.selected_clips.map((clip) => `${clip.suggested_title} ${clip.hook_line}`).join(" ")
+  ].map(stringifyValue).join(" "));
+
+  if (/\b(compare|comparison|before|after|versus|vs)\b/.test(corpus)) {
+    return "comparison";
+  }
+  if (/\b(stat|stats|metric|number|proof|chart|percent|revenue|growth)\b/.test(corpus)) {
+    return "stats";
+  }
+  if (/\b(emotion|personal|story|climax|truth|wrong|heart)\b/.test(corpus)) {
+    return "high_emotion";
+  }
+  if (/\b(hook|intro|opening|attention)\b/.test(corpus)) {
+    return "hook";
+  }
+  if (/\b(explain|educational|teach|lesson|workflow)\b/.test(corpus)) {
+    return "explain";
+  }
+  return "generic";
+};
+
+const buildMotionIntelligenceForPlan = (
+  input: MotionPlanBuilderInput,
+  policy: Record<string, unknown>
+) => {
+  const transcriptText = (input.transcriptWords.length > 0 ? input.transcriptWords : input.metadata.transcript_words)
+    .map((word) => word.text)
+    .join(" ");
+  const creatorProfile = unique([
+    input.metadata.user_intent.tone_target as string | undefined,
+    input.metadata.user_intent.pace_target as string | undefined,
+    input.metadata.typography.caption_style_profile as string | undefined,
+    input.metadata.motion_graphics.motion_graphics_style_family as string | undefined,
+    input.clipSelection.source_summary.creator_niche ?? undefined
+  ]).join(" | ");
+
+  return buildMotionIntelligencePlan({
+    transcript: transcriptText || input.prompt,
+    creatorProfile,
+    motionProfileVersion: "motion-profile-v1",
+    sceneMetadata: {
+      sceneId: input.jobId,
+      sceneType: resolveMotionIntelligenceSceneType(input),
+      semanticIntent: input.prompt,
+      brandConstraints: unique([
+        String(policy.motion_mode ?? ""),
+        String(input.editPlan.motion_plan.safe_area_rules ?? ""),
+        String(input.metadata.layout_collision.caption_safe_zone_required ?? ""),
+        String(input.metadata.motion_graphics.motion_graphics_intensity ?? "")
+      ])
+    }
+  });
+};
+
 export const buildMotionPlanArtifact = async (input: MotionPlanBuilderInput): Promise<MotionPlanArtifact> => {
   const generatedAt = input.generatedAt ?? new Date().toISOString();
   const catalogs = await loadCatalogs();
@@ -410,6 +489,7 @@ export const buildMotionPlanArtifact = async (input: MotionPlanBuilderInput): Pr
   const timelineEvents = buildTimelineEvents(input);
   const intensity = resolveIntensity(input);
   const policy = buildPolicy(input);
+  const motionIntelligence = buildMotionIntelligenceForPlan(input, policy);
   const temporalGovernor = evaluateTemporalContinuity(
     timelineEvents.map((event) => ({
       id: String(event.id),
@@ -492,6 +572,33 @@ export const buildMotionPlanArtifact = async (input: MotionPlanBuilderInput): Pr
       }
     ],
     temporal_governor: temporalGovernor,
+    motion_intelligence: {
+      version: motionIntelligence.version,
+      seed: motionIntelligence.seed,
+      continuity_vector: motionIntelligence.continuityVector,
+      motion_profile: motionIntelligence.motionProfile,
+      selected_primitives: motionIntelligence.selectedPrimitives.map((primitive) => ({
+        id: primitive.id,
+        category: primitive.category,
+        owner_priority: primitive.ownerPriority,
+        transform_claims: primitive.transformClaims,
+        readability_cost: primitive.readabilityCost,
+        score: primitive.score,
+        mutation_parameters: primitive.mutationParameters
+      })),
+      rejected_primitives: motionIntelligence.rejectedPrimitives,
+      semantic_reasoning: motionIntelligence.semanticReasoning
+    },
+    transform_ownership: motionIntelligence.transformOwnership,
+    motion_driver_plan: motionIntelligence.driverPlan,
+    motion_trace: {
+      file_name: "motion_trace.log",
+      path: null,
+      line_count: motionIntelligence.traceLog.split(/\r?\n/).filter(Boolean).length,
+      selected_primitive_count: motionIntelligence.selectedPrimitives.length,
+      rejected_primitive_count: motionIntelligence.rejectedPrimitives.length
+    },
+    motion_trace_log: motionIntelligence.traceLog,
     validation: {
       warnings: [
         ...(catalogs.authoringAssets.length === 0 ? ["The authoring motion asset catalog was empty or unavailable."] : []),
@@ -509,7 +616,9 @@ export const buildMotionPlanArtifact = async (input: MotionPlanBuilderInput): Pr
       `Pattern memory fingerprint: ${patternMemorySummary.fingerprint}`,
       `Pattern memory active entries: ${patternMemorySummary.active_entries}`,
       `Prototype catalog source: ${PROTOTYPE_CATALOG_PATH}`,
-      `Authoring catalog source: ${AUTHORING_CATALOG_PATH}`
+      `Authoring catalog source: ${AUTHORING_CATALOG_PATH}`,
+      `Motion intelligence seed: ${motionIntelligence.seed}`,
+      `Motion intelligence continuity vector: ${motionIntelligence.continuityVector}`
     ])
   });
 };

@@ -20,9 +20,36 @@ import {FileJobRepository} from "./repository";
 import {renderMasterTrack} from "./sound-engine";
 import {readPatternMemorySnapshot, recordPatternMemoryOutcome} from "./pattern-memory";
 import {
+  type DeliveredTypographyFont,
+  type PipelineFontResolver,
+  resolveTypographyDeliveryPlan,
+  type TypographyDeliveryPlan
+} from "./typography/font-delivery-bridge";
+import type {ExecutionTelemetryReporter} from "./execution-telemetry";
+import {
+  buildShortFormIntelligence,
+  SHORT_FORM_RANKING_MODEL
+} from "./short-form-intelligence";
+import {
   createFailureVisibilityRecord,
   failureRecordToFallbackEvent
 } from "./failure-intelligence";
+import {
+  createExecutionContext,
+  type PipelineExecutionContext,
+  type PreparedExecutionInputs
+} from "./execution-context";
+import {createExecutionRouter} from "./execution-router";
+import {MainVideoExecutor} from "./executors/main-video-executor";
+import {ShortFormExecutor} from "./executors/short-form-executor";
+import {
+  DefaultMotionExecutionPlanner,
+  type PipelineMotionPlanner
+} from "./executors/motion-execution-planner";
+import type {
+  JobExecutionResult,
+  PipelineClipPlanner
+} from "./executors/executor-contract";
 import {
   type ClipCandidate,
   clipCandidateSchema,
@@ -61,6 +88,8 @@ export type PipelineDependencies = {
   fetchImpl?: FetchLike;
   probeVideoMetadata?: (videoPath: string) => Promise<VideoProbeResult>;
   transcribeWithAssemblyAI?: typeof transcribeWithAssemblyAI;
+  resolveFontsByVibe?: PipelineFontResolver;
+  executionTelemetry?: ExecutionTelemetryReporter;
   now?: () => string;
 };
 
@@ -96,6 +125,14 @@ const PIPELINE_STEP_INDEX = {
 } as const;
 
 const TOTAL_STEPS = 7;
+
+const resolveCompositionFps = (env: BackendEnv): number => {
+  const fps = env.PREVIEW_COMPOSITION_FPS;
+  if (!Number.isFinite(fps) || fps < 1) {
+    throw new Error("Invalid FPS configuration");
+  }
+  return fps;
+};
 
 const safeReadJson = async <T>(filePath: string): Promise<T | null> => {
   try {
@@ -629,7 +666,7 @@ export const synthesizeMetadataProfile = ({
     ["source_media.source_width", analysis.probe?.width ?? null],
     ["source_media.source_height", analysis.probe?.height ?? null],
     ["source_media.source_aspect_ratio", aspectRatio],
-    ["source_media.source_fps", analysis.probe?.fps ?? 30],
+    ["source_media.source_fps", analysis.probe?.fps ?? null],
     ["source_media.source_has_audio", analysis.source_exists],
     ["source_media.source_storage_uri", analysis.source_storage_uri],
     ["derived_technical.format_family", formatFamily],
@@ -654,7 +691,7 @@ export const synthesizeMetadataProfile = ({
     ["output.output_formats_requested", ["mp4"]],
     ["output.output_primary_aspect_ratio", aspectRatio ?? (targetPlatform === "generic" ? "16:9" : "9:16")],
     ["output.output_resolution_target", analysis.probe ? `${analysis.probe.width}x${analysis.probe.height}` : "1080x1920"],
-    ["output.output_fps_target", analysis.probe?.fps ?? 30],
+    ["output.output_fps_target", analysis.probe?.fps ?? null],
     ["output.output_preview_required", true],
     ["output.output_final_required", true],
     ["output.output_burned_captions", true],
@@ -1511,6 +1548,35 @@ const buildCandidateWindows = (transcriptWords: TranscribedWord[]): CandidateWin
   ];
 };
 
+const buildAcousticFallbackWords = ({
+  request,
+  sourceDurationMs
+}: {
+  request: NormalizedJobRequest;
+  sourceDurationMs: number;
+}): TranscribedWord[] => {
+  const fallbackText = cleanTranscriptText(
+    [
+      "Acoustic fallback segment detected from pacing and source duration.",
+      request.prompt || "Rank this source for short-form potential."
+    ].join(" ")
+  );
+  const words = fallbackText.split(/\s+/).filter(Boolean).slice(0, 72);
+  const segmentDurationMs = Math.min(30000, Math.max(12000, Math.round(sourceDurationMs * 0.28)));
+  const startMs = Math.max(0, Math.round(sourceDurationMs * 0.18));
+  const stepMs = Math.max(240, Math.min(520, Math.floor(segmentDurationMs / Math.max(1, words.length))));
+
+  return words.map((word, index) => {
+    const start = startMs + index * stepMs;
+    return {
+      text: word,
+      start_ms: start,
+      end_ms: Math.min(start + Math.round(stepMs * 0.72), startMs + segmentDurationMs),
+      confidence: 0.42
+    };
+  });
+};
+
 const clampClipScore = (value: number): number => {
   return round(Math.min(10, Math.max(0, value)), 2);
 };
@@ -1568,12 +1634,24 @@ const scoreClipCandidate = ({
   window,
   transcriptWords,
   targetPlatform,
-  creatorNiche
+  creatorNiche,
+  request,
+  sourceMetadata,
+  fallbackMode = "transcript_semantic_segmentation"
 }: {
   window: CandidateWindow;
   transcriptWords: TranscribedWord[];
   targetPlatform: TargetPlatform;
   creatorNiche?: string;
+  request: NormalizedJobRequest;
+  sourceMetadata?: {
+    hasSourceVideo?: boolean;
+    width?: number | null;
+    height?: number | null;
+    fps?: number | null;
+    durationMs?: number | null;
+  };
+  fallbackMode?: "transcript_semantic_segmentation" | "acoustic_segmentation";
 }): ClipCandidate => {
   const clipWords = transcriptWords.slice(window.start_index, window.end_index + 1);
   const transcriptExcerpt = sliceWordsToText(clipWords);
@@ -1689,7 +1767,7 @@ const scoreClipCandidate = ({
     )
   };
 
-  const finalScore = clampClipScore(
+  const baseFinalScore = clampClipScore(
     scores.hook * CLIP_SCORING_WEIGHTS.hook +
       scores.clarity * CLIP_SCORING_WEIGHTS.clarity +
       scores.payoff * CLIP_SCORING_WEIGHTS.payoff +
@@ -1724,6 +1802,22 @@ const scoreClipCandidate = ({
     matched_keywords: matchedKeywords,
     emphasis_words: emphasisWords
   };
+  const intelligence = buildShortFormIntelligence({
+    request,
+    targetPlatform,
+    transcriptExcerpt,
+    leadingContext,
+    trailingContext,
+    clipWords,
+    startMs: window.start_ms,
+    endMs: window.end_ms,
+    baseScores: scores,
+    heuristicSignals,
+    sourceMetadata,
+    fallbackMode
+  });
+  const finalScore = Math.max(baseFinalScore, intelligence.score_breakdown.final.virality_score);
+  intelligence.score_breakdown.final.virality_score = finalScore;
 
   return clipCandidateSchema.parse({
     clip_id: `clip_${window.start_index}_${window.end_index}`,
@@ -1739,7 +1833,8 @@ const scoreClipCandidate = ({
     final_score: finalScore,
     ranking_notes: rankingNotes,
     recommended_start_adjustment_ms: cleanStartBoundary ? -900 : -1400,
-    recommended_end_adjustment_ms: cleanEndBoundary ? 1200 : 1800
+    recommended_end_adjustment_ms: cleanEndBoundary ? 1200 : 1800,
+    ...intelligence
   });
 };
 
@@ -1898,9 +1993,45 @@ export const buildClipSelection = ({
     request.target_platform ?? (getMetadataField(metadata, "user_intent.target_platform") as TargetPlatform | undefined)
   );
   const warnings = metadata.warnings.slice();
+  const sourceMetadata = {
+    hasSourceVideo: Boolean(getMetadataField(metadata, "source_media.source_storage_uri")),
+    width: Number(getMetadataField(metadata, "source_media.source_width") ?? 0) || null,
+    height: Number(getMetadataField(metadata, "source_media.source_height") ?? 0) || null,
+    fps: Number(getMetadataField(metadata, "source_media.source_fps") ?? 0) || null,
+    durationMs: Number(getMetadataField(metadata, "source_media.source_duration_ms") ?? 0) || null
+  };
 
   if (transcriptWords.length === 0) {
-    warnings.push("Transcript unavailable; clip candidate generation was skipped.");
+    const sourceDurationMs = sourceMetadata.durationMs ?? 0;
+    const fallbackWords = sourceDurationMs >= 6000
+      ? buildAcousticFallbackWords({request, sourceDurationMs})
+      : [];
+    const candidateSegments = fallbackWords.length > 0
+      ? buildCandidateWindows(fallbackWords)
+          .map((window) =>
+            scoreClipCandidate({
+              window,
+              transcriptWords: fallbackWords,
+              targetPlatform,
+              creatorNiche: request.creator_niche,
+              request,
+              sourceMetadata,
+              fallbackMode: "acoustic_segmentation"
+            })
+          )
+          .sort((left, right) => right.final_score - left.final_score)
+      : [];
+    const selectedClips = selectTopClips({
+      candidates: candidateSegments,
+      transcriptWords: fallbackWords,
+      minClipCount: request.min_clip_count ?? 1,
+      maxClipCount: request.max_clip_count ?? 3
+    });
+    warnings.push(
+      fallbackWords.length > 0
+        ? "Transcript unavailable; acoustic segmentation fallback generated ranked clip candidates."
+        : "Transcript unavailable and source duration missing; clip candidate generation was skipped."
+    );
     return clipSelectionSchema.parse({
       job_id: request.job_id,
       plan_version: "1.0.0",
@@ -1911,13 +2042,15 @@ export const buildClipSelection = ({
         creator_niche: request.creator_niche ?? null,
         requested_clip_count_min: request.min_clip_count ?? null,
         requested_clip_count_max: request.max_clip_count ?? null,
-        candidate_count: 0,
-        selected_count: 0
+        candidate_count: candidateSegments.length,
+        selected_count: selectedClips.length,
+        ranking_model: SHORT_FORM_RANKING_MODEL,
+        fallback_mode: fallbackWords.length > 0 ? "acoustic_segmentation" : "transcript_unavailable"
       },
       window_config: CLIP_WINDOW_CONFIGS,
       scoring_weights: CLIP_SCORING_WEIGHTS,
-      candidate_segments: [],
-      selected_clips: [],
+      candidate_segments: candidateSegments,
+      selected_clips: selectedClips,
       warnings: uniqueStrings(warnings)
     });
   }
@@ -1928,7 +2061,10 @@ export const buildClipSelection = ({
         window,
         transcriptWords,
         targetPlatform,
-        creatorNiche: request.creator_niche
+        creatorNiche: request.creator_niche,
+        request,
+        sourceMetadata,
+        fallbackMode: "transcript_semantic_segmentation"
       })
     )
     .sort((left, right) => right.final_score - left.final_score);
@@ -1951,7 +2087,9 @@ export const buildClipSelection = ({
       requested_clip_count_min: request.min_clip_count ?? null,
       requested_clip_count_max: request.max_clip_count ?? null,
       candidate_count: candidateSegments.length,
-      selected_count: selectedClips.length
+      selected_count: selectedClips.length,
+      ranking_model: SHORT_FORM_RANKING_MODEL,
+      fallback_mode: "transcript_semantic_segmentation"
     },
     window_config: CLIP_WINDOW_CONFIGS,
     scoring_weights: CLIP_SCORING_WEIGHTS,
@@ -1959,6 +2097,50 @@ export const buildClipSelection = ({
     selected_clips: selectedClips,
     warnings: uniqueStrings(warnings)
   });
+};
+
+const serializeDeliveredTypographyFont = (
+  font: DeliveredTypographyFont | undefined
+): Record<string, unknown> | null => {
+  if (!font) {
+    return null;
+  }
+
+  return {
+    assetId: font.assetId,
+    family: font.family,
+    source: font.source,
+    retrievalSource: font.retrievalSource,
+    role: font.role,
+    browserUrl: font.browserUrl,
+    fileUrl: font.browserUrl,
+    fileName: font.fileName,
+    format: font.format,
+    score: font.score,
+    confidence: font.confidence,
+    sources: font.sources
+  };
+};
+
+const applyTypographyDeliveryPlan = (
+  metadata: MetadataProfile,
+  delivery: TypographyDeliveryPlan
+): void => {
+  const secondary = delivery.secondary ?? delivery.primary;
+  setMetadataField(metadata, "typography.font_family_primary", delivery.primary.family, "inferred_from_prompt");
+  setMetadataField(metadata, "typography.font_family_secondary", secondary.family, "inferred_from_prompt");
+  setMetadataField(metadata, "typography.primary_font", serializeDeliveredTypographyFont(delivery.primary), "inferred_from_prompt");
+  setMetadataField(metadata, "typography.secondary_font", serializeDeliveredTypographyFont(delivery.secondary), "inferred_from_prompt");
+  setMetadataField(metadata, "typography.primary_font_browser_url", delivery.primary.browserUrl, "inferred_from_prompt");
+  setMetadataField(metadata, "typography.secondary_font_browser_url", delivery.secondary?.browserUrl ?? null, "inferred_from_prompt");
+  setMetadataField(metadata, "typography.font_face_css", delivery.fontFaceCss, "inferred_from_prompt");
+  setMetadataField(metadata, "typography.font_pairing_score", delivery.pairingScore, "inferred_from_prompt");
+  setMetadataField(metadata, "typography.font_pairing_source", delivery.source, "inferred_from_prompt");
+  setMetadataField(metadata, "typography.font_pairing_query", delivery.query, "inferred_from_prompt");
+  setMetadataField(metadata, "typography.font_graph_used", delivery.graphUsed, "inferred_from_prompt");
+  setMetadataField(metadata, "typography.font_fallback_used", delivery.fallbackUsed, "inferred_from_prompt");
+  setMetadataField(metadata, "typography.font_fallback_reasons", delivery.fallbackReasons, "inferred_from_prompt");
+  setMetadataField(metadata, "typography.font_role_styles", delivery.roleStyles, "inferred_from_prompt");
 };
 
 const buildDeterministicEditPlan = ({
@@ -2017,6 +2199,20 @@ const buildDeterministicEditPlan = ({
       preset: getMetadataField(metadata, "typography.typography_default_preset"),
       font_family_primary: getMetadataField(metadata, "typography.font_family_primary"),
       font_family_secondary: getMetadataField(metadata, "typography.font_family_secondary"),
+      primary_font: getMetadataField(metadata, "typography.primary_font"),
+      secondary_font: getMetadataField(metadata, "typography.secondary_font"),
+      primary_font_browser_url: getMetadataField(metadata, "typography.primary_font_browser_url"),
+      secondary_font_browser_url: getMetadataField(metadata, "typography.secondary_font_browser_url"),
+      font_face_css: getMetadataField(metadata, "typography.font_face_css"),
+      font_pairing: {
+        graphUsed: getMetadataField(metadata, "typography.font_graph_used"),
+        score: getMetadataField(metadata, "typography.font_pairing_score"),
+        source: getMetadataField(metadata, "typography.font_pairing_source"),
+        query: getMetadataField(metadata, "typography.font_pairing_query"),
+        fallbackUsed: getMetadataField(metadata, "typography.font_fallback_used"),
+        fallbackReasons: getMetadataField(metadata, "typography.font_fallback_reasons")
+      },
+      role_styles: getMetadataField(metadata, "typography.font_role_styles"),
       keyword_emphasis_enabled: getMetadataField(metadata, "typography.keyword_emphasis_enabled"),
       fallback_text_card_style: getMetadataField(metadata, "typography.fallback_text_card_style")
     },
@@ -2362,7 +2558,7 @@ const withVisibleModelRecovery = async <T>({
       partialRecoveryState: "deterministic-recovery",
       createdAt: nowIso(deps)
     });
-    warnings.push(`Visible model degradation during ${stage}: ${reason}`);
+    warnings.push(`Groq fallback during ${stage}: ${reason}. Visible model degradation was recorded.`);
     fallbackEvents.push(failureRecordToFallbackEvent(visibleFailure));
     fallbackEvents.push(
       createFallbackEvent(
@@ -2458,7 +2654,7 @@ const updateStage = async (
   note?: string
 ): Promise<void> => {
   const stamp = nowIso(deps);
-  await repository.updateJobRecord(jobId, (current) => ({
+  const updated = await repository.updateJobRecord(jobId, (current) => ({
     ...current,
     status: stage,
     current_stage: stage,
@@ -2467,6 +2663,7 @@ const updateStage = async (
     progress: progressForStage(stage),
     stage_history: current.stage_history.concat([{stage, at: stamp, note}])
   }));
+  deps.executionTelemetry?.recordStageTransition(updated, note);
 };
 
 const mergeWarningsIntoJob = async (
@@ -2563,24 +2760,33 @@ const buildPatternMemoryFeedbackPayload = async ({
   };
 };
 
-export const processJobPipeline = async ({
-  request,
-  repository,
-  env,
-  deps
-}: {
+type ProcessJobPipelineInput = {
   request: NormalizedJobRequest;
   repository: FileJobRepository;
   env: BackendEnv;
   deps: PipelineDependencies;
-}): Promise<void> => {
-  const normalizedRequest = normalizedJobRequestSchema.parse(request);
+};
+
+type PreparedPipelineExecutionInputs = PreparedExecutionInputs & {
+  normalizedRequest: NormalizedJobRequest;
+  sourceAnalysis: SourceAnalysis;
+  warnings: string[];
+  fallbackEvents: FallbackEvent[];
+};
+
+export const prepareExecutionInputs = async (
+  context: PipelineExecutionContext
+): Promise<PreparedPipelineExecutionInputs> => {
+  const {repository, env, deps} = context;
+  const normalizedRequest = normalizedJobRequestSchema.parse(context.request);
+  context.request = normalizedRequest;
   const warnings: string[] = [];
   const fallbackEvents: FallbackEvent[] = [];
 
   await updateStage(repository, normalizedRequest.job_id, "analyzing", deps, "Job worker started.");
 
   const sourceAnalysis = await analyzeSourceMedia(normalizedRequest, deps, env);
+  context.sourceMediaProfile = sourceAnalysis;
   warnings.push(...sourceAnalysis.warnings);
   fallbackEvents.push(...sourceAnalysis.fallback_events);
 
@@ -2591,6 +2797,7 @@ export const processJobPipeline = async ({
     env,
     deps
   });
+  context.transcript = transcript;
   warnings.push(...transcript.warnings);
   fallbackEvents.push(...transcript.fallback_events);
 
@@ -2602,7 +2809,34 @@ export const processJobPipeline = async ({
   });
   warnings.push(...metadataResult.warnings);
   fallbackEvents.push(...metadataResult.fallback_events);
-  let metadataProfile = metadataResult.profile;
+  context.metadata = metadataResult.profile;
+
+  return {
+    normalizedRequest,
+    metadataProfile: metadataResult.profile,
+    transcript,
+    sourceMetadata: sourceAnalysis,
+    sourceAnalysis,
+    repositories: {
+      jobRepository: repository
+    },
+    telemetry: context.telemetry,
+    warnings,
+    fallbackEvents
+  };
+};
+
+export const executePipelineCore = async (
+  context: PipelineExecutionContext,
+  clipPlanner: PipelineClipPlanner,
+  motionPlanner: PipelineMotionPlanner
+): Promise<JobExecutionResult> => {
+  const {repository, env, deps} = context;
+  const preparedInputs = await prepareExecutionInputs(context);
+  const {normalizedRequest, sourceAnalysis} = preparedInputs;
+  const warnings = preparedInputs.warnings;
+  const fallbackEvents = preparedInputs.fallbackEvents;
+  let metadataProfile = preparedInputs.metadataProfile;
 
   const llmMetadata = await withVisibleModelRecovery({
     attempt: () => tryLlmMetadataRefinement({env, deps, deterministicProfile: metadataProfile}),
@@ -2614,6 +2848,34 @@ export const processJobPipeline = async ({
   });
   if (llmMetadata) {
     metadataProfile = llmMetadata;
+    context.metadata = metadataProfile;
+  }
+
+  const typographyDelivery = await resolveTypographyDeliveryPlan({
+    request: normalizedRequest,
+    metadata: metadataProfile,
+    env,
+    resolveFontsByVibe: deps.resolveFontsByVibe
+  });
+  applyTypographyDeliveryPlan(metadataProfile, typographyDelivery);
+  warnings.push(...typographyDelivery.warnings);
+  if (typographyDelivery.fallbackUsed) {
+    fallbackEvents.push(
+      createFallbackEvent(
+        "typography_bridge",
+        "typography_font_fallback",
+        typographyDelivery.source === "system" ? "warning" : "info",
+        "Typography bridge used a fallback font delivery path.",
+        {
+          source: typographyDelivery.source,
+          graph_used: typographyDelivery.graphUsed,
+          fallback_reasons: typographyDelivery.fallbackReasons,
+          primary_family: typographyDelivery.primary.family,
+          primary_browser_url: typographyDelivery.primary.browserUrl
+        },
+        deps
+      )
+    );
   }
 
   const enrichmentCandidates = buildEnrichmentCandidates({
@@ -2645,17 +2907,20 @@ export const processJobPipeline = async ({
       .map((candidate) => candidate.entity_text),
     "inferred_from_prompt"
   );
+  context.metadata = metadataProfile;
 
   const metadataPath = await repository.writeMetadataProfile(normalizedRequest.job_id, metadataProfile);
-  const clipSelection = buildClipSelection({
-    request: normalizedRequest,
-    metadata: metadataProfile
+  const shortFormPlanning = await clipPlanner.executePlanning({
+    context,
+    metadata: metadataProfile,
+    warnings
   });
-  const clipSelectionPath = await repository.writeClipSelection(normalizedRequest.job_id, clipSelection);
+  warnings.splice(0, warnings.length, ...shortFormPlanning.warnings);
+  const {clipSelection, clipSelectionPath} = shortFormPlanning;
   await mergeWarningsIntoJob(
     repository,
     normalizedRequest.job_id,
-    uniqueStrings(warnings.concat(clipSelection.warnings)),
+    warnings,
     {
       source_filename: sourceAnalysis.source_filename,
       source_storage_uri: sourceAnalysis.source_storage_uri,
@@ -2694,14 +2959,15 @@ export const processJobPipeline = async ({
   });
   await updateStage(repository, normalizedRequest.job_id, "plan_ready", deps, "Edit plan persisted.");
 
+  const compositionFps = resolveCompositionFps(env);
   const transcriptDurationSeconds = Math.max(1, (metadataProfile.transcript_words.at(-1)?.end_ms ?? 1000) / 1000);
   const resolvedSourceDurationSeconds = sourceAnalysis.probe?.duration_seconds ?? transcriptDurationSeconds;
   const resolvedSourceDurationInFrames = sourceAnalysis.probe?.duration_in_frames ?? Math.max(
     1,
-    Math.round(resolvedSourceDurationSeconds * (sourceAnalysis.probe?.fps ?? 30))
+    Math.round(resolvedSourceDurationSeconds * compositionFps)
   );
 
-  const motionPlanArtifact = await buildMotionPlanArtifact({
+  const motionPlanning = await motionPlanner.plan(context, {
     jobId: normalizedRequest.job_id,
     prompt: normalizedRequest.prompt,
     metadata: metadataProfile,
@@ -2712,13 +2978,13 @@ export const processJobPipeline = async ({
     videoMetadata: {
       width: sourceAnalysis.probe?.width ?? 1080,
       height: sourceAnalysis.probe?.height ?? 1920,
-      fps: sourceAnalysis.probe?.fps ?? 30,
+      fps: sourceAnalysis.probe?.fps ?? compositionFps,
       durationSeconds: resolvedSourceDurationSeconds,
       durationInFrames: resolvedSourceDurationInFrames
     },
     generatedAt: nowIso(deps)
   });
-  const motionPlanPath = await repository.writeMotionPlan(normalizedRequest.job_id, motionPlanArtifact);
+  const {motionPlanArtifact, motionPlanPath} = motionPlanning;
   warnings.push(...motionPlanArtifact.validation.warnings);
   await mergeWarningsIntoJob(repository, normalizedRequest.job_id, warnings, undefined, {
     motion_plan: motionPlanPath
@@ -2806,4 +3072,34 @@ export const processJobPipeline = async ({
 
   await updateStage(repository, normalizedRequest.job_id, "ranking", deps, "Clip ranking finalized.");
   await updateStage(repository, normalizedRequest.job_id, "completed", deps, "Job completed successfully.");
+  return {
+    capability: "main_video",
+    state: "RENDER_READY",
+    warnings: uniqueStrings(warnings),
+    fallbackEvents
+  };
+};
+
+export const processJobPipeline = async (input: ProcessJobPipelineInput): Promise<void> => {
+  const context = createExecutionContext(input);
+  const motionPlanner = new DefaultMotionExecutionPlanner();
+  const runSharedPipeline = (
+    pipelineContext: PipelineExecutionContext,
+    clipPlanner: PipelineClipPlanner
+  ): Promise<JobExecutionResult> => executePipelineCore(pipelineContext, clipPlanner, motionPlanner);
+  const shortFormExecutor = new ShortFormExecutor({
+    buildClipSelection,
+    runSharedPipeline
+  });
+  const mainVideoExecutor = new MainVideoExecutor({
+    runSharedPipeline: (pipelineContext) => runSharedPipeline(pipelineContext, shortFormExecutor)
+  });
+  const router = createExecutionRouter({
+    executors: [mainVideoExecutor, shortFormExecutor]
+  });
+  const result = await router.execute(context);
+
+  if (result.state === "FAILED") {
+    throw new Error(`Pipeline execution failed for ${input.request.job_id}.`);
+  }
 };

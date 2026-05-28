@@ -144,7 +144,7 @@ export class BackendService {
 
   private async failJob(jobId: string, reason: string, note: string): Promise<void> {
     const stamp = nowIso(this.deps);
-    await this.repository.updateJobRecord(jobId, (current) =>
+    const failedJob = await this.repository.updateJobRecord(jobId, (current) =>
       jobRecordSchema.parse({
         ...current,
         status: "failed",
@@ -167,6 +167,7 @@ export class BackendService {
         }
       })
     );
+    this.deps.executionTelemetry?.recordStageTransition(failedJob, note);
   }
 
   private async reconcileStaleJobs(): Promise<void> {
@@ -387,6 +388,7 @@ export class BackendService {
       this.repository.createJobRecord(jobRecord),
       this.repository.writeArtifact(request.job_id, "input_manifest", inputManifest)
     ]);
+    this.deps.executionTelemetry?.recordJobCreated(jobRecord);
 
     try {
       this.queue.enqueue(async () => {

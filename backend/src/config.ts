@@ -28,6 +28,7 @@ const envSchema = z.object({
   JOB_QUEUE_MAX_PENDING: z.coerce.number().int().nonnegative().default(250),
   JOB_STAGE_STALE_AFTER_MS: z.coerce.number().int().positive().default(5 * 60 * 1000),
   PROVIDER_TIMEOUT_MS: z.coerce.number().int().positive().default(60000),
+  PREVIEW_COMPOSITION_FPS: z.coerce.number().min(1).default(30),
   GOD_PROVIDER_KIND: z.string().default("local-template"),
   GOD_PROVIDER_ENDPOINT: z.string().default(""),
   GOD_PROVIDER_API_KEY: z.string().default(""),

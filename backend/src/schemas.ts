@@ -234,6 +234,84 @@ export const clipHeuristicSignalsSchema = z.object({
 
 export type ClipHeuristicSignals = z.infer<typeof clipHeuristicSignalsSchema>;
 
+export const shortFormSemanticSegmentSchema = z.object({
+  summary: z.string(),
+  intent: z.enum(["hook", "insight", "payoff", "story", "fallback"]),
+  boundary_reasons: z.array(z.string()),
+  topic_terms: z.array(z.string()),
+  topic_drift_score: z.number().min(0).max(1),
+  speech_intent_shift_score: z.number().min(0).max(1)
+});
+
+export const shortFormScoreBreakdownSchema = z.object({
+  model: z.literal("correlated_signal_stacking_v1"),
+  semantic: z.object({
+    score: z.number().min(0).max(10),
+    hook_score: z.number().min(0).max(10),
+    density_score: z.number().min(0).max(10),
+    insight_score: z.number().min(0).max(10)
+  }),
+  acoustic: z.object({
+    analysis_mode: z.enum(["transcript_timing_proxy", "acoustic_fallback_proxy"]),
+    rms_energy_proxy: z.number().min(0).max(1),
+    speech_velocity_wps: z.number().nonnegative(),
+    silence_ratio: z.number().min(0).max(1),
+    burst_spikes: z.number().min(0).max(1),
+    emotional_intensity_proxy: z.number().min(0).max(1),
+    score: z.number().min(0).max(10)
+  }),
+  visual: z.object({
+    analysis_mode: z.enum(["metadata_proxy", "source_probe_proxy"]),
+    motion_variance_proxy: z.number().min(0).max(1),
+    scene_change_frequency_proxy: z.number().min(0).max(1),
+    face_object_stability_proxy: z.number().min(0).max(1),
+    camera_movement_proxy: z.number().min(0).max(1),
+    score: z.number().min(0).max(10)
+  }),
+  pacing: z.object({
+    duration_fit: z.number().min(0).max(1),
+    emotional_peak_alignment: z.number().min(0).max(1),
+    silence_penalty: z.number().min(0).max(1),
+    score: z.number().min(0).max(10)
+  }),
+  penalties: z.object({
+    low_clarity: z.number().min(0).max(10),
+    excessive_silence: z.number().min(0).max(10),
+    low_semantic_density: z.number().min(0).max(10),
+    context_dependency: z.number().min(0).max(10)
+  }),
+  final: z.object({
+    semantic_weighted: z.number().min(0).max(10),
+    acoustic_score: z.number().min(0).max(10),
+    visual_intensity_score: z.number().min(0).max(10),
+    pacing_alignment_score: z.number().min(0).max(10),
+    virality_score: z.number().min(0).max(10)
+  }),
+  layers: z.object({
+    deterministic_scoring: z.literal("active"),
+    learned_weighting: z.literal("not_trained"),
+    llm_reasoning: z.literal("optional_refinement")
+  })
+});
+
+export const shortFormMusicPairingSchema = z.object({
+  source: z.enum(["selected_song", "internal_catalog", "placeholder"]),
+  track_id: z.string(),
+  intensity: z.enum(["low", "medium", "high"]),
+  bpm_range: z.tuple([z.number().positive(), z.number().positive()]),
+  emotional_peak_ms: z.number().nonnegative(),
+  drop_alignment_ms: z.number().nonnegative(),
+  reason: z.string()
+});
+
+export const shortFormRenderingStyleSchema = z.object({
+  style: z.enum(["cinematic", "viral", "manga", "minimal"]),
+  transitions: z.array(z.string()),
+  typography_density: z.enum(["low", "medium", "high"]),
+  motion_curve: z.string(),
+  color_grade: z.string()
+});
+
 export const clipCandidateSchema = z.object({
   clip_id: z.string(),
   window_label: z.string(),
@@ -248,7 +326,12 @@ export const clipCandidateSchema = z.object({
   final_score: z.number().min(0).max(10),
   ranking_notes: z.array(z.string()),
   recommended_start_adjustment_ms: z.number().int(),
-  recommended_end_adjustment_ms: z.number().int()
+  recommended_end_adjustment_ms: z.number().int(),
+  semantic_summary: z.string().optional(),
+  semantic_segment: shortFormSemanticSegmentSchema.optional(),
+  score_breakdown: shortFormScoreBreakdownSchema.optional(),
+  recommended_music_pairing: shortFormMusicPairingSchema.optional(),
+  rendering_style_metadata: shortFormRenderingStyleSchema.optional()
 });
 
 export type ClipCandidate = z.infer<typeof clipCandidateSchema>;
@@ -293,7 +376,9 @@ export const clipSelectionSchema = z.object({
     requested_clip_count_min: z.number().int().nullable(),
     requested_clip_count_max: z.number().int().nullable(),
     candidate_count: z.number().int().nonnegative(),
-    selected_count: z.number().int().nonnegative()
+    selected_count: z.number().int().nonnegative(),
+    ranking_model: z.string().optional(),
+    fallback_mode: z.string().optional()
   }),
   window_config: z.array(
     z.object({

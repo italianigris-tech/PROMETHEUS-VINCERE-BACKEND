@@ -19,7 +19,7 @@ type FontManifestEntry = {
   };
 };
 
-type ResolvedFontCandidate = {
+export type ResolvedFontCandidate = {
   family: string;
   filePath: string;
   browserUrl: string;
@@ -28,7 +28,7 @@ type ResolvedFontCandidate = {
   roles: string[];
 };
 
-type ResolvedFontPair = {
+export type ResolvedFontPair = {
   primary: ResolvedFontCandidate;
   secondary?: ResolvedFontCandidate;
   reason: string;

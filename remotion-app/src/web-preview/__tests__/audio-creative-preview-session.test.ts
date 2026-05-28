@@ -69,7 +69,7 @@ describe("audio creative preview session", () => {
     });
 
     expect(metadata.durationSeconds).toBeCloseTo(12.345);
-    expect(metadata.durationInFrames).toBe(Math.ceil(12.345 * metadata.fps));
+    expect(metadata.durationInFrames).toBe(Math.round(12.345 * metadata.fps));
   });
 
   it("promotes video-backed live previews onto the overlay compositor render mode", () => {

@@ -2,9 +2,9 @@ import React, {useMemo, useEffect, useRef} from "react";
 
 import type {PreviewPerformanceMode} from "../lib/types";
 import type {MotionSoundCue} from "../lib/types";
+import {usePreviewCurrentTimeMs} from "./frame-store";
 
 type NativePreviewSoundDesignProps = {
-  currentTimeMs: number;
   fps: number;
   videoIsPlaying: boolean;
   videoPlaybackRate: number;
@@ -60,13 +60,13 @@ const getCueVolumeEnvelopeAtTimeMs = ({
 
 const NativePreviewAudioCue: React.FC<{
   cue: MotionSoundCue;
-  currentTimeMs: number;
   fps: number;
   videoIsPlaying: boolean;
   videoPlaybackRate: number;
   audioUnlocked: boolean;
-}> = ({cue, currentTimeMs, fps, videoIsPlaying, videoPlaybackRate, audioUnlocked}) => {
+}> = ({cue, fps, videoIsPlaying, videoPlaybackRate, audioUnlocked}) => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const currentTimeMs = usePreviewCurrentTimeMs(fps);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -131,7 +131,6 @@ const NativePreviewAudioCue: React.FC<{
 };
 
 export const NativePreviewSoundDesign: React.FC<NativePreviewSoundDesignProps> = ({
-  currentTimeMs,
   fps,
   videoIsPlaying,
   videoPlaybackRate,
@@ -140,6 +139,7 @@ export const NativePreviewSoundDesign: React.FC<NativePreviewSoundDesignProps> =
   musicCues,
   soundCues
 }) => {
+  const currentTimeMs = usePreviewCurrentTimeMs(fps);
   const renderableCues = useMemo(() => {
     const maxRenderableCues = previewPerformanceMode === "full" ? 3 : 1;
     const inWindow = (cue: MotionSoundCue): boolean => {
@@ -184,7 +184,6 @@ export const NativePreviewSoundDesign: React.FC<NativePreviewSoundDesignProps> =
         <NativePreviewAudioCue
           key={cue.id}
           cue={cue}
-          currentTimeMs={currentTimeMs}
           fps={fps}
           videoIsPlaying={videoIsPlaying}
           videoPlaybackRate={videoPlaybackRate}

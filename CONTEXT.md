@@ -64,6 +64,18 @@ _Avoid_: generic badness, unlabeled taste failure
 The lightweight preview-side human review workflow that captures pairwise winner choice, failure classes, sequence verdict, and an optional note.
 _Avoid_: passive inference only, heavyweight annotation suite
 
+**Short-Form Intelligence**:
+The deterministic backend module that turns long-form material into ranked short-form candidates using semantic, acoustic, visual, and pacing signals.
+_Avoid_: raw slicing, fixed-duration clipping, truth understanding engine
+
+**Correlated Signal Stacking**:
+The scoring stance for short-form ranking: RMS energy, transcript velocity, motion proxies, and semantic signals are treated as correlated heuristics, not ground truth.
+_Avoid_: emotional truth modeling, engagement certainty
+
+**Acoustic Fallback Segmentation**:
+The transcript-failure mode that still emits ranked clip candidates from source duration and pacing proxies instead of blocking clip generation.
+_Avoid_: transcript required, empty clip output
+
 **Stepping-Stone Planner**:
 The first shipped planner phase that uses bounded doctrine search, treatment genomes, a small QD archive, and beam search before AB-MCTS is introduced.
 _Avoid_: all-at-once full planner stack, AB-MCTS-first rollout
@@ -115,6 +127,8 @@ _Avoid_: top-level planner, whole intuition engine
 - **Evaluator Staging** improves the **Judgment Layer** in phases instead of replacing it outright
 - The **Failure Taxonomy** gives the **Judgment Layer** named editorial failure classes to detect and learn from
 - The **Review Surface** is the primary source of evaluator truth labels
+- **Short-Form Intelligence** ranks clip candidates through **Correlated Signal Stacking**
+- **Acoustic Fallback Segmentation** keeps **Short-Form Intelligence** producing candidates when transcripts are unavailable
 - The **Stepping-Stone Planner** ships before the full planner stack
 - A **Top-Level Planner** may explore a small number of **Doctrine Branches** for high-value moments
 - The **Judgment Layer** evaluates candidates proposed by the **Top-Level Planner**
@@ -137,6 +151,7 @@ _Avoid_: top-level planner, whole intuition engine
 - evaluator evolution could have jumped straight into opaque learned ranking — resolved: use **Evaluator Staging**.
 - evaluator failure was too vague to improve rigorously — resolved: define a first **Failure Taxonomy**.
 - evaluator truth capture could have relied on noisy passive outcomes — resolved: use a lightweight explicit **Review Surface** first.
+- short-form scoring could have overclaimed proxies as understanding — resolved: call the first ranking model **Correlated Signal Stacking** and keep learned weighting / LLM reasoning as later layers.
 - planner rollout could have jumped straight to the full stack — resolved: ship a **Stepping-Stone Planner** first.
 - the genome interface could have split too far from the live judgment seam — resolved: use **Treatment Genome v1** as an extension of the existing candidate-treatment shape.
 - asset search and GOD generation could have collapsed into one vague control — resolved: keep **Retrieval Intent** and **GOD Escalation Intent** separate.

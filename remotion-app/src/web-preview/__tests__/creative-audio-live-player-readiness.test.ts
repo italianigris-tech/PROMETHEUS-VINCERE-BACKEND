@@ -4,6 +4,10 @@ import {
   buildSessionSignature,
   createProjectScopedPreviewResetState,
   determineBuildState,
+  getPreviewState,
+  getRenderState,
+  isPreviewReady,
+  isRenderReady,
   resolveHasSession,
   shouldRenderBlockingLoader,
   shouldBlockInteractivePreview,
@@ -60,7 +64,7 @@ const buildLiveSessionState = (
 });
 
 describe("CreativeAudioLivePlayer readiness", () => {
-  it("keeps the preview blocked while transcript words are still empty", () => {
+  it("uses backend preview text as a renderable fallback while transcript words are still empty", () => {
     const buildState = determineBuildState(
       null,
       buildLiveSessionState(),
@@ -68,11 +72,27 @@ describe("CreativeAudioLivePlayer readiness", () => {
       "building-timeline"
     );
 
-    expect(buildState).toBe("building-timeline");
-    expect(shouldBlockInteractivePreview(buildState)).toBe(true);
+    expect(buildState).toBe("ready");
+    expect(shouldBlockInteractivePreview(buildState)).toBe(false);
   });
 
-  it("keeps the preview blocked when the backend session duration is invalid", () => {
+  it("does not block timeline building when transcript fallback has failed but preview text is ready", () => {
+    const buildState = determineBuildState(
+      null,
+      buildLiveSessionState({
+        transcriptStatus: "failed",
+        previewStatus: "preview_text_ready",
+        previewLines: ["Silence detection found a usable opening beat."]
+      }),
+      true,
+      "building-timeline"
+    );
+
+    expect(buildState).toBe("ready");
+    expect(shouldBlockInteractivePreview(buildState)).toBe(false);
+  });
+
+  it("keeps the preview responsive when the backend session duration is invalid", () => {
     const buildState = determineBuildState(
       null,
       buildLiveSessionState({
@@ -86,8 +106,123 @@ describe("CreativeAudioLivePlayer readiness", () => {
       "building-timeline"
     );
 
-    expect(buildState).toBe("idle");
-    expect(shouldBlockInteractivePreview(buildState)).toBe(true);
+    expect(buildState).toBe("ready");
+    expect(shouldBlockInteractivePreview(buildState)).toBe(false);
+  });
+
+  it("splits preview readiness from strict render readiness", () => {
+    const state = buildLiveSessionState({
+      sourceDurationMs: 0,
+      sourceFps: null,
+      previewDiagnostics: null
+    });
+
+    const previewState = getPreviewState({
+      liveSessionState: state,
+      session: null,
+      isArtifactReady: true
+    });
+    const renderState = getRenderState({
+      liveSessionState: state,
+      session: null,
+      isArtifactReady: true
+    });
+
+    expect(previewState.status).toBe("PREVIEW_READY");
+    expect(isPreviewReady(previewState)).toBe(true);
+    expect(renderState.status).toBe("DEGRADED_RENDER_STATE");
+    expect(isRenderReady(renderState)).toBe(false);
+    expect(renderState.degradedEvents).toContain("DEGRADED_RENDER_STATE");
+    expect(renderState.blockers).toEqual(expect.arrayContaining([
+      "invalid_duration",
+      "invalid_fps",
+      "compiled_typography_missing",
+      "font_assets_unhydrated"
+    ]));
+  });
+
+  it("requires compiled typography and hydrated fonts before final render is ready", () => {
+    const state = buildLiveSessionState({
+      sourceDurationMs: 12345,
+      sourceFps: 24,
+      previewDiagnostics: {
+        fontProof: {
+          fontsRequestedFromManifest: ["Aesthetic"],
+          fontFilesResolved: ["/fonts/aesthetic.woff2"],
+          fontFilesLoadedIntoComposition: ["/fonts/aesthetic.woff2"],
+          fontCssGenerated: true,
+          fallbackFontsUsed: [],
+          fallbackReasons: []
+        },
+        features: {
+          fonts: {
+            activated: true
+          }
+        }
+      }
+    });
+    const session = {
+      captionChunks: [{id: "caption-1"}],
+      motionModel: {
+        chunks: [{id: "caption-1"}],
+        scenes: [{id: "scene-1"}],
+        showcaseIntelligencePlan: {missingAssetCategories: []},
+        showcasePlan: {cues: []},
+        backgroundOverlayPlan: {cues: []},
+        transitionOverlayPlan: {cues: []},
+        motionGraphicsPlan: {overlays: []}
+      }
+    } as any;
+
+    const renderState = getRenderState({
+      liveSessionState: state,
+      session,
+      isArtifactReady: true
+    });
+
+    expect(renderState.status).toBe("RENDER_READY");
+    expect(renderState.durationInFrames).toBe(Math.round((12345 / 1000) * 24));
+    expect(isRenderReady(renderState)).toBe(true);
+  });
+
+  it("blocks render readiness and asks for music timeline recalculation when corrected duration grows", () => {
+    const state = buildLiveSessionState({
+      sourceDurationMs: 18000,
+      sourceFps: 30,
+      previewDiagnostics: {
+        fontProof: {
+          fontsRequestedFromManifest: ["Aesthetic"],
+          fontFilesResolved: ["/fonts/aesthetic.woff2"],
+          fontFilesLoadedIntoComposition: ["/fonts/aesthetic.woff2"],
+          fontCssGenerated: true,
+          fallbackFontsUsed: [],
+          fallbackReasons: []
+        }
+      }
+    });
+    const session = {
+      captionChunks: [{id: "caption-1"}],
+      motionModel: {
+        chunks: [{id: "caption-1"}],
+        scenes: [{id: "scene-1"}],
+        showcaseIntelligencePlan: {missingAssetCategories: []}
+      }
+    } as any;
+
+    const renderState = getRenderState({
+      liveSessionState: state,
+      session,
+      isArtifactReady: true,
+      audioManifest: {
+        durationMs: 12000,
+        musicTimelineDurationMs: 12000
+      }
+    });
+
+    expect(renderState.status).toBe("DEGRADED_RENDER_STATE");
+    expect(renderState.musicTimelineRecalculationRequired).toBe(true);
+    expect(renderState.degradedEvents).toContain("MUSIC_TIMELINE_RECALCULATION_REQUIRED");
+    expect(isRenderReady(renderState)).toBe(false);
   });
 
   it("changes the session build signature when transcript words arrive over SSE", () => {
