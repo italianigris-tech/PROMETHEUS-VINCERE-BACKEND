@@ -1,0 +1,14 @@
+# Local build
+docker build -t runpod-video-worker:local .
+
+# Local build with baked model weights
+docker build --build-arg RVM_WEIGHTS_URL="https://your-storage.example/rvm.pth" --build-arg RVM_WEIGHTS_SHA256="expected_sha256_hex" -t runpod-video-worker:local .
+
+# Docker Hub login
+docker login
+
+# Tag for registry
+docker tag runpod-video-worker:local your-dockerhub-user/runpod-video-worker:0.1.0
+
+# Push to registry
+docker push your-dockerhub-user/runpod-video-worker:0.1.0

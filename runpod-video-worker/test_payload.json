@@ -1,0 +1,20 @@
+{
+  "input_video_url": "https://example.com/media/short-person-clip-1080p-10s.mp4",
+  "metadata": {
+    "source_asset_id": "asset_01JMATTEDEMO",
+    "chunk_index": 3,
+    "codec": "h264",
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "notes": {
+      "preserve": true,
+      "caller": "video-matting-orchestrator"
+    }
+  },
+  "job_id": "matting-job-0003",
+  "timestamps": {
+    "start": 20.0,
+    "end": 30.0
+  }
+}
