@@ -455,13 +455,31 @@ def encode_alpha_video(alpha_paths: Sequence[Path], output_path: Path, frame_rat
     return output_path
 
 
-def _required_s3_env() -> Tuple[str, str, str, str]:
-    required = ("S3_BUCKET", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION")
-    values = {name: os.getenv(name, "").strip() for name in required}
-    missing = [name for name, value in values.items() if not value]
+def _first_env(*names: str, default: str = "") -> str:
+    for name in names:
+        value = os.getenv(name)
+        if value is not None and value.strip():
+            return value.strip()
+    return default
+
+
+def _required_s3_env() -> Tuple[str, str, str, str, Optional[str]]:
+    bucket = _first_env("CLOUDFLARE_R2_BUCKET", "S3_BUCKET")
+    access_key = _first_env("CLOUDFLARE_R2_ACCESS_KEY_ID", "AWS_ACCESS_KEY_ID")
+    secret_key = _first_env("CLOUDFLARE_R2_SECRET_ACCESS_KEY", "AWS_SECRET_ACCESS_KEY")
+    region = _first_env("CLOUDFLARE_R2_REGION", "AWS_REGION", default="auto")
+    endpoint_url = _first_env("CLOUDFLARE_R2_ENDPOINT", "S3_ENDPOINT") or None
+
+    missing = []
+    if not bucket:
+        missing.append("CLOUDFLARE_R2_BUCKET or S3_BUCKET")
+    if not access_key:
+        missing.append("CLOUDFLARE_R2_ACCESS_KEY_ID or AWS_ACCESS_KEY_ID")
+    if not secret_key:
+        missing.append("CLOUDFLARE_R2_SECRET_ACCESS_KEY or AWS_SECRET_ACCESS_KEY")
     if missing:
         raise RuntimeError(f"missing required S3 environment variables: {', '.join(missing)}")
-    return values["S3_BUCKET"], values["AWS_ACCESS_KEY_ID"], values["AWS_SECRET_ACCESS_KEY"], values["AWS_REGION"]
+    return bucket, access_key, secret_key, region, endpoint_url
 
 
 def _artifact_key(file_path: Path) -> str:
@@ -477,8 +495,7 @@ def upload_artifact(file_path: Path) -> str:
     if path.suffix.lower() != ".mp4":
         raise RuntimeError("only mp4 artifacts may be uploaded")
 
-    bucket, access_key, secret_key, region = _required_s3_env()
-    endpoint_url = os.getenv("S3_ENDPOINT", "").strip() or None
+    bucket, access_key, secret_key, region, endpoint_url = _required_s3_env()
     s3_options = {"addressing_style": "path"} if endpoint_url else {}
     client = boto3.client(
         "s3",
