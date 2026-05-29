@@ -1,6 +1,5 @@
 import React, {useCallback, useEffect, useMemo, useRef} from "react";
-import * as THREE from "three";
-import {useCurrentFrame, useVideoConfig} from "remotion";
+import {useVideoConfig} from "remotion";
 
 import {NativePreviewOverlayStage} from "./NativePreviewStage";
 import {createPreviewFrameSource, type PreviewFrameSource} from "./frame-store";
@@ -10,13 +9,17 @@ import type {DisplayTimeline, DisplayTimelineLayer} from "./display-god/display-
 import type {HyperframesPreviewManifest} from "./hyperframes/manifest-schema";
 import {CinematicBlurText} from "./hyperframes/CinematicBlurText";
 import {resolveHyperframesFontFamily} from "./hyperframes/manifest-typography";
-import {
-  filterCompetingHyperframesTextLayers,
-  shouldSuppressNativeCaptionsForHyperframes
-} from "./hyperframes/text-governance";
+import {shouldSuppressNativeCaptionsForHyperframes} from "./hyperframes/text-governance";
 import {useHyperframesTimelineController} from "./hyperframes/timeline-controller";
-import {useDirectFrameStyles} from "./hyperframes/useDirectFrameStyles";
-import {useTimelineWorker} from "./hyperframes/useTimelineWorker";
+import {useHyperframesRenderGraph} from "./hyperframes/useRenderGraph";
+import {
+  useEngineDriver,
+  useMeasuredLayoutState,
+  type CompiledRenderGraph,
+  type EngineDriverIntervalState,
+  type RenderGraphTimelineLayer
+} from "../lib/render-graph";
+import {useGPUAugmenter} from "../webgl/useGPUAugmenter";
 
 type HyperframesPreviewProps = {
   readonly displayTimeline: DisplayTimeline;
@@ -112,117 +115,30 @@ const resolveTrackCardStyle = ({
   };
 };
 
-const HyperframesThreeSceneOverlay: React.FC<{
+const HyperframesGPUAugmentationLayer: React.FC<{
   enabled: boolean;
-  fps: number;
+  graph: CompiledRenderGraph;
   frameSource: PreviewFrameSource;
-}> = ({enabled, fps, frameSource}) => {
-  const mountRef = useRef<HTMLDivElement | null>(null);
-  const currentTimeRef = useRef(0);
+}> = ({enabled, graph, frameSource}) => {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  useEffect(() => {
-    const safeFps = Number.isFinite(fps) && fps > 0 ? fps : null;
-    const syncFrame = (frame: number): void => {
-      currentTimeRef.current = safeFps ? (frame / safeFps) * 1000 : 0;
-    };
-
-    syncFrame(frameSource.getFrame());
-    return frameSource.subscribe(syncFrame);
-  }, [fps, frameSource]);
-
-  useEffect(() => {
-    const mountNode = mountRef.current;
-    if (!enabled || !mountNode) {
-      return;
-    }
-
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
-    camera.position.z = 7.5;
-
-    const renderer = new THREE.WebGLRenderer({
-      alpha: true,
-      antialias: true
-    });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    renderer.setClearColor(0x000000, 0);
-    mountNode.appendChild(renderer.domElement);
-
-    const geometry = new THREE.BufferGeometry();
-    const pointCount = 180;
-    const positions = new Float32Array(pointCount * 3);
-    for (let index = 0; index < pointCount; index += 1) {
-      positions[index * 3] = (Math.random() - 0.5) * 9;
-      positions[index * 3 + 1] = (Math.random() - 0.5) * 5.6;
-      positions[index * 3 + 2] = (Math.random() - 0.5) * 5;
-    }
-    geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-
-    const material = new THREE.PointsMaterial({
-      color: 0xbad8ff,
-      size: 0.045,
-      transparent: true,
-      opacity: 0.38,
-      sizeAttenuation: true
-    });
-    const points = new THREE.Points(geometry, material);
-    scene.add(points);
-
-    const haloGeometry = new THREE.TorusGeometry(2.2, 0.02, 16, 120);
-    const haloMaterial = new THREE.MeshBasicMaterial({
-      color: 0xffd6a0,
-      transparent: true,
-      opacity: 0.12
-    });
-    const halo = new THREE.Mesh(haloGeometry, haloMaterial);
-    halo.rotation.x = 1.12;
-    scene.add(halo);
-
-    const resize = (): void => {
-      const width = mountNode.clientWidth || 1;
-      const height = mountNode.clientHeight || 1;
-      renderer.setSize(width, height, false);
-      camera.aspect = width / height;
-      camera.updateProjectionMatrix();
-    };
-
-    resize();
-    const resizeObserver = typeof ResizeObserver !== "undefined"
-      ? new ResizeObserver(() => {
-        resize();
-      })
-      : null;
-    resizeObserver?.observe(mountNode);
-
-    let animationFrameId = 0;
-    const render = (): void => {
-      const timeSeconds = currentTimeRef.current / 1000;
-      points.rotation.y = timeSeconds * 0.16;
-      points.rotation.x = Math.sin(timeSeconds * 0.2) * 0.08;
-      halo.rotation.z = timeSeconds * 0.18;
-      renderer.render(scene, camera);
-      animationFrameId = window.requestAnimationFrame(render);
-    };
-    render();
-
-    return () => {
-      window.cancelAnimationFrame(animationFrameId);
-      resizeObserver?.disconnect();
-      geometry.dispose();
-      material.dispose();
-      haloGeometry.dispose();
-      haloMaterial.dispose();
-      renderer.dispose();
-      mountNode.removeChild(renderer.domElement);
-    };
-  }, [enabled]);
+  useGPUAugmenter({
+    canvasRef,
+    enabled,
+    graph,
+    frameSource
+  });
 
   return (
-    <div
-      ref={mountRef}
+    <canvas
+      ref={canvasRef}
+      data-gpu-augmentation-layer="webgl"
+      aria-hidden="true"
       style={{
         position: "absolute",
         inset: 0,
+        width: "100%",
+        height: "100%",
         pointerEvents: "none",
         zIndex: 9,
         opacity: enabled ? 1 : 0
@@ -234,10 +150,9 @@ const HyperframesThreeSceneOverlay: React.FC<{
 const HyperframesTrackLayer: React.FC<{
   layer: DisplayTimelineLayer;
   manifest?: HyperframesPreviewManifest | null;
-  containerRef: React.RefCallback<HTMLDivElement>;
-  sharpRef: React.RefCallback<HTMLSpanElement>;
-  blurredRef: React.RefCallback<HTMLSpanElement>;
-}> = ({layer, manifest, containerRef, sharpRef, blurredRef}) => {
+  driverState: Omit<EngineDriverIntervalState, "sourceLayerId" | "textLayer">;
+}> = ({layer, manifest, driverState}) => {
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const styleMetadata = layer.styleMetadata ?? {};
   const trackType = typeof styleMetadata["trackType"] === "string" ? styleMetadata["trackType"] : "text";
   const expectedFontFamily = resolveTrackLayerFontFamily({layer, manifest});
@@ -245,15 +160,25 @@ const HyperframesTrackLayer: React.FC<{
   const subtitle = typeof styleMetadata["subtitle"] === "string" ? styleMetadata["subtitle"] : null;
   const text = typeof styleMetadata["text"] === "string" ? styleMetadata["text"] : null;
   const mediaKind = layer.mediaKind;
+  const engineState = useMemo<EngineDriverIntervalState>(() => ({
+    ...driverState,
+    sourceLayerId: layer.id
+  }), [driverState, layer.id]);
+  const driverStyle = useEngineDriver(containerRef, engineState);
+  const layoutState = useMeasuredLayoutState(containerRef, driverState.mode === "preview");
 
   return (
     <div
       ref={containerRef}
-      style={resolveTrackLayerPlacementStyle(layer)}
+      style={{
+        ...resolveTrackLayerPlacementStyle(layer),
+        ...driverStyle
+      }}
       data-hyperframes-layer-id={layer.id}
       data-hyperframes-track-type={trackType}
       data-caption-renderer="hyperframes-text"
       data-caption-expected-font={expectedFontFamily || undefined}
+      data-layout-measured={layoutState.measured ? "true" : "false"}
     >
       <div style={resolveTrackCardStyle({layer, manifest})}>
         {mediaKind === "iframe" && layer.src ? (
@@ -302,8 +227,7 @@ const HyperframesTrackLayer: React.FC<{
               <div style={{position: "relative", minHeight: "clamp(24px, 2.8vw, 42px)"}}>
                 <CinematicBlurText
                   text={title}
-                  sharpRef={sharpRef}
-                  blurredRef={blurredRef}
+                  engineState={engineState}
                 />
               </div>
             ) : null}
@@ -339,24 +263,7 @@ export const HyperframesPreview: React.FC<HyperframesPreviewProps> = ({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const frameSource = useMemo(() => createPreviewFrameSource(), []);
-  const currentFrame = useCurrentFrame();
   const {fps} = useVideoConfig();
-  const containerRefs = useRef(new Map<string, HTMLDivElement>());
-  const sharpRefs = useRef(new Map<string, HTMLSpanElement>());
-  const blurredRefs = useRef(new Map<string, HTMLSpanElement>());
-  const timelineState = useHyperframesTimelineController(videoRef, displayTimeline.id);
-  const interactiveTrackLayers = useMemo(() => {
-    return displayTimeline.layers.filter((layer) => layer.kind === "creative-track" && layer.visual);
-  }, [displayTimeline.layers]);
-  const visibleTrackLayers = useMemo(() => {
-    const activeLayers = interactiveTrackLayers.filter((layer) => {
-      return timelineState.currentTimeMs >= layer.startMs - 260 && timelineState.currentTimeMs <= layer.endMs + 240;
-    });
-    return filterCompetingHyperframesTextLayers(activeLayers);
-  }, [interactiveTrackLayers, timelineState.currentTimeMs]);
-  const suppressNativeCaptions = useMemo(() => {
-    return shouldSuppressNativeCaptionsForHyperframes(visibleTrackLayers);
-  }, [visibleTrackLayers]);
   const videoMetadata = useMemo(() => {
     const durationSeconds = Math.max(1, displayTimeline.baseVideo.durationMs / 1000);
     return {
@@ -367,61 +274,38 @@ export const HyperframesPreview: React.FC<HyperframesPreviewProps> = ({
       durationInFrames: Math.max(1, Math.round(durationSeconds * displayTimeline.baseVideo.fps))
     };
   }, [displayTimeline.baseVideo]);
-
-  useEffect(() => {
-    const frame = Math.max(0, Math.round((timelineState.currentTimeMs / 1000) * videoMetadata.fps));
-    frameSource.setFrame(frame);
-  }, [frameSource, timelineState.currentTimeMs, videoMetadata.fps]);
-
-  const frameData = useTimelineWorker({
-    manifest: manifest ? {
-      hyperframes: visibleTrackLayers.map((layer) => ({
-        id: layer.id,
-        startX: layer.transform?.translateX ?? 0,
-        endX: layer.transform?.translateX ?? 0,
-        startY: (layer.transform?.translateY ?? 0) + 22,
-        endY: layer.transform?.translateY ?? 0,
-        duration: Math.max(1, Math.round(((layer.endMs - layer.startMs) / 1000) * fps)),
-        startTime: Math.round((layer.startMs / 1000) * fps),
-        ease: layer.easing?.enter ?? "power2.out",
-        text: typeof layer.styleMetadata?.["title"] === "string"
-          ? String(layer.styleMetadata?.["title"])
-          : typeof layer.styleMetadata?.["text"] === "string"
-            ? String(layer.styleMetadata?.["text"])
-            : layer.label
-      }))
-    } : null,
+  const handleTimelineFrame = useCallback((currentTimeMs: number) => {
+    const nextFrame = Math.max(0, Math.round((currentTimeMs / 1000) * videoMetadata.fps));
+    frameSource.setFrame(nextFrame);
+  }, [frameSource, videoMetadata.fps]);
+  const timelineState = useHyperframesTimelineController(videoRef, displayTimeline.id, handleTimelineFrame);
+  const interactiveTrackLayers = useMemo(() => {
+    return displayTimeline.layers.filter((layer) => layer.kind === "creative-track" && layer.visual);
+  }, [displayTimeline.layers]);
+  const renderGraphLayers = useMemo<RenderGraphTimelineLayer[]>(() => {
+    return interactiveTrackLayers.map((layer) => layer);
+  }, [interactiveTrackLayers]);
+  const renderGraph = useHyperframesRenderGraph({
+    layers: renderGraphLayers,
     fps,
-    durationInFrames: videoMetadata.durationInFrames
+    durationInFrames: videoMetadata.durationInFrames,
+    frameSource,
+    resetKey: displayTimeline.id
   });
-  useDirectFrameStyles(containerRefs, sharpRefs, blurredRefs, frameData);
-
-  const setContainerRef = useCallback((id: string) => (element: HTMLDivElement | null) => {
-    if (element) {
-      containerRefs.current.set(id, element);
-      return;
-    }
-
-    containerRefs.current.delete(id);
-  }, []);
-
-  const setSharpRef = useCallback((id: string) => (element: HTMLSpanElement | null) => {
-    if (element) {
-      sharpRefs.current.set(id, element);
-      return;
-    }
-
-    sharpRefs.current.delete(id);
-  }, []);
-
-  const setBlurredRef = useCallback((id: string) => (element: HTMLSpanElement | null) => {
-    if (element) {
-      blurredRefs.current.set(id, element);
-      return;
-    }
-
-    blurredRefs.current.delete(id);
-  }, []);
+  const compiledTrackLayerIds = useMemo(() => {
+    return new Set(renderGraph.intervals.map((interval) => interval.sourceLayerId));
+  }, [renderGraph.intervals]);
+  const renderedTrackLayers = useMemo(() => {
+    return interactiveTrackLayers.filter((layer) => compiledTrackLayerIds.has(layer.id));
+  }, [compiledTrackLayerIds, interactiveTrackLayers]);
+  const suppressNativeCaptions = useMemo(() => {
+    return shouldSuppressNativeCaptionsForHyperframes(renderedTrackLayers);
+  }, [renderedTrackLayers]);
+  const driverState = useMemo<Omit<EngineDriverIntervalState, "sourceLayerId" | "textLayer">>(() => ({
+    mode: "preview",
+    graph: renderGraph,
+    frameSource
+  }), [frameSource, renderGraph]);
 
   useEffect(() => {
     onHealthChange?.(timelineState.health);
@@ -478,21 +362,19 @@ export const HyperframesPreview: React.FC<HyperframesPreviewProps> = ({
         suppressCaptions={suppressNativeCaptions}
       />
 
-      <HyperframesThreeSceneOverlay
+      <HyperframesGPUAugmentationLayer
         enabled={displayTimeline.motionModel.motion3DPlan.enabled}
-        fps={videoMetadata.fps}
+        graph={renderGraph}
         frameSource={frameSource}
       />
 
       <div className="hyperframes-creative-track-host">
-        {visibleTrackLayers.map((layer) => (
+        {renderedTrackLayers.map((layer) => (
           <HyperframesTrackLayer
             key={layer.id}
             layer={layer}
             manifest={manifest}
-            containerRef={setContainerRef(layer.id)}
-            sharpRef={setSharpRef(layer.id)}
-            blurredRef={setBlurredRef(layer.id)}
+            driverState={driverState}
           />
         ))}
       </div>

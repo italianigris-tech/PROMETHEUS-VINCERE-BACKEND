@@ -37,7 +37,8 @@ const buildMediaErrorMessage = (video: HTMLVideoElement | null): string => {
 
 export const useHyperframesTimelineController = (
   videoRef: RefObject<HTMLVideoElement | null>,
-  sourceKey: string
+  sourceKey: string,
+  onFrameTimeMs?: (currentTimeMs: number) => void
 ): HyperframesTimelineState => {
   const [state, setState] = useState<HyperframesTimelineState>({
     currentTimeMs: 0,
@@ -50,19 +51,33 @@ export const useHyperframesTimelineController = (
   });
   const stopLoopRef = useRef<(() => void) | null>(null);
 
-  const syncFromVideo = useCallback((clockSource: HyperframesClockSource) => {
+  const readVideoClock = useCallback((clockSource: HyperframesClockSource) => {
     const video = videoRef.current;
     if (!video) {
+      return null;
+    }
+
+    const currentTimeMs = Math.max(0, video.currentTime * 1000);
+    onFrameTimeMs?.(currentTimeMs);
+
+    return {
+      currentTimeMs,
+      clockSource,
+      playbackRate: video.playbackRate || 1
+    };
+  }, [onFrameTimeMs, videoRef]);
+
+  const syncFromVideo = useCallback((clockSource: HyperframesClockSource) => {
+    const snapshot = readVideoClock(clockSource);
+    if (!snapshot) {
       return;
     }
 
     setState((current) => ({
       ...current,
-      currentTimeMs: Math.max(0, video.currentTime * 1000),
-      clockSource,
-      playbackRate: video.playbackRate || 1
+      ...snapshot
     }));
-  }, [videoRef]);
+  }, [readVideoClock]);
 
   useEffect(() => {
     setState({
@@ -104,7 +119,7 @@ export const useHyperframesTimelineController = (
           return;
         }
 
-        syncFromVideo(typeof frameVideo.requestVideoFrameCallback === "function" ? "video-frame-callback" : "animation-frame");
+        readVideoClock(typeof frameVideo.requestVideoFrameCallback === "function" ? "video-frame-callback" : "animation-frame");
         if (video.paused || video.ended) {
           return;
         }
@@ -154,6 +169,7 @@ export const useHyperframesTimelineController = (
       setState((current) => ({
         ...current,
         isPlaying: true,
+        clockSource: typeof frameVideo.requestVideoFrameCallback === "function" ? "video-frame-callback" : "animation-frame",
         health: "ready",
         errorMessage: null
       }));
@@ -237,7 +253,7 @@ export const useHyperframesTimelineController = (
       video.removeEventListener("ratechange", handleRateChange);
       video.removeEventListener("error", handleError);
     };
-  }, [sourceKey, syncFromVideo, videoRef]);
+  }, [readVideoClock, sourceKey, syncFromVideo, videoRef]);
 
   return state;
 };
