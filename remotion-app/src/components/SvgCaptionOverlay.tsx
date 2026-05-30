@@ -93,6 +93,11 @@ type EasingToken =
   | "power3.inOut"
   | "power4.out"
   | "power4.inOut"
+  | "expo.in"
+  | "expo.out"
+  | "expo.inOut"
+  | "cubic.luxurySnap"
+  | "cubic.blurSweep"
   | "back.out(1.8)"
   | "back.out(2.2)"
   | "back.out(2.5)"
@@ -223,6 +228,53 @@ const easeBackOut = (t: number, overshoot: number): number => {
   const p = t - 1;
   return p * p * ((overshoot + 1) * p + overshoot) + 1;
 };
+const easeExpoIn = (t: number): number => (t <= 0 ? 0 : 2 ** (10 * t - 10));
+const easeExpoOut = (t: number): number => (t >= 1 ? 1 : 1 - 2 ** (-10 * t));
+const easeExpoInOut = (t: number): number => {
+  if (t <= 0) {
+    return 0;
+  }
+  if (t >= 1) {
+    return 1;
+  }
+  if (t < 0.5) {
+    return (2 ** (20 * t - 10)) / 2;
+  }
+  return (2 - 2 ** (-20 * t + 10)) / 2;
+};
+const cubicBezier = (x1: number, y1: number, x2: number, y2: number, t: number): number => {
+  const sampleCurve = (a1: number, a2: number, value: number) => {
+    const c = 3 * a1;
+    const b = 3 * (a2 - a1) - c;
+    const a = 1 - c - b;
+    return ((a * value + b) * value + c) * value;
+  };
+  const sampleDerivativeX = (value: number) => {
+    const c = 3 * x1;
+    const b = 3 * (x2 - x1) - c;
+    const a = 1 - c - b;
+    return (3 * a * value + 2 * b) * value + c;
+  };
+  let x = t;
+
+  for (let iteration = 0; iteration < 5; iteration += 1) {
+    const derivative = sampleDerivativeX(x);
+    if (Math.abs(derivative) < 0.000001) {
+      break;
+    }
+    x -= (sampleCurve(x1, x2, x) - t) / derivative;
+    x = clamp01(x);
+  }
+
+  return sampleCurve(y1, y2, x);
+};
+const gaussianPulse = (value: number, center: number, width: number): number => {
+  if (width <= 0) {
+    return 0;
+  }
+  const distance = (value - center) / width;
+  return Math.exp(-distance * distance);
+};
 
 const resolveEase = (token: EasingToken | undefined, t: number): number => {
   const p = clamp01(t);
@@ -246,6 +298,16 @@ const resolveEase = (token: EasingToken | undefined, t: number): number => {
       return easeOutPower(p, 4);
     case "power4.inOut":
       return easeInOutPower(p, 4);
+    case "expo.in":
+      return easeExpoIn(p);
+    case "expo.out":
+      return easeExpoOut(p);
+    case "expo.inOut":
+      return easeExpoInOut(p);
+    case "cubic.luxurySnap":
+      return cubicBezier(0.16, 1, 0.22, 1, p);
+    case "cubic.blurSweep":
+      return cubicBezier(0.76, 0, 0.24, 1, p);
     case "back.out(1.8)":
       return easeBackOut(p, 1.8);
     case "back.out(2.2)":
@@ -495,13 +557,53 @@ export const computeSvgMotionState = ({
 
   if (family === "split-impact") {
     const side = slotIndex === 2 ? 1 : -1;
+    const arrival = resolveEase("expo.out", inP / 0.82);
+    const impactPulse = gaussianPulse(inP, 0.82, 0.075);
+    const recoil = -side * impactPulse * 6;
     return {
-      opacity: clamp01(inP * (1 - outP)),
-      translateX: lerp(side * 200, 0, resolveEase("power4.out", inP + charBias * 0.65)),
-      translateY: lerp(0, 5, resolveEase("power2.out", outP)),
-      scale: lerp(0.95, 1, resolveEase("power3.out", inP)),
-      blur: lerp(5, 0, resolveEase("power3.out", inP)),
+      opacity: clamp01(resolveEase("cubic.luxurySnap", inP + charBias * 0.25) * (1 - outP)),
+      translateX: lerp(side * 260, 0, arrival) + recoil,
+      translateY: -impactPulse * 3 + lerp(0, 5, resolveEase("power2.out", outP)),
+      scale: lerp(0.9, 1, resolveEase("expo.out", inP)) + impactPulse * 0.072 - outP * 0.035,
+      blur: Math.max(0, lerp(12, 0, resolveEase("expo.out", inP * 1.08)) + impactPulse * 0.28),
       clipProgress: 1
+    };
+  }
+
+  if (family === "script-big-small-blur") {
+    if (slotIndex === 1) {
+      const delayedProgress = clamp01((inP - charBias * 0.18) / 0.92);
+      const hitPulse = gaussianPulse(inP, 0.76, 0.1);
+      return {
+        opacity: clamp01(resolveEase("expo.out", delayedProgress) * (1 - outP)),
+        translateX: 0,
+        translateY: lerp(-46, 0, resolveEase("expo.out", delayedProgress)),
+        scale: lerp(0.84, 1, resolveEase("back.out(2.2)", delayedProgress)) + hitPulse * 0.035,
+        blur: lerp(13, 0, resolveEase("expo.out", delayedProgress)),
+        clipProgress: clamp01(delayedProgress)
+      };
+    }
+
+    if (slotIndex === 2) {
+      const supportProgress = clamp01((inP - 0.16) / 0.84);
+      return {
+        opacity: clamp01(resolveEase("expo.out", supportProgress) * 0.86 * (1 - outP)),
+        translateX: 0,
+        translateY: lerp(18, 0, resolveEase("cubic.blurSweep", supportProgress)),
+        scale: lerp(0.94, 1, resolveEase("expo.out", supportProgress)),
+        blur: lerp(9, 0, resolveEase("expo.out", supportProgress)),
+        clipProgress: clamp01(supportProgress)
+      };
+    }
+
+    const scriptProgress = resolveEase("cubic.blurSweep", inP);
+    return {
+      opacity: clamp01(scriptProgress * 0.9 * (1 - outP)),
+      translateX: lerp(-34, -8, scriptProgress),
+      translateY: lerp(-10, 0, scriptProgress),
+      scale: lerp(0.96, 1, resolveEase("expo.out", inP)),
+      blur: lerp(9, 0, resolveEase("expo.out", inP)),
+      clipProgress: clamp01(inP)
     };
   }
 
@@ -628,9 +730,16 @@ const textShadowForGlow = (amount: number): string => {
     return "none";
   }
   const a = clamp01(amount);
-  const core = 4 + a * 8;
-  const wide = 10 + a * 20;
-  return `0 0 ${core}px rgba(255,255,255,${(0.34 + a * 0.28).toFixed(3)}), 0 0 ${wide}px rgba(175,205,255,${(0.14 + a * 0.18).toFixed(3)})`;
+  const needle = 2 + a * 5;
+  const core = 7 + a * 12;
+  const wide = 18 + a * 34;
+  const floor = 28 + a * 42;
+  return [
+    `0 0 ${needle}px rgba(255,255,255,${(0.38 + a * 0.34).toFixed(3)})`,
+    `0 0 ${core}px rgba(215,230,255,${(0.24 + a * 0.26).toFixed(3)})`,
+    `0 0 ${wide}px rgba(110,165,255,${(0.12 + a * 0.2).toFixed(3)})`,
+    `0 ${Math.round(2 + a * 4)}px ${floor}px rgba(8,14,30,${(0.36 + a * 0.22).toFixed(3)})`
+  ].join(", ");
 };
 
 const toChunkProgress = (chunk: CaptionChunk, frame: number, fps: number): {localSec: number; chunkDurationSec: number} => {
@@ -1029,15 +1138,34 @@ const buildPairLayout = (ctx: ProgramRenderContext): PairLayout => {
   const scriptText = getSlotText(ctx.slots, "script", ctx.words[0] ?? "but");
   const leftText = getSlotText(ctx.slots, "primary", ctx.words[1] ?? "WHO");
   const rightText = getSlotText(ctx.slots, "secondary", ctx.words.slice(2).join(" ") || "CARES");
-  const script = measureWord(scriptText, 130, VIEWBOX_W * 0.45, DEFAULT_MIN_SCALE, cursiveStyle);
-  const primary = measureWord(leftText.toUpperCase(), 230, VIEWBOX_W * 0.5, DEFAULT_MIN_SCALE, bebasStyle);
-  const secondary = measureWord(rightText.toUpperCase(), 230, VIEWBOX_W * 0.5, DEFAULT_MIN_SCALE, bebasStyle);
+  const isImpactSplit = ctx.variant.id === "cinematic_text_preset_5";
+  const script = measureWord(
+    scriptText,
+    isImpactSplit ? 112 : 130,
+    VIEWBOX_W * (isImpactSplit ? 0.36 : 0.45),
+    DEFAULT_MIN_SCALE,
+    cursiveStyle
+  );
+  const primary = measureWord(
+    leftText.toUpperCase(),
+    isImpactSplit ? 318 : 230,
+    VIEWBOX_W * (isImpactSplit ? 0.49 : 0.5),
+    DEFAULT_MIN_SCALE,
+    bebasStyle
+  );
+  const secondary = measureWord(
+    rightText.toUpperCase(),
+    isImpactSplit ? 318 : 230,
+    VIEWBOX_W * (isImpactSplit ? 0.49 : 0.5),
+    DEFAULT_MIN_SCALE,
+    bebasStyle
+  );
 
-  const gap = 22;
+  const gap = isImpactSplit ? 16 : 22;
   const total = primary.width + gap + secondary.width;
   const primaryX = (VIEWBOX_W - total) / 2;
   const secondaryX = primaryX + primary.width + gap;
-  const scriptX = primaryX;
+  const scriptX = isImpactSplit ? primaryX - Math.min(30, script.width * 0.1) : primaryX;
 
   return {script, primary, secondary, primaryX, secondaryX, scriptX};
 };
@@ -1133,37 +1261,53 @@ const renderSplitImpactProgram: ProgramRenderer = (ctx) => {
   const prefix = `svg-${toSafeId(ctx.chunk.id)}-p5`;
   const pair = buildPairLayout(ctx);
   const primaryY = 660;
-  const scriptY = 500;
+  const scriptY = 486;
   const primaryTop = primaryY - pair.primary.fontSize * 0.82;
   const ruleY = primaryY - pair.primary.fontSize * 0.42;
   const ruleX1 = pair.primaryX;
   const ruleX2 = pair.secondaryX + pair.secondary.width;
   const ruleMid = (ruleX1 + ruleX2) / 2;
-  const scriptOpacity = wordOpacityRamp(ctx.localSec, 0, 0.85, "power3.out");
-  const scriptXOffset = sampleNumberTimeline(ctx.localSec, -30, [{at: 0, duration: 0.85, from: -30, to: 0, ease: "power3.out"}]);
-  const scriptBlur = sampleNumberTimeline(ctx.localSec, 8, [{at: 0, duration: 0.85, from: 8, to: 0, ease: "power3.out"}]);
-  const leftX = sampleNumberTimeline(ctx.localSec, -500, [
-    {at: 0.4, duration: 0.65, from: -500, to: 0, ease: "power4.out"},
-    {at: 1.02, duration: 0.12, from: 0, to: 6, ease: "power2.in"},
-    {at: 1.14, duration: 0.25, from: 6, to: 0, ease: "power2.out"}
+  const scriptOpacity = wordOpacityRamp(ctx.localSec, 0, 0.52, "expo.out") * 0.92;
+  const scriptXOffset = sampleNumberTimeline(ctx.localSec, -48, [{at: 0, duration: 0.72, from: -48, to: 8, ease: "cubic.blurSweep"}]);
+  const scriptBlur = sampleNumberTimeline(ctx.localSec, 12, [{at: 0, duration: 0.72, from: 12, to: 0, ease: "expo.out"}]);
+  const leftX = sampleNumberTimeline(ctx.localSec, -650, [
+    {at: 0.18, duration: 0.42, from: -650, to: 0, ease: "expo.out"},
+    {at: 0.62, duration: 0.08, from: 0, to: 10, ease: "power2.in"},
+    {at: 0.7, duration: 0.2, from: 10, to: 0, ease: "expo.inOut"}
   ]);
-  const rightX = sampleNumberTimeline(ctx.localSec, 500, [
-    {at: 0.4, duration: 0.65, from: 500, to: 0, ease: "power4.out"},
-    {at: 1.02, duration: 0.12, from: 0, to: -6, ease: "power2.in"},
-    {at: 1.14, duration: 0.25, from: -6, to: 0, ease: "power2.out"}
+  const rightX = sampleNumberTimeline(ctx.localSec, 650, [
+    {at: 0.18, duration: 0.42, from: 650, to: 0, ease: "expo.out"},
+    {at: 0.62, duration: 0.08, from: 0, to: -10, ease: "power2.in"},
+    {at: 0.7, duration: 0.2, from: -10, to: 0, ease: "expo.inOut"}
   ]);
-  const wordOpacity = wordOpacityRamp(ctx.localSec, 0.4, 0.65, "power4.out");
+  const wordOpacity = wordOpacityRamp(ctx.localSec, 0.18, 0.34, "expo.out");
+  const impactPulse = sampleNumberTimeline(ctx.localSec, 0, [
+    {at: 0.6, duration: 0.05, from: 0, to: 1, ease: "expo.out"},
+    {at: 0.65, duration: 0.22, from: 1, to: 0, ease: "expo.inOut"}
+  ]);
   const flash = sampleNumberTimeline(ctx.localSec, 1, [
-    {at: 1.02, duration: 0.06, from: 1, to: 0.6, ease: "linear"},
-    {at: 1.08, duration: 0.06, from: 0.6, to: 1, ease: "linear"}
+    {at: 0.6, duration: 0.04, from: 1, to: 0.48, ease: "linear"},
+    {at: 0.64, duration: 0.07, from: 0.48, to: 1, ease: "linear"}
   ]);
-  const ruleLeft = sampleNumberTimeline(ctx.localSec, ruleX1, [{at: 0.85, duration: 0.45, from: ruleX1, to: ruleMid, ease: "power3.inOut"}]);
-  const ruleRight = sampleNumberTimeline(ctx.localSec, ruleX1, [{at: 0.85, duration: 0.45, from: ruleX1, to: ruleMid, ease: "power3.inOut"}]);
+  const impactBlur = sampleNumberTimeline(ctx.localSec, 14, [
+    {at: 0.18, duration: 0.36, from: 14, to: 0.4, ease: "expo.out"},
+    {at: 0.6, duration: 0.05, from: 0.4, to: 1.8, ease: "expo.out"},
+    {at: 0.65, duration: 0.2, from: 1.8, to: 0, ease: "expo.inOut"}
+  ]);
+  const impactScale = 1 + impactPulse * 0.055;
+  const shakeX = Math.sin(ctx.localSec * 146) * impactPulse * 7;
+  const shakeY = Math.cos(ctx.localSec * 121) * impactPulse * 3;
+  const chromaticOpacity = impactPulse * 0.7;
+  const chromaticShift = 5 + impactPulse * 11;
+  const ruleMidX = ruleMid.toFixed(2);
+  const inverseRuleMidX = (-ruleMid).toFixed(2);
+  const ruleLeft = sampleNumberTimeline(ctx.localSec, ruleX1, [{at: 0.42, duration: 0.42, from: ruleX1, to: ruleMid, ease: "expo.inOut"}]);
+  const ruleRight = sampleNumberTimeline(ctx.localSec, ruleX2, [{at: 0.42, duration: 0.42, from: ruleX2, to: ruleMid, ease: "expo.inOut"}]);
   const sweepOpacity = sampleNumberTimeline(ctx.localSec, 0, [
-    {at: 1.1, duration: 0.03, from: 0, to: 1, ease: "linear"},
-    {at: 1.55, duration: 0.1, from: 1, to: 0, ease: "power2.out"}
+    {at: 0.58, duration: 0.03, from: 0, to: 1, ease: "linear"},
+    {at: 1.02, duration: 0.12, from: 1, to: 0, ease: "expo.out"}
   ]);
-  const sweepX = sampleNumberTimeline(ctx.localSec, -220, [{at: 1.1, duration: 0.5, from: -220, to: 1400, ease: "power2.in"}]);
+  const sweepX = sampleNumberTimeline(ctx.localSec, -300, [{at: 0.58, duration: 0.42, from: -300, to: 1420, ease: "expo.in"}]);
   const exitFade = getExitFade(ctx.localSec, ctx.chunkDurationSec);
 
   return (
@@ -1175,18 +1319,69 @@ const renderSplitImpactProgram: ProgramRenderer = (ctx) => {
           <stop offset="100%" stopColor="#fff" stopOpacity={0} />
         </linearGradient>
       </defs>
-      <g opacity={exitFade}>
+      <g
+        opacity={exitFade}
+        transform={`translate(${shakeX.toFixed(2)} ${shakeY.toFixed(2)}) translate(${ruleMidX} ${primaryY}) scale(${impactScale.toFixed(4)}) translate(${inverseRuleMidX} ${-primaryY})`}
+        style={{filter: `drop-shadow(0 ${Math.round(8 + impactPulse * 8)}px ${Math.round(24 + impactPulse * 26)}px rgba(0,0,0,0.42))`}}
+      >
         <text
           x={pair.scriptX + scriptXOffset}
           y={scriptY}
-          fill="#fff"
+          fill="rgba(255,255,255,0.78)"
           fontFamily={cursiveStyle.family}
           fontSize={pair.script.fontSize}
           opacity={scriptOpacity}
-          style={{filter: `blur(${scriptBlur.toFixed(2)}px)`}}
+          transform={`rotate(-2 ${pair.scriptX} ${scriptY})`}
+          style={{filter: `blur(${scriptBlur.toFixed(2)}px)`, textShadow: textShadowForGlow(0.42)}}
         >
           {pair.script.text}
         </text>
+        <g opacity={chromaticOpacity} style={{mixBlendMode: "screen"}}>
+          <text
+            x={pair.primaryX + leftX - chromaticShift}
+            y={primaryY}
+            fill="rgba(255,38,82,0.58)"
+            fontFamily={bebasStyle.family}
+            fontSize={pair.primary.fontSize}
+            opacity={wordOpacity}
+            style={{filter: `blur(${(impactBlur + 0.8).toFixed(2)}px)`}}
+          >
+            {pair.primary.text}
+          </text>
+          <text
+            x={pair.primaryX + leftX + chromaticShift}
+            y={primaryY}
+            fill="rgba(64,156,255,0.58)"
+            fontFamily={bebasStyle.family}
+            fontSize={pair.primary.fontSize}
+            opacity={wordOpacity}
+            style={{filter: `blur(${(impactBlur + 0.8).toFixed(2)}px)`}}
+          >
+            {pair.primary.text}
+          </text>
+          <text
+            x={pair.secondaryX + rightX - chromaticShift}
+            y={primaryY}
+            fill="rgba(255,38,82,0.58)"
+            fontFamily={bebasStyle.family}
+            fontSize={pair.secondary.fontSize}
+            opacity={wordOpacity}
+            style={{filter: `blur(${(impactBlur + 0.8).toFixed(2)}px)`}}
+          >
+            {pair.secondary.text}
+          </text>
+          <text
+            x={pair.secondaryX + rightX + chromaticShift}
+            y={primaryY}
+            fill="rgba(64,156,255,0.58)"
+            fontFamily={bebasStyle.family}
+            fontSize={pair.secondary.fontSize}
+            opacity={wordOpacity}
+            style={{filter: `blur(${(impactBlur + 0.8).toFixed(2)}px)`}}
+          >
+            {pair.secondary.text}
+          </text>
+        </g>
         <text
           x={pair.primaryX + leftX}
           y={primaryY}
@@ -1194,7 +1389,7 @@ const renderSplitImpactProgram: ProgramRenderer = (ctx) => {
           fontFamily={bebasStyle.family}
           fontSize={pair.primary.fontSize}
           opacity={wordOpacity * flash}
-          style={{textShadow: textShadowForGlow(1)}}
+          style={{filter: `blur(${impactBlur.toFixed(2)}px) contrast(${(1.04 + impactPulse * 0.22).toFixed(2)})`, textShadow: textShadowForGlow(1)}}
         >
           {pair.primary.text}
         </text>
@@ -1205,26 +1400,27 @@ const renderSplitImpactProgram: ProgramRenderer = (ctx) => {
           fontFamily={bebasStyle.family}
           fontSize={pair.secondary.fontSize}
           opacity={wordOpacity * flash}
-          style={{textShadow: textShadowForGlow(1)}}
+          style={{filter: `blur(${impactBlur.toFixed(2)}px) contrast(${(1.04 + impactPulse * 0.22).toFixed(2)})`, textShadow: textShadowForGlow(1)}}
         >
           {pair.secondary.text}
         </text>
         <line
-          x1={ruleLeft}
+          x1={ctx.localSec > 0.9 ? ruleX1 : ruleLeft}
           y1={ruleY}
-          x2={ctx.localSec > 1.31 ? ruleX2 : ruleRight}
+          x2={ctx.localSec > 0.9 ? ruleX2 : ruleRight}
           y2={ruleY}
           stroke="#fff"
-          strokeWidth={1.5}
-          opacity={wordOpacityRamp(ctx.localSec, 0.85, 0.08, "linear")}
+          strokeWidth={1.8 + impactPulse * 1.4}
+          opacity={wordOpacityRamp(ctx.localSec, 0.42, 0.08, "linear") * (0.55 + impactPulse * 0.35)}
         />
         <rect
           x={sweepX}
-          y={primaryTop - 20}
-          width={220}
-          height={pair.primary.fontSize + 60}
+          y={primaryTop - 36}
+          width={300}
+          height={pair.primary.fontSize + 86}
           opacity={sweepOpacity}
           fill={`url(#${prefix}-sweep)`}
+          style={{filter: `blur(${(4 + impactPulse * 7).toFixed(2)}px)`}}
         />
       </g>
     </svg>
@@ -1323,16 +1519,16 @@ function measureHierarchyLayout({
   primaryText,
   secondaryText
 }: HierarchyLayoutInput): HierarchyLayout {
-  const primary = measureWord(primaryText.toUpperCase(), 240, VIEWBOX_W * 0.84, DEFAULT_MIN_SCALE, playfairStyle);
-  const secondary = measureWord(secondaryText.toUpperCase(), 64, VIEWBOX_W * 0.3, DEFAULT_MIN_SCALE, bebasStyle);
-  const script = measureWord(scriptText, 96, VIEWBOX_W * 0.34, DEFAULT_MIN_SCALE, cursiveStyle);
+  const primary = measureWord(primaryText.toUpperCase(), 340, VIEWBOX_W * 0.94, DEFAULT_MIN_SCALE, playfairStyle);
+  const secondary = measureWord(secondaryText.toUpperCase(), 50, VIEWBOX_W * 0.26, DEFAULT_MIN_SCALE, bebasStyle);
+  const script = measureWord(scriptText, 88, VIEWBOX_W * 0.28, DEFAULT_MIN_SCALE, cursiveStyle);
   const primaryX = toTextAnchorX(primary);
   const primaryY = 632;
   const primaryTop = primaryY - primary.fontSize * 0.84;
-  const hierarchyGap = Math.max(28, Math.round(primary.fontSize * 0.1));
+  const hierarchyGap = Math.max(32, Math.round(primary.fontSize * 0.1));
   const secondaryX = primaryX + Math.max(0, primary.width - secondary.width - 12);
   const secondaryY = primaryY + primary.fontSize * 0.22 + hierarchyGap + secondary.fontSize * 0.84;
-  const scriptX = primaryX;
+  const scriptX = primaryX - Math.max(14, script.width * 0.14);
   const scriptY = primaryTop - hierarchyGap - script.fontSize * 0.22;
   return {
     script,
@@ -1366,46 +1562,81 @@ export const __svgTypographyLayoutTestUtils = {
 const renderScriptBigSmallBlurProgram: ProgramRenderer = (ctx) => {
   const layout = buildHierarchyLayout(ctx);
   const chars = layout.primary.text.split("");
-  const scriptOpacity = wordOpacityRamp(ctx.localSec, 0, 1, "power3.out");
-  const scriptXOffset = sampleNumberTimeline(ctx.localSec, -15, [{at: 0, duration: 1, from: -15, to: 0, ease: "power3.out"}]);
-  const scriptBlur = sampleNumberTimeline(ctx.localSec, 8, [{at: 0, duration: 1, from: 8, to: 0, ease: "power3.out"}]);
-  const maybeEnd = 0.3 + (Math.max(1, chars.length) - 1) * 0.1 + 0.8;
-  const glow = wordOpacityRamp(ctx.localSec, maybeEnd, 0.01, "linear");
-  const secondaryOpacity = wordOpacityRamp(ctx.localSec, maybeEnd + 0.1, 0.7, "power3.out") * 0.85;
-  const secondaryYOffset = sampleNumberTimeline(ctx.localSec, 12, [{at: maybeEnd + 0.1, duration: 0.7, from: 12, to: 0, ease: "power3.out"}]);
-  const secondaryBlur = sampleNumberTimeline(ctx.localSec, 8, [{at: maybeEnd + 0.1, duration: 0.7, from: 8, to: 0, ease: "power3.out"}]);
+  const scriptOpacity = wordOpacityRamp(ctx.localSec, 0, 0.82, "expo.out") * 0.86;
+  const scriptXOffset = sampleNumberTimeline(ctx.localSec, -42, [{at: 0, duration: 0.9, from: -42, to: -8, ease: "cubic.blurSweep"}]);
+  const scriptBlur = sampleNumberTimeline(ctx.localSec, 14, [{at: 0, duration: 0.9, from: 14, to: 0.2, ease: "expo.out"}]);
+  const charDur = 0.58;
+  const stagger = 0.075;
+  const maybeEnd = 0.18 + (Math.max(1, chars.length) - 1) * stagger + charDur;
+  const glow = wordOpacityRamp(ctx.localSec, maybeEnd - 0.05, 0.01, "linear");
+  const resolvePulse = sampleNumberTimeline(ctx.localSec, 0, [
+    {at: maybeEnd - 0.03, duration: 0.05, from: 0, to: 1, ease: "expo.out"},
+    {at: maybeEnd + 0.02, duration: 0.24, from: 1, to: 0, ease: "expo.inOut"}
+  ]);
+  const groupScale = 1 + resolvePulse * 0.028;
+  const secondaryOpacity = wordOpacityRamp(ctx.localSec, maybeEnd + 0.08, 0.48, "expo.out") * 0.78;
+  const secondaryYOffset = sampleNumberTimeline(ctx.localSec, 18, [{at: maybeEnd + 0.08, duration: 0.48, from: 18, to: 0, ease: "cubic.blurSweep"}]);
+  const secondaryBlur = sampleNumberTimeline(ctx.localSec, 11, [{at: maybeEnd + 0.08, duration: 0.48, from: 11, to: 0.2, ease: "expo.out"}]);
+  const primaryCenterX = layout.primaryX + layout.primary.width / 2;
+  const primaryCenterXText = primaryCenterX.toFixed(2);
+  const inversePrimaryCenterXText = (-primaryCenterX).toFixed(2);
+  const groupShakeX = (Math.sin(ctx.localSec * 74) * resolvePulse * 2.5).toFixed(2);
+  const groupShakeY = (Math.cos(ctx.localSec * 61) * resolvePulse * 1.5).toFixed(2);
   const exitFade = getExitFade(ctx.localSec, ctx.chunkDurationSec);
 
   return (
     <svg style={baseSvgStyle} viewBox={`0 0 ${VIEWBOX_W} ${VIEWBOX_H}`} preserveAspectRatio="xMidYMid meet">
-      <g opacity={exitFade}>
+      <g
+        opacity={exitFade}
+        transform={`translate(${groupShakeX} ${groupShakeY}) translate(${primaryCenterXText} ${layout.primaryY}) scale(${groupScale.toFixed(4)}) translate(${inversePrimaryCenterXText} ${-layout.primaryY})`}
+      >
         <text
           x={layout.scriptX + scriptXOffset}
           y={layout.scriptY}
-          fill="#fff"
+          fill="rgba(255,255,255,0.76)"
           fontFamily={cursiveStyle.family}
           fontSize={layout.script.fontSize}
           opacity={scriptOpacity}
-          style={{filter: `blur(${scriptBlur.toFixed(2)}px)`}}
+          transform={`rotate(-2.5 ${layout.scriptX} ${layout.scriptY})`}
+          style={{filter: `blur(${scriptBlur.toFixed(2)}px)`, textShadow: textShadowForGlow(0.5)}}
         >
           {layout.script.text}
         </text>
+        <text
+          x={layout.primaryX}
+          y={layout.primaryY}
+          fill="rgba(255,255,255,0.22)"
+          fontFamily={playfairStyle.family}
+          fontWeight={playfairStyle.weight}
+          fontSize={layout.primary.fontSize}
+          opacity={glow * 0.72}
+          style={{filter: `blur(${(10 + resolvePulse * 6).toFixed(2)}px)`, textShadow: textShadowForGlow(1)}}
+        >
+          {layout.primary.text}
+        </text>
         {chars.map((char, index) => {
-          const start = 0.3 + index * 0.1;
-          const opacity = wordOpacityRamp(ctx.localSec, start, 0.8, "power4.out");
-          const yOffset = sampleNumberTimeline(ctx.localSec, -35, [{at: start, duration: 0.8, from: -35, to: 0, ease: "power4.out"}]);
-          const blur = sampleNumberTimeline(ctx.localSec, 10, [{at: start, duration: 0.8, from: 10, to: 0, ease: "power3.out"}]);
+          const start = 0.18 + index * stagger;
+          const opacity = wordOpacityRamp(ctx.localSec, start, charDur, "expo.out");
+          const yOffset = sampleNumberTimeline(ctx.localSec, -58, [{at: start, duration: charDur, from: -58, to: 0, ease: "expo.out"}]);
+          const blur = sampleNumberTimeline(ctx.localSec, 16, [
+            {at: start, duration: charDur * 0.68, from: 16, to: 0.4, ease: "expo.out"},
+            {at: start + charDur * 0.68, duration: charDur * 0.32, from: 0.4, to: 0, ease: "expo.inOut"}
+          ]);
+          const scale = sampleNumberTimeline(ctx.localSec, 0.82, [{at: start, duration: charDur, from: 0.82, to: 1, ease: "back.out(2.2)"}]);
+          const x = layout.primaryX + layout.primary.charX[index];
+          const y = layout.primaryY + yOffset;
           return (
             <text
               key={`${ctx.chunk.id}-p7-${index}`}
-              x={layout.primaryX + layout.primary.charX[index]}
-              y={layout.primaryY + yOffset}
+              x={x}
+              y={y}
               fill="#fff"
               fontFamily={playfairStyle.family}
               fontWeight={playfairStyle.weight}
               fontSize={layout.primary.fontSize}
               opacity={opacity}
-              style={{filter: `blur(${blur.toFixed(2)}px)`, textShadow: textShadowForGlow(glow)}}
+              transform={`translate(${x} ${layout.primaryY}) scale(${scale.toFixed(4)}) translate(${-x} ${-layout.primaryY})`}
+              style={{filter: `blur(${blur.toFixed(2)}px) contrast(${(1.02 + resolvePulse * 0.14).toFixed(2)})`, textShadow: textShadowForGlow(Math.max(glow, resolvePulse * 0.85))}}
             >
               {char}
             </text>
@@ -1419,7 +1650,7 @@ const renderScriptBigSmallBlurProgram: ProgramRenderer = (ctx) => {
           fontSize={layout.secondary.fontSize}
           letterSpacing={6}
           opacity={secondaryOpacity}
-          style={{filter: `blur(${secondaryBlur.toFixed(2)}px)`}}
+          style={{filter: `blur(${secondaryBlur.toFixed(2)}px)`, textShadow: textShadowForGlow(0.28 + glow * 0.28)}}
         >
           {layout.secondary.text}
         </text>

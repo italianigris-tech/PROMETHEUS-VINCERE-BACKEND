@@ -250,10 +250,10 @@ export const svgTypographyVariantsV1: SvgTypographyVariant[] = [
       {key: "primary", required: true},
       {key: "secondary", required: true}
     ],
-    animationType: ["split-impact", "dual-word-entry"],
-    effects: ["rebound", "impact-flash", "light-sweep"],
+    animationType: ["split-impact", "dual-word-entry", "impact-camera-shake"],
+    effects: ["rebound", "impact-flash", "light-sweep", "chromatic-aberration", "impact-camera-shake", "blur-sweep"],
     timingProfile: {entry_seconds: 0.85, total_seconds: 1.6},
-    easingProfile: ["power3.out", "power4.out", "power2.inOut"],
+    easingProfile: ["expo.inOut", "expo.out", "back.out(2.5)", "cubic.luxurySnap"],
     fontProfile: {
       script: {family: "'Great Vibes', cursive", role: "accent"},
       primary: {family: "'Bebas Neue', sans-serif", role: "display"},
@@ -320,10 +320,10 @@ export const svgTypographyVariantsV1: SvgTypographyVariant[] = [
       {key: "primary", required: true},
       {key: "secondary", required: true}
     ],
-    animationType: ["script-drift", "big-char-drop", "small-rise"],
-    effects: ["per-char-blur", "dual-accent-blur", "final-glow"],
+    animationType: ["script-drift", "big-char-drop", "small-rise", "primary-luxury-hit"],
+    effects: ["per-char-blur", "dual-accent-blur", "final-glow", "layered-glow", "delicate-script-glow", "blur-sweep"],
     timingProfile: {entry_seconds: 1, total_seconds: 2.4},
-    easingProfile: ["power3.out", "power4.out"],
+    easingProfile: ["expo.out", "back.out(2.2)", "cubic.blurSweep"],
     fontProfile: {
       script: {family: "'Great Vibes', cursive", role: "accent"},
       primary: {family: "'Playfair Display', serif", role: "display"},

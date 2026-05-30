@@ -159,4 +159,21 @@ describe("svg typography stylebook", () => {
     expect(getSvgVariantMotionProfile(sweepVariant!)).toBe("sweep-heavy");
     expect(getSvgVariantExitProfile(sweepVariant!)).toBe("integrated-sweep");
   });
+
+  it("marks the phase-two focus presets with high-end impact and blur treatment metadata", () => {
+    const impactVariant = getSvgTypographyVariant("cinematic_text_preset_5");
+    const hierarchyVariant = getSvgTypographyVariant("cinematic_text_preset_7");
+
+    expect(impactVariant).toBeTruthy();
+    expect(hierarchyVariant).toBeTruthy();
+    expect(getSvgVariantMotionProfile(impactVariant!)).toBe("impact");
+    expect(impactVariant!.easingProfile).toEqual(expect.arrayContaining(["expo.inOut", "back.out(2.5)"]));
+    expect(impactVariant!.effects).toEqual(
+      expect.arrayContaining(["chromatic-aberration", "impact-camera-shake", "blur-sweep"])
+    );
+    expect(hierarchyVariant!.easingProfile).toEqual(expect.arrayContaining(["expo.out", "back.out(2.2)"]));
+    expect(hierarchyVariant!.effects).toEqual(
+      expect.arrayContaining(["layered-glow", "delicate-script-glow", "blur-sweep"])
+    );
+  });
 });

@@ -47,6 +47,7 @@
     "render:master:longform": "tsx scripts/master-render-longform.ts",
     "render": "remotion render src/index.ts FemaleCoachDeanGraziosi out/FEMALE-COACH-dean-graziosi.mp4 --codec=h264 --audio-codec=aac",
     "render:final": "npm run captions:sync && npm run render",
+    "test:e2e": "playwright test",
     "nolan:plan": "tsx scripts/nolan-clip-plan.ts",
     "nolan:extract": "tsx scripts/nolan-clip-extract.ts",
     "test": "vitest run --pool threads",
@@ -87,6 +88,7 @@
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vite": "^8.0.1",
-    "vitest": "^4.1.0"
+    "vitest": "^4.1.0",
+    "@playwright/test": "^1.60.0"
   }
 }

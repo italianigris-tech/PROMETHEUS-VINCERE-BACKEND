@@ -102,4 +102,16 @@ describe("svg layout fit guard", () => {
     expect(secondaryGap).toBeGreaterThanOrEqual(24);
     expect(Math.abs(scriptGap - secondaryGap)).toBeLessThanOrEqual(8);
   });
+
+  it("makes the three-word hierarchy preset visually dominated by the Playfair primary word", () => {
+    const layout = __svgTypographyLayoutTestUtils.measureHierarchyLayout({
+      scriptText: "feel",
+      primaryText: "impact",
+      secondaryText: "now"
+    });
+
+    expect(layout.primary.fontSize / layout.script.fontSize).toBeGreaterThanOrEqual(2.75);
+    expect(layout.primary.fontSize / layout.secondary.fontSize).toBeGreaterThanOrEqual(5);
+    expect(layout.scriptX).toBeLessThan(layout.primaryX);
+  });
 });

@@ -1,8 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 
-import {preloadFontSystem} from "./font-preload-bootstrap";
-import {PreviewApp} from "./PreviewApp";
+import {resolveWebPreviewRootRoute} from "./sandbox-data";
 import "./preview.css";
 
 const rootElement = document.getElementById("root");
@@ -79,11 +78,15 @@ class RootErrorBoundary extends React.Component<{
   }
 }
 
-const renderPreviewApp = (): void => {
+const renderRootApp = async (route: "sandbox" | "preview-app"): Promise<void> => {
+  const RootComponent = route === "sandbox"
+    ? (await import("./Sandbox")).Sandbox
+    : (await import("./PreviewApp")).PreviewApp;
+
   ReactDOM.createRoot(rootElement).render(
     <React.StrictMode>
       <RootErrorBoundary>
-        <PreviewApp />
+        <RootComponent />
       </RootErrorBoundary>
     </React.StrictMode>
   );
@@ -93,7 +96,10 @@ if (typeof window !== "undefined" && typeof window.__RENDER_DEBUG__ === "undefin
   window.__RENDER_DEBUG__ = true;
 }
 
-void preloadFontSystem()
+const route = resolveWebPreviewRootRoute(`${window.location.pathname}${window.location.search}`);
+
+void import("./font-preload-bootstrap")
+  .then(({preloadFontSystem}) => preloadFontSystem())
   .finally(() => {
-    renderPreviewApp();
+    void renderRootApp(route);
   });

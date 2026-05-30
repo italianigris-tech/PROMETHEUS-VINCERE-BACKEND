@@ -80,6 +80,21 @@ describe("svg overlay motion keyframes", () => {
     expect(final.opacity).toBeLessThan(0.05);
   });
 
+  it("gives split-impact a sharp luxury overshoot at the hit point", () => {
+    const variant = getVariantByFamily("split-impact");
+    const impact = computeSvgMotionState({
+      variant,
+      entryProgress: 0.82,
+      exitProgress: 0,
+      slotIndex: 1,
+      charIndex: 0
+    });
+
+    expect(impact.scale).toBeGreaterThan(1.045);
+    expect(Math.abs(impact.translateX)).toBeLessThan(18);
+    expect(impact.blur).toBeLessThan(1.2);
+  });
+
   it("animates cursor-sweep family with progressive clip reveal", () => {
     const variant = getVariantByFamily("cursor-sweep");
     const early = computeSvgMotionState({
