@@ -1,6 +1,8 @@
 import {loadEnv} from "../../config";
+import {createR2TransferService} from "../../integrations/r2";
 import {FileJobRepository} from "../../repository";
 import {renderMusicPreviewMix} from "../jobs/render-music-preview-mix";
+import {createRemoteAudioCacheResolver} from "../renderer/remote-audio-cache";
 
 const readArg = (flag: string): string | undefined => {
   const directMatch = process.argv.find((value) => value.startsWith(`${flag}=`));
@@ -29,11 +31,16 @@ const main = async (): Promise<void> => {
   const env = loadEnv();
   const repository = new FileJobRepository(env.STORAGE_DIR);
   await repository.initialize();
+  const r2Service = createR2TransferService(env);
 
   const result = await renderMusicPreviewMix({
     repository,
     jobId,
-    overwrite: hasFlag("--overwrite")
+    overwrite: hasFlag("--overwrite"),
+    remoteAudioResolver: createRemoteAudioCacheResolver({
+      env,
+      r2Service
+    })
   });
 
   console.log(JSON.stringify(result, null, 2));

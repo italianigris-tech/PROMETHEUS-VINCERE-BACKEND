@@ -4,8 +4,10 @@ import {renderMasterTrack, type SoundDesignManifest} from "../../sound-engine";
 import {soundDesignManifestSchema} from "../../sound-engine/types";
 import {
   adaptAudioPlanToSoundDesignManifestWithHints,
+  type AdaptedSoundDesignRenderHints,
   type AdaptAudioPlanToSoundDesignManifestInput
 } from "./manifest-adapter";
+import type {RemoteAudioCacheResolver, RemoteAudioRole} from "./remote-audio-cache";
 
 export type RenderAudioPlanInput = AdaptAudioPlanToSoundDesignManifestInput & {
   manifest?: SoundDesignManifest;
@@ -13,6 +15,9 @@ export type RenderAudioPlanInput = AdaptAudioPlanToSoundDesignManifestInput & {
   outputVideoPath?: string | null;
   disabled?: boolean;
   baseDir?: string;
+  renderHints?: AdaptedSoundDesignRenderHints;
+  remoteAudioResolver?: RemoteAudioCacheResolver;
+  remoteAudioCacheDir?: string;
 };
 
 export type RenderAudioPlanResult = {
@@ -34,11 +39,54 @@ const isRemoteOnlyPath = (value: string): boolean =>
 
 const resolveRenderBaseDir = (baseDir?: string): string => path.resolve(baseDir ?? process.cwd());
 
+const resolveRemoteAudioSource = async ({
+  source,
+  cueId,
+  role,
+  cacheDir,
+  resolver
+}: {
+  source: string;
+  cueId: string;
+  role: RemoteAudioRole;
+  cacheDir: string;
+  resolver?: RemoteAudioCacheResolver;
+}): Promise<{file: string; evidence: string[]}> => {
+  if (!isRemoteOnlyPath(source)) {
+    return {
+      file: source,
+      evidence: []
+    };
+  }
+
+  if (!resolver) {
+    throw new Error(
+      `RemoteAudioRenderError: ${role} cue ${cueId} uses remote audio ${source}, but no remote audio cache resolver was configured.`
+    );
+  }
+
+  const cached = await resolver({
+    source,
+    cueId,
+    role,
+    cacheDir
+  });
+  const localPath = cached.localPath.trim();
+  if (!localPath || isRemoteOnlyPath(localPath)) {
+    throw new Error(`RemoteAudioRenderError: ${role} cue ${cueId} did not resolve to a local audio file.`);
+  }
+
+  return {
+    file: localPath,
+    evidence: cached.evidence
+  };
+};
+
 export const renderAudioPlan = async (input: RenderAudioPlanInput): Promise<RenderAudioPlanResult> => {
   const adapted = input.manifest
     ? {
         manifest: soundDesignManifestSchema.parse(input.manifest),
-        renderHints: {
+        renderHints: input.renderHints ?? {
           planMode: input.plan.planMode,
           unresolvedTrackIds: [],
           placeholderCueIds: [],
@@ -54,6 +102,8 @@ export const renderAudioPlan = async (input: RenderAudioPlanInput): Promise<Rend
   const errors: string[] = [];
   const evidence: string[] = [];
   const requiredInputsMissing: string[] = [];
+  const baseDir = resolveRenderBaseDir(input.baseDir);
+  const remoteAudioCacheDir = path.resolve(input.remoteAudioCacheDir ?? path.join(baseDir, ".cache", "remote-audio"));
 
   if (input.disabled) {
     return {
@@ -83,35 +133,80 @@ export const renderAudioPlan = async (input: RenderAudioPlanInput): Promise<Rend
     );
   }
 
-  const blockedMusicSources = manifest.musicCues
-    .filter((cue) => isPlaceholderPath(cue.file) || isRemoteOnlyPath(cue.file))
+  const localizedMusicCues = await Promise.all(manifest.musicCues.map(async (cue) => {
+    const resolved = await resolveRemoteAudioSource({
+      source: cue.file,
+      cueId: cue.id,
+      role: "music",
+      cacheDir: remoteAudioCacheDir,
+      resolver: input.remoteAudioResolver
+    });
+    evidence.push(...resolved.evidence);
+    return {
+      ...cue,
+      file: resolved.file
+    };
+  }));
+  const localizedSfxCues = await Promise.all(manifest.sfx.map(async (cue) => {
+    const resolved = await resolveRemoteAudioSource({
+      source: cue.file,
+      cueId: cue.id,
+      role: "sfx",
+      cacheDir: remoteAudioCacheDir,
+      resolver: input.remoteAudioResolver
+    });
+    evidence.push(...resolved.evidence);
+    return {
+      ...cue,
+      file: resolved.file
+    };
+  }));
+  const localizedDialogueSource = manifest.dialogueSource
+    ? (await resolveRemoteAudioSource({
+        source: manifest.dialogueSource,
+        cueId: "dialogue_source",
+        role: "dialogue",
+        cacheDir: remoteAudioCacheDir,
+        resolver: input.remoteAudioResolver
+      }))
+    : null;
+  if (localizedDialogueSource) {
+    evidence.push(...localizedDialogueSource.evidence);
+  }
+
+  const localizedManifest: SoundDesignManifest = {
+    ...manifest,
+    musicCues: localizedMusicCues,
+    sfx: localizedSfxCues,
+    dialogueSource: localizedDialogueSource?.file ?? manifest.dialogueSource
+  };
+
+  const blockedMusicSources = localizedManifest.musicCues
+    .filter((cue) => isPlaceholderPath(cue.file))
     .map((cue) => ({
       cueId: cue.id,
       file: cue.file,
-      reason: isPlaceholderPath(cue.file)
-        ? "placeholder-backed cue requires a real licensed audio asset"
-        : "remote R2/HTTP source requires a local cache or download resolver"
+      reason: "placeholder-backed cue requires a real licensed audio asset"
     }));
   blockedMusicSources.forEach((source) => {
     requiredInputsMissing.push(`music cue ${source.cueId}: ${source.reason}`);
     errors.push(`Music cue ${source.cueId} cannot render from ${source.file}.`);
   });
 
-  const droppedSfx = manifest.sfx.filter((cue) => isPlaceholderPath(cue.file) || isRemoteOnlyPath(cue.file));
-  const keptSfx = manifest.sfx.filter((cue) => !isPlaceholderPath(cue.file) && !isRemoteOnlyPath(cue.file));
-  droppedSfx.forEach((cue) => {
-    warnings.push(`Dropped SFX cue ${cue.id} from preview mix because ${cue.file} is not locally renderable.`);
+  const blockedSfxSources = localizedManifest.sfx.filter((cue) => isPlaceholderPath(cue.file));
+  blockedSfxSources.forEach((cue) => {
+    requiredInputsMissing.push(`sfx cue ${cue.id}: placeholder-backed cue requires a real sound effect asset`);
+    errors.push(`SFX cue ${cue.id} cannot render from ${cue.file}.`);
   });
 
   const renderableManifest: SoundDesignManifest = {
-    ...manifest,
-    sfx: keptSfx,
+    ...localizedManifest,
     dialogueSource:
-      manifest.dialogueSource && !isRemoteOnlyPath(manifest.dialogueSource) && !isPlaceholderPath(manifest.dialogueSource)
-        ? manifest.dialogueSource
+      localizedManifest.dialogueSource && !isPlaceholderPath(localizedManifest.dialogueSource)
+        ? localizedManifest.dialogueSource
         : undefined
   };
-  if (manifest.dialogueSource && renderableManifest.dialogueSource !== manifest.dialogueSource) {
+  if (localizedManifest.dialogueSource && renderableManifest.dialogueSource !== localizedManifest.dialogueSource) {
     warnings.push("Dialogue source was omitted from the preview mix because it was not locally renderable.");
   }
 
@@ -132,7 +227,6 @@ export const renderAudioPlan = async (input: RenderAudioPlanInput): Promise<Rend
     };
   }
 
-  const baseDir = resolveRenderBaseDir(input.baseDir);
   const resolvedOutputAudioPath = path.resolve(outputAudioPath);
   const previewMixPath = resolvedOutputAudioPath;
   const masterPath = path.join(path.dirname(resolvedOutputAudioPath), `${path.parse(resolvedOutputAudioPath).name}.master.wav`);
@@ -171,16 +265,6 @@ export const renderAudioPlan = async (input: RenderAudioPlanInput): Promise<Rend
       requiredInputsMissing
     };
   } catch (error) {
-    errors.push(error instanceof Error ? error.message : String(error));
-    return {
-      status: "blocked",
-      manifest: renderableManifest,
-      outputAudioPath: resolvedOutputAudioPath,
-      outputVideoPath: input.outputVideoPath ?? null,
-      warnings,
-      errors,
-      evidence,
-      requiredInputsMissing
-    };
+    throw new Error(`AudioRenderFatalError: FFmpeg audio preview mix failed. ${error instanceof Error ? error.message : String(error)}`);
   }
 };

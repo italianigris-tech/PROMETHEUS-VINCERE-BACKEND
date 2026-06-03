@@ -1058,38 +1058,52 @@ export const buildPreviewManifestFromSessionState = (
   sessionState: LiveEditSessionPublicState | null,
   apiBase: string
 ): HyperframesPreviewManifest | null => {
-  if (!sessionState?.routes || !sessionState.lanes) {
+  if (!sessionState) {
     return null;
   }
+
+  const requireBackendDecision = <T,>(value: T | undefined, path: string): T => {
+    if (typeof value === "undefined") {
+      throw new Error(`ManifestValidator: missing backend decision ${path}.`);
+    }
+    return value;
+  };
+
+  const routes = requireBackendDecision(sessionState.routes, "routes");
+  const lanes = requireBackendDecision(sessionState.lanes, "lanes");
+  const sourceHasVideo = requireBackendDecision(sessionState.sourceHasVideo, "sourceHasVideo");
+  const sourceKind = requireBackendDecision(sessionState.sourceMediaKind, "sourceMediaKind");
+  const sourceMediaRoute = requireBackendDecision(routes.sourceMedia, "routes.sourceMedia");
+  const sourceMediaUrl = resolveApiUrl(apiBase, sessionState.sourceMediaUrl ?? sourceMediaRoute);
 
   return hyperframesPreviewManifestSchema.parse({
     schemaVersion: "hyperframes-preview-manifest/v1",
     sessionId: sessionState.id,
     captionProfileId: sessionState.captionProfileId,
     motionTier: sessionState.motionTier,
-    lanes: sessionState.lanes,
+    lanes,
     routes: {
-      status: sessionState.routes.status,
-      preview: sessionState.routes.preview,
-      render: sessionState.routes.render,
-      renderStatus: sessionState.routes.renderStatus,
-      sourceMedia: sessionState.routes.sourceMedia
+      status: routes.status,
+      preview: routes.preview,
+      render: routes.render,
+      renderStatus: routes.renderStatus,
+      sourceMedia: sourceMediaRoute
     },
     baseVideo: {
-      src: resolveApiUrl(apiBase, sessionState.sourceMediaUrl ?? sessionState.routes.sourceMedia),
-      sourceKind: sessionState.sourceMediaKind ?? "none",
+      src: sourceMediaUrl,
+      sourceKind,
       sourceLabel: sessionState.sourceLabel ?? sessionState.sourceFilename ?? null,
-      hasVideo: sessionState.sourceHasVideo === true,
+      hasVideo: sourceHasVideo === true,
       width: sessionState.sourceWidth ?? null,
       height: sessionState.sourceHeight ?? null,
       fps: sessionState.sourceFps ?? null,
       durationMs: sessionState.sourceDurationMs ?? null
     },
     audio: {
-      src: sessionState.sourceHasVideo === true ? null : resolveApiUrl(apiBase, sessionState.sourceMediaUrl ?? sessionState.routes.sourceMedia),
-      source: sessionState.sourceHasVideo === true
+      src: sourceHasVideo === true ? null : sourceMediaUrl,
+      source: sourceHasVideo === true
         ? "video-element"
-        : sessionState.sourceMediaUrl || sessionState.routes.sourceMedia
+        : sourceMediaUrl
           ? "separate-audio"
           : "none"
     },
@@ -2438,15 +2452,6 @@ export const CreativeAudioLivePlayer: React.FC<CreativeAudioLivePlayerProps> = (
                   audioStatusCallbackRef.current?.("error", message);
                   previewStateCallbackRef.current?.("error");
                 }
-              }}
-              onFallbackRequested={(message) => {
-                if (import.meta.env.DEV) {
-                  console.warn("[CreativeAudioLivePlayer] Display God fallback engaged", {
-                    jobId,
-                    reason: message
-                  });
-                }
-                setDisplayGodFallbackReason(message);
               }}
             />
           ) : (

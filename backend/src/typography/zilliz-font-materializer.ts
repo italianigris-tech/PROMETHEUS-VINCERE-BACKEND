@@ -1,5 +1,5 @@
 import path from "node:path";
-import {copyFile, mkdir, rm, writeFile} from "node:fs/promises";
+import {copyFile, mkdir, rm, stat, writeFile} from "node:fs/promises";
 
 import AdmZip from "adm-zip";
 
@@ -13,6 +13,8 @@ export type MaterializedRetrievedFontAsset = {
 };
 
 const fontFilePattern = /\.(woff2?|otf|ttf)$/i;
+
+const normalizePosixPath = (value: string): string => value.replace(/\\/g, "/");
 
 export const sanitizeFontPathSegment = (value: string): string => {
   const normalized = value.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/-+/g, "-").replace(/^-+|-+$/g, "");
@@ -37,8 +39,15 @@ const buildBrowserUrl = ({
   fileName: string;
   servePath: string;
 }): string => {
-  const normalizedServePath = servePath.replace(/\/+$/, "");
+  const normalizedServePath = normalizePosixPath(servePath).replace(/\/+$/, "");
   return `${normalizedServePath}/${encodeURIComponent(familyDir)}/${encodeURIComponent(fileName)}`;
+};
+
+const assertMaterializedFontExists = async (filePath: string, sourceLabel: string): Promise<void> => {
+  const fileStats = await stat(filePath).catch(() => null);
+  if (!fileStats?.isFile() || fileStats.size <= 0) {
+    throw new Error(`TypographyMaterializerError: materialized font file does not exist after extraction/copy (${sourceLabel} -> ${filePath}).`);
+  }
 };
 
 const inferRemoteFileName = (sourceUrl: string): string => {
@@ -74,10 +83,11 @@ export const materializeLocalFontAsset = async ({
 
   await mkdir(targetDir, {recursive: true});
   await copyFile(filePath, outputPath);
+  await assertMaterializedFontExists(outputPath, filePath);
 
   return {
     fileName,
-    filePath: outputPath,
+    filePath: normalizePosixPath(outputPath),
     browserUrl: buildBrowserUrl({
       familyDir,
       fileName,
@@ -124,10 +134,11 @@ export const materializeRetrievedFontAsset = async ({
       const fileName = path.basename(entry.entryName);
       const outputPath = path.join(targetDir, fileName);
       await writeFile(outputPath, entry.getData());
+      await assertMaterializedFontExists(outputPath, `${sourceUrl}#${entry.entryName}`);
 
       return {
         fileName,
-        filePath: outputPath,
+        filePath: normalizePosixPath(outputPath),
         browserUrl: buildBrowserUrl({
           familyDir,
           fileName,
@@ -144,10 +155,11 @@ export const materializeRetrievedFontAsset = async ({
   const normalizedFileName = fontFilePattern.test(sourceFileName) ? sourceFileName : `${sourceFileName}.woff2`;
   const outputPath = path.join(targetDir, normalizedFileName);
   await writeFile(outputPath, buffer);
+  await assertMaterializedFontExists(outputPath, sourceUrl);
 
   return [{
     fileName: normalizedFileName,
-    filePath: outputPath,
+    filePath: normalizePosixPath(outputPath),
     browserUrl: buildBrowserUrl({
       familyDir,
       fileName: normalizedFileName,

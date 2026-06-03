@@ -2,6 +2,7 @@ import type {FastifyInstance, FastifyReply} from "fastify";
 import {z} from "zod";
 
 import type {BackendEnv} from "../config";
+import type {R2TransferService} from "../integrations/r2";
 import type {FileJobRepository} from "../repository";
 import {readR2MusicCatalogArtifact, getDefaultR2MusicCatalogArtifactPath} from "./catalog/r2-music-catalog-artifact";
 import {
@@ -34,6 +35,7 @@ import {
   type R2MusicCatalogEntry,
   type VideoAwareAudioPlan
 } from "./index";
+import {createRemoteAudioCacheResolver} from "./renderer/remote-audio-cache";
 
 type MusicCatalogRouteUrlMode = MusicLibraryUrlMode;
 
@@ -473,13 +475,19 @@ export const registerMusicCatalogRoutes = async (
   {
     env,
     repository,
-    signMusicPreviewUrl
+    signMusicPreviewUrl,
+    r2Service
   }: {
     env: BackendEnv;
     repository: FileJobRepository;
     signMusicPreviewUrl?: MusicPreviewUrlSigner;
+    r2Service: R2TransferService;
   }
 ): Promise<void> => {
+  const remoteAudioResolver = createRemoteAudioCacheResolver({
+    env,
+    r2Service
+  });
   app.get("/api/music/catalog", async (req, reply) => {
     try {
       const query = catalogListQuerySchema.parse(req.query ?? {});
@@ -720,7 +728,8 @@ export const registerMusicCatalogRoutes = async (
       return await renderMusicPreviewMix({
         repository,
         jobId: params.jobId,
-        overwrite: body.overwrite
+        overwrite: body.overwrite,
+        remoteAudioResolver
       });
     } catch (error) {
       return handleRouteError({reply, error});

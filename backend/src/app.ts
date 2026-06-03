@@ -793,7 +793,8 @@ export const createBackendApp = async ({
   await registerMusicCatalogRoutes(app, {
     env,
     repository,
-    signMusicPreviewUrl: musicPreviewUrlSigner
+    signMusicPreviewUrl: musicPreviewUrlSigner,
+    r2Service
   });
   await registerThumbnailRoutes(app, {
     app,

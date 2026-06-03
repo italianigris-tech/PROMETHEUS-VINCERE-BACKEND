@@ -12,52 +12,22 @@ type DisplayGodPreviewStageProps = {
   readonly previewPerformanceMode: PreviewPerformanceMode;
   readonly onHealthChange?: (health: PreviewPlaybackHealth) => void;
   readonly onErrorMessageChange?: (message: string | null) => void;
-  readonly onFallbackRequested?: (message: string) => void;
 };
-
-class DisplayGodPreviewErrorBoundary extends React.Component<
-  {
-    readonly onFatalError?: (message: string) => void;
-    readonly children: React.ReactNode;
-  },
-  {hasError: boolean}
-> {
-  public state = {hasError: false};
-
-  public static getDerivedStateFromError(): {hasError: boolean} {
-    return {hasError: true};
-  }
-
-  public componentDidCatch(error: Error): void {
-    this.props.onFatalError?.(error.message);
-  }
-
-  public render(): React.ReactNode {
-    if (this.state.hasError) {
-      return null;
-    }
-
-    return this.props.children;
-  }
-}
 
 export const DisplayGodPreviewStage: React.FC<DisplayGodPreviewStageProps> = ({
   displayTimeline,
   manifest,
   previewPerformanceMode,
   onHealthChange,
-  onErrorMessageChange,
-  onFallbackRequested
+  onErrorMessageChange
 }) => {
   return (
-    <DisplayGodPreviewErrorBoundary onFatalError={onFallbackRequested}>
-      <HyperframesPreview
-        displayTimeline={displayTimeline}
-        manifest={manifest}
-        previewPerformanceMode={previewPerformanceMode}
-        onHealthChange={onHealthChange}
-        onErrorMessageChange={onErrorMessageChange}
-      />
-    </DisplayGodPreviewErrorBoundary>
+    <HyperframesPreview
+      displayTimeline={displayTimeline}
+      manifest={manifest}
+      previewPerformanceMode={previewPerformanceMode}
+      onHealthChange={onHealthChange}
+      onErrorMessageChange={onErrorMessageChange}
+    />
   );
 };

@@ -397,6 +397,86 @@ const resolveSegmentMotionDialect = (manifest: CreativeDecisionManifest) => {
   return manifest.motionDialect?.segments[0] ?? null;
 };
 
+const containsCssKeyframes = (html: string): boolean => /@keyframes\b/i.test(html);
+
+const containsGsapTimeline = (html: string): boolean => /\bgsap\.timeline\s*\(/.test(html);
+
+const expectsPremiumTypography = (manifest: CreativeDecisionManifest): boolean => {
+  const requestedStyleLower = deriveRequestedStyle(manifest).toLowerCase();
+  const motionTierLower = manifest.style?.motionTier?.toLowerCase() ?? "";
+  return (
+    requestedStyleLower.includes("premium") ||
+    requestedStyleLower.includes("luxury") ||
+    requestedStyleLower.includes("cinematic") ||
+    motionTierLower.includes("premium")
+  );
+};
+
+export const validateGeneratedCompositionAuthority = ({
+  manifest,
+  html,
+  enableGsapMotion,
+  fontCssGenerated,
+  embeddedCustomFamilies
+}: {
+  manifest: CreativeDecisionManifest;
+  html: string;
+  enableGsapMotion: boolean;
+  fontCssGenerated: boolean;
+  embeddedCustomFamilies: string[];
+}): void => {
+  const gsapRequested = enableGsapMotion && manifest.animation.engine === "gsap";
+  if (gsapRequested && containsCssKeyframes(html)) {
+    throw new Error(
+      "CompositionAuthorityError: manifest requested GSAP motion, but generated HTML contains CSS @keyframes."
+    );
+  }
+  if (gsapRequested && !containsGsapTimeline(html)) {
+    throw new Error(
+      "CompositionAuthorityError: manifest requested GSAP motion, but generated HTML did not emit gsap.timeline()."
+    );
+  }
+
+  if (!expectsPremiumTypography(manifest)) {
+    return;
+  }
+
+  const requestedFonts = [
+    manifest.typography.primaryFont,
+    manifest.typography.secondaryFont
+  ].filter((font): font is NonNullable<typeof font> => Boolean(font));
+  const fallbackFonts = requestedFonts.filter((font) => font.source === "fallback");
+  if (fallbackFonts.length > 0) {
+    throw new Error(
+      `CompositionAuthorityError: premium typography requested, but fallback fonts were declared: ${fallbackFonts.map((font) => font.family).join(", ")}.`
+    );
+  }
+
+  const customFamilies = requestedFonts
+    .filter((font) => font.source === "custom_ingested")
+    .map((font) => font.family);
+  if (customFamilies.length === 0) {
+    throw new Error(
+      "CompositionAuthorityError: premium typography requested, but no custom ingested font family was declared."
+    );
+  }
+
+  if (!fontCssGenerated) {
+    throw new Error(
+      "CompositionAuthorityError: premium typography requested, but no @font-face rules were emitted."
+    );
+  }
+
+  const missingEmbeddedCustomFamilies = customFamilies.filter(
+    (family) => !embeddedCustomFamilies.includes(family)
+  );
+  if (missingEmbeddedCustomFamilies.length > 0) {
+    throw new Error(
+      `CompositionAuthorityError: premium typography requested, but custom font assets were not embedded for: ${missingEmbeddedCustomFamilies.join(", ")}.`
+    );
+  }
+};
+
 export const generateHyperFramesComposition = async ({
   manifest,
   outputRootDir,
@@ -979,13 +1059,6 @@ ${motionRuntimeScriptTags}  <script>
     fontFaceBlocks.length > 0 ? "Generated local @font-face rules for composition typography." : null
   ].filter((value): value is string => Boolean(value));
   const styleAuthorityDeviations = [...premiumMotionPlan.styleDeviationWarnings];
-  const requestedStyleLower = premiumMotionPlan.requestedStyle.toLowerCase();
-  const motionTierLower = parsed.style?.motionTier?.toLowerCase() ?? "";
-  const expectsPremiumTypography =
-    requestedStyleLower.includes("premium") ||
-    requestedStyleLower.includes("luxury") ||
-    requestedStyleLower.includes("cinematic") ||
-    motionTierLower.includes("premium");
   const declaredCustomFamilies = [
     parsed.typography.primaryFont,
     parsed.typography.secondaryFont
@@ -997,6 +1070,15 @@ ${motionRuntimeScriptTags}  <script>
     primaryFontAsset.browserUrl ? parsed.typography.primaryFont.family : null,
     secondaryFontAsset.browserUrl ? parsed.typography.secondaryFont?.family ?? null : null
   ].filter((value): value is string => Boolean(value));
+
+  validateGeneratedCompositionAuthority({
+    manifest: parsed,
+    html,
+    enableGsapMotion,
+    fontCssGenerated: fontFaceBlocks.length > 0,
+    embeddedCustomFamilies
+  });
+
   const missingEmbeddedCustomFamilies = declaredCustomFamilies.filter(
     (family) => !embeddedCustomFamilies.includes(family)
   );
@@ -1006,12 +1088,12 @@ ${motionRuntimeScriptTags}  <script>
   if (enableGsapMotion && !html.includes("gsap.timeline(")) {
     styleAuthorityDeviations.push("Requested GSAP motion but no gsap.timeline() call was emitted into the composition HTML.");
   }
-  if (expectsPremiumTypography && missingEmbeddedCustomFamilies.length > 0) {
+  if (expectsPremiumTypography(parsed) && missingEmbeddedCustomFamilies.length > 0) {
     styleAuthorityDeviations.push(
       `Requested premium typography but custom fonts were not embedded for: ${missingEmbeddedCustomFamilies.join(", ")}.`
     );
   }
-  if (expectsPremiumTypography && fontFaceBlocks.length === 0) {
+  if (expectsPremiumTypography(parsed) && fontFaceBlocks.length === 0) {
     styleAuthorityDeviations.push("Requested premium typography but no @font-face rules were emitted into the composition.");
   }
   if ((parsed.source.transcriptSegment.words?.length ?? 0) > 0 && !supportsWordTypography) {

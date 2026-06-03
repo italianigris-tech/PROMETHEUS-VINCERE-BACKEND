@@ -4,6 +4,10 @@ import {afterEach, beforeEach, describe, expect, test, vi} from "vitest";
 
 import {HyperframesPreview} from "../HyperframesPreview";
 import {
+  buildPreviewManifestFromSessionState,
+  type LiveEditSessionPublicState
+} from "../CreativeAudioLivePlayer";
+import {
   seekHyperframesTimelineToFrame
 } from "../hyperframes/timeline.worker";
 import {loadManifestFontsForManifest} from "../hyperframes/manifest-typography";
@@ -268,6 +272,66 @@ const buildDisplayTimeline = () => ({
   }
 }) as any;
 
+const buildLiveSessionState = (): LiveEditSessionPublicState => ({
+  id: "session-font-obedience",
+  status: "preview_text_ready",
+  captionProfileId: "longform_svg_typography_v1",
+  motionTier: "premium",
+  previewStatus: "preview_text_ready",
+  previewLines: ["Luxury fonts only"],
+  previewMotionSequence: [
+    {
+      cueId: "cue-1",
+      text: "Luxury fonts only",
+      startMs: 0,
+      durationMs: 900,
+      lineIndex: 0
+    }
+  ],
+  transcriptStatus: "full_transcript_ready",
+  transcriptWords: [
+    {
+      text: "Luxury",
+      start_ms: 0,
+      end_ms: 200
+    }
+  ],
+  analysisStatus: "analysis_ready",
+  motionGraphicsStatus: "motion_graphics_ready",
+  renderStatus: "idle",
+  errorMessage: null,
+  lastEventType: "preview_text_ready",
+  sourceFilename: "obedience.mp4",
+  sourceDurationMs: 12000,
+  sourceAspectRatio: "16:9",
+  sourceWidth: 1920,
+  sourceHeight: 1080,
+  sourceFps: 30,
+  sourceHasVideo: true,
+  sourceMediaKind: "session_source_stream",
+  routes: {
+    status: "/api/edit-sessions/session-font-obedience/status",
+    previewManifest: "/api/edit-sessions/session-font-obedience/preview-manifest",
+    previewArtifact: "/api/edit-sessions/session-font-obedience/preview-artifact",
+    preview: "/api/edit-sessions/session-font-obedience/preview",
+    render: "/api/edit-sessions/session-font-obedience/render",
+    renderStatus: "/api/edit-sessions/session-font-obedience/render-status",
+    sourceMedia: "/api/edit-sessions/session-font-obedience/source",
+    events: "/api/edit-sessions/session-font-obedience/events"
+  },
+  lanes: {
+    defaultInteractive: "hyperframes",
+    interactive: ["hyperframes"],
+    export: "remotion"
+  },
+  sourceMediaUrl: "/api/edit-sessions/session-font-obedience/source",
+  sourceLabel: "obedience.mp4",
+  previewArtifactUrl: null,
+  previewArtifactKind: null,
+  previewArtifactContentType: null,
+  previewDiagnostics: null
+});
+
 describe("frontend obedience", () => {
   beforeEach(() => {
     vi.resetModules();
@@ -338,5 +402,23 @@ describe("frontend obedience", () => {
     expect(markup).toContain("Aesthetic");
     expect(markup).not.toContain("DM Serif Display");
     expect(markup).not.toContain("Playfair Display");
+  });
+
+  test("HyperframesPreview throws instead of guessing when backend manifest is missing", () => {
+    expect(() => renderToStaticMarkup(
+      <HyperframesPreview
+        displayTimeline={buildDisplayTimeline()}
+        manifest={null}
+        previewPerformanceMode="balanced"
+      />
+    )).toThrow(/ManifestValidator: missing CreativeDecisionManifest/i);
+  });
+
+  test("preview manifest builder throws when backend decisions are missing", () => {
+    const state = buildLiveSessionState();
+    delete (state as Partial<LiveEditSessionPublicState>).sourceMediaKind;
+
+    expect(() => buildPreviewManifestFromSessionState(state, "http://127.0.0.1:8000"))
+      .toThrow(/sourceMediaKind/);
   });
 });

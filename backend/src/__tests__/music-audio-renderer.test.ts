@@ -117,18 +117,43 @@ describe("music audio renderer", () => {
       ...overrides
     });
 
-  it("returns blocked instead of fake skipped when the music source is remote-only", async () => {
+  it("throws instead of pretending a remote music source is renderable without a cache resolver", async () => {
     const plan = buildBasePlan("r2://prometheus-music/example.mp3");
-    const result = await renderAudioPlan({
+    await expect(renderAudioPlan({
       plan,
       outputAudioPath: path.join(tempDir, "blocked.wav"),
       baseDir: tempDir
+    })).rejects.toThrow(/remote audio cache resolver/i);
+  });
+
+  it("downloads remote music through the cache resolver before FFmpeg rendering", async () => {
+    const cachedTrack = await createToneFile({
+      dir: tempDir,
+      relativePath: "remote-cache/cached-track.wav",
+      frequency: 330,
+      durationSeconds: 8
+    });
+    const plan = buildBasePlan("r2://prometheus-music/music-originals/example.wav");
+    const outputAudioPath = path.join(tempDir, "renders", "remote-rendered.wav");
+    const calls: Array<{source: string; cueId: string}> = [];
+    const result = await renderAudioPlan({
+      plan,
+      outputAudioPath,
+      baseDir: tempDir,
+      remoteAudioResolver: async (input) => {
+        calls.push({source: input.source, cueId: input.cueId});
+        return {
+          localPath: cachedTrack,
+          evidence: [`cached ${input.source}`]
+        };
+      }
     });
 
-    expect(result.status).toBe("blocked");
-    expect(result.errors[0]).toContain("cannot render");
-    expect(result.requiredInputsMissing[0]).toContain("local cache or download resolver");
-  });
+    expect(calls).toEqual([{source: "r2://prometheus-music/music-originals/example.wav", cueId: "music_1"}]);
+    expect(result.status).toBe("rendered");
+    expect(await fileExists(outputAudioPath)).toBe(true);
+    expect(result.evidence.some((entry) => entry.includes("cached r2://prometheus-music"))).toBe(true);
+  }, 120000);
 
   it("returns skipped when explicitly disabled", async () => {
     const localTrack = await createToneFile({

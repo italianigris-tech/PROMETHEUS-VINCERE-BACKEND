@@ -6,7 +6,10 @@ import {createPreviewFrameSource, type PreviewFrameSource} from "./frame-store";
 import type {PreviewPlaybackHealth} from "./preview-telemetry";
 import type {PreviewPerformanceMode} from "../lib/types";
 import type {DisplayTimeline, DisplayTimelineLayer} from "./display-god/display-timeline";
-import type {HyperframesPreviewManifest} from "./hyperframes/manifest-schema";
+import {
+  hyperframesPreviewManifestSchema,
+  type HyperframesPreviewManifest
+} from "./hyperframes/manifest-schema";
 import {CinematicBlurText} from "./hyperframes/CinematicBlurText";
 import {resolveHyperframesFontFamily} from "./hyperframes/manifest-typography";
 import {shouldSuppressNativeCaptionsForHyperframes} from "./hyperframes/text-governance";
@@ -30,6 +33,36 @@ type HyperframesPreviewProps = {
 };
 
 const clamp = (value: number, min: number, max: number): number => Math.max(min, Math.min(max, value));
+
+const validateManifestForPreview = (
+  manifest?: HyperframesPreviewManifest | null
+): HyperframesPreviewManifest => {
+  if (!manifest) {
+    throw new Error("ManifestValidator: missing CreativeDecisionManifest for Hyperframes preview.");
+  }
+
+  const parsed = hyperframesPreviewManifestSchema.parse(manifest);
+  if (parsed.motionTier.toLowerCase().includes("premium") && !parsed.typography?.primaryFont?.family?.trim()) {
+    throw new Error("ManifestValidator: missing backend decision typography.primaryFont.family.");
+  }
+  if (parsed.baseVideo.hasVideo && !parsed.baseVideo.src?.trim()) {
+    throw new Error("ManifestValidator: missing backend decision baseVideo.src.");
+  }
+  if (parsed.baseVideo.hasVideo && parsed.baseVideo.width == null) {
+    throw new Error("ManifestValidator: missing backend decision baseVideo.width.");
+  }
+  if (parsed.baseVideo.hasVideo && parsed.baseVideo.height == null) {
+    throw new Error("ManifestValidator: missing backend decision baseVideo.height.");
+  }
+  if (parsed.baseVideo.hasVideo && parsed.baseVideo.fps == null) {
+    throw new Error("ManifestValidator: missing backend decision baseVideo.fps.");
+  }
+  if (parsed.baseVideo.durationMs == null) {
+    throw new Error("ManifestValidator: missing backend decision baseVideo.durationMs.");
+  }
+
+  return parsed;
+};
 
 const resolveTrackLayerContentLabel = (layer: DisplayTimelineLayer): string => {
   const styleMetadata = layer.styleMetadata ?? {};
@@ -264,16 +297,19 @@ export const HyperframesPreview: React.FC<HyperframesPreviewProps> = ({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const frameSource = useMemo(() => createPreviewFrameSource(), []);
   const {fps} = useVideoConfig();
+  const validatedManifest = useMemo(() => validateManifestForPreview(manifest), [manifest]);
   const videoMetadata = useMemo(() => {
-    const durationSeconds = Math.max(1, displayTimeline.baseVideo.durationMs / 1000);
+    const durationMs = validatedManifest.baseVideo.durationMs;
+    const durationSeconds = Math.max(1, durationMs / 1000);
+    const manifestFps = validatedManifest.baseVideo.fps ?? displayTimeline.baseVideo.fps;
     return {
-      width: displayTimeline.baseVideo.width,
-      height: displayTimeline.baseVideo.height,
-      fps: displayTimeline.baseVideo.fps,
+      width: validatedManifest.baseVideo.width ?? displayTimeline.baseVideo.width,
+      height: validatedManifest.baseVideo.height ?? displayTimeline.baseVideo.height,
+      fps: manifestFps,
       durationSeconds,
-      durationInFrames: Math.max(1, Math.round(durationSeconds * displayTimeline.baseVideo.fps))
+      durationInFrames: Math.max(1, Math.round(durationSeconds * manifestFps))
     };
-  }, [displayTimeline.baseVideo]);
+  }, [displayTimeline.baseVideo, validatedManifest.baseVideo]);
   const handleTimelineFrame = useCallback((currentTimeMs: number) => {
     const nextFrame = Math.max(0, Math.round((currentTimeMs / 1000) * videoMetadata.fps));
     frameSource.setFrame(nextFrame);
@@ -318,8 +354,8 @@ export const HyperframesPreview: React.FC<HyperframesPreviewProps> = ({
   useEffect(() => {
     const audio = audioRef.current;
     const video = videoRef.current;
-    const audioSrc = manifest?.audio.src?.trim() ?? "";
-    if (!audio || !video || !audioSrc || manifest?.audio.source !== "separate-audio") {
+    const audioSrc = validatedManifest.audio.src?.trim() ?? "";
+    if (!audio || !video || !audioSrc || validatedManifest.audio.source !== "separate-audio") {
       return;
     }
 
@@ -333,24 +369,24 @@ export const HyperframesPreview: React.FC<HyperframesPreviewProps> = ({
     } else if (!audio.paused) {
       audio.pause();
     }
-  }, [manifest?.audio.source, manifest?.audio.src, timelineState.isPlaying, timelineState.playbackRate, timelineState.seekVersion]);
+  }, [validatedManifest.audio.source, validatedManifest.audio.src, timelineState.isPlaying, timelineState.playbackRate, timelineState.seekVersion]);
 
   return (
     <div
       className="hyperframes-preview-stage"
       data-preview-mode="hyperframes"
-      data-source-kind={manifest?.baseVideo.sourceKind ?? "none"}
+      data-source-kind={validatedManifest.baseVideo.sourceKind}
     >
       <video
         ref={videoRef}
         className="hyperframes-preview-video"
-        src={displayTimeline.baseVideo.src}
+        src={validatedManifest.baseVideo.src ?? ""}
         controls
         preload="auto"
         playsInline
       />
-      {manifest?.audio.source === "separate-audio" && manifest.audio.src ? (
-        <audio ref={audioRef} src={manifest.audio.src} preload="auto" />
+      {validatedManifest.audio.source === "separate-audio" && validatedManifest.audio.src ? (
+        <audio ref={audioRef} src={validatedManifest.audio.src} preload="auto" />
       ) : null}
 
       <NativePreviewOverlayStage
@@ -373,7 +409,7 @@ export const HyperframesPreview: React.FC<HyperframesPreviewProps> = ({
           <HyperframesTrackLayer
             key={layer.id}
             layer={layer}
-            manifest={manifest}
+            manifest={validatedManifest}
             driverState={driverState}
           />
         ))}
@@ -382,7 +418,7 @@ export const HyperframesPreview: React.FC<HyperframesPreviewProps> = ({
       <div className="hyperframes-preview-pill">
         <span>Hyperframes / Display God</span>
         <strong>
-          {manifest?.baseVideo.sourceLabel ?? displayTimeline.baseVideo.sourceLabel ?? "Live source"}
+          {validatedManifest.baseVideo.sourceLabel ?? displayTimeline.baseVideo.sourceLabel ?? "Live source"}
         </strong>
         <em>
           {timelineState.clockSource} | {Math.round(clamp(timelineState.currentTimeMs, 0, displayTimeline.durationMs))} ms

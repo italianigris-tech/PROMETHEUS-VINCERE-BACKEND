@@ -5,6 +5,7 @@ import {readVideoAwareAudioPlanArtifact} from "../persistence/audio-plan-artifac
 import {readVideoAwareSoundManifestArtifact} from "../persistence/sound-manifest-artifact";
 import {adaptAudioPlanToSoundDesignManifestWithHints} from "../renderer/manifest-adapter";
 import {renderAudioPlan, type RenderAudioPlanResult} from "../renderer/mix-renderer";
+import type {RemoteAudioCacheResolver} from "../renderer/remote-audio-cache";
 
 export class MusicPreviewMixJobMissingError extends Error {
   public constructor(jobId: string) {
@@ -31,6 +32,7 @@ export type RenderMusicPreviewMixInput = {
   repository: FileJobRepository;
   jobId: string;
   overwrite?: boolean;
+  remoteAudioResolver?: RemoteAudioCacheResolver;
 };
 
 export type RenderMusicPreviewMixResult = RenderAudioPlanResult & {
@@ -98,8 +100,11 @@ export const renderMusicPreviewMix = async (
   const result = await renderAudioPlan({
     plan,
     manifest,
+    renderHints: manifestArtifact.renderHints,
     outputAudioPath: outputPath,
-    baseDir: input.repository.rootDir
+    baseDir: input.repository.rootDir,
+    remoteAudioResolver: input.remoteAudioResolver,
+    remoteAudioCacheDir: path.join(input.repository.jobDir(jobId), "audio", "remote-cache")
   });
 
   if (result.status === "rendered" && result.outputAudioPath) {

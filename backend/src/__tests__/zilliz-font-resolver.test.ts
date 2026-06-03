@@ -1,6 +1,13 @@
+import {existsSync} from "node:fs";
+import path from "node:path";
+import {mkdtemp, rm} from "node:fs/promises";
+import os from "node:os";
+
+import AdmZip from "adm-zip";
 import {describe, expect, it, vi} from "vitest";
 
 import {resolveFontsByVibe} from "../typography/zilliz-font-resolver";
+import {materializeRetrievedFontAsset} from "../typography/zilliz-font-materializer";
 
 describe("zilliz-font-resolver", () => {
   it("materializes primary and secondary fonts into served browser URLs", async () => {
@@ -96,5 +103,29 @@ describe("zilliz-font-resolver", () => {
 
     expect(resolved.secondary).toBeUndefined();
     expect(resolved.fallbackReasons).toContain("Typography retrieval returned fewer than 2 compatible fonts.");
+  });
+
+  it("unzips retrieved fonts into proven POSIX-normalized local paths", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "zilliz-fonts-"));
+    const zip = new AdmZip();
+    zip.addFile("Nested/Canela-Regular.woff2", Buffer.from("font-bytes"));
+
+    try {
+      const [materialized] = await materializeRetrievedFontAsset({
+        family: "Canela Regular",
+        sourceUrl: "https://cdn.example.test/fonts/canela.zip",
+        targetRootDir: root,
+        servePath: "\\fonts\\retrieved",
+        fetchImpl: async () => new Response(zip.toBuffer())
+      });
+
+      expect(materialized).toBeDefined();
+      expect(materialized!.filePath).not.toContain("\\");
+      expect(materialized!.browserUrl).not.toContain("\\");
+      expect(materialized!.browserUrl).toBe("/fonts/retrieved/Canela-Regular/Canela-Regular.woff2");
+      expect(existsSync(materialized!.filePath)).toBe(true);
+    } finally {
+      await rm(root, {recursive: true, force: true});
+    }
   });
 });

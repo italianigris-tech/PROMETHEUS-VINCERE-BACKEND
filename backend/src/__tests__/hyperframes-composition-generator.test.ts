@@ -1,13 +1,16 @@
 import path from "node:path";
-import {mkdtemp, readFile, rm} from "node:fs/promises";
+import {mkdtemp, readFile, rm, writeFile} from "node:fs/promises";
 import os from "node:os";
 
 import {describe, expect, it} from "vitest";
 
-import {generateHyperFramesComposition} from "../composition/hyperframes-composition-generator";
+import {
+  generateHyperFramesComposition,
+  validateGeneratedCompositionAuthority
+} from "../composition/hyperframes-composition-generator";
 import type {CreativeDecisionManifest} from "../contracts/creative-decision-manifest";
 
-const buildManifest = (): CreativeDecisionManifest => ({
+const buildManifest = (input: {primaryFontFileUrl?: string} = {}): CreativeDecisionManifest => ({
   manifestVersion: "1.0.0",
   jobId: "job_hf_1",
   sceneId: "scene_1",
@@ -39,7 +42,7 @@ const buildManifest = (): CreativeDecisionManifest => ({
   },
   typography: {
     mode: "svg_longform_typography_v1",
-    primaryFont: {family: "Satoshi", source: "custom_ingested", role: "headline"},
+    primaryFont: {family: "Satoshi", source: "custom_ingested", role: "headline", fileUrl: input.primaryFontFileUrl},
     fontPairing: {graphUsed: true, reason: "test"},
     coreWords: [],
     linePlan: {lines: ["Build cinematic", "output now."], maxLines: 3, maxCharsPerLine: 28, allowWidows: false}
@@ -121,7 +124,9 @@ describe("HyperFramesCompositionGenerator", () => {
     const root = await mkdtemp(path.join(os.tmpdir(), "hf-comp-"));
     try {
       const output = await generateHyperFramesComposition({
-        manifest: buildManifest(),
+        manifest: buildManifest({
+          primaryFontFileUrl: await writeTestFont(root)
+        }),
         outputRootDir: root,
         enableGsapMotion: true,
         enableKineticTypography: true
@@ -167,20 +172,33 @@ describe("HyperFramesCompositionGenerator", () => {
     }
   });
 
-  it("marks premium style authority as deviated when custom fonts are declared but not embeddable", async () => {
+  it("throws when premium custom fonts are declared but not embeddable", async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), "hf-comp-font-dev-"));
     try {
-      const output = await generateHyperFramesComposition({
+      await expect(generateHyperFramesComposition({
         manifest: buildManifest(),
         outputRootDir: root,
         enableGsapMotion: true,
         enableKineticTypography: true
-      });
-
-      expect(output.diagnostics.styleAuthority.materialChangesVerified).toBe(false);
-      expect(output.diagnostics.styleAuthority.deviations.some((entry) => entry.includes("premium typography"))).toBe(true);
+      })).rejects.toThrow(/premium typography|custom font assets|@font-face/i);
     } finally {
       await rm(root, {recursive: true, force: true});
     }
   });
+
+  it("hard-fails if a GSAP manifest would emit CSS keyframes", () => {
+    expect(() => validateGeneratedCompositionAuthority({
+      manifest: buildManifest({primaryFontFileUrl: "C:/fonts/Satoshi.woff2"}),
+      html: "<style>@keyframes fadeUp { from { opacity: 0; } }</style><script>gsap.timeline()</script>",
+      enableGsapMotion: true,
+      fontCssGenerated: true,
+      embeddedCustomFamilies: ["Satoshi"]
+    })).toThrow(/@keyframes/i);
+  });
 });
+
+const writeTestFont = async (root: string): Promise<string> => {
+  const filePath = path.join(root, "Satoshi.woff2");
+  await writeFile(filePath, Buffer.from("test-font-bytes"));
+  return filePath;
+};
