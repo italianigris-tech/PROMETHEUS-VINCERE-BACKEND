@@ -16,10 +16,12 @@
   "dependencies": {
     "@prometheus/shared-types": "file:../../packages/shared-types",
     "@react-three/fiber": "8.16.8",
+    "@react-three/postprocessing": "^2.16.0",
     "@remotion/bundler": "4.0.471",
     "@remotion/cli": "4.0.471",
     "@remotion/renderer": "4.0.471",
     "gsap": "3.12.7",
+    "postprocessing": "^6.35.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "remotion": "4.0.471",

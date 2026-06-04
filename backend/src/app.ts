@@ -24,6 +24,7 @@ import {createR2TransferService, type R2TransferService} from "./integrations/r2
 import {registerUploadRoutes} from "./upload-routes";
 import {GodService, registerGodRoutes} from "./god";
 import {registerThumbnailRoutes} from "./thumbnail";
+import {registerRenderJobRoutes} from "./render-jobs/routes";
 import {AssetRetrievalService} from "./assets/service";
 import {registerAssetRoutes} from "./assets/routes";
 import {VectorRetrievalService} from "./assets/vector-service";
@@ -813,6 +814,7 @@ export const createBackendApp = async ({
     editSessionStore,
     r2Service
   });
+  await registerRenderJobRoutes(app);
 
   return {
     app,

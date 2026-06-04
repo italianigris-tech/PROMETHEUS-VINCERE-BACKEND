@@ -34,12 +34,26 @@ export const transcriptWordSchema = z.object({
 
 export const animationPresetSchema = z.enum(["cinematic", "kinetic", "minimal"]);
 
+const vector3Schema = z.object({
+  x: z.number(),
+  y: z.number(),
+  z: z.number()
+});
+
+const cameraKeyframeSchema = z.object({
+  position: vector3Schema,
+  lookAt: vector3Schema,
+  roll: z.number().optional().default(0)
+});
+
 export const renderManifestSchema = z.object({
   manifestVersion: z.literal("prometheus-render-manifest/v1").default("prometheus-render-manifest/v1"),
   jobId: z.string().min(1),
   transcript: z.string().min(1),
   transcriptWords: z.array(transcriptWordSchema).default([]),
   sourceVideoUrl: mediaReferenceSchema.optional(),
+  backgroundVideoUrl: mediaReferenceSchema.optional(),
+  rvmMatteUrl: mediaReferenceSchema.optional(),
   matteUrl: mediaReferenceSchema,
   audioUrl: mediaReferenceSchema,
   fontUrl: mediaReferenceSchema,
@@ -48,6 +62,49 @@ export const renderManifestSchema = z.object({
   width: z.number().int().positive().default(1920),
   height: z.number().int().positive().default(1080),
   animationPreset: animationPresetSchema.default("cinematic"),
+  matteZ: z.number().optional().default(3),
+  wordStagger: z.number().optional().default(0.1),
+  extrudeDepth: z.number().optional().default(0.1),
+  bevelEnabled: z.boolean().optional().default(true),
+  bevelSize: z.number().optional().default(0.02),
+  bevelThickness: z.number().optional().default(0.02),
+  gradientColors: z.array(z.string()).optional().default(["#ffffff"]),
+  envMapIntensity: z.number().optional().default(0),
+  cameraKeyframes: z.array(cameraKeyframeSchema).optional().default([
+    {position: {x: 0, y: 0, z: 50}, lookAt: {x: 0, y: 0, z: 0}, roll: 0},
+    {position: {x: 0, y: 0, z: 5}, lookAt: {x: 0, y: 0, z: 0}, roll: 0},
+    {position: {x: 15, y: 5, z: 10}, lookAt: {x: 0, y: 0, z: 0}, roll: 0.2},
+    {position: {x: 0, y: 0, z: 50}, lookAt: {x: 0, y: 0, z: 0}, roll: 0}
+  ]),
+  autoRoll: z.boolean().optional().default(true),
+  autoRollIntensity: z.number().optional().default(0.3),
+  matteSafeZone: z.object({
+    minX: z.number().optional().default(-0.45),
+    maxX: z.number().optional().default(0.45),
+    minY: z.number().optional().default(-0.4),
+    maxY: z.number().optional().default(0.4)
+  }).optional().default({
+    minX: -0.45,
+    maxX: 0.45,
+    minY: -0.4,
+    maxY: 0.4
+  }),
+  depthOfFieldEnabled: z.boolean().optional().default(false),
+  depthOfFieldFocusDistance: z.number().optional().default(10),
+  depthOfFieldFalloff: z.number().optional().default(5),
+  bloomEnabled: z.boolean().optional().default(true),
+  bloomStrength: z.number().optional().default(1.5),
+  bloomRadius: z.number().optional().default(0.4),
+  bloomThreshold: z.number().optional().default(0.85),
+  motionBlurEnabled: z.boolean().optional().default(true),
+  motionBlurStrength: z.number().optional().default(0.5),
+  chromaticAberrationEnabled: z.boolean().optional().default(true),
+  chromaticAberrationOffset: z.number().optional().default(0.003),
+  vignetteEnabled: z.boolean().optional().default(true),
+  vignetteDarkness: z.number().optional().default(0.5),
+  vignetteOffset: z.number().optional().default(0.5),
+  lutEnabled: z.boolean().optional().default(false),
+  lutUrl: z.string().optional().nullable().default(null),
   matte: z.object({
     fps: z.number().positive().optional(),
     durationInFrames: z.number().int().positive().optional(),
@@ -70,7 +127,8 @@ export const renderManifestSchema = z.object({
     stagger: z.number().nonnegative().default(0.72),
     revealSoftness: z.number().positive().default(0.16),
     depthTravel: z.number().default(2.4),
-    depthZ: z.number().default(-2.2)
+    depthZ: z.number().default(-2.2),
+    sdfGlyphSize: z.number().int().positive().default(96)
   }).default({})
 }).superRefine((manifest, ctx) => {
   if (manifest.matte.fps !== undefined && Math.abs(manifest.matte.fps - manifest.fps) > 0.001) {

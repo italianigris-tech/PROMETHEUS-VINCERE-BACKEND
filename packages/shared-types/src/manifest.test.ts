@@ -20,6 +20,44 @@ describe("renderManifestSchema", () => {
     expect(manifest.width).toBe(1920);
     expect(manifest.height).toBe(1080);
     expect(manifest.animationPreset).toBe("cinematic");
+    expect(manifest.matteZ).toBe(3);
+    expect(manifest.wordStagger).toBe(0.1);
+    expect(manifest.extrudeDepth).toBe(0.1);
+    expect(manifest.bevelEnabled).toBe(true);
+    expect(manifest.bevelSize).toBe(0.02);
+    expect(manifest.bevelThickness).toBe(0.02);
+    expect(manifest.gradientColors).toEqual(["#ffffff"]);
+    expect(manifest.envMapIntensity).toBe(0);
+    expect(manifest.cameraKeyframes).toEqual([
+      {position: {x: 0, y: 0, z: 50}, lookAt: {x: 0, y: 0, z: 0}, roll: 0},
+      {position: {x: 0, y: 0, z: 5}, lookAt: {x: 0, y: 0, z: 0}, roll: 0},
+      {position: {x: 15, y: 5, z: 10}, lookAt: {x: 0, y: 0, z: 0}, roll: 0.2},
+      {position: {x: 0, y: 0, z: 50}, lookAt: {x: 0, y: 0, z: 0}, roll: 0}
+    ]);
+    expect(manifest.autoRoll).toBe(true);
+    expect(manifest.autoRollIntensity).toBe(0.3);
+    expect(manifest.matteSafeZone).toEqual({
+      minX: -0.45,
+      maxX: 0.45,
+      minY: -0.4,
+      maxY: 0.4
+    });
+    expect(manifest.depthOfFieldEnabled).toBe(false);
+    expect(manifest.depthOfFieldFocusDistance).toBe(10);
+    expect(manifest.depthOfFieldFalloff).toBe(5);
+    expect(manifest.bloomEnabled).toBe(true);
+    expect(manifest.bloomStrength).toBe(1.5);
+    expect(manifest.bloomRadius).toBe(0.4);
+    expect(manifest.bloomThreshold).toBe(0.85);
+    expect(manifest.motionBlurEnabled).toBe(true);
+    expect(manifest.motionBlurStrength).toBe(0.5);
+    expect(manifest.chromaticAberrationEnabled).toBe(true);
+    expect(manifest.chromaticAberrationOffset).toBe(0.003);
+    expect(manifest.vignetteEnabled).toBe(true);
+    expect(manifest.vignetteDarkness).toBe(0.5);
+    expect(manifest.vignetteOffset).toBe(0.5);
+    expect(manifest.lutEnabled).toBe(false);
+    expect(manifest.lutUrl).toBeNull();
     expect(manifest.text.depthZ).toBeLessThan(manifest.matte.planeZ);
   });
 

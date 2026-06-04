@@ -69,6 +69,11 @@ export const renderPrometheusJob = async (input: RenderJobInput): Promise<Render
   };
 };
 
+export const renderFromManifest = async (manifest: RenderManifest): Promise<string> => {
+  const result = await renderPrometheusJob({manifest});
+  return result.outputLocation;
+};
+
 const readStdin = async (): Promise<string> => {
   const chunks: Buffer[] = [];
   for await (const chunk of process.stdin) {

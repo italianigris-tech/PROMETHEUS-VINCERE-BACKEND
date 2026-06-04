@@ -69,7 +69,7 @@ const waitForPresentedFrame = (video: FrameLockedVideoElement): Promise<void> =>
       return;
     }
 
-    window.requestAnimationFrame(() => resolve());
+    window.setTimeout(() => resolve(), 0);
   });
 
 export const useVideoTextureSync = ({
@@ -87,14 +87,20 @@ export const useVideoTextureSync = ({
     element.preload = "auto";
     return element;
   }, []);
+  const canvas = useMemo<HTMLCanvasElement>(() => {
+    const element = document.createElement("canvas");
+    element.width = 1;
+    element.height = 1;
+    return element;
+  }, []);
   const texture = useMemo(() => {
-    const videoTexture = new THREE.VideoTexture(video);
-    videoTexture.colorSpace = THREE.SRGBColorSpace;
-    videoTexture.generateMipmaps = false;
-    videoTexture.minFilter = THREE.LinearFilter;
-    videoTexture.magFilter = THREE.LinearFilter;
-    return videoTexture;
-  }, [video]);
+    const canvasTexture = new THREE.CanvasTexture(canvas);
+    canvasTexture.colorSpace = THREE.SRGBColorSpace;
+    canvasTexture.generateMipmaps = false;
+    canvasTexture.minFilter = THREE.LinearFilter;
+    canvasTexture.magFilter = THREE.LinearFilter;
+    return canvasTexture;
+  }, [canvas]);
   const loader = useMemo(() => new THREE.TextureLoader(), []);
   const [imageTexture, setImageTexture] = useState<THREE.Texture | null>(null);
   const [metadataReady, setMetadataReady] = useState(false);
@@ -176,6 +182,8 @@ export const useVideoTextureSync = ({
         if (cancelled) {
           return;
         }
+        canvas.width = video.videoWidth || canvas.width || 1;
+        canvas.height = video.videoHeight || canvas.height || 1;
 
         const expectedDuration = durationInFrames / fps;
         if (Number.isFinite(video.duration) && Math.abs(video.duration - expectedDuration) > 1 / fps) {
@@ -200,7 +208,7 @@ export const useVideoTextureSync = ({
       cancelled = true;
       release();
     };
-  }, [durationInFrames, format, fps, url, video]);
+  }, [canvas, durationInFrames, format, fps, url, video]);
 
   useEffect(() => {
     if (format === "imageSequence" || !metadataReady) {
@@ -217,6 +225,10 @@ export const useVideoTextureSync = ({
         return;
       }
       released = true;
+      const ctx = canvas.getContext("2d");
+      if (ctx && canvas.width > 0 && canvas.height > 0) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      }
       texture.needsUpdate = true;
       continueRender(handle);
     };
@@ -246,7 +258,7 @@ export const useVideoTextureSync = ({
       cancelled = true;
       release();
     };
-  }, [durationInFrames, format, fps, frame, metadataReady, texture, video]);
+  }, [canvas, durationInFrames, format, fps, frame, metadataReady, texture, video]);
 
   useEffect(() => {
     return () => {

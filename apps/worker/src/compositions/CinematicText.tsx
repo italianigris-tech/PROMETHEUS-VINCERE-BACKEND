@@ -92,13 +92,6 @@ export const CinematicText: React.FC<CinematicTextProps> = ({manifest: inputMani
           preserveDrawingBuffer: true,
           powerPreference: "high-performance"
         }}
-        camera={{
-          fov: manifest.camera.fov,
-          aspect: config.width / config.height,
-          near: 0.1,
-          far: 100,
-          position: [0, 0, manifest.camera.startZ]
-        }}
         style={{
           width: "100%",
           height: "100%",

@@ -1,39 +1,40 @@
 import React, {useMemo} from "react";
-import type {RenderManifest} from "@prometheus/shared-types";
+import {useCurrentFrame, useVideoConfig} from "remotion";
 import * as THREE from "three";
 
 import {useVideoTextureSync} from "../lib/video-sync.js";
 
 export type MattePlaneProps = {
-  manifest: RenderManifest;
-  frame: number;
-  fps: number;
+  url: string;
+  matteZ: number;
 };
 
-export const MattePlane: React.FC<MattePlaneProps> = ({manifest, frame, fps}) => {
+export const MattePlane: React.FC<MattePlaneProps> = ({url, matteZ}) => {
+  const frame = useCurrentFrame();
+  const {fps, durationInFrames, width, height} = useVideoConfig();
   const texture = useVideoTextureSync({
-    url: manifest.matteUrl,
+    url,
     frame,
     fps,
-    durationInFrames: manifest.durationInFrames
+    durationInFrames
   });
-  const aspect = manifest.width / manifest.height;
-  const planeHeight = manifest.matte.planeHeight;
+  const aspect = width / height;
+  const planeHeight = 9;
   const planeWidth = planeHeight * aspect;
   const material = useMemo(() => {
     const matteMaterial = new THREE.MeshBasicMaterial({
       map: texture,
       transparent: true,
       depthWrite: false,
-      premultipliedAlpha: manifest.matte.premultipliedAlpha,
+      premultipliedAlpha: true,
       side: THREE.DoubleSide,
       toneMapped: false
     });
     return matteMaterial;
-  }, [manifest.matte.premultipliedAlpha, texture]);
+  }, [texture]);
 
   return (
-    <mesh material={material} position={[0, 0, manifest.matte.planeZ]} renderOrder={20}>
+    <mesh material={material} position={[0, 0, matteZ]} renderOrder={20}>
       <planeGeometry args={[planeWidth, planeHeight]} />
     </mesh>
   );
