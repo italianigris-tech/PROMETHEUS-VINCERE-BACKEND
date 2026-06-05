@@ -19,7 +19,7 @@ describe("zilliz-font-resolver", () => {
           vector_score: 0.98,
           rerank_score: 0.98,
           asset_type: "font",
-          path: "C:\\Users\\HomePC\\Fonts\\Canela-Regular.otf",
+          path: "C:\\Users\\HomePC\\Fonts\\Canela-Regular.ttf",
           public_path: "",
           tags: ["luxury", "editorial"],
           labels: ["primary"],
@@ -35,7 +35,7 @@ describe("zilliz-font-resolver", () => {
           vector_score: 0.92,
           rerank_score: 0.92,
           asset_type: "font",
-          path: "C:\\Users\\HomePC\\Fonts\\Satoshi-Medium.woff2",
+          path: "C:\\Users\\HomePC\\Fonts\\Satoshi-Medium.woff",
           public_path: "",
           tags: ["clean", "support"],
           labels: ["secondary"],
@@ -49,10 +49,10 @@ describe("zilliz-font-resolver", () => {
       warnings: []
     }));
     const materialize = vi.fn(async ({family}: {family: string}) => [{
-      fileName: `${family}.woff2`,
-      filePath: `C:\\tmp\\retrieved\\${family}\\${family}.woff2`,
-      browserUrl: `/fonts/retrieved/${family}/${family}.woff2`,
-      format: "woff2" as const
+      fileName: `${family}.ttf`,
+      filePath: `C:\\tmp\\retrieved\\${family}\\${family}.ttf`,
+      browserUrl: `/fonts/retrieved/${family}/${family}.ttf`,
+      format: "ttf" as const
     }]);
 
     const resolved = await resolveFontsByVibe("luxury restraint with contextual empathy", 2, {
@@ -63,10 +63,10 @@ describe("zilliz-font-resolver", () => {
     expect(search).toHaveBeenCalledTimes(1);
     expect(materialize).toHaveBeenCalledTimes(2);
     expect(resolved.primary.family).toBe("Canela-Regular");
-    expect(resolved.primary.filePath).toBe("C:\\tmp\\retrieved\\Canela-Regular\\Canela-Regular.woff2");
-    expect(resolved.primary.browserUrl).toBe("/fonts/retrieved/Canela-Regular/Canela-Regular.woff2");
+    expect(resolved.primary.filePath).toBe("C:\\tmp\\retrieved\\Canela-Regular\\Canela-Regular.ttf");
+    expect(resolved.primary.browserUrl).toBe("/fonts/retrieved/Canela-Regular/Canela-Regular.ttf");
     expect(resolved.primary.browserUrl).not.toMatch(/^file:\/\//);
-    expect(resolved.secondary?.browserUrl).toBe("/fonts/retrieved/Satoshi-Medium/Satoshi-Medium.woff2");
+    expect(resolved.secondary?.browserUrl).toBe("/fonts/retrieved/Satoshi-Medium/Satoshi-Medium.ttf");
     expect(resolved.fallbackReasons).toEqual([]);
   });
 
@@ -80,7 +80,7 @@ describe("zilliz-font-resolver", () => {
             vector_score: 0.88,
             rerank_score: 0.88,
             asset_type: "font",
-            path: "C:\\Users\\HomePC\\Fonts\\Single.otf",
+            path: "C:\\Users\\HomePC\\Fonts\\Single.ttf",
             public_path: "",
             tags: ["authority"],
             labels: ["primary"],
@@ -94,10 +94,10 @@ describe("zilliz-font-resolver", () => {
       warnings: []
       }),
       materialize: async ({family}: {family: string}) => [{
-        fileName: `${family}.woff2`,
-        filePath: `C:\\tmp\\retrieved\\${family}\\${family}.woff2`,
-        browserUrl: `/fonts/retrieved/${family}/${family}.woff2`,
-        format: "woff2" as const
+        fileName: `${family}.ttf`,
+        filePath: `C:\\tmp\\retrieved\\${family}\\${family}.ttf`,
+        browserUrl: `/fonts/retrieved/${family}/${family}.ttf`,
+        format: "ttf" as const
       }]
     });
 
@@ -108,7 +108,7 @@ describe("zilliz-font-resolver", () => {
   it("unzips retrieved fonts into proven POSIX-normalized local paths", async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), "zilliz-fonts-"));
     const zip = new AdmZip();
-    zip.addFile("Nested/Canela-Regular.woff2", Buffer.from("font-bytes"));
+    zip.addFile("Nested/Canela-Regular.ttf", Buffer.from("font-bytes"));
 
     try {
       const [materialized] = await materializeRetrievedFontAsset({
@@ -122,7 +122,7 @@ describe("zilliz-font-resolver", () => {
       expect(materialized).toBeDefined();
       expect(materialized!.filePath).not.toContain("\\");
       expect(materialized!.browserUrl).not.toContain("\\");
-      expect(materialized!.browserUrl).toBe("/fonts/retrieved/Canela-Regular/Canela-Regular.woff2");
+      expect(materialized!.browserUrl).toBe("/fonts/retrieved/Canela-Regular/Canela-Regular.ttf");
       expect(existsSync(materialized!.filePath)).toBe(true);
     } finally {
       await rm(root, {recursive: true, force: true});

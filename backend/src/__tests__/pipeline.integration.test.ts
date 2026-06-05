@@ -98,14 +98,14 @@ describe("pipeline integration", () => {
           primary: {
             assetId: "font_aesthetic",
             family: "Aesthetic",
-            filePath: "C:\\tmp\\retrieved\\aesthetic\\Aesthetic-Regular.woff2",
-            browserUrl: "/fonts/retrieved/aesthetic/Aesthetic-Regular.woff2",
+            filePath: "C:\\tmp\\retrieved\\aesthetic\\Aesthetic-Regular.ttf",
+            browserUrl: "/fonts/retrieved/aesthetic/Aesthetic-Regular.ttf",
             sources: [
               {
-                fileName: "Aesthetic-Regular.woff2",
-                filePath: "C:\\tmp\\retrieved\\aesthetic\\Aesthetic-Regular.woff2",
-                browserUrl: "/fonts/retrieved/aesthetic/Aesthetic-Regular.woff2",
-                format: "woff2"
+                fileName: "Aesthetic-Regular.ttf",
+                filePath: "C:\\tmp\\retrieved\\aesthetic\\Aesthetic-Regular.ttf",
+                browserUrl: "/fonts/retrieved/aesthetic/Aesthetic-Regular.ttf",
+                format: "ttf"
               }
             ],
             score: 0.97,
@@ -115,14 +115,14 @@ describe("pipeline integration", () => {
           secondary: {
             assetId: "font_ageya",
             family: "Ageya",
-            filePath: "C:\\tmp\\retrieved\\ageya\\Ageya-Regular.woff2",
-            browserUrl: "/fonts/retrieved/ageya/Ageya-Regular.woff2",
+            filePath: "C:\\tmp\\retrieved\\ageya\\Ageya-Regular.ttf",
+            browserUrl: "/fonts/retrieved/ageya/Ageya-Regular.ttf",
             sources: [
               {
-                fileName: "Ageya-Regular.woff2",
-                filePath: "C:\\tmp\\retrieved\\ageya\\Ageya-Regular.woff2",
-                browserUrl: "/fonts/retrieved/ageya/Ageya-Regular.woff2",
-                format: "woff2"
+                fileName: "Ageya-Regular.ttf",
+                filePath: "C:\\tmp\\retrieved\\ageya\\Ageya-Regular.ttf",
+                browserUrl: "/fonts/retrieved/ageya/Ageya-Regular.ttf",
+                format: "ttf"
               }
             ],
             score: 0.91,
@@ -148,13 +148,13 @@ describe("pipeline integration", () => {
     const editPlan = await context.service.getEditPlan(jobId);
 
     expect(metadata.typography.font_family_primary).toBe("Aesthetic");
-    expect(metadata.typography.primary_font_browser_url).toBe("/fonts/retrieved/aesthetic/Aesthetic-Regular.woff2");
+    expect(metadata.typography.primary_font_browser_url).toBe("/fonts/retrieved/aesthetic/Aesthetic-Regular.ttf");
     expect(String(metadata.typography.primary_font_browser_url)).not.toMatch(/^file:|^[A-Z]:\\/i);
     expect(String(metadata.typography.font_face_css)).toContain("@font-face");
     expect(editPlan.typography_plan.font_family_primary).toBe("Aesthetic");
     expect(editPlan.typography_plan.primary_font).toMatchObject({
       family: "Aesthetic",
-      browserUrl: "/fonts/retrieved/aesthetic/Aesthetic-Regular.woff2",
+      browserUrl: "/fonts/retrieved/aesthetic/Aesthetic-Regular.ttf",
       source: "custom_ingested"
     });
     expect(editPlan.typography_plan.font_pairing).toMatchObject({

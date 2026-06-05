@@ -10,8 +10,8 @@ describe("zilliz font materializer", () => {
     const tempRoot = await mkdtemp(path.join(os.tmpdir(), "zilliz-font-materializer-"));
     try {
       const zip = new AdmZip();
-      zip.addFile("Aesthetic-Bold.woff2", Buffer.from("bold-font"));
-      zip.addFile("Aesthetic-Regular.woff2", Buffer.from("regular-font"));
+      zip.addFile("Aesthetic-Bold.ttf", Buffer.from("bold-font"));
+      zip.addFile("Aesthetic-Regular.ttf", Buffer.from("regular-font"));
       const zipBuffer = zip.toBuffer();
 
       const {materializeRetrievedFontAsset} = await import("../zilliz-font-materializer");
@@ -27,12 +27,12 @@ describe("zilliz font materializer", () => {
 
       expect(results).toHaveLength(2);
       expect(results[0]?.browserUrl).toMatch(/^\/fonts\/retrieved\/aesthetic\//);
-      const boldPath = path.join(tempRoot, "aesthetic", "Aesthetic-Bold.woff2");
-      const regularPath = path.join(tempRoot, "aesthetic", "Aesthetic-Regular.woff2");
+      const boldPath = path.join(tempRoot, "aesthetic", "Aesthetic-Bold.ttf");
+      const regularPath = path.join(tempRoot, "aesthetic", "Aesthetic-Regular.ttf");
       await expect(stat(boldPath)).resolves.toBeDefined();
       await expect(stat(regularPath)).resolves.toBeDefined();
       expect(await readFile(boldPath, "utf8")).toBe("bold-font");
-      expect(results.some((entry) => entry.browserUrl === "/fonts/retrieved/aesthetic/Aesthetic-Bold.woff2")).toBe(true);
+      expect(results.some((entry) => entry.browserUrl === "/fonts/retrieved/aesthetic/Aesthetic-Bold.ttf")).toBe(true);
     } finally {
       await rm(tempRoot, {recursive: true, force: true});
     }
@@ -41,12 +41,12 @@ describe("zilliz font materializer", () => {
   it("writes a raw font file directly without zip extraction", async () => {
     const tempRoot = await mkdtemp(path.join(os.tmpdir(), "zilliz-font-materializer-raw-"));
     try {
-      const rawBuffer = Buffer.from("woff2-font");
+      const rawBuffer = Buffer.from("ttf-font");
 
       const {materializeRetrievedFontAsset} = await import("../zilliz-font-materializer");
       const results = await materializeRetrievedFontAsset({
         family: "ageya",
-        sourceUrl: "https://r2.example.com/Ageya-Regular.woff2",
+        sourceUrl: "https://r2.example.com/Ageya-Regular.ttf",
         targetRootDir: tempRoot,
         fetchImpl: async () => ({
           ok: true,
@@ -55,10 +55,10 @@ describe("zilliz font materializer", () => {
       });
 
       expect(results).toHaveLength(1);
-      expect(results[0]?.browserUrl).toBe("/fonts/retrieved/ageya/Ageya-Regular.woff2");
-      const outputPath = path.join(tempRoot, "ageya", "Ageya-Regular.woff2");
+      expect(results[0]?.browserUrl).toBe("/fonts/retrieved/ageya/Ageya-Regular.ttf");
+      const outputPath = path.join(tempRoot, "ageya", "Ageya-Regular.ttf");
       await expect(stat(outputPath)).resolves.toBeDefined();
-      expect(await readFile(outputPath, "utf8")).toBe("woff2-font");
+      expect(await readFile(outputPath, "utf8")).toBe("ttf-font");
     } finally {
       await rm(tempRoot, {recursive: true, force: true});
     }

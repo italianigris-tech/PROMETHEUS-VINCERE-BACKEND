@@ -63,7 +63,7 @@ describe("render job bridge", () => {
     };
     const manifest = buildRenderManifest({
       creativeManifest,
-      fontUrl: "/fonts/retrieved/satoshi.woff2",
+      fontUrl: "/fonts/retrieved/satoshi.ttf",
       backgroundVideoUrl: "/media/background.mp4",
       rvmMatteUrl: "/media/matte.webm",
       audioUrl: "/media/audio.m4a",
@@ -78,7 +78,7 @@ describe("render job bridge", () => {
       endMs: 120,
       confidence: 0.99
     });
-    expect(manifest.fontUrl).toBe("http://localhost:8000/fonts/retrieved/satoshi.woff2");
+    expect(manifest.fontUrl).toBe("http://localhost:8000/fonts/retrieved/satoshi.ttf");
     expect(manifest.backgroundVideoUrl).toBe("http://localhost:8000/media/background.mp4");
     expect(manifest.rvmMatteUrl).toBe("http://localhost:8000/media/matte.webm");
     expect(manifest.matteUrl).toBe(manifest.rvmMatteUrl);
@@ -123,6 +123,19 @@ describe("render job bridge", () => {
     expect(manifest.text.sdfGlyphSize).toBe(96);
   });
 
+  it("rejects worker font URLs that Troika cannot render", async () => {
+    const creativeManifest = JSON.parse(await readFile(fixturePath, "utf8")) as Record<string, unknown>;
+
+    expect(() => buildRenderManifest({
+      creativeManifest,
+      fontUrl: "/fonts/retrieved/satoshi.woff2",
+      backgroundVideoUrl: "/media/background.mp4",
+      rvmMatteUrl: "/media/matte.webm",
+      audioUrl: "/media/audio.m4a",
+      baseUrl: "http://localhost:8000"
+    })).toThrow(/Troika-compatible.*ttf.*woff/i);
+  });
+
   it("queues, leases, completes, and exposes render jobs through the Fastify API", async () => {
     const context = await createTestApp({
       storageDir: tempDir,
@@ -137,7 +150,7 @@ describe("render job bridge", () => {
       url: "/api/v1/render/jobs",
       payload: {
         creative_manifest: creativeManifest,
-        font_url: "/fonts/retrieved/satoshi.woff2",
+        font_url: "/fonts/retrieved/satoshi.ttf",
         background_video_url: "/media/background.mp4",
         rvm_matte_url: "/media/matte.webm",
         audio_url: "/media/audio.m4a"

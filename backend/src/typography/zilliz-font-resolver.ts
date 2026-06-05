@@ -32,7 +32,7 @@ type FontRetrievalDependency = {
 };
 
 const inferFontFamilyFromPath = (filePath: string): string => {
-  const fileName = path.basename(filePath).replace(/\.(woff2?|otf|ttf|zip)$/i, "");
+  const fileName = path.basename(filePath).replace(/\.(woff|ttf|zip)$/i, "");
   return fileName || "Unknown Font";
 };
 
@@ -62,7 +62,7 @@ const pickPreferredMaterializedSource = (sources: MaterializedRetrievedFontAsset
     .sort((left, right) => preferredFontRank(left.fileName) - preferredFontRank(right.fileName) || left.fileName.localeCompare(right.fileName))[0] ?? null;
 };
 
-export const isCompatibleFontPath = (filePath: string): boolean => /\.(woff2?|otf|ttf|zip)$/i.test(filePath.trim());
+export const isCompatibleFontPath = (filePath: string): boolean => /\.(woff|ttf|zip)$/i.test(filePath.trim());
 
 const resolveCompatibleSourceUrl = (entry: Record<string, unknown>): string => {
   const sourcePath = String(entry.path ?? "").trim();

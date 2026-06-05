@@ -9,10 +9,10 @@ export type MaterializedRetrievedFontAsset = {
   fileName: string;
   filePath: string;
   browserUrl: string;
-  format: "ttf" | "otf" | "woff" | "woff2";
+  format: "ttf" | "woff";
 };
 
-const fontFilePattern = /\.(woff2?|otf|ttf)$/i;
+const fontFilePattern = /\.(woff|ttf)$/i;
 
 const normalizePosixPath = (value: string): string => value.replace(/\\/g, "/");
 
@@ -22,9 +22,9 @@ export const sanitizeFontPathSegment = (value: string): string => {
 };
 
 const inferFontFormat = (fileName: string): MaterializedRetrievedFontAsset["format"] => {
-  const match = fileName.toLowerCase().match(/\.(ttf|otf|woff2|woff)$/);
+  const match = fileName.toLowerCase().match(/\.(ttf|woff)$/);
   if (!match) {
-    return "woff2";
+    throw new Error(`Unsupported font format for worker: ${fileName}. Provide a static .ttf or .woff file.`);
   }
 
   return match[1] as MaterializedRetrievedFontAsset["format"];
@@ -54,9 +54,9 @@ const inferRemoteFileName = (sourceUrl: string): string => {
   try {
     const parsed = new URL(sourceUrl);
     const candidate = path.basename(parsed.pathname);
-    return candidate || "font.woff2";
+    return candidate || "font.ttf";
   } catch {
-    return path.basename(sourceUrl) || "font.woff2";
+    return path.basename(sourceUrl) || "font.ttf";
   }
 };
 
@@ -78,6 +78,7 @@ export const materializeLocalFontAsset = async ({
 }): Promise<MaterializedRetrievedFontAsset> => {
   const familyDir = sanitizeFontPathSegment(family);
   const fileName = path.basename(filePath);
+  const format = inferFontFormat(fileName);
   const targetDir = path.join(targetRootDir, familyDir);
   const outputPath = path.join(targetDir, fileName);
 
@@ -93,7 +94,7 @@ export const materializeLocalFontAsset = async ({
       fileName,
       servePath
     }),
-    format: inferFontFormat(fileName)
+    format
   };
 };
 
@@ -125,9 +126,16 @@ export const materializeRetrievedFontAsset = async ({
 
   if (isZipArchive) {
     const zip = new AdmZip(buffer);
+    const unsupportedEntries = zip.getEntries().filter((entry) => !entry.isDirectory && /\.(woff2|otf)$/i.test(entry.entryName));
+    if (unsupportedEntries.length > 0) {
+      throw new Error(
+        `Retrieved ZIP ${sourceUrl} contains unsupported worker font formats. Provide static .ttf or .woff files.`
+      );
+    }
+
     const entries = zip.getEntries().filter((entry) => !entry.isDirectory && fontFilePattern.test(entry.entryName));
     if (entries.length === 0) {
-      throw new Error(`Retrieved ZIP ${sourceUrl} did not contain any browser-compatible font files.`);
+      throw new Error(`Retrieved ZIP ${sourceUrl} did not contain any worker-compatible .ttf or .woff font files.`);
     }
 
     const materializedEntries = await Promise.all(entries.map(async (entry) => {
@@ -152,7 +160,8 @@ export const materializeRetrievedFontAsset = async ({
   }
 
   const sourceFileName = inferRemoteFileName(sourceUrl);
-  const normalizedFileName = fontFilePattern.test(sourceFileName) ? sourceFileName : `${sourceFileName}.woff2`;
+  const normalizedFileName = fontFilePattern.test(sourceFileName) ? sourceFileName : `${sourceFileName}.ttf`;
+  const format = inferFontFormat(normalizedFileName);
   const outputPath = path.join(targetDir, normalizedFileName);
   await writeFile(outputPath, buffer);
   await assertMaterializedFontExists(outputPath, sourceUrl);
@@ -165,6 +174,6 @@ export const materializeRetrievedFontAsset = async ({
       fileName: normalizedFileName,
       servePath
     }),
-    format: inferFontFormat(normalizedFileName)
+    format
   }];
 };

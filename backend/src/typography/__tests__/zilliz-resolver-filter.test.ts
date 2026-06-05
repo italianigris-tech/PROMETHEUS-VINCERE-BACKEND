@@ -7,8 +7,10 @@ describe("zilliz resolver filter", () => {
     expect(isCompatibleFontPath("https://r2.example.com/fonts/aesthetic-pack.zip")).toBe(true);
   });
 
-  it("continues accepting raw browser font assets", () => {
-    expect(isCompatibleFontPath("https://r2.example.com/fonts/Ageya-Regular.woff2")).toBe(true);
-    expect(isCompatibleFontPath("https://r2.example.com/fonts/Ageya-Regular.otf")).toBe(true);
+  it("accepts only raw font assets the worker can render", () => {
+    expect(isCompatibleFontPath("https://r2.example.com/fonts/Ageya-Regular.ttf")).toBe(true);
+    expect(isCompatibleFontPath("https://r2.example.com/fonts/Ageya-Regular.woff")).toBe(true);
+    expect(isCompatibleFontPath("https://r2.example.com/fonts/Ageya-Regular.woff2")).toBe(false);
+    expect(isCompatibleFontPath("https://r2.example.com/fonts/Ageya-Regular.otf")).toBe(false);
   });
 });

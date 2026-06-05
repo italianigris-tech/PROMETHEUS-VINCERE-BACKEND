@@ -9,7 +9,7 @@ export const regenerateSampleManifest: RenderManifest = renderManifestSchema.par
   rvmMatteUrl: staticFile("samples/regenerate-matte.webm"),
   matteUrl: staticFile("samples/regenerate-matte.webm"),
   audioUrl: staticFile("samples/regenerate-audio.m4a"),
-  fontUrl: staticFile("fonts/Fraunces-Variable.woff2"),
+  fontUrl: staticFile("fonts/Fraunces-Regular.ttf"),
   durationInFrames: 300,
   fps: 60,
   width: 1920,

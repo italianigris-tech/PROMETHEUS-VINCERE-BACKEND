@@ -184,6 +184,31 @@ export type BuildRenderManifestInput = {
 
 const isHttpUrl = (value: string): boolean => /^https?:\/\//i.test(value);
 
+const fontPathname = (font: string): string => {
+  try {
+    return new URL(font, "http://localhost").pathname;
+  } catch {
+    return font.split(/[?#]/, 1)[0] ?? font;
+  }
+};
+
+export const isTroikaCompatibleWorkerFontUrl = (font: string | null | undefined): boolean => {
+  const pathname = fontPathname(String(font ?? "")).toLowerCase();
+  if (!pathname || pathname.includes("variable")) {
+    return false;
+  }
+
+  return pathname.endsWith(".ttf") || pathname.endsWith(".woff");
+};
+
+export const assertTroikaCompatibleWorkerFontUrl = (font: string): void => {
+  if (!isTroikaCompatibleWorkerFontUrl(font)) {
+    throw new Error(
+      `Worker font URL must be Troika-compatible and point to a static .ttf or .woff file: ${font}`
+    );
+  }
+};
+
 export const absolutizeManifestAssetUrl = (candidate: string, baseUrl: string): string => {
   if (isHttpUrl(candidate)) {
     return candidate;
@@ -401,6 +426,7 @@ export const buildRenderManifest = ({
   const sourceVideoUrl = readString(source, "videoUrl");
   const staggerSeconds = readNumber(creativeManifest, "stagger") ??
     ((readNumber(animation, "staggerMs") ?? 100) / 1000);
+  assertTroikaCompatibleWorkerFontUrl(fontUrl);
 
   const manifest = {
     jobId: randomUUID(),

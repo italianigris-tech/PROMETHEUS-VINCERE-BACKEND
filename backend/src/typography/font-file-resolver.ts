@@ -45,7 +45,7 @@ const normalizeFontName = (value: string): string => value.toLowerCase().replace
 
 const isRenderableFontExtension = (extension: string | undefined): boolean => {
   const normalized = (extension ?? "").toLowerCase();
-  return normalized === ".ttf" || normalized === ".otf" || normalized === ".woff" || normalized === ".woff2";
+  return normalized === ".ttf" || normalized === ".woff";
 };
 
 const toBrowserFontUrl = (filePath: string): string => {

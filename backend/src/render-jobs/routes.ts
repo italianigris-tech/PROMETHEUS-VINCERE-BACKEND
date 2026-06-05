@@ -57,7 +57,7 @@ const nowIso = (): string => new Date().toISOString();
 
 const publicBaseUrl = (): string => process.env.API_BASE || `http://localhost:${process.env.PORT || "8000"}`;
 
-const defaultFontUrl = (): string => "fonts/Fraunces-Variable.woff2";
+const defaultFontUrl = (): string => "fonts/Fraunces-Regular.ttf";
 
 const serializeJob = (job: RenderJob) => ({
   id: job.id,
