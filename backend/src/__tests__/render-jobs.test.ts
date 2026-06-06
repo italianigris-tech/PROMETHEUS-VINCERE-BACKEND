@@ -8,6 +8,56 @@ import {cleanupTempDir, createTestApp, makeTempDir} from "./test-utils";
 
 const fixturePath = path.join(process.cwd(), "src", "__tests__", "fixtures", "creative-decision-manifest.fixture.json");
 
+const sampleDirectorNotes = {
+  version: "1.0",
+  emotionalArc: [
+    {
+      id: "beat-1",
+      timestamp: [0, 350],
+      emotion: "tension",
+      intensity: 0.78,
+      motionVocabulary: ["aggressive-entrance", "snap-focus"],
+      cameraDirective: {
+        type: "push-in",
+        target: [0, 0, 0],
+        intensity: 0.7,
+        overshoot: 0.35,
+        coupling: "tight"
+      },
+      why: "The first words need pressure before the idea opens up."
+    },
+    {
+      id: "beat-2",
+      timestamp: [350, 1500],
+      emotion: "release",
+      intensity: 0.42,
+      motionVocabulary: ["slow-drift"],
+      cameraDirective: null,
+      why: "The phrase relaxes after the initial hit."
+    }
+  ],
+  temporalIntensity: {
+    points: [
+      {t: 0, intensity: 0.2, derivative: 0},
+      {t: 0.2, intensity: 0.55, derivative: 1.2},
+      {t: 0.35, intensity: 0.82, derivative: 2},
+      {t: 0.6, intensity: 0.5, derivative: -0.9},
+      {t: 1, intensity: 0.35, derivative: -0.3},
+      {t: 1.4, intensity: 0.5, derivative: 0.4},
+      {t: 1.8, intensity: 0.7, derivative: 0.8},
+      {t: 2.2, intensity: 0.4, derivative: -0.6}
+    ]
+  },
+  imperfectionProfile: {
+    timingNoiseMs: 16,
+    spacingVariance: 0.08,
+    easingPerturbation: 0.05,
+    rotationalDrift: 0.09
+  },
+  globalCameraStrategy: "aggressive",
+  assetDirectives: []
+};
+
 describe("render job bridge", () => {
   let tempDir: string;
 
@@ -63,6 +113,7 @@ describe("render job bridge", () => {
     };
     const manifest = buildRenderManifest({
       creativeManifest,
+      directorNotes: sampleDirectorNotes,
       fontUrl: "/fonts/retrieved/satoshi.ttf",
       backgroundVideoUrl: "/media/background.mp4",
       rvmMatteUrl: "/media/matte.webm",
@@ -121,6 +172,16 @@ describe("render job bridge", () => {
     expect(manifest.lutEnabled).toBe(true);
     expect(manifest.lutUrl).toBe("/luts/lusion.cube");
     expect(manifest.text.sdfGlyphSize).toBe(96);
+    expect(manifest.directorialMetadata).toEqual({
+      emotionalArc: sampleDirectorNotes.emotionalArc,
+      temporalIntensity: sampleDirectorNotes.temporalIntensity,
+      imperfectionProfile: sampleDirectorNotes.imperfectionProfile,
+      globalCameraStrategy: "aggressive",
+      motionVocabulary: ["aggressive-entrance", "snap-focus", "slow-drift"]
+    });
+    expect(manifest.transcriptWords.every((word) => typeof word.semanticTag === "string")).toBe(true);
+    expect(manifest.transcriptWords[0]?.semanticTag).toBe("aggressive-entrance");
+    expect(manifest.directorialMetadata.temporalIntensity.points.length).toBeGreaterThanOrEqual(8);
   });
 
   it("rejects worker font URLs that Troika cannot render", async () => {
@@ -128,6 +189,7 @@ describe("render job bridge", () => {
 
     expect(() => buildRenderManifest({
       creativeManifest,
+      directorNotes: sampleDirectorNotes,
       fontUrl: "/fonts/retrieved/satoshi.woff2",
       backgroundVideoUrl: "/media/background.mp4",
       rvmMatteUrl: "/media/matte.webm",
@@ -150,6 +212,7 @@ describe("render job bridge", () => {
       url: "/api/v1/render/jobs",
       payload: {
         creative_manifest: creativeManifest,
+        director_notes: sampleDirectorNotes,
         font_url: "/fonts/retrieved/satoshi.ttf",
         background_video_url: "/media/background.mp4",
         rvm_matte_url: "/media/matte.webm",
@@ -161,6 +224,7 @@ describe("render job bridge", () => {
     const createBody = createResponse.json();
     expect(createBody.status).toBe("queued");
     expect(createBody.manifest.fontUrl).toMatch(/^http:\/\//);
+    expect(createBody.manifest.directorialMetadata.emotionalArc[0].why).toContain("pressure");
 
     const nextResponse = await context.app.inject({
       method: "GET",

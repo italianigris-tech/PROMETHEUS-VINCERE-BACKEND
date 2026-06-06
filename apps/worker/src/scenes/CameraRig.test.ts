@@ -3,6 +3,7 @@ import {describe, expect, it} from "vitest";
 import {
   clampLookAtToSafeZone,
   normalizeCameraKeyframes,
+  rollCameraUpVector,
   useCameraRigStore
 } from "./CameraRig.js";
 
@@ -33,5 +34,13 @@ describe("CameraRig helpers", () => {
     expect(state.cameraVelocity.toArray()).toEqual([0, 0, 0]);
     expect(state.wordVelocities).toBeInstanceOf(Map);
     expect(state.wordVelocities.size).toBe(0);
+  });
+
+  it("applies camera roll to the up vector before lookAt", () => {
+    const up = rollCameraUpVector(Math.PI / 2);
+
+    expect(up.x).toBeCloseTo(-1);
+    expect(up.y).toBeCloseTo(0);
+    expect(up.z).toBeCloseTo(0);
   });
 });

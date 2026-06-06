@@ -1,5 +1,5 @@
 import React, {useEffect, useLayoutEffect, useMemo, useRef, useState} from "react";
-import type {RenderManifest} from "@prometheus/shared-types";
+import type {DeformationConfig, EmotionalBeat, RenderManifest} from "@prometheus/shared-types";
 import {useFrame} from "@react-three/fiber";
 import gsap from "gsap";
 import {continueRender, delayRender, useCurrentFrame, useVideoConfig} from "remotion";
@@ -8,6 +8,11 @@ import {Text as TroikaText} from "troika-three-text";
 
 import {useCameraRigStore} from "./CameraRig.js";
 import {TEXT_BLOOM_LAYER} from "./post-processing.js";
+import {selectEaseForTimestamp} from "../lib/easing-modulator.js";
+import {applyImperfection} from "../lib/imperfection-engine.js";
+import {findPatternForSemanticTag} from "../lib/motion-ontology.js";
+import {applyColorAnnotations, hasColorAnnotations} from "../lib/text-colorizer.js";
+import {injectVertexDeformation, updateDeformationTime} from "../lib/vertex-deformation.js";
 
 type WordLayout = {
   text: string;
@@ -24,6 +29,7 @@ type TroikaDepthText = TroikaText & {
   bevelSize?: number;
   bevelThickness?: number;
   envMapIntensity?: number;
+  colorRanges?: Record<number, THREE.Color | null>;
 };
 
 export type KineticTextProps = {
@@ -127,7 +133,15 @@ const createGradientTexture = (colors: string[]): THREE.CanvasTexture | null => 
   return texture;
 };
 
-const createWordMaterial = (manifest: RenderManifest): THREE.MeshBasicMaterial => {
+/**
+ * Phase 7: Creates a word material with optional vertex deformation injected.
+ * If deformationConfig is provided and type is not "none", the material's
+ * onBeforeCompile will inject the deformation shader.
+ */
+const createWordMaterial = (
+  manifest: RenderManifest,
+  deformationConfig?: DeformationConfig
+): THREE.MeshBasicMaterial => {
   const colors = manifest.gradientColors.length > 0 ? manifest.gradientColors : ["#ffffff"];
   const texture = createGradientTexture(colors);
   const material = new THREE.MeshBasicMaterial({
@@ -139,12 +153,18 @@ const createWordMaterial = (manifest: RenderManifest): THREE.MeshBasicMaterial =
     toneMapped: false
   });
 
-  material.onBeforeCompile = () => {
-    // TODO Phase 7: add stable MeshBasicMaterial edge highlighting after bevel/depth geometry is formalized.
-  };
+  // Phase 7: Inject vertex deformation if configured
+  if (deformationConfig && deformationConfig.type !== "none") {
+    injectVertexDeformation(material, deformationConfig);
+  } else {
+    // Keep a no-op onBeforeCompile for future edge highlighting
+    material.onBeforeCompile = () => {
+      // TODO Phase 8: add stable MeshBasicMaterial edge highlighting after bevel/depth geometry is formalized.
+    };
+  }
 
   if (manifest.envMapIntensity > 0) {
-    // TODO Phase 7: pre-bake CubeCamera env map to texture.
+    // TODO Phase 8: pre-bake CubeCamera env map to texture.
   }
 
   return material;
@@ -158,13 +178,27 @@ export const KineticText: React.FC<KineticTextProps> = ({manifest}) => {
   const timelineRef = useRef<gsap.core.Timeline | null>(null);
   const wordVelocities = useRef(new Map<string, THREE.Vector3>());
   const prevWordPositions = useRef(new Map<string, THREE.Vector3>());
+  // Phase 7: Determine deformation configs per word based on patterns
+  const deformationConfigs = useMemo(() => {
+    return timedWords.map((word, index) => {
+      const transcriptWord = manifest.transcriptWords[index];
+      const semanticTag = transcriptWord?.semanticTag ?? "";
+      const pattern = semanticTag ? findPatternForSemanticTag(semanticTag) : null;
+      return pattern?.deformation ?? { type: "none" as const, intensity: 0, frequency: 1, speed: 1, seed: 0 };
+    });
+  }, [manifest.transcriptWords, timedWords]);
+
   const meshes = useMemo(() => timedWords.map(() => {
     const mesh = new TroikaText() as TroikaDepthText;
     mesh.renderOrder = 10;
     mesh.layers.enable(TEXT_BLOOM_LAYER);
     return mesh;
   }), [timedWords]);
-  const materials = useMemo(() => timedWords.map(() => createWordMaterial(manifest)), [manifest, timedWords]);
+
+  const materials = useMemo(
+    () => timedWords.map((_word, index) => createWordMaterial(manifest, deformationConfigs[index])),
+    [manifest, timedWords, deformationConfigs]
+  );
 
   useLayoutEffect(() => {
     if (timedWords.length === 0) {
@@ -246,7 +280,15 @@ export const KineticText: React.FC<KineticTextProps> = ({manifest}) => {
         return;
       }
 
-      mesh.text = word.text;
+      // Phase 7: Apply color annotations if present
+      const rawText = word.text;
+      if (hasColorAnnotations(rawText)) {
+        const plainText = applyColorAnnotations(mesh, rawText);
+        mesh.text = plainText;
+      } else {
+        mesh.text = rawText;
+      }
+
       mesh.font = manifest.fontUrl;
       mesh.fontSize = manifest.text.size;
       mesh.anchorX = "center";
@@ -266,36 +308,124 @@ export const KineticText: React.FC<KineticTextProps> = ({manifest}) => {
       mesh.bevelSize = manifest.bevelSize;
       mesh.bevelThickness = manifest.bevelThickness;
       mesh.envMapIntensity = manifest.envMapIntensity;
-      // TODO Phase 7: modulate extrudeDepth by audio transient amplitude.
+      // TODO Phase 8: modulate extrudeDepth by audio transient amplitude.
 
       if (word.animated) {
-        const startTime = word.startMs / 1000 + index * manifest.wordStagger;
+        // FIX: Use absolute startMs when available, not wordStagger
+        const effectiveStart: number =
+          typeof word.startMs === "number" && !isNaN(word.startMs)
+            ? word.startMs / 1000
+            : index * (manifest.wordStagger ?? 0.1);
+        
         const duration = Math.max((word.endMs - word.startMs) / 1000, 1 / fps);
         const rotationSeed = (index + 1) * 1.61803398875;
 
-        timeline.from(mesh.position, {
-          z: manifest.text.depthTravel,
-          duration,
-          ease: "back.out(1.7)"
-        }, startTime);
-        timeline.from(mesh.rotation, {
-          x: Math.sin(rotationSeed) * Math.PI,
-          y: Math.cos(rotationSeed) * Math.PI,
-          duration,
-          ease: "back.out(1.7)"
-        }, startTime);
-        timeline.from(mesh.scale, {
-          x: 0,
-          y: 0,
-          z: 0,
-          duration,
-          ease: "back.out(1.7)"
-        }, startTime);
-        timeline.from(material, {
-          opacity: 0,
-          duration: Math.max(duration * 0.3, 1 / fps),
-          ease: "power2.out"
-        }, startTime);
+        // Get directorial metadata for motion enhancement
+        const meta = manifest.directorialMetadata;
+        const t = frame / (manifest.fps ?? 30);
+
+        // Find current emotional beat
+        let currentBeat: EmotionalBeat | null = null;
+        if (meta?.emotionalArc) {
+          const tMs = t * 1000;
+          currentBeat = meta.emotionalArc.find(
+            (beat) => tMs >= beat.timestamp[0] && tMs < beat.timestamp[1]
+          ) ?? null;
+        }
+
+        // Select ease from temporal intensity
+        const easeConfig = meta?.temporalIntensity
+          ? selectEaseForTimestamp(t, meta.temporalIntensity, "back.out(1.7)")
+          : {ease: "back.out(1.7)", durationMultiplier: 1, perturbation: 0};
+
+        // Get semantic tag for this word (if available in transcriptWords)
+        const transcriptWord = manifest.transcriptWords[index];
+        const semanticTag = transcriptWord?.semanticTag ?? currentBeat?.motionVocabulary?.[0] ?? "";
+        const pattern = semanticTag ? findPatternForSemanticTag(semanticTag) : null;
+
+        // Fully destructure pattern GSAP config — the ontology drives the animation
+        const patternFrom = pattern?.gsapConfig?.from ?? {opacity: 0, z: manifest.text.depthTravel};
+        const patternTo = pattern?.gsapConfig?.to ?? {opacity: 1, z: 0};
+        const patternDuration = ((pattern?.gsapConfig?.duration as number | undefined) ?? 0.6) * easeConfig.durationMultiplier;
+        const patternStagger = (pattern?.gsapConfig?.stagger as number | undefined) ?? 0.03;
+
+        // Apply imperfection if directorial metadata is present
+        const imperfected = meta?.imperfectionProfile && currentBeat
+          ? applyImperfection(
+              meta.imperfectionProfile,
+              currentBeat.emotion,
+              {duration: patternDuration, x: word.x, y: 0, rotation: 0, scale: 1}
+            )
+          : {duration: patternDuration, x: word.x, y: 0, rotation: 0, scale: 1};
+
+        // Final GSAP config — use legacy behavior if no directorial metadata
+        if (meta) {
+          // Directorial metadata path: pattern drives animation, imperfection perturbs base position
+          const finalFrom: Record<string, unknown> = {
+            ...patternFrom,
+            x: imperfected.x,
+            y: imperfected.y,
+          };
+
+          const finalTo: Record<string, unknown> = {
+            ...patternTo,
+            duration: Math.max(0.05, imperfected.duration),
+            ease: easeConfig.ease,
+          };
+
+          // Apply to mesh — fromTo ensures all pattern properties are consumed
+          timeline.fromTo(mesh.position, finalFrom, finalTo, effectiveStart);
+
+          // Rotation and scale as supplementary animations (not in pattern)
+          timeline.from(mesh.rotation, {
+            x: Math.sin(rotationSeed) * Math.PI,
+            y: Math.cos(rotationSeed) * Math.PI,
+            duration: Math.max(0.05, imperfected.duration),
+            ease: easeConfig.ease
+          }, effectiveStart);
+          timeline.from(mesh.scale, {
+            x: 0,
+            y: 0,
+            z: 0,
+            duration: Math.max(0.05, imperfected.duration),
+            ease: easeConfig.ease
+          }, effectiveStart);
+
+          // Material opacity fade — short duration relative to main animation
+          const opacityDuration = patternFrom && typeof patternFrom === "object" && "opacity" in patternFrom
+            ? Math.max((imperfected.duration as number) * 0.3, 1 / fps)
+            : Math.max((imperfected.duration as number) * 0.3, 1 / fps);
+          timeline.from(material, {
+            opacity: 0,
+            duration: opacityDuration,
+            ease: "power2.out"
+          }, effectiveStart);
+        } else {
+          // Legacy path (no directorial metadata)
+          timeline.from(mesh.position, {
+            z: manifest.text.depthTravel,
+            duration,
+            ease: "back.out(1.7)"
+          }, effectiveStart);
+          timeline.from(mesh.rotation, {
+            x: Math.sin(rotationSeed) * Math.PI,
+            y: Math.cos(rotationSeed) * Math.PI,
+            duration,
+            ease: "back.out(1.7)"
+          }, effectiveStart);
+          timeline.from(mesh.scale, {
+            x: 0,
+            y: 0,
+            z: 0,
+            duration,
+            ease: "back.out(1.7)"
+          }, effectiveStart);
+          timeline.from(material, {
+            opacity: 0,
+            duration: Math.max(duration * 0.3, 1 / fps),
+            ease: "power2.out"
+          }, effectiveStart);
+        }
       }
     });
 
@@ -368,6 +498,12 @@ export const KineticText: React.FC<KineticTextProps> = ({manifest}) => {
         timeline.seek(currentTime, false);
       }
     }
+
+    // Phase 7: Update deformation time uniforms for all materials
+    const elapsedTime = frame / fps;
+    materials.forEach((material) => {
+      updateDeformationTime(material, elapsedTime);
+    });
 
     meshes.forEach((mesh, index) => {
       const key = `word-${index}`;

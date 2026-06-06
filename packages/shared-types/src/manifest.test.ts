@@ -1,6 +1,6 @@
 import {describe, expect, it} from "vitest";
 
-import {renderManifestSchema, rvmExtractionResponseSchema} from "./manifest.js";
+import {directorNotesSchema, renderManifestSchema, rvmExtractionResponseSchema} from "./manifest.js";
 
 const baseManifest = {
   jobId: "sample-job",
@@ -88,6 +88,61 @@ describe("renderManifestSchema", () => {
       "matte.fps",
       "matte.durationInFrames"
     ]);
+  });
+
+  it("preserves optional directorial metadata and per-word semantic tags", () => {
+    const directorNotes = directorNotesSchema.parse({
+      version: "1.0",
+      emotionalArc: [{
+        id: "beat-1",
+        timestamp: [0, 1200],
+        emotion: "tension",
+        intensity: 0.8,
+        motionVocabulary: ["aggressive-entrance"],
+        cameraDirective: {
+          type: "push-in",
+          target: [0, 0, 0],
+          intensity: 0.7,
+          overshoot: 0.4,
+          coupling: "tight"
+        },
+        why: "The opening phrase needs immediate pressure."
+      }],
+      temporalIntensity: {
+        points: [
+          {t: 0, intensity: 0.2, derivative: 0},
+          {t: 0.4, intensity: 0.8, derivative: 1.5}
+        ]
+      },
+      imperfectionProfile: {
+        timingNoiseMs: 18,
+        spacingVariance: 0.12,
+        easingPerturbation: 0.05,
+        rotationalDrift: 0.1
+      },
+      globalCameraStrategy: "aggressive",
+      assetDirectives: []
+    });
+
+    const manifest = renderManifestSchema.parse({
+      ...baseManifest,
+      transcriptWords: [{
+        text: "REGENERATE",
+        startMs: 0,
+        endMs: 1200,
+        semanticTag: "aggressive-entrance"
+      }],
+      directorialMetadata: {
+        emotionalArc: directorNotes.emotionalArc,
+        temporalIntensity: directorNotes.temporalIntensity,
+        imperfectionProfile: directorNotes.imperfectionProfile,
+        globalCameraStrategy: directorNotes.globalCameraStrategy,
+        motionVocabulary: ["aggressive-entrance"]
+      }
+    });
+
+    expect(manifest.directorialMetadata?.emotionalArc[0]?.why).toContain("pressure");
+    expect(manifest.transcriptWords[0]?.semanticTag).toBe("aggressive-entrance");
   });
 });
 

@@ -21,7 +21,8 @@ export const transcriptWordSchema = z.object({
   text: z.string().min(1),
   startMs: z.number().nonnegative(),
   endMs: z.number().positive(),
-  confidence: z.number().min(0).max(1).optional()
+  confidence: z.number().min(0).max(1).optional(),
+  semanticTag: z.string().min(1).optional()
 }).superRefine((word, ctx) => {
   if (word.endMs <= word.startMs) {
     ctx.addIssue({
@@ -46,11 +47,119 @@ const cameraKeyframeSchema = z.object({
   roll: z.number().optional().default(0)
 });
 
+export const emotionalBeatEmotionSchema = z.enum([
+  "tension",
+  "release",
+  "contemplation",
+  "explosion",
+  "intimacy",
+  "isolation",
+  "chaos"
+]);
+
+export const cameraDirectiveSchema = z.object({
+  type: z.enum(["push-in", "pull-out", "orbit", "drift", "snap", "hold"]),
+  target: z.tuple([z.number(), z.number(), z.number()]).nullable(),
+  intensity: z.number().min(0).max(1),
+  overshoot: z.number().min(0).max(1),
+  coupling: z.enum(["tight", "loose", "none"])
+});
+
+export const emotionalBeatSchema = z.object({
+  id: z.string().min(1),
+  timestamp: z.tuple([z.number().nonnegative(), z.number().nonnegative()]),
+  emotion: emotionalBeatEmotionSchema,
+  intensity: z.number().min(0).max(1),
+  motionVocabulary: z.array(z.string().min(1)),
+  cameraDirective: cameraDirectiveSchema.nullable(),
+  why: z.string().min(1)
+}).superRefine((beat, ctx) => {
+  if (beat.timestamp[1] <= beat.timestamp[0]) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "timestamp end must be greater than start",
+      path: ["timestamp"]
+    });
+  }
+});
+
+export const intensityCurveSchema = z.object({
+  points: z.array(z.object({
+    t: z.number().nonnegative(),
+    intensity: z.number().min(0).max(1),
+    derivative: z.number()
+  }))
+});
+
+export const imperfectionConfigSchema = z.object({
+  timingNoiseMs: z.number().nonnegative(),
+  spacingVariance: z.number().min(0).max(1),
+  easingPerturbation: z.number().min(0).max(1),
+  rotationalDrift: z.number().min(0).max(1)
+});
+
+export const directorNotesSchema = z.object({
+  version: z.literal("1.0"),
+  emotionalArc: z.array(emotionalBeatSchema),
+  temporalIntensity: intensityCurveSchema,
+  imperfectionProfile: imperfectionConfigSchema,
+  globalCameraStrategy: z.enum(["intimate", "cinematic", "aggressive", "contemplative"]),
+  assetDirectives: z.array(z.object({
+    timestamp: z.tuple([z.number().nonnegative(), z.number().nonnegative()]),
+    semanticNeed: z.string().min(1),
+    motionRole: z.enum(["background", "overlay", "matte"])
+  }))
+});
+
+export const deformationConfigSchema = z.object({
+  type: z.enum(["explode", "wave", "ripple", "shatter", "none"]).default("none"),
+  intensity: z.number().min(0).max(1).default(0),
+  frequency: z.number().nonnegative().default(1),
+  speed: z.number().nonnegative().default(1),
+  seed: z.number().nonnegative().default(0)
+});
+
+export const patternPostProcessSchema = z.object({
+  bloom: z.boolean().default(false),
+  chromaticAberration: z.boolean().default(false),
+  motionBlur: z.boolean().default(false)
+});
+
+export const motionPatternSchema = z.object({
+  id: z.string().min(1),
+  tags: z.array(z.string().min(1)),
+  category: z.enum(["entrance", "exit", "emphasis", "ambient", "transition"]),
+  emotionalProfile: z.object({
+    intensity: z.number().min(0).max(1),
+    confidence: z.number().min(0).max(1),
+    chaos: z.number().min(0).max(1)
+  }),
+  temporalSignature: z.object({
+    attack: z.number().nonnegative(),
+    sustain: z.number().nonnegative(),
+    decay: z.number().nonnegative()
+  }),
+  gsapConfig: z.record(z.unknown()),
+  cameraCoupling: z.union([cameraDirectiveSchema.shape.type, z.literal("none")]),
+  microAnimations: z.array(z.string()),
+  deformation: deformationConfigSchema.optional(),
+  postProcess: patternPostProcessSchema.optional()
+});
+
+export const directorialMetadataSchema = z.object({
+  emotionalArc: z.array(emotionalBeatSchema),
+  temporalIntensity: intensityCurveSchema,
+  imperfectionProfile: imperfectionConfigSchema,
+  globalCameraStrategy: directorNotesSchema.shape.globalCameraStrategy,
+  motionVocabulary: z.array(z.string().min(1))
+});
+
 export const renderManifestSchema = z.object({
   manifestVersion: z.literal("prometheus-render-manifest/v1").default("prometheus-render-manifest/v1"),
   jobId: z.string().min(1),
   transcript: z.string().min(1),
   transcriptWords: z.array(transcriptWordSchema).default([]),
+  directorialMetadata: directorialMetadataSchema.optional(),
   sourceVideoUrl: mediaReferenceSchema.optional(),
   backgroundVideoUrl: mediaReferenceSchema.optional(),
   rvmMatteUrl: mediaReferenceSchema.optional(),
@@ -172,6 +281,15 @@ export const rvmExtractionResponseSchema = z.object({
 
 export type TranscriptWord = z.infer<typeof transcriptWordSchema>;
 export type AnimationPreset = z.infer<typeof animationPresetSchema>;
+export type CameraDirective = z.infer<typeof cameraDirectiveSchema>;
+export type DeformationConfig = z.infer<typeof deformationConfigSchema>;
+export type PatternPostProcess = z.infer<typeof patternPostProcessSchema>;
+export type DirectorNotes = z.infer<typeof directorNotesSchema>;
+export type DirectorialMetadata = z.infer<typeof directorialMetadataSchema>;
+export type EmotionalBeat = z.infer<typeof emotionalBeatSchema>;
+export type ImperfectionConfig = z.infer<typeof imperfectionConfigSchema>;
+export type IntensityCurve = z.infer<typeof intensityCurveSchema>;
+export type MotionPattern = z.infer<typeof motionPatternSchema>;
 export type RenderManifest = z.infer<typeof renderManifestSchema>;
 export type RvmExtractionRequest = z.infer<typeof rvmExtractionRequestSchema>;
 export type RvmExtractionResponse = z.infer<typeof rvmExtractionResponseSchema>;

@@ -68,3 +68,106 @@ export const buildGodPromptPack = (brief: GodGenerationBrief): {
   };
 };
 
+export type DirectorNotesPromptInput = {
+  transcript: string;
+  brief: string;
+  durationMs: number;
+  mood: string;
+};
+
+export const buildDirectorNotesSystemPrompt = (): string => joinLines([
+  "You are a Motion Design Director.",
+  "You reason about pacing, tension, and spatial relationships.",
+  "You never produce generic motion.",
+  "You direct emotional experiences through motion."
+]);
+
+export const buildDirectorNotesUserPrompt = ({
+  transcript,
+  brief,
+  durationMs,
+  mood
+}: DirectorNotesPromptInput): string => joinLines([
+  "You are a Motion Design Director for a cinematic kinetic typography studio.",
+  "Your work is compared to Lusion, Supreme, and Buck.",
+  "You do not animate text. You direct emotional experiences through motion.",
+  "",
+  "INPUT:",
+  `- Lyrics/Transcript: ${transcript}`,
+  `- Visual Brief: ${brief}`,
+  `- Duration: ${durationMs}ms`,
+  `- Target Mood: ${mood}`,
+  "",
+  "STEP 1 - SEMANTIC ANALYSIS:",
+  "Analyze the transcript beat by beat. Identify:",
+  "- Emotional shifts (where does tension build? where does it release?)",
+  "- Narrative peaks and valleys",
+  "- Words that demand emphasis vs. words that should drift by",
+  "Output: A numbered list of emotional beats with timestamps.",
+  "",
+  "STEP 2 - MOTION VOCABULARY SELECTION:",
+  "For each emotional beat, choose 1-2 motion patterns from this vocabulary:",
+  "- aggressive-entrance: fast translateZ + overshoot + deceleration",
+  "- slow-drift: gentle position wander + micro-rotation",
+  "- letter-explode: per-character scatter with stagger",
+  "- depth-establish: push-in to text, hold, then release",
+  "- snap-focus: sudden camera cut to tight framing",
+  "- contemplative-hold: minimal motion, breathing scale",
+  "- chaos-scatter: high randomness, fast decay",
+  "Output: Which patterns you selected and why.",
+  "",
+  "STEP 3 - TEMPORAL INTENSITY CURVE:",
+  "Construct an intensity curve over the full duration.",
+  "- At t=0ms, intensity = 0.2 (establishing)",
+  "- Mark every peak and valley with exact timestamps",
+  "- Ensure derivative spikes before emotional peaks (anticipation)",
+  "Output: A JSON array of {t, intensity, derivative} points. Minimum 8 points.",
+  "",
+  "STEP 4 - CAMERA BLOCKING:",
+  "Plan camera moves that serve the emotional arc, not just show the text.",
+  "- Specify push-in, pull-out, orbit, drift, snap, or hold",
+  "- Couple camera motion to text motion (tight/loose/none)",
+  "- Add overshoot for dynamic energy",
+  "Output: Camera directives per beat.",
+  "",
+  "STEP 5 - IMPERFECTION PROFILE:",
+  "Decide how human this piece should feel.",
+  "- High chaos = more timing noise and rotational drift",
+  "- Low chaos = precise, mechanical motion",
+  "- Contemplative pieces get gentle drift; aggressive pieces get jitter",
+  "Output: {timingNoiseMs, spacingVariance, easingPerturbation, rotationalDrift}",
+  "",
+  "STEP 6 - DIRECTOR'S NOTES JSON:",
+  "Compile Steps 1-5 into strict JSON matching the DirectorNotes schema.",
+  "Return strict JSON only. No prose, no markdown, no code fences.",
+  "",
+  "DirectorNotes schema:",
+  "{",
+  "  version: \"1.0\",",
+  "  emotionalArc: Array<{",
+  "    id: string,",
+  "    timestamp: [startMs: number, endMs: number],",
+  "    emotion: \"tension\" | \"release\" | \"contemplation\" | \"explosion\" | \"intimacy\" | \"isolation\" | \"chaos\",",
+  "    intensity: number,",
+  "    motionVocabulary: string[],",
+  "    cameraDirective: { type: \"push-in\" | \"pull-out\" | \"orbit\" | \"drift\" | \"snap\" | \"hold\", target: [number, number, number] | null, intensity: number, overshoot: number, coupling: \"tight\" | \"loose\" | \"none\" } | null,",
+  "    why: string",
+  "  }>,",
+  "  temporalIntensity: { points: Array<{ t: number, intensity: number, derivative: number }> },",
+  "  imperfectionProfile: { timingNoiseMs: number, spacingVariance: number, easingPerturbation: number, rotationalDrift: number },",
+  "  globalCameraStrategy: \"intimate\" | \"cinematic\" | \"aggressive\" | \"contemplative\",",
+  "  assetDirectives: Array<{ timestamp: [number, number], semanticNeed: string, motionRole: \"background\" | \"overlay\" | \"matte\" }>",
+  "}",
+  "",
+  "Include why reasoning traces for at least 3 emotional beats whenever the transcript supports 3 or more beats."
+]);
+
+export const buildDirectorNotesPromptPack = (input: DirectorNotesPromptInput): {
+  systemPrompt: string;
+  userPrompt: string;
+  temperature: 0.7;
+} => ({
+  systemPrompt: buildDirectorNotesSystemPrompt(),
+  userPrompt: buildDirectorNotesUserPrompt(input),
+  temperature: 0.7
+});

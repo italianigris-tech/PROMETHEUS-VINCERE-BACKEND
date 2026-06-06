@@ -36,11 +36,74 @@ const cameraKeyframeSchema = z.object({
   roll: z.number().optional().default(0)
 });
 
+const cameraDirectiveSchema = z.object({
+  type: z.enum(["push-in", "pull-out", "orbit", "drift", "snap", "hold"]),
+  target: z.tuple([z.number(), z.number(), z.number()]).nullable(),
+  intensity: z.number().min(0).max(1),
+  overshoot: z.number().min(0).max(1),
+  coupling: z.enum(["tight", "loose", "none"])
+});
+
+const emotionalBeatSchema = z.object({
+  id: z.string().min(1),
+  timestamp: z.tuple([z.number().nonnegative(), z.number().nonnegative()]),
+  emotion: z.enum(["tension", "release", "contemplation", "explosion", "intimacy", "isolation", "chaos"]),
+  intensity: z.number().min(0).max(1),
+  motionVocabulary: z.array(z.string().min(1)),
+  cameraDirective: cameraDirectiveSchema.nullable(),
+  why: z.string().min(1)
+}).superRefine((beat, ctx) => {
+  if (beat.timestamp[1] <= beat.timestamp[0]) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "timestamp end must be greater than start",
+      path: ["timestamp"]
+    });
+  }
+});
+
+const intensityCurveSchema = z.object({
+  points: z.array(z.object({
+    t: z.number().nonnegative(),
+    intensity: z.number().min(0).max(1),
+    derivative: z.number()
+  }))
+});
+
+const imperfectionConfigSchema = z.object({
+  timingNoiseMs: z.number().nonnegative(),
+  spacingVariance: z.number().min(0).max(1),
+  easingPerturbation: z.number().min(0).max(1),
+  rotationalDrift: z.number().min(0).max(1)
+});
+
+const directorNotesSchema = z.object({
+  version: z.literal("1.0"),
+  emotionalArc: z.array(emotionalBeatSchema),
+  temporalIntensity: intensityCurveSchema,
+  imperfectionProfile: imperfectionConfigSchema,
+  globalCameraStrategy: z.enum(["intimate", "cinematic", "aggressive", "contemplative"]),
+  assetDirectives: z.array(z.object({
+    timestamp: z.tuple([z.number().nonnegative(), z.number().nonnegative()]),
+    semanticNeed: z.string().min(1),
+    motionRole: z.enum(["background", "overlay", "matte"])
+  }))
+});
+
+const directorialMetadataSchema = z.object({
+  emotionalArc: z.array(emotionalBeatSchema),
+  temporalIntensity: intensityCurveSchema,
+  imperfectionProfile: imperfectionConfigSchema,
+  globalCameraStrategy: directorNotesSchema.shape.globalCameraStrategy,
+  motionVocabulary: z.array(z.string().min(1))
+});
+
 export const renderTranscriptWordSchema = z.object({
   text: z.string().min(1),
   startMs: z.number().nonnegative(),
   endMs: z.number().positive(),
-  confidence: z.number().min(0).max(1).optional()
+  confidence: z.number().min(0).max(1).optional(),
+  semanticTag: z.string().min(1).optional()
 }).superRefine((word, ctx) => {
   if (word.endMs <= word.startMs) {
     ctx.addIssue({
@@ -56,6 +119,7 @@ export const renderManifestBridgeSchema = z.object({
   jobId: z.string().min(1),
   transcript: z.string().min(1),
   transcriptWords: z.array(renderTranscriptWordSchema).default([]),
+  directorialMetadata: directorialMetadataSchema.optional(),
   sourceVideoUrl: urlLikeSchema.optional(),
   backgroundVideoUrl: urlLikeSchema.optional(),
   rvmMatteUrl: urlLikeSchema.optional(),
@@ -172,9 +236,12 @@ export const renderManifestBridgeSchema = z.object({
 });
 
 export type RenderManifestBridge = z.infer<typeof renderManifestBridgeSchema>;
+export type DirectorNotes = z.infer<typeof directorNotesSchema>;
+export type EmotionalBeat = z.infer<typeof emotionalBeatSchema>;
 
 export type BuildRenderManifestInput = {
   creativeManifest: Record<string, unknown>;
+  directorNotes: DirectorNotes;
   fontUrl: string;
   backgroundVideoUrl: string;
   rvmMatteUrl: string;
@@ -240,6 +307,47 @@ const readStringArray = (record: Record<string, unknown>, key: string): string[]
     return null;
   }
   return value as string[];
+};
+
+export const extractMotionVocabulary = (directorNotes: DirectorNotes): string[] => {
+  const seen = new Set<string>();
+  const vocabulary: string[] = [];
+
+  for (const beat of directorNotes.emotionalArc) {
+    for (const id of beat.motionVocabulary) {
+      if (!seen.has(id)) {
+        seen.add(id);
+        vocabulary.push(id);
+      }
+    }
+  }
+
+  return vocabulary;
+};
+
+const overlapMs = (
+  element: {startMs: number; endMs: number},
+  beat: EmotionalBeat
+): number => {
+  const start = Math.max(element.startMs, beat.timestamp[0]);
+  const end = Math.min(element.endMs, beat.timestamp[1]);
+  return Math.max(0, end - start);
+};
+
+export const findBeatForElement = (
+  element: {startMs: number; endMs: number},
+  emotionalArc: EmotionalBeat[]
+): EmotionalBeat | null => {
+  let best: {beat: EmotionalBeat; overlap: number} | null = null;
+
+  for (const beat of emotionalArc) {
+    const overlap = overlapMs(element, beat);
+    if (overlap > (best?.overlap ?? 0)) {
+      best = {beat, overlap};
+    }
+  }
+
+  return best?.beat ?? null;
 };
 
 const readNestedRecord = (record: Record<string, unknown>, key: string): Record<string, unknown> =>
@@ -371,7 +479,8 @@ const normalizeTranscriptWords = ({
       text,
       startMs,
       endMs,
-      confidence: readNumber(record, "confidence") ?? undefined
+      confidence: readNumber(record, "confidence") ?? undefined,
+      semanticTag: readString(record, "semanticTag") ?? undefined
     }];
   });
 
@@ -395,6 +504,7 @@ const normalizeTranscriptWords = ({
 
 export const buildRenderManifest = ({
   creativeManifest,
+  directorNotes,
   fontUrl,
   backgroundVideoUrl,
   rvmMatteUrl,
@@ -427,16 +537,32 @@ export const buildRenderManifest = ({
   const staggerSeconds = readNumber(creativeManifest, "stagger") ??
     ((readNumber(animation, "staggerMs") ?? 100) / 1000);
   assertTroikaCompatibleWorkerFontUrl(fontUrl);
+  const parsedDirectorNotes = directorNotesSchema.parse(directorNotes);
+  const motionVocabulary = extractMotionVocabulary(parsedDirectorNotes);
+  const transcriptWords = normalizeTranscriptWords({
+    creativeManifest,
+    transcript,
+    durationInFrames,
+    fps
+  }).map((word) => {
+    const beat = findBeatForElement(word, parsedDirectorNotes.emotionalArc);
+    return {
+      ...word,
+      semanticTag: word.semanticTag ?? beat?.motionVocabulary[0] ?? "default"
+    };
+  });
 
   const manifest = {
     jobId: randomUUID(),
     transcript: transcript || " ",
-    transcriptWords: normalizeTranscriptWords({
-      creativeManifest,
-      transcript,
-      durationInFrames,
-      fps
-    }),
+    transcriptWords,
+    directorialMetadata: {
+      emotionalArc: parsedDirectorNotes.emotionalArc,
+      temporalIntensity: parsedDirectorNotes.temporalIntensity,
+      imperfectionProfile: parsedDirectorNotes.imperfectionProfile,
+      globalCameraStrategy: parsedDirectorNotes.globalCameraStrategy,
+      motionVocabulary
+    },
     sourceVideoUrl: sourceVideoUrl
       ? absolutizeManifestAssetUrl(sourceVideoUrl, baseUrl)
       : undefined,

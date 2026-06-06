@@ -7,6 +7,7 @@ describe("post-processing guards", () => {
     expect(shouldRenderPostProcessing({
       bloomEnabled: false,
       motionBlurEnabled: false,
+      motionBlurStrength: 0.5,
       chromaticAberrationEnabled: false,
       vignetteEnabled: false,
       lutEnabled: false,
@@ -18,6 +19,7 @@ describe("post-processing guards", () => {
     expect(shouldRenderPostProcessing({
       bloomEnabled: true,
       motionBlurEnabled: false,
+      motionBlurStrength: 0.5,
       chromaticAberrationEnabled: false,
       vignetteEnabled: false,
       lutEnabled: false,
@@ -29,6 +31,7 @@ describe("post-processing guards", () => {
     expect(shouldRenderPostProcessing({
       bloomEnabled: false,
       motionBlurEnabled: false,
+      motionBlurStrength: 0.5,
       chromaticAberrationEnabled: false,
       vignetteEnabled: false,
       lutEnabled: true,

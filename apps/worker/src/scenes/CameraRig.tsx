@@ -1,6 +1,6 @@
 import {useEffect, useMemo, useRef} from "react";
 import {useFrame, useThree} from "@react-three/fiber";
-import type {RenderManifest} from "@prometheus/shared-types";
+import type {CameraDirective, EmotionalBeat, RenderManifest} from "@prometheus/shared-types";
 import gsap from "gsap";
 import {useCurrentFrame, useVideoConfig} from "remotion";
 import * as THREE from "three";
@@ -41,6 +41,109 @@ export const useCameraRigStore = create<CameraRigState>()(() => ({
   cameraVelocity: new THREE.Vector3(),
   wordVelocities: new Map()
 }));
+
+/**
+ * Applies roll to the camera's up vector.
+ * This is used to preserve roll when lookAt is called.
+ * @param roll - The roll angle in radians
+ * @returns A new THREE.Vector3 representing the rolled up vector
+ */
+export const rollCameraUpVector = (roll: number): THREE.Vector3 => {
+  const up = new THREE.Vector3(0, 1, 0);
+  up.applyAxisAngle(new THREE.Vector3(0, 0, 1), roll);
+  return up;
+};
+
+/**
+ * Finds the current emotional beat at a given time.
+ * @param t - Current time in seconds
+ * @param emotionalArc - Array of emotional beats
+ * @returns The current emotional beat or null if none is active
+ */
+const findCurrentBeat = (t: number, emotionalArc: readonly EmotionalBeat[]): EmotionalBeat | null => {
+  const tMs = t * 1000;
+  for (const beat of emotionalArc) {
+    if (tMs >= beat.timestamp[0] && tMs < beat.timestamp[1]) {
+      return beat;
+    }
+  }
+  return null;
+};
+
+/**
+ * Applies camera directive modifications to a target point BEFORE it is copied to the camera.
+ * This prevents the overwrite bug where curve interpolation would clobber directive modifications.
+ * @param point - The cloned curve point to modify (must be a clone, not the cached curve result)
+ * @param camera - The THREE camera (for lookAt and up vector only)
+ * @param directive - The camera directive
+ * @param t - Current time in seconds
+ * @param fps - Frames per second
+ * @param totalRoll - The current total roll value
+ */
+const applyCameraDirective = (
+  point: THREE.Vector3,
+  camera: THREE.Camera,
+  directive: CameraDirective,
+  t: number,
+  fps: number,
+  totalRoll: number
+): void => {
+  const intensity = Math.max(0, Math.min(1, directive.intensity));
+  const overshoot = Math.max(0, Math.min(1, directive.overshoot ?? 0));
+  const delta = 1 / Math.max(fps, 1);
+
+  switch (directive.type) {
+    case "push-in": {
+      const speed = intensity * 4.0 * delta;
+      point.z = Math.max(50, point.z - speed);
+      break;
+    }
+    case "pull-out": {
+      const speed = intensity * 4.0 * delta;
+      point.z += speed;
+      break;
+    }
+    case "orbit": {
+      const orbitRadius = 400 * intensity;
+      const orbitSpeed = intensity * 0.8;
+      const angle = t * orbitSpeed;
+      point.x = Math.sin(angle) * orbitRadius;
+      point.z = Math.cos(angle) * orbitRadius + 500;
+      if (directive.target) {
+        camera.lookAt(directive.target[0], directive.target[1], directive.target[2]);
+      }
+      break;
+    }
+    case "drift": {
+      const amp = 30 * intensity;
+      point.x += Math.sin(t * 0.4) * amp * delta;
+      point.y += Math.cos(t * 0.3) * amp * delta;
+      break;
+    }
+    case "snap": {
+      if (directive.target) {
+        point.set(directive.target[0], directive.target[1], directive.target[2]);
+      }
+      break;
+    }
+    case "hold": {
+      // Intentional no-op. Existing interpolation dominates.
+      break;
+    }
+    default: {
+      // Exhaustiveness check
+      const _exhaustive: never = directive.type;
+      console.warn(`Unknown camera directive: ${_exhaustive}`);
+    }
+  }
+
+  // Overshoot micro-motion on up vector
+  if (overshoot > 0 && directive.type !== "hold") {
+    const wobble = Math.sin(t * 4) * overshoot * 0.08;
+    const up = rollCameraUpVector(totalRoll + wobble);
+    camera.up.copy(up);
+  }
+};
 
 export function CameraRig({manifest}: {manifest: RenderManifest}) {
   const {camera} = useThree();
@@ -87,8 +190,8 @@ export function CameraRig({manifest}: {manifest: RenderManifest}) {
     timelineState.timeline.seek(currentTime, false);
 
     const t = THREE.MathUtils.clamp(timelineState.progress.value, 0, 1);
-    const point = curve.getPointAt(t);
-    camera.position.copy(point);
+    // MUST clone — getPointAt may return a cached instance that we must not mutate
+    const point = curve.getPointAt(t).clone();
 
     const segment = t * (keyframes.length - 1);
     const index = Math.floor(segment);
@@ -98,6 +201,7 @@ export function CameraRig({manifest}: {manifest: RenderManifest}) {
     const k0 = keyframes[i0];
     const k1 = keyframes[i1];
     if (!k0 || !k1) {
+      camera.position.copy(point);
       return;
     }
 
@@ -109,8 +213,7 @@ export function CameraRig({manifest}: {manifest: RenderManifest}) {
     const clampedLookAt = clampLookAtToSafeZone(interpolatedLookAt, manifest.matteSafeZone);
     const lookAtTarget = new THREE.Vector3(clampedLookAt.x, clampedLookAt.y, clampedLookAt.z);
 
-    camera.lookAt(lookAtTarget);
-
+    // Calculate total roll BEFORE lookAt
     let totalRoll = THREE.MathUtils.lerp(k0.roll, k1.roll, alpha);
     if (manifest.autoRoll) {
       const tangent = curve.getTangentAt(t).normalize();
@@ -121,7 +224,23 @@ export function CameraRig({manifest}: {manifest: RenderManifest}) {
       totalRoll += bankAngle * manifest.autoRollIntensity;
     }
 
-    camera.rotateZ(totalRoll);
+    // Apply camera directive from directorialMetadata BEFORE copying point to camera
+    // This fixes the overwrite bug: directives modify `point`, then we copy once.
+    const meta = manifest.directorialMetadata;
+    if (meta?.emotionalArc) {
+      const currentBeat = findCurrentBeat(currentTime, meta.emotionalArc);
+      if (currentBeat?.cameraDirective) {
+        applyCameraDirective(point, camera, currentBeat.cameraDirective, currentTime, fps, totalRoll);
+      }
+    }
+
+    // Single copy — after all modifications to `point` are complete
+    camera.position.copy(point);
+
+    // Apply roll to up vector BEFORE lookAt (fixes roll bug)
+    const rolledUp = rollCameraUpVector(totalRoll);
+    camera.up.copy(rolledUp);
+    camera.lookAt(lookAtTarget);
 
     if (manifest.depthOfFieldEnabled) {
       const focusDistance = camera.position.distanceTo(lookAtTarget);

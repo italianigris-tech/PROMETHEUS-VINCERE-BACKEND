@@ -5,10 +5,11 @@ import path from "node:path";
 import type {FastifyInstance} from "fastify";
 import {z} from "zod";
 
-import {buildRenderManifest, type RenderManifestBridge} from "./manifest-bridge";
+import {buildRenderManifest, type DirectorNotes, type RenderManifestBridge} from "./manifest-bridge";
 
 const createRenderJobRequestSchema = z.object({
   creative_manifest: z.record(z.string(), z.unknown()),
+  director_notes: z.unknown(),
   font_url: z.string().min(1).optional(),
   background_video_url: z.string().min(1),
   rvm_matte_url: z.string().min(1),
@@ -100,6 +101,7 @@ export const registerRenderJobRoutes = async (app: FastifyInstance): Promise<voi
       const request = createRenderJobRequestSchema.parse(req.body);
       const manifest = buildRenderManifest({
         creativeManifest: request.creative_manifest,
+        directorNotes: request.director_notes as DirectorNotes,
         fontUrl: request.font_url ?? defaultFontUrl(),
         backgroundVideoUrl: request.background_video_url,
         rvmMatteUrl: request.rvm_matte_url,

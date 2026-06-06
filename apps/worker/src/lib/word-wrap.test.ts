@@ -20,4 +20,22 @@ describe("wrapTranscriptIntoLines", () => {
     expect(lines.join("")).toBe("SUPERREGENERATIVE");
     expect(lines.length).toBeGreaterThan(2);
   });
+
+  it("uses an injected text measurement function when available", () => {
+    const lines = wrapTranscriptIntoLines("WWWW IIII", {
+      maxWidth: 4,
+      fontSize: 1,
+      measureText: (text) => Array.from(text).reduce((sum, glyph) => {
+        if (glyph === "W") {
+          return sum + 1.25;
+        }
+        if (glyph === "I") {
+          return sum + 0.25;
+        }
+        return sum + 0.5;
+      }, 0)
+    });
+
+    expect(lines).toEqual(["WWW", "W IIII"]);
+  });
 });

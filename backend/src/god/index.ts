@@ -25,6 +25,7 @@ export {
   buildGodGenerationBrief
 } from "./brief";
 export {
+  buildDirectorNotesPromptPack,
   buildGodPromptPack,
   GOD_MASTER_PROMPT_VERSION
 } from "./prompts";
