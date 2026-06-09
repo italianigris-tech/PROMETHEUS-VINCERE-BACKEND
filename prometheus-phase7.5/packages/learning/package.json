@@ -1,0 +1,19 @@
+{
+  "name": "@prometheus/learning",
+  "version": "7.5.0",
+  "description": "Learning Pipeline: Frame analysis, technique extraction, primitive forging for Prometheus Phase 7.5",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@prometheus/registry": "workspace:*",
+    "@prometheus/bridge": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  }
+}

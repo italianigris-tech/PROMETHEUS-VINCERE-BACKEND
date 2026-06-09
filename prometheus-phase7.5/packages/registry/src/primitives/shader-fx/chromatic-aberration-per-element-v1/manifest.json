@@ -1,0 +1,75 @@
+{
+  "id": "chromatic-aberration-per-element-v1",
+  "name": "Chromatic Aberration (Per-Element)",
+  "category": "shader-fx",
+  "subcategory": "color-separation",
+  "description": "Per-element chromatic aberration applied to individual text meshes via FBO compositing. Renders the target mesh to a render target, then displays it with RGB channel separation. Does NOT affect the background or other elements. Fixes the full-screen CA blindness from Phase 7.",
+  "visualSignature": "RGB fringes on text edges only, background remains sharp, color separation follows the text motion",
+  "implementation": {
+    "entryPoint": "src/index.ts",
+    "logicModule": "src/fbo-compositor.ts",
+    "r3fComponent": "src/component.tsx",
+    "vertexShader": "src/shader.vert",
+    "fragmentShader": "src/shader.frag"
+  },
+  "parameterSchema": {
+    "parameters": [
+      {
+        "key": "intensity",
+        "type": "number",
+        "default": 0.015,
+        "min": 0,
+        "max": 0.1,
+        "step": 0.001,
+        "description": "Strength of the RGB separation in UV space",
+        "impact": "noticeable",
+        "animatable": true
+      },
+      {
+        "key": "angle",
+        "type": "number",
+        "default": 45,
+        "min": 0,
+        "max": 360,
+        "step": 1,
+        "description": "Angle of the chromatic separation in degrees",
+        "impact": "subtle",
+        "animatable": true
+      }
+    ]
+  },
+  "scope": "per-element",
+  "targetType": "text",
+  "performanceProfile": {
+    "gpuCost": "medium",
+    "cpuCost": "low",
+    "fpsImpact30": 26,
+    "fpsImpact60": 50,
+    "vramMB": 32,
+    "drawCallOverhead": 2,
+    "requiresWebGL2": false,
+    "postProcessCompatible": true
+  },
+  "provenance": {
+    "sourceVideo": "reference-victor-ajayi-reel-2024",
+    "sourceVideoTitle": "Victor Ajayi Motion Design Reel",
+    "timestampStart": "00:05:000",
+    "timestampEnd": "00:06:000",
+    "frameRange": [150, 180],
+    "extractedBy": "human",
+    "extractionDate": "2026-06-06T20:00:00Z",
+    "visualVerification": "passed",
+    "testScenePath": "test/visual.test.scene.tsx"
+  },
+  "confidence": {
+    "overall": 0.80,
+    "visualAccuracy": 0.78,
+    "codeStability": 0.90,
+    "reuseCount": 0,
+    "lastUsed": "2026-06-06T20:00:00Z",
+    "failureCount": 0
+  },
+  "requires": [],
+  "conflicts": ["chromatic-aberration-full-screen-v1"],
+  "tags": ["chromatic-aberration", "per-element", "color-separation", "fbo", "ajayi"]
+}

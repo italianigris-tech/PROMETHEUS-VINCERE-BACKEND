@@ -1,0 +1,29 @@
+{
+  "name": "@prometheus/registry",
+  "version": "7.5.0",
+  "description": "Primitive Registry & Composition Engine for Prometheus Phase 7.5",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "three": "^0.164.0",
+    "@react-three/fiber": "^8.16.0",
+    "@react-three/drei": "^9.105.0",
+    "troika-three-text": "^0.49.0",
+    "gsap": "^3.12.5",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0",
+    "@types/three": "^0.164.0",
+    "@types/react": "^18.3.0"
+  },
+  "peerDependencies": {
+    "react": "^18.3.0"
+  }
+}

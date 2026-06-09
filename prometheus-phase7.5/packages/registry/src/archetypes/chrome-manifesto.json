@@ -1,0 +1,126 @@
+{
+  "id": "archetype-chrome-manifesto",
+  "name": "Chrome Manifesto",
+  "description": "Bold typography statement with 3D chrome text, per-word stagger entrance, per-element chromatic aberration, bloom glow, and stacked pill UI. Based on Victor Ajayi's motion design reel. The definitive Lusion-grade typography archetype.",
+  "previewImage": "./provenance/preview.png",
+  "tags": ["chrome", "typography", "manifesto", "ajayi", "lusion-grade", "bold"],
+  "baseManifest": {
+    "version": "7.5",
+    "id": "scene-chrome-manifesto-001",
+    "archetypeId": "archetype-chrome-manifesto",
+    "layers": [
+      {
+        "id": "layer-bg",
+        "name": "Background",
+        "type": "background",
+        "zIndex": 0,
+        "content": {
+          "type": "shader",
+          "primitiveId": "volumetric-bg-v1",
+          "parameters": { "colorDeep": "#0a0a1a", "colorLight": "#1a1a3a", "density": 0.6 }
+        },
+        "primitives": [],
+        "visible": true
+      },
+      {
+        "id": "layer-text",
+        "name": "Hero Text",
+        "type": "text",
+        "zIndex": 10,
+        "content": {
+          "text": "NOT YOUR AVERAGE {red}MOTION{/red} DESIGN",
+          "font": "Inter-Bold",
+          "fontSize": 2.5,
+          "colorRanges": [
+            { "start": 16, "end": 22, "color": "#FF0040" }
+          ]
+        },
+        "primitives": [
+          {
+            "primitiveId": "chrome-text-v1",
+            "parameters": { "extrudeDepth": 0.4, "metalness": 1.0, "roughness": 0.1, "envMapIntensity": 2.0 },
+            "startAt": 0,
+            "duration": 10,
+            "easing": "none"
+          },
+          {
+            "primitiveId": "per-word-stagger-v1",
+            "parameters": { "delay": 0.08, "rotationAmplitude": 15, "driftY": 0.5, "duration": 1.2, "ease": "power3.out" },
+            "startAt": 0.5,
+            "duration": 2.0,
+            "easing": "power3.out"
+          },
+          {
+            "primitiveId": "chromatic-aberration-per-element-v1",
+            "parameters": { "intensity": 0.015, "angle": 45 },
+            "startAt": 0.5,
+            "duration": 2.5,
+            "easing": "power2.out",
+            "scopeOverride": "per-element"
+          }
+        ],
+        "visible": true
+      },
+      {
+        "id": "layer-ui-pills",
+        "name": "CTA Pills",
+        "type": "ui",
+        "zIndex": 20,
+        "content": {
+          "componentType": "pill",
+          "layout": { "position": "bottom-center", "margin": 2 }
+        },
+        "primitives": [
+          {
+            "primitiveId": "pill-stack-v1",
+            "parameters": { "depth": 3, "shadowBlur": 0.5, "hoverLift": 0.2, "color": "#F0F0F0" },
+            "startAt": 2.0,
+            "duration": 1.0,
+            "easing": "back.out(1.7)"
+          }
+        ],
+        "visible": true
+      }
+    ],
+    "global": {
+      "resolution": [1920, 1080],
+      "fps": 30,
+      "backgroundColor": "#000000",
+      "postProcess": {
+        "enabled": true,
+        "passes": [
+          { "primitiveId": "bloom-v1", "parameters": { "strength": 0.4, "radius": 0.5, "threshold": 0.8 } }
+        ]
+      }
+    },
+    "camera": {
+      "primitives": [
+        {
+          "primitiveId": "camera-snap-focus-v1",
+          "parameters": { "target": "layer-text", "snapSpeed": 0.3, "overshoot": 0.1 },
+          "startAt": 0.5,
+          "duration": 1.5,
+          "easing": "power2.inOut"
+        }
+      ]
+    },
+    "timeline": [
+      { "at": 0, "event": "bg-fade-in", "target": "layer-bg" },
+      { "at": 0.5, "event": "text-entrance", "target": "layer-text" },
+      { "at": 2.0, "event": "ui-entrance", "target": "layer-ui-pills" },
+      { "at": 8.0, "event": "hold", "target": "all" }
+    ]
+  },
+  "customizableParameters": [
+    "layers[1].content.text",
+    "layers[1].primitives[0].parameters.color",
+    "layers[1].primitives[1].parameters.delay",
+    "layers[1].primitives[2].parameters.intensity",
+    "layers[2].primitives[0].parameters.color",
+    "global.postProcess.passes[0].parameters.strength"
+  ],
+  "parentArchetypeId": null,
+  "remixCount": 0,
+  "derivedFrom": ["reference-victor-ajayi-reel-2024"],
+  "estimatedRenderTime": 12.5
+}

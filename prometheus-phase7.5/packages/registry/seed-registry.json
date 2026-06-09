@@ -1,0 +1,615 @@
+{
+  "version": "7.5.0",
+  "lastUpdated": "2026-06-06T20:08:00Z",
+  "primitives": [
+    {
+      "id": "chrome-text-v1",
+      "name": "Chrome 3D Text",
+      "category": "material",
+      "subcategory": "text",
+      "description": "Metallic 3D extruded text with environment map reflections. Uses MeshStandardMaterial with configurable metalness, roughness, and extrusion depth. Visually identical to chrome text in high-end motion design reels.",
+      "visualSignature": "3D extruded text with metallic sheen, envMap reflections, sharp edges, high metalness low roughness",
+      "implementation": {
+        "entryPoint": "src/index.ts",
+        "logicModule": "src/material.ts",
+        "r3fComponent": "src/component.tsx",
+        "materialConfig": {
+          "type": "MeshStandardMaterial",
+          "properties": {
+            "metalness": 1.0,
+            "roughness": 0.1,
+            "color": "#FFFFFF"
+          },
+          "envMapRequired": true,
+          "envMapIntensity": 1.5
+        }
+      },
+      "parameterSchema": {
+        "parameters": [
+          {
+            "key": "extrudeDepth",
+            "type": "number",
+            "default": 0.4,
+            "min": 0,
+            "max": 2,
+            "step": 0.1,
+            "description": "Depth of the 3D text extrusion in world units",
+            "impact": "noticeable",
+            "animatable": true
+          },
+          {
+            "key": "metalness",
+            "type": "number",
+            "default": 1.0,
+            "min": 0,
+            "max": 1,
+            "step": 0.05,
+            "description": "Metalness of the MeshStandardMaterial. 1.0 = fully metallic",
+            "impact": "dramatic",
+            "animatable": true
+          },
+          {
+            "key": "roughness",
+            "type": "number",
+            "default": 0.1,
+            "min": 0,
+            "max": 1,
+            "step": 0.05,
+            "description": "Roughness of the MeshStandardMaterial. 0.0 = mirror, 1.0 = diffuse",
+            "impact": "noticeable",
+            "animatable": true
+          },
+          {
+            "key": "envMapIntensity",
+            "type": "number",
+            "default": 1.5,
+            "min": 0,
+            "max": 5,
+            "step": 0.1,
+            "description": "Intensity of the environment map reflections",
+            "impact": "dramatic",
+            "animatable": true
+          },
+          {
+            "key": "color",
+            "type": "color",
+            "default": "#FFFFFF",
+            "description": "Base color of the text material",
+            "impact": "noticeable",
+            "animatable": true
+          }
+        ]
+      },
+      "scope": "per-element",
+      "targetType": "text",
+      "performanceProfile": {
+        "gpuCost": "medium",
+        "cpuCost": "low",
+        "fpsImpact30": 28,
+        "fpsImpact60": 55,
+        "vramMB": 64,
+        "drawCallOverhead": 1,
+        "requiresWebGL2": false,
+        "postProcessCompatible": true
+      },
+      "provenance": {
+        "sourceVideo": "reference-victor-ajayi-reel-2024",
+        "sourceVideoTitle": "Victor Ajayi Motion Design Reel",
+        "timestampStart": "00:04:230",
+        "timestampEnd": "00:06:500",
+        "frameRange": [
+          127,
+          195
+        ],
+        "extractedBy": "human",
+        "extractionDate": "2026-06-06T20:00:00Z",
+        "visualVerification": "passed",
+        "testScenePath": "test/visual.test.scene.tsx"
+      },
+      "confidence": {
+        "overall": 0.85,
+        "visualAccuracy": 0.82,
+        "codeStability": 0.95,
+        "reuseCount": 0,
+        "lastUsed": "2026-06-06T20:00:00Z",
+        "failureCount": 0
+      },
+      "requires": [],
+      "conflicts": [],
+      "tags": [
+        "chrome",
+        "3d-text",
+        "metallic",
+        "envMap",
+        "troika",
+        "lusion-grade"
+      ]
+    },
+    {
+      "id": "per-word-stagger-v1",
+      "name": "Per-Word Stagger",
+      "category": "motion",
+      "subcategory": "text-entrance",
+      "description": "Staggered entrance animation for text where each word animates independently with configurable delay, rotation, and drift. Produces the per-word micro-choreography seen in premium motion design reels.",
+      "visualSignature": "Words enter sequentially with slight rotation and Y-axis drift, each word offset by 0.08s, creating a cascading typography effect",
+      "implementation": {
+        "entryPoint": "src/index.ts",
+        "logicModule": "src/logic.ts",
+        "r3fComponent": "src/component.tsx"
+      },
+      "parameterSchema": {
+        "parameters": [
+          {
+            "key": "delay",
+            "type": "number",
+            "default": 0.08,
+            "min": 0,
+            "max": 1,
+            "step": 0.01,
+            "description": "Delay between each word's animation start in seconds",
+            "impact": "noticeable",
+            "animatable": false
+          },
+          {
+            "key": "rotationAmplitude",
+            "type": "number",
+            "default": 15,
+            "min": 0,
+            "max": 90,
+            "step": 1,
+            "description": "Maximum rotation in degrees applied to each word during entrance",
+            "impact": "noticeable",
+            "animatable": true
+          },
+          {
+            "key": "driftX",
+            "type": "number",
+            "default": 0,
+            "min": -5,
+            "max": 5,
+            "step": 0.1,
+            "description": "Horizontal drift distance per word in world units",
+            "impact": "subtle",
+            "animatable": true
+          },
+          {
+            "key": "driftY",
+            "type": "number",
+            "default": 0.5,
+            "min": -5,
+            "max": 5,
+            "step": 0.1,
+            "description": "Vertical drift distance per word in world units",
+            "impact": "noticeable",
+            "animatable": true
+          },
+          {
+            "key": "driftZ",
+            "type": "number",
+            "default": 0,
+            "min": -5,
+            "max": 5,
+            "step": 0.1,
+            "description": "Depth drift distance per word in world units",
+            "impact": "subtle",
+            "animatable": true
+          },
+          {
+            "key": "duration",
+            "type": "number",
+            "default": 1.2,
+            "min": 0.1,
+            "max": 5,
+            "step": 0.1,
+            "description": "Duration of each word's entrance animation in seconds",
+            "impact": "noticeable",
+            "animatable": false
+          },
+          {
+            "key": "ease",
+            "type": "easing",
+            "default": "power3.out",
+            "description": "GSAP easing function for the entrance",
+            "impact": "noticeable",
+            "animatable": false
+          }
+        ]
+      },
+      "scope": "per-element",
+      "targetType": "text",
+      "performanceProfile": {
+        "gpuCost": "low",
+        "cpuCost": "low",
+        "fpsImpact30": 29,
+        "fpsImpact60": 58,
+        "vramMB": 8,
+        "drawCallOverhead": 0,
+        "requiresWebGL2": false,
+        "postProcessCompatible": true
+      },
+      "provenance": {
+        "sourceVideo": "reference-victor-ajayi-reel-2024",
+        "sourceVideoTitle": "Victor Ajayi Motion Design Reel",
+        "timestampStart": "00:02:100",
+        "timestampEnd": "00:04:000",
+        "frameRange": [
+          63,
+          120
+        ],
+        "extractedBy": "human",
+        "extractionDate": "2026-06-06T20:00:00Z",
+        "visualVerification": "passed",
+        "testScenePath": "test/visual.test.scene.tsx"
+      },
+      "confidence": {
+        "overall": 0.88,
+        "visualAccuracy": 0.85,
+        "codeStability": 0.95,
+        "reuseCount": 0,
+        "lastUsed": "2026-06-06T20:00:00Z",
+        "failureCount": 0
+      },
+      "requires": [],
+      "conflicts": [
+        "per-letter-stagger-v1"
+      ],
+      "tags": [
+        "stagger",
+        "entrance",
+        "text",
+        "per-word",
+        "motion",
+        "ajayi"
+      ]
+    },
+    {
+      "id": "chromatic-aberration-per-element-v1",
+      "name": "Chromatic Aberration (Per-Element)",
+      "category": "shader-fx",
+      "subcategory": "color-separation",
+      "description": "Per-element chromatic aberration applied to individual text meshes via FBO compositing. Renders the target mesh to a render target, then displays it with RGB channel separation. Does NOT affect the background or other elements. Fixes the full-screen CA blindness from Phase 7.",
+      "visualSignature": "RGB fringes on text edges only, background remains sharp, color separation follows the text motion",
+      "implementation": {
+        "entryPoint": "src/index.ts",
+        "logicModule": "src/fbo-compositor.ts",
+        "r3fComponent": "src/component.tsx",
+        "vertexShader": "src/shader.vert",
+        "fragmentShader": "src/shader.frag"
+      },
+      "parameterSchema": {
+        "parameters": [
+          {
+            "key": "intensity",
+            "type": "number",
+            "default": 0.015,
+            "min": 0,
+            "max": 0.1,
+            "step": 0.001,
+            "description": "Strength of the RGB separation in UV space",
+            "impact": "noticeable",
+            "animatable": true
+          },
+          {
+            "key": "angle",
+            "type": "number",
+            "default": 45,
+            "min": 0,
+            "max": 360,
+            "step": 1,
+            "description": "Angle of the chromatic separation in degrees",
+            "impact": "subtle",
+            "animatable": true
+          }
+        ]
+      },
+      "scope": "per-element",
+      "targetType": "text",
+      "performanceProfile": {
+        "gpuCost": "medium",
+        "cpuCost": "low",
+        "fpsImpact30": 26,
+        "fpsImpact60": 50,
+        "vramMB": 32,
+        "drawCallOverhead": 2,
+        "requiresWebGL2": false,
+        "postProcessCompatible": true
+      },
+      "provenance": {
+        "sourceVideo": "reference-victor-ajayi-reel-2024",
+        "sourceVideoTitle": "Victor Ajayi Motion Design Reel",
+        "timestampStart": "00:05:000",
+        "timestampEnd": "00:06:000",
+        "frameRange": [
+          150,
+          180
+        ],
+        "extractedBy": "human",
+        "extractionDate": "2026-06-06T20:00:00Z",
+        "visualVerification": "passed",
+        "testScenePath": "test/visual.test.scene.tsx"
+      },
+      "confidence": {
+        "overall": 0.8,
+        "visualAccuracy": 0.78,
+        "codeStability": 0.9,
+        "reuseCount": 0,
+        "lastUsed": "2026-06-06T20:00:00Z",
+        "failureCount": 0
+      },
+      "requires": [],
+      "conflicts": [
+        "chromatic-aberration-full-screen-v1"
+      ],
+      "tags": [
+        "chromatic-aberration",
+        "per-element",
+        "color-separation",
+        "fbo",
+        "ajayi"
+      ]
+    },
+    {
+      "id": "bloom-v1",
+      "name": "Bloom Post-Process",
+      "category": "shader-fx",
+      "subcategory": "glow",
+      "description": "Full-screen bloom/glow post-processing using Three.js UnrealBloomPass. Adds luminous halos to bright areas. Scope is full-screen but the CompositionEngine validates against video backgrounds to prevent the Ajayi reference destruction bug.",
+      "visualSignature": "Soft luminous glow around bright text and highlights, cinematic atmosphere",
+      "implementation": {
+        "entryPoint": "src/index.ts",
+        "logicModule": "src/pass.ts",
+        "postProcessPass": "src/pass.ts"
+      },
+      "parameterSchema": {
+        "parameters": [
+          {
+            "key": "strength",
+            "type": "number",
+            "default": 0.4,
+            "min": 0,
+            "max": 3,
+            "step": 0.05,
+            "description": "Intensity of the bloom effect",
+            "impact": "dramatic",
+            "animatable": true
+          },
+          {
+            "key": "radius",
+            "type": "number",
+            "default": 0.5,
+            "min": 0,
+            "max": 1,
+            "step": 0.01,
+            "description": "Blur radius of the bloom",
+            "impact": "noticeable",
+            "animatable": true
+          },
+          {
+            "key": "threshold",
+            "type": "number",
+            "default": 0.8,
+            "min": 0,
+            "max": 1,
+            "step": 0.01,
+            "description": "Luminance threshold for bloom activation",
+            "impact": "noticeable",
+            "animatable": true
+          }
+        ]
+      },
+      "scope": "full-screen",
+      "targetType": "post-process",
+      "performanceProfile": {
+        "gpuCost": "high",
+        "cpuCost": "low",
+        "fpsImpact30": 24,
+        "fpsImpact60": 45,
+        "vramMB": 128,
+        "drawCallOverhead": 0,
+        "requiresWebGL2": true,
+        "postProcessCompatible": true
+      },
+      "provenance": {
+        "sourceVideo": "reference-victor-ajayi-reel-2024",
+        "sourceVideoTitle": "Victor Ajayi Motion Design Reel",
+        "timestampStart": "00:03:500",
+        "timestampEnd": "00:05:000",
+        "frameRange": [
+          105,
+          150
+        ],
+        "extractedBy": "human",
+        "extractionDate": "2026-06-06T20:00:00Z",
+        "visualVerification": "passed",
+        "testScenePath": "test/visual.test.scene.tsx"
+      },
+      "confidence": {
+        "overall": 0.9,
+        "visualAccuracy": 0.88,
+        "codeStability": 0.95,
+        "reuseCount": 0,
+        "lastUsed": "2026-06-06T20:00:00Z",
+        "failureCount": 0
+      },
+      "requires": [],
+      "conflicts": [],
+      "tags": [
+        "bloom",
+        "glow",
+        "post-process",
+        "full-screen",
+        "unreal-bloom",
+        "cinematic"
+      ]
+    },
+    {
+      "id": "pill-stack-v1",
+      "name": "Pill Stack UI",
+      "category": "ui-element",
+      "subcategory": "pill",
+      "description": "Stacked pill UI components with z-depth layering, soft shadows, and hover micro-interactions. Replicates the z-layered pill UI seen in the Ajayi reference. Each pill is a rounded extruded geometry with configurable depth and stacking offset.",
+      "visualSignature": "Rounded pill shapes stacked with z-depth offset, soft drop shadows, hover lift animation, clean typography inside",
+      "implementation": {
+        "entryPoint": "src/index.ts",
+        "logicModule": "src/geometry.ts",
+        "r3fComponent": "src/component.tsx"
+      },
+      "parameterSchema": {
+        "parameters": [
+          {
+            "key": "depth",
+            "type": "number",
+            "default": 3,
+            "min": 1,
+            "max": 10,
+            "step": 1,
+            "description": "Number of pills in the stack",
+            "impact": "noticeable",
+            "animatable": false
+          },
+          {
+            "key": "shadowBlur",
+            "type": "number",
+            "default": 0.5,
+            "min": 0,
+            "max": 2,
+            "step": 0.1,
+            "description": "Softness of the pill shadow (simulated via z-offset and opacity)",
+            "impact": "subtle",
+            "animatable": true
+          },
+          {
+            "key": "hoverLift",
+            "type": "number",
+            "default": 0.2,
+            "min": 0,
+            "max": 1,
+            "step": 0.05,
+            "description": "Z-axis lift amount on hover in world units",
+            "impact": "noticeable",
+            "animatable": true
+          },
+          {
+            "key": "color",
+            "type": "color",
+            "default": "#FFFFFF",
+            "description": "Base color of the pills",
+            "impact": "noticeable",
+            "animatable": true
+          },
+          {
+            "key": "width",
+            "type": "number",
+            "default": 3,
+            "min": 0.5,
+            "max": 10,
+            "step": 0.1,
+            "description": "Width of each pill in world units",
+            "impact": "noticeable",
+            "animatable": false
+          },
+          {
+            "key": "height",
+            "type": "number",
+            "default": 0.8,
+            "min": 0.2,
+            "max": 3,
+            "step": 0.1,
+            "description": "Height of each pill in world units",
+            "impact": "noticeable",
+            "animatable": false
+          },
+          {
+            "key": "gap",
+            "type": "number",
+            "default": 0.15,
+            "min": 0,
+            "max": 1,
+            "step": 0.05,
+            "description": "Vertical gap between stacked pills",
+            "impact": "subtle",
+            "animatable": false
+          }
+        ]
+      },
+      "scope": "per-group",
+      "targetType": "ui",
+      "performanceProfile": {
+        "gpuCost": "low",
+        "cpuCost": "low",
+        "fpsImpact30": 29,
+        "fpsImpact60": 58,
+        "vramMB": 16,
+        "drawCallOverhead": 1,
+        "requiresWebGL2": false,
+        "postProcessCompatible": true
+      },
+      "provenance": {
+        "sourceVideo": "reference-victor-ajayi-reel-2024",
+        "sourceVideoTitle": "Victor Ajayi Motion Design Reel",
+        "timestampStart": "00:06:500",
+        "timestampEnd": "00:08:000",
+        "frameRange": [
+          195,
+          240
+        ],
+        "extractedBy": "human",
+        "extractionDate": "2026-06-06T20:00:00Z",
+        "visualVerification": "passed",
+        "testScenePath": "test/visual.test.scene.tsx"
+      },
+      "confidence": {
+        "overall": 0.82,
+        "visualAccuracy": 0.8,
+        "codeStability": 0.92,
+        "reuseCount": 0,
+        "lastUsed": "2026-06-06T20:00:00Z",
+        "failureCount": 0
+      },
+      "requires": [],
+      "conflicts": [],
+      "tags": [
+        "pill",
+        "ui",
+        "stack",
+        "z-depth",
+        "hover",
+        "ajayi",
+        "lusion-grade"
+      ]
+    }
+  ],
+  "archetypes": [],
+  "provenanceIndex": [
+    {
+      "primitiveId": "chrome-text-v1",
+      "videoId": "reference-victor-ajayi-reel-2024",
+      "timestampStart": "00:04:230",
+      "timestampEnd": "00:06:500"
+    },
+    {
+      "primitiveId": "per-word-stagger-v1",
+      "videoId": "reference-victor-ajayi-reel-2024",
+      "timestampStart": "00:02:100",
+      "timestampEnd": "00:04:000"
+    },
+    {
+      "primitiveId": "chromatic-aberration-per-element-v1",
+      "videoId": "reference-victor-ajayi-reel-2024",
+      "timestampStart": "00:05:000",
+      "timestampEnd": "00:06:000"
+    },
+    {
+      "primitiveId": "bloom-v1",
+      "videoId": "reference-victor-ajayi-reel-2024",
+      "timestampStart": "00:03:500",
+      "timestampEnd": "00:05:000"
+    },
+    {
+      "primitiveId": "pill-stack-v1",
+      "videoId": "reference-victor-ajayi-reel-2024",
+      "timestampStart": "00:06:500",
+      "timestampEnd": "00:08:000"
+    }
+  ]
+}

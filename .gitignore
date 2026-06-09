@@ -83,3 +83,5 @@ font-intelligence/outputs/font-descriptors.jsonl
 
 # Local consolidated deployment env
 CONSOLIDATED.env
+
+.vite/

@@ -1,0 +1,113 @@
+{
+  "id": "chrome-text-v1",
+  "name": "Chrome 3D Text",
+  "category": "material",
+  "subcategory": "text",
+  "description": "Metallic 3D extruded text with environment map reflections. Uses MeshStandardMaterial with configurable metalness, roughness, and extrusion depth. Visually identical to chrome text in high-end motion design reels.",
+  "visualSignature": "3D extruded text with metallic sheen, envMap reflections, sharp edges, high metalness low roughness",
+  "implementation": {
+    "entryPoint": "src/index.ts",
+    "logicModule": "src/material.ts",
+    "r3fComponent": "src/component.tsx",
+    "materialConfig": {
+      "type": "MeshStandardMaterial",
+      "properties": {
+        "metalness": 1.0,
+        "roughness": 0.1,
+        "color": "#FFFFFF"
+      },
+      "envMapRequired": true,
+      "envMapIntensity": 1.5
+    }
+  },
+  "parameterSchema": {
+    "parameters": [
+      {
+        "key": "extrudeDepth",
+        "type": "number",
+        "default": 0.4,
+        "min": 0,
+        "max": 2,
+        "step": 0.1,
+        "description": "Depth of the 3D text extrusion in world units",
+        "impact": "noticeable",
+        "animatable": true
+      },
+      {
+        "key": "metalness",
+        "type": "number",
+        "default": 1.0,
+        "min": 0,
+        "max": 1,
+        "step": 0.05,
+        "description": "Metalness of the MeshStandardMaterial. 1.0 = fully metallic",
+        "impact": "dramatic",
+        "animatable": true
+      },
+      {
+        "key": "roughness",
+        "type": "number",
+        "default": 0.1,
+        "min": 0,
+        "max": 1,
+        "step": 0.05,
+        "description": "Roughness of the MeshStandardMaterial. 0.0 = mirror, 1.0 = diffuse",
+        "impact": "noticeable",
+        "animatable": true
+      },
+      {
+        "key": "envMapIntensity",
+        "type": "number",
+        "default": 1.5,
+        "min": 0,
+        "max": 5,
+        "step": 0.1,
+        "description": "Intensity of the environment map reflections",
+        "impact": "dramatic",
+        "animatable": true
+      },
+      {
+        "key": "color",
+        "type": "color",
+        "default": "#FFFFFF",
+        "description": "Base color of the text material",
+        "impact": "noticeable",
+        "animatable": true
+      }
+    ]
+  },
+  "scope": "per-element",
+  "targetType": "text",
+  "performanceProfile": {
+    "gpuCost": "medium",
+    "cpuCost": "low",
+    "fpsImpact30": 28,
+    "fpsImpact60": 55,
+    "vramMB": 64,
+    "drawCallOverhead": 1,
+    "requiresWebGL2": false,
+    "postProcessCompatible": true
+  },
+  "provenance": {
+    "sourceVideo": "reference-victor-ajayi-reel-2024",
+    "sourceVideoTitle": "Victor Ajayi Motion Design Reel",
+    "timestampStart": "00:04:230",
+    "timestampEnd": "00:06:500",
+    "frameRange": [127, 195],
+    "extractedBy": "human",
+    "extractionDate": "2026-06-06T20:00:00Z",
+    "visualVerification": "passed",
+    "testScenePath": "test/visual.test.scene.tsx"
+  },
+  "confidence": {
+    "overall": 0.85,
+    "visualAccuracy": 0.82,
+    "codeStability": 0.95,
+    "reuseCount": 0,
+    "lastUsed": "2026-06-06T20:00:00Z",
+    "failureCount": 0
+  },
+  "requires": [],
+  "conflicts": [],
+  "tags": ["chrome", "3d-text", "metallic", "envMap", "troika", "lusion-grade"]
+}
