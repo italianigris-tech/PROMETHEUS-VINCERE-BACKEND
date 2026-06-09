@@ -1,5 +1,5 @@
 import React, {useEffect, useLayoutEffect, useMemo, useRef, useState} from "react";
-import type {DeformationConfig, EmotionalBeat, RenderManifest} from "@prometheus/shared-types";
+import type {EmotionalBeat, RenderManifest} from "@prometheus/shared-types";
 import {useFrame} from "@react-three/fiber";
 import gsap from "gsap";
 import {continueRender, delayRender, useCurrentFrame, useVideoConfig} from "remotion";
@@ -11,11 +11,20 @@ import {TEXT_BLOOM_LAYER} from "./post-processing.js";
 import {selectEaseForTimestamp} from "../lib/easing-modulator.js";
 import {applyImperfection} from "../lib/imperfection-engine.js";
 import {findPatternForSemanticTag} from "../lib/motion-ontology.js";
-import {applyColorAnnotations, hasColorAnnotations} from "../lib/text-colorizer.js";
-import {injectVertexDeformation, updateDeformationTime} from "../lib/vertex-deformation.js";
+import {
+  applyColorRanges,
+  parseColorAnnotations,
+  type ColorRange
+} from "../engine/text-colorizer.js";
+import {
+  injectVertexDeformation,
+  updateDeformationTime,
+  type DeformationConfig
+} from "../engine/vertex-deformation.js";
 
 type WordLayout = {
   text: string;
+  colorRanges: ColorRange[];
   x: number;
   width: number;
   startMs: number;
@@ -74,14 +83,16 @@ const measureTroikaWord = ({
   });
 
 const buildTimedWords = (manifest: RenderManifest): Array<Omit<WordLayout, "x" | "width">> => {
-  const words = manifest.transcript.trim().split(/\s+/).filter(Boolean);
+  const parsedTranscript = parseColorAnnotations(manifest.transcript);
+  const words = Array.from(parsedTranscript.plainText.matchAll(/\S+/g));
   if (words.length === 0) {
     return [];
   }
 
   if (manifest.transcriptWords.length === 0) {
     return [{
-      text: manifest.transcript,
+      text: parsedTranscript.plainText,
+      colorRanges: parsedTranscript.colorRanges,
       startMs: 0,
       endMs: manifest.durationInFrames / manifest.fps * 1000,
       animated: false
@@ -95,12 +106,23 @@ const buildTimedWords = (manifest: RenderManifest): Array<Omit<WordLayout, "x" |
     );
   }
 
-  return words.slice(0, count).map((word, index) => {
+  return words.slice(0, count).map((wordMatch, index) => {
+    const word = wordMatch[0];
+    const wordStart = wordMatch.index ?? 0;
+    const wordEnd = wordStart + word.length;
+    const colorRanges = parsedTranscript.colorRanges.flatMap((range) => {
+      const start = Math.max(range.start, wordStart);
+      const end = Math.min(range.end, wordEnd);
+      return end > start
+        ? [{start: start - wordStart, end: end - wordStart, color: range.color}]
+        : [];
+    });
     const timing = manifest.transcriptWords[index];
     const fallbackStartMs = index * (manifest.durationInFrames / manifest.fps * 1000) / count;
     const fallbackEndMs = (index + 1) * (manifest.durationInFrames / manifest.fps * 1000) / count;
     return {
       text: word,
+      colorRanges,
       startMs: timing?.startMs ?? fallbackStartMs,
       endMs: timing?.endMs ?? fallbackEndMs,
       animated: true
@@ -140,7 +162,8 @@ const createGradientTexture = (colors: string[]): THREE.CanvasTexture | null => 
  */
 const createWordMaterial = (
   manifest: RenderManifest,
-  deformationConfig?: DeformationConfig
+  deformationConfig?: DeformationConfig | null,
+  postProcessingActive = false
 ): THREE.MeshBasicMaterial => {
   const colors = manifest.gradientColors.length > 0 ? manifest.gradientColors : ["#ffffff"];
   const texture = createGradientTexture(colors);
@@ -150,7 +173,7 @@ const createWordMaterial = (
     transparent: true,
     opacity: 1,
     depthWrite: true,
-    toneMapped: false
+    toneMapped: !postProcessingActive
   });
 
   // Phase 7: Inject vertex deformation if configured
@@ -178,15 +201,21 @@ export const KineticText: React.FC<KineticTextProps> = ({manifest}) => {
   const timelineRef = useRef<gsap.core.Timeline | null>(null);
   const wordVelocities = useRef(new Map<string, THREE.Vector3>());
   const prevWordPositions = useRef(new Map<string, THREE.Vector3>());
+  const velocityScratch = useRef(new Map<string, THREE.Vector3>());
   // Phase 7: Determine deformation configs per word based on patterns
   const deformationConfigs = useMemo(() => {
     return timedWords.map((word, index) => {
       const transcriptWord = manifest.transcriptWords[index];
       const semanticTag = transcriptWord?.semanticTag ?? "";
       const pattern = semanticTag ? findPatternForSemanticTag(semanticTag) : null;
-      return pattern?.deformation ?? { type: "none" as const, intensity: 0, frequency: 1, speed: 1, seed: 0 };
+      const deformation = pattern?.deformation;
+      return deformation && deformation.type !== "none" ? deformation : null;
     });
   }, [manifest.transcriptWords, timedWords]);
+  const postProcessingActive =
+    manifest.bloomEnabled ||
+    manifest.motionBlurEnabled ||
+    manifest.chromaticAberrationEnabled;
 
   const meshes = useMemo(() => timedWords.map(() => {
     const mesh = new TroikaText() as TroikaDepthText;
@@ -196,8 +225,8 @@ export const KineticText: React.FC<KineticTextProps> = ({manifest}) => {
   }), [timedWords]);
 
   const materials = useMemo(
-    () => timedWords.map((_word, index) => createWordMaterial(manifest, deformationConfigs[index])),
-    [manifest, timedWords, deformationConfigs]
+    () => timedWords.map((_word, index) => createWordMaterial(manifest, deformationConfigs[index], postProcessingActive)),
+    [manifest, timedWords, deformationConfigs, postProcessingActive]
   );
 
   useLayoutEffect(() => {
@@ -280,14 +309,7 @@ export const KineticText: React.FC<KineticTextProps> = ({manifest}) => {
         return;
       }
 
-      // Phase 7: Apply color annotations if present
-      const rawText = word.text;
-      if (hasColorAnnotations(rawText)) {
-        const plainText = applyColorAnnotations(mesh, rawText);
-        mesh.text = plainText;
-      } else {
-        mesh.text = rawText;
-      }
+      mesh.text = word.text;
 
       mesh.font = manifest.fontUrl;
       mesh.fontSize = manifest.text.size;
@@ -449,6 +471,7 @@ export const KineticText: React.FC<KineticTextProps> = ({manifest}) => {
       }
 
       mesh.sync(() => {
+        applyColorRanges(mesh, layout[index]?.colorRanges ?? []);
         pending -= 1;
         if (pending <= 0) {
           timeline.seek(frame / fps, false);
@@ -488,6 +511,20 @@ export const KineticText: React.FC<KineticTextProps> = ({manifest}) => {
     meshes
   ]);
 
+  useEffect(() => {
+    meshes.forEach((_mesh, index) => {
+      const key = `word-${index}`;
+      if (!prevWordPositions.current.has(key)) {
+        prevWordPositions.current.set(key, new THREE.Vector3());
+      }
+      if (!velocityScratch.current.has(key)) {
+        const velocity = new THREE.Vector3();
+        velocityScratch.current.set(key, velocity);
+        wordVelocities.current.set(key, velocity);
+      }
+    });
+  }, [meshes]);
+
   useFrame(() => {
     const timeline = timelineRef.current;
     if (timeline) {
@@ -502,22 +539,22 @@ export const KineticText: React.FC<KineticTextProps> = ({manifest}) => {
     // Phase 7: Update deformation time uniforms for all materials
     const elapsedTime = frame / fps;
     materials.forEach((material) => {
-      updateDeformationTime(material, elapsedTime);
+      if (material.userData.shader) {
+        updateDeformationTime(material, elapsedTime);
+      }
     });
 
     meshes.forEach((mesh, index) => {
       const key = `word-${index}`;
       const prev = prevWordPositions.current.get(key);
-      if (prev) {
-        const vel = new THREE.Vector3()
-          .subVectors(mesh.position, prev)
-          .multiplyScalar(Math.max(fps, 1));
-        wordVelocities.current.set(key, vel);
+      const vel = velocityScratch.current.get(key);
+      if (prev && vel) {
+        vel.subVectors(mesh.position, prev).multiplyScalar(Math.max(fps, 1));
+        prev.copy(mesh.position);
       }
-      prevWordPositions.current.set(key, mesh.position.clone());
     });
 
-    useCameraRigStore.setState({wordVelocities: new Map(wordVelocities.current)});
+    useCameraRigStore.setState({wordVelocities: wordVelocities.current});
   });
 
   useEffect(() => {

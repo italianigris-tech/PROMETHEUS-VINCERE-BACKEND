@@ -22,7 +22,7 @@ export const MOTION_ONTOLOGY: Readonly<Record<string, MotionPattern>> = {
     },
     cameraCoupling: "push-in",
     microAnimations: ["burst", "scale-punch"],
-    deformation: {type: "explode", intensity: 0.5, frequency: 1, speed: 2, seed: 0},
+    deformation: {type: "explode", intensity: 0.5, speed: 2},
     postProcess: {bloom: true, chromaticAberration: false, motionBlur: false}
   },
   "slow-drift": {
@@ -40,7 +40,6 @@ export const MOTION_ONTOLOGY: Readonly<Record<string, MotionPattern>> = {
     },
     cameraCoupling: "drift",
     microAnimations: ["float", "sway"],
-    deformation: {type: "wave", intensity: 0.2, frequency: 0.5, speed: 0.5, seed: 0},
     postProcess: {bloom: false, chromaticAberration: false, motionBlur: false}
   },
   "letter-explode": {
@@ -58,7 +57,7 @@ export const MOTION_ONTOLOGY: Readonly<Record<string, MotionPattern>> = {
     },
     cameraCoupling: "snap",
     microAnimations: ["particle-scatter", "burst"],
-    deformation: {type: "shatter", intensity: 0.9, frequency: 1, speed: 1.5, seed: 42},
+    deformation: {type: "shatter", intensity: 0.9, speed: 1.5},
     postProcess: {bloom: true, chromaticAberration: true, motionBlur: true}
   },
   "depth-establish": {
@@ -76,7 +75,6 @@ export const MOTION_ONTOLOGY: Readonly<Record<string, MotionPattern>> = {
     },
     cameraCoupling: "push-in",
     microAnimations: ["depth-travel", "focus-pull"],
-    deformation: {type: "none", intensity: 0, frequency: 1, speed: 1, seed: 0},
     postProcess: {bloom: true, chromaticAberration: false, motionBlur: false}
   },
   "snap-focus": {
@@ -94,7 +92,6 @@ export const MOTION_ONTOLOGY: Readonly<Record<string, MotionPattern>> = {
     },
     cameraCoupling: "snap",
     microAnimations: ["snap", "flash"],
-    deformation: {type: "none", intensity: 0, frequency: 1, speed: 1, seed: 0},
     postProcess: {bloom: false, chromaticAberration: true, motionBlur: false}
   },
   "contemplative-hold": {
@@ -112,7 +109,7 @@ export const MOTION_ONTOLOGY: Readonly<Record<string, MotionPattern>> = {
     },
     cameraCoupling: "hold",
     microAnimations: ["breathe", "gentle-pulse"],
-    deformation: {type: "ripple", intensity: 0.1, frequency: 1, speed: 0.3, seed: 0},
+    deformation: {type: "ripple", intensity: 0.1, speed: 0.3},
     postProcess: {bloom: true, chromaticAberration: false, motionBlur: false}
   },
   "chaos-scatter": {
@@ -130,7 +127,7 @@ export const MOTION_ONTOLOGY: Readonly<Record<string, MotionPattern>> = {
     },
     cameraCoupling: "pull-out",
     microAnimations: ["shatter", "scatter"],
-    deformation: {type: "shatter", intensity: 1, frequency: 1, speed: 2, seed: 99},
+    deformation: {type: "shatter", intensity: 1, speed: 2},
     postProcess: {bloom: true, chromaticAberration: true, motionBlur: true}
   },
   "gentle-exit": {
@@ -148,7 +145,6 @@ export const MOTION_ONTOLOGY: Readonly<Record<string, MotionPattern>> = {
     },
     cameraCoupling: "pull-out",
     microAnimations: ["fade", "drift-away"],
-    deformation: {type: "none", intensity: 0, frequency: 1, speed: 1, seed: 0},
     postProcess: {bloom: false, chromaticAberration: false, motionBlur: false}
   },
   "intimate-push": {
@@ -166,7 +162,6 @@ export const MOTION_ONTOLOGY: Readonly<Record<string, MotionPattern>> = {
     },
     cameraCoupling: "push-in",
     microAnimations: ["warm-glow", "gentle-scale"],
-    deformation: {type: "none", intensity: 0, frequency: 1, speed: 1, seed: 0},
     postProcess: {bloom: true, chromaticAberration: false, motionBlur: false}
   },
   "isolation-drift": {
@@ -184,7 +179,6 @@ export const MOTION_ONTOLOGY: Readonly<Record<string, MotionPattern>> = {
     },
     cameraCoupling: "drift",
     microAnimations: ["cold-drift", "desaturate"],
-    deformation: {type: "wave", intensity: 0.15, frequency: 0.3, speed: 0.4, seed: 0},
     postProcess: {bloom: false, chromaticAberration: false, motionBlur: false}
   },
   "tension-build": {
@@ -202,7 +196,6 @@ export const MOTION_ONTOLOGY: Readonly<Record<string, MotionPattern>> = {
     },
     cameraCoupling: "drift",
     microAnimations: ["pulse", "compress"],
-    deformation: {type: "explode", intensity: 0.3, frequency: 1, speed: 1, seed: 0},
     postProcess: {bloom: false, chromaticAberration: false, motionBlur: false}
   },
   "release-settle": {
@@ -220,7 +213,7 @@ export const MOTION_ONTOLOGY: Readonly<Record<string, MotionPattern>> = {
     },
     cameraCoupling: "hold",
     microAnimations: ["settle", "relax"],
-    deformation: {type: "ripple", intensity: 0.2, frequency: 2, speed: 0.8, seed: 0},
+    deformation: {type: "ripple", intensity: 0.2, speed: 0.8},
     postProcess: {bloom: true, chromaticAberration: false, motionBlur: false}
   }
 } as const;

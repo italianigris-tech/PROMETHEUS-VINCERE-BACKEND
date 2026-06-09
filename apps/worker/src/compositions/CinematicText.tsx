@@ -13,6 +13,7 @@ import {
 } from "../lib/gsap-proxy.js";
 import {useFontPreload} from "../lib/font-preload.js";
 import {Scene} from "../scenes/Scene.js";
+import {shouldRenderPostProcessing} from "../scenes/post-processing.js";
 
 export type CinematicTextProps = {
   manifest: RenderManifest;
@@ -28,6 +29,7 @@ export const CinematicText: React.FC<CinematicTextProps> = ({manifest: inputMani
     sdfGlyphSize: 96
   });
   const timelineRef = useRef<gsap.core.Timeline | null>(null);
+  const postProcessingActive = shouldRenderPostProcessing(manifest);
 
   useEffect(() => {
     if (!fontReady) {
@@ -88,7 +90,7 @@ export const CinematicText: React.FC<CinematicTextProps> = ({manifest: inputMani
         frameloop="always"
         gl={{
           alpha: false,
-          antialias: true,
+          antialias: !postProcessingActive,
           preserveDrawingBuffer: true,
           powerPreference: "high-performance"
         }}
