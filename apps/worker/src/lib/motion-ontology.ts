@@ -22,7 +22,7 @@ export const MOTION_ONTOLOGY: Readonly<Record<string, MotionPattern>> = {
     },
     cameraCoupling: "push-in",
     microAnimations: ["burst", "scale-punch"],
-    deformation: {type: "explode", intensity: 0.5, speed: 2},
+    deformation: {type: "explode", intensity: 0.5, frequency: 1, speed: 2, seed: 101},
     postProcess: {bloom: true, chromaticAberration: false, motionBlur: false}
   },
   "slow-drift": {
@@ -57,7 +57,7 @@ export const MOTION_ONTOLOGY: Readonly<Record<string, MotionPattern>> = {
     },
     cameraCoupling: "snap",
     microAnimations: ["particle-scatter", "burst"],
-    deformation: {type: "shatter", intensity: 0.9, speed: 1.5},
+    deformation: {type: "shatter", intensity: 0.9, frequency: 1, speed: 1.5, seed: 207},
     postProcess: {bloom: true, chromaticAberration: true, motionBlur: true}
   },
   "depth-establish": {
@@ -109,7 +109,7 @@ export const MOTION_ONTOLOGY: Readonly<Record<string, MotionPattern>> = {
     },
     cameraCoupling: "hold",
     microAnimations: ["breathe", "gentle-pulse"],
-    deformation: {type: "ripple", intensity: 0.1, speed: 0.3},
+    deformation: {type: "ripple", intensity: 0.1, frequency: 1, speed: 0.3, seed: 311},
     postProcess: {bloom: true, chromaticAberration: false, motionBlur: false}
   },
   "chaos-scatter": {
@@ -127,7 +127,7 @@ export const MOTION_ONTOLOGY: Readonly<Record<string, MotionPattern>> = {
     },
     cameraCoupling: "pull-out",
     microAnimations: ["shatter", "scatter"],
-    deformation: {type: "shatter", intensity: 1, speed: 2},
+    deformation: {type: "shatter", intensity: 1, frequency: 1, speed: 2, seed: 419},
     postProcess: {bloom: true, chromaticAberration: true, motionBlur: true}
   },
   "gentle-exit": {
@@ -213,7 +213,7 @@ export const MOTION_ONTOLOGY: Readonly<Record<string, MotionPattern>> = {
     },
     cameraCoupling: "hold",
     microAnimations: ["settle", "relax"],
-    deformation: {type: "ripple", intensity: 0.2, speed: 0.8},
+    deformation: {type: "ripple", intensity: 0.2, frequency: 1, speed: 0.8, seed: 523},
     postProcess: {bloom: true, chromaticAberration: false, motionBlur: false}
   }
 } as const;

@@ -70,6 +70,34 @@ const findCurrentBeat = (t: number, emotionalArc: readonly EmotionalBeat[]): Emo
   return null;
 };
 
+export const sampleCameraDirectiveOffset = (
+  directive: CameraDirective,
+  t: number
+): THREE.Vector3 => {
+  const intensity = Math.max(0, Math.min(1, directive.intensity));
+
+  switch (directive.type) {
+    case "push-in":
+      return new THREE.Vector3(0, 0, -intensity * 4.0);
+    case "pull-out":
+      return new THREE.Vector3(0, 0, intensity * 4.0);
+    case "drift":
+      return new THREE.Vector3(
+        Math.sin(t * 0.4) * 30 * intensity,
+        Math.cos(t * 0.3) * 30 * intensity,
+        0
+      );
+    case "orbit":
+    case "snap":
+    case "hold":
+      return new THREE.Vector3();
+    default: {
+      const _exhaustive: never = directive.type;
+      return _exhaustive;
+    }
+  }
+};
+
 /**
  * Applies camera directive modifications to a target point BEFORE it is copied to the camera.
  * This prevents the overwrite bug where curve interpolation would clobber directive modifications.
@@ -90,17 +118,15 @@ const applyCameraDirective = (
 ): void => {
   const intensity = Math.max(0, Math.min(1, directive.intensity));
   const overshoot = Math.max(0, Math.min(1, directive.overshoot ?? 0));
-  const delta = 1 / Math.max(fps, 1);
+  void fps;
 
   switch (directive.type) {
     case "push-in": {
-      const speed = intensity * 4.0 * delta;
-      point.z = Math.max(50, point.z - speed);
+      point.z += sampleCameraDirectiveOffset(directive, t).z;
       break;
     }
     case "pull-out": {
-      const speed = intensity * 4.0 * delta;
-      point.z += speed;
+      point.z += sampleCameraDirectiveOffset(directive, t).z;
       break;
     }
     case "orbit": {
@@ -115,9 +141,7 @@ const applyCameraDirective = (
       break;
     }
     case "drift": {
-      const amp = 30 * intensity;
-      point.x += Math.sin(t * 0.4) * amp * delta;
-      point.y += Math.cos(t * 0.3) * amp * delta;
+      point.add(sampleCameraDirectiveOffset(directive, t));
       break;
     }
     case "snap": {

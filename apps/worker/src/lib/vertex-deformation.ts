@@ -1,4 +1,5 @@
 export {
+  getDeformationState,
   injectVertexDeformation,
   updateDeformationTime,
   type DeformableMaterial,

@@ -1,6 +1,11 @@
 import {describe, expect, it} from "vitest";
 
-import {PostProcessing, TEXT_BLOOM_LAYER, shouldRenderPostProcessing} from "./post-processing.js";
+import {
+  PostProcessing,
+  TEXT_BLOOM_LAYER,
+  postProcessConfigFromManifest,
+  shouldRenderPostProcessing
+} from "./post-processing.js";
 
 describe("post-processing guards", () => {
   it("skips the composer when every post-processing pass is disabled", () => {
@@ -42,5 +47,28 @@ describe("post-processing guards", () => {
   it("exports the rendering component and text bloom layer contract", () => {
     expect(PostProcessing).toBeDefined();
     expect(TEXT_BLOOM_LAYER).toBe(1);
+  });
+
+  it("consumes ontology post-processing intent from semantic transcript tags", () => {
+    const manifest = {
+      bloomEnabled: false,
+      motionBlurEnabled: false,
+      motionBlurStrength: 0.5,
+      chromaticAberrationEnabled: false,
+      chromaticAberrationOffset: 0,
+      vignetteEnabled: false,
+      lutEnabled: false,
+      lutUrl: null,
+      transcriptWords: [
+        {text: "explode", startMs: 0, endMs: 500, semanticTag: "letter-explode"}
+      ]
+    };
+
+    expect(shouldRenderPostProcessing(manifest)).toBe(true);
+    expect(postProcessConfigFromManifest(manifest)).toMatchObject({
+      bloom: true,
+      chromaticAberration: 0.5,
+      motionBlur: true
+    });
   });
 });

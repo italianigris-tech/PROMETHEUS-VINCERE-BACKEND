@@ -2,6 +2,7 @@ import React from "react";
 import {describe, expect, it, vi} from "vitest";
 
 vi.mock("@react-three/postprocessing", () => ({
+  Bloom: vi.fn(() => React.createElement("bloom")),
   EffectComposer: vi.fn(({children}) => React.createElement("composer", null, children)),
   SelectiveBloom: vi.fn(() => React.createElement("bloom")),
   wrapEffect: vi.fn(() => vi.fn(() => React.createElement("effect")))
@@ -13,8 +14,8 @@ vi.mock("postprocessing", () => ({
     uniforms: Map<string, {value: unknown}>;
 
     constructor(_name: string, fragmentShader: string, options?: {uniforms?: Map<string, {value: unknown}>}) {
-      if (!fragmentShader.includes("#version 300 es")) {
-        throw new Error("Expected GLSL 300 ES shader source");
+      if (!fragmentShader.includes("void mainImage")) {
+        throw new Error("Expected postprocessing mainImage shader source");
       }
       this.uniforms = options?.uniforms ?? new Map();
     }
@@ -39,5 +40,14 @@ describe("PostProcessingPipeline", () => {
 
     expect(first.type).toBe(second.type);
     expect(post.EffectComposer).toBe(post.EffectComposer);
+  });
+
+  it("uses postprocessing Effect shader hooks instead of standalone fragment mains", async () => {
+    const {CHROMATIC_ABERRATION_FRAGMENT, MOTION_BLUR_FRAGMENT} = await import("../post-processing.js");
+
+    expect(CHROMATIC_ABERRATION_FRAGMENT).toContain("void mainImage");
+    expect(CHROMATIC_ABERRATION_FRAGMENT).not.toContain("void main()");
+    expect(MOTION_BLUR_FRAGMENT).toContain("void mainImage");
+    expect(MOTION_BLUR_FRAGMENT).not.toContain("void main()");
   });
 });

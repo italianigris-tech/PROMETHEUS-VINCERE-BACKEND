@@ -125,3 +125,30 @@ export const updateDeformationTime = (
     shader.uniforms.uTime.value = time;
   }
 };
+
+export const getDeformationState = (
+  material: THREE.MeshBasicMaterial
+): {
+  type: DeformationType;
+  uTime: number;
+  uIntensity: number;
+  uSpeed: number;
+  uFrequency: number;
+  uSeed: number;
+} | null => {
+  const deformable = material as DeformableMaterial;
+  const shader = deformable.userData.shader;
+  const config = deformable.userData.deformationConfig;
+  if (!shader || !config) {
+    return null;
+  }
+
+  return {
+    type: config.type,
+    uTime: Number(shader.uniforms.uTime?.value ?? 0),
+    uIntensity: Number(shader.uniforms.uIntensity?.value ?? config.intensity),
+    uSpeed: Number(shader.uniforms.uSpeed?.value ?? config.speed ?? 1),
+    uFrequency: Number(shader.uniforms.uFrequency?.value ?? config.frequency ?? 1),
+    uSeed: Number(shader.uniforms.uSeed?.value ?? config.seed ?? 0)
+  };
+};

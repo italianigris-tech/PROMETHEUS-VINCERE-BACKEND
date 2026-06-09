@@ -8,7 +8,7 @@ import {
 } from "../engine/post-processing.js";
 import {findPatternForSemanticTag} from "../lib/motion-ontology.js";
 
-type PostProcessingFlags = Pick<
+type PostProcessingFlags = Partial<Pick<
   RenderManifest,
   | "bloomEnabled"
   | "motionBlurEnabled"
@@ -18,7 +18,8 @@ type PostProcessingFlags = Pick<
   | "vignetteEnabled"
   | "lutEnabled"
   | "lutUrl"
->;
+  | "transcriptWords"
+>>;
 
 export const TEXT_BLOOM_LAYER = 1;
 
@@ -29,7 +30,7 @@ const boolToIntensity = (value: boolean | number | undefined): number => {
   return value ? 0.5 : 0;
 };
 
-export const postProcessConfigFromManifest = (manifest: RenderManifest): PostProcessConfig => {
+export const postProcessConfigFromManifest = (manifest: PostProcessingFlags): PostProcessConfig => {
   const config: PostProcessConfig = {
     bloom: manifest.bloomEnabled,
     chromaticAberration: manifest.chromaticAberrationEnabled ? manifest.chromaticAberrationOffset : 0,
@@ -37,7 +38,7 @@ export const postProcessConfigFromManifest = (manifest: RenderManifest): PostPro
     resolutionScale: manifest.motionBlurEnabled || manifest.bloomEnabled ? 0.5 : 1
   };
 
-  for (const word of manifest.transcriptWords) {
+  for (const word of manifest.transcriptWords ?? []) {
     const pattern = word.semanticTag ? findPatternForSemanticTag(word.semanticTag) : null;
     const postProcess = pattern?.postProcess;
     if (!postProcess) {
@@ -55,12 +56,14 @@ export const postProcessConfigFromManifest = (manifest: RenderManifest): PostPro
 };
 
 export const shouldRenderPostProcessing = (manifest: PostProcessingFlags): boolean =>
-  ("transcriptWords" in manifest && shouldRenderPipeline(postProcessConfigFromManifest(manifest as RenderManifest))) ||
-  manifest.bloomEnabled ||
-  manifest.motionBlurEnabled ||
-  manifest.chromaticAberrationEnabled ||
-  manifest.vignetteEnabled ||
-  manifest.lutEnabled;
+  shouldRenderPipeline(postProcessConfigFromManifest(manifest)) ||
+  Boolean(
+    manifest.bloomEnabled ||
+    manifest.motionBlurEnabled ||
+    manifest.chromaticAberrationEnabled ||
+    manifest.vignetteEnabled ||
+    manifest.lutEnabled
+  );
 
 export const PostProcessing = memo(function PostProcessing({
   manifest

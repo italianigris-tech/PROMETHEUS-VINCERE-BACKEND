@@ -20,4 +20,18 @@ describe("parseColorAnnotations", () => {
   it("handles empty strings", () => {
     expect(parseColorAnnotations("")).toEqual({plainText: "", colorRanges: []});
   });
+
+  it("strips malformed annotation syntax without emitting a broken color range", () => {
+    expect(parseColorAnnotations("keep {red}motion tags readable")).toEqual({
+      plainText: "keep motion tags readable",
+      colorRanges: []
+    });
+  });
+
+  it("strips unsupported paired tags while preserving their text", () => {
+    expect(parseColorAnnotations("keep {orange}motion{/orange} readable")).toEqual({
+      plainText: "keep motion readable",
+      colorRanges: []
+    });
+  });
 });

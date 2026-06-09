@@ -1,16 +1,13 @@
 import React, {memo, useMemo} from "react";
-import {EffectComposer, SelectiveBloom} from "@react-three/postprocessing";
+import {Bloom, EffectComposer, wrapEffect as wrapPostprocessingEffect} from "@react-three/postprocessing";
 import type {RenderManifest} from "@prometheus/shared-types";
-import type {Texture, WebGLRenderer, WebGLRenderTarget} from "three";
+import {Uniform, type Texture, type WebGLRenderer, type WebGLRenderTarget} from "three";
 import {Effect, BlendFunction} from "postprocessing";
 
 type EffectComponent = React.ComponentType<Record<string, never>>;
 
 const wrapEffect = (effect: new () => Effect): EffectComponent => {
-  const postprocessing = require("@react-three/postprocessing") as {
-    wrapEffect?: (effect: new () => Effect) => EffectComponent;
-  };
-  return postprocessing.wrapEffect ? postprocessing.wrapEffect(effect) : (() => null);
+  return wrapPostprocessingEffect(effect);
 };
 
 export type PostProcessConfig = {
@@ -20,38 +17,29 @@ export type PostProcessConfig = {
   resolutionScale?: number;
 };
 
-const CHROMATIC_ABERRATION_FRAGMENT = `#version 300 es
-precision highp float;
-uniform sampler2D inputBuffer;
-in vec2 vUv;
-out vec4 outputColor;
-
-void main() {
+export const CHROMATIC_ABERRATION_FRAGMENT = `
+void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
   vec2 center = vec2(0.5);
-  vec2 direction = vUv - center;
+  vec2 direction = uv - center;
   float amount = length(direction) * 0.006;
   vec2 shift = normalize(direction + vec2(0.0001)) * amount;
-  float r = texture(inputBuffer, vUv + shift).r;
-  float g = texture(inputBuffer, vUv).g;
-  float b = texture(inputBuffer, vUv - shift).b;
-  outputColor = vec4(r, g, b, texture(inputBuffer, vUv).a);
+  float r = texture2D(inputBuffer, uv + shift).r;
+  float g = inputColor.g;
+  float b = texture2D(inputBuffer, uv - shift).b;
+  outputColor = vec4(r, g, b, inputColor.a);
 }`;
 
-const MOTION_BLUR_FRAGMENT = `#version 300 es
-precision highp float;
-uniform sampler2D inputBuffer;
+export const MOTION_BLUR_FRAGMENT = `
 uniform sampler2D tHistory;
-in vec2 vUv;
-out vec4 outputColor;
 
-void main() {
+void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
   vec4 currentColor = vec4(0.0);
   for (int i = 0; i < 8; i++) {
     float stepOffset = (float(i) - 3.5) * 0.0015;
-    currentColor += texture(inputBuffer, vUv + vec2(stepOffset, 0.0));
+    currentColor += texture2D(inputBuffer, uv + vec2(stepOffset, 0.0));
   }
   currentColor /= 8.0;
-  vec4 history = texture(tHistory, vUv);
+  vec4 history = texture2D(tHistory, uv);
   outputColor = mix(history, currentColor, 0.125);
 }`;
 
@@ -69,7 +57,7 @@ class TemporalMotionBlurEffect extends Effect {
   constructor() {
     super("TemporalMotionBlurEffect", MOTION_BLUR_FRAGMENT, {
       blendFunction: BlendFunction.NORMAL,
-      uniforms: new Map([["tHistory", {value: null}]])
+      uniforms: new Map([["tHistory", new Uniform<Texture | null>(null)]])
     });
   }
 
@@ -111,15 +99,13 @@ export const PostProcessingPipeline = memo(function PostProcessingPipeline({
   }
 
   return (
-    <EffectComposer multisampling={0}>
+    <EffectComposer multisampling={0} resolutionScale={resolutionScale}>
       {config.bloom && (
-        <SelectiveBloom
+        <Bloom
           intensity={1.5}
           luminanceThreshold={0.8}
           luminanceSmoothing={0.1}
           mipmapBlur
-          selectionLayer={1}
-          resolutionScale={resolutionScale}
         />
       )}
       {chromaticEnabled(config.chromaticAberration) && <ChromaticAberrationEffect />}

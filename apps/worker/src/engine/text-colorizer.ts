@@ -19,6 +19,7 @@ const COLOR_MAP: Record<string, string> = {
 };
 
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
+const OPEN_TAG = /\{([^}/]+)\}/g;
 
 const resolveColor = (token: string): string | null => {
   const named = COLOR_MAP[token];
@@ -42,12 +43,13 @@ export const parseColorAnnotations = (text: string): ParsedColorText => {
   while ((match = annotation.exec(text)) !== null) {
     const color = resolveColor(match[1] ?? "");
     if (!color) {
-      plainText += text.slice(cursor, annotation.lastIndex);
+      plainText += stripMalformedTags(text.slice(cursor, match.index));
+      plainText += match[2] ?? "";
       cursor = annotation.lastIndex;
       continue;
     }
 
-    plainText += text.slice(cursor, match.index);
+    plainText += stripMalformedTags(text.slice(cursor, match.index));
     const start = plainText.length;
     const coloredText = match[2] ?? "";
     plainText += coloredText;
@@ -55,12 +57,16 @@ export const parseColorAnnotations = (text: string): ParsedColorText => {
     cursor = annotation.lastIndex;
   }
 
-  plainText += text.slice(cursor);
+  plainText += stripMalformedTags(text.slice(cursor));
   return {plainText, colorRanges};
 };
 
 export const hasColorAnnotations = (text: string): boolean =>
   parseColorAnnotations(text).colorRanges.length > 0;
+
+const stripMalformedTags = (text: string): string => text
+  .replace(OPEN_TAG, "")
+  .replace(/\{\/[^}]+\}/g, "");
 
 export const applyColorRanges = (
   textMesh: {colorRanges?: Record<number, THREE.Color | null>},

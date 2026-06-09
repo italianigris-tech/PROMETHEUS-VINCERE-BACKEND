@@ -4,6 +4,7 @@ import {
   clampLookAtToSafeZone,
   normalizeCameraKeyframes,
   rollCameraUpVector,
+  sampleCameraDirectiveOffset,
   useCameraRigStore
 } from "./CameraRig.js";
 
@@ -42,5 +43,22 @@ describe("CameraRig helpers", () => {
     expect(up.x).toBeCloseTo(-1);
     expect(up.y).toBeCloseTo(0);
     expect(up.z).toBeCloseTo(0);
+  });
+
+  it("samples camera directive offsets without accumulating frame drift", () => {
+    const directive = {
+      type: "drift" as const,
+      target: null,
+      intensity: 0.7,
+      overshoot: 0,
+      coupling: "loose" as const
+    };
+
+    const first = sampleCameraDirectiveOffset(directive, 3);
+    const second = sampleCameraDirectiveOffset(directive, 3);
+    const later = sampleCameraDirectiveOffset(directive, 4);
+
+    expect(second.toArray()).toEqual(first.toArray());
+    expect(later.toArray()).not.toEqual(first.toArray());
   });
 });
