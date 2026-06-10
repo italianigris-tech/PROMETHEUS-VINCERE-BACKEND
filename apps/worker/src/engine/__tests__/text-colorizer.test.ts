@@ -17,6 +17,24 @@ describe("parseColorAnnotations", () => {
     });
   });
 
+  it("handles nested annotations by letting the inner color override temporarily", () => {
+    expect(parseColorAnnotations("{red}hot {blue}cold{/blue} hot{/red}")).toEqual({
+      plainText: "hot cold hot",
+      colorRanges: [
+        {start: 0, end: 4, color: "#FF0040"},
+        {start: 4, end: 8, color: "#0080FF"},
+        {start: 8, end: 12, color: "#FF0040"}
+      ]
+    });
+  });
+
+  it("preserves escaped annotation syntax as literal text", () => {
+    expect(parseColorAnnotations("keep \\{red}literal\\{/red} tag")).toEqual({
+      plainText: "keep {red}literal{/red} tag",
+      colorRanges: []
+    });
+  });
+
   it("handles empty strings", () => {
     expect(parseColorAnnotations("")).toEqual({plainText: "", colorRanges: []});
   });

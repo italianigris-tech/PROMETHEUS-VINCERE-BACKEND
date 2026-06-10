@@ -124,6 +124,7 @@ export type SoundDesignCapabilityFlags = {
   afir: boolean;
   rubberband: boolean;
   loudnorm: boolean;
+  alimiter: boolean;
   sidechaincompress: boolean;
   showwavespic: boolean;
 };

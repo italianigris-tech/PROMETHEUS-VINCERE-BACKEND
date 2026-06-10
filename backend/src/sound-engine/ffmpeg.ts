@@ -138,6 +138,7 @@ export const probeFfmpegCapabilities = async (): Promise<SoundDesignCapabilityFl
         afir: hasFilter("afir"),
         rubberband: hasFilter("rubberband"),
         loudnorm: hasFilter("loudnorm"),
+        alimiter: hasFilter("alimiter"),
         sidechaincompress: hasFilter("sidechaincompress"),
         showwavespic: hasFilter("showwavespic")
       };

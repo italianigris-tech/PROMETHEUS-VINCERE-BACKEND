@@ -92,8 +92,7 @@ export const sampleCameraDirectiveOffset = (
     case "hold":
       return new THREE.Vector3();
     default: {
-      const _exhaustive: never = directive.type;
-      return _exhaustive;
+      return new THREE.Vector3();
     }
   }
 };
@@ -155,9 +154,7 @@ const applyCameraDirective = (
       break;
     }
     default: {
-      // Exhaustiveness check
-      const _exhaustive: never = directive.type;
-      console.warn(`Unknown camera directive: ${_exhaustive}`);
+      console.warn(`Unknown camera directive: ${String(directive.type)}`);
     }
   }
 

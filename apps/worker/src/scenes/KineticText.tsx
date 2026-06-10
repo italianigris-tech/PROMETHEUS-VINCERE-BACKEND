@@ -13,9 +13,16 @@ import {selectEaseForTimestamp} from "../lib/easing-modulator.js";
 import {applyImperfection} from "../lib/imperfection-engine.js";
 import {findPatternForSemanticTag} from "../lib/motion-ontology.js";
 import {
+  applyColorRanges,
   parseColorAnnotations,
   type ColorRange
 } from "../engine/text-colorizer.js";
+import {injectVertexDeformation, updateDeformationTime} from "../engine/vertex-deformation.js";
+import {
+  getRenderEngineConfig,
+  type RenderEngineManifestExtension,
+  type TextRenderMode
+} from "../types/render-engine.js";
 
 export type WordLayout = {
   text: string;
@@ -254,6 +261,13 @@ type TextChunk = {
   color: string | null;
 };
 
+type TextVisual = {
+  mode: TextRenderMode;
+  mesh: THREE.Mesh;
+  material: THREE.MeshBasicMaterial;
+  dispose(): void;
+};
+
 export const chunkTextByColorRanges = (
   text: string,
   colorRanges: readonly ColorRange[],
@@ -318,8 +332,8 @@ const createCanvasTextMaterial = (
   const chunks = chunkTextByColorRanges(word.text, word.colorRanges);
   if (chunks.length === 0 || chunks.every((chunk) => chunk.color === null)) {
     const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
-    const colors = manifest.gradientColors.length > 0 ? manifest.gradientColors : [fallbackColor];
-    colors.forEach((color, index) => {
+    const colors: string[] = manifest.gradientColors.length > 0 ? manifest.gradientColors : [fallbackColor];
+    colors.forEach((color: string, index: number) => {
       gradient.addColorStop(index / Math.max(colors.length - 1, 1), color);
     });
     ctx.textAlign = "center";
@@ -361,9 +375,111 @@ const createCanvasTextMaterial = (
   });
 };
 
+const createBakedHighlightMap = (colors: readonly string[]): THREE.CanvasTexture => {
+  const canvas = document.createElement("canvas");
+  canvas.width = 256;
+  canvas.height = 16;
+  const ctx = canvas.getContext("2d");
+  if (ctx) {
+    const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+    const baseColors = colors.length > 0 ? colors : ["#ffffff", "#7be8ff"];
+    gradient.addColorStop(0, baseColors[0] ?? "#ffffff");
+    gradient.addColorStop(0.42, "#ffffff");
+    gradient.addColorStop(0.58, baseColors[1] ?? "#7be8ff");
+    gradient.addColorStop(1, baseColors[0] ?? "#ffffff");
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.generateMipmaps = false;
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.needsUpdate = true;
+  return texture;
+};
+
+const createCanvasTextVisual = (
+  word: WordLayout,
+  manifest: RenderManifest
+): TextVisual => {
+  const material = createCanvasTextMaterial(word, manifest);
+  const geometry = new THREE.PlaneGeometry(
+    Math.max(word.width, manifest.text.size * 0.6),
+    manifest.text.size * 1.35
+  );
+  const mesh = new THREE.Mesh(geometry, material);
+  return {
+    mode: "canvas-raster",
+    mesh,
+    material,
+    dispose: () => {
+      material.map?.dispose();
+      material.dispose();
+      geometry.dispose();
+    }
+  };
+};
+
+const createTroikaTextVisual = (
+  word: WordLayout,
+  manifest: RenderManifest,
+  renderConfig: ReturnType<typeof getRenderEngineConfig>
+): TextVisual => {
+  const highlightMap = createBakedHighlightMap(manifest.gradientColors);
+  const material = new THREE.MeshBasicMaterial({
+    color: manifest.text.color,
+    map: highlightMap,
+    transparent: true,
+    opacity: 1,
+    alphaTest: 0.01,
+    depthTest: false,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    toneMapped: false
+  });
+  injectVertexDeformation(material, renderConfig.deformation);
+
+  const textMesh = new TroikaText();
+  textMesh.text = word.text;
+  textMesh.font = manifest.fontUrl;
+  textMesh.fontSize = manifest.text.size;
+  textMesh.anchorX = "center";
+  textMesh.anchorY = "middle";
+  textMesh.glyphGeometryDetail = 8;
+  textMesh.letterSpacing = 0.01;
+  textMesh.lineHeight = manifest.text.lineHeight;
+  textMesh.maxWidth = Math.max(word.width * 1.1, manifest.text.size);
+  textMesh.overflowWrap = "normal";
+  textMesh.whiteSpace = "nowrap";
+  textMesh.sdfGlyphSize = manifest.text.sdfGlyphSize;
+  textMesh.color = manifest.text.color;
+  textMesh.material = material;
+  applyColorRanges(textMesh, word.colorRanges, manifest.text.color);
+  textMesh.layers.enable(TEXT_BLOOM_LAYER);
+  textMesh.renderOrder = 10;
+  textMesh.sync();
+
+  return {
+    mode: "troika-glyph",
+    mesh: textMesh,
+    material,
+    dispose: () => {
+      textMesh.dispose();
+      highlightMap.dispose();
+      material.dispose();
+    }
+  };
+};
+
 export const KineticText: React.FC<KineticTextProps> = ({manifest}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
+  const renderConfig = useMemo(
+    () => getRenderEngineConfig(manifest as RenderManifest & RenderEngineManifestExtension),
+    [manifest]
+  );
   const timedWords = useMemo(() => buildTimedWords(manifest), [manifest]);
   const estimatedLayout = useMemo(
     () => buildWordLayout(timedWords, manifest.text.size),
@@ -375,9 +491,16 @@ export const KineticText: React.FC<KineticTextProps> = ({manifest}) => {
   const wordVelocities = useRef(new Map<string, THREE.Vector3>());
   const prevWordPositions = useRef(new Map<string, THREE.Vector3>());
   const velocityScratch = useRef(new Map<string, THREE.Vector3>());
+  const visuals = useMemo(
+    () => layout.map((word) => renderConfig.renderMode === "canvas-raster"
+      ? createCanvasTextVisual(word, manifest)
+      : createTroikaTextVisual(word, manifest, renderConfig)
+    ),
+    [layout, manifest, renderConfig]
+  );
   const visualMaterials = useMemo(
-    () => layout.map((word) => createCanvasTextMaterial(word, manifest)),
-    [layout, manifest]
+    () => visuals.map((visual) => visual.material),
+    [visuals]
   );
 
   useLayoutEffect(() => {
@@ -475,14 +598,14 @@ export const KineticText: React.FC<KineticTextProps> = ({manifest}) => {
 
         // Get directorial metadata for motion enhancement
         const meta = manifest.directorialMetadata;
-        const t = frame / (manifest.fps ?? 30);
+        const t = word.startMs / 1000;
 
         // Find current emotional beat
         let currentBeat: EmotionalBeat | null = null;
         if (meta?.emotionalArc) {
           const tMs = t * 1000;
           currentBeat = meta.emotionalArc.find(
-            (beat) => tMs >= beat.timestamp[0] && tMs < beat.timestamp[1]
+            (beat: EmotionalBeat) => tMs >= beat.timestamp[0] && tMs < beat.timestamp[1]
           ) ?? null;
         }
 
@@ -595,10 +718,8 @@ export const KineticText: React.FC<KineticTextProps> = ({manifest}) => {
       }
     });
 
-    if (timeline.duration() === 0) {
-      timeline.seek(0, false);
-      timelineRef.current = timeline;
-    }
+    timeline.seek(frame / Math.max(fps, 1), false);
+    timelineRef.current = timeline;
 
     return () => {
       timeline.kill();
@@ -610,6 +731,9 @@ export const KineticText: React.FC<KineticTextProps> = ({manifest}) => {
     fps,
     frame,
     layout,
+    manifest.directorialMetadata,
+    manifest.fps,
+    manifest.transcriptWords,
     manifest.text.depthTravel,
     manifest.wordStagger,
     manifest.text.size,
@@ -632,14 +756,18 @@ export const KineticText: React.FC<KineticTextProps> = ({manifest}) => {
 
   useFrame(() => {
     const timeline = timelineRef.current;
+    const currentTime = frame / Math.max(fps, 1);
     if (timeline) {
-      const currentTime = frame / fps;
       if (currentTime > timeline.duration()) {
         timeline.progress(1, false);
       } else {
         timeline.seek(currentTime, false);
       }
     }
+
+    visualMaterials.forEach((material) => {
+      updateDeformationTime(material, currentTime);
+    });
 
     layout.forEach((_word, index) => {
       const mesh = visualMeshes.current[index];
@@ -657,12 +785,9 @@ export const KineticText: React.FC<KineticTextProps> = ({manifest}) => {
 
   useEffect(() => {
     return () => {
-      visualMaterials.forEach((material) => {
-        material.map?.dispose();
-        material.dispose();
-      });
+      visuals.forEach((visual) => visual.dispose());
     };
-  }, [visualMaterials]);
+  }, [visuals]);
 
   if (layout.length === 0) {
     return null;
@@ -670,20 +795,25 @@ export const KineticText: React.FC<KineticTextProps> = ({manifest}) => {
 
   return (
     <group position={[0, 0, manifest.text.depthZ]}>
-      {layout.map((word, index) => (
-        <mesh
-          key={`${word.text}-${index}`}
-          ref={(mesh) => {
-            visualMeshes.current[index] = mesh;
-            mesh?.layers.enable(TEXT_BLOOM_LAYER);
-          }}
-          material={visualMaterials[index]}
-          position={[word.x, 0, 0]}
-          renderOrder={10}
-        >
-          <planeGeometry args={[Math.max(word.width, manifest.text.size * 0.6), manifest.text.size * 1.35]} />
-        </mesh>
-      ))}
+      {visuals.map((visual, index) => {
+        const word = layout[index];
+        if (!word) {
+          return null;
+        }
+
+        return (
+          <primitive
+            key={`${word.text}-${index}`}
+            object={visual.mesh}
+            ref={(mesh: THREE.Mesh | null) => {
+              visualMeshes.current[index] = mesh;
+              mesh?.layers.enable(TEXT_BLOOM_LAYER);
+            }}
+            position={[word.x, 0, 0]}
+            renderOrder={10}
+          />
+        );
+      })}
     </group>
   );
 };

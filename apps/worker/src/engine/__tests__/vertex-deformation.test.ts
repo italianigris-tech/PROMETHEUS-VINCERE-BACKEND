@@ -37,6 +37,24 @@ describe("injectVertexDeformation", () => {
     expect(shader.vertexShader).toContain("uTime");
   });
 
+  it("injects GLSL declarations before main and deformation calls inside main", () => {
+    const material = new THREE.MeshBasicMaterial();
+    injectVertexDeformation(material, {type: "explode", intensity: 0.5});
+
+    const shader = compileMaterial(material);
+    const mainIndex = shader.vertexShader.indexOf("void main()");
+    const uniformIndex = shader.vertexShader.indexOf("uniform float uTime");
+    const functionIndex = shader.vertexShader.indexOf("vec3 applyGlyphLocalDeformation");
+    const callIndex = shader.vertexShader.indexOf("applyGlyphLocalDeformation(transformed, normal, float(gl_InstanceID))");
+
+    expect(uniformIndex).toBeGreaterThanOrEqual(0);
+    expect(functionIndex).toBeGreaterThanOrEqual(0);
+    expect(mainIndex).toBeGreaterThanOrEqual(0);
+    expect(uniformIndex).toBeLessThan(mainIndex);
+    expect(functionIndex).toBeLessThan(mainIndex);
+    expect(callIndex).toBeGreaterThan(mainIndex);
+  });
+
   it.each([
     ["explode", 1],
     ["wave", 2],

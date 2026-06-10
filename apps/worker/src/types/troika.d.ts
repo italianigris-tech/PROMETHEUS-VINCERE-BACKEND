@@ -1,5 +1,5 @@
 declare module "troika-three-text" {
-  import type {Material, Mesh} from "three";
+  import type {Color, Material, Mesh} from "three";
 
   export class Text extends Mesh {
     text: string;
@@ -17,6 +17,7 @@ declare module "troika-three-text" {
       | number
       | string;
     color: string | number;
+    colorRanges: Record<number, Color | number | string> | null;
     fillOpacity: number;
     glyphGeometryDetail: number;
     letterSpacing: number;
@@ -89,20 +90,43 @@ declare module "three/examples/jsm/postprocessing/RenderPass.js" {
 }
 
 declare module "three/examples/jsm/postprocessing/UnrealBloomPass.js" {
-  import type {Vector2} from "three";
+  import type {Camera, Scene, Vector2, WebGLRenderer, WebGLRenderTarget} from "three";
 
   export class UnrealBloomPass {
+    renderToScreen: boolean;
     threshold: number;
     strength: number;
     radius: number;
     constructor(resolution: Vector2, strength?: number, radius?: number, threshold?: number);
+    setSize(width: number, height: number): void;
+    render(
+      renderer: WebGLRenderer,
+      writeBuffer: WebGLRenderTarget,
+      readBuffer: WebGLRenderTarget,
+      deltaTime: number,
+      maskActive: boolean
+    ): void;
+    dispose(): void;
   }
 }
 
 declare module "three/examples/jsm/postprocessing/ShaderPass.js" {
+  import type {ShaderMaterial, WebGLRenderer, WebGLRenderTarget} from "three";
+
   export class ShaderPass {
+    clear: boolean;
+    material: ShaderMaterial;
+    renderToScreen: boolean;
     uniforms: Record<string, {value: unknown}>;
     constructor(shader: unknown);
+    render(
+      renderer: WebGLRenderer,
+      writeBuffer: WebGLRenderTarget,
+      readBuffer: WebGLRenderTarget,
+      deltaTime: number,
+      maskActive: boolean
+    ): void;
+    dispose(): void;
   }
 }
 

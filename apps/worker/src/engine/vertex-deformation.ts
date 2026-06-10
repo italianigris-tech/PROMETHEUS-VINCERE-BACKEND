@@ -20,8 +20,14 @@ export type DeformableMaterial = THREE.MeshBasicMaterial & {
   userData: {
     shader?: DeformationShader;
     deformationConfig?: DeformationConfig;
+    baseOnBeforeCompile?: DeformationCompileHook;
   };
 };
+
+type DeformationCompileHook = (
+  shader: DeformationShader,
+  renderer: THREE.WebGLRenderer
+) => void;
 
 const typeToInt = (type: DeformationType): number => {
   switch (type) {
@@ -88,15 +94,22 @@ vec3 applyGlyphLocalDeformation(vec3 localPosition, vec3 localNormal, float glyp
 }
 `;
 
+const MAIN_DECLARATION = /void\s+main\s*\(\s*\)\s*\{/;
+
 export const injectVertexDeformation = (
   material: THREE.MeshBasicMaterial,
   config: DeformationConfig
 ): void => {
   const deformable = material as DeformableMaterial;
   const intensity = Math.min(1, Math.max(0, config.intensity));
+  const baseOnBeforeCompile = deformable.userData.baseOnBeforeCompile ??
+    (material.onBeforeCompile as DeformationCompileHook);
+  deformable.userData.baseOnBeforeCompile = baseOnBeforeCompile;
   deformable.userData.deformationConfig = {...config, intensity};
 
-  material.onBeforeCompile = (shader: DeformationShader) => {
+  material.onBeforeCompile = ((shader: DeformationShader, renderer: THREE.WebGLRenderer) => {
+    baseOnBeforeCompile.call(material, shader, renderer);
+
     shader.uniforms.uDeformType = {value: typeToInt(config.type)};
     shader.uniforms.uTime = {value: 0};
     shader.uniforms.uIntensity = {value: intensity};
@@ -105,13 +118,17 @@ export const injectVertexDeformation = (
     shader.uniforms.uSeed = {value: config.seed ?? 0};
 
     shader.vertexShader = shader.vertexShader.replace(
+      MAIN_DECLARATION,
+      `${DEFORMATION_GLSL}
+void main() {`
+    );
+    shader.vertexShader = shader.vertexShader.replace(
       "#include <begin_vertex>",
       `#include <begin_vertex>
-${DEFORMATION_GLSL}
 transformed = applyGlyphLocalDeformation(transformed, normal, float(gl_InstanceID));`
     );
     deformable.userData.shader = shader;
-  };
+  }) as THREE.MeshBasicMaterial["onBeforeCompile"];
 
   material.needsUpdate = true;
 };

@@ -356,13 +356,19 @@ const buildFinalMix = ({
 
   const masterLabel = previewMode ? "preview_master" : "master";
   if (previewMode) {
-    lines.push(`[${preMaster}]alimiter=limit=0.97[${masterLabel}]`);
+    if (plan.capabilities.alimiter) {
+      lines.push(`[${preMaster}]alimiter=limit=0.97[${masterLabel}]`);
+    } else {
+      lines.push(`[${preMaster}]volume=0.97[${masterLabel}]`);
+    }
   } else if (plan.capabilities.loudnorm) {
     lines.push(
       `[${preMaster}]loudnorm=I=${plan.manifest.master.targetI}:TP=${plan.manifest.master.truePeak}:LRA=${plan.manifest.master.lra}:linear=true:print_format=summary[${masterLabel}]`
     );
-  } else {
+  } else if (plan.capabilities.alimiter) {
     lines.push(`[${preMaster}]alimiter=limit=0.99[${masterLabel}]`);
+  } else {
+    lines.push(`[${preMaster}]volume=0.99[${masterLabel}]`);
   }
 
   return {

@@ -1,115 +1,364 @@
-import React, {memo, useMemo} from "react";
-import {Bloom, EffectComposer, wrapEffect as wrapPostprocessingEffect} from "@react-three/postprocessing";
+import {useEffect, useMemo, useRef} from "react";
+import {useFrame, useThree} from "@react-three/fiber";
 import type {RenderManifest} from "@prometheus/shared-types";
-import {Uniform, type Texture, type WebGLRenderer, type WebGLRenderTarget} from "three";
-import {Effect, BlendFunction} from "postprocessing";
-
-type EffectComponent = React.ComponentType<Record<string, never>>;
-
-const wrapEffect = (effect: new () => Effect): EffectComponent => {
-  return wrapPostprocessingEffect(effect);
-};
+import {useVideoConfig} from "remotion";
+import * as THREE from "three";
+import {EffectComposer} from "three/examples/jsm/postprocessing/EffectComposer.js";
+import {RenderPass} from "three/examples/jsm/postprocessing/RenderPass.js";
+import {ShaderPass} from "three/examples/jsm/postprocessing/ShaderPass.js";
+import {UnrealBloomPass} from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 
 export type PostProcessConfig = {
   bloom?: boolean;
+  bloomStrength?: number;
+  bloomRadius?: number;
+  bloomThreshold?: number;
+  bloomLayer?: number;
   chromaticAberration?: boolean | number;
   motionBlur?: boolean;
   resolutionScale?: number;
 };
 
+type PassLike = {
+  enabled: boolean;
+  needsSwap: boolean;
+  clear: boolean;
+  renderToScreen: boolean;
+  setSize(width: number, height: number): void;
+  render(
+    renderer: THREE.WebGLRenderer,
+    writeBuffer: THREE.WebGLRenderTarget,
+    readBuffer: THREE.WebGLRenderTarget,
+    deltaTime: number,
+    maskActive: boolean
+  ): void;
+  dispose?(): void;
+};
+
+type ShaderPassLike = ShaderPass & {
+  clear: boolean;
+  material: THREE.ShaderMaterial;
+  renderToScreen: boolean;
+  render: PassLike["render"];
+};
+
+const setShaderUniform = (
+  pass: ShaderPassLike,
+  name: string,
+  value: unknown
+): void => {
+  const uniform = pass.uniforms[name];
+  if (uniform) {
+    uniform.value = value;
+  }
+};
+
 export const CHROMATIC_ABERRATION_FRAGMENT = `
-void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
+uniform sampler2D tDiffuse;
+uniform float amount;
+varying vec2 vUv;
+
+void main() {
   vec2 center = vec2(0.5);
-  vec2 direction = uv - center;
-  float amount = length(direction) * 0.006;
-  vec2 shift = normalize(direction + vec2(0.0001)) * amount;
-  float r = texture2D(inputBuffer, uv + shift).r;
-  float g = inputColor.g;
-  float b = texture2D(inputBuffer, uv - shift).b;
-  outputColor = vec4(r, g, b, inputColor.a);
+  vec2 direction = vUv - center;
+  float shiftAmount = length(direction) * amount;
+  vec2 shift = normalize(direction + vec2(0.0001)) * shiftAmount;
+  float r = texture2D(tDiffuse, vUv + shift).r;
+  vec4 baseColor = texture2D(tDiffuse, vUv);
+  float b = texture2D(tDiffuse, vUv - shift).b;
+  gl_FragColor = vec4(r, baseColor.g, b, baseColor.a);
 }`;
 
-export const MOTION_BLUR_FRAGMENT = `
-uniform sampler2D tHistory;
+export const SCREEN_QUAD_VERTEX = `
+varying vec2 vUv;
 
-void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
-  vec4 currentColor = vec4(0.0);
-  for (int i = 0; i < 8; i++) {
-    float stepOffset = (float(i) - 3.5) * 0.0015;
-    currentColor += texture2D(inputBuffer, uv + vec2(stepOffset, 0.0));
-  }
-  currentColor /= 8.0;
-  vec4 history = texture2D(tHistory, uv);
-  outputColor = mix(history, currentColor, 0.125);
+void main() {
+  vUv = uv;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 }`;
 
-class RadialChromaticAberrationEffect extends Effect {
-  constructor() {
-    super("RadialChromaticAberrationEffect", CHROMATIC_ABERRATION_FRAGMENT, {
-      blendFunction: BlendFunction.NORMAL
+export const CHROMATIC_ABERRATION_SHADER = {
+  name: "PrometheusChromaticAberrationShader",
+  uniforms: {
+    tDiffuse: {value: null},
+    amount: {value: 0.003}
+  },
+  vertexShader: SCREEN_QUAD_VERTEX,
+  fragmentShader: CHROMATIC_ABERRATION_FRAGMENT
+};
+
+export const TEXT_BLOOM_COMPOSITE_SHADER = {
+  name: "PrometheusTextBloomCompositeShader",
+  uniforms: {
+    tDiffuse: {value: null},
+    opacity: {value: 0.82}
+  },
+  vertexShader: SCREEN_QUAD_VERTEX,
+  fragmentShader: `
+uniform sampler2D tDiffuse;
+uniform float opacity;
+varying vec2 vUv;
+
+void main() {
+  vec4 bloomColor = texture2D(tDiffuse, vUv);
+  gl_FragColor = vec4(bloomColor.rgb * opacity, bloomColor.a * opacity);
+}`
+};
+
+export const IDENTITY_SHADER = {
+  name: "PrometheusIdentityShader",
+  uniforms: {
+    tDiffuse: {value: null}
+  },
+  vertexShader: SCREEN_QUAD_VERTEX,
+  fragmentShader: `
+uniform sampler2D tDiffuse;
+varying vec2 vUv;
+
+void main() {
+  gl_FragColor = texture2D(tDiffuse, vUv);
+}`
+};
+
+class SelectiveBloomPass implements PassLike {
+  enabled = true;
+  needsSwap = false;
+  clear = false;
+  renderToScreen = false;
+
+  private readonly bloomPass: UnrealBloomPass;
+  private readonly compositePass: ShaderPassLike;
+  private readonly selectiveTarget: THREE.WebGLRenderTarget;
+  private readonly scratchTarget: THREE.WebGLRenderTarget;
+  private readonly oldClearColor = new THREE.Color();
+
+  constructor(
+    private readonly scene: THREE.Scene,
+    private readonly camera: THREE.Camera,
+    private readonly textLayer: number,
+    config: Required<Pick<PostProcessConfig, "bloomStrength" | "bloomRadius" | "bloomThreshold">>
+  ) {
+    this.selectiveTarget = new THREE.WebGLRenderTarget(1, 1, {
+      type: THREE.HalfFloatType,
+      depthBuffer: true,
+      stencilBuffer: false
     });
+    this.selectiveTarget.texture.name = "Prometheus.selective-text-bloom";
+    this.scratchTarget = this.selectiveTarget.clone();
+    this.scratchTarget.texture.name = "Prometheus.selective-text-bloom.scratch";
+    this.bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(1, 1),
+      config.bloomStrength,
+      config.bloomRadius,
+      config.bloomThreshold
+    );
+    this.compositePass = new ShaderPass(TEXT_BLOOM_COMPOSITE_SHADER) as ShaderPassLike;
+    this.compositePass.clear = false;
+    this.compositePass.material.blending = THREE.AdditiveBlending;
+    this.compositePass.material.transparent = true;
+    this.compositePass.material.depthTest = false;
+    this.compositePass.material.depthWrite = false;
+  }
+
+  updateConfig(config: PostProcessConfig): void {
+    this.bloomPass.strength = config.bloomStrength ?? this.bloomPass.strength;
+    this.bloomPass.radius = config.bloomRadius ?? this.bloomPass.radius;
+    this.bloomPass.threshold = config.bloomThreshold ?? this.bloomPass.threshold;
+  }
+
+  setSize(width: number, height: number): void {
+    this.selectiveTarget.setSize(width, height);
+    this.scratchTarget.setSize(width, height);
+    this.bloomPass.setSize(width, height);
+  }
+
+  render(
+    renderer: THREE.WebGLRenderer,
+    _writeBuffer: THREE.WebGLRenderTarget,
+    readBuffer: THREE.WebGLRenderTarget,
+    deltaTime: number,
+    maskActive: boolean
+  ): void {
+    const oldRenderTarget = renderer.getRenderTarget();
+    const oldAutoClear = renderer.autoClear;
+    const oldClearAlpha = renderer.getClearAlpha();
+    const oldCameraLayerMask = this.camera.layers.mask;
+
+    renderer.getClearColor(this.oldClearColor);
+    renderer.autoClear = false;
+    renderer.setClearColor(0x000000, 0);
+    renderer.setRenderTarget(this.selectiveTarget);
+    renderer.clear(true, true, true);
+
+    this.camera.layers.set(this.textLayer);
+    renderer.render(this.scene, this.camera);
+    this.camera.layers.mask = oldCameraLayerMask;
+
+    this.bloomPass.renderToScreen = false;
+    this.bloomPass.render(renderer, this.scratchTarget, this.selectiveTarget, deltaTime, maskActive);
+
+    this.compositePass.renderToScreen = false;
+    this.compositePass.render(renderer, readBuffer, this.selectiveTarget, deltaTime, maskActive);
+
+    renderer.setRenderTarget(oldRenderTarget);
+    renderer.setClearColor(this.oldClearColor, oldClearAlpha);
+    renderer.autoClear = oldAutoClear;
+  }
+
+  dispose(): void {
+    this.bloomPass.dispose();
+    this.compositePass.dispose();
+    this.selectiveTarget.dispose();
+    this.scratchTarget.dispose();
   }
 }
 
-class TemporalMotionBlurEffect extends Effect {
-  private history: Texture | null = null;
-
-  constructor() {
-    super("TemporalMotionBlurEffect", MOTION_BLUR_FRAGMENT, {
-      blendFunction: BlendFunction.NORMAL,
-      uniforms: new Map([["tHistory", new Uniform<Texture | null>(null)]])
-    });
-  }
-
-  update(_renderer: WebGLRenderer, inputBuffer: WebGLRenderTarget): void {
-    this.history = inputBuffer.texture;
-    const uniform = this.uniforms.get("tHistory");
-    if (uniform) {
-      uniform.value = this.history;
-    }
-  }
-}
-
-const ChromaticAberrationEffect = wrapEffect(RadialChromaticAberrationEffect);
-const MotionBlurEffect = wrapEffect(TemporalMotionBlurEffect);
-
-const chromaticEnabled = (value: boolean | number | undefined): boolean =>
-  typeof value === "number" ? value > 0 : Boolean(value);
+const chromaticAmount = (value: boolean | number | undefined): number =>
+  typeof value === "number" ? Math.max(0, value) : value ? 0.003 : 0;
 
 export const shouldRenderPostProcessing = (config: PostProcessConfig): boolean =>
-  Boolean(config.bloom || config.motionBlur || chromaticEnabled(config.chromaticAberration));
+  Boolean(config.bloom || config.motionBlur || chromaticAmount(config.chromaticAberration) > 0);
 
 export const postProcessConfigFromManifest = (manifest: RenderManifest): PostProcessConfig => ({
   bloom: manifest.bloomEnabled,
+  bloomStrength: manifest.bloomStrength,
+  bloomRadius: manifest.bloomRadius,
+  bloomThreshold: manifest.bloomThreshold,
   chromaticAberration: manifest.chromaticAberrationEnabled ? manifest.chromaticAberrationOffset : 0,
   motionBlur: manifest.motionBlurEnabled,
   resolutionScale: manifest.motionBlurEnabled ? 0.5 : 1
 });
 
-export const PostProcessingPipeline = memo(function PostProcessingPipeline({
+export function createPostProcessingPasses({
+  scene,
+  camera,
+  size,
   config
 }: {
+  scene: THREE.Scene;
+  camera: THREE.Camera;
+  size: {width: number; height: number};
   config: PostProcessConfig;
-}) {
-  const resolutionScale = config.resolutionScale ?? 1;
-  const enabled = useMemo(() => shouldRenderPostProcessing(config), [config]);
-
-  if (!enabled) {
-    return null;
+}): {
+  renderPass: RenderPass;
+  selectiveBloomPass: SelectiveBloomPass | null;
+  chromaticPass: ShaderPassLike | null;
+  outputPass: ShaderPassLike | null;
+  passes: unknown[];
+} {
+  const renderPass = new RenderPass(scene, camera);
+  const passes: unknown[] = [renderPass];
+  const bloomLayer = config.bloomLayer ?? 1;
+  const selectiveBloomPass = config.bloom
+    ? new SelectiveBloomPass(scene, camera, bloomLayer, {
+        bloomStrength: config.bloomStrength ?? 1.5,
+        bloomRadius: config.bloomRadius ?? 0.4,
+        bloomThreshold: config.bloomThreshold ?? 0.8
+      })
+    : null;
+  if (selectiveBloomPass) {
+    selectiveBloomPass.setSize(size.width, size.height);
+    passes.push(selectiveBloomPass);
   }
 
-  return (
-    <EffectComposer multisampling={0} resolutionScale={resolutionScale}>
-      {config.bloom && (
-        <Bloom
-          intensity={1.5}
-          luminanceThreshold={0.8}
-          luminanceSmoothing={0.1}
-          mipmapBlur
-        />
-      )}
-      {chromaticEnabled(config.chromaticAberration) && <ChromaticAberrationEffect />}
-      {config.motionBlur && <MotionBlurEffect />}
-    </EffectComposer>
-  );
-});
+  const amount = chromaticAmount(config.chromaticAberration);
+  const chromaticPass = amount > 0
+    ? new ShaderPass(CHROMATIC_ABERRATION_SHADER) as ShaderPassLike
+    : null;
+  if (chromaticPass) {
+    setShaderUniform(chromaticPass, "amount", amount);
+    passes.push(chromaticPass);
+  }
+
+  const outputPass = selectiveBloomPass && !chromaticPass
+    ? new ShaderPass(IDENTITY_SHADER) as ShaderPassLike
+    : null;
+  if (outputPass) {
+    passes.push(outputPass);
+  }
+
+  return {renderPass, selectiveBloomPass, chromaticPass, outputPass, passes};
+}
+
+export function PostProcessingPipeline({config}: {config: PostProcessConfig}) {
+  const {gl, scene, camera, size} = useThree();
+  const {fps} = useVideoConfig();
+  const enabled = useMemo(() => shouldRenderPostProcessing(config), [config]);
+  const composerRef = useRef<EffectComposer | null>(null);
+  const passesRef = useRef<ReturnType<typeof createPostProcessingPasses> | null>(null);
+  const resolutionScale = config.resolutionScale ?? 1;
+
+  useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
+    const composer = new EffectComposer(gl);
+    const scaledSize = {
+      width: Math.max(1, Math.floor(size.width * resolutionScale)),
+      height: Math.max(1, Math.floor(size.height * resolutionScale))
+    };
+    composer.setPixelRatio(gl.getPixelRatio());
+    composer.setSize(scaledSize.width, scaledSize.height);
+
+    const passState = createPostProcessingPasses({
+      scene,
+      camera,
+      size: scaledSize,
+      config
+    });
+    for (const pass of passState.passes) {
+      composer.addPass(pass);
+    }
+
+    composerRef.current = composer;
+    passesRef.current = passState;
+
+    return () => {
+      passesRef.current?.selectiveBloomPass?.dispose();
+      passesRef.current?.chromaticPass?.dispose();
+      passesRef.current?.outputPass?.dispose();
+      composer.dispose();
+      if (composerRef.current === composer) {
+        composerRef.current = null;
+      }
+      if (passesRef.current === passState) {
+        passesRef.current = null;
+      }
+    };
+  }, [camera, enabled, gl, scene]);
+
+  useEffect(() => {
+    const composer = composerRef.current;
+    if (!composer) {
+      return;
+    }
+
+    const width = Math.max(1, Math.floor(size.width * resolutionScale));
+    const height = Math.max(1, Math.floor(size.height * resolutionScale));
+    composer.setPixelRatio(gl.getPixelRatio());
+    composer.setSize(width, height);
+  }, [gl, resolutionScale, size.height, size.width]);
+
+  useEffect(() => {
+    const passState = passesRef.current;
+    if (!passState) {
+      return;
+    }
+
+    passState.selectiveBloomPass?.updateConfig(config);
+    if (passState.chromaticPass) {
+      setShaderUniform(
+        passState.chromaticPass,
+        "amount",
+        chromaticAmount(config.chromaticAberration)
+      );
+    }
+  }, [config]);
+
+  useFrame(() => {
+    composerRef.current?.render(1 / Math.max(fps, 1));
+  }, 1);
+
+  return null;
+}
