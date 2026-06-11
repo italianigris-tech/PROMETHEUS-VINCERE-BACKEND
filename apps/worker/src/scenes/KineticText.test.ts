@@ -1,9 +1,17 @@
 import {describe, expect, it} from "vitest";
+import gsap from "gsap";
+import {readFileSync} from "node:fs";
+import {dirname, join} from "node:path";
+import {fileURLToPath} from "node:url";
+import * as THREE from "three";
 
+import {getRenderEngineConfig} from "../types/render-engine.js";
 import {
   KINETIC_TEXT_MEASUREMENT_TIMEOUT_MS,
+  applyFakeChromeEnvironment,
   buildWordLayout,
-  chunkTextByColorRanges,
+  createBakedHighlightMap,
+  shouldUseChromeText,
   splitMotionTweenVars
 } from "./KineticText.js";
 
@@ -26,6 +34,40 @@ describe("splitMotionTweenVars", () => {
       scale: {x: 2, y: 2, z: 2},
       rotation: {z: Math.PI}
     });
+  });
+
+  it("drives opacity tweens through MeshBasicMaterial rather than Vector3 position", () => {
+    const position = new THREE.Vector3(0, 0, 24);
+    const material = new THREE.MeshBasicMaterial({
+      transparent: true,
+      opacity: 1
+    });
+    const fromTracks = splitMotionTweenVars({opacity: 0, z: 24});
+    const toTracks = splitMotionTweenVars({
+      opacity: 1,
+      z: 0,
+      duration: 1,
+      ease: "none"
+    });
+    const timeline = gsap.timeline({paused: true});
+
+    timeline.fromTo(position, fromTracks.position, {
+      ...toTracks.position,
+      ...toTracks.common
+    }, 0);
+    timeline.fromTo(material, fromTracks.material, {
+      ...toTracks.material,
+      ...toTracks.common
+    }, 0);
+
+    timeline.seek(0.5, false);
+
+    expect(Object.prototype.hasOwnProperty.call(position, "opacity")).toBe(false);
+    expect(position.z).toBeCloseTo(12);
+    expect(material.opacity).toBeCloseTo(0.5);
+
+    timeline.kill();
+    material.dispose();
   });
 
   it("keeps the Troika measurement refinement bounded for Remotion renders", () => {
@@ -76,19 +118,53 @@ describe("buildWordLayout", () => {
   });
 });
 
-describe("chunkTextByColorRanges", () => {
-  it("preserves readable text while splitting color-tagged ranges for canvas rendering", () => {
-    expect(chunkTextByColorRanges("BOLDRED", [
-      {start: 4, end: 7, color: "#ff0000"}
-    ], "#ffffff")).toEqual([
-      {text: "BOLD", color: "#ffffff"},
-      {text: "RED", color: "#ff0000"}
-    ]);
+describe("KineticText render engine toggles", () => {
+  it("upgrades legacy text render mode requests to Troika glyph rendering", () => {
+    expect(getRenderEngineConfig({textRenderMode: "canvas-raster"}).renderMode).toBe("troika-glyph");
   });
 
-  it("returns one fallback-colored chunk when no ranges are present", () => {
-    expect(chunkTextByColorRanges("REGENERATE", [], "#f8fbff")).toEqual([
-      {text: "REGENERATE", color: "#f8fbff"}
-    ]);
+  it("keeps text rasterization out of the kinetic text scene", () => {
+    const sourcePath = join(dirname(fileURLToPath(import.meta.url)), "KineticText.tsx");
+    const source = readFileSync(sourcePath, "utf8");
+
+    expect(source.toLowerCase()).not.toContain("canvas");
+  });
+
+  it("toggles chrome text through manifest config", () => {
+    expect(shouldUseChromeText({chrome: true, envMapIntensity: 0})).toBe(true);
+    expect(shouldUseChromeText({chrome: false, envMapIntensity: 0})).toBe(false);
+  });
+
+  it("injects a fake chrome environment lookup into MeshBasicMaterial", () => {
+    const material = new THREE.MeshBasicMaterial();
+    const ramp = createBakedHighlightMap(["#111111", "#ffffff"], true);
+    const shader = {
+      vertexShader: [
+        "void main() {",
+        "#include <beginnormal_vertex>",
+        "#include <begin_vertex>",
+        "#include <worldpos_vertex>",
+        "}"
+      ].join("\n"),
+      fragmentShader: [
+        "void main() {",
+        "#include <map_fragment>",
+        "}"
+      ].join("\n"),
+      uniforms: {} as Record<string, THREE.IUniform>
+    };
+
+    applyFakeChromeEnvironment(material, ramp, 1);
+    material.onBeforeCompile(
+      shader as Parameters<THREE.MeshBasicMaterial["onBeforeCompile"]>[0],
+      {} as THREE.WebGLRenderer
+    );
+
+    expect(shader.uniforms).toHaveProperty("uChromeRamp");
+    expect(shader.vertexShader).toContain("vChromeViewDir");
+    expect(shader.fragmentShader).toContain("texture2D(uChromeRamp");
+
+    ramp.dispose();
+    material.dispose();
   });
 });

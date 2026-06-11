@@ -299,7 +299,7 @@ export const HyperframesPreview: React.FC<HyperframesPreviewProps> = ({
   const {fps} = useVideoConfig();
   const validatedManifest = useMemo(() => validateManifestForPreview(manifest), [manifest]);
   const videoMetadata = useMemo(() => {
-    const durationMs = validatedManifest.baseVideo.durationMs;
+    const durationMs = validatedManifest.baseVideo.durationMs ?? displayTimeline.baseVideo.durationMs;
     const durationSeconds = Math.max(1, durationMs / 1000);
     const manifestFps = validatedManifest.baseVideo.fps ?? displayTimeline.baseVideo.fps;
     return {

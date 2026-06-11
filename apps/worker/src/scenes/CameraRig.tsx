@@ -9,6 +9,11 @@ import {create} from "zustand";
 type CameraKeyframe = RenderManifest["cameraKeyframes"][number];
 type MatteSafeZone = RenderManifest["matteSafeZone"];
 type VectorLike = {x: number; y: number; z: number};
+export type CameraDirectiveSegment = {
+  directive: CameraDirective;
+  startMs: number;
+  endMs: number;
+};
 
 const staticCameraKeyframes: CameraKeyframe[] = [
   {position: {x: 0, y: 0, z: 50}, lookAt: {x: 0, y: 0, z: 0}, roll: 0},
@@ -70,6 +75,23 @@ const findCurrentBeat = (t: number, emotionalArc: readonly EmotionalBeat[]): Emo
   return null;
 };
 
+const smoothProgress = (value: number): number => {
+  const t = THREE.MathUtils.clamp(value, 0, 1);
+  return t * t * (3 - 2 * t);
+};
+
+export const collectCameraDirectiveSegments = (
+  emotionalArc: readonly EmotionalBeat[] = []
+): CameraDirectiveSegment[] =>
+  emotionalArc.flatMap((beat) => beat.cameraDirective
+    ? [{
+        directive: beat.cameraDirective,
+        startMs: beat.timestamp[0],
+        endMs: beat.timestamp[1]
+      }]
+    : []
+  );
+
 export const sampleCameraDirectiveOffset = (
   directive: CameraDirective,
   t: number
@@ -97,6 +119,58 @@ export const sampleCameraDirectiveOffset = (
   }
 };
 
+const sampleCameraDirectiveTargetOffset = (
+  directive: CameraDirective,
+  t: number,
+  basePoint: THREE.Vector3
+): THREE.Vector3 => {
+  switch (directive.type) {
+    case "snap": {
+      return directive.target
+        ? new THREE.Vector3(directive.target[0], directive.target[1], directive.target[2]).sub(basePoint)
+        : new THREE.Vector3();
+    }
+    case "orbit": {
+      const intensity = Math.max(0, Math.min(1, directive.intensity));
+      const orbitRadius = 400 * intensity;
+      const orbitSpeed = intensity * 0.8;
+      const angle = t * orbitSpeed;
+      return new THREE.Vector3(
+        Math.sin(angle) * orbitRadius,
+        basePoint.y,
+        Math.cos(angle) * orbitRadius + 500
+      ).sub(basePoint);
+    }
+    case "hold":
+      return new THREE.Vector3();
+    default:
+      return sampleCameraDirectiveOffset(directive, t);
+  }
+};
+
+export const sampleBlendedCameraDirectiveOffset = (
+  segments: readonly CameraDirectiveSegment[],
+  currentTime: number,
+  basePoint: THREE.Vector3
+): THREE.Vector3 => {
+  const currentMs = currentTime * 1000;
+  const blendedOffset = new THREE.Vector3();
+
+  for (const segment of segments) {
+    if (currentMs < segment.startMs) {
+      continue;
+    }
+
+    const durationMs = Math.max(1, segment.endMs - segment.startMs);
+    const progress = smoothProgress((currentMs - segment.startMs) / durationMs);
+    const sampleTime = Math.min(currentTime, segment.endMs / 1000);
+    const targetOffset = sampleCameraDirectiveTargetOffset(segment.directive, sampleTime, basePoint);
+    blendedOffset.addScaledVector(targetOffset, progress);
+  }
+
+  return blendedOffset;
+};
+
 /**
  * Applies camera directive modifications to a target point BEFORE it is copied to the camera.
  * This prevents the overwrite bug where curve interpolation would clobber directive modifications.
@@ -120,33 +194,17 @@ const applyCameraDirective = (
   void fps;
 
   switch (directive.type) {
-    case "push-in": {
-      point.z += sampleCameraDirectiveOffset(directive, t).z;
+    case "push-in":
+    case "pull-out":
+    case "drift":
       break;
-    }
-    case "pull-out": {
-      point.z += sampleCameraDirectiveOffset(directive, t).z;
-      break;
-    }
     case "orbit": {
-      const orbitRadius = 400 * intensity;
-      const orbitSpeed = intensity * 0.8;
-      const angle = t * orbitSpeed;
-      point.x = Math.sin(angle) * orbitRadius;
-      point.z = Math.cos(angle) * orbitRadius + 500;
       if (directive.target) {
         camera.lookAt(directive.target[0], directive.target[1], directive.target[2]);
       }
       break;
     }
-    case "drift": {
-      point.add(sampleCameraDirectiveOffset(directive, t));
-      break;
-    }
     case "snap": {
-      if (directive.target) {
-        point.set(directive.target[0], directive.target[1], directive.target[2]);
-      }
       break;
     }
     case "hold": {
@@ -174,6 +232,10 @@ export function CameraRig({manifest}: {manifest: RenderManifest}) {
   const prevRotation = useRef(new THREE.Euler());
   const velocity = useRef(new THREE.Vector3());
   const keyframes = useMemo(() => normalizeCameraKeyframes(manifest.cameraKeyframes), [manifest.cameraKeyframes]);
+  const directiveSegments = useMemo(
+    () => collectCameraDirectiveSegments(manifest.directorialMetadata?.emotionalArc ?? []),
+    [manifest.directorialMetadata]
+  );
   const curve = useMemo(() => {
     const points = keyframes.map((kf) => new THREE.Vector3(kf.position.x, kf.position.y, kf.position.z));
     return new THREE.CatmullRomCurve3(points);
@@ -245,13 +307,14 @@ export function CameraRig({manifest}: {manifest: RenderManifest}) {
       totalRoll += bankAngle * manifest.autoRollIntensity;
     }
 
-    // Apply camera directive from directorialMetadata BEFORE copying point to camera
-    // This fixes the overwrite bug: directives modify `point`, then we copy once.
-    const meta = manifest.directorialMetadata;
-    if (meta?.emotionalArc) {
-      const currentBeat = findCurrentBeat(currentTime, meta.emotionalArc);
-      if (currentBeat?.cameraDirective) {
-        applyCameraDirective(point, camera, currentBeat.cameraDirective, currentTime, fps, totalRoll);
+    if (directiveSegments.length > 0) {
+      point.add(sampleBlendedCameraDirectiveOffset(directiveSegments, currentTime, point));
+
+      const currentMs = currentTime * 1000;
+      for (const segment of directiveSegments) {
+        if (currentMs >= segment.startMs && currentMs < segment.endMs) {
+          applyCameraDirective(point, camera, segment.directive, currentTime, fps, totalRoll);
+        }
       }
     }
 

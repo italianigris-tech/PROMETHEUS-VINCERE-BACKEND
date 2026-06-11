@@ -253,6 +253,27 @@ export type MotionTransformValue = {
   blurPx: number;
   reveal: number;
 };
+export type ReferenceMotionSample = {
+  frame: number;
+  translateX: number;
+  translateY: number;
+  scale: number;
+  rotateDeg: number;
+  depth: number;
+  opacity: number;
+  blurPx?: number;
+  velocityX?: number;
+  velocityY?: number;
+};
+export type ReferenceMotionTargetTrace = {
+  targetId: string;
+  samples: ReferenceMotionSample[];
+};
+export type ReferenceMotionTrace = {
+  id: string;
+  fps: number;
+  targetTraces: ReferenceMotionTargetTrace[];
+};
 export type MotionTimelineInstruction = {
   id: string;
   targetId: string;

@@ -36,6 +36,10 @@ import {
   selectActiveMotionChoreographySceneAtTime
 } from "../lib/motion-platform/choreography-planner";
 import {
+  mixReferenceMotionIntoCssTransform,
+  resolveReferenceMotionAtFrame
+} from "../lib/reference-motion-trace";
+import {
   getZoomTimingFamilyDefinition,
   type ZoomEaseId
 } from "../lib/motion-platform/zoom-timing";
@@ -265,9 +269,11 @@ const MotionAssetItem: React.FC<{
   asset: MotionAssetManifest;
   scene: ResolvedMotionScene;
   currentTimeMs: number;
+  frame: number;
   fps: number;
   choreographyTransform?: MotionTransformValue | null;
-}> = ({asset, scene, currentTimeMs, fps, choreographyTransform}) => {
+  model: MotionCompositionModel;
+}> = ({asset, scene, currentTimeMs, frame, fps, choreographyTransform, model}) => {
   if (!shouldRenderPreviewOverlayAsset(asset)) {
     return null;
   }
@@ -297,18 +303,26 @@ const MotionAssetItem: React.FC<{
   const resolvedTransform = choreographyTransform
     ? `translate3d(${choreographyTransform.translateX.toFixed(2)}px, ${choreographyTransform.translateY.toFixed(2)}px, 0) scale(${(choreographyTransform.scale * choreographyScaleBoost).toFixed(3)}) rotate(${choreographyTransform.rotateDeg.toFixed(3)}deg)`
     : `translate3d(${translateX}px, ${translateY}px, 0) scale(${lerp(0.985, 1.01, blendedProgress)})`;
+  const referenceMotion = resolveReferenceMotionAtFrame({
+    trace: model.referenceMotionTrace,
+    targetId: asset.id,
+    frame,
+    fps
+  });
   const resolvedFilter = choreographyTransform
-    ? `${asset.family === "flare" ? "blur(2px) " : ""}blur(${choreographyTransform.blurPx.toFixed(2)}px)`.trim()
+    ? `${asset.family === "flare" ? "blur(2px) " : ""}blur(${(choreographyTransform.blurPx + (referenceMotion?.blurPx ?? 0)).toFixed(2)}px)`.trim()
     : asset.family === "flare"
       ? "blur(2px)"
-      : undefined;
+      : referenceMotion && referenceMotion.blurPx > 0
+        ? `blur(${referenceMotion.blurPx.toFixed(2)}px)`
+        : undefined;
 
   return (
     <div
       style={{
         ...getPlacementStyle(asset),
-        opacity: resolvedOpacity,
-        transform: resolvedTransform,
+        opacity: resolvedOpacity * (referenceMotion?.opacity ?? 1),
+        transform: mixReferenceMotionIntoCssTransform(resolvedTransform, referenceMotion),
         mixBlendMode: asset.blendMode as CSSProperties["mixBlendMode"],
         filter: resolvedFilter,
         clipPath,
@@ -331,18 +345,22 @@ const MotionGraphicsDecisionItem: React.FC<{
   decision: MotionGraphicsDecision;
   selectedAsset: MotionGraphicsDecisionAsset;
   currentTimeMs: number;
+  frame: number;
   fps: number;
   outputWidth: number;
   outputHeight: number;
   stabilizePreviewTimeline: boolean;
+  model: MotionCompositionModel;
 }> = ({
   decision,
   selectedAsset,
   currentTimeMs,
+  frame,
   fps,
   outputWidth,
   outputHeight,
-  stabilizePreviewTimeline
+  stabilizePreviewTimeline,
+  model
 }) => {
   if (!selectedAsset.asset) {
     return null;
@@ -367,16 +385,26 @@ const MotionGraphicsDecisionItem: React.FC<{
 
   const resolvedWidth = (placement.widthPercent / 100) * outputWidth;
   const resolvedHeight = (placement.heightPercent / 100) * outputHeight;
+  const referenceMotion = resolveReferenceMotionAtFrame({
+    trace: model.referenceMotionTrace,
+    targetId: selectedAsset.assetId,
+    frame,
+    fps
+  });
   const containerStyle: CSSProperties = {
     position: "absolute",
     left: `${placement.leftPercent}%`,
     top: `${placement.topPercent}%`,
     width: resolvedWidth,
     height: resolvedHeight,
-    transform: `translate3d(calc(-50% + ${visibility.translateX.toFixed(2)}px), calc(-50% + ${visibility.translateY.toFixed(2)}px), 0) scale(${visibility.scale.toFixed(3)}) rotate(${(selectedAsset.rotation ?? 0).toFixed(3)}deg)`,
+    transform: mixReferenceMotionIntoCssTransform(
+      `translate3d(calc(-50% + ${visibility.translateX.toFixed(2)}px), calc(-50% + ${visibility.translateY.toFixed(2)}px), 0) scale(${visibility.scale.toFixed(3)}) rotate(${(selectedAsset.rotation ?? 0).toFixed(3)}deg)`,
+      referenceMotion
+    ),
     transformOrigin: "center center",
-    opacity: visibility.opacity,
+    opacity: visibility.opacity * (referenceMotion?.opacity ?? 1),
     mixBlendMode: (selectedAsset.blendMode ?? asset.blendMode) as CSSProperties["mixBlendMode"],
+    filter: referenceMotion && referenceMotion.blurPx > 0 ? `blur(${referenceMotion.blurPx.toFixed(2)}px)` : undefined,
     pointerEvents: "none",
     zIndex: resolveMotionDecisionZIndex(selectedAsset.role)
   };
@@ -691,10 +719,12 @@ export const MotionAssetOverlay: React.FC<MotionGraphicsEngineProps> = ({
           decision={activeMotionGraphicsDecision as MotionGraphicsDecision}
           selectedAsset={selectedAsset}
           currentTimeMs={currentTimeMs}
+          frame={stableFrame}
           fps={fps}
           outputWidth={width}
           outputHeight={height}
           stabilizePreviewTimeline={stabilizePreviewTimeline}
+          model={model}
         />
       ))}
       {renderLegacyAssets ? activeScene.assets.map((asset) => {
@@ -708,8 +738,10 @@ export const MotionAssetOverlay: React.FC<MotionGraphicsEngineProps> = ({
             asset={asset}
             scene={activeScene}
             currentTimeMs={currentTimeMs}
+            frame={stableFrame}
             fps={fps}
             choreographyTransform={binding ? choreographyState?.targetTransforms[binding.targetId] ?? null : null}
+            model={model}
           />
         );
       }) : null}

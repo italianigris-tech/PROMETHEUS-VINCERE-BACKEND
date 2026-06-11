@@ -179,6 +179,7 @@ export const renderManifestSchema = z.object({
   bevelThickness: z.number().optional().default(0.02),
   gradientColors: z.array(z.string()).optional().default(["#ffffff"]),
   envMapIntensity: z.number().optional().default(0),
+  chrome: z.boolean().optional().default(false),
   cameraKeyframes: z.array(cameraKeyframeSchema).optional().default([
     {position: {x: 0, y: 0, z: 50}, lookAt: {x: 0, y: 0, z: 0}, roll: 0},
     {position: {x: 0, y: 0, z: 5}, lookAt: {x: 0, y: 0, z: 0}, roll: 0},

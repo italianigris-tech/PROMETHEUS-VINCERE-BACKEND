@@ -1,6 +1,7 @@
 import * as THREE from "three";
 
 export type DeformationType = "explode" | "wave" | "ripple" | "shatter" | "none";
+export type TextDeformationType = DeformationType;
 
 export type DeformationConfig = {
   type: DeformationType;
@@ -9,6 +10,7 @@ export type DeformationConfig = {
   frequency?: number;
   seed?: number;
 };
+export type TextDeformationConfig = DeformationConfig;
 
 export type DeformationShader = {
   vertexShader: string;
@@ -45,7 +47,7 @@ const typeToInt = (type: DeformationType): number => {
 };
 
 const DEFORMATION_GLSL = `
-uniform int uDeformType;
+uniform int uDeformationType;
 uniform float uTime;
 uniform float uIntensity;
 uniform float uSpeed;
@@ -57,31 +59,31 @@ float deformRand(vec2 co) {
 }
 
 vec3 applyGlyphLocalDeformation(vec3 localPosition, vec3 localNormal, float glyphIndex) {
-  if (uDeformType == 0 || uIntensity <= 0.0) {
+  if (uDeformationType == 0 || uIntensity <= 0.0) {
     return localPosition;
   }
 
   float t = uTime * uSpeed;
   float glyphSeed = deformRand(vec2(glyphIndex, uSeed));
 
-  if (uDeformType == 1) {
+  if (uDeformationType == 1) {
     vec3 direction = normalize(localPosition + vec3(0.001));
     float pulse = 0.65 + 0.35 * sin(t * 3.0 + glyphSeed * 6.2831853);
     return localPosition + direction * uIntensity * pulse;
   }
 
-  if (uDeformType == 2) {
+  if (uDeformationType == 2) {
     float wave = sin(localPosition.x * uFrequency + t + glyphIndex * 0.23);
     return localPosition + vec3(0.0, wave * uIntensity * 0.35, 0.0);
   }
 
-  if (uDeformType == 3) {
+  if (uDeformationType == 3) {
     float distanceFromCenter = length(localPosition.xy);
     float ripple = sin(distanceFromCenter * uFrequency * 5.0 - t * 3.0);
     return localPosition + localNormal * ripple * uIntensity * 0.3;
   }
 
-  if (uDeformType == 4) {
+  if (uDeformationType == 4) {
     vec3 offset = vec3(
       sin(glyphSeed * 6.2831853),
       cos(glyphSeed * 6.2831853),
@@ -110,7 +112,7 @@ export const injectVertexDeformation = (
   material.onBeforeCompile = ((shader: DeformationShader, renderer: THREE.WebGLRenderer) => {
     baseOnBeforeCompile.call(material, shader, renderer);
 
-    shader.uniforms.uDeformType = {value: typeToInt(config.type)};
+    shader.uniforms.uDeformationType = {value: typeToInt(config.type)};
     shader.uniforms.uTime = {value: 0};
     shader.uniforms.uIntensity = {value: intensity};
     shader.uniforms.uSpeed = {value: config.speed ?? 1};

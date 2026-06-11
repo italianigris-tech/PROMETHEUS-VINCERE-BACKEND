@@ -25,7 +25,8 @@ import type {
   VideoMetadata,
   TransitionPreset,
   TransitionOverlayMode,
-  MotionCompositionCombatPlan
+  MotionCompositionCombatPlan,
+  ReferenceMotionTrace
 } from "../types";
 import {getMotionAssetCatalog} from "./asset-catalog";
 import {resolveMotionAssets} from "./asset-manifests";
@@ -94,6 +95,7 @@ export type MotionCompositionModel = {
   motion3DPlan: Motion3DPlan;
   motion3DConfig: Motion3DConfig;
   soundDesignPlan: ReturnType<typeof buildMotionSoundDesignPlan>;
+  referenceMotionTrace?: ReferenceMotionTrace | null;
   patternMemory?: {
     fingerprint: string;
     summary: Record<string, unknown>;
@@ -575,7 +577,8 @@ export const buildMotionCompositionModel = ({
   transitionOverlayMode = "off",
   transitionOverlayConfig,
   motion3DMode = "off",
-  motion3DConfig
+  motion3DConfig,
+  referenceMotionTrace = null
 }: {
   chunks: CaptionChunk[];
   tier?: MotionTier | "auto";
@@ -594,6 +597,7 @@ export const buildMotionCompositionModel = ({
   transitionOverlayConfig?: Partial<TransitionOverlayRules>;
   motion3DMode?: Motion3DMode;
   motion3DConfig?: Partial<Motion3DConfig>;
+  referenceMotionTrace?: ReferenceMotionTrace | null;
 }): MotionCompositionModel => {
   const resolvedVideoMetadata: Pick<VideoMetadata, "width" | "height" | "fps" | "durationSeconds" | "durationInFrames"> =
     videoMetadata ?? {
@@ -797,6 +801,7 @@ export const buildMotionCompositionModel = ({
     motion3DPlan: finalizedMotion3DPlan,
     motion3DConfig: resolvedMotion3DConfig,
     soundDesignPlan,
+    referenceMotionTrace,
     patternMemory: governedCoreModel.patternMemory
   };
 };

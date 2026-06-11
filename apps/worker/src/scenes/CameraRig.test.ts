@@ -1,7 +1,10 @@
 import {describe, expect, it} from "vitest";
+import * as THREE from "three";
 
 import {
   clampLookAtToSafeZone,
+  collectCameraDirectiveSegments,
+  sampleBlendedCameraDirectiveOffset,
   normalizeCameraKeyframes,
   rollCameraUpVector,
   sampleCameraDirectiveOffset,
@@ -60,5 +63,88 @@ describe("CameraRig helpers", () => {
 
     expect(second.toArray()).toEqual(first.toArray());
     expect(later.toArray()).not.toEqual(first.toArray());
+  });
+
+  it("blends sequential camera directives into a continuous accumulated offset", () => {
+    const emotionalArc = [
+      {
+        id: "push",
+        timestamp: [0, 1000] as [number, number],
+        emotion: "tension" as const,
+        intensity: 1,
+        motionVocabulary: ["pressure"],
+        cameraDirective: {
+          type: "push-in" as const,
+          target: null,
+          intensity: 1,
+          overshoot: 0,
+          coupling: "tight" as const
+        },
+        why: "build pressure"
+      },
+      {
+        id: "pull",
+        timestamp: [1000, 2000] as [number, number],
+        emotion: "release" as const,
+        intensity: 1,
+        motionVocabulary: ["release"],
+        cameraDirective: {
+          type: "pull-out" as const,
+          target: null,
+          intensity: 0.5,
+          overshoot: 0,
+          coupling: "loose" as const
+        },
+        why: "release pressure"
+      }
+    ];
+
+    const segments = collectCameraDirectiveSegments(emotionalArc);
+    const beforeBoundary = sampleBlendedCameraDirectiveOffset(segments, 0.99, new THREE.Vector3());
+    const afterBoundary = sampleBlendedCameraDirectiveOffset(segments, 1.01, new THREE.Vector3());
+    const settled = sampleBlendedCameraDirectiveOffset(segments, 2, new THREE.Vector3());
+
+    expect(Math.abs(afterBoundary.z - beforeBoundary.z)).toBeLessThan(0.01);
+    expect(settled.z).toBeCloseTo(-2);
+  });
+
+  it("adds overlapping directive contributions instead of overwriting them", () => {
+    const segments = collectCameraDirectiveSegments([
+      {
+        id: "push",
+        timestamp: [0, 1000],
+        emotion: "tension",
+        intensity: 1,
+        motionVocabulary: ["pressure"],
+        cameraDirective: {
+          type: "push-in",
+          target: null,
+          intensity: 1,
+          overshoot: 0,
+          coupling: "tight"
+        },
+        why: "z pressure"
+      },
+      {
+        id: "drift",
+        timestamp: [0, 1000],
+        emotion: "chaos",
+        intensity: 1,
+        motionVocabulary: ["drift"],
+        cameraDirective: {
+          type: "drift",
+          target: null,
+          intensity: 1,
+          overshoot: 0,
+          coupling: "loose"
+        },
+        why: "xy motion"
+      }
+    ]);
+
+    const blended = sampleBlendedCameraDirectiveOffset(segments, 0.5, new THREE.Vector3());
+
+    expect(blended.z).toBeLessThan(0);
+    expect(Math.abs(blended.x) + Math.abs(blended.y)).toBeGreaterThan(0);
   });
 });

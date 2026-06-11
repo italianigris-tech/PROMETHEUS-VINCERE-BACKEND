@@ -16,6 +16,9 @@ export type PostProcessConfig = {
   bloomLayer?: number;
   chromaticAberration?: boolean | number;
   motionBlur?: boolean;
+  motionBlurStrength?: number;
+  motionBlurSamples?: number;
+  motionBlurVelocity?: THREE.Vector2 | {x: number; y: number};
   resolutionScale?: number;
 };
 
@@ -53,6 +56,8 @@ const setShaderUniform = (
   }
 };
 
+const MOTION_BLUR_DEFAULT_SAMPLES = 8;
+
 export const CHROMATIC_ABERRATION_FRAGMENT = `
 uniform sampler2D tDiffuse;
 uniform float amount;
@@ -67,6 +72,30 @@ void main() {
   vec4 baseColor = texture2D(tDiffuse, vUv);
   float b = texture2D(tDiffuse, vUv - shift).b;
   gl_FragColor = vec4(r, baseColor.g, b, baseColor.a);
+}`;
+
+export const MOTION_BLUR_FRAGMENT = `
+uniform sampler2D tDiffuse;
+uniform vec2 velocity;
+uniform int sampleCount;
+varying vec2 vUv;
+
+const int MAX_MOTION_BLUR_SAMPLES = 16;
+
+void main() {
+  int count = clamp(sampleCount, 1, MAX_MOTION_BLUR_SAMPLES);
+  vec4 color = vec4(0.0);
+
+  for (int i = 0; i < MAX_MOTION_BLUR_SAMPLES; i++) {
+    if (i >= count) {
+      break;
+    }
+    float denom = float(max(count - 1, 1));
+    float centeredSample = float(i) / denom - 0.5;
+    color += texture2D(tDiffuse, vUv + velocity * centeredSample);
+  }
+
+  gl_FragColor = color / float(count);
 }`;
 
 export const SCREEN_QUAD_VERTEX = `
@@ -85,6 +114,17 @@ export const CHROMATIC_ABERRATION_SHADER = {
   },
   vertexShader: SCREEN_QUAD_VERTEX,
   fragmentShader: CHROMATIC_ABERRATION_FRAGMENT
+};
+
+export const MOTION_BLUR_SHADER = {
+  name: "PrometheusMotionBlurShader",
+  uniforms: {
+    tDiffuse: {value: null},
+    velocity: {value: new THREE.Vector2(0, 0)},
+    sampleCount: {value: MOTION_BLUR_DEFAULT_SAMPLES}
+  },
+  vertexShader: SCREEN_QUAD_VERTEX,
+  fragmentShader: MOTION_BLUR_FRAGMENT
 };
 
 export const TEXT_BLOOM_COMPOSITE_SHADER = {
@@ -216,6 +256,32 @@ class SelectiveBloomPass implements PassLike {
 const chromaticAmount = (value: boolean | number | undefined): number =>
   typeof value === "number" ? Math.max(0, value) : value ? 0.003 : 0;
 
+const motionBlurVelocity = (config: PostProcessConfig): THREE.Vector2 => {
+  const velocity = config.motionBlurVelocity;
+  if (velocity instanceof THREE.Vector2) {
+    return velocity;
+  }
+  return velocity ? new THREE.Vector2(velocity.x, velocity.y) : new THREE.Vector2(0, 0);
+};
+
+const setMotionBlurUniforms = (
+  pass: ShaderPassLike,
+  config: PostProcessConfig
+): void => {
+  const velocity = motionBlurVelocity(config);
+  const velocityUniform = pass.uniforms.velocity;
+  if (velocityUniform?.value instanceof THREE.Vector2) {
+    velocityUniform.value.copy(velocity);
+  } else if (velocityUniform) {
+    velocityUniform.value = velocity;
+  }
+  setShaderUniform(
+    pass,
+    "sampleCount",
+    Math.max(1, Math.min(16, Math.floor(config.motionBlurSamples ?? MOTION_BLUR_DEFAULT_SAMPLES)))
+  );
+};
+
 export const shouldRenderPostProcessing = (config: PostProcessConfig): boolean =>
   Boolean(config.bloom || config.motionBlur || chromaticAmount(config.chromaticAberration) > 0);
 
@@ -226,6 +292,7 @@ export const postProcessConfigFromManifest = (manifest: RenderManifest): PostPro
   bloomThreshold: manifest.bloomThreshold,
   chromaticAberration: manifest.chromaticAberrationEnabled ? manifest.chromaticAberrationOffset : 0,
   motionBlur: manifest.motionBlurEnabled,
+  motionBlurStrength: manifest.motionBlurStrength,
   resolutionScale: manifest.motionBlurEnabled ? 0.5 : 1
 });
 
@@ -243,6 +310,7 @@ export function createPostProcessingPasses({
   renderPass: RenderPass;
   selectiveBloomPass: SelectiveBloomPass | null;
   chromaticPass: ShaderPassLike | null;
+  motionBlurPass: ShaderPassLike | null;
   outputPass: ShaderPassLike | null;
   passes: unknown[];
 } {
@@ -270,14 +338,22 @@ export function createPostProcessingPasses({
     passes.push(chromaticPass);
   }
 
-  const outputPass = selectiveBloomPass && !chromaticPass
+  const motionBlurPass = config.motionBlur
+    ? new ShaderPass(MOTION_BLUR_SHADER) as ShaderPassLike
+    : null;
+  if (motionBlurPass) {
+    setMotionBlurUniforms(motionBlurPass, config);
+    passes.push(motionBlurPass);
+  }
+
+  const outputPass = selectiveBloomPass && !chromaticPass && !motionBlurPass
     ? new ShaderPass(IDENTITY_SHADER) as ShaderPassLike
     : null;
   if (outputPass) {
     passes.push(outputPass);
   }
 
-  return {renderPass, selectiveBloomPass, chromaticPass, outputPass, passes};
+  return {renderPass, selectiveBloomPass, chromaticPass, motionBlurPass, outputPass, passes};
 }
 
 export function PostProcessingPipeline({config}: {config: PostProcessConfig}) {
@@ -317,6 +393,7 @@ export function PostProcessingPipeline({config}: {config: PostProcessConfig}) {
     return () => {
       passesRef.current?.selectiveBloomPass?.dispose();
       passesRef.current?.chromaticPass?.dispose();
+      passesRef.current?.motionBlurPass?.dispose();
       passesRef.current?.outputPass?.dispose();
       composer.dispose();
       if (composerRef.current === composer) {
@@ -354,9 +431,18 @@ export function PostProcessingPipeline({config}: {config: PostProcessConfig}) {
         chromaticAmount(config.chromaticAberration)
       );
     }
+    if (passState.motionBlurPass) {
+      setMotionBlurUniforms(passState.motionBlurPass, config);
+    }
   }, [config]);
 
   useFrame(() => {
+    const passState = passesRef.current;
+    if (passState?.motionBlurPass) {
+      // The velocity uniform is updated every render tick so camera or glyph velocity
+      // can feed it later without rebuilding the composer.
+      setMotionBlurUniforms(passState.motionBlurPass, config);
+    }
     composerRef.current?.render(1 / Math.max(fps, 1));
   }, 1);
 

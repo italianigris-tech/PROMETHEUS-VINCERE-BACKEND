@@ -21,11 +21,19 @@ describe("PostProcessingPipeline", () => {
   });
 
   it("uses standalone Three ShaderPass shader sources", async () => {
-    const {CHROMATIC_ABERRATION_FRAGMENT, CHROMATIC_ABERRATION_SHADER} = await import("../post-processing.js");
+    const {
+      CHROMATIC_ABERRATION_FRAGMENT,
+      CHROMATIC_ABERRATION_SHADER,
+      MOTION_BLUR_FRAGMENT,
+      MOTION_BLUR_SHADER
+    } = await import("../post-processing.js");
 
     expect(CHROMATIC_ABERRATION_FRAGMENT).toContain("void main()");
     expect(CHROMATIC_ABERRATION_FRAGMENT).toContain("tDiffuse");
     expect(CHROMATIC_ABERRATION_SHADER.uniforms.amount.value).toBeGreaterThan(0);
+    expect(MOTION_BLUR_FRAGMENT).toContain("sampleCount");
+    expect(MOTION_BLUR_SHADER.uniforms.velocity.value.toArray()).toEqual([0, 0]);
+    expect(MOTION_BLUR_SHADER.uniforms.sampleCount.value).toBe(8);
   });
 
   it("builds a selective text bloom pass before chromatic aberration", async () => {
@@ -44,5 +52,26 @@ describe("PostProcessingPipeline", () => {
     expect(passState.chromaticPass?.uniforms.amount?.value).toBe(0.002);
     passState.selectiveBloomPass?.dispose();
     passState.chromaticPass?.dispose();
+  });
+
+  it("adds motion blur after chromatic aberration with default uniforms", async () => {
+    const {createPostProcessingPasses} = await import("../post-processing.js");
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera();
+    const passState = createPostProcessingPasses({
+      scene,
+      camera,
+      size: {width: 640, height: 360},
+      config: {chromaticAberration: 0.002, motionBlur: true}
+    });
+
+    expect(passState.passes).toHaveLength(3);
+    expect(passState.passes[1]).toBe(passState.chromaticPass);
+    expect(passState.passes[2]).toBe(passState.motionBlurPass);
+    const velocity = passState.motionBlurPass?.uniforms.velocity?.value as THREE.Vector2 | undefined;
+    expect(velocity?.toArray()).toEqual([0, 0]);
+    expect(passState.motionBlurPass?.uniforms.sampleCount?.value).toBe(8);
+    passState.chromaticPass?.dispose();
+    passState.motionBlurPass?.dispose();
   });
 });

@@ -28,6 +28,7 @@ describe("renderManifestSchema", () => {
     expect(manifest.bevelThickness).toBe(0.02);
     expect(manifest.gradientColors).toEqual(["#ffffff"]);
     expect(manifest.envMapIntensity).toBe(0);
+    expect(manifest.chrome).toBe(false);
     expect(manifest.cameraKeyframes).toEqual([
       {position: {x: 0, y: 0, z: 50}, lookAt: {x: 0, y: 0, z: 0}, roll: 0},
       {position: {x: 0, y: 0, z: 5}, lookAt: {x: 0, y: 0, z: 0}, roll: 0},
@@ -70,6 +71,15 @@ describe("renderManifestSchema", () => {
     });
 
     expect(manifest.matteUrl).toBe("/static-sample/matte.webm");
+  });
+
+  it("preserves chrome text intent for fake environment highlights", () => {
+    const manifest = renderManifestSchema.parse({
+      ...baseManifest,
+      chrome: true
+    });
+
+    expect(manifest.chrome).toBe(true);
   });
 
   it("rejects matte timing that cannot frame-lock to the composition", () => {

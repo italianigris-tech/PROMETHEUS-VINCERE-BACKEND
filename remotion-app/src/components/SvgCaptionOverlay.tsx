@@ -6,7 +6,11 @@ import {
   type CaptionEditorialContext
 } from "../lib/motion-platform/caption-editorial-engine";
 import {sanitizeRenderableOverlayText, shouldRenderOverlayText} from "../lib/motion-platform/render-text-safety";
-import type {CaptionChunk, CaptionVerticalBias} from "../lib/types";
+import {
+  mixReferenceMotionIntoCssTransform,
+  resolveReferenceMotionAtFrame
+} from "../lib/reference-motion-trace";
+import type {CaptionChunk, CaptionVerticalBias, ReferenceMotionTrace} from "../lib/types";
 import {
   LONGFORM_SVG_TYPOGRAPHY_PROFILE_ID,
   SVG_TYPOGRAPHY_PROFILE_ID,
@@ -80,6 +84,7 @@ type SvgCaptionOverlayProps = {
   chunks: CaptionChunk[];
   captionBias?: CaptionVerticalBias;
   editorialContext?: Omit<CaptionEditorialContext, "chunk" | "currentTimeMs">;
+  referenceMotionTrace?: ReferenceMotionTrace | null;
 };
 
 type EasingToken =
@@ -2262,7 +2267,8 @@ const getSlotValuesForChunk = (words: string[], variant: SvgTypographyVariant): 
 export const SvgCaptionOverlay: React.FC<SvgCaptionOverlayProps> = ({
   chunks,
   captionBias = "middle",
-  editorialContext
+  editorialContext,
+  referenceMotionTrace = null
 }) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
@@ -2341,12 +2347,23 @@ export const SvgCaptionOverlay: React.FC<SvgCaptionOverlayProps> = ({
           }),
           frameConfig
         );
+        const referenceMotion = resolveReferenceMotionAtFrame({
+          trace: referenceMotionTrace,
+          targetId: chunk.id,
+          frame,
+          fps
+        });
         return (
           <div
             key={chunk.id}
             style={{
               color: editorialDecision.textColor,
-              ["--dg-svg-caption-fill" as string]: editorialDecision.textColor
+              ["--dg-svg-caption-fill" as string]: editorialDecision.textColor,
+              transform: mixReferenceMotionIntoCssTransform(undefined, referenceMotion),
+              transformOrigin: "center center",
+              opacity: referenceMotion?.opacity,
+              filter: referenceMotion && referenceMotion.blurPx > 0 ? `blur(${referenceMotion.blurPx.toFixed(2)}px)` : undefined,
+              willChange: referenceMotion ? "transform, opacity, filter" : undefined
             }}
           >
             {applyProgramSafeTransform(rendered, safeTransform, chunk.id, frameConfig)}

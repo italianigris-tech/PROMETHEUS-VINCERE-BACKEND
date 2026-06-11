@@ -35,6 +35,7 @@ describe("injectVertexDeformation", () => {
     expect(material.userData.shader).toBe(shader);
     expect(shader.vertexShader).toContain("gl_InstanceID");
     expect(shader.vertexShader).toContain("uTime");
+    expect(shader.vertexShader).toContain("uniform int uDeformationType");
   });
 
   it("injects GLSL declarations before main and deformation calls inside main", () => {
@@ -66,7 +67,21 @@ describe("injectVertexDeformation", () => {
 
     const shader = compileMaterial(material);
 
-    expect(shader.uniforms.uDeformType?.value).toBe(expected);
+    expect(shader.uniforms.uDeformationType?.value).toBe(expected);
+  });
+
+  it.each([
+    ["wave", "localPosition.x * uFrequency"],
+    ["ripple", "distanceFromCenter"],
+    ["shatter", "glyphSeed"]
+  ] satisfies Array<[DeformationType, string]>)("injects %s mode GLSL", (type, expectedSource) => {
+    const material = new THREE.MeshBasicMaterial();
+    injectVertexDeformation(material, {type, intensity: 0.5});
+
+    const shader = compileMaterial(material);
+
+    expect(shader.vertexShader).toContain(`uDeformationType == ${type === "wave" ? 2 : type === "ripple" ? 3 : 4}`);
+    expect(shader.vertexShader).toContain(expectedSource);
   });
 
   it("clamps intensity and updates deformation time after compile", () => {

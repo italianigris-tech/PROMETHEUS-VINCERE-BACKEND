@@ -35,6 +35,7 @@ export const postProcessConfigFromManifest = (manifest: PostProcessingFlags): Po
     bloom: manifest.bloomEnabled,
     chromaticAberration: manifest.chromaticAberrationEnabled ? manifest.chromaticAberrationOffset : 0,
     motionBlur: manifest.motionBlurEnabled,
+    motionBlurStrength: manifest.motionBlurStrength,
     resolutionScale: manifest.motionBlurEnabled || manifest.bloomEnabled ? 0.5 : 1
   };
 

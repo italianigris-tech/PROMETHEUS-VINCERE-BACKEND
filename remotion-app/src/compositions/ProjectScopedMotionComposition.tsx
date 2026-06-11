@@ -1,4 +1,4 @@
-﻿import React, {useEffect, useMemo, useState} from "react";
+import React, {useEffect, useMemo, useState} from "react";
 import {AbsoluteFill, useRemotionEnvironment} from "remotion";
 import {loadFont as loadAllura} from "@remotion/google-fonts/Allura";
 import {loadFont as loadAnton} from "@remotion/google-fonts/Anton";
@@ -1171,6 +1171,7 @@ export const ProjectScopedMotionComposition: React.FC<ProjectScopedMotionComposi
           chunks={svgCaptionChunks}
           captionBias={motionModel.captionBias}
           editorialContext={captionEditorialContext}
+          referenceMotionTrace={motionModel.referenceMotionTrace}
         />
       ) : resolvedPresentationMode === "long-form" && longformCaptionRenderMode === "word-by-word" ? (
         <LongformWordByWordOverlay
@@ -1207,6 +1208,7 @@ export const ProjectScopedMotionComposition: React.FC<ProjectScopedMotionComposi
           chunks={svgCaptionChunks}
           captionBias={motionModel.captionBias}
           editorialContext={captionEditorialContext}
+          referenceMotionTrace={motionModel.referenceMotionTrace}
         />
       ) : null}
       <DiagnosticBadge messages={hasPlayableVideo ? diagnosticWarnings : diagnosticWarnings.filter((warning) => warning.toLowerCase().includes("typography"))} />

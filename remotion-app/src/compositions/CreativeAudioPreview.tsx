@@ -562,6 +562,7 @@ export const CreativeAudioPreview: React.FC<CreativeAudioPreviewProps> = ({
           chunks={svgCaptionChunks}
           captionBias={motionModel.captionBias}
           editorialContext={captionEditorialContext}
+          referenceMotionTrace={motionModel.referenceMotionTrace}
         />
       ) : resolvedPresentationMode === "long-form" && longformCaptionRenderMode === "word-by-word" ? (
         <LongformWordByWordOverlay
@@ -607,6 +608,7 @@ export const CreativeAudioPreview: React.FC<CreativeAudioPreviewProps> = ({
           chunks={svgCaptionChunks}
           captionBias={motionModel.captionBias}
           editorialContext={captionEditorialContext}
+          referenceMotionTrace={motionModel.referenceMotionTrace}
         />
       ) : null}
       <TimelineHud

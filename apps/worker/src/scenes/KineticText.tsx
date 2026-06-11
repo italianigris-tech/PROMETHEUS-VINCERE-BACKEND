@@ -20,8 +20,7 @@ import {
 import {injectVertexDeformation, updateDeformationTime} from "../engine/vertex-deformation.js";
 import {
   getRenderEngineConfig,
-  type RenderEngineManifestExtension,
-  type TextRenderMode
+  type RenderEngineManifestExtension
 } from "../types/render-engine.js";
 
 export type WordLayout = {
@@ -256,142 +255,85 @@ export const splitMotionTweenVars = (vars: Record<string, unknown>): MotionTween
 
 const hasTrackVars = (vars: Record<string, unknown>): boolean => Object.keys(vars).length > 0;
 
-type TextChunk = {
-  text: string;
-  color: string | null;
-};
-
 type TextVisual = {
-  mode: TextRenderMode;
   mesh: THREE.Mesh;
   material: THREE.MeshBasicMaterial;
   dispose(): void;
 };
 
-export const chunkTextByColorRanges = (
-  text: string,
-  colorRanges: readonly ColorRange[],
-  fallbackColor: string | null = null
-): TextChunk[] => {
-  if (text.length === 0) {
-    return [];
-  }
-
-  const chunks: TextChunk[] = [];
-  let current = "";
-  let currentColor: string | null = null;
-
-  Array.from(text).forEach((character, index) => {
-    const range = colorRanges.find((candidate) => index >= candidate.start && index < candidate.end);
-    const color = range?.color ?? fallbackColor;
-    if (current.length > 0 && color !== currentColor) {
-      chunks.push({text: current, color: currentColor});
-      current = "";
-    }
-    current += character;
-    currentColor = color;
-  });
-
-  if (current.length > 0) {
-    chunks.push({text: current, color: currentColor});
-  }
-
-  return chunks;
+type ChromeShader = {
+  vertexShader: string;
+  fragmentShader: string;
+  uniforms: Record<string, THREE.IUniform>;
 };
 
-const createCanvasTextMaterial = (
-  word: WordLayout,
-  manifest: RenderManifest
-): THREE.MeshBasicMaterial => {
-  const canvas = document.createElement("canvas");
-  canvas.width = 2048;
-  canvas.height = 512;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) {
-    return new THREE.MeshBasicMaterial({
-      color: manifest.text.color,
-      transparent: true,
-      opacity: 1,
-      depthTest: false,
-      depthWrite: false,
-      toneMapped: false
-    });
+type ChromeCompileHook = (
+  shader: ChromeShader,
+  renderer: THREE.WebGLRenderer
+) => void;
+
+export const shouldUseChromeText = (
+  manifest: Pick<RenderManifest, "envMapIntensity"> & {chrome?: boolean}
+): boolean => Boolean(manifest.chrome);
+
+const colorFromStop = (value: string | undefined, fallback: string): THREE.Color =>
+  new THREE.Color(value ?? fallback);
+
+const sampleStops = (
+  stops: Array<{t: number; color: THREE.Color}>,
+  t: number
+): THREE.Color => {
+  const clamped = THREE.MathUtils.clamp(t, 0, 1);
+  const first = stops[0];
+  if (!first) {
+    return new THREE.Color("#ffffff");
   }
 
-  const fontPx = 260;
-  const fallbackColor = manifest.text.color || manifest.gradientColors[0] || "#ffffff";
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.font = `800 ${fontPx}px Georgia, "Times New Roman", serif`;
-  ctx.textBaseline = "middle";
-  ctx.lineJoin = "round";
-  ctx.shadowColor = "rgba(123, 232, 255, 0.35)";
-  ctx.shadowBlur = 20;
-  ctx.strokeStyle = "rgba(0, 0, 0, 0.55)";
-  ctx.lineWidth = 12;
-
-  const chunks = chunkTextByColorRanges(word.text, word.colorRanges);
-  if (chunks.length === 0 || chunks.every((chunk) => chunk.color === null)) {
-    const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
-    const colors: string[] = manifest.gradientColors.length > 0 ? manifest.gradientColors : [fallbackColor];
-    colors.forEach((color: string, index: number) => {
-      gradient.addColorStop(index / Math.max(colors.length - 1, 1), color);
-    });
-    ctx.textAlign = "center";
-    ctx.strokeText(word.text, canvas.width / 2, canvas.height / 2);
-    ctx.fillStyle = gradient;
-    ctx.fillText(word.text, canvas.width / 2, canvas.height / 2);
-  } else {
-    ctx.textAlign = "left";
-    const measuredChunks = chunks.map((chunk) => ({
-      ...chunk,
-      width: ctx.measureText(chunk.text).width
-    }));
-    const totalWidth = measuredChunks.reduce((sum, chunk) => sum + chunk.width, 0);
-    let x = (canvas.width - totalWidth) / 2;
-    for (const chunk of measuredChunks) {
-      ctx.strokeText(chunk.text, x, canvas.height / 2);
-      ctx.fillStyle = chunk.color ?? fallbackColor;
-      ctx.fillText(chunk.text, x, canvas.height / 2);
-      x += chunk.width;
-    }
+  const nextIndex = stops.findIndex((stop) => stop.t >= clamped);
+  if (nextIndex <= 0) {
+    return first.color.clone();
   }
 
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.generateMipmaps = false;
-  texture.minFilter = THREE.LinearFilter;
-  texture.magFilter = THREE.LinearFilter;
-  texture.needsUpdate = true;
-
-  return new THREE.MeshBasicMaterial({
-    map: texture,
-    transparent: true,
-    opacity: 1,
-    alphaTest: 0.01,
-    depthTest: false,
-    depthWrite: false,
-    side: THREE.DoubleSide,
-    toneMapped: false
-  });
+  const last = stops[stops.length - 1] ?? first;
+  const next = stops[nextIndex] ?? last;
+  const previous = stops[nextIndex - 1] ?? first;
+  const span = Math.max(next.t - previous.t, 0.0001);
+  return previous.color.clone().lerp(next.color, (clamped - previous.t) / span);
 };
 
-const createBakedHighlightMap = (colors: readonly string[]): THREE.CanvasTexture => {
-  const canvas = document.createElement("canvas");
-  canvas.width = 256;
-  canvas.height = 16;
-  const ctx = canvas.getContext("2d");
-  if (ctx) {
-    const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
-    const baseColors = colors.length > 0 ? colors : ["#ffffff", "#7be8ff"];
-    gradient.addColorStop(0, baseColors[0] ?? "#ffffff");
-    gradient.addColorStop(0.42, "#ffffff");
-    gradient.addColorStop(0.58, baseColors[1] ?? "#7be8ff");
-    gradient.addColorStop(1, baseColors[0] ?? "#ffffff");
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+export const createBakedHighlightMap = (
+  colors: readonly string[],
+  chrome = false
+): THREE.DataTexture => {
+  const width = 256;
+  const data = new Uint8Array(width * 4);
+  const baseColors = colors.length > 0 ? colors : ["#ffffff", "#7be8ff"];
+  const stops = chrome
+    ? [
+        {t: 0, color: new THREE.Color("#07090f")},
+        {t: 0.18, color: new THREE.Color("#f8fbff")},
+        {t: 0.34, color: colorFromStop(baseColors[1], "#8bd8ff")},
+        {t: 0.52, color: new THREE.Color("#1b2332")},
+        {t: 0.7, color: new THREE.Color("#ffffff")},
+        {t: 1, color: colorFromStop(baseColors[0], "#d7e2f0")}
+      ]
+    : [
+        {t: 0, color: colorFromStop(baseColors[0], "#ffffff")},
+        {t: 0.42, color: new THREE.Color("#ffffff")},
+        {t: 0.58, color: colorFromStop(baseColors[1], "#7be8ff")},
+        {t: 1, color: colorFromStop(baseColors[0], "#ffffff")}
+      ];
+
+  for (let x = 0; x < width; x += 1) {
+    const color = sampleStops(stops, x / Math.max(width - 1, 1));
+    const offset = x * 4;
+    data[offset] = Math.round(color.r * 255);
+    data[offset + 1] = Math.round(color.g * 255);
+    data[offset + 2] = Math.round(color.b * 255);
+    data[offset + 3] = 255;
   }
 
-  const texture = new THREE.CanvasTexture(canvas);
+  const texture = new THREE.DataTexture(data, width, 1, THREE.RGBAFormat);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.generateMipmaps = false;
   texture.minFilter = THREE.LinearFilter;
@@ -400,26 +342,56 @@ const createBakedHighlightMap = (colors: readonly string[]): THREE.CanvasTexture
   return texture;
 };
 
-const createCanvasTextVisual = (
-  word: WordLayout,
-  manifest: RenderManifest
-): TextVisual => {
-  const material = createCanvasTextMaterial(word, manifest);
-  const geometry = new THREE.PlaneGeometry(
-    Math.max(word.width, manifest.text.size * 0.6),
-    manifest.text.size * 1.35
-  );
-  const mesh = new THREE.Mesh(geometry, material);
-  return {
-    mode: "canvas-raster",
-    mesh,
-    material,
-    dispose: () => {
-      material.map?.dispose();
-      material.dispose();
-      geometry.dispose();
-    }
-  };
+export const applyFakeChromeEnvironment = (
+  material: THREE.MeshBasicMaterial,
+  ramp: THREE.Texture,
+  intensity = 1
+): void => {
+  const baseOnBeforeCompile = material.onBeforeCompile as ChromeCompileHook;
+  const chromeIntensity = THREE.MathUtils.clamp(intensity, 0, 1);
+
+  material.onBeforeCompile = ((shader: ChromeShader, renderer: THREE.WebGLRenderer) => {
+    baseOnBeforeCompile.call(material, shader, renderer);
+
+    shader.uniforms.uChromeRamp = {value: ramp};
+    shader.uniforms.uChromeIntensity = {value: chromeIntensity};
+    shader.vertexShader = shader.vertexShader.replace(
+      "void main() {",
+      `varying vec3 vChromeWorldNormal;
+varying vec3 vChromeViewDir;
+void main() {`
+    );
+    shader.vertexShader = shader.vertexShader.replace(
+      "#include <beginnormal_vertex>",
+      `#include <beginnormal_vertex>
+vChromeWorldNormal = normalize(mat3(modelMatrix) * objectNormal);`
+    );
+    shader.vertexShader = shader.vertexShader.replace(
+      "#include <begin_vertex>",
+      `#include <begin_vertex>
+vec4 chromeWorldPosition = modelMatrix * vec4(transformed, 1.0);
+vChromeViewDir = normalize(cameraPosition - chromeWorldPosition.xyz);`
+    );
+    shader.fragmentShader = shader.fragmentShader.replace(
+      "void main() {",
+      `uniform sampler2D uChromeRamp;
+uniform float uChromeIntensity;
+varying vec3 vChromeWorldNormal;
+varying vec3 vChromeViewDir;
+void main() {`
+    );
+    shader.fragmentShader = shader.fragmentShader.replace(
+      "#include <map_fragment>",
+      `#include <map_fragment>
+float chromeFacing = clamp(dot(normalize(vChromeWorldNormal), normalize(vChromeViewDir)) * 0.5 + 0.5, 0.0, 1.0);
+float chromeBand = fract(chromeFacing * 1.7 + vChromeViewDir.x * 0.22 - vChromeViewDir.y * 0.12);
+vec3 chromeColor = texture2D(uChromeRamp, vec2(chromeBand, 0.5)).rgb;
+diffuseColor.rgb = mix(diffuseColor.rgb, chromeColor, uChromeIntensity);`
+    );
+    material.userData.chromeShader = shader;
+  }) as THREE.MeshBasicMaterial["onBeforeCompile"];
+
+  material.needsUpdate = true;
 };
 
 const createTroikaTextVisual = (
@@ -427,7 +399,8 @@ const createTroikaTextVisual = (
   manifest: RenderManifest,
   renderConfig: ReturnType<typeof getRenderEngineConfig>
 ): TextVisual => {
-  const highlightMap = createBakedHighlightMap(manifest.gradientColors);
+  const chrome = renderConfig.chrome || shouldUseChromeText(manifest);
+  const highlightMap = createBakedHighlightMap(manifest.gradientColors, chrome);
   const material = new THREE.MeshBasicMaterial({
     color: manifest.text.color,
     map: highlightMap,
@@ -440,6 +413,11 @@ const createTroikaTextVisual = (
     toneMapped: false
   });
   injectVertexDeformation(material, renderConfig.deformation);
+  if (chrome) {
+    // MeshBasicMaterial has no physical reflections; this shader wrapper fakes
+    // moving chrome bands from view direction while keeping Troika SDF text.
+    applyFakeChromeEnvironment(material, highlightMap, 1);
+  }
 
   const textMesh = new TroikaText();
   textMesh.text = word.text;
@@ -462,7 +440,6 @@ const createTroikaTextVisual = (
   textMesh.sync();
 
   return {
-    mode: "troika-glyph",
     mesh: textMesh,
     material,
     dispose: () => {
@@ -492,10 +469,7 @@ export const KineticText: React.FC<KineticTextProps> = ({manifest}) => {
   const prevWordPositions = useRef(new Map<string, THREE.Vector3>());
   const velocityScratch = useRef(new Map<string, THREE.Vector3>());
   const visuals = useMemo(
-    () => layout.map((word) => renderConfig.renderMode === "canvas-raster"
-      ? createCanvasTextVisual(word, manifest)
-      : createTroikaTextVisual(word, manifest, renderConfig)
-    ),
+    () => layout.map((word) => createTroikaTextVisual(word, manifest, renderConfig)),
     [layout, manifest, renderConfig]
   );
   const visualMaterials = useMemo(
