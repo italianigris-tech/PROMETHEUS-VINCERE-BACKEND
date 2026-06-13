@@ -22,6 +22,9 @@ import {EditSessionStore} from "./edit-sessions/store";
 import {registerEditSessionRoutes} from "./edit-sessions/routes";
 import {createR2TransferService, type R2TransferService} from "./integrations/r2";
 import {registerUploadRoutes} from "./upload-routes";
+import {VideoContextService} from "./video-context/service";
+import {VideoContextStore} from "./video-context/store";
+import {registerVideoContextRoutes} from "./video-context/routes";
 import {GodService, registerGodRoutes} from "./god";
 import {registerThumbnailRoutes} from "./thumbnail";
 import {registerRenderJobRoutes} from "./render-jobs/routes";
@@ -61,6 +64,7 @@ export type BackendAppContext = {
   queue: InProcessQueue;
   editSessions: EditSessionManager;
   god: GodService;
+  videoContexts: VideoContextService;
   executionTelemetry: ExecutionTelemetryBroker;
   env: BackendEnv;
 };
@@ -69,6 +73,7 @@ export type BackendDependencies = PipelineDependencies & EditSessionDependencies
   r2Service?: R2TransferService;
   extractAudioPreviewFile?: LocalPreviewRunnerDependencies["extractAudioPreviewFile"];
   musicPreviewUrlSigner?: MusicPreviewUrlSigner;
+  videoContext?: ConstructorParameters<typeof VideoContextService>[4];
 };
 
 const parseCorsOrigins = (value: string): string[] => {
@@ -240,6 +245,15 @@ export const createBackendApp = async ({
     deps: pipelineDeps
   });
   await editSessions.initialize();
+  const videoContextStore = new VideoContextStore(env.STORAGE_DIR);
+  const videoContexts = new VideoContextService(
+    env,
+    repository,
+    queue,
+    videoContextStore,
+    deps?.videoContext
+  );
+  await videoContexts.initialize();
   app.addHook("onClose", async () => {
     editSessions.destroy();
   });
@@ -804,6 +818,7 @@ export const createBackendApp = async ({
     queue,
     editSessions,
     god,
+    videoContexts,
     executionTelemetry,
     env
   });
@@ -814,6 +829,7 @@ export const createBackendApp = async ({
     editSessionStore,
     r2Service
   });
+  await registerVideoContextRoutes(app, videoContexts);
   await registerRenderJobRoutes(app);
 
   return {
@@ -823,6 +839,7 @@ export const createBackendApp = async ({
     queue,
     editSessions,
     god,
+    videoContexts,
     executionTelemetry,
     env
   };

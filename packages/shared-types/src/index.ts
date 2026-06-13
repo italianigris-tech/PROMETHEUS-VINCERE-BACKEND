@@ -1,4 +1,27 @@
 export {
+  backendMessageSchema,
+  configurationDeltaSchema,
+  frontendMessageSchema,
+  frontendReadinessHandshakeSchema,
+  progressiveMotionSegmentSchema,
+  progressiveTranscriptChunkSchema,
+  progressiveVideoContextEventSchema,
+  progressiveVideoContextSnapshotSchema,
+  renderGraphV2HandoffSchema,
+  transcriptProviderSchema,
+  videoContextLevelSchema,
+  videoContextModeSchema,
+  videoContextStatusSchema,
+  type BackendMessage,
+  type ConfigurationDelta,
+  type FrontendMessage,
+  type FrontendReadinessHandshake,
+  type ProgressiveVideoContextEvent,
+  type ProgressiveVideoContextSnapshot,
+  type RenderGraphV2Handoff
+} from "./video-context.js";
+
+export {
   animationPresetSchema,
   cameraDirectiveSchema,
   deformationConfigSchema,
