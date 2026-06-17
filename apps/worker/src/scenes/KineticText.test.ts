@@ -1,4 +1,5 @@
 import {describe, expect, it} from "vitest";
+import {renderManifestSchema} from "@prometheus/shared-types";
 import gsap from "gsap";
 import {readFileSync} from "node:fs";
 import {dirname, join} from "node:path";
@@ -11,6 +12,8 @@ import {
   applyFakeChromeEnvironment,
   buildWordLayout,
   createBakedHighlightMap,
+  planKineticTextChoreography,
+  shouldEnableTextBloomLayerForWord,
   shouldUseChromeText,
   splitMotionTweenVars
 } from "./KineticText.js";
@@ -130,6 +133,17 @@ describe("KineticText render engine toggles", () => {
     expect(source.toLowerCase()).not.toContain("canvas");
   });
 
+  it("uses the single-mesh shader engine instead of rendering one Troika mesh per word", () => {
+    const sourcePath = join(dirname(fileURLToPath(import.meta.url)), "KineticText.tsx");
+    const source = readFileSync(sourcePath, "utf8");
+
+    expect(source).toContain("KineticTextEngine");
+    expect(source).toContain("engine.create");
+    expect(source).not.toContain("visuals.map");
+    expect(source).not.toContain("createTroikaTextVisual");
+    expect(source).not.toContain("<primitive");
+  });
+
   it("toggles chrome text through manifest config", () => {
     expect(shouldUseChromeText({chrome: true, envMapIntensity: 0})).toBe(true);
     expect(shouldUseChromeText({chrome: false, envMapIntensity: 0})).toBe(false);
@@ -166,5 +180,64 @@ describe("KineticText render engine toggles", () => {
 
     ramp.dispose();
     material.dispose();
+  });
+
+  it("consumes text animation grammar for word timing and selective bloom", () => {
+    const manifest = renderManifestSchema.parse({
+      jobId: "text-grammar-scene",
+      transcript: "Hello World",
+      transcriptWords: [
+        {text: "Hello", startMs: 0, endMs: 900},
+        {text: "World", startMs: 900, endMs: 1800}
+      ],
+      matteUrl: "https://example.com/matte.webm",
+      audioUrl: "https://example.com/audio.m4a",
+      fontUrl: "https://example.com/font.ttf",
+      durationInFrames: 180,
+      fps: 60,
+      textAnimationGrammar: {
+        version: "prometheus-text-grammar/v1",
+        stagger: {
+          unit: "word",
+          delayMs: 200
+        },
+        entrance: {
+          type: "slide",
+          durationMs: 300
+        },
+        selectiveEffects: [{
+          selector: {
+            text: "Hello"
+          },
+          effects: {
+            bloom: true,
+            motionBlur: false,
+            chromaticAberration: false
+          }
+        }]
+      }
+    });
+    const layout = buildWordLayout([
+      {
+        text: "Hello",
+        colorRanges: [],
+        startMs: 0,
+        endMs: 900,
+        animated: true
+      },
+      {
+        text: "World",
+        colorRanges: [],
+        startMs: 900,
+        endMs: 1800,
+        animated: true
+      }
+    ], 1);
+
+    const choreography = planKineticTextChoreography(manifest, layout);
+
+    expect(choreography?.words.map((word) => word.enterStartMs)).toEqual([0, 200]);
+    expect(shouldEnableTextBloomLayerForWord(manifest, choreography, 0)).toBe(true);
+    expect(shouldEnableTextBloomLayerForWord(manifest, choreography, 1)).toBe(false);
   });
 });

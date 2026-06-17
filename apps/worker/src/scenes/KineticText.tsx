@@ -1,11 +1,8 @@
-import React, {useEffect, useLayoutEffect, useMemo, useRef, useState} from "react";
+import React, {useEffect, useLayoutEffect, useMemo, useRef} from "react";
 import type {EmotionalBeat, RenderManifest} from "@prometheus/shared-types";
-import {useFrame} from "@react-three/fiber";
-import gsap from "gsap";
-import {flushSync} from "react-dom";
-import {continueRender, delayRender, useCurrentFrame, useVideoConfig} from "remotion";
+import {useFrame, useThree} from "@react-three/fiber";
+import {useCurrentFrame, useVideoConfig} from "remotion";
 import * as THREE from "three";
-import {Text as TroikaText} from "troika-three-text";
 
 import {useCameraRigStore} from "./CameraRig.js";
 import {TEXT_BLOOM_LAYER} from "./post-processing.js";
@@ -13,10 +10,21 @@ import {selectEaseForTimestamp} from "../lib/easing-modulator.js";
 import {applyImperfection} from "../lib/imperfection-engine.js";
 import {findPatternForSemanticTag} from "../lib/motion-ontology.js";
 import {
-  applyColorRanges,
   parseColorAnnotations,
   type ColorRange
 } from "../engine/text-colorizer.js";
+import {
+  planTextChoreography,
+  type TextChoreographyPlan
+} from "../engine/text-choreography/TextChoreography.js";
+import {
+  KineticTextEngine,
+  type KineticTextConfig,
+  type KineticTextInstance,
+  type KineticTextStyleRanges,
+  type WordAnimationState,
+  type WordConfig
+} from "../engine/text/KineticTextEngine.js";
 import {injectVertexDeformation, updateDeformationTime} from "../engine/vertex-deformation.js";
 import {
   getRenderEngineConfig,
@@ -39,9 +47,17 @@ export type KineticTextProps = {
 
 export const KINETIC_TEXT_MEASUREMENT_TIMEOUT_MS = 2000;
 
-const estimateWordWidth = (word: string, fontSize: number): number => {
-  return Math.max(fontSize * 0.48, word.length * fontSize * 0.54);
+const IDENTITY_WORD_STATE: WordAnimationState = {
+  opacity: 1,
+  x: 0,
+  y: 0,
+  z: 0,
+  scale: 1,
+  rotation: 0
 };
+
+const estimateWordWidth = (word: string, fontSize: number): number =>
+  Math.max(fontSize * 0.48, word.length * fontSize * 0.54);
 
 export const buildWordLayout = (
   timedWords: Array<Omit<WordLayout, "x" | "width">>,
@@ -69,38 +85,54 @@ export const buildWordLayout = (
   });
 };
 
-const measureTroikaWord = ({
-  word,
-  font,
-  fontSize,
-  sdfGlyphSize
-}: {
-  word: string;
-  font: string;
-  fontSize: number;
-  sdfGlyphSize: number;
-}): Promise<number> =>
-  new Promise((resolve) => {
-    const textMesh = new TroikaText();
-    textMesh.text = word;
-    textMesh.font = font;
-    textMesh.fontSize = fontSize;
-    textMesh.anchorX = "left";
-    textMesh.anchorY = "middle";
-    textMesh.glyphGeometryDetail = 8;
-    textMesh.letterSpacing = 0.01;
-    textMesh.maxWidth = Number.POSITIVE_INFINITY;
-    textMesh.overflowWrap = "normal";
-    textMesh.whiteSpace = "nowrap";
-    textMesh.sdfGlyphSize = sdfGlyphSize;
-    textMesh.sync(() => {
-      textMesh.geometry.computeBoundingBox();
-      const bounds = textMesh.geometry.boundingBox;
-      const width = bounds ? bounds.max.x - bounds.min.x : estimateWordWidth(word, fontSize);
-      textMesh.dispose();
-      resolve(Math.max(width, estimateWordWidth(word, fontSize) * 0.35));
-    });
+export const planKineticTextChoreography = (
+  manifest: RenderManifest,
+  layout: readonly WordLayout[]
+): TextChoreographyPlan | null => {
+  if (!manifest.textAnimationGrammar || layout.length === 0) {
+    return null;
+  }
+
+  return planTextChoreography({
+    words: layout.map((word) => ({
+      text: word.text,
+      startMs: word.startMs,
+      endMs: word.endMs
+    })),
+    grammar: manifest.textAnimationGrammar,
+    durationMs: manifest.durationInFrames / manifest.fps * 1000
   });
+};
+
+export const shouldEnableTextBloomLayerForWord = (
+  manifest: Pick<RenderManifest, "textAnimationGrammar">,
+  choreography: TextChoreographyPlan | null,
+  wordIndex: number
+): boolean => {
+  if (!manifest.textAnimationGrammar) {
+    return true;
+  }
+
+  if (manifest.textAnimationGrammar.selectiveEffects.length === 0) {
+    return true;
+  }
+
+  return Boolean(choreography?.words[wordIndex]?.selectiveEffects.bloom);
+};
+
+export const shouldEnableTextBloomLayerForMesh = (
+  manifest: Pick<RenderManifest, "textAnimationGrammar">,
+  choreography: TextChoreographyPlan | null,
+  wordCount: number
+): boolean => {
+  if (!manifest.textAnimationGrammar || manifest.textAnimationGrammar.selectiveEffects.length === 0) {
+    return true;
+  }
+
+  return Array.from({length: wordCount}, (_unused, index) =>
+    shouldEnableTextBloomLayerForWord(manifest, choreography, index)
+  ).some(Boolean);
+};
 
 const buildTimedWords = (manifest: RenderManifest): Array<Omit<WordLayout, "x" | "width">> => {
   const parsedTranscript = parseColorAnnotations(manifest.transcript);
@@ -171,6 +203,32 @@ const GSAP_CONTROL_KEYS = new Set([
 ]);
 
 const RANDOM_DEGREES = /^random\((-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)\)$/;
+const RANDOM_RANGE = /^random\((-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)\)$/;
+
+const seededUnit = (seed: number): number => {
+  const value = Math.sin(seed * 12.9898) * 43758.5453;
+  return value - Math.floor(value);
+};
+
+const numericTweenValue = (value: unknown, fallback: number, seed: number): number => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value !== "string") {
+    return fallback;
+  }
+
+  const randomMatch = RANDOM_RANGE.exec(value);
+  if (randomMatch) {
+    const start = Number(randomMatch[1]);
+    const end = Number(randomMatch[2]);
+    return THREE.MathUtils.lerp(start, end, seededUnit(seed));
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
 
 const rotationDegreesToRadians = (value: unknown): unknown => {
   if (typeof value === "number") {
@@ -251,14 +309,6 @@ export const splitMotionTweenVars = (vars: Record<string, unknown>): MotionTween
   }
 
   return tracks;
-};
-
-const hasTrackVars = (vars: Record<string, unknown>): boolean => Object.keys(vars).length > 0;
-
-type TextVisual = {
-  mesh: THREE.Mesh;
-  material: THREE.MeshBasicMaterial;
-  dispose(): void;
 };
 
 type ChromeShader = {
@@ -394,400 +444,326 @@ diffuseColor.rgb = mix(diffuseColor.rgb, chromeColor, uChromeIntensity);`
   material.needsUpdate = true;
 };
 
-const createTroikaTextVisual = (
-  word: WordLayout,
-  manifest: RenderManifest,
-  renderConfig: ReturnType<typeof getRenderEngineConfig>
-): TextVisual => {
-  const chrome = renderConfig.chrome || shouldUseChromeText(manifest);
-  const highlightMap = createBakedHighlightMap(manifest.gradientColors, chrome);
-  const material = new THREE.MeshBasicMaterial({
-    color: manifest.text.color,
-    map: highlightMap,
-    transparent: true,
-    opacity: 1,
-    alphaTest: 0.01,
-    depthTest: false,
-    depthWrite: false,
-    side: THREE.DoubleSide,
-    toneMapped: false
-  });
-  injectVertexDeformation(material, renderConfig.deformation);
-  if (chrome) {
-    // MeshBasicMaterial has no physical reflections; this shader wrapper fakes
-    // moving chrome bands from view direction while keeping Troika SDF text.
-    applyFakeChromeEnvironment(material, highlightMap, 1);
+const buildPlainText = (layout: readonly WordLayout[]): string =>
+  layout.map((word) => word.text).join(" ");
+
+export const buildKineticTextStyleRanges = (
+  layout: readonly WordLayout[],
+  fallbackColor: string
+): KineticTextStyleRanges => {
+  const styleRanges: KineticTextStyleRanges = {};
+  let cursor = 0;
+
+  for (const word of layout) {
+    for (const range of word.colorRanges) {
+      styleRanges[cursor + range.start] = range.color;
+      styleRanges[cursor + range.end] = fallbackColor;
+    }
+    cursor += word.text.length + 1;
   }
 
-  const textMesh = new TroikaText();
-  textMesh.text = word.text;
-  textMesh.font = manifest.fontUrl;
-  textMesh.fontSize = manifest.text.size;
-  textMesh.anchorX = "center";
-  textMesh.anchorY = "middle";
-  textMesh.glyphGeometryDetail = 8;
-  textMesh.letterSpacing = 0.01;
-  textMesh.lineHeight = manifest.text.lineHeight;
-  textMesh.maxWidth = Math.max(word.width * 1.1, manifest.text.size);
-  textMesh.overflowWrap = "normal";
-  textMesh.whiteSpace = "nowrap";
-  textMesh.sdfGlyphSize = manifest.text.sdfGlyphSize;
-  textMesh.color = manifest.text.color;
-  textMesh.material = material;
-  applyColorRanges(textMesh, word.colorRanges, manifest.text.color);
-  textMesh.layers.enable(TEXT_BLOOM_LAYER);
-  textMesh.renderOrder = 10;
-  textMesh.sync();
+  return styleRanges;
+};
 
+const wordStateFromTweenVars = (
+  vars: Record<string, unknown>,
+  fallback: WordAnimationState,
+  seed: number
+): WordAnimationState => {
+  const tracks = splitMotionTweenVars(vars);
   return {
-    mesh: textMesh,
-    material,
-    dispose: () => {
-      textMesh.dispose();
-      highlightMap.dispose();
-      material.dispose();
-    }
+    opacity: numericTweenValue(tracks.material.opacity, fallback.opacity, seed + 0.1),
+    x: numericTweenValue(tracks.position.x, fallback.x, seed + 0.2),
+    y: numericTweenValue(tracks.position.y, fallback.y, seed + 0.3),
+    z: numericTweenValue(tracks.position.z, fallback.z, seed + 0.4),
+    scale: numericTweenValue(
+      tracks.scale.x ?? tracks.scale.y ?? tracks.scale.z,
+      fallback.scale,
+      seed + 0.5
+    ),
+    rotation: numericTweenValue(tracks.rotation.z, fallback.rotation, seed + 0.6)
   };
 };
 
+const motionVars = (vars: unknown): Record<string, unknown> =>
+  vars && typeof vars === "object" && !Array.isArray(vars)
+    ? vars as Record<string, unknown>
+    : {};
+
+const currentEmotionalBeat = (
+  wordStartMs: number,
+  beats: readonly EmotionalBeat[] | undefined
+): EmotionalBeat | null => {
+  if (!beats) {
+    return null;
+  }
+
+  return beats.find((beat) => wordStartMs >= beat.timestamp[0] && wordStartMs < beat.timestamp[1]) ?? null;
+};
+
+const buildWordConfig = (
+  word: WordLayout,
+  index: number,
+  manifest: RenderManifest,
+  choreography: TextChoreographyPlan | null,
+  fps: number
+): WordConfig => {
+  if (!word.animated) {
+    return {
+      from: IDENTITY_WORD_STATE,
+      to: IDENTITY_WORD_STATE,
+      delay: 0,
+      duration: 1 / Math.max(fps, 1),
+      ease: "none",
+      effect: "none"
+    };
+  }
+
+  const choreographyEvent = choreography?.words[index];
+  const choreographyDuration = choreographyEvent
+    ? Math.max((choreographyEvent.enterEndMs - choreographyEvent.enterStartMs) / 1000, 1 / fps)
+    : null;
+  const effectiveStart = choreographyEvent
+    ? choreographyEvent.enterStartMs / 1000
+    : typeof word.startMs === "number" && !Number.isNaN(word.startMs)
+      ? word.startMs / 1000
+      : index * (manifest.wordStagger ?? 0.1);
+  const duration = choreographyDuration ?? Math.max((word.endMs - word.startMs) / 1000, 1 / fps);
+  const rotationSeed = (index + 1) * 1.61803398875;
+  const hasBloom = shouldEnableTextBloomLayerForWord(manifest, choreography, index);
+
+  const meta = manifest.directorialMetadata;
+  if (!meta) {
+    return {
+      from: {
+        opacity: 0,
+        x: 0,
+        y: manifest.text.depthTravel * 0.25,
+        z: 0,
+        scale: 0,
+        rotation: Math.sin(rotationSeed) * 0.28
+      },
+      to: IDENTITY_WORD_STATE,
+      delay: effectiveStart,
+      duration,
+      ease: "back.out(1.7)",
+      effect: hasBloom ? "glow-pulse" : "bounce"
+    };
+  }
+
+  const beat = currentEmotionalBeat(word.startMs, meta.emotionalArc);
+  const t = word.startMs / 1000;
+  const easeConfig = meta.temporalIntensity
+    ? selectEaseForTimestamp(t, meta.temporalIntensity, "back.out(1.7)")
+    : {ease: "back.out(1.7)", durationMultiplier: 1, perturbation: 0};
+  const transcriptWord = manifest.transcriptWords[index];
+  const semanticTag = transcriptWord?.semanticTag ?? beat?.motionVocabulary?.[0] ?? "";
+  const pattern = semanticTag ? findPatternForSemanticTag(semanticTag) : null;
+  const patternFrom = motionVars(pattern?.gsapConfig?.from);
+  const patternTo = motionVars(pattern?.gsapConfig?.to);
+  const fallbackFrom = {opacity: 0, y: manifest.text.depthTravel * 0.25, scale: 0.8};
+  const fallbackTo = {opacity: 1, y: 0, scale: 1, rotation: 0};
+  const patternDuration = choreographyDuration ??
+    (((pattern?.gsapConfig?.duration as number | undefined) ?? 0.6) * easeConfig.durationMultiplier);
+  const imperfected = meta.imperfectionProfile && beat
+    ? applyImperfection(
+        meta.imperfectionProfile,
+        beat.emotion,
+        {duration: patternDuration, x: 0, y: 0, rotation: 0, scale: 1}
+      )
+    : {duration: patternDuration, x: 0, y: 0, rotation: 0, scale: 1};
+
+  return {
+    from: wordStateFromTweenVars(
+      {
+        ...fallbackFrom,
+        ...patternFrom,
+        x: patternFrom.x ?? imperfected.x,
+        y: patternFrom.y ?? imperfected.y
+      },
+      {
+        opacity: 0,
+        x: 0,
+        y: manifest.text.depthTravel * 0.25,
+        z: 0,
+        scale: 0.8,
+        rotation: Math.sin(rotationSeed) * 0.28
+      },
+      rotationSeed
+    ),
+    to: wordStateFromTweenVars({...fallbackTo, ...patternTo}, IDENTITY_WORD_STATE, rotationSeed + 1),
+    delay: effectiveStart,
+    duration: Math.max(0.05, imperfected.duration),
+    ease: easeConfig.ease,
+    effect: hasBloom ? "glow-pulse" : "bounce"
+  };
+};
+
+export const buildKineticTextEngineConfig = (
+  manifest: RenderManifest,
+  layout: readonly WordLayout[],
+  choreography: TextChoreographyPlan | null,
+  fps: number
+): KineticTextConfig => ({
+  text: buildPlainText(layout),
+  fontSize: manifest.text.size,
+  font: manifest.fontUrl,
+  color: manifest.text.color,
+  position: new THREE.Vector3(0, 0, manifest.text.depthZ),
+  anchorX: "center",
+  anchorY: "middle",
+  stagger: 0,
+  duration: 0.6,
+  ease: "back.out(1.7)",
+  words: Object.fromEntries(layout.map((word, index) => [
+    index,
+    buildWordConfig(word, index, manifest, choreography, fps)
+  ])),
+  styleRanges: buildKineticTextStyleRanges(layout, manifest.text.color)
+});
+
 export const KineticText: React.FC<KineticTextProps> = ({manifest}) => {
+  const {scene} = useThree();
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
+  const engineRef = useRef<KineticTextEngine | null>(null);
+  const instanceRef = useRef<KineticTextInstance | null>(null);
+  const materialRef = useRef<THREE.MeshBasicMaterial | null>(null);
+  const wordVelocities = useRef(new Map<string, THREE.Vector3>());
+  const prevWordPositions = useRef(new Map<string, THREE.Vector3>());
+  const velocityScratch = useRef(new Map<string, THREE.Vector3>());
+
   const renderConfig = useMemo(
     () => getRenderEngineConfig(manifest as RenderManifest & RenderEngineManifestExtension),
     [manifest]
   );
   const timedWords = useMemo(() => buildTimedWords(manifest), [manifest]);
-  const estimatedLayout = useMemo(
+  const layout = useMemo(
     () => buildWordLayout(timedWords, manifest.text.size),
     [manifest.text.size, timedWords]
   );
-  const [layout, setLayout] = useState<WordLayout[]>(estimatedLayout);
-  const timelineRef = useRef<gsap.core.Timeline | null>(null);
-  const visualMeshes = useRef<Array<THREE.Mesh | null>>([]);
-  const wordVelocities = useRef(new Map<string, THREE.Vector3>());
-  const prevWordPositions = useRef(new Map<string, THREE.Vector3>());
-  const velocityScratch = useRef(new Map<string, THREE.Vector3>());
-  const visuals = useMemo(
-    () => layout.map((word) => createTroikaTextVisual(word, manifest, renderConfig)),
-    [layout, manifest, renderConfig]
+  const choreography = useMemo(
+    () => planKineticTextChoreography(manifest, layout),
+    [layout, manifest]
   );
-  const visualMaterials = useMemo(
-    () => visuals.map((visual) => visual.material),
-    [visuals]
+  const engineConfig = useMemo(
+    () => buildKineticTextEngineConfig(manifest, layout, choreography, fps),
+    [choreography, fps, layout, manifest]
   );
 
   useLayoutEffect(() => {
-    if (timedWords.length === 0) {
-      setLayout([]);
-      return;
-    }
-
-    flushSync(() => {
-      setLayout(estimatedLayout);
-    });
-
-    let cancelled = false;
-    let released = false;
-    const handle = delayRender("kinetic-text-word-measurement");
-    const release = () => {
-      if (released) {
-        return;
-      }
-      released = true;
-      continueRender(handle);
-    };
-    const fallbackTimer = window.setTimeout(() => {
-      release();
-    }, KINETIC_TEXT_MEASUREMENT_TIMEOUT_MS);
-
-    const measure = async () => {
-      try {
-        const widths = await Promise.all(timedWords.map((word) =>
-          measureTroikaWord({
-            word: word.text,
-            font: manifest.fontUrl,
-            fontSize: manifest.text.size,
-            sdfGlyphSize: manifest.text.sdfGlyphSize
-          })
-        ));
-        if (cancelled || released) {
-          return;
-        }
-
-        const nextLayout = buildWordLayout(timedWords, manifest.text.size, widths);
-        // Flush measured layout before releasing Remotion's measurement handle.
-        flushSync(() => {
-          setLayout(nextLayout);
-        });
-        release();
-      } catch (error) {
-        release();
-        throw error;
-      }
-    };
-
-    void measure();
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(fallbackTimer);
-      release();
-    };
-  }, [estimatedLayout, manifest.fontUrl, manifest.text.sdfGlyphSize, manifest.text.size, timedWords]);
-
-  useLayoutEffect(() => {
-    if (layout.length === 0) {
-      return;
-    }
-
-    const timeline = gsap.timeline({
-      paused: true,
-      defaults: {overwrite: true}
-    });
-
-    layout.forEach((word, index) => {
-      const mesh = visualMeshes.current[index];
-      const material = visualMaterials[index];
-      if (!mesh || !material) {
-        return;
-      }
-
-      mesh.renderOrder = 10;
-      mesh.layers.enable(TEXT_BLOOM_LAYER);
-      mesh.position.set(word.x, 0, 0);
-      mesh.rotation.set(0, 0, 0);
-      mesh.scale.set(1, 1, 1);
-      material.opacity = 1;
-
-      if (word.animated) {
-        // FIX: Use absolute startMs when available, not wordStagger
-        const effectiveStart: number =
-          typeof word.startMs === "number" && !isNaN(word.startMs)
-            ? word.startMs / 1000
-            : index * (manifest.wordStagger ?? 0.1);
-        
-        const duration = Math.max((word.endMs - word.startMs) / 1000, 1 / fps);
-        const rotationSeed = (index + 1) * 1.61803398875;
-
-        // Get directorial metadata for motion enhancement
-        const meta = manifest.directorialMetadata;
-        const t = word.startMs / 1000;
-
-        // Find current emotional beat
-        let currentBeat: EmotionalBeat | null = null;
-        if (meta?.emotionalArc) {
-          const tMs = t * 1000;
-          currentBeat = meta.emotionalArc.find(
-            (beat: EmotionalBeat) => tMs >= beat.timestamp[0] && tMs < beat.timestamp[1]
-          ) ?? null;
-        }
-
-        // Select ease from temporal intensity
-        const easeConfig = meta?.temporalIntensity
-          ? selectEaseForTimestamp(t, meta.temporalIntensity, "back.out(1.7)")
-          : {ease: "back.out(1.7)", durationMultiplier: 1, perturbation: 0};
-
-        // Get semantic tag for this word (if available in transcriptWords)
-        const transcriptWord = manifest.transcriptWords[index];
-        const semanticTag = transcriptWord?.semanticTag ?? currentBeat?.motionVocabulary?.[0] ?? "";
-        const pattern = semanticTag ? findPatternForSemanticTag(semanticTag) : null;
-
-        // Fully destructure pattern GSAP config — the ontology drives the animation
-        const patternFrom = pattern?.gsapConfig?.from ?? {opacity: 0, z: manifest.text.depthTravel};
-        const patternTo = pattern?.gsapConfig?.to ?? {opacity: 1, z: 0};
-        const patternDuration = ((pattern?.gsapConfig?.duration as number | undefined) ?? 0.6) * easeConfig.durationMultiplier;
-
-        // Apply imperfection if directorial metadata is present
-        const imperfected = meta?.imperfectionProfile && currentBeat
-          ? applyImperfection(
-              meta.imperfectionProfile,
-              currentBeat.emotion,
-              {duration: patternDuration, x: word.x, y: 0, rotation: 0, scale: 1}
-            )
-          : {duration: patternDuration, x: word.x, y: 0, rotation: 0, scale: 1};
-
-        // Final GSAP config — use legacy behavior if no directorial metadata
-        if (meta) {
-          // Directorial metadata path: pattern drives animation, imperfection perturbs base position
-          const fromTracks = splitMotionTweenVars({
-            ...patternFrom,
-            x: imperfected.x,
-            y: imperfected.y
-          });
-
-          const toTracks = splitMotionTweenVars({
-            ...patternTo,
-            duration: Math.max(0.05, imperfected.duration),
-            ease: easeConfig.ease
-          });
-
-          // Apply to mesh — fromTo ensures all pattern properties are consumed
-          timeline.fromTo(mesh.position, fromTracks.position, {
-            ...toTracks.position,
-            ...toTracks.common
-          }, effectiveStart);
-
-          // Rotation and scale as supplementary animations (not in pattern)
-          if (hasTrackVars(fromTracks.rotation) || hasTrackVars(toTracks.rotation)) {
-            timeline.fromTo(mesh.rotation, fromTracks.rotation, {
-              ...toTracks.rotation,
-              ...toTracks.common
-            }, effectiveStart);
-          } else {
-            timeline.from(mesh.rotation, {
-              x: Math.sin(rotationSeed) * Math.PI,
-              y: Math.cos(rotationSeed) * Math.PI,
-              ...toTracks.common
-            }, effectiveStart);
-          }
-          if (hasTrackVars(fromTracks.scale) || hasTrackVars(toTracks.scale)) {
-            timeline.fromTo(mesh.scale, fromTracks.scale, {
-              ...toTracks.scale,
-              ...toTracks.common
-            }, effectiveStart);
-          } else {
-            timeline.from(mesh.scale, {
-              x: 0,
-              y: 0,
-              z: 0,
-              ...toTracks.common
-            }, effectiveStart);
-          }
-
-          // Material opacity fade — short duration relative to main animation
-          if (hasTrackVars(fromTracks.material) || hasTrackVars(toTracks.material)) {
-            timeline.fromTo(material, fromTracks.material, {
-              ...toTracks.material,
-              duration: Math.max((imperfected.duration as number) * 0.3, 1 / fps),
-              ease: "power2.out"
-            }, effectiveStart);
-          }
-        } else {
-          // Legacy path (no directorial metadata)
-          timeline.from(mesh.position, {
-            z: manifest.text.depthTravel,
-            duration,
-            ease: "back.out(1.7)"
-          }, effectiveStart);
-          timeline.from(mesh.rotation, {
-            x: Math.sin(rotationSeed) * Math.PI,
-            y: Math.cos(rotationSeed) * Math.PI,
-            duration,
-            ease: "back.out(1.7)"
-          }, effectiveStart);
-          timeline.from(mesh.scale, {
-            x: 0,
-            y: 0,
-            z: 0,
-            duration,
-            ease: "back.out(1.7)"
-          }, effectiveStart);
-          timeline.from(material, {
-            opacity: 0,
-            duration: Math.max(duration * 0.3, 1 / fps),
-            ease: "power2.out"
-          }, effectiveStart);
-        }
-      }
-    });
-
-    timeline.seek(frame / Math.max(fps, 1), false);
-    timelineRef.current = timeline;
-
-    return () => {
-      timeline.kill();
-      if (timelineRef.current === timeline) {
-        timelineRef.current = null;
-      }
-    };
-  }, [
-    fps,
-    frame,
-    layout,
-    manifest.directorialMetadata,
-    manifest.fps,
-    manifest.transcriptWords,
-    manifest.text.depthTravel,
-    manifest.wordStagger,
-    manifest.text.size,
-    visualMaterials
-  ]);
-
-  useEffect(() => {
+    wordVelocities.current = new Map();
+    prevWordPositions.current = new Map();
+    velocityScratch.current = new Map();
     layout.forEach((_word, index) => {
       const key = `word-${index}`;
-      if (!prevWordPositions.current.has(key)) {
-        prevWordPositions.current.set(key, new THREE.Vector3());
-      }
-      if (!velocityScratch.current.has(key)) {
-        const velocity = new THREE.Vector3();
-        velocityScratch.current.set(key, velocity);
-        wordVelocities.current.set(key, velocity);
-      }
+      wordVelocities.current.set(key, new THREE.Vector3());
+      prevWordPositions.current.set(key, new THREE.Vector3());
+      velocityScratch.current.set(key, new THREE.Vector3());
     });
   }, [layout]);
 
-  useFrame(() => {
-    const timeline = timelineRef.current;
-    const currentTime = frame / Math.max(fps, 1);
-    if (timeline) {
-      if (currentTime > timeline.duration()) {
-        timeline.progress(1, false);
-      } else {
-        timeline.seek(currentTime, false);
-      }
+  useEffect(() => {
+    if (layout.length === 0 || engineConfig.text.trim().length === 0) {
+      return;
     }
 
-    visualMaterials.forEach((material) => {
-      updateDeformationTime(material, currentTime);
+    const chrome = renderConfig.chrome || shouldUseChromeText(manifest);
+    const highlightMap = createBakedHighlightMap(manifest.gradientColors, chrome);
+    const material = new THREE.MeshBasicMaterial({
+      color: manifest.text.color,
+      map: highlightMap,
+      transparent: true,
+      opacity: 1,
+      alphaTest: 0.01,
+      depthTest: false,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+      toneMapped: false
     });
+    injectVertexDeformation(material, renderConfig.deformation);
+    if (chrome) {
+      applyFakeChromeEnvironment(material, highlightMap, 1);
+    }
 
-    layout.forEach((_word, index) => {
-      const mesh = visualMeshes.current[index];
-      const key = `word-${index}`;
-      const prev = prevWordPositions.current.get(key);
-      const vel = velocityScratch.current.get(key);
-      if (mesh && prev && vel) {
-        vel.subVectors(mesh.position, prev).multiplyScalar(Math.max(fps, 1));
-        prev.copy(mesh.position);
-      }
+    const engine = new KineticTextEngine(scene, Math.max(256, engineConfig.text.length + 32));
+    const instance = engine.create({
+      ...engineConfig,
+      material
     });
+    instance.mesh.renderOrder = 10;
+    if (shouldEnableTextBloomLayerForMesh(manifest, choreography, layout.length)) {
+      instance.mesh.layers.enable(TEXT_BLOOM_LAYER);
+    } else {
+      instance.mesh.layers.disable(TEXT_BLOOM_LAYER);
+    }
+    instance.seek(frame / Math.max(fps, 1));
 
-    useCameraRigStore.setState({wordVelocities: wordVelocities.current});
-  });
+    engineRef.current = engine;
+    instanceRef.current = instance;
+    materialRef.current = material;
 
-  useEffect(() => {
     return () => {
-      visuals.forEach((visual) => visual.dispose());
+      instance.dispose();
+      engine.dispose();
+      highlightMap.dispose();
+      material.dispose();
+      if (engineRef.current === engine) {
+        engineRef.current = null;
+      }
+      if (instanceRef.current === instance) {
+        instanceRef.current = null;
+      }
+      if (materialRef.current === material) {
+        materialRef.current = null;
+      }
+      useCameraRigStore.setState({wordVelocities: new Map()});
     };
-  }, [visuals]);
+  }, [
+    choreography,
+    engineConfig,
+    fps,
+    frame,
+    layout,
+    manifest,
+    renderConfig,
+    scene
+  ]);
 
-  if (layout.length === 0) {
-    return null;
-  }
+  useFrame(() => {
+    const instance = instanceRef.current;
+    const engine = engineRef.current;
+    const material = materialRef.current;
+    const currentTime = frame / Math.max(fps, 1);
 
-  return (
-    <group position={[0, 0, manifest.text.depthZ]}>
-      {visuals.map((visual, index) => {
-        const word = layout[index];
-        if (!word) {
-          return null;
+    if (instance) {
+      if (currentTime > instance.timeline.duration()) {
+        instance.timeline.progress(1, false);
+      } else {
+        instance.seek(currentTime);
+      }
+
+      instance.wordStates.forEach((state, index) => {
+        const key = `word-${index}`;
+        const prev = prevWordPositions.current.get(key);
+        const vel = velocityScratch.current.get(key);
+        if (!prev || !vel) {
+          return;
         }
 
-        return (
-          <primitive
-            key={`${word.text}-${index}`}
-            object={visual.mesh}
-            ref={(mesh: THREE.Mesh | null) => {
-              visualMeshes.current[index] = mesh;
-              mesh?.layers.enable(TEXT_BLOOM_LAYER);
-            }}
-            position={[word.x, 0, 0]}
-            renderOrder={10}
-          />
-        );
-      })}
-    </group>
-  );
+        const current = new THREE.Vector3(state.x, state.y, state.z);
+        vel.subVectors(current, prev).multiplyScalar(Math.max(fps, 1));
+        prev.copy(current);
+        wordVelocities.current.set(key, vel);
+      });
+      useCameraRigStore.setState({wordVelocities: wordVelocities.current});
+    }
+
+    engine?.update(currentTime);
+    if (material) {
+      updateDeformationTime(material, currentTime);
+    }
+  });
+
+  return null;
 };

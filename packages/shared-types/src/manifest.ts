@@ -1,5 +1,7 @@
 import {z} from "zod";
 
+import {textAnimationGrammarSchema} from "./text-grammar.js";
+
 const isUrlLike = (value: string): boolean => {
   if (value.startsWith("/") || value.startsWith("./") || value.startsWith("../")) {
     return true;
@@ -40,6 +42,8 @@ const vector3Schema = z.object({
   y: z.number(),
   z: z.number()
 });
+
+const vector3TupleSchema = z.tuple([z.number(), z.number(), z.number()]);
 
 const cameraKeyframeSchema = z.object({
   position: vector3Schema,
@@ -154,6 +158,18 @@ export const directorialMetadataSchema = z.object({
   motionVocabulary: z.array(z.string().min(1))
 });
 
+export const deviceMockupSchema = z.object({
+  id: z.string().min(1),
+  deviceType: z.enum(["phone", "tablet", "laptop"]),
+  position: vector3TupleSchema.optional(),
+  rotation: vector3TupleSchema.optional(),
+  scale: z.number().positive().optional(),
+  screen: z.object({
+    color: z.string().min(1).optional(),
+    label: z.string().optional()
+  }).optional()
+});
+
 export const renderManifestSchema = z.object({
   manifestVersion: z.literal("prometheus-render-manifest/v1").default("prometheus-render-manifest/v1"),
   jobId: z.string().min(1),
@@ -180,6 +196,8 @@ export const renderManifestSchema = z.object({
   gradientColors: z.array(z.string()).optional().default(["#ffffff"]),
   envMapIntensity: z.number().optional().default(0),
   chrome: z.boolean().optional().default(false),
+  deviceMockup: deviceMockupSchema.optional(),
+  textAnimationGrammar: textAnimationGrammarSchema.optional(),
   cameraKeyframes: z.array(cameraKeyframeSchema).optional().default([
     {position: {x: 0, y: 0, z: 50}, lookAt: {x: 0, y: 0, z: 0}, roll: 0},
     {position: {x: 0, y: 0, z: 5}, lookAt: {x: 0, y: 0, z: 0}, roll: 0},
@@ -287,6 +305,7 @@ export type DeformationConfig = z.infer<typeof deformationConfigSchema>;
 export type PatternPostProcess = z.infer<typeof patternPostProcessSchema>;
 export type DirectorNotes = z.infer<typeof directorNotesSchema>;
 export type DirectorialMetadata = z.infer<typeof directorialMetadataSchema>;
+export type DeviceMockupManifest = z.infer<typeof deviceMockupSchema>;
 export type EmotionalBeat = z.infer<typeof emotionalBeatSchema>;
 export type ImperfectionConfig = z.infer<typeof imperfectionConfigSchema>;
 export type IntensityCurve = z.infer<typeof intensityCurveSchema>;

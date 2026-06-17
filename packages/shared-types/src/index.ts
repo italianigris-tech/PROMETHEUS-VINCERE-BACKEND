@@ -1,4 +1,29 @@
 export {
+  textAnimationGrammarSchema,
+  textAnimationOrderSchema,
+  textAnimationStaggerSchema,
+  textAnimationUnitSchema,
+  textEntranceSchema,
+  textEntranceTypeSchema,
+  textExitSchema,
+  textExitTypeSchema,
+  textHoldSchema,
+  textSelectiveEffectsSchema,
+  textSelectiveEffectSelectorSchema,
+  textStyleKeyframeSchema,
+  textSyncModeSchema,
+  textSyncSchema,
+  textTransformKeyframeSchema,
+  type TextAnimationGrammar,
+  type TextAnimationOrder,
+  type TextAnimationUnit,
+  type TextEntranceType,
+  type TextExitType,
+  type TextSelectiveEffects,
+  type TextSyncMode
+} from "./text-grammar.js";
+
+export {
   backendMessageSchema,
   configurationDeltaSchema,
   frontendMessageSchema,

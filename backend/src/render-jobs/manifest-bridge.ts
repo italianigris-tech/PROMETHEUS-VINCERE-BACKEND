@@ -30,6 +30,8 @@ const vector3Schema = z.object({
   z: z.number()
 });
 
+const vector3TupleSchema = z.tuple([z.number(), z.number(), z.number()]);
+
 const cameraKeyframeSchema = z.object({
   position: vector3Schema,
   lookAt: vector3Schema,
@@ -114,6 +116,125 @@ export const renderTranscriptWordSchema = z.object({
   }
 });
 
+const renderDeviceMockupSchema = z.object({
+  id: z.string().min(1),
+  deviceType: z.enum(["phone", "tablet", "laptop"]),
+  position: vector3TupleSchema.optional(),
+  rotation: vector3TupleSchema.optional(),
+  scale: z.number().positive().optional(),
+  screen: z.object({
+    color: z.string().min(1).optional(),
+    label: z.string().optional()
+  }).optional()
+});
+
+const renderTextTransformStateSchema = z.object({
+  x: z.number().optional(),
+  y: z.number().optional(),
+  z: z.number().optional(),
+  scale: z.number().positive().optional(),
+  scaleX: z.number().positive().optional(),
+  scaleY: z.number().positive().optional(),
+  rotation: z.number().optional(),
+  rotationX: z.number().optional(),
+  rotationY: z.number().optional(),
+  rotationZ: z.number().optional(),
+  opacity: z.number().min(0).max(1).optional(),
+  blur: z.number().nonnegative().optional()
+});
+
+const renderTextAnimationGrammarSchema = z.object({
+  version: z.literal("prometheus-text-grammar/v1"),
+  stagger: z.object({
+    unit: z.enum(["word", "letter", "line"]).default("word"),
+    delayMs: z.number().nonnegative().default(0),
+    order: z.enum(["forward", "reverse", "center-out", "random"]).default("forward")
+  }).default({
+    unit: "word",
+    delayMs: 0,
+    order: "forward"
+  }),
+  entrance: z.object({
+    type: z.enum(["fade", "slide", "scale", "rotate", "blur", "typewriter", "decode"]).default("fade"),
+    durationMs: z.number().nonnegative().default(450),
+    from: renderTextTransformStateSchema.default({})
+  }).default({
+    type: "fade",
+    durationMs: 450,
+    from: {}
+  }),
+  hold: z.object({
+    durationMs: z.number().nonnegative().default(0),
+    breathingPulse: z.boolean().default(false),
+    pulseAmount: z.number().min(0).max(1).default(0.04)
+  }).default({
+    durationMs: 0,
+    breathingPulse: false,
+    pulseAmount: 0.04
+  }),
+  exit: z.object({
+    type: z.enum(["fade", "slide", "scale", "rotate", "blur", "explode", "scatter"]).default("fade"),
+    durationMs: z.number().nonnegative().default(300),
+    to: renderTextTransformStateSchema.default({})
+  }).default({
+    type: "fade",
+    durationMs: 300,
+    to: {}
+  }),
+  transform: z.object({
+    keyframes: z.array(z.object({
+      atMs: z.number().nonnegative(),
+      state: renderTextTransformStateSchema
+    })).default([])
+  }).default({
+    keyframes: []
+  }),
+  style: z.object({
+    keyframes: z.array(z.object({
+      atMs: z.number().nonnegative(),
+      color: z.string().min(1).optional(),
+      outline: z.string().min(1).optional(),
+      stroke: z.string().min(1).optional(),
+      blur: z.number().nonnegative().optional()
+    })).default([])
+  }).default({
+    keyframes: []
+  }),
+  sync: z.object({
+    mode: z.enum(["none", "toBeat", "toOnset", "toPhrase"]).default("none"),
+    offsetMs: z.number().default(0)
+  }).default({
+    mode: "none",
+    offsetMs: 0
+  }),
+  selectiveEffects: z.array(z.object({
+    selector: z.object({
+      text: z.string().min(1).optional(),
+      wordIndex: z.number().int().nonnegative().optional(),
+      letterRange: z.tuple([
+        z.number().int().nonnegative(),
+        z.number().int().nonnegative()
+      ]).optional()
+    }).refine((selector) => (
+      selector.text !== undefined ||
+      selector.wordIndex !== undefined ||
+      selector.letterRange !== undefined
+    ), {
+      message: "Selective text effect selector must target text, wordIndex, or letterRange"
+    }),
+    effects: z.object({
+      bloom: z.boolean().default(false),
+      motionBlur: z.boolean().default(false),
+      chromaticAberration: z.boolean().default(false)
+    }).default({
+      bloom: false,
+      motionBlur: false,
+      chromaticAberration: false
+    }),
+    layer: z.number().int().nonnegative().optional()
+  })).default([])
+});
+
 export const renderManifestBridgeSchema = z.object({
   manifestVersion: z.literal("prometheus-render-manifest/v1").default("prometheus-render-manifest/v1"),
   jobId: z.string().min(1),
@@ -139,6 +260,8 @@ export const renderManifestBridgeSchema = z.object({
   bevelThickness: z.number().optional().default(0.02),
   gradientColors: z.array(z.string()).optional().default(["#ffffff"]),
   envMapIntensity: z.number().optional().default(0),
+  deviceMockup: renderDeviceMockupSchema.optional(),
+  textAnimationGrammar: renderTextAnimationGrammarSchema.optional(),
   cameraKeyframes: z.array(cameraKeyframeSchema).optional().default(defaultCameraKeyframes),
   autoRoll: z.boolean().optional().default(true),
   autoRollIntensity: z.number().optional().default(0.3),
@@ -369,6 +492,65 @@ const readVector3 = (value: unknown): {x: number; y: number; z: number} | null =
   return {x, y, z};
 };
 
+const readVector3Tuple = (value: unknown): [number, number, number] | null => {
+  if (Array.isArray(value) && value.length >= 3) {
+    const [x, y, z] = value;
+    if (
+      typeof x === "number" &&
+      typeof y === "number" &&
+      typeof z === "number" &&
+      Number.isFinite(x) &&
+      Number.isFinite(y) &&
+      Number.isFinite(z)
+    ) {
+      return [x, y, z];
+    }
+  }
+
+  const vector = readVector3(value);
+  return vector ? [vector.x, vector.y, vector.z] : null;
+};
+
+const readDeviceMockup = (
+  creativeManifest: Record<string, unknown>
+): z.infer<typeof renderDeviceMockupSchema> | undefined => {
+  const record = readRecord(creativeManifest.deviceMockup);
+  if (!record) {
+    return undefined;
+  }
+
+  const deviceType = readString(record, "deviceType");
+  if (deviceType !== "phone" && deviceType !== "tablet" && deviceType !== "laptop") {
+    return undefined;
+  }
+
+  const screen = readNestedRecord(record, "screen");
+  const screenConfig = {
+    color: readString(screen, "color") ?? undefined,
+    label: readString(screen, "label") ?? undefined
+  };
+  const hasScreenConfig = screenConfig.color !== undefined || screenConfig.label !== undefined;
+
+  return {
+    id: readString(record, "id") ?? "device-mockup",
+    deviceType,
+    position: readVector3Tuple(record.position) ?? undefined,
+    rotation: readVector3Tuple(record.rotation) ?? undefined,
+    scale: readNumber(record, "scale") ?? undefined,
+    screen: hasScreenConfig ? screenConfig : undefined
+  };
+};
+
+const readTextAnimationGrammar = (
+  creativeManifest: Record<string, unknown>
+): z.infer<typeof renderTextAnimationGrammarSchema> | undefined => {
+  if (creativeManifest.textAnimationGrammar === undefined) {
+    return undefined;
+  }
+
+  return renderTextAnimationGrammarSchema.parse(creativeManifest.textAnimationGrammar);
+};
+
 const readCameraKeyframesFrom = (value: unknown): z.infer<typeof cameraKeyframeSchema>[] | null => {
   if (!Array.isArray(value)) {
     return null;
@@ -584,6 +766,8 @@ export const buildRenderManifest = ({
     bevelThickness: readNumber(creativeManifest, "bevelThickness") ?? 0.02,
     gradientColors: readStringArray(creativeManifest, "gradientColors") ?? ["#ffffff"],
     envMapIntensity: readNumber(creativeManifest, "envMapIntensity") ?? 0,
+    deviceMockup: readDeviceMockup(creativeManifest),
+    textAnimationGrammar: readTextAnimationGrammar(creativeManifest),
     cameraKeyframes: readCameraKeyframes(creativeManifest),
     autoRoll: readBoolean(creativeManifest, "autoRoll") ?? true,
     autoRollIntensity: readNumber(creativeManifest, "autoRollIntensity") ?? 0.3,

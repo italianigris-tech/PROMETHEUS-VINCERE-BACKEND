@@ -2,11 +2,11 @@ import {z} from "zod";
 
 import type {FileJobRepository} from "../../repository";
 import {soundDesignManifestSchema, type SoundDesignManifest} from "../../sound-engine/types";
-import {videoAwareAudioPlanModeSchema} from "../schemas/audio-plan.schema";
+import {transitionEventTypeSchema, videoAwareAudioPlanModeSchema} from "../schemas/audio-plan.schema";
 
 const orphanTransitionEventSchema = z.object({
   id: z.string().trim().min(1),
-  type: z.string().trim().min(1),
+  type: transitionEventTypeSchema,
   videoStartSec: z.number().nonnegative(),
   videoEndSec: z.number().nonnegative()
 });

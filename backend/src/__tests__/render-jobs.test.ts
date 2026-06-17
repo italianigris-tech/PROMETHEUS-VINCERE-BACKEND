@@ -3,12 +3,12 @@ import path from "node:path";
 
 import {afterEach, beforeEach, describe, expect, it} from "vitest";
 
-import {buildRenderManifest} from "../render-jobs/manifest-bridge";
+import {buildRenderManifest, type DirectorNotes} from "../render-jobs/manifest-bridge";
 import {cleanupTempDir, createTestApp, makeTempDir} from "./test-utils";
 
 const fixturePath = path.join(process.cwd(), "src", "__tests__", "fixtures", "creative-decision-manifest.fixture.json");
 
-const sampleDirectorNotes = {
+const sampleDirectorNotes: DirectorNotes = {
   version: "1.0",
   emotionalArc: [
     {
@@ -96,6 +96,42 @@ describe("render job bridge", () => {
     creativeManifest.depthOfFieldEnabled = true;
     creativeManifest.depthOfFieldFocusDistance = 12;
     creativeManifest.depthOfFieldFalloff = 6;
+    creativeManifest.deviceMockup = {
+      id: "hero-phone",
+      deviceType: "phone",
+      position: [1, 2, -3],
+      rotation: [0, 0.18, 0],
+      scale: 1.2,
+      screen: {
+        color: "#2563eb",
+        label: "PROMETHEUS"
+      }
+    };
+    creativeManifest.textAnimationGrammar = {
+      version: "prometheus-text-grammar/v1",
+      stagger: {
+        unit: "word",
+        delayMs: 200
+      },
+      entrance: {
+        type: "slide",
+        durationMs: 320
+      },
+      sync: {
+        mode: "toBeat",
+        offsetMs: -20
+      },
+      selectiveEffects: [{
+        selector: {
+          text: "premium"
+        },
+        effects: {
+          bloom: true,
+          motionBlur: false,
+          chromaticAberration: false
+        }
+      }]
+    };
     creativeManifest.postProcessing = {
       bloomEnabled: false,
       bloomStrength: 2.1,
@@ -127,7 +163,8 @@ describe("render job bridge", () => {
       text: "I",
       startMs: 0,
       endMs: 120,
-      confidence: 0.99
+      confidence: 0.99,
+      semanticTag: "aggressive-entrance"
     });
     expect(manifest.fontUrl).toBe("http://localhost:8000/fonts/retrieved/satoshi.ttf");
     expect(manifest.backgroundVideoUrl).toBe("http://localhost:8000/media/background.mp4");
@@ -158,6 +195,20 @@ describe("render job bridge", () => {
     expect(manifest.depthOfFieldEnabled).toBe(true);
     expect(manifest.depthOfFieldFocusDistance).toBe(12);
     expect(manifest.depthOfFieldFalloff).toBe(6);
+    expect(manifest.deviceMockup).toEqual({
+      id: "hero-phone",
+      deviceType: "phone",
+      position: [1, 2, -3],
+      rotation: [0, 0.18, 0],
+      scale: 1.2,
+      screen: {
+        color: "#2563eb",
+        label: "PROMETHEUS"
+      }
+    });
+    expect(manifest.textAnimationGrammar?.stagger.delayMs).toBe(200);
+    expect(manifest.textAnimationGrammar?.entrance.type).toBe("slide");
+    expect(manifest.textAnimationGrammar?.sync.mode).toBe("toBeat");
     expect(manifest.bloomEnabled).toBe(false);
     expect(manifest.bloomStrength).toBe(2.1);
     expect(manifest.bloomRadius).toBe(0.7);
@@ -172,7 +223,8 @@ describe("render job bridge", () => {
     expect(manifest.lutEnabled).toBe(true);
     expect(manifest.lutUrl).toBe("/luts/lusion.cube");
     expect(manifest.text.sdfGlyphSize).toBe(96);
-    expect(manifest.directorialMetadata).toEqual({
+    const directorialMetadata = manifest.directorialMetadata;
+    expect(directorialMetadata).toEqual({
       emotionalArc: sampleDirectorNotes.emotionalArc,
       temporalIntensity: sampleDirectorNotes.temporalIntensity,
       imperfectionProfile: sampleDirectorNotes.imperfectionProfile,
@@ -181,7 +233,10 @@ describe("render job bridge", () => {
     });
     expect(manifest.transcriptWords.every((word) => typeof word.semanticTag === "string")).toBe(true);
     expect(manifest.transcriptWords[0]?.semanticTag).toBe("aggressive-entrance");
-    expect(manifest.directorialMetadata.temporalIntensity.points.length).toBeGreaterThanOrEqual(8);
+    if (!directorialMetadata) {
+      throw new Error("Expected bridge to preserve directorial metadata");
+    }
+    expect(directorialMetadata.temporalIntensity.points.length).toBeGreaterThanOrEqual(8);
   });
 
   it("rejects worker font URLs that Troika cannot render", async () => {

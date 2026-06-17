@@ -82,6 +82,64 @@ describe("renderManifestSchema", () => {
     expect(manifest.chrome).toBe(true);
   });
 
+  it("preserves a procedural device mockup directive for motion-graphics references", () => {
+    const manifest = renderManifestSchema.parse({
+      ...baseManifest,
+      deviceMockup: {
+        id: "hero-phone",
+        deviceType: "phone",
+        position: [1, 2, -3],
+        rotation: [0, 0.18, 0],
+        scale: 1.2,
+        screen: {
+          color: "#2563eb",
+          label: "PROMETHEUS"
+        }
+      }
+    });
+
+    expect(manifest.deviceMockup).toEqual({
+      id: "hero-phone",
+      deviceType: "phone",
+      position: [1, 2, -3],
+      rotation: [0, 0.18, 0],
+      scale: 1.2,
+      screen: {
+        color: "#2563eb",
+        label: "PROMETHEUS"
+      }
+    });
+  });
+
+  it("preserves typography animation grammar for text-only orchestration", () => {
+    const manifest = renderManifestSchema.parse({
+      ...baseManifest,
+      textAnimationGrammar: {
+        version: "prometheus-text-grammar/v1",
+        stagger: {
+          unit: "word",
+          delayMs: 200
+        },
+        entrance: {
+          type: "slide",
+          durationMs: 360,
+          from: {
+            opacity: 0,
+            y: 24
+          }
+        },
+        sync: {
+          mode: "toPhrase",
+          offsetMs: 40
+        }
+      }
+    });
+
+    expect(manifest.textAnimationGrammar?.stagger.delayMs).toBe(200);
+    expect(manifest.textAnimationGrammar?.entrance.type).toBe("slide");
+    expect(manifest.textAnimationGrammar?.sync.mode).toBe("toPhrase");
+  });
+
   it("rejects matte timing that cannot frame-lock to the composition", () => {
     const result = renderManifestSchema.safeParse({
       ...baseManifest,
