@@ -85,3 +85,4 @@ font-intelligence/outputs/font-descriptors.jsonl
 CONSOLIDATED.env
 
 .vite/
+.codex-temp/

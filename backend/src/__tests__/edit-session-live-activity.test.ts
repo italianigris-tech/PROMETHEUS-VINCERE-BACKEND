@@ -72,6 +72,7 @@ describe("edit session live activity", () => {
             transcriptId: "transcript_live_activity",
             words: 0
           });
+          await new Promise((resolve) => setTimeout(resolve, 75));
           return [
             {text: "Observe", start_ms: 0, end_ms: 180, confidence: 0.99},
             {text: "the", start_ms: 180, end_ms: 260, confidence: 0.99},

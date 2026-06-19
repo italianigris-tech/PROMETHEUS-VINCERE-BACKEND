@@ -1,5 +1,5 @@
 import path from "node:path";
-import {mkdtemp, rm, stat} from "node:fs/promises";
+import {mkdtemp, rm, stat, writeFile} from "node:fs/promises";
 import os from "node:os";
 
 import {describe, expect, it} from "vitest";
@@ -83,8 +83,16 @@ describe("PreviewRenderService", () => {
     const tempRoot = await mkdtemp(path.join(os.tmpdir(), "preview-render-"));
     try {
       const service = new PreviewRenderService();
+      const fontPath = await writeTestFont(tempRoot);
       const result = await service.createPreviewArtifact({
-        manifest: buildManifest(),
+        manifest: buildManifest({
+          primaryFont: {
+            family: "Satoshi",
+            source: "custom_ingested",
+            role: "headline",
+            fileUrl: fontPath
+          }
+        }),
         sessionRenderDir: tempRoot,
         enableGsapMotion: true,
         enableKineticTypography: true,
@@ -179,3 +187,9 @@ describe("PreviewRenderService", () => {
     }
   }, 15000);
 });
+
+const writeTestFont = async (root: string): Promise<string> => {
+  const filePath = path.join(root, "Satoshi.woff2");
+  await writeFile(filePath, Buffer.from("test-font-bytes"));
+  return filePath;
+};

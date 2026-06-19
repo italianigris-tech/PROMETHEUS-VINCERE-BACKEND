@@ -2322,10 +2322,10 @@ export class EditSessionManager {
         onActivity: async (detail) => {
           await this.updateLiveActivity(sessionId, "ASSEMBLYAI_IO", detail);
         },
-        onPoll: ({attempt, maxPollAttempts, status}) => {
+        onPoll: async ({attempt, maxPollAttempts, status}) => {
           const progress = status === "completed" ? 100 : Math.min(95, Math.round((attempt / Math.max(1, maxPollAttempts)) * 100));
-          void this.updateLiveActivity(sessionId, "ASSEMBLYAI_POLLING", `Attempt ${attempt}/${maxPollAttempts}`);
-          void this.updateSession(sessionId, () => ({
+          await this.updateLiveActivity(sessionId, "ASSEMBLYAI_POLLING", `Attempt ${attempt}/${maxPollAttempts}`);
+          await this.updateSession(sessionId, () => ({
             transcriptProgress: progress,
             transcriptStatus: status === "error" ? "failed" : "full_transcript_pending",
             lastTranscriptUpdateAt: nowIso(this.deps)

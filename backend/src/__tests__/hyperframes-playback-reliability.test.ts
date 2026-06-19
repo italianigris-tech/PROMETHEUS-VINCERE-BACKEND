@@ -1,11 +1,11 @@
 import path from "node:path";
-import {mkdtemp, readFile, rm} from "node:fs/promises";
+import {mkdtemp, readFile, rm, writeFile} from "node:fs/promises";
 import os from "node:os";
 import {describe, expect, it} from "vitest";
 import {generateHyperFramesComposition} from "../composition/hyperframes-composition-generator";
 import type {CreativeDecisionManifest} from "../contracts/creative-decision-manifest";
 
-const buildManifest = (): CreativeDecisionManifest => ({
+const buildManifest = (input: {primaryFontFileUrl: string}): CreativeDecisionManifest => ({
   manifestVersion: "1.0.0",
   jobId: "job_playback_1",
   sceneId: "scene_1",
@@ -32,8 +32,8 @@ const buildManifest = (): CreativeDecisionManifest => ({
   },
   typography: {
     mode: "svg_longform_typography_v1",
-    primaryFont: {family: "Satoshi", source: "fallback", role: "headline"},
-    fontPairing: {graphUsed: false, reason: "test"},
+    primaryFont: {family: "Satoshi", source: "custom_ingested", role: "headline", fileUrl: input.primaryFontFileUrl},
+    fontPairing: {graphUsed: true, reason: "test"},
     coreWords: [],
     linePlan: {lines: ["Test"], maxLines: 1, maxCharsPerLine: 20, allowWidows: false}
   },
@@ -72,10 +72,10 @@ const buildManifest = (): CreativeDecisionManifest => ({
   diagnostics: {
     manifestCreatedAt: new Date().toISOString(),
     milvusUsed: false,
-    fontGraphUsed: false,
-    customFontsUsed: false,
-    fallbackUsed: true,
-    fallbackReasons: ["Test fallback"],
+    fontGraphUsed: true,
+    customFontsUsed: true,
+    fallbackUsed: false,
+    fallbackReasons: [],
     legacyOverlayUsed: false,
     remotionUsed: false,
     hyperframesUsed: true,
@@ -88,7 +88,9 @@ describe("HyperFrames Playback Reliability (TDD)", () => {
     const root = await mkdtemp(path.join(os.tmpdir(), "hf-playback-"));
     try {
       const output = await generateHyperFramesComposition({
-        manifest: buildManifest(),
+        manifest: buildManifest({
+          primaryFontFileUrl: await writeTestFont(root)
+        }),
         outputRootDir: root
       });
       const indexHtml = await readFile(output.indexHtmlPath, "utf8");
@@ -112,3 +114,9 @@ describe("HyperFrames Playback Reliability (TDD)", () => {
     }
   });
 });
+
+const writeTestFont = async (root: string): Promise<string> => {
+  const filePath = path.join(root, "Satoshi.woff2");
+  await writeFile(filePath, Buffer.from("test-font-bytes"));
+  return filePath;
+};
