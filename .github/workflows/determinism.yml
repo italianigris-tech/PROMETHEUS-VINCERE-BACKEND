@@ -1,0 +1,64 @@
+name: Prometheus Determinism
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  determinism:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install FFmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install remotion-app dependencies
+        run: npm ci --prefix remotion-app --legacy-peer-deps
+
+      - name: Install worker dependencies
+        run: npm ci --prefix apps/worker --legacy-peer-deps
+
+      - name: Typecheck shared types
+        run: npm run typecheck --workspace=packages/shared-types
+
+      - name: Typecheck backend
+        run: npm run typecheck --workspace=backend
+
+      - name: Typecheck worker
+        run: npm run typecheck --prefix apps/worker
+
+      - name: Typecheck remotion-app
+        run: npm run typecheck --prefix remotion-app
+
+      - name: Backend tests
+        run: npm run test --workspace=backend
+
+      - name: Shared determinism tests
+        run: npm run test --workspace=packages/shared-types -- test/determinism.test.ts
+
+      - name: Same-key determinism proof
+        run: npx tsx scripts/verify-determinism.ts
+
+      - name: Different-key variation proof
+        run: npx tsx scripts/verify-variation.ts
+
+      - name: Zombie Chrome check
+        shell: bash
+        run: |
+          if pgrep -f "chrome|chromium" >/dev/null; then
+            ps -ef | grep -E "chrome|chromium" | grep -v grep
+            exit 1
+          fi

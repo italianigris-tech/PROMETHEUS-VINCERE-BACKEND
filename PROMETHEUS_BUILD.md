@@ -1,10 +1,15 @@
-# PROMETHEUS BUILD TRACKER
+﻿# PROMETHEUS BUILD TRACKER
 ## Sprint: v8.1 | Day: 0 of 14 | Phase: Build Governor Initialization
 
 ### Current Blockers
 | Ticket | Blocker | Owner |
 |--------|---------|-------|
-| None | None | None |
+| T20 | Determinism check fails because Director emits 1920x1080 instead of v8.1 1080x1920. | Codex |
+| T21 | Director contract fails: missing 90s cap and missing generateCandidateGenomes export. | Codex |
+| T22 | judgment-layer.ts not present yet; contract tests are skipped until Opus lands module. | Opus |
+| T23 | sequence-memory.ts and replay-ledger.ts not present yet; contract tests are skipped until Opus lands modules. | Opus |
+| T25 | variation-key.ts not present yet and generateCandidateGenomes is missing. | Opus |
+| T26 | Integration scripts run but are blocked by T20, T21, and T25 contract failures. | Codex |
 
 ### In Progress
 | Ticket | Name | Owner | Files | Last Updated |
@@ -14,7 +19,8 @@
 ### Ready for Review
 | Ticket | Name | Owner | Test Results | Last Updated |
 |--------|------|-------|-------------|--------------|
-| None | None | None | None | None |
+| T24 | Audio Mixing Tests | Codex | `npm.cmd --prefix backend test -- src/audio/mix-audio.test.ts` passed: 5 tests. | 2026-06-20 |
+| T27 | CI/CD Pipeline | Codex | Workflow created; will run red until T20/T21/T25 blockers are fixed. | 2026-06-20 |
 
 ### Merged
 | Ticket | Name | Owner | Merge Commit | Date |
@@ -66,12 +72,19 @@
 | T17 | Variation Contract | NOT_STARTED | Unclaimed | backend/src/director/variation-key.ts | T10, T11, T12 | 2026-06-20 | Explicit upload_instance_id + retry_index handling. |
 | T18 | Full Integration | NOT_STARTED | Unclaimed | scripts/test-joseph.ts | T09, T10, T11, T12, T13, T14, T15, T16, T17 | 2026-06-20 | --full passes. 3 profiles distinct. Re-upload variation works. |
 | T19 | Evidence Preservation | NOT_STARTED | Unclaimed | backend/src/ledger/evidence-preservation.ts | T10, T11, T12, T17 | 2026-06-20 | Persist candidates, rejections, verdicts. |
+| T20 | Determinism Test Suite | BLOCKED | Codex | packages/shared-types/test/determinism.test.ts<br>scripts/verify-determinism.ts<br>.github/workflows/determinism.yml | Director emits 1920x1080 | 2026-06-20 | Same seed stable, different seed varies, no forbidden render APIs, vertical metadata enforced. |
+| T21 | Director Unit Tests | BLOCKED | Codex | backend/src/director/joseph-director.contract.test.ts | Missing 90s cap and generateCandidateGenomes | 2026-06-20 | Director satisfies v8.1 manifest, duration, determinism, and candidate contract. |
+| T22 | Judgment Layer Tests | BLOCKED | Codex | backend/src/director/judgment-layer.test.ts | judgment-layer.ts absent | 2026-06-20 | Judgment Layer selects one candidate, rejects below quality floor, and is deterministic. |
+| T23 | Sequence Memory and Replay Ledger Tests | BLOCKED | Codex | backend/src/director/sequence-memory.test.ts<br>backend/src/ledger/replay-ledger.test.ts | sequence-memory.ts and replay-ledger.ts absent | 2026-06-20 | Sequence Memory state path and Replay Ledger CRUD are covered. |
+| T24 | Audio Mixing Tests | READY_FOR_REVIEW | Codex | backend/src/audio/mix-audio.test.ts | None | 2026-06-20 | Audio filtergraph, ducking, SFX missing-file, and FFmpeg failure paths covered. |
+| T25 | Variation Contract Tests | BLOCKED | Codex | backend/src/director/variation-key.test.ts<br>scripts/verify-variation.ts | variation-key.ts absent; generateCandidateGenomes missing | 2026-06-20 | Explicit upload_instance_id + retry_index behavior and candidate variation verified. |
+| T26 | Integration Test Scripts | BLOCKED | Codex | scripts/verify-determinism.ts<br>scripts/verify-variation.ts | Depends on T20/T21/T25 fixes | 2026-06-20 | Scripts print PASS/FAIL and exit nonzero on v8.1 contract violations. |
+| T27 | CI/CD Pipeline | READY_FOR_REVIEW | Codex | .github/workflows/determinism.yml | None | 2026-06-20 | CI runs typechecks, backend tests, determinism, variation, and zombie Chrome check. |
 
 ### Completed
 - None yet.
 
 ### Next Up
-- T01 Bundle Cache
-- T02 Vertical Resolution
-- T03 Physics Engine
-- T04 Font Fallback
+- Fix T20/T21 blockers in the Director: vertical 1080x1920 metadata, 90s duration cap, and `generateCandidateGenomes` export.
+- Land Opus modules for T22/T23/T25: `judgment-layer.ts`, `sequence-memory.ts`, `replay-ledger.ts`, and `variation-key.ts`.
+- Re-run `npx.cmd tsx scripts/verify-determinism.ts` and `npx.cmd tsx scripts/verify-variation.ts` after those fixes.

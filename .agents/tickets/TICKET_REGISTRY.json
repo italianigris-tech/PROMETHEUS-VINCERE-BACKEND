@@ -1,417 +1,610 @@
-{
-  "tickets": [
-    {
-      "id": "T01",
-      "title": "Bundle Cache",
-      "status": "NOT_STARTED",
-      "owner": null,
-      "files": [
-        "apps/worker/src/index.ts"
-      ],
-      "forbidden_files": [
-        "packages/shared-types/src/",
-        "remotion-app/src/compositions/JosephEdit.tsx"
-      ],
-      "test_command": "npx tsx scripts/test-joseph.ts --quick --hash test1",
-      "success_criterion": "bundle() runs once, caches, reuses. Second render skips bundle.",
-      "gate_number": 1,
-      "dependencies": [],
-      "primary_approach": "Add module-level cached bundle state keyed by SHA256 of remotion-app/src and reuse the resulting serveUrl in renderFromManifest().",
-      "fallback_approach": "If full content-addressed caching is unstable, fall back to process-lifetime caching with explicit invalidation on entry-point hash mismatch."
-    },
-    {
-      "id": "T02",
-      "title": "Vertical Resolution",
-      "status": "NOT_STARTED",
-      "owner": null,
-      "files": [
-        "remotion-app/src/compositions/JosephEdit.tsx"
-      ],
-      "forbidden_files": [
-        "packages/shared-types/src/",
-        "backend/src/director/joseph-director.ts"
-      ],
-      "test_command": "npm.cmd --prefix remotion-app test -- src/compositions/__tests__/JosephEdit.test.tsx",
-      "success_criterion": "1080x1920 canvas. Text clamped to y: 0.0-0.4.",
-      "gate_number": 1,
-      "dependencies": [],
-      "primary_approach": "Lock JosephEdit composition metadata and layout to vertical Shorts dimensions, then clamp text placement in the composition seam.",
-      "fallback_approach": "If dynamic metadata gets noisy, hard-code composition metadata first and defer non-essential responsive logic."
-    },
-    {
-      "id": "T03",
-      "title": "Physics Engine",
-      "status": "NOT_STARTED",
-      "owner": null,
-      "files": [
-        "packages/shared-utils/src/physics-engine.ts"
-      ],
-      "forbidden_files": [
-        "remotion-app/src/compositions/JosephEdit.tsx",
-        "apps/worker/src/index.ts"
-      ],
-      "test_command": "npm.cmd --prefix packages/shared-utils run test",
-      "success_criterion": "GC-safe. 300 words x 2700 frames in <500ms.",
-      "gate_number": 2,
-      "dependencies": [],
-      "primary_approach": "Implement a precomputed typed-array physics engine with no hot-loop allocations.",
-      "fallback_approach": "If the full generalized engine misses the target, ship a narrower per-word transform generator optimized for Joseph text primitives only."
-    },
-    {
-      "id": "T04",
-      "title": "Font Fallback",
-      "status": "NOT_STARTED",
-      "owner": null,
-      "files": [
-        "remotion-app/src/compositions/KineticText.tsx"
-      ],
-      "forbidden_files": [
-        "packages/shared-types/src/",
-        "apps/worker/src/index.ts"
-      ],
-      "test_command": "npm.cmd --prefix remotion-app run typecheck",
-      "success_criterion": "DOM canvas -> THREE.Texture. Deterministic.",
-      "gate_number": 2,
-      "dependencies": [],
-      "primary_approach": "Make DOM canvas fallback the primary text rasterization path and ensure deterministic texture generation.",
-      "fallback_approach": "If DOM canvas becomes too slow in preview, preserve it in render path and gate preview degradation explicitly."
-    },
-    {
-      "id": "T05",
-      "title": "R3F Integration",
-      "status": "NOT_STARTED",
-      "owner": null,
-      "files": [
-        "remotion-app/src/compositions/JosephEdit.tsx"
-      ],
-      "forbidden_files": [
-        "packages/shared-types/src/",
-        "backend/src/director/joseph-director.ts"
-      ],
-      "test_command": "npm.cmd --prefix remotion-app test -- src/compositions/__tests__/JosephEdit.test.tsx",
-      "success_criterion": "Reads Float32Array from inputProps. No real-time physics.",
-      "gate_number": 2,
-      "dependencies": [
-        "T03",
-        "T04"
-      ],
-      "primary_approach": "Wire JosephEdit to consume precomputed physics data through props and keep runtime rendering dumb.",
-      "fallback_approach": "If full typed-array ingestion is blocked, ship a narrower adapter that maps precomputed word transforms into Joseph-only R3F meshes."
-    },
-    {
-      "id": "T06",
-      "title": "Render Entry Contract",
-      "status": "NOT_STARTED",
-      "owner": null,
-      "files": [
-        "remotion-app/src/joseph-bundle.ts",
-        "remotion-app/src/joseph-entry.tsx"
-      ],
-      "forbidden_files": [
-        "packages/shared-types/src/",
-        "backend/src/director/judgment-layer.ts"
-      ],
-      "test_command": "npm.cmd --prefix remotion-app run typecheck",
-      "success_criterion": "Joseph-specific entry point. No unrelated app code.",
-      "gate_number": 2,
-      "dependencies": [
-        "T02",
-        "T05"
-      ],
-      "primary_approach": "Create a Joseph-only render entry that registers only the Joseph composition and isolates bundle cost from unrelated app surfaces.",
-      "fallback_approach": "If total isolation is blocked, create a minimal entry wrapper that excludes editor/preview-only modules from the Joseph render path."
-    },
-    {
-      "id": "T07",
-      "title": "Asset Contract",
-      "status": "NOT_STARTED",
-      "owner": null,
-      "files": [
-        "packages/shared-types/src/asset-resolver.ts"
-      ],
-      "forbidden_files": [
-        "remotion-app/src/compositions/JosephEdit.tsx",
-        "backend/src/director/joseph-director.ts"
-      ],
-      "test_command": "npm.cmd --prefix packages/shared-types run typecheck",
-      "success_criterion": "Explicit browser vs. FFmpeg media paths.",
-      "gate_number": 2,
-      "dependencies": [],
-      "primary_approach": "Introduce a dedicated asset resolver seam that distinguishes browser-facing URLs from FFmpeg-facing file paths.",
-      "fallback_approach": "If a generic resolver is too broad, ship a Joseph-specific resolver first and generalize later."
-    },
-    {
-      "id": "T08",
-      "title": "Chrome Timeout",
-      "status": "NOT_STARTED",
-      "owner": null,
-      "files": [
-        "apps/worker/src/index.ts"
-      ],
-      "forbidden_files": [
-        "packages/shared-types/src/",
-        "remotion-app/src/compositions/JosephEdit.tsx"
-      ],
-      "test_command": "npm.cmd --prefix apps/worker test -- src/index.test.ts",
-      "success_criterion": "5-min timeout. SIGKILL on hang.",
-      "gate_number": 2,
-      "dependencies": [
-        "T01"
-      ],
-      "primary_approach": "Harden render orchestration with timeout enforcement, cleanup, and explicit retry/fail context.",
-      "fallback_approach": "If process-group kill semantics differ across OSes, implement the timeout with a narrower but reliable Chrome child cleanup path first."
-    },
-    {
-      "id": "T09",
-      "title": "Integration Test",
-      "status": "NOT_STARTED",
-      "owner": null,
-      "files": [
-        "scripts/test-joseph.ts"
-      ],
-      "forbidden_files": [
-        "packages/shared-types/src/",
-        "backend/src/director/judgment-layer.ts"
-      ],
-      "test_command": "npx tsx scripts/test-joseph.ts --quick --hash ci-test-123",
-      "success_criterion": "--quick passes in <3 min. Determinism check.",
-      "gate_number": 4,
-      "dependencies": [
-        "T01",
-        "T02",
-        "T03",
-        "T04",
-        "T05",
-        "T06",
-        "T07",
-        "T08"
-      ],
-      "primary_approach": "Build the quick/full proof harness around the actual Joseph render path with deterministic checks and bounded runtime.",
-      "fallback_approach": "If the full quick proof is still too heavy, narrow to a single composition path and sequence the deterministic checks until bundle/serve overhead is reduced."
-    },
-    {
-      "id": "T10",
-      "title": "Candidate Generation",
-      "status": "NOT_STARTED",
-      "owner": null,
-      "files": [
-        "backend/src/director/joseph-director.ts"
-      ],
-      "forbidden_files": [
-        "packages/shared-types/src/",
-        "apps/worker/src/index.ts"
-      ],
-      "test_command": "npm.cmd --prefix backend test -- src/director/joseph-director.test.ts",
-      "success_criterion": "Emits 2-6 candidate Treatment Genomes per profile.",
-      "gate_number": 5,
-      "dependencies": [],
-      "primary_approach": "Refactor the Director Adapter to emit a bounded candidate set keyed by profile and variation inputs.",
-      "fallback_approach": "If a full candidate graph is too big for Phase 1, emit a smaller bounded set with explicit doctrine variants and keep selection external."
-    },
-    {
-      "id": "T11",
-      "title": "Judgment Layer",
-      "status": "NOT_STARTED",
-      "owner": null,
-      "files": [
-        "backend/src/director/judgment-layer.ts"
-      ],
-      "forbidden_files": [
-        "packages/shared-types/src/",
-        "remotion-app/src/compositions/JosephEdit.tsx"
-      ],
-      "test_command": "npm.cmd --prefix backend test -- src/director/judgment-layer.test.ts",
-      "success_criterion": "Quality floor, anti-repetition, similarity veto.",
-      "gate_number": 5,
-      "dependencies": [
-        "T10"
-      ],
-      "primary_approach": "Implement the governor as an explicit scoring/veto seam over candidate Treatment Genomes.",
-      "fallback_approach": "If full scoring is too broad, ship a veto-first Judgment Layer with thresholded rejection and deterministic tie-breaks."
-    },
-    {
-      "id": "T12",
-      "title": "Replay Ledger",
-      "status": "NOT_STARTED",
-      "owner": null,
-      "files": [
-        "backend/src/ledger/replay-ledger.ts"
-      ],
-      "forbidden_files": [
-        "packages/shared-types/src/",
-        "apps/worker/src/index.ts"
-      ],
-      "test_command": "npm.cmd --prefix backend test -- src/ledger/replay-ledger.test.ts",
-      "success_criterion": "SQLite schema. CRUD operations.",
-      "gate_number": 5,
-      "dependencies": [],
-      "primary_approach": "Create a local persisted Replay Ledger for prior output comparison and variation evidence.",
-      "fallback_approach": "If SQLite integration is blocked, ship a JSONL-backed local ledger behind the same interface."
-    },
-    {
-      "id": "T13",
-      "title": "Dynamic Boundaries",
-      "status": "NOT_STARTED",
-      "owner": null,
-      "files": [
-        "backend/src/director/joseph-director.ts"
-      ],
-      "forbidden_files": [
-        "packages/shared-types/src/",
-        "backend/src/director/judgment-layer.ts"
-      ],
-      "test_command": "npm.cmd --prefix backend test -- src/director/joseph-director.test.ts",
-      "success_criterion": "Cuts land on beats, not mid-word.",
-      "gate_number": 5,
-      "dependencies": [
-        "T10"
-      ],
-      "primary_approach": "Make phrase boundaries, beat snapping, and semantic timing explicit in the Director Adapter.",
-      "fallback_approach": "If full phrase semantics slips, ship stronger beat/onset lock and phrase-gap boundaries first."
-    },
-    {
-      "id": "T14",
-      "title": "Sequence Memory",
-      "status": "NOT_STARTED",
-      "owner": null,
-      "files": [
-        "backend/src/director/sequence-memory.ts"
-      ],
-      "forbidden_files": [
-        "packages/shared-types/src/",
-        "apps/worker/src/index.ts"
-      ],
-      "test_command": "npm.cmd --prefix backend test -- src/director/sequence-memory.test.ts",
-      "success_criterion": "State machine: calm, building, saturated, recovering.",
-      "gate_number": 5,
-      "dependencies": [
-        "T10",
-        "T11"
-      ],
-      "primary_approach": "Implement Sequence Memory as an explicit state machine with deterministic transitions and outputs.",
-      "fallback_approach": "If the full state surface is too broad, ship a smaller saturation/recovery state machine first and expand later."
-    },
-    {
-      "id": "T15",
-      "title": "Band-Pass Ducking",
-      "status": "NOT_STARTED",
-      "owner": null,
-      "files": [
-        "backend/src/audio/mix-audio.ts"
-      ],
-      "forbidden_files": [
-        "packages/shared-types/src/",
-        "remotion-app/src/compositions/JosephEdit.tsx"
-      ],
-      "test_command": "npm.cmd --prefix backend test -- src/audio/mix-audio.test.ts",
-      "success_criterion": "No pumping on drum beats.",
-      "gate_number": 5,
-      "dependencies": [],
-      "primary_approach": "Implement vocal-band ducking first and derive fallback volume automation from transcript timing if filter support is missing.",
-      "fallback_approach": "If sidechain filters vary across FFmpeg builds, standardize on deterministic volume automation in MVP."
-    },
-    {
-      "id": "T16",
-      "title": "SFX Variations",
-      "status": "NOT_STARTED",
-      "owner": null,
-      "files": [
-        "remotion-app/public/sfx/",
-        "backend/src/director/joseph-director.ts"
-      ],
-      "forbidden_files": [
-        "packages/shared-types/src/",
-        "apps/worker/src/index.ts"
-      ],
-      "test_command": "npx tsx scripts/test-joseph.ts --quick --hash sfx-test",
-      "success_criterion": "40 cues generated. Director selects seeded variation.",
-      "gate_number": 5,
-      "dependencies": [
-        "T15"
-      ],
-      "primary_approach": "Expand the SFX library to the fixed cue contract and keep seeded selection inside the Director Adapter.",
-      "fallback_approach": "If all 40 assets cannot land in sprint, preserve the cue contract and fill missing slots with placeholder variants."
-    },
-    {
-      "id": "T17",
-      "title": "Variation Contract",
-      "status": "NOT_STARTED",
-      "owner": null,
-      "files": [
-        "backend/src/director/variation-key.ts"
-      ],
-      "forbidden_files": [
-        "packages/shared-types/src/",
-        "remotion-app/src/compositions/JosephEdit.tsx"
-      ],
-      "test_command": "npm.cmd --prefix backend test -- src/director/variation-key.test.ts",
-      "success_criterion": "Explicit upload_instance_id + retry_index handling.",
-      "gate_number": 6,
-      "dependencies": [
-        "T10",
-        "T11",
-        "T12"
-      ],
-      "primary_approach": "Implement explicit variation-key generation and deterministic reuse rules for same-key vs different-key runs.",
-      "fallback_approach": "If full source/prompt fingerprinting is too broad initially, ship upload_instance_id + retry_index first behind a stable interface."
-    },
-    {
-      "id": "T18",
-      "title": "Full Integration",
-      "status": "NOT_STARTED",
-      "owner": null,
-      "files": [
-        "scripts/test-joseph.ts"
-      ],
-      "forbidden_files": [
-        "packages/shared-types/src/",
-        "specs/ARCHITECTURE_AUTHORITY.md"
-      ],
-      "test_command": "npx tsx scripts/test-joseph.ts --full --hash full-test-123",
-      "success_criterion": "--full passes. 3 profiles distinct. Re-upload variation works.",
-      "gate_number": 6,
-      "dependencies": [
-        "T09",
-        "T10",
-        "T11",
-        "T12",
-        "T13",
-        "T14",
-        "T15",
-        "T16",
-        "T17"
-      ],
-      "primary_approach": "Exercise the complete local-first Joseph path with full render settings and explicit variation checks.",
-      "fallback_approach": "If the full path is still too slow, keep the same assertions but stage them sequentially with artifact reuse and cached bundle/service setup."
-    },
-    {
-      "id": "T19",
-      "title": "Evidence Preservation",
-      "status": "NOT_STARTED",
-      "owner": null,
-      "files": [
-        "backend/src/ledger/evidence-preservation.ts"
-      ],
-      "forbidden_files": [
-        "packages/shared-types/src/",
-        "apps/worker/src/index.ts"
-      ],
-      "test_command": "npm.cmd --prefix backend test -- src/ledger/evidence-preservation.test.ts",
-      "success_criterion": "Persist candidates, rejections, verdicts.",
-      "gate_number": 6,
-      "dependencies": [
-        "T10",
-        "T11",
-        "T12",
-        "T17"
-      ],
-      "primary_approach": "Persist candidate sets, rejected candidates, review verdicts, and chosen genomes for future learning.",
-      "fallback_approach": "If the full artifact set is too large initially, persist chosen and rejected genome summaries first with stable IDs."
-    }
-  ],
-  "sprint": {
-    "total_days": 14,
-    "current_day": 0,
-    "start_date": "2026-06-20"
-  }
+﻿{
+    "tickets":  [
+                    {
+                        "id":  "T01",
+                        "title":  "Bundle Cache",
+                        "status":  "NOT_STARTED",
+                        "owner":  null,
+                        "files":  [
+                                      "apps/worker/src/index.ts"
+                                  ],
+                        "forbidden_files":  [
+                                                "packages/shared-types/src/",
+                                                "remotion-app/src/compositions/JosephEdit.tsx"
+                                            ],
+                        "test_command":  "npx tsx scripts/test-joseph.ts --quick --hash test1",
+                        "success_criterion":  "bundle() runs once, caches, reuses. Second render skips bundle.",
+                        "gate_number":  1,
+                        "dependencies":  [
+
+                                         ],
+                        "primary_approach":  "Add module-level cached bundle state keyed by SHA256 of remotion-app/src and reuse the resulting serveUrl in renderFromManifest().",
+                        "fallback_approach":  "If full content-addressed caching is unstable, fall back to process-lifetime caching with explicit invalidation on entry-point hash mismatch."
+                    },
+                    {
+                        "id":  "T02",
+                        "title":  "Vertical Resolution",
+                        "status":  "NOT_STARTED",
+                        "owner":  null,
+                        "files":  [
+                                      "remotion-app/src/compositions/JosephEdit.tsx"
+                                  ],
+                        "forbidden_files":  [
+                                                "packages/shared-types/src/",
+                                                "backend/src/director/joseph-director.ts"
+                                            ],
+                        "test_command":  "npm.cmd --prefix remotion-app test -- src/compositions/__tests__/JosephEdit.test.tsx",
+                        "success_criterion":  "1080x1920 canvas. Text clamped to y: 0.0-0.4.",
+                        "gate_number":  1,
+                        "dependencies":  [
+
+                                         ],
+                        "primary_approach":  "Lock JosephEdit composition metadata and layout to vertical Shorts dimensions, then clamp text placement in the composition seam.",
+                        "fallback_approach":  "If dynamic metadata gets noisy, hard-code composition metadata first and defer non-essential responsive logic."
+                    },
+                    {
+                        "id":  "T03",
+                        "title":  "Physics Engine",
+                        "status":  "NOT_STARTED",
+                        "owner":  null,
+                        "files":  [
+                                      "packages/shared-utils/src/physics-engine.ts"
+                                  ],
+                        "forbidden_files":  [
+                                                "remotion-app/src/compositions/JosephEdit.tsx",
+                                                "apps/worker/src/index.ts"
+                                            ],
+                        "test_command":  "npm.cmd --prefix packages/shared-utils run test",
+                        "success_criterion":  "GC-safe. 300 words x 2700 frames in \u003c500ms.",
+                        "gate_number":  2,
+                        "dependencies":  [
+
+                                         ],
+                        "primary_approach":  "Implement a precomputed typed-array physics engine with no hot-loop allocations.",
+                        "fallback_approach":  "If the full generalized engine misses the target, ship a narrower per-word transform generator optimized for Joseph text primitives only."
+                    },
+                    {
+                        "id":  "T04",
+                        "title":  "Font Fallback",
+                        "status":  "NOT_STARTED",
+                        "owner":  null,
+                        "files":  [
+                                      "remotion-app/src/compositions/KineticText.tsx"
+                                  ],
+                        "forbidden_files":  [
+                                                "packages/shared-types/src/",
+                                                "apps/worker/src/index.ts"
+                                            ],
+                        "test_command":  "npm.cmd --prefix remotion-app run typecheck",
+                        "success_criterion":  "DOM canvas -\u003e THREE.Texture. Deterministic.",
+                        "gate_number":  2,
+                        "dependencies":  [
+
+                                         ],
+                        "primary_approach":  "Make DOM canvas fallback the primary text rasterization path and ensure deterministic texture generation.",
+                        "fallback_approach":  "If DOM canvas becomes too slow in preview, preserve it in render path and gate preview degradation explicitly."
+                    },
+                    {
+                        "id":  "T05",
+                        "title":  "R3F Integration",
+                        "status":  "NOT_STARTED",
+                        "owner":  null,
+                        "files":  [
+                                      "remotion-app/src/compositions/JosephEdit.tsx"
+                                  ],
+                        "forbidden_files":  [
+                                                "packages/shared-types/src/",
+                                                "backend/src/director/joseph-director.ts"
+                                            ],
+                        "test_command":  "npm.cmd --prefix remotion-app test -- src/compositions/__tests__/JosephEdit.test.tsx",
+                        "success_criterion":  "Reads Float32Array from inputProps. No real-time physics.",
+                        "gate_number":  2,
+                        "dependencies":  [
+                                             "T03",
+                                             "T04"
+                                         ],
+                        "primary_approach":  "Wire JosephEdit to consume precomputed physics data through props and keep runtime rendering dumb.",
+                        "fallback_approach":  "If full typed-array ingestion is blocked, ship a narrower adapter that maps precomputed word transforms into Joseph-only R3F meshes."
+                    },
+                    {
+                        "id":  "T06",
+                        "title":  "Render Entry Contract",
+                        "status":  "NOT_STARTED",
+                        "owner":  null,
+                        "files":  [
+                                      "remotion-app/src/joseph-bundle.ts",
+                                      "remotion-app/src/joseph-entry.tsx"
+                                  ],
+                        "forbidden_files":  [
+                                                "packages/shared-types/src/",
+                                                "backend/src/director/judgment-layer.ts"
+                                            ],
+                        "test_command":  "npm.cmd --prefix remotion-app run typecheck",
+                        "success_criterion":  "Joseph-specific entry point. No unrelated app code.",
+                        "gate_number":  2,
+                        "dependencies":  [
+                                             "T02",
+                                             "T05"
+                                         ],
+                        "primary_approach":  "Create a Joseph-only render entry that registers only the Joseph composition and isolates bundle cost from unrelated app surfaces.",
+                        "fallback_approach":  "If total isolation is blocked, create a minimal entry wrapper that excludes editor/preview-only modules from the Joseph render path."
+                    },
+                    {
+                        "id":  "T07",
+                        "title":  "Asset Contract",
+                        "status":  "NOT_STARTED",
+                        "owner":  null,
+                        "files":  [
+                                      "packages/shared-types/src/asset-resolver.ts"
+                                  ],
+                        "forbidden_files":  [
+                                                "remotion-app/src/compositions/JosephEdit.tsx",
+                                                "backend/src/director/joseph-director.ts"
+                                            ],
+                        "test_command":  "npm.cmd --prefix packages/shared-types run typecheck",
+                        "success_criterion":  "Explicit browser vs. FFmpeg media paths.",
+                        "gate_number":  2,
+                        "dependencies":  [
+
+                                         ],
+                        "primary_approach":  "Introduce a dedicated asset resolver seam that distinguishes browser-facing URLs from FFmpeg-facing file paths.",
+                        "fallback_approach":  "If a generic resolver is too broad, ship a Joseph-specific resolver first and generalize later."
+                    },
+                    {
+                        "id":  "T08",
+                        "title":  "Chrome Timeout",
+                        "status":  "NOT_STARTED",
+                        "owner":  null,
+                        "files":  [
+                                      "apps/worker/src/index.ts"
+                                  ],
+                        "forbidden_files":  [
+                                                "packages/shared-types/src/",
+                                                "remotion-app/src/compositions/JosephEdit.tsx"
+                                            ],
+                        "test_command":  "npm.cmd --prefix apps/worker test -- src/index.test.ts",
+                        "success_criterion":  "5-min timeout. SIGKILL on hang.",
+                        "gate_number":  2,
+                        "dependencies":  [
+                                             "T01"
+                                         ],
+                        "primary_approach":  "Harden render orchestration with timeout enforcement, cleanup, and explicit retry/fail context.",
+                        "fallback_approach":  "If process-group kill semantics differ across OSes, implement the timeout with a narrower but reliable Chrome child cleanup path first."
+                    },
+                    {
+                        "id":  "T09",
+                        "title":  "Integration Test",
+                        "status":  "NOT_STARTED",
+                        "owner":  null,
+                        "files":  [
+                                      "scripts/test-joseph.ts"
+                                  ],
+                        "forbidden_files":  [
+                                                "packages/shared-types/src/",
+                                                "backend/src/director/judgment-layer.ts"
+                                            ],
+                        "test_command":  "npx tsx scripts/test-joseph.ts --quick --hash ci-test-123",
+                        "success_criterion":  "--quick passes in \u003c3 min. Determinism check.",
+                        "gate_number":  4,
+                        "dependencies":  [
+                                             "T01",
+                                             "T02",
+                                             "T03",
+                                             "T04",
+                                             "T05",
+                                             "T06",
+                                             "T07",
+                                             "T08"
+                                         ],
+                        "primary_approach":  "Build the quick/full proof harness around the actual Joseph render path with deterministic checks and bounded runtime.",
+                        "fallback_approach":  "If the full quick proof is still too heavy, narrow to a single composition path and sequence the deterministic checks until bundle/serve overhead is reduced."
+                    },
+                    {
+                        "id":  "T10",
+                        "title":  "Candidate Generation",
+                        "status":  "NOT_STARTED",
+                        "owner":  null,
+                        "files":  [
+                                      "backend/src/director/joseph-director.ts"
+                                  ],
+                        "forbidden_files":  [
+                                                "packages/shared-types/src/",
+                                                "apps/worker/src/index.ts"
+                                            ],
+                        "test_command":  "npm.cmd --prefix backend test -- src/director/joseph-director.test.ts",
+                        "success_criterion":  "Emits 2-6 candidate Treatment Genomes per profile.",
+                        "gate_number":  5,
+                        "dependencies":  [
+
+                                         ],
+                        "primary_approach":  "Refactor the Director Adapter to emit a bounded candidate set keyed by profile and variation inputs.",
+                        "fallback_approach":  "If a full candidate graph is too big for Phase 1, emit a smaller bounded set with explicit doctrine variants and keep selection external."
+                    },
+                    {
+                        "id":  "T11",
+                        "title":  "Judgment Layer",
+                        "status":  "NOT_STARTED",
+                        "owner":  null,
+                        "files":  [
+                                      "backend/src/director/judgment-layer.ts"
+                                  ],
+                        "forbidden_files":  [
+                                                "packages/shared-types/src/",
+                                                "remotion-app/src/compositions/JosephEdit.tsx"
+                                            ],
+                        "test_command":  "npm.cmd --prefix backend test -- src/director/judgment-layer.test.ts",
+                        "success_criterion":  "Quality floor, anti-repetition, similarity veto.",
+                        "gate_number":  5,
+                        "dependencies":  [
+                                             "T10"
+                                         ],
+                        "primary_approach":  "Implement the governor as an explicit scoring/veto seam over candidate Treatment Genomes.",
+                        "fallback_approach":  "If full scoring is too broad, ship a veto-first Judgment Layer with thresholded rejection and deterministic tie-breaks."
+                    },
+                    {
+                        "id":  "T12",
+                        "title":  "Replay Ledger",
+                        "status":  "NOT_STARTED",
+                        "owner":  null,
+                        "files":  [
+                                      "backend/src/ledger/replay-ledger.ts"
+                                  ],
+                        "forbidden_files":  [
+                                                "packages/shared-types/src/",
+                                                "apps/worker/src/index.ts"
+                                            ],
+                        "test_command":  "npm.cmd --prefix backend test -- src/ledger/replay-ledger.test.ts",
+                        "success_criterion":  "SQLite schema. CRUD operations.",
+                        "gate_number":  5,
+                        "dependencies":  [
+
+                                         ],
+                        "primary_approach":  "Create a local persisted Replay Ledger for prior output comparison and variation evidence.",
+                        "fallback_approach":  "If SQLite integration is blocked, ship a JSONL-backed local ledger behind the same interface."
+                    },
+                    {
+                        "id":  "T13",
+                        "title":  "Dynamic Boundaries",
+                        "status":  "NOT_STARTED",
+                        "owner":  null,
+                        "files":  [
+                                      "backend/src/director/joseph-director.ts"
+                                  ],
+                        "forbidden_files":  [
+                                                "packages/shared-types/src/",
+                                                "backend/src/director/judgment-layer.ts"
+                                            ],
+                        "test_command":  "npm.cmd --prefix backend test -- src/director/joseph-director.test.ts",
+                        "success_criterion":  "Cuts land on beats, not mid-word.",
+                        "gate_number":  5,
+                        "dependencies":  [
+                                             "T10"
+                                         ],
+                        "primary_approach":  "Make phrase boundaries, beat snapping, and semantic timing explicit in the Director Adapter.",
+                        "fallback_approach":  "If full phrase semantics slips, ship stronger beat/onset lock and phrase-gap boundaries first."
+                    },
+                    {
+                        "id":  "T14",
+                        "title":  "Sequence Memory",
+                        "status":  "NOT_STARTED",
+                        "owner":  null,
+                        "files":  [
+                                      "backend/src/director/sequence-memory.ts"
+                                  ],
+                        "forbidden_files":  [
+                                                "packages/shared-types/src/",
+                                                "apps/worker/src/index.ts"
+                                            ],
+                        "test_command":  "npm.cmd --prefix backend test -- src/director/sequence-memory.test.ts",
+                        "success_criterion":  "State machine: calm, building, saturated, recovering.",
+                        "gate_number":  5,
+                        "dependencies":  [
+                                             "T10",
+                                             "T11"
+                                         ],
+                        "primary_approach":  "Implement Sequence Memory as an explicit state machine with deterministic transitions and outputs.",
+                        "fallback_approach":  "If the full state surface is too broad, ship a smaller saturation/recovery state machine first and expand later."
+                    },
+                    {
+                        "id":  "T15",
+                        "title":  "Band-Pass Ducking",
+                        "status":  "NOT_STARTED",
+                        "owner":  null,
+                        "files":  [
+                                      "backend/src/audio/mix-audio.ts"
+                                  ],
+                        "forbidden_files":  [
+                                                "packages/shared-types/src/",
+                                                "remotion-app/src/compositions/JosephEdit.tsx"
+                                            ],
+                        "test_command":  "npm.cmd --prefix backend test -- src/audio/mix-audio.test.ts",
+                        "success_criterion":  "No pumping on drum beats.",
+                        "gate_number":  5,
+                        "dependencies":  [
+
+                                         ],
+                        "primary_approach":  "Implement vocal-band ducking first and derive fallback volume automation from transcript timing if filter support is missing.",
+                        "fallback_approach":  "If sidechain filters vary across FFmpeg builds, standardize on deterministic volume automation in MVP."
+                    },
+                    {
+                        "id":  "T16",
+                        "title":  "SFX Variations",
+                        "status":  "NOT_STARTED",
+                        "owner":  null,
+                        "files":  [
+                                      "remotion-app/public/sfx/",
+                                      "backend/src/director/joseph-director.ts"
+                                  ],
+                        "forbidden_files":  [
+                                                "packages/shared-types/src/",
+                                                "apps/worker/src/index.ts"
+                                            ],
+                        "test_command":  "npx tsx scripts/test-joseph.ts --quick --hash sfx-test",
+                        "success_criterion":  "40 cues generated. Director selects seeded variation.",
+                        "gate_number":  5,
+                        "dependencies":  [
+                                             "T15"
+                                         ],
+                        "primary_approach":  "Expand the SFX library to the fixed cue contract and keep seeded selection inside the Director Adapter.",
+                        "fallback_approach":  "If all 40 assets cannot land in sprint, preserve the cue contract and fill missing slots with placeholder variants."
+                    },
+                    {
+                        "id":  "T17",
+                        "title":  "Variation Contract",
+                        "status":  "NOT_STARTED",
+                        "owner":  null,
+                        "files":  [
+                                      "backend/src/director/variation-key.ts"
+                                  ],
+                        "forbidden_files":  [
+                                                "packages/shared-types/src/",
+                                                "remotion-app/src/compositions/JosephEdit.tsx"
+                                            ],
+                        "test_command":  "npm.cmd --prefix backend test -- src/director/variation-key.test.ts",
+                        "success_criterion":  "Explicit upload_instance_id + retry_index handling.",
+                        "gate_number":  6,
+                        "dependencies":  [
+                                             "T10",
+                                             "T11",
+                                             "T12"
+                                         ],
+                        "primary_approach":  "Implement explicit variation-key generation and deterministic reuse rules for same-key vs different-key runs.",
+                        "fallback_approach":  "If full source/prompt fingerprinting is too broad initially, ship upload_instance_id + retry_index first behind a stable interface."
+                    },
+                    {
+                        "id":  "T18",
+                        "title":  "Full Integration",
+                        "status":  "NOT_STARTED",
+                        "owner":  null,
+                        "files":  [
+                                      "scripts/test-joseph.ts"
+                                  ],
+                        "forbidden_files":  [
+                                                "packages/shared-types/src/",
+                                                "specs/ARCHITECTURE_AUTHORITY.md"
+                                            ],
+                        "test_command":  "npx tsx scripts/test-joseph.ts --full --hash full-test-123",
+                        "success_criterion":  "--full passes. 3 profiles distinct. Re-upload variation works.",
+                        "gate_number":  6,
+                        "dependencies":  [
+                                             "T09",
+                                             "T10",
+                                             "T11",
+                                             "T12",
+                                             "T13",
+                                             "T14",
+                                             "T15",
+                                             "T16",
+                                             "T17"
+                                         ],
+                        "primary_approach":  "Exercise the complete local-first Joseph path with full render settings and explicit variation checks.",
+                        "fallback_approach":  "If the full path is still too slow, keep the same assertions but stage them sequentially with artifact reuse and cached bundle/service setup."
+                    },
+                    {
+                        "id":  "T19",
+                        "title":  "Evidence Preservation",
+                        "status":  "NOT_STARTED",
+                        "owner":  null,
+                        "files":  [
+                                      "backend/src/ledger/evidence-preservation.ts"
+                                  ],
+                        "forbidden_files":  [
+                                                "packages/shared-types/src/",
+                                                "apps/worker/src/index.ts"
+                                            ],
+                        "test_command":  "npm.cmd --prefix backend test -- src/ledger/evidence-preservation.test.ts",
+                        "success_criterion":  "Persist candidates, rejections, verdicts.",
+                        "gate_number":  6,
+                        "dependencies":  [
+                                             "T10",
+                                             "T11",
+                                             "T12",
+                                             "T17"
+                                         ],
+                        "primary_approach":  "Persist candidate sets, rejected candidates, review verdicts, and chosen genomes for future learning.",
+                        "fallback_approach":  "If the full artifact set is too large initially, persist chosen and rejected genome summaries first with stable IDs."
+                    },
+                    {
+                        "id":  "T20",
+                        "title":  "Determinism Test Suite",
+                        "status":  "BLOCKED",
+                        "owner":  "Codex",
+                        "files":  [
+                                      "packages/shared-types/test/determinism.test.ts",
+                                      "scripts/verify-determinism.ts",
+                                      ".github/workflows/determinism.yml"
+                                  ],
+                        "forbidden_files":  [
+                                                "apps/worker/src/index.ts",
+                                                "remotion-app/src/compositions/",
+                                                "backend/src/director/joseph-director.ts"
+                                            ],
+                        "test_command":  "npm.cmd --prefix packages/shared-types test -- test/determinism.test.ts; npx.cmd tsx scripts/verify-determinism.ts",
+                        "success_criterion":  "Same seed stable, different seed varies, no forbidden render APIs, vertical metadata enforced.",
+                        "gate_number":  7,
+                        "dependencies":  [
+
+                                         ],
+                        "primary_approach":  "Add deterministic PRNG tests plus a script that canonicalizes nondeterministic metadata and fails on v8.1 render contract drift.",
+                        "fallback_approach":  "If full render hashing is unavailable, verify stable manifest hashes and render-path forbidden API scans first."
+                    },
+                    {
+                        "id":  "T21",
+                        "title":  "Director Unit Tests",
+                        "status":  "BLOCKED",
+                        "owner":  "Codex",
+                        "files":  [
+                                      "backend/src/director/joseph-director.contract.test.ts"
+                                  ],
+                        "forbidden_files":  [
+                                                "backend/src/director/joseph-director.ts"
+                                            ],
+                        "test_command":  "npm.cmd --prefix backend test -- src/director/joseph-director.contract.test.ts",
+                        "success_criterion":  "Director satisfies v8.1 vertical metadata, 90s cap, determinism, and candidate Treatment Genome contract.",
+                        "gate_number":  7,
+                        "dependencies":  [
+                                             "T10"
+                                         ],
+                        "primary_approach":  "Test the Director public interface through generateJosephManifest and exported candidate generation.",
+                        "fallback_approach":  "If Opus renames the public interface, update only imports to target the settled module interface."
+                    },
+                    {
+                        "id":  "T22",
+                        "title":  "Judgment Layer Tests",
+                        "status":  "BLOCKED",
+                        "owner":  "Codex",
+                        "files":  [
+                                      "backend/src/director/judgment-layer.test.ts"
+                                  ],
+                        "forbidden_files":  [
+                                                "backend/src/director/judgment-layer.ts"
+                                            ],
+                        "test_command":  "npm.cmd --prefix backend test -- src/director/judgment-layer.test.ts",
+                        "success_criterion":  "Judgment Layer selects one candidate, rejects below quality floor, similarity-vetoes repeats, and is deterministic.",
+                        "gate_number":  7,
+                        "dependencies":  [
+                                             "T11",
+                                             "T12"
+                                         ],
+                        "primary_approach":  "Add contract tests that activate once judgment-layer.ts exists.",
+                        "fallback_approach":  "If the settled interface differs, keep the behavior assertions and adapt only the test harness."
+                    },
+                    {
+                        "id":  "T23",
+                        "title":  "Sequence Memory and Replay Ledger Tests",
+                        "status":  "BLOCKED",
+                        "owner":  "Codex",
+                        "files":  [
+                                      "backend/src/director/sequence-memory.test.ts",
+                                      "backend/src/ledger/replay-ledger.test.ts"
+                                  ],
+                        "forbidden_files":  [
+                                                "backend/src/director/sequence-memory.ts",
+                                                "backend/src/ledger/replay-ledger.ts"
+                                            ],
+                        "test_command":  "npm.cmd --prefix backend test -- src/director/sequence-memory.test.ts src/ledger/replay-ledger.test.ts",
+                        "success_criterion":  "Sequence Memory state path and Replay Ledger CRUD are covered through public interfaces.",
+                        "gate_number":  7,
+                        "dependencies":  [
+                                             "T12",
+                                             "T14"
+                                         ],
+                        "primary_approach":  "Add future-facing contract tests that skip while target modules are absent and activate on file landing.",
+                        "fallback_approach":  "If SQLite is deferred, preserve the CRUD contract against the JSONL-backed adapter."
+                    },
+                    {
+                        "id":  "T24",
+                        "title":  "Audio Mixing Tests",
+                        "status":  "READY_FOR_REVIEW",
+                        "owner":  "Codex",
+                        "files":  [
+                                      "backend/src/audio/mix-audio.test.ts"
+                                  ],
+                        "forbidden_files":  [
+                                                "backend/src/audio/mix-audio.ts"
+                                            ],
+                        "test_command":  "npm.cmd --prefix backend test -- src/audio/mix-audio.test.ts",
+                        "success_criterion":  "Audio filtergraph, voice ducking, SFX ducking, missing-file, and FFmpeg failure paths are covered.",
+                        "gate_number":  7,
+                        "dependencies":  [
+
+                                         ],
+                        "primary_approach":  "Use the existing mix-audio public interface and mocked fs/spawn dependencies to verify filtergraph behavior without editing audio logic.",
+                        "fallback_approach":  "If FFmpeg behavior changes, keep tests on generated args and process error contract."
+                    },
+                    {
+                        "id":  "T25",
+                        "title":  "Variation Contract Tests",
+                        "status":  "BLOCKED",
+                        "owner":  "Codex",
+                        "files":  [
+                                      "backend/src/director/variation-key.test.ts",
+                                      "scripts/verify-variation.ts"
+                                  ],
+                        "forbidden_files":  [
+                                                "backend/src/director/variation-key.ts",
+                                                "backend/src/director/joseph-director.ts"
+                                            ],
+                        "test_command":  "npm.cmd --prefix backend test -- src/director/variation-key.test.ts; npx.cmd tsx scripts/verify-variation.ts",
+                        "success_criterion":  "Explicit upload_instance_id + retry_index handling and candidate variation are verified.",
+                        "gate_number":  7,
+                        "dependencies":  [
+                                             "T17",
+                                             "T10"
+                                         ],
+                        "primary_approach":  "Verify variation-key stability and candidate distinctness through public exports.",
+                        "fallback_approach":  "If candidate generation remains separate from the Director, target the settled Top-Level Planner adapter instead."
+                    },
+                    {
+                        "id":  "T26",
+                        "title":  "Integration Test Scripts",
+                        "status":  "BLOCKED",
+                        "owner":  "Codex",
+                        "files":  [
+                                      "scripts/verify-determinism.ts",
+                                      "scripts/verify-variation.ts"
+                                  ],
+                        "forbidden_files":  [
+                                                "apps/worker/src/index.ts",
+                                                "remotion-app/src/compositions/"
+                                            ],
+                        "test_command":  "npx.cmd tsx scripts/verify-determinism.ts; npx.cmd tsx scripts/verify-variation.ts",
+                        "success_criterion":  "Scripts print PASS/FAIL and exit nonzero on v8.1 contract violations.",
+                        "gate_number":  7,
+                        "dependencies":  [
+                                             "T20",
+                                             "T21",
+                                             "T25"
+                                         ],
+                        "primary_approach":  "Create lightweight proof scripts that can run before full Remotion renders.",
+                        "fallback_approach":  "If render hashing is too slow, keep manifest-level determinism and forbidden API checks as a preflight."
+                    },
+                    {
+                        "id":  "T27",
+                        "title":  "CI/CD Pipeline",
+                        "status":  "READY_FOR_REVIEW",
+                        "owner":  "Codex",
+                        "files":  [
+                                      ".github/workflows/determinism.yml"
+                                  ],
+                        "forbidden_files":  [
+                                                "apps/worker/src/index.ts",
+                                                "remotion-app/src/compositions/",
+                                                "backend/src/director/joseph-director.ts"
+                                            ],
+                        "test_command":  "GitHub Actions workflow: Prometheus Determinism",
+                        "success_criterion":  "CI runs typechecks, backend tests, shared determinism tests, same-key determinism, different-key variation, and zombie Chrome check.",
+                        "gate_number":  7,
+                        "dependencies":  [
+
+                                         ],
+                        "primary_approach":  "Add a dedicated determinism workflow that runs the local safety-net scripts and core workspace checks.",
+                        "fallback_approach":  "If CI install cost is too high, split render-heavy checks from preflight determinism checks."
+                    }
+                ],
+    "sprint":  {
+                   "total_days":  14,
+                   "current_day":  0,
+                   "start_date":  "2026-06-20"
+               }
 }
