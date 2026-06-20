@@ -23,6 +23,7 @@
 | T24 | Audio Mixing Tests | Codex | `npm.cmd --prefix backend test -- src/audio/mix-audio.test.ts` passed: 5 tests. | 2026-06-20 |
 | T27 | CI/CD Pipeline | Codex | Workflow created; will run red only until remaining T25 variation-key coverage lands. | 2026-06-20 |
 | T16 | SFX Variations Placeholder Catalog | Codex Agent 3 | Batch T15 created 40 placeholder MP3 stubs under `remotion-app/public/sfx/`; FFmpeg probe was sandbox-blocked, so documented fallback stubs were used. | 2026-06-20 |
+| T19 | Evidence Preservation | Codex Agent 3 | `npm.cmd --prefix backend test -- src/ledger/evidence-preservation.test.ts` passed: 2 tests. Batch T18 implemented storage artifacts + JSONL while preserving legacy contract shape. | 2026-06-20 |
 
 ### Merged
 | Ticket | Name | Owner | Merge Commit | Date |
@@ -49,7 +50,7 @@
 | T16 | SFX Variations | T15 | READY_FOR_REVIEW by Codex Agent 3 for placeholder catalog only |
 | T17 | Variation Contract | T10, T11, T12 | Unclaimed |
 | T18 | Full Integration | T09, T10, T11, T12, T13, T14, T15, T16, T17 | Unclaimed |
-| T19 | Evidence Preservation | T10, T11, T12, T17 | Unclaimed |
+| T19 | Evidence Preservation | T10, T11, T12, T17 | READY_FOR_REVIEW by Codex Agent 3 |
 | T28 | Prompt Governance Module | None | Unclaimed |
 | T29 | Multi-Orientation Contract Proposal | Human Gate | Unclaimed |
 | T32 | Failure Taxonomy And Judgment Rubric | None | Unclaimed |
@@ -75,7 +76,7 @@
 | T16 | SFX Variations | READY_FOR_REVIEW | Codex Agent 3 | remotion-app/public/sfx/ | T15 | 2026-06-20 | 40 placeholder MP3 stubs generated for 8 cue categories x 5 variants; Director seeded selection remains unwired by this parallel batch. |
 | T17 | Variation Contract | READY_FOR_REVIEW | Codex | backend/src/director/variation-key.ts | T11/T12 integration pending for downstream Judgment wiring | 2026-06-20 | Explicit upload_instance_id + retry_index handling. |
 | T18 | Full Integration | NOT_STARTED | Unclaimed | scripts/test-joseph.ts | T09, T10, T11, T12, T13, T14, T15, T16, T17 | 2026-06-20 | --full passes. 3 profiles distinct. Re-upload variation works. |
-| T19 | Evidence Preservation | NOT_STARTED | Unclaimed | backend/src/ledger/evidence-preservation.ts | T10, T11, T12, T17 | 2026-06-20 | Persist candidates, rejections, verdicts. |
+| T19 | Evidence Preservation | READY_FOR_REVIEW | Codex Agent 3 | backend/src/ledger/evidence-preservation.ts<br>backend/src/ledger/evidence-preservation.test.ts | T10, T11, T12, T17 | 2026-06-20 | Persists candidate set, selected manifest, verdict, audit artifact, and append-only JSONL evidence log. |
 | T20 | Determinism Test Suite | READY_FOR_REVIEW | Codex | packages/shared-types/test/determinism.test.ts<br>scripts/verify-determinism.ts<br>.github/workflows/determinism.yml | None | 2026-06-20 | Same seed stable, different seed varies, no forbidden render APIs, vertical metadata enforced. |
 | T21 | Director Unit Tests | READY_FOR_REVIEW | Codex | backend/src/director/joseph-director.contract.test.ts | None | 2026-06-20 | Director satisfies v8.1 manifest, duration, determinism, and candidate contract. |
 | T22 | Judgment Layer Tests | BLOCKED | Codex | backend/src/director/judgment-layer.test.ts | judgment-layer.ts absent | 2026-06-20 | Judgment Layer selects one candidate, rejects below quality floor, and is deterministic. |
