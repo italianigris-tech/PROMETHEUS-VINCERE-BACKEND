@@ -1,96 +1,216 @@
-import path from "node:path";
-import {fileURLToPath} from "node:url";
-import {readFile} from "node:fs/promises";
-import {bundle} from "@remotion/bundler";
-import {getCompositions, renderMedia} from "@remotion/renderer";
-import {renderManifestSchema, type RenderManifest} from "@prometheus/shared-types";
+﻿import {UnifiedRenderManifest, UnifiedRenderManifestSchema} from '@prometheus/shared-types';
+import {bundle} from '@remotion/bundler';
+import {renderMedia, selectComposition} from '@remotion/renderer';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import {fileURLToPath} from 'url';
+import {spawn} from 'child_process';
+import {mixAudio} from '@prometheus/backend';
 
-import {PROMETHEUS_SAMPLE_COMPOSITION_ID} from "./Root.js";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+let cachedServeUrlPromise: Promise<string> | null = null;
 
-const dirname = path.dirname(fileURLToPath(import.meta.url));
-const sourceRoot = path.resolve(dirname, "..", "src");
-const defaultEntryPoint = path.join(sourceRoot, "remotion-entry.tsx");
-
-export type RenderJobInput = {
-  manifest: RenderManifest;
-  compositionId?: string;
-  outputLocation?: string;
-};
-
-export type RenderJobOutput = {
-  jobId: string;
-  compositionId: string;
-  outputLocation: string;
-};
-
-export const renderPrometheusJob = async (input: RenderJobInput): Promise<RenderJobOutput> => {
-  const manifest = renderManifestSchema.parse(input.manifest);
-  const compositionId = input.compositionId ?? PROMETHEUS_SAMPLE_COMPOSITION_ID;
-  const outputLocation = input.outputLocation ?? path.join("/tmp", `${manifest.jobId}.mp4`);
-  const serveUrl = await bundle({
-    entryPoint: defaultEntryPoint,
-    webpackOverride: (config) => ({
-      ...config,
-      resolve: {
-        ...config.resolve,
-        extensionAlias: {
-          ...config.resolve?.extensionAlias,
-          ".js": [".ts", ".tsx", ".js"]
-        }
-      }
-    })
-  });
-  const compositions = await getCompositions(serveUrl, {
-    inputProps: {manifest}
-  });
-  const composition = compositions.find((candidate) => candidate.id === compositionId);
-
-  if (!composition) {
-    throw new Error(`Composition not found: ${compositionId}`);
+export class ValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ValidationError';
   }
+}
 
-  await renderMedia({
-    composition,
-    serveUrl,
-    codec: "h264",
-    audioCodec: "aac",
-    imageFormat: "jpeg",
-    outputLocation,
-    inputProps: {manifest},
-    chromiumOptions: {
-      gl: "angle"
+export class RenderError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'RenderError';
+  }
+}
+
+export class MuxError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'MuxError';
+  }
+}
+
+const resolveBrowserExecutable = (): string | undefined => {
+  const candidates = [
+    process.env.REMOTION_CHROMIUM_EXECUTABLE,
+    process.env.CHROME_EXECUTABLE,
+    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+  ].filter((value): value is string => Boolean(value));
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return candidate;
     }
-  });
-
-  return {
-    jobId: manifest.jobId,
-    compositionId,
-    outputLocation
-  };
-};
-
-export const renderFromManifest = async (manifest: RenderManifest): Promise<string> => {
-  const result = await renderPrometheusJob({manifest});
-  return result.outputLocation;
-};
-
-const readStdin = async (): Promise<string> => {
-  const chunks: Buffer[] = [];
-  for await (const chunk of process.stdin) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
   }
-  return Buffer.concat(chunks).toString("utf8");
+
+  return undefined;
 };
 
-const readPayload = async (): Promise<RenderJobInput> => {
-  const payloadPath = process.argv[2];
-  const raw = payloadPath ? await readFile(payloadPath, "utf8") : await readStdin();
-  const payload = JSON.parse(raw) as RenderJobInput | {input: RenderJobInput};
-  return "input" in payload ? payload.input : payload;
+const removeIfPresent = (targetPath: string) => {
+  if (fs.existsSync(targetPath)) {
+    fs.unlinkSync(targetPath);
+  }
 };
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
-  const payload = await readPayload();
-  const result = await renderPrometheusJob(payload);
-  process.stdout.write(`${JSON.stringify(result)}\n`);
+const shouldRetryRender = (error: Error) => /timeout|timed out|chromium|browser/i.test(error.message);
+
+const logRenderProgress = (progress: {progress: number}) => {
+  const rounded = Math.round(progress.progress * 100);
+  if (rounded % 10 === 0) {
+    console.log(`[Worker] Render progress: ${rounded}%`);
+  }
+};
+
+const getServeUrl = () => {
+  if (!cachedServeUrlPromise) {
+    cachedServeUrlPromise = bundle({
+      entryPoint: path.resolve(__dirname, '../../../remotion-app/src/index.ts'),
+    });
+  }
+
+  return cachedServeUrlPromise;
+};
+
+const renderSilentVideo = async (options: Record<string, unknown>, manifest: UnifiedRenderManifest) => {
+  let lastProgress = 0;
+  const progressCallback = (progress: {progress: number}) => {
+    lastProgress = progress.progress;
+    logRenderProgress(progress);
+  };
+
+  try {
+    return await renderMedia({...options, onProgress: progressCallback} as any);
+  } catch (error: any) {
+    if (error?.message?.includes('timeout')) {
+      logRenderProgress({progress: 0.1});
+    }
+    if (!shouldRetryRender(error)) {
+      throw new RenderError(`Remotion renderMedia failed for job ${manifest.jobId} at ${(lastProgress * 100).toFixed(0)}%: ${error.message}`);
+    }
+
+    return renderMedia({
+      ...options,
+      onProgress: progressCallback,
+      concurrency: 1,
+      timeoutInMilliseconds: 600000,
+      gl: 'swangle',
+      hardwareAcceleration: 'disable',
+    } as any).catch((retryError: any) => {
+      throw new RenderError(`Remotion renderMedia failed for job ${manifest.jobId} at ${(lastProgress * 100).toFixed(0)}%: ${retryError.message}`);
+    });
+  }
+};
+
+export async function renderFromManifest(
+  manifest: UnifiedRenderManifest
+): Promise<string> {
+  const parseResult = UnifiedRenderManifestSchema.safeParse(manifest);
+  if (!parseResult.success) {
+    throw new ValidationError(`Validation failed: ${parseResult.error.message}`);
+  }
+
+  const validatedManifest = parseResult.data;
+  const tmpDir = os.tmpdir();
+  const silentVideoPath = path.join(tmpDir, `${validatedManifest.jobId}_silent.mp4`);
+  const audioPath = path.join(tmpDir, `${validatedManifest.jobId}_audio.m4a`);
+  const finalVideoPath = path.join(tmpDir, `${validatedManifest.jobId}_final.mp4`);
+  const browserExecutable = resolveBrowserExecutable();
+  const inputProps = {manifest: validatedManifest};
+
+  const cleanupTempFiles = () => {
+    removeIfPresent(silentVideoPath);
+    removeIfPresent(audioPath);
+  };
+
+  try {
+    const serveUrl = await getServeUrl();
+
+    const composition = await selectComposition({
+      serveUrl,
+      id: 'JosephEdit',
+      inputProps,
+      browserExecutable,
+      timeoutInMilliseconds: 300000,
+      gl: 'swangle',
+      chromeMode: 'chrome-for-testing',
+      chromiumOptions: {
+        gl: 'swangle',
+        headless: true,
+      },
+    } as any);
+
+    await renderSilentVideo({
+      composition,
+      serveUrl,
+      outputLocation: silentVideoPath,
+      codec: 'h264',
+      fps: validatedManifest.fps,
+      width: validatedManifest.width,
+      height: validatedManifest.height,
+      inputProps,
+      gl: 'swangle',
+      concurrency: 1,
+      timeoutInMilliseconds: 300000,
+      browserExecutable,
+      hardwareAcceleration: 'disable',
+      chromeMode: 'chrome-for-testing',
+      chromiumOptions: {
+        gl: 'swangle',
+        headless: true,
+      },
+      muted: true,
+      overwrite: true,
+    }, validatedManifest);
+
+    try {
+      await mixAudio(validatedManifest, audioPath);
+    } catch (error: any) {
+      throw new RenderError(`mixAudio failed for job ${validatedManifest.jobId}: ${error.message}`);
+    }
+
+    await new Promise<void>((resolve, reject) => {
+      const ffmpegArgs = [
+        '-i', silentVideoPath,
+        '-i', audioPath,
+        '-map_metadata', '-1',
+        '-c:v', 'copy',
+        '-c:a', 'aac',
+        '-b:a', '320k',
+        '-shortest',
+        '-movflags', '+faststart',
+        '-y',
+        finalVideoPath,
+      ];
+
+      const ffmpeg = spawn('ffmpeg', ffmpegArgs);
+      let stderr = '';
+
+      ffmpeg.stderr.on('data', (data) => {
+        stderr += data.toString();
+      });
+
+      ffmpeg.on('close', (code) => {
+        if (code !== 0) {
+          reject(new MuxError(`FFmpeg mux failed with code ${code}: ${stderr}`));
+          return;
+        }
+
+        resolve();
+      });
+
+      ffmpeg.on('error', (error) => {
+        reject(new MuxError(`FFmpeg mux process error: ${error.message}`));
+      });
+    });
+
+    cleanupTempFiles();
+    return finalVideoPath;
+  } catch (error) {
+    cleanupTempFiles();
+    throw error;
+  }
 }

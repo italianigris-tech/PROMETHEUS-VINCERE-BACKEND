@@ -19,6 +19,7 @@ import {
 } from "./lib/draft-preview";
 import {getPresentationPreset} from "./lib/presentation-presets";
 import {normalizeCaptionStyleProfileId} from "./lib/stylebooks/caption-style-profiles";
+import {JosephEdit} from "./compositions/JosephEdit";
 
 const importMetaEnv = typeof import.meta !== "undefined" ? import.meta.env : undefined;
 const envCaptionProfileId =
@@ -246,6 +247,27 @@ export const RemotionRoot: React.FC = () => {
         height={cinematicPiPShowcaseVideoMetadata.height}
         fps={cinematicPiPShowcaseVideoMetadata.fps}
         durationInFrames={cinematicPiPShowcaseVideoMetadata.durationInFrames}
+      />
+      <Composition
+        id="JosephEdit"
+        component={JosephEdit}
+        calculateMetadata={async ({ props }) => {
+          return {
+            durationInFrames: props.manifest.durationFrames || 300,
+            fps: props.manifest.fps || 30,
+            width: props.manifest.width || 1920,
+            height: props.manifest.height || 1080,
+          };
+        }}
+        defaultProps={{
+          manifest: {
+            durationFrames: 300,
+            fps: 30,
+            width: 1920,
+            height: 1080,
+            seed: 12345,
+          } as any
+        }}
       />
     </>
   );

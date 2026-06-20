@@ -1,8 +1,12 @@
 {
-  "name": "video-matting-backend",
+  "name": "@prometheus/backend",
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./audio/mix-audio": "./src/audio/mix-audio.ts"
+  },
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
@@ -23,6 +27,7 @@
     "@fastify/cors": "^8.5.0",
     "@fastify/multipart": "^8.3.1",
     "@fastify/websocket": "^10.0.1",
+    "@prometheus/shared-types": "*",
     "@zilliz/milvus2-sdk-node": "^2.6.13",
     "adm-zip": "^0.5.17",
     "dotenv": "^17.4.2",

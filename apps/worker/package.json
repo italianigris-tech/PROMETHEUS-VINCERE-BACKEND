@@ -14,6 +14,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
+    "@prometheus/backend": "file:../../backend",
     "@prometheus/shared-types": "file:../../packages/shared-types",
     "@react-three/fiber": "8.16.8",
     "@react-three/postprocessing": "^2.16.0",

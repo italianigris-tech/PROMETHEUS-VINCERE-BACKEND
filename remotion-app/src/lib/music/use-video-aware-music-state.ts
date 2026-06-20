@@ -1,4 +1,18 @@
-import {startTransition, useEffect, useEffectEvent, useState} from "react";
+import {startTransition, useCallback, useEffect, useLayoutEffect, useRef, useState} from "react";
+
+// Local shim for React's experimental useEffectEvent, which is not present in the
+// stable react type definitions (TS2305). Same semantics: returns a callback with
+// a stable identity that always invokes the latest closure values, so it is safe
+// to omit from effect dependency arrays.
+function useEffectEvent<TArgs extends unknown[], TReturn>(
+  handler: (...args: TArgs) => TReturn
+): (...args: TArgs) => TReturn {
+  const handlerRef = useRef(handler);
+  useLayoutEffect(() => {
+    handlerRef.current = handler;
+  });
+  return useCallback((...args: TArgs) => handlerRef.current(...args), []);
+}
 
 import {
   buildEmptyVideoAwareMusicState,

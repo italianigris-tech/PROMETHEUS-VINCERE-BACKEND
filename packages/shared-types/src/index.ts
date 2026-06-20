@@ -78,3 +78,41 @@ export {
   type RvmExtractionResponse,
   type TranscriptWord
 } from "./manifest.js";
+
+export {
+  seededRandom,
+  seededInt,
+  seededFloat,
+  seededPick,
+  seededChance,
+  hashSeed,
+} from "./seeded-prng.js";
+
+export {
+  WordSchema,
+  SFXEventSchema,
+  TextEventSchema,
+  CutEventSchema,
+  CameraEventSchema,
+  ColorEventSchema,
+  TransitionEventSchema,
+  TimelineEventSchema,
+  UnifiedRenderManifestSchema,
+  VideoTrackSchema,
+  CameraMoveSchema,
+  TextOverlaySchema,
+  TransitionSchema,
+  type Word,
+  type SFXEvent,
+  type TextEvent,
+  type CutEvent,
+  type CameraEvent,
+  type ColorEvent,
+  type TransitionEvent,
+  type TimelineEvent,
+  type UnifiedRenderManifest,
+  type VideoTrack,
+  type CameraMove,
+  type TextOverlay,
+  type Transition,
+} from "./unified-render-manifest.js";
