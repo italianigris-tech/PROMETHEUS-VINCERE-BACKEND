@@ -24,6 +24,7 @@
 | T27 | CI/CD Pipeline | Codex | Workflow created; will run red only until remaining T25 variation-key coverage lands. | 2026-06-20 |
 | T16 | SFX Variations Placeholder Catalog | Codex Agent 3 | Batch T15 created 40 placeholder MP3 stubs under `remotion-app/public/sfx/`; FFmpeg probe was sandbox-blocked, so documented fallback stubs were used. | 2026-06-20 |
 | T19 | Evidence Preservation | Codex Agent 3 | `npm.cmd --prefix backend test -- src/ledger/evidence-preservation.test.ts` passed: 2 tests. Batch T18 implemented storage artifacts + JSONL while preserving legacy contract shape. | 2026-06-20 |
+| T28 | Prompt Governance Module | Codex Agent 3 | `npm.cmd --prefix backend test -- src/director/prompt-governance.test.ts` passed: 3 tests. Prompt registry persists JSONL and blocks infrastructure override attempts. | 2026-06-20 |
 
 ### Merged
 | Ticket | Name | Owner | Merge Commit | Date |
@@ -51,7 +52,7 @@
 | T17 | Variation Contract | T10, T11, T12 | Unclaimed |
 | T18 | Full Integration | T09, T10, T11, T12, T13, T14, T15, T16, T17 | Unclaimed |
 | T19 | Evidence Preservation | T10, T11, T12, T17 | READY_FOR_REVIEW by Codex Agent 3 |
-| T28 | Prompt Governance Module | None | Unclaimed |
+| T28 | Prompt Governance Module | None | READY_FOR_REVIEW by Codex Agent 3 |
 | T29 | Multi-Orientation Contract Proposal | Human Gate | Unclaimed |
 | T32 | Failure Taxonomy And Judgment Rubric | None | Unclaimed |
 
@@ -85,7 +86,7 @@
 | T25 | Variation Contract Tests | READY_FOR_REVIEW | Codex | backend/src/director/variation-key.test.ts<br>scripts/verify-variation.ts | None | 2026-06-20 | Explicit upload_instance_id + retry_index behavior and candidate variation verified. |
 | T26 | Integration Test Scripts | READY_FOR_REVIEW | Codex | scripts/verify-determinism.ts<br>scripts/verify-variation.ts | None | 2026-06-20 | Scripts print PASS/FAIL and exit nonzero on v8.1 contract violations. |
 | T27 | CI/CD Pipeline | READY_FOR_REVIEW | Codex | .github/workflows/determinism.yml | None | 2026-06-20 | CI runs typechecks, backend tests, determinism, variation, and zombie Chrome check. |
-| T28 | Prompt Governance Module | NOT_STARTED | Unclaimed | backend/src/director/prompt-governance.ts<br>backend/src/director/prompt-governance.test.ts<br>CONTEXT.md | None | 2026-06-20 | Prompts may bias doctrine, density, tone, and exclusions, but cannot override stack, determinism, duration cap, queue architecture, schema authority, or render-path forbidden APIs. |
+| T28 | Prompt Governance Module | READY_FOR_REVIEW | Codex Agent 3 | backend/src/director/prompt-governance.ts<br>backend/src/director/prompt-governance.test.ts<br>CONTEXT.md | None | 2026-06-20 | Prompts persist to append-only JSONL, expose SHA256 fingerprints, may bias doctrine, and cannot override determinism, Variation Key, render pipeline, stack, queue, schema authority, duration cap, or forbidden render APIs. |
 | T29 | Multi-Orientation Contract Proposal | NOT_STARTED | Unclaimed | specs/multi-orientation-contract-proposal.md<br>PROMETHEUS_BUILD.md | Human approval required before implementation | 2026-06-20 | The repo has a clear human-gate proposal or deferral record, and no source code treats landscape output as v8.1 authority. |
 | T30 | Director Orchestrator | NOT_STARTED | Unclaimed | backend/src/cognitive-governor/index.ts<br>backend/src/director/orchestrator.ts<br>backend/src/director/orchestrator.test.ts | T10, T11, T12, T17, T19, T28 | 2026-06-20 | The orchestrator selects one candidate through the Judgment Layer, preserves evidence, emits a Planner Audit, does not call the renderer, and fails visibly when all candidates are blocked. |
 | T31 | Quality-Diversity Archive Producer Pipeline | NOT_STARTED | Unclaimed | backend/src/creative-variation/index.ts<br>backend/src/creative-variation/archive-producer.ts<br>backend/src/creative-variation/archive-producer.test.ts | T11, T12, T19 | 2026-06-20 | The archive producer consumes preserved render verdicts, emits valid VariationGenome records, updates the Quality-Diversity Archive deterministically, and keeps variation-key logic outside the archive. |
