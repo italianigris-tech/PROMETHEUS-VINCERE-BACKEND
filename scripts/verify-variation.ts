@@ -1,6 +1,7 @@
-﻿import * as crypto from "crypto";
+import * as crypto from "crypto";
 import {generateJosephManifest} from "../backend/src/director/joseph-director";
 import type {DirectorInput} from "../backend/src/director/joseph-director";
+import {generateVariationKey} from "../backend/src/director/variation-key";
 
 const TEST_INPUT: DirectorInput = {
   videoUrl: "file:///test.mp4",
@@ -42,9 +43,19 @@ async function main() {
   if (typeof maybeGenerateCandidateGenomes === "function") {
     const candidates = maybeGenerateCandidateGenomes(TEST_INPUT, 6) as unknown[];
     const hashes = candidates.map((candidate) => sha256(candidate));
+    const firstKey = generateVariationKey(TEST_INPUT.videoUrl, "Make it intense", "upload-1", 0);
+    const repeatedKey = generateVariationKey(TEST_INPUT.videoUrl, "Make it intense", "upload-1", 0);
+    const retryKey = generateVariationKey(TEST_INPUT.videoUrl, "Make it intense", "upload-1", 1);
     checks = [
       report("candidate count", candidates.length === 6, String(candidates.length)),
       report("candidate distinctness", new Set(hashes).size === 6, `${new Set(hashes).size} distinct`),
+      report("variation key stability", firstKey.key === repeatedKey.key, firstKey.key),
+      report("variation retry changes key", firstKey.key !== retryKey.key, `${firstKey.key.slice(0, 8)} -> ${retryKey.key.slice(0, 8)}`),
+      report(
+        "variation explicit upload/retry",
+        firstKey.upload_instance_id === "upload-1" && firstKey.retry_index === 0,
+        `${firstKey.upload_instance_id}/${firstKey.retry_index}`,
+      ),
     ];
   } else {
     const aggressive = stableManifest(generateJosephManifest(TEST_INPUT));

@@ -36,3 +36,6 @@ Gate 6
 - Update `PROMETHEUS_BUILD.md` to `IN_PROGRESS` before starting.
 - Do not change ticket status to `MERGED`; stop at `READY_FOR_REVIEW`.
 - Preserve the v8.1 Determinism Contract and Prompt Governance Rules.
+
+## Current Status
+READY_FOR_REVIEW: `backend/src/director/variation-key.ts` implements deterministic SHA256 source/prompt fingerprints plus explicit upload_instance_id and retry_index fields.

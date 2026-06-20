@@ -1,4 +1,4 @@
-﻿{
+{
     "tickets":  [
                     {
                         "id":  "T01",
@@ -351,8 +351,8 @@
                     {
                         "id":  "T17",
                         "title":  "Variation Contract",
-                        "status":  "NOT_STARTED",
-                        "owner":  null,
+                        "status":  "READY_FOR_REVIEW",
+                        "owner":  "Codex",
                         "files":  [
                                       "backend/src/director/variation-key.ts"
                                   ],
@@ -535,7 +535,7 @@
                     {
                         "id":  "T25",
                         "title":  "Variation Contract Tests",
-                        "status":  "BLOCKED",
+                        "status":  "READY_FOR_REVIEW",
                         "owner":  "Codex",
                         "files":  [
                                       "backend/src/director/variation-key.test.ts",
@@ -558,7 +558,7 @@
                     {
                         "id":  "T26",
                         "title":  "Integration Test Scripts",
-                        "status":  "BLOCKED",
+                        "status":  "READY_FOR_REVIEW",
                         "owner":  "Codex",
                         "files":  [
                                       "scripts/verify-determinism.ts",

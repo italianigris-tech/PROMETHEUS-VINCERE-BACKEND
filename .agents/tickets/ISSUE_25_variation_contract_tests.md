@@ -27,4 +27,4 @@ npx.cmd tsx scripts/verify-variation.ts
 Explicit upload_instance_id + retry_index handling and candidate variation are verified.
 
 ## Current Status
-BLOCKED: `variation-key.ts` is absent; `generateCandidateGenomes` is now exported and `scripts/verify-variation.ts` passes.
+READY_FOR_REVIEW: `variation-key.ts` exists; backend contract tests pass and `scripts/verify-variation.ts` verifies candidate distinctness plus explicit upload/retry variation-key behavior.

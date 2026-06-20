@@ -8,8 +8,8 @@
 | T21 | Director contract fails: missing 90s cap and missing generateCandidateGenomes export. | Codex |
 | T22 | judgment-layer.ts not present yet; contract tests are skipped until Opus lands module. | Opus |
 | T23 | sequence-memory.ts and replay-ledger.ts not present yet; contract tests are skipped until Opus lands modules. | Opus |
-| T25 | variation-key.ts not present yet; candidate generation is now available. | Opus |
-| T26 | Integration scripts are still blocked by T25 variation-key contract coverage; determinism and candidate variation scripts now pass. | Codex |
+| T25 | Variation-key contract exists and proof command passes; T26 integration can resume. | Codex |
+| T26 | Integration scripts are unblocked by T25 variation-key coverage; determinism and variation scripts pass. | Codex |
 | T29 | Multi-orientation conflicts with locked v8.1 1080x1920 vertical authority; requires human approval before implementation. | Human |
 
 ### In Progress
@@ -72,7 +72,7 @@
 | T14 | Sequence Memory | NOT_STARTED | Unclaimed | backend/src/director/sequence-memory.ts | T10, T11 | 2026-06-20 | State machine: calm, building, saturated, recovering. |
 | T15 | Band-Pass Ducking | NOT_STARTED | Unclaimed | backend/src/audio/mix-audio.ts | None | 2026-06-20 | No pumping on drum beats. |
 | T16 | SFX Variations | NOT_STARTED | Unclaimed | remotion-app/public/sfx/<br>backend/src/director/joseph-director.ts | T15 | 2026-06-20 | 40 cues generated. Director selects seeded variation. |
-| T17 | Variation Contract | NOT_STARTED | Unclaimed | backend/src/director/variation-key.ts | T10, T11, T12 | 2026-06-20 | Explicit upload_instance_id + retry_index handling. |
+| T17 | Variation Contract | READY_FOR_REVIEW | Codex | backend/src/director/variation-key.ts | T11/T12 integration pending for downstream Judgment wiring | 2026-06-20 | Explicit upload_instance_id + retry_index handling. |
 | T18 | Full Integration | NOT_STARTED | Unclaimed | scripts/test-joseph.ts | T09, T10, T11, T12, T13, T14, T15, T16, T17 | 2026-06-20 | --full passes. 3 profiles distinct. Re-upload variation works. |
 | T19 | Evidence Preservation | NOT_STARTED | Unclaimed | backend/src/ledger/evidence-preservation.ts | T10, T11, T12, T17 | 2026-06-20 | Persist candidates, rejections, verdicts. |
 | T20 | Determinism Test Suite | READY_FOR_REVIEW | Codex | packages/shared-types/test/determinism.test.ts<br>scripts/verify-determinism.ts<br>.github/workflows/determinism.yml | None | 2026-06-20 | Same seed stable, different seed varies, no forbidden render APIs, vertical metadata enforced. |
@@ -80,8 +80,8 @@
 | T22 | Judgment Layer Tests | BLOCKED | Codex | backend/src/director/judgment-layer.test.ts | judgment-layer.ts absent | 2026-06-20 | Judgment Layer selects one candidate, rejects below quality floor, and is deterministic. |
 | T23 | Sequence Memory and Replay Ledger Tests | BLOCKED | Codex | backend/src/director/sequence-memory.test.ts<br>backend/src/ledger/replay-ledger.test.ts | sequence-memory.ts and replay-ledger.ts absent | 2026-06-20 | Sequence Memory state path and Replay Ledger CRUD are covered. |
 | T24 | Audio Mixing Tests | READY_FOR_REVIEW | Codex | backend/src/audio/mix-audio.test.ts | None | 2026-06-20 | Audio filtergraph, ducking, SFX missing-file, and FFmpeg failure paths covered. |
-| T25 | Variation Contract Tests | BLOCKED | Codex | backend/src/director/variation-key.test.ts<br>scripts/verify-variation.ts | variation-key.ts absent; candidate variation script passes | 2026-06-20 | Explicit upload_instance_id + retry_index behavior and candidate variation verified. |
-| T26 | Integration Test Scripts | BLOCKED | Codex | scripts/verify-determinism.ts<br>scripts/verify-variation.ts | T25 variation-key contract still absent | 2026-06-20 | Scripts print PASS/FAIL and exit nonzero on v8.1 contract violations. |
+| T25 | Variation Contract Tests | READY_FOR_REVIEW | Codex | backend/src/director/variation-key.test.ts<br>scripts/verify-variation.ts | None | 2026-06-20 | Explicit upload_instance_id + retry_index behavior and candidate variation verified. |
+| T26 | Integration Test Scripts | READY_FOR_REVIEW | Codex | scripts/verify-determinism.ts<br>scripts/verify-variation.ts | None | 2026-06-20 | Scripts print PASS/FAIL and exit nonzero on v8.1 contract violations. |
 | T27 | CI/CD Pipeline | READY_FOR_REVIEW | Codex | .github/workflows/determinism.yml | None | 2026-06-20 | CI runs typechecks, backend tests, determinism, variation, and zombie Chrome check. |
 | T28 | Prompt Governance Module | NOT_STARTED | Unclaimed | backend/src/director/prompt-governance.ts<br>backend/src/director/prompt-governance.test.ts<br>CONTEXT.md | None | 2026-06-20 | Prompts may bias doctrine, density, tone, and exclusions, but cannot override stack, determinism, duration cap, queue architecture, schema authority, or render-path forbidden APIs. |
 | T29 | Multi-Orientation Contract Proposal | NOT_STARTED | Unclaimed | specs/multi-orientation-contract-proposal.md<br>PROMETHEUS_BUILD.md | Human approval required before implementation | 2026-06-20 | The repo has a clear human-gate proposal or deferral record, and no source code treats landscape output as v8.1 authority. |
