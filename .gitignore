@@ -19,6 +19,7 @@ dist/
 build/
 coverage/
 out/
+output/
 out-runtime/
 .cache/
 **/.cache/
@@ -27,6 +28,7 @@ test-results/
 tmp/
 tmp-live/
 tmp-sound-debug/
+tmp-edit-check.txt
 **/tmp/
 **/tmp-live/
 
