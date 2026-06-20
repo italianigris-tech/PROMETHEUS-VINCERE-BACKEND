@@ -26,6 +26,7 @@
 | T19 | Evidence Preservation | Codex Agent 3 | `npm.cmd --prefix backend test -- src/ledger/evidence-preservation.test.ts` passed: 2 tests. Batch T18 implemented storage artifacts + JSONL while preserving legacy contract shape. | 2026-06-20 |
 | T28 | Prompt Governance Module | Codex Agent 3 | `npm.cmd --prefix backend test -- src/director/prompt-governance.test.ts` passed: 3 tests. Prompt registry persists JSONL and blocks infrastructure override attempts. | 2026-06-20 |
 | T32 | Failure Taxonomy And Judgment Rubric | Codex Agent 3 | `rg -n "^## FT-" FAILURE_TAXONOMY.md` found FT-001 through FT-034; Review Surface contains 34 FT mappings. PDF was absent, so list is reconstructed from local evidence pending human/PDF verification. | 2026-06-20 |
+| T13 | Dynamic Boundaries | Codex Agent 3 | `npm.cmd --prefix backend test -- src/director/dynamic-boundaries.test.ts` passed: 5 tests. Batch T12 implemented pure `findCutPoints`/`findNearest` module without wiring into Joseph Director. | 2026-06-20 |
 
 ### Merged
 | Ticket | Name | Owner | Merge Commit | Date |
@@ -46,7 +47,7 @@
 | T09 | Integration Test | T01, T02, T03, T04, T05, T06, T07, T08 | Unclaimed |
 | T11 | Judgment Layer | T10 | Unclaimed |
 | T12 | Replay Ledger | None | Unclaimed |
-| T13 | Dynamic Boundaries | T10 | Unclaimed |
+| T13 | Dynamic Boundaries | T10 | READY_FOR_REVIEW by Codex Agent 3 for pure module only |
 | T14 | Sequence Memory | T10, T11 | Unclaimed |
 | T15 | Band-Pass Ducking | None | Unclaimed |
 | T16 | SFX Variations | T15 | READY_FOR_REVIEW by Codex Agent 3 for placeholder catalog only |
@@ -72,7 +73,7 @@
 | T10 | Candidate Generation | READY_FOR_REVIEW | Codex | backend/src/director/joseph-director.ts | None | 2026-06-20 | Emits 2-6 candidate Treatment Genomes per profile. |
 | T11 | Judgment Layer | NOT_STARTED | Unclaimed | backend/src/director/judgment-layer.ts | T10 | 2026-06-20 | Quality floor, anti-repetition, similarity veto. |
 | T12 | Replay Ledger | NOT_STARTED | Unclaimed | backend/src/ledger/replay-ledger.ts | None | 2026-06-20 | SQLite schema. CRUD operations. |
-| T13 | Dynamic Boundaries | NOT_STARTED | Unclaimed | backend/src/director/joseph-director.ts | T10 | 2026-06-20 | Cuts land on beats, not mid-word. |
+| T13 | Dynamic Boundaries | READY_FOR_REVIEW | Codex Agent 3 | backend/src/director/dynamic-boundaries.ts<br>backend/src/director/dynamic-boundaries.test.ts | T10 | 2026-06-20 | Pure module returns deduplicated sorted cuts, enforces hook/body/CTA profile rules, and avoids mid-word cuts; Joseph Director wiring remains intentionally untouched. |
 | T14 | Sequence Memory | NOT_STARTED | Unclaimed | backend/src/director/sequence-memory.ts | T10, T11 | 2026-06-20 | State machine: calm, building, saturated, recovering. |
 | T15 | Band-Pass Ducking | NOT_STARTED | Unclaimed | backend/src/audio/mix-audio.ts | None | 2026-06-20 | No pumping on drum beats. |
 | T16 | SFX Variations | READY_FOR_REVIEW | Codex Agent 3 | remotion-app/public/sfx/ | T15 | 2026-06-20 | 40 placeholder MP3 stubs generated for 8 cue categories x 5 variants; Director seeded selection remains unwired by this parallel batch. |
