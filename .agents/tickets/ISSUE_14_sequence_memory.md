@@ -35,3 +35,6 @@ Gate 5
 - Update `PROMETHEUS_BUILD.md` to `IN_PROGRESS` before starting.
 - Do not change ticket status to `MERGED`; stop at `READY_FOR_REVIEW`.
 - Preserve the v8.1 Determinism Contract and Prompt Governance Rules.
+
+## Current Status
+READY_FOR_REVIEW: ackend/src/director/sequence-memory.ts implements the calm/building/saturated/recovering state machine, breathe trigger, recovery window, and effect cooldown contract. Director wiring remains gated by T11.

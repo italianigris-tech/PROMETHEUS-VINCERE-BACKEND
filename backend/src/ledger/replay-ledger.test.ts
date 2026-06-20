@@ -1,6 +1,7 @@
 import {beforeAll, describe, expect, it} from "vitest";
 import * as fs from "fs";
 import * as path from "path";
+import * as os from "os";
 
 const targetPath = path.resolve(__dirname, "replay-ledger.ts");
 const describeIfPresent = fs.existsSync(targetPath) ? describe : describe.skip;
@@ -42,5 +43,16 @@ describeIfPresent("Replay Ledger contract", () => {
     ledger.insert(entry);
 
     expect(ledger.getByUploadInstance("upload-1")).toMatchObject(entry);
+  });
+
+  it("persists JSONL entries across ledger instances", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "tmp-replay-ledger-"));
+    const ledgerPath = path.join(dir, "replay-ledger.jsonl");
+
+    new ReplayLedger(ledgerPath).insert(entry);
+    const reloaded = new ReplayLedger(ledgerPath);
+
+    expect(reloaded.getBySource("source-a")).toMatchObject([entry]);
+    expect(reloaded.getSimilarityHash("source-a")).toBe("similarity-a");
   });
 });

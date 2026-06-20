@@ -7,7 +7,7 @@
 | T20 | Determinism check fails because Director emits 1920x1080 instead of v8.1 1080x1920. | Codex |
 | T21 | Director contract fails: missing 90s cap and missing generateCandidateGenomes export. | Codex |
 | T22 | judgment-layer.ts not present yet; contract tests are skipped until Opus lands module. | Opus |
-| T23 | sequence-memory.ts and replay-ledger.ts not present yet; contract tests are skipped until Opus lands modules. | Opus |
+| T23 | Replay Ledger and Sequence Memory contracts pass; Judgment/Director wiring remains pending. | Codex |
 | T25 | Variation-key contract exists and proof command passes; T26 integration can resume. | Codex |
 | T26 | Integration scripts are unblocked by T25 variation-key coverage; determinism and variation scripts pass. | Codex |
 | T29 | Multi-orientation conflicts with locked v8.1 1080x1920 vertical authority; requires human approval before implementation. | Human |
@@ -67,9 +67,9 @@
 | T09 | Integration Test | NOT_STARTED | Unclaimed | scripts/test-joseph.ts | T01, T02, T03, T04, T05, T06, T07, T08 | 2026-06-20 | --quick passes in <3 min. Determinism check. |
 | T10 | Candidate Generation | READY_FOR_REVIEW | Codex | backend/src/director/joseph-director.ts | None | 2026-06-20 | Emits 2-6 candidate Treatment Genomes per profile. |
 | T11 | Judgment Layer | NOT_STARTED | Unclaimed | backend/src/director/judgment-layer.ts | T10 | 2026-06-20 | Quality floor, anti-repetition, similarity veto. |
-| T12 | Replay Ledger | NOT_STARTED | Unclaimed | backend/src/ledger/replay-ledger.ts | None | 2026-06-20 | SQLite schema. CRUD operations. |
+| T12 | Replay Ledger | READY_FOR_REVIEW | Codex | backend/src/ledger/replay-ledger.ts | None | 2026-06-20 | SQLite schema. CRUD operations. |
 | T13 | Dynamic Boundaries | NOT_STARTED | Unclaimed | backend/src/director/joseph-director.ts | T10 | 2026-06-20 | Cuts land on beats, not mid-word. |
-| T14 | Sequence Memory | NOT_STARTED | Unclaimed | backend/src/director/sequence-memory.ts | T10, T11 | 2026-06-20 | State machine: calm, building, saturated, recovering. |
+| T14 | Sequence Memory | READY_FOR_REVIEW | Codex | backend/src/director/sequence-memory.ts | T11 integration pending for downstream Director wiring | 2026-06-20 | State machine: calm, building, saturated, recovering. |
 | T15 | Band-Pass Ducking | NOT_STARTED | Unclaimed | backend/src/audio/mix-audio.ts | None | 2026-06-20 | No pumping on drum beats. |
 | T16 | SFX Variations | NOT_STARTED | Unclaimed | remotion-app/public/sfx/<br>backend/src/director/joseph-director.ts | T15 | 2026-06-20 | 40 cues generated. Director selects seeded variation. |
 | T17 | Variation Contract | READY_FOR_REVIEW | Codex | backend/src/director/variation-key.ts | T11/T12 integration pending for downstream Judgment wiring | 2026-06-20 | Explicit upload_instance_id + retry_index handling. |
@@ -78,7 +78,7 @@
 | T20 | Determinism Test Suite | READY_FOR_REVIEW | Codex | packages/shared-types/test/determinism.test.ts<br>scripts/verify-determinism.ts<br>.github/workflows/determinism.yml | None | 2026-06-20 | Same seed stable, different seed varies, no forbidden render APIs, vertical metadata enforced. |
 | T21 | Director Unit Tests | READY_FOR_REVIEW | Codex | backend/src/director/joseph-director.contract.test.ts | None | 2026-06-20 | Director satisfies v8.1 manifest, duration, determinism, and candidate contract. |
 | T22 | Judgment Layer Tests | BLOCKED | Codex | backend/src/director/judgment-layer.test.ts | judgment-layer.ts absent | 2026-06-20 | Judgment Layer selects one candidate, rejects below quality floor, and is deterministic. |
-| T23 | Sequence Memory and Replay Ledger Tests | BLOCKED | Codex | backend/src/director/sequence-memory.test.ts<br>backend/src/ledger/replay-ledger.test.ts | sequence-memory.ts and replay-ledger.ts absent | 2026-06-20 | Sequence Memory state path and Replay Ledger CRUD are covered. |
+| T23 | Sequence Memory and Replay Ledger Tests | READY_FOR_REVIEW | Codex | backend/src/director/sequence-memory.test.ts<br>backend/src/ledger/replay-ledger.test.ts | None | 2026-06-20 | Sequence Memory state path and Replay Ledger CRUD are covered. |
 | T24 | Audio Mixing Tests | READY_FOR_REVIEW | Codex | backend/src/audio/mix-audio.test.ts | None | 2026-06-20 | Audio filtergraph, ducking, SFX missing-file, and FFmpeg failure paths covered. |
 | T25 | Variation Contract Tests | READY_FOR_REVIEW | Codex | backend/src/director/variation-key.test.ts<br>scripts/verify-variation.ts | None | 2026-06-20 | Explicit upload_instance_id + retry_index behavior and candidate variation verified. |
 | T26 | Integration Test Scripts | READY_FOR_REVIEW | Codex | scripts/verify-determinism.ts<br>scripts/verify-variation.ts | None | 2026-06-20 | Scripts print PASS/FAIL and exit nonzero on v8.1 contract violations. |

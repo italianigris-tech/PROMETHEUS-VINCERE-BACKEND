@@ -34,3 +34,6 @@ None - can start immediately.
 - Update `PROMETHEUS_BUILD.md` to `IN_PROGRESS` before starting.
 - Do not change ticket status to `MERGED`; stop at `READY_FOR_REVIEW`.
 - Preserve the v8.1 Determinism Contract and Prompt Governance Rules.
+
+## Current Status
+READY_FOR_REVIEW: ackend/src/ledger/replay-ledger.ts provides in-memory and JSONL-backed CRUD plus similarity-hash retrieval through the public ReplayLedger interface.

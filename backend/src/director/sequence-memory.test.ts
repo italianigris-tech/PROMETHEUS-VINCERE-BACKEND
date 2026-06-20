@@ -1,4 +1,4 @@
-import {beforeAll, describe, expect, it} from "vitest";
+﻿import {beforeAll, describe, expect, it} from "vitest";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -37,6 +37,22 @@ describeIfPresent("Sequence Memory contract", () => {
     expect(memory.state).toBe("saturated");
     expect(shouldBreathe(memory, 1200)).toBe(true);
     expect(memory.state).toBe("recovering");
+  });
+
+  it("returns to calm after a low-intensity recovery window", () => {
+    let memory = createMemory();
+
+    for (let frame = 0; frame < 1200; frame += 1) {
+      memory = updateMemory(memory, 0.9, frame, false);
+    }
+    expect(shouldBreathe(memory, 1200)).toBe(true);
+
+    for (let frame = 1201; frame < 1400; frame += 1) {
+      memory = updateMemory(memory, 0.2, frame, false);
+    }
+
+    expect(memory.state).toBe("calm");
+    expect(memory.intensityBudget).toBeGreaterThan(0.35);
   });
 
   it("blocks effect repetition for at least 15 seconds", () => {

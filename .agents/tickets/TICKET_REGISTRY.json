@@ -244,8 +244,8 @@
                     {
                         "id":  "T12",
                         "title":  "Replay Ledger",
-                        "status":  "NOT_STARTED",
-                        "owner":  null,
+                        "status":  "READY_FOR_REVIEW",
+                        "owner":  "Codex",
                         "files":  [
                                       "backend/src/ledger/replay-ledger.ts"
                                   ],
@@ -286,8 +286,8 @@
                     {
                         "id":  "T14",
                         "title":  "Sequence Memory",
-                        "status":  "NOT_STARTED",
-                        "owner":  null,
+                        "status":  "READY_FOR_REVIEW",
+                        "owner":  "Codex",
                         "files":  [
                                       "backend/src/director/sequence-memory.ts"
                                   ],
@@ -492,7 +492,7 @@
                     {
                         "id":  "T23",
                         "title":  "Sequence Memory and Replay Ledger Tests",
-                        "status":  "BLOCKED",
+                        "status":  "READY_FOR_REVIEW",
                         "owner":  "Codex",
                         "files":  [
                                       "backend/src/director/sequence-memory.test.ts",
