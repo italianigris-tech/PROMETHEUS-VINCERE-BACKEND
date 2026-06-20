@@ -25,6 +25,7 @@
 | T16 | SFX Variations Placeholder Catalog | Codex Agent 3 | Batch T15 created 40 placeholder MP3 stubs under `remotion-app/public/sfx/`; FFmpeg probe was sandbox-blocked, so documented fallback stubs were used. | 2026-06-20 |
 | T19 | Evidence Preservation | Codex Agent 3 | `npm.cmd --prefix backend test -- src/ledger/evidence-preservation.test.ts` passed: 2 tests. Batch T18 implemented storage artifacts + JSONL while preserving legacy contract shape. | 2026-06-20 |
 | T28 | Prompt Governance Module | Codex Agent 3 | `npm.cmd --prefix backend test -- src/director/prompt-governance.test.ts` passed: 3 tests. Prompt registry persists JSONL and blocks infrastructure override attempts. | 2026-06-20 |
+| T32 | Failure Taxonomy And Judgment Rubric | Codex Agent 3 | `rg -n "^## FT-" FAILURE_TAXONOMY.md` found FT-001 through FT-034; Review Surface contains 34 FT mappings. PDF was absent, so list is reconstructed from local evidence pending human/PDF verification. | 2026-06-20 |
 
 ### Merged
 | Ticket | Name | Owner | Merge Commit | Date |
@@ -54,7 +55,7 @@
 | T19 | Evidence Preservation | T10, T11, T12, T17 | READY_FOR_REVIEW by Codex Agent 3 |
 | T28 | Prompt Governance Module | None | READY_FOR_REVIEW by Codex Agent 3 |
 | T29 | Multi-Orientation Contract Proposal | Human Gate | Unclaimed |
-| T32 | Failure Taxonomy And Judgment Rubric | None | Unclaimed |
+| T32 | Failure Taxonomy And Judgment Rubric | None | READY_FOR_REVIEW by Codex Agent 3 for docs slice |
 
 ### Ticket Registry
 | Ticket # | Name | Status | Owner | Files | Blockers | Last Updated | Success Criterion |
@@ -90,7 +91,7 @@
 | T29 | Multi-Orientation Contract Proposal | NOT_STARTED | Unclaimed | specs/multi-orientation-contract-proposal.md<br>PROMETHEUS_BUILD.md | Human approval required before implementation | 2026-06-20 | The repo has a clear human-gate proposal or deferral record, and no source code treats landscape output as v8.1 authority. |
 | T30 | Director Orchestrator | NOT_STARTED | Unclaimed | backend/src/cognitive-governor/index.ts<br>backend/src/director/orchestrator.ts<br>backend/src/director/orchestrator.test.ts | T10, T11, T12, T17, T19, T28 | 2026-06-20 | The orchestrator selects one candidate through the Judgment Layer, preserves evidence, emits a Planner Audit, does not call the renderer, and fails visibly when all candidates are blocked. |
 | T31 | Quality-Diversity Archive Producer Pipeline | NOT_STARTED | Unclaimed | backend/src/creative-variation/index.ts<br>backend/src/creative-variation/archive-producer.ts<br>backend/src/creative-variation/archive-producer.test.ts | T11, T12, T19 | 2026-06-20 | The archive producer consumes preserved render verdicts, emits valid VariationGenome records, updates the Quality-Diversity Archive deterministically, and keeps variation-key logic outside the archive. |
-| T32 | Failure Taxonomy And Judgment Rubric | NOT_STARTED | Unclaimed | backend/src/director/failure-taxonomy.ts<br>backend/src/director/judgment-rubric.ts<br>backend/src/director/judgment-rubric.test.ts<br>CONTEXT.md | None | 2026-06-20 | Judgment verdicts can attach stable failure tags and rationale without treating failure-intelligence as the Judgment Layer. |
+| T32 | Failure Taxonomy And Judgment Rubric | READY_FOR_REVIEW | Codex Agent 3 | FAILURE_TAXONOMY.md<br>.agents/tickets/ISSUE_32_failure_taxonomy.md | None | 2026-06-20 | Failure taxonomy doc contains FT-001 through FT-034 and maps each FT to Review Surface acceptance criteria; executable Judgment Rubric remains a separate future slice. |
 
 ### Completed
 - None yet.
