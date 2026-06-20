@@ -9,11 +9,9 @@ import {
   type UnifiedRenderManifest,
   type VideoTrack,
   type Word,
-  seededChance,
-  seededPick,
-  seededRandom,
 } from "@prometheus/shared-types";
 import {randomUUID} from "crypto";
+import {canUseEffect, createMemory, shouldBreathe, updateMemory, useEffect} from "./sequence-memory";
 
 export interface DirectorInput {
   videoUrl: string;
@@ -43,6 +41,23 @@ type Phrase = {
   energy: number;
   thesisWords: Word[];
   highEnergyWords: Word[];
+};
+
+const seededRandom = (seed: number) => {
+  let state = seed >>> 0;
+  return () => {
+    state = (state * 1664525 + 1013904223) >>> 0;
+    return state / 0x100000000;
+  };
+};
+
+const seededChance = (rng: () => number, probability: number) => rng() < probability;
+
+const seededPick = <T>(rng: () => number, items: readonly T[]): T => {
+  if (items.length === 0) {
+    throw new Error("Cannot pick from an empty list.");
+  }
+  return items[Math.min(items.length - 1, Math.floor(rng() * items.length))]!;
 };
 
 const FPS = 30;
@@ -203,16 +218,20 @@ const buildTextOverlays = (
 ) => {
   const overlays: TextOverlay[] = [];
   const textEvents: TextEvent[] = [];
+  const memory = createMemory();
 
   phrases.forEach((phrase) => {
     phrase.words.forEach((word) => {
+      const frame = msToFrame(word.startMs);
+      updateMemory(memory, phrase.energy, frame, word.startMs >= ctaStartMs);
+      const textCoverage = shouldBreathe(memory, frame) && word.startMs < ctaStartMs ? profile.textCoverage * 0.25 : profile.textCoverage;
       const isThesis = phrase.thesisWords.includes(word);
       const isHighEnergy = phrase.highEnergyWords.includes(word);
-      if (!isThesis && !seededChance(rng, profile.textCoverage)) {
+      if (!isThesis && !seededChance(rng, textCoverage)) {
         return;
       }
 
-      const startFrame = msToFrame(word.startMs);
+      const startFrame = frame;
       const duration = isHighEnergy ? 18 : 12;
       const {startFrame: clampedStart, endFrame: clampedEnd} = clampFrameRange(startFrame, startFrame + duration, durationFrames);
       const animation = chooseAnimation(rng, profile, phrase.energy, isHighEnergy);
@@ -277,15 +296,20 @@ const pickEvenly = (items: number[], desiredCount: number) => {
 
 const buildCuts = (input: DirectorInput, phrases: Phrase[], profile: ProfileTuning, hookEndMs: number) => {
   const cuts: CutEvent[] = [];
+  const memory = createMemory();
   const hookCandidates = [...new Set([...input.beats, ...input.onsets].filter((point) => point <= hookEndMs))].sort((a, b) => a - b);
   const selectedHookPoints = pickEvenly(hookCandidates, profile.hookCutCount);
 
   selectedHookPoints.forEach((point, index) => {
+    const frame = msToFrame(point);
+    const preferredStyle: CutEvent["style"] = index % 2 === 0 ? 'hard' : 'zoom_blur';
+    const style: CutEvent["style"] = canUseEffect(memory, preferredStyle, frame) ? preferredStyle : 'hard';
+    useEffect(memory, style, frame);
     cuts.push({
       type: 'cut',
       atMs: point,
       toMs: point,
-      style: index % 2 === 0 ? 'hard' : 'zoom_blur',
+      style,
       intensity: 1,
     });
   });
@@ -295,12 +319,21 @@ const buildCuts = (input: DirectorInput, phrases: Phrase[], profile: ProfileTuni
     if (index % profile.postHookStride !== 0) {
       return;
     }
+    const frame = msToFrame(boundary);
+    const energy = energyAtMs(input.energyCurve, input.durationMs, boundary);
+    updateMemory(memory, energy, frame, false);
+    if (shouldBreathe(memory, frame)) {
+      return;
+    }
     const synced = nearestSyncPoint(boundary, input.beats, input.onsets);
+    const preferredStyle: CutEvent["style"] = energy > 0.6 ? 'zoom_blur' : 'hard';
+    const style: CutEvent["style"] = canUseEffect(memory, preferredStyle, frame) ? preferredStyle : 'hard';
+    useEffect(memory, style, frame);
     cuts.push({
       type: 'cut',
       atMs: synced,
       toMs: synced,
-      style: energyAtMs(input.energyCurve, input.durationMs, boundary) > 0.6 ? 'zoom_blur' : 'hard',
+      style,
       intensity: 0.8,
     });
   });
@@ -379,11 +412,18 @@ const buildSfx = (
   }
 
   const sfx: SFXEvent[] = [];
+  const memory = createMemory();
   cuts.forEach((cut, index) => {
     if (profile.sfxDensity >= 1 || index % 2 === 0) {
+      const frame = msToFrame(cut.atMs);
+      const cue = cut.style === 'zoom_blur' ? 'whoosh_slow' : 'whoosh_fast';
+      if (!canUseEffect(memory, cue, frame)) {
+        return;
+      }
+      useEffect(memory, cue, frame);
       sfx.push({
         id: `cut-${index}`,
-        cue: cut.style === 'zoom_blur' ? 'whoosh_slow' : 'whoosh_fast',
+        cue,
         triggerMs: Math.round(cut.atMs),
         durationMs: 250,
         volumeDb: -12,
@@ -393,24 +433,42 @@ const buildSfx = (
   });
 
   textEvents.filter((event) => event.color === '#FF0040').forEach((event, index) => {
+    const frame = msToFrame(event.startMs);
+    updateMemory(memory, event.cameraPush > 0 ? 0.9 : 0.7, frame, event.startMs >= ctaStartMs);
+    if (shouldBreathe(memory, frame) && event.startMs < ctaStartMs) {
+      return;
+    }
+    const cue = event.startMs >= ctaStartMs ? 'impact_sharp' : 'impact_deep';
+    if (!canUseEffect(memory, cue, frame)) {
+      return;
+    }
+    useEffect(memory, cue, frame);
     sfx.push({
       id: `red-${index}`,
-      cue: event.startMs >= ctaStartMs ? 'impact_sharp' : 'impact_deep',
+      cue,
       triggerMs: event.startMs,
       durationMs: 300,
       volumeDb: -10,
       duckMusicDb: -9,
     });
-    if (event.style === 'glitch') {
+    if (event.style === 'glitch' && canUseEffect(memory, 'glitch_digital', frame)) {
+      useEffect(memory, 'glitch_digital', frame);
       sfx.push({id: `glitch-${index}`, cue: 'glitch_digital', triggerMs: event.startMs, durationMs: 250, volumeDb: -12, duckMusicDb: -6});
     }
-    if (event.style === 'pop') {
+    if (event.style === 'pop' && canUseEffect(memory, 'pop_text', frame)) {
+      useEffect(memory, 'pop_text', frame);
       sfx.push({id: `pop-${index}`, cue: 'pop_text', triggerMs: event.startMs, durationMs: 180, volumeDb: -12, duckMusicDb: -6});
     }
   });
 
   input.beats.filter((beat) => energyAtMs(input.energyCurve, input.durationMs, beat) > 0.85).forEach((beat, index) => {
     if (seededChance(rng, profile.sfxDensity)) {
+      const frame = msToFrame(beat);
+      updateMemory(memory, energyAtMs(input.energyCurve, input.durationMs, beat), frame, false);
+      if (!canUseEffect(memory, 'sub_drop', frame) || shouldBreathe(memory, frame)) {
+        return;
+      }
+      useEffect(memory, 'sub_drop', frame);
       sfx.push({id: `drop-${index}`, cue: 'sub_drop', triggerMs: beat, durationMs: 500, volumeDb: -8, duckMusicDb: -9});
     }
   });
