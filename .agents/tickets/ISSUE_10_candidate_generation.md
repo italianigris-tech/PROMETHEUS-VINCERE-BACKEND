@@ -34,3 +34,6 @@ None - can start immediately.
 - Update `PROMETHEUS_BUILD.md` to `IN_PROGRESS` before starting.
 - Do not change ticket status to `MERGED`; stop at `READY_FOR_REVIEW`.
 - Preserve the v8.1 Determinism Contract and Prompt Governance Rules.
+
+## Current Status
+READY_FOR_REVIEW: `generateCandidateGenomes` is exported from the Director and `npx.cmd tsx scripts/verify-variation.ts` passes with 6 distinct candidates.

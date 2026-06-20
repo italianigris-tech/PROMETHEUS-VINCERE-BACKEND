@@ -1,4 +1,4 @@
-﻿# ISSUE 25: Variation Contract Tests
+# ISSUE 25: Variation Contract Tests
 
 ## Objective
 Explicit `upload_instance_id` + `retry_index` behavior and candidate variation are verified.
@@ -27,4 +27,4 @@ npx.cmd tsx scripts/verify-variation.ts
 Explicit upload_instance_id + retry_index handling and candidate variation are verified.
 
 ## Current Status
-BLOCKED: `variation-key.ts` is absent and `generateCandidateGenomes` is missing.
+BLOCKED: `variation-key.ts` is absent; `generateCandidateGenomes` is now exported and `scripts/verify-variation.ts` passes.

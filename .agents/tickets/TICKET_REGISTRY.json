@@ -202,8 +202,8 @@
                     {
                         "id":  "T10",
                         "title":  "Candidate Generation",
-                        "status":  "NOT_STARTED",
-                        "owner":  null,
+                        "status":  "READY_FOR_REVIEW",
+                        "owner":  "Codex",
                         "files":  [
                                       "backend/src/director/joseph-director.ts"
                                   ],
@@ -427,7 +427,7 @@
                     {
                         "id":  "T20",
                         "title":  "Determinism Test Suite",
-                        "status":  "BLOCKED",
+                        "status":  "READY_FOR_REVIEW",
                         "owner":  "Codex",
                         "files":  [
                                       "packages/shared-types/test/determinism.test.ts",
@@ -451,7 +451,7 @@
                     {
                         "id":  "T21",
                         "title":  "Director Unit Tests",
-                        "status":  "BLOCKED",
+                        "status":  "READY_FOR_REVIEW",
                         "owner":  "Codex",
                         "files":  [
                                       "backend/src/director/joseph-director.contract.test.ts"

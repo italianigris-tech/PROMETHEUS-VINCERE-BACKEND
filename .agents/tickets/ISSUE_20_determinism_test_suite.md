@@ -1,4 +1,4 @@
-﻿# ISSUE 20: Determinism Test Suite
+# ISSUE 20: Determinism Test Suite
 
 ## Objective
 Same seed stable, different seed varies, no forbidden render APIs, vertical metadata enforced.
@@ -29,4 +29,4 @@ npx.cmd tsx scripts/verify-determinism.ts
 Same seed stable, different seed varies, no forbidden render APIs, vertical metadata enforced.
 
 ## Current Status
-BLOCKED: `scripts/verify-determinism.ts` fails because the current Director emits `1920x1080` metadata.
+READY_FOR_REVIEW: `npx.cmd tsx scripts/verify-determinism.ts` passes with stable same-seed manifest, different-seed variation, vertical `1080x1920` metadata, and no forbidden composition APIs.

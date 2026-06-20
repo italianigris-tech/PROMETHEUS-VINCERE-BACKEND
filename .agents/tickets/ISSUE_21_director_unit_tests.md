@@ -1,4 +1,4 @@
-﻿# ISSUE 21: Director Unit Tests
+# ISSUE 21: Director Unit Tests
 
 ## Objective
 Director satisfies v8.1 manifest, duration, determinism, and candidate Treatment Genome contract.
@@ -24,4 +24,4 @@ npm.cmd --prefix backend test -- src/director/joseph-director.contract.test.ts
 Director satisfies v8.1 vertical metadata, 90s cap, determinism, and candidate Treatment Genome contract.
 
 ## Current Status
-BLOCKED: current Director emits `1920x1080`, does not cap 120s input to 90s, and does not export `generateCandidateGenomes`.
+READY_FOR_REVIEW: `npm.cmd --prefix backend test -- src/director/joseph-director.contract.test.ts` passes; Director emits vertical metadata, caps at 90 seconds, stays deterministic by seed, and exports `generateCandidateGenomes`.

@@ -1,4 +1,4 @@
-﻿# ISSUE 26: Integration Test Scripts
+# ISSUE 26: Integration Test Scripts
 
 ## Objective
 Scripts print PASS/FAIL and exit nonzero on v8.1 contract violations.
@@ -27,4 +27,4 @@ npx.cmd tsx scripts/verify-variation.ts
 Both scripts print PASS/FAIL and fail on known v8.1 contract violations.
 
 ## Current Status
-BLOCKED: scripts run, but determinism fails on vertical metadata and variation fails on missing candidate generator.
+BLOCKED: `scripts/verify-determinism.ts` and `scripts/verify-variation.ts` pass, but this ticket remains blocked until T25 lands explicit `variation-key.ts` contract coverage.
