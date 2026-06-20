@@ -600,6 +600,134 @@
                                          ],
                         "primary_approach":  "Add a dedicated determinism workflow that runs the local safety-net scripts and core workspace checks.",
                         "fallback_approach":  "If CI install cost is too high, split render-heavy checks from preflight determinism checks."
+                    },
+                    {
+                        "id":  "T28",
+                        "title":  "Prompt Governance Module",
+                        "status":  "NOT_STARTED",
+                        "owner":  null,
+                        "files":  [
+                                      "backend/src/director/prompt-governance.ts",
+                                      "backend/src/director/prompt-governance.test.ts",
+                                      "CONTEXT.md"
+                                  ],
+                        "forbidden_files":  [
+                                                "specs/ARCHITECTURE_AUTHORITY.md",
+                                                "remotion-app/src/compositions/JosephEdit.tsx",
+                                                "apps/worker/src/index.ts"
+                                            ],
+                        "test_command":  "npm.cmd --prefix backend test -- src/director/prompt-governance.test.ts",
+                        "success_criterion":  "Prompts may bias doctrine, density, tone, and exclusions, but cannot override stack, determinism, duration cap, queue architecture, schema authority, or render-path forbidden APIs.",
+                        "gate_number":  6,
+                        "dependencies":  [
+
+                                         ],
+                        "primary_approach":  "Create a Prompt Governance module that returns explicit allow/block decisions with reasons for prompt-derived intent.",
+                        "fallback_approach":  "If full prompt intent parsing is too broad, ship a narrower rule-table module that blocks locked v8.1 invariants first."
+                    },
+                    {
+                        "id":  "T29",
+                        "title":  "Multi-Orientation Contract Proposal",
+                        "status":  "NOT_STARTED",
+                        "owner":  null,
+                        "files":  [
+                                      "specs/multi-orientation-contract-proposal.md",
+                                      "PROMETHEUS_BUILD.md"
+                                  ],
+                        "forbidden_files":  [
+                                                "specs/ARCHITECTURE_AUTHORITY.md",
+                                                "remotion-app/src/compositions/JosephEdit.tsx",
+                                                "backend/src/director/joseph-director.ts",
+                                                "apps/worker/src/index.ts"
+                                            ],
+                        "test_command":  "git diff --check specs/multi-orientation-contract-proposal.md PROMETHEUS_BUILD.md",
+                        "success_criterion":  "The repo has a clear human-gate proposal or deferral record, and no source code treats landscape output as v8.1 authority.",
+                        "gate_number":  "Human Gate",
+                        "dependencies":  [
+
+                                         ],
+                        "primary_approach":  "Write a human-gate proposal explaining the conflict between multi-orientation output and locked v8.1 vertical authority.",
+                        "fallback_approach":  "Record a deferral decision that preserves vertical-only v8.1 implementation and schedules post-MVP review."
+                    },
+                    {
+                        "id":  "T30",
+                        "title":  "Director Orchestrator",
+                        "status":  "NOT_STARTED",
+                        "owner":  null,
+                        "files":  [
+                                      "backend/src/cognitive-governor/index.ts",
+                                      "backend/src/director/orchestrator.ts",
+                                      "backend/src/director/orchestrator.test.ts"
+                                  ],
+                        "forbidden_files":  [
+                                                "remotion-app/src/compositions/JosephEdit.tsx",
+                                                "apps/worker/src/index.ts",
+                                                "specs/ARCHITECTURE_AUTHORITY.md"
+                                            ],
+                        "test_command":  "npm.cmd --prefix backend test -- src/director/orchestrator.test.ts",
+                        "success_criterion":  "The orchestrator selects one candidate through the Judgment Layer, preserves evidence, emits a Planner Audit, does not call the renderer, and fails visibly when all candidates are blocked.",
+                        "gate_number":  7,
+                        "dependencies":  [
+                                             "T10",
+                                             "T11",
+                                             "T12",
+                                             "T17",
+                                             "T19",
+                                             "T28"
+                                         ],
+                        "primary_approach":  "Add a narrow orchestration interface that reuses the existing Cognitive Governor and delegates candidate generation, judgment, and evidence preservation.",
+                        "fallback_approach":  "Create an adjacent Director Orchestrator adapter under backend/src/director/ until the cognitive-governor seam stabilizes."
+                    },
+                    {
+                        "id":  "T31",
+                        "title":  "Quality-Diversity Archive Producer Pipeline",
+                        "status":  "NOT_STARTED",
+                        "owner":  null,
+                        "files":  [
+                                      "backend/src/creative-variation/index.ts",
+                                      "backend/src/creative-variation/archive-producer.ts",
+                                      "backend/src/creative-variation/archive-producer.test.ts"
+                                  ],
+                        "forbidden_files":  [
+                                                "backend/src/director/variation-key.ts",
+                                                "backend/src/ledger/replay-ledger.ts",
+                                                "remotion-app/src/compositions/JosephEdit.tsx"
+                                            ],
+                        "test_command":  "npm.cmd --prefix backend test -- src/creative-variation/archive-producer.test.ts",
+                        "success_criterion":  "The archive producer consumes preserved render verdicts, emits valid VariationGenome records, updates the Quality-Diversity Archive deterministically, and keeps variation-key logic outside the archive.",
+                        "gate_number":  7,
+                        "dependencies":  [
+                                             "T11",
+                                             "T12",
+                                             "T19"
+                                         ],
+                        "primary_approach":  "Convert selected and rejected candidate evidence into VariationGenome records and update the existing MAP-Elites archive.",
+                        "fallback_approach":  "Ship a pure converter from Judgment verdicts to VariationGenome records first, then wire archive update persistence later."
+                    },
+                    {
+                        "id":  "T32",
+                        "title":  "Failure Taxonomy And Judgment Rubric",
+                        "status":  "NOT_STARTED",
+                        "owner":  null,
+                        "files":  [
+                                      "backend/src/director/failure-taxonomy.ts",
+                                      "backend/src/director/judgment-rubric.ts",
+                                      "backend/src/director/judgment-rubric.test.ts",
+                                      "CONTEXT.md"
+                                  ],
+                        "forbidden_files":  [
+                                                "backend/src/failure-intelligence/index.ts",
+                                                "remotion-app/src/compositions/JosephEdit.tsx",
+                                                "apps/worker/src/index.ts"
+                                            ],
+                        "test_command":  "npm.cmd --prefix backend test -- src/director/judgment-rubric.test.ts",
+                        "success_criterion":  "Judgment verdicts can attach stable failure tags and rationale without treating failure-intelligence as the Judgment Layer.",
+                        "gate_number":  6,
+                        "dependencies":  [
+
+                                         ],
+                        "primary_approach":  "Implement the first Judgment rubric around the domain Failure Taxonomy labels and deterministic scoring helpers.",
+                        "fallback_approach":  "Ship only the typed taxonomy plus deterministic helper functions for assigning failure tags, then let T11 wire weights later."
                     }
                 ],
     "sprint":  {

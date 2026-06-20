@@ -1,4 +1,4 @@
-﻿# PROMETHEUS BUILD TRACKER
+# PROMETHEUS BUILD TRACKER
 ## Sprint: v8.1 | Day: 0 of 14 | Phase: Build Governor Initialization
 
 ### Current Blockers
@@ -10,6 +10,7 @@
 | T23 | sequence-memory.ts and replay-ledger.ts not present yet; contract tests are skipped until Opus lands modules. | Opus |
 | T25 | variation-key.ts not present yet and generateCandidateGenomes is missing. | Opus |
 | T26 | Integration scripts run but are blocked by T20, T21, and T25 contract failures. | Codex |
+| T29 | Multi-orientation conflicts with locked v8.1 1080x1920 vertical authority; requires human approval before implementation. | Human |
 
 ### In Progress
 | Ticket | Name | Owner | Files | Last Updated |
@@ -49,6 +50,9 @@
 | T17 | Variation Contract | T10, T11, T12 | Unclaimed |
 | T18 | Full Integration | T09, T10, T11, T12, T13, T14, T15, T16, T17 | Unclaimed |
 | T19 | Evidence Preservation | T10, T11, T12, T17 | Unclaimed |
+| T28 | Prompt Governance Module | None | Unclaimed |
+| T29 | Multi-Orientation Contract Proposal | Human Gate | Unclaimed |
+| T32 | Failure Taxonomy And Judgment Rubric | None | Unclaimed |
 
 ### Ticket Registry
 | Ticket # | Name | Status | Owner | Files | Blockers | Last Updated | Success Criterion |
@@ -80,6 +84,11 @@
 | T25 | Variation Contract Tests | BLOCKED | Codex | backend/src/director/variation-key.test.ts<br>scripts/verify-variation.ts | variation-key.ts absent; generateCandidateGenomes missing | 2026-06-20 | Explicit upload_instance_id + retry_index behavior and candidate variation verified. |
 | T26 | Integration Test Scripts | BLOCKED | Codex | scripts/verify-determinism.ts<br>scripts/verify-variation.ts | Depends on T20/T21/T25 fixes | 2026-06-20 | Scripts print PASS/FAIL and exit nonzero on v8.1 contract violations. |
 | T27 | CI/CD Pipeline | READY_FOR_REVIEW | Codex | .github/workflows/determinism.yml | None | 2026-06-20 | CI runs typechecks, backend tests, determinism, variation, and zombie Chrome check. |
+| T28 | Prompt Governance Module | NOT_STARTED | Unclaimed | backend/src/director/prompt-governance.ts<br>backend/src/director/prompt-governance.test.ts<br>CONTEXT.md | None | 2026-06-20 | Prompts may bias doctrine, density, tone, and exclusions, but cannot override stack, determinism, duration cap, queue architecture, schema authority, or render-path forbidden APIs. |
+| T29 | Multi-Orientation Contract Proposal | NOT_STARTED | Unclaimed | specs/multi-orientation-contract-proposal.md<br>PROMETHEUS_BUILD.md | Human approval required before implementation | 2026-06-20 | The repo has a clear human-gate proposal or deferral record, and no source code treats landscape output as v8.1 authority. |
+| T30 | Director Orchestrator | NOT_STARTED | Unclaimed | backend/src/cognitive-governor/index.ts<br>backend/src/director/orchestrator.ts<br>backend/src/director/orchestrator.test.ts | T10, T11, T12, T17, T19, T28 | 2026-06-20 | The orchestrator selects one candidate through the Judgment Layer, preserves evidence, emits a Planner Audit, does not call the renderer, and fails visibly when all candidates are blocked. |
+| T31 | Quality-Diversity Archive Producer Pipeline | NOT_STARTED | Unclaimed | backend/src/creative-variation/index.ts<br>backend/src/creative-variation/archive-producer.ts<br>backend/src/creative-variation/archive-producer.test.ts | T11, T12, T19 | 2026-06-20 | The archive producer consumes preserved render verdicts, emits valid VariationGenome records, updates the Quality-Diversity Archive deterministically, and keeps variation-key logic outside the archive. |
+| T32 | Failure Taxonomy And Judgment Rubric | NOT_STARTED | Unclaimed | backend/src/director/failure-taxonomy.ts<br>backend/src/director/judgment-rubric.ts<br>backend/src/director/judgment-rubric.test.ts<br>CONTEXT.md | None | 2026-06-20 | Judgment verdicts can attach stable failure tags and rationale without treating failure-intelligence as the Judgment Layer. |
 
 ### Completed
 - None yet.
@@ -87,4 +96,6 @@
 ### Next Up
 - Fix T20/T21 blockers in the Director: vertical 1080x1920 metadata, 90s duration cap, and `generateCandidateGenomes` export.
 - Land Opus modules for T22/T23/T25: `judgment-layer.ts`, `sequence-memory.ts`, `replay-ledger.ts`, and `variation-key.ts`.
+- Use `prometheus_v8.1_prd.md` as the critique/proposal artifact for T28-T32 planning work.
+- Pick up unblocked planning tickets T28 and T32 before T30/T31; keep T29 as human-gate only.
 - Re-run `npx.cmd tsx scripts/verify-determinism.ts` and `npx.cmd tsx scripts/verify-variation.ts` after those fixes.
