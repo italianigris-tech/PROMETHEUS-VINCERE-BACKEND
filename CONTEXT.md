@@ -108,6 +108,9 @@ _Avoid_: planner, generator, renderer
 Governed on-demand asset generation that produces or varies assets only when the current library cannot satisfy the chosen treatment cleanly.
 _Avoid_: top-level planner, whole intuition engine
 
+**Prompt Governance**:
+The module that registers prompt text, fingerprints it, preserves allowed doctrine influence, and blocks prompt attempts to override locked infrastructure authority.
+_Avoid_: prompt parser, user override, hidden architecture switch
 ## Relationships
 
 - The **Top-Level Planner** explores one or more **Treatment Genomes**
