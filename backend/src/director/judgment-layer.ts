@@ -1,4 +1,4 @@
-﻿import {
+import {
   seededRandom,
   type CameraMove,
   type CutEvent,
@@ -551,6 +551,3 @@ export class JudgmentLayer {
     };
   }
 }
-
-
-

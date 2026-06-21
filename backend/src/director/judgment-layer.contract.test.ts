@@ -1,4 +1,4 @@
-﻿import {describe, expect, it} from "vitest";
+import {describe, expect, it} from "vitest";
 import type {CutEvent, SFXEvent, TextEvent, TimelineEvent, UnifiedRenderManifest} from "@prometheus/shared-types";
 import {ReplayLedger} from "../ledger/replay-ledger";
 import {computeSimilarityHash, JudgmentLayer, meetsQualityFloor} from "./judgment-layer";
@@ -254,6 +254,3 @@ describe("JudgmentLayer active contract", () => {
     await expect(judgment.judgeCandidates([bad], variationKey(), governedPrompt())).rejects.toThrow(/No candidates passed quality floor/);
   });
 });
-
-
-
