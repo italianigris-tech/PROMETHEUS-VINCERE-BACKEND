@@ -13,6 +13,7 @@ Target: Upload -> Joseph Edit -> MP4, 1080x1920, render-safe media, real audio, 
 | B0 | Roadmap extraction, architecture plan, tracker setup | READY_FOR_REVIEW | v8.2 tracker and PRD created in repo |
 | B1 | SFX real files and seeded selection | READY_FOR_REVIEW | 40 SFX files > 0 bytes; Director deterministic variants; mixer resolves variant files |
 | B2 | Asset resolver seam and browser-safe render source guard | READY_FOR_REVIEW | `MediaReference` carries browser-safe URL plus FFmpeg-safe file path; worker sample and Joseph video plane reject `file:///` leaks |
+| B3 | Manifest unification for Joseph render jobs | READY_FOR_REVIEW | Backend accepts validated `UnifiedRenderManifest`; worker leases raw manifests and posts terminal failures |
 
 ## Architecture Stance
 
@@ -24,6 +25,9 @@ Target: Upload -> Joseph Edit -> MP4, 1080x1920, render-safe media, real audio, 
 - `MediaReference` is the render asset seam: `browserUrl` is only root-relative or HTTP(S), while `filePath` is absolute for FFmpeg.
 - `LocalAssetResolver` is the current adapter at that seam. It copies upload media into stable storage, publishes a browser-safe URL, preserves an absolute FFmpeg path, infers content type, records byte size, and sanitizes path segments.
 - Remotion video planes must fail loudly on `file:///`, Windows absolute, or UNC media sources. Silent black output is considered a bug.
+- `UnifiedRenderManifest` is now the default Joseph render-job interface. `/api/v1/render/jobs` accepts only `{manifest, variationKey?, evidencePath?}` and validates with `UnifiedRenderManifestSchema`.
+- Worker polling leases raw Joseph manifests from `/api/v1/render/jobs/next`; it validates again before rendering and posts `/failed` on schema or render failures.
+- The old `RenderManifestBridge` path is preserved explicitly as legacy at `/api/v1/render/jobs/legacy` and `/api/v1/render/jobs/legacy/next`.
 
 ## Ticket Table
 
@@ -31,7 +35,7 @@ Target: Upload -> Joseph Edit -> MP4, 1080x1920, render-safe media, real audio, 
 |---|---|---|---|---|---|---|---|
 | T33 | Asset Contract | READY_FOR_REVIEW | Codex | `packages/shared-types/src/asset-resolver.ts`, `backend/src/asset/local-asset-resolver.ts`, `backend/src/asset/local-asset-resolver.test.ts` | None | 2026-06-21 | Browser-safe URL and FFmpeg-safe file path are both present with `assetId`, `contentType`, and `sizeBytes` |
 | T34 | Upload To Orchestrator Wiring | NOT_STARTED | Unclaimed | `backend/src/upload-routes.ts`, `backend/src/render-jobs/routes.ts` | T33 | 2026-06-21 | Upload completion creates a Joseph render job with UnifiedRenderManifest |
-| T35 | Manifest Unification | NOT_STARTED | Unclaimed | `backend/src/render-jobs/routes.ts`, `apps/worker/src/index.ts` | T33 | 2026-06-21 | Worker validates and renders UnifiedRenderManifest directly |
+| T35 | Manifest Unification | READY_FOR_REVIEW | Codex | `backend/src/render-jobs/routes.ts`, `backend/src/__tests__/render-jobs.test.ts`, `apps/worker/src/poller.ts`, `apps/worker/src/poller.test.ts` | None | 2026-06-21 | Worker leases, validates, renders, completes, or fails raw `UnifiedRenderManifest` jobs directly |
 | T36 | Vertical Resolution Enforcement | NOT_STARTED | Unclaimed | `remotion-app/src/Root.tsx`, `apps/worker/src/index.ts` | T35 | 2026-06-21 | ffprobe reports 1080x1920 |
 | T37 | Browser-Safe Video Serving | IN_PROGRESS | Codex | `backend/src/asset/local-asset-resolver.ts`, `apps/worker/src/poller.ts`, `remotion-app/src/compositions/JosephEdit.tsx`, `remotion-app/src/compositions/VideoPlane.tsx` | T38 full render harness for Chromium log proof | 2026-06-21 | Resolver and fixture side complete; Chromium render log proof remains with full render batch |
 | T38 | Manifest To Silent MP4 | NOT_STARTED | Unclaimed | `scripts/test-full-render.ts` | T33-T37 | 2026-06-21 | Silent MP4 exists, >100KB, 1080x1920 |
@@ -59,6 +63,10 @@ Build T33 plus T37. Create the asset resolver seam that returns browser-safe URL
 
 Build T35 plus the first part of T38. Make backend render jobs and worker consume the same UnifiedRenderManifest without legacy translation, then render a silent Joseph MP4 from a fixture manifest.
 
+### Batch B4 Prompt
+
+Build T34 plus the next slice of T38. Wire upload completion into the Director/orchestrator and enqueue a Joseph `UnifiedRenderManifest` render job using the asset resolver seam. Do not start full pixel-proof work until a queued upload can be leased by the worker.
+
 ## Assumption Log
 
 - 2026-06-21: FFmpeg is available locally unless proven otherwise.
@@ -66,6 +74,8 @@ Build T35 plus the first part of T38. Make backend render jobs and worker consum
 - 2026-06-21: v8.1 brain modules are preserved and only execution seams are deepened.
 - 2026-06-21: `packages/shared-types/dist/` is ignored, so agents must run `npm.cmd --prefix packages/shared-types run build` before backend runtime tests that import `@prometheus/shared-types`.
 - 2026-06-21: B1 SFX files and B2 asset-resolver changes are coherent Wave 1 work. They should be committed together only after the tracker update and gate commands below are present.
+- 2026-06-21: Backend and shared-types currently use different Zod package instances. Render-job validation error formatting is intentionally structural so `UnifiedRenderManifestSchema` errors from shared-types can be reported by backend routes without nominal Zod type coupling.
+- 2026-06-21: Legacy bridge jobs remain available for non-Joseph experiments, but Joseph production work must use the unified manifest route.
 
 ## Verification Log
 
@@ -85,3 +95,11 @@ Build T35 plus the first part of T38. Make backend render jobs and worker consum
 - 2026-06-21 B2 extra: `npm.cmd --prefix apps/worker test -- src/index.test.ts` passed, 1 file / 5 tests.
 - 2026-06-21 B2 extra: `npm.cmd --prefix remotion-app test -- src/compositions/__tests__/JosephEdit.test.tsx` passed, 1 file / 5 tests.
 - 2026-06-21 B2 extra: `npm.cmd --prefix remotion-app run typecheck` passed.
+- 2026-06-21 B3 repro: existing `npm.cmd --prefix backend test -- src/render-jobs` and `npm.cmd --prefix apps/worker test` were green but did not cover the mismatch: `/api/v1/render/jobs` created `RenderManifestBridge` while worker expected raw `UnifiedRenderManifest`.
+- 2026-06-21 B3 red tests: added route and worker poller tests. Initial failures showed missing `/legacy` routes, Joseph route still accepting bridge payloads, missing `/failed` route, and no exported `pollOnce`.
+- 2026-06-21 B3: `npm.cmd --prefix packages/shared-types run build` passed.
+- 2026-06-21 B3: `npm.cmd --prefix packages/shared-types test -- src/unified-render-manifest.test.ts` passed, 1 file / 5 tests.
+- 2026-06-21 B3: `npm.cmd --prefix backend test -- src/render-jobs src/__tests__/render-jobs.test.ts` passed, 2 files / 13 tests.
+- 2026-06-21 B3: `npm.cmd --prefix backend run typecheck` passed.
+- 2026-06-21 B3: `npm.cmd --prefix apps/worker test` passed, 29 files / 137 tests.
+- 2026-06-21 B3: `npm.cmd --prefix apps/worker run typecheck` passed.

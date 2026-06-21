@@ -1,6 +1,7 @@
 ﻿import {UnifiedRenderManifestSchema, type UnifiedRenderManifest} from "@prometheus/shared-types";
 import {fileURLToPath} from "node:url";
 import path from "node:path";
+import type {z} from "zod";
 
 import {renderFromManifest} from "./index.js";
 
@@ -13,6 +14,42 @@ const SAMPLE_VIDEO_BROWSER_URL = "/dev-fixtures/test-video.mp4";
 
 const sleep = async (ms: number): Promise<void> => {
   await new Promise((resolve) => setTimeout(resolve, ms));
+};
+
+export type PollOnceResult = "idle" | "rendered" | "failed";
+
+type PollOnceOptions = {
+  apiBase?: string;
+};
+
+const issueSummary = (error: z.ZodError): string =>
+  error.issues.map((issue) => `${issue.path.join(".") || "(root)"}: ${issue.message}`).join("; ");
+
+const postJobFailure = async ({
+  apiBase,
+  jobId,
+  errorMessage,
+  failureTags,
+}: {
+  apiBase: string;
+  jobId: string;
+  errorMessage: string;
+  failureTags: string[];
+}): Promise<void> => {
+  await fetch(`${apiBase}/api/v1/render/jobs/${jobId}/failed`, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({errorMessage, failureTags}),
+  });
+};
+
+const leasedJobId = (value: unknown): string | null => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const candidate = (value as {jobId?: unknown}).jobId;
+  return typeof candidate === "string" && candidate.trim() ? candidate : null;
 };
 
 const buildSampleJosephManifest = (): UnifiedRenderManifest => UnifiedRenderManifestSchema.parse({
@@ -66,28 +103,59 @@ const buildSampleJosephManifest = (): UnifiedRenderManifest => UnifiedRenderMani
 export const pollAndRender = async (): Promise<void> => {
   while (true) {
     try {
-      const res = await fetch(`${API_BASE}/api/v1/render/jobs/next`);
-      if (res.status === 204) {
-        await sleep(POLL_INTERVAL_MS);
-        continue;
-      }
-      if (!res.ok) {
-        throw new Error(`Poll failed: ${res.status}`);
-      }
-
-      const manifest = UnifiedRenderManifestSchema.parse(await res.json());
-      const outputPath = await renderFromManifest(manifest);
-
-      await fetch(`${API_BASE}/api/v1/render/jobs/${manifest.jobId}/complete`, {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({outputUrl: outputPath})
-      });
-      console.log(`[Poller] Job ${manifest.jobId} rendered to ${outputPath}`);
+      await pollOnce();
     } catch (error) {
       console.error("[Poller] Error:", error);
-      await sleep(POLL_INTERVAL_MS);
     }
+    await sleep(POLL_INTERVAL_MS);
+  }
+};
+
+export const pollOnce = async ({apiBase = API_BASE}: PollOnceOptions = {}): Promise<PollOnceResult> => {
+  const res = await fetch(`${apiBase}/api/v1/render/jobs/next`);
+  if (res.status === 204) {
+    return "idle";
+  }
+  if (!res.ok) {
+    throw new Error(`Poll failed: ${res.status}`);
+  }
+
+  const rawManifest = await res.json();
+  const parseResult = UnifiedRenderManifestSchema.safeParse(rawManifest);
+  if (!parseResult.success) {
+    const jobId = leasedJobId(rawManifest);
+    if (!jobId) {
+      throw new Error(`Leased render job failed UnifiedRenderManifest validation without a jobId: ${issueSummary(parseResult.error)}`);
+    }
+
+    await postJobFailure({
+      apiBase,
+      jobId,
+      errorMessage: `UnifiedRenderManifest validation failed in worker: ${issueSummary(parseResult.error)}`,
+      failureTags: ["manifest_schema", "worker_validation"],
+    });
+    return "failed";
+  }
+
+  const manifest = parseResult.data;
+  try {
+    const outputPath = await renderFromManifest(manifest);
+
+    await fetch(`${apiBase}/api/v1/render/jobs/${manifest.jobId}/complete`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({outputUrl: outputPath}),
+    });
+    console.log(`[Poller] Job ${manifest.jobId} rendered to ${outputPath}`);
+    return "rendered";
+  } catch (error) {
+    await postJobFailure({
+      apiBase,
+      jobId: manifest.jobId,
+      errorMessage: error instanceof Error ? error.message : String(error),
+      failureTags: ["render_failed"],
+    });
+    return "failed";
   }
 };
 

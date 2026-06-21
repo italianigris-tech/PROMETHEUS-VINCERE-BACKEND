@@ -2,6 +2,7 @@ import {readFile} from "node:fs/promises";
 import path from "node:path";
 
 import {afterEach, beforeEach, describe, expect, it} from "vitest";
+import type {UnifiedRenderManifest} from "@prometheus/shared-types";
 
 import {buildRenderManifest, type DirectorNotes} from "../render-jobs/manifest-bridge";
 import {cleanupTempDir, createTestApp, makeTempDir} from "./test-utils";
@@ -57,6 +58,54 @@ const sampleDirectorNotes: DirectorNotes = {
   globalCameraStrategy: "aggressive",
   assetDirectives: []
 };
+
+const sampleUnifiedManifest = (jobId = "123e4567-e89b-12d3-a456-426614174100"): UnifiedRenderManifest => ({
+  version: "2.0",
+  jobId,
+  seed: 12345,
+  createdAt: "2026-01-01T00:00:00.000Z",
+  durationFrames: 90,
+  fps: 30,
+  width: 1080,
+  height: 1920,
+  videoTracks: [{sourcePath: "/uploads/job-1/source.mp4", startFrame: 0, endFrame: 89}],
+  cameraMoves: [{type: "push_in", startFrame: 0, endFrame: 45}],
+  textOverlays: [{text: "BUILD", startFrame: 8, endFrame: 42, animation: "pop", color: "#FF0040"}],
+  transitions: [{startFrame: 55, endFrame: 66}],
+  source: {
+    videoUrl: "/uploads/job-1/source.mp4",
+    audioUrl: "C:/prometheus/uploads/job-1/source.mp4",
+    transcript: [{text: "Build", startMs: 0, endMs: 1200, confidence: 0.99}],
+    durationMs: 3000,
+    width: 1080,
+    height: 1920,
+    fps: 30,
+  },
+  audio: {
+    beats: [400, 900, 1500],
+    onsets: [0, 900],
+    sfx: [],
+    voiceVolumeDb: 0,
+    musicVolumeDb: -18,
+    targetLufs: -14,
+  },
+  timeline: [],
+  creativeProfile: {
+    name: "joseph_cinematic",
+    cutDensity: 0.5,
+    textDensity: 0.6,
+    sfxDensity: 0.2,
+    cameraAggression: 0.5,
+    colorIntensity: 0.5,
+  },
+  output: {
+    width: 1080,
+    height: 1920,
+    fps: 30,
+    codec: "h264",
+    crf: 18,
+  },
+});
 
 describe("render job bridge", () => {
   let tempDir: string;
@@ -253,7 +302,7 @@ describe("render job bridge", () => {
     })).toThrow(/Troika-compatible.*ttf.*woff/i);
   });
 
-  it("queues, leases, completes, and exposes render jobs through the Fastify API", async () => {
+  it("queues, leases, completes, and exposes legacy bridge render jobs through the explicit legacy Fastify API", async () => {
     const context = await createTestApp({
       storageDir: tempDir,
       envOverrides: {
@@ -264,7 +313,7 @@ describe("render job bridge", () => {
 
     const createResponse = await context.app.inject({
       method: "POST",
-      url: "/api/v1/render/jobs",
+      url: "/api/v1/render/jobs/legacy",
       payload: {
         creative_manifest: creativeManifest,
         director_notes: sampleDirectorNotes,
@@ -283,7 +332,7 @@ describe("render job bridge", () => {
 
     const nextResponse = await context.app.inject({
       method: "GET",
-      url: "/api/v1/render/jobs/next"
+      url: "/api/v1/render/jobs/legacy/next"
     });
 
     expect(nextResponse.statusCode).toBe(200);
@@ -293,7 +342,7 @@ describe("render job bridge", () => {
       method: "GET",
       url: `/api/v1/render/jobs/${createBody.jobId}`
     });
-    expect(statusResponse.json().status).toBe("in_progress");
+    expect(statusResponse.json().status).toBe("leased");
 
     const completeResponse = await context.app.inject({
       method: "POST",
@@ -303,7 +352,158 @@ describe("render job bridge", () => {
       }
     });
     expect(completeResponse.statusCode).toBe(200);
-    expect(completeResponse.json().status).toBe("complete");
+    expect(completeResponse.json().status).toBe("completed");
+
+    await context.app.close();
+  });
+
+  it("queues and leases Joseph jobs as raw UnifiedRenderManifest payloads", async () => {
+    const context = await createTestApp({storageDir: tempDir});
+    const manifest = sampleUnifiedManifest();
+    const evidencePath = path.join(tempDir, "evidence", manifest.jobId);
+
+    const createResponse = await context.app.inject({
+      method: "POST",
+      url: "/api/v1/render/jobs",
+      payload: {
+        manifest,
+        variationKey: "variation:upload-1:retry-0",
+        evidencePath,
+      },
+    });
+
+    expect(createResponse.statusCode).toBe(202);
+    const createBody = createResponse.json();
+    expect(createBody).toEqual(expect.objectContaining({
+      jobId: manifest.jobId,
+      status: "queued",
+      variationKey: "variation:upload-1:retry-0",
+      evidencePath,
+    }));
+    expect(createBody.manifest).toEqual(manifest);
+
+    const nextResponse = await context.app.inject({
+      method: "GET",
+      url: "/api/v1/render/jobs/next",
+    });
+
+    expect(nextResponse.statusCode).toBe(200);
+    expect(nextResponse.json()).toEqual(manifest);
+    expect(nextResponse.json()).not.toHaveProperty("manifest");
+
+    const statusResponse = await context.app.inject({
+      method: "GET",
+      url: `/api/v1/render/jobs/${manifest.jobId}`,
+    });
+    expect(statusResponse.json()).toEqual(expect.objectContaining({
+      id: manifest.jobId,
+      kind: "joseph",
+      status: "leased",
+      variationKey: "variation:upload-1:retry-0",
+      evidencePath,
+      failureTags: [],
+      error: null,
+    }));
+    expect(statusResponse.json().leaseExpiresAt).toEqual(expect.any(String));
+
+    const completeResponse = await context.app.inject({
+      method: "POST",
+      url: `/api/v1/render/jobs/${manifest.jobId}/complete`,
+      payload: {
+        outputUrl: "/tmp/output.mp4",
+      },
+    });
+
+    expect(completeResponse.statusCode).toBe(200);
+    expect(completeResponse.json()).toEqual({
+      jobId: manifest.jobId,
+      status: "completed",
+    });
+
+    await context.app.close();
+  });
+
+  it("rejects legacy bridge payloads at the Joseph UnifiedRenderManifest route", async () => {
+    const context = await createTestApp({storageDir: tempDir});
+    const creativeManifest = JSON.parse(await readFile(fixturePath, "utf8")) as Record<string, unknown>;
+
+    const response = await context.app.inject({
+      method: "POST",
+      url: "/api/v1/render/jobs",
+      payload: {
+        creative_manifest: creativeManifest,
+        director_notes: sampleDirectorNotes,
+        font_url: "/fonts/retrieved/satoshi.ttf",
+        background_video_url: "/media/background.mp4",
+        rvm_matte_url: "/media/matte.webm",
+        audio_url: "/media/audio.m4a",
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json().error).toEqual(expect.objectContaining({
+      code: "invalid_unified_render_manifest",
+      message: expect.stringContaining("UnifiedRenderManifest"),
+      issues: expect.arrayContaining([
+        expect.objectContaining({path: expect.stringContaining("manifest")}),
+      ]),
+    }));
+
+    await context.app.close();
+  });
+
+  it("marks Joseph jobs failed with tags and writes failure evidence", async () => {
+    const context = await createTestApp({storageDir: tempDir});
+    const manifest = sampleUnifiedManifest("123e4567-e89b-12d3-a456-426614174101");
+    const evidencePath = path.join(tempDir, "evidence", manifest.jobId);
+
+    await context.app.inject({
+      method: "POST",
+      url: "/api/v1/render/jobs",
+      payload: {
+        manifest,
+        variationKey: "variation:upload-1:retry-1",
+        evidencePath,
+      },
+    });
+
+    await context.app.inject({
+      method: "GET",
+      url: "/api/v1/render/jobs/next",
+    });
+
+    const failureResponse = await context.app.inject({
+      method: "POST",
+      url: `/api/v1/render/jobs/${manifest.jobId}/failed`,
+      payload: {
+        errorMessage: "UnifiedRenderManifest validation failed in worker",
+        failureTags: ["manifest_schema", "worker_validation"],
+      },
+    });
+
+    expect(failureResponse.statusCode).toBe(200);
+    expect(failureResponse.json()).toEqual({
+      jobId: manifest.jobId,
+      status: "failed",
+      failureTags: ["manifest_schema", "worker_validation"],
+    });
+
+    const statusResponse = await context.app.inject({
+      method: "GET",
+      url: `/api/v1/render/jobs/${manifest.jobId}`,
+    });
+    expect(statusResponse.json()).toEqual(expect.objectContaining({
+      status: "failed",
+      error: "UnifiedRenderManifest validation failed in worker",
+      failureTags: ["manifest_schema", "worker_validation"],
+    }));
+
+    const failureEvidence = JSON.parse(await readFile(path.join(evidencePath, "render-failure.json"), "utf8"));
+    expect(failureEvidence).toEqual(expect.objectContaining({
+      jobId: manifest.jobId,
+      errorMessage: "UnifiedRenderManifest validation failed in worker",
+      failureTags: ["manifest_schema", "worker_validation"],
+    }));
 
     await context.app.close();
   });
