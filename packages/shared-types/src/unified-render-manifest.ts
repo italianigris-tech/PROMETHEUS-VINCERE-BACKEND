@@ -20,6 +20,7 @@ export const SFXEventSchema = z.object({
     "glitch_digital",
     "pop_text",
   ]),
+  variant: z.number().int().min(1).max(5).optional(),
   triggerMs: z.number(),
   durationMs: z.number().default(300),
   volumeDb: z.number().default(-12),

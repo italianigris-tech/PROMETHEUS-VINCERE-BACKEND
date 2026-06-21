@@ -89,6 +89,14 @@ export {
 } from "./seeded-prng.js";
 
 export {
+  MediaReferenceSchema,
+  isAbsoluteMediaFilePath,
+  isBrowserSafeMediaUrl,
+  type AssetResolver,
+  type MediaReference,
+} from "./asset-resolver.js";
+
+export {
   WordSchema,
   SFXEventSchema,
   TextEventSchema,

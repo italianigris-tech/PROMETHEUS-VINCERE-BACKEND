@@ -9,7 +9,7 @@ const POLL_INTERVAL_MS = Number.parseInt(process.env.POLL_INTERVAL_MS || "5000",
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const SAMPLE_VIDEO_PATH = path.resolve(__dirname, "../../../remotion-app/public/dev-fixtures/test-video.mp4");
-const SAMPLE_VIDEO_URL = `file:///${SAMPLE_VIDEO_PATH.replace(/\\/g, "/")}`;
+const SAMPLE_VIDEO_BROWSER_URL = "/dev-fixtures/test-video.mp4";
 
 const sleep = async (ms: number): Promise<void> => {
   await new Promise((resolve) => setTimeout(resolve, ms));
@@ -24,13 +24,13 @@ const buildSampleJosephManifest = (): UnifiedRenderManifest => UnifiedRenderMani
   fps: 30,
   width: 1920,
   height: 1080,
-  videoTracks: [{sourcePath: SAMPLE_VIDEO_URL, startFrame: 0, endFrame: 89}],
+  videoTracks: [{sourcePath: SAMPLE_VIDEO_BROWSER_URL, startFrame: 0, endFrame: 89}],
   cameraMoves: [{type: "push_in", startFrame: 0, endFrame: 45}],
   textOverlays: [{text: "PROMETHEUS", startFrame: 8, endFrame: 42, animation: "pop", color: "#FF0040"}],
   transitions: [{startFrame: 55, endFrame: 66}],
   source: {
-    videoUrl: SAMPLE_VIDEO_URL,
-    audioUrl: SAMPLE_VIDEO_URL,
+    videoUrl: SAMPLE_VIDEO_BROWSER_URL,
+    audioUrl: SAMPLE_VIDEO_PATH,
     transcript: [{text: "Prometheus", startMs: 0, endMs: 1200}],
     durationMs: 3000,
     width: 1920,

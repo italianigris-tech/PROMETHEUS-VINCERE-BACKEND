@@ -76,4 +76,15 @@ describe("generateJosephManifest v8.1 contract", () => {
 
     expect(typeof (directorModule as Record<string, unknown>).generateCandidateGenomes).toBe("function");
   });
+
+  it("assigns deterministic SFX variants while keeping semantic cue names", () => {
+    const left = generateJosephManifest(BASE_INPUT);
+    const right = generateJosephManifest(BASE_INPUT);
+
+    expect(left.audio.sfx.length).toBeGreaterThan(0);
+    expect(left.audio.sfx).toEqual(right.audio.sfx);
+    expect(left.audio.sfx.every((event) => Number.isInteger(event.variant))).toBe(true);
+    expect(left.audio.sfx.every((event) => (event.variant ?? 0) >= 1 && (event.variant ?? 0) <= 5)).toBe(true);
+    expect(left.audio.sfx.every((event) => !/_\d$/.test(event.cue))).toBe(true);
+  });
 });

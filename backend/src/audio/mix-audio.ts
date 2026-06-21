@@ -19,6 +19,36 @@ export class SFXNotFoundError extends Error {
 
 const normalizeFileOrUrl = (value: string) => value.startsWith('file:///') ? value.replace('file:///', '') : value;
 
+const isReadableAudioAsset = (assetPath: string) => {
+  if (!fs.existsSync(assetPath)) {
+    return false;
+  }
+
+  try {
+    return fs.statSync(assetPath).size > 0;
+  } catch {
+    return false;
+  }
+};
+
+export function resolveSfxPath(sfxDir: string, sfxEvent: UnifiedRenderManifest["audio"]["sfx"][number]): string {
+  const variant = sfxEvent.variant;
+  const candidates = [
+    variant ? `${sfxEvent.cue}_${variant}.mp3` : null,
+    variant ? `${sfxEvent.cue}_1.mp3` : null,
+    `${sfxEvent.cue}.mp3`,
+  ].filter((candidate): candidate is string => Boolean(candidate));
+
+  for (const candidate of candidates) {
+    const sfxPath = path.join(sfxDir, candidate);
+    if (isReadableAudioAsset(sfxPath)) {
+      return sfxPath;
+    }
+  }
+
+  throw new SFXNotFoundError(`SFX file not found or empty for cue ${sfxEvent.cue}${variant ? ` variant ${variant}` : ''} in ${sfxDir}`);
+}
+
 const buildVoiceDuckingExpression = (manifest: UnifiedRenderManifest) => {
   if (manifest.source.transcript.length === 0) {
     return null;
@@ -82,10 +112,7 @@ export function buildFfmpegArgs(
   const sfxCues = manifest.audio.sfx || [];
   if (sfxCues.length > 0) {
     sfxCues.forEach((sfxEvent) => {
-      const sfxPath = path.join(sfxDir, `${sfxEvent.cue}.mp3`);
-      if (!fs.existsSync(sfxPath)) {
-        throw new SFXNotFoundError(`SFX file not found: ${sfxPath}`);
-      }
+      const sfxPath = resolveSfxPath(sfxDir, sfxEvent);
       args.push('-i', sfxPath);
       const inputIdx = inputCount++;
       filterParts.push(`[${inputIdx}:a]adelay=${sfxEvent.triggerMs}|${sfxEvent.triggerMs}[a${inputIdx}]`);

@@ -177,6 +177,16 @@ const nearestSyncPoint = (targetMs: number, beats: number[], onsets: number[]) =
   return points.reduce((left, right) => Math.abs(right - targetMs) < Math.abs(left - targetMs) ? right : left);
 };
 
+const pickSfxVariant = (rng: () => number): SFXEvent["variant"] => Math.floor(rng() * 5) + 1 as SFXEvent["variant"];
+
+const sfxEvent = (
+  rng: () => number,
+  event: Omit<SFXEvent, "variant">,
+): SFXEvent => ({
+  ...event,
+  variant: pickSfxVariant(rng),
+});
+
 const chooseAnimation = (rng: () => number, profile: ProfileTuning, energy: number, highEnergy: boolean): TextOverlay["animation"] => {
   if (highEnergy) {
     const energetic = profile.textStylePool.filter((style) => style === 'pop' || style === 'glitch');
@@ -381,37 +391,37 @@ const buildSfx = (
   const sfx: SFXEvent[] = [];
   cuts.forEach((cut, index) => {
     if (profile.sfxDensity >= 1 || index % 2 === 0) {
-      sfx.push({
+      sfx.push(sfxEvent(rng, {
         id: `cut-${index}`,
         cue: cut.style === 'zoom_blur' ? 'whoosh_slow' : 'whoosh_fast',
         triggerMs: Math.round(cut.atMs),
         durationMs: 250,
         volumeDb: -12,
         duckMusicDb: -6,
-      });
+      }));
     }
   });
 
   textEvents.filter((event) => event.color === '#FF0040').forEach((event, index) => {
-    sfx.push({
+    sfx.push(sfxEvent(rng, {
       id: `red-${index}`,
       cue: event.startMs >= ctaStartMs ? 'impact_sharp' : 'impact_deep',
       triggerMs: event.startMs,
       durationMs: 300,
       volumeDb: -10,
       duckMusicDb: -9,
-    });
+    }));
     if (event.style === 'glitch') {
-      sfx.push({id: `glitch-${index}`, cue: 'glitch_digital', triggerMs: event.startMs, durationMs: 250, volumeDb: -12, duckMusicDb: -6});
+      sfx.push(sfxEvent(rng, {id: `glitch-${index}`, cue: 'glitch_digital', triggerMs: event.startMs, durationMs: 250, volumeDb: -12, duckMusicDb: -6}));
     }
     if (event.style === 'pop') {
-      sfx.push({id: `pop-${index}`, cue: 'pop_text', triggerMs: event.startMs, durationMs: 180, volumeDb: -12, duckMusicDb: -6});
+      sfx.push(sfxEvent(rng, {id: `pop-${index}`, cue: 'pop_text', triggerMs: event.startMs, durationMs: 180, volumeDb: -12, duckMusicDb: -6}));
     }
   });
 
   input.beats.filter((beat) => energyAtMs(input.energyCurve, input.durationMs, beat) > 0.85).forEach((beat, index) => {
     if (seededChance(rng, profile.sfxDensity)) {
-      sfx.push({id: `drop-${index}`, cue: 'sub_drop', triggerMs: beat, durationMs: 500, volumeDb: -8, duckMusicDb: -9});
+      sfx.push(sfxEvent(rng, {id: `drop-${index}`, cue: 'sub_drop', triggerMs: beat, durationMs: 500, volumeDb: -8, duckMusicDb: -9}));
     }
   });
 

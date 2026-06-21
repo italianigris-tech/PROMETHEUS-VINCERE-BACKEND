@@ -1,7 +1,8 @@
 ﻿import {beforeEach, describe, expect, it, vi} from 'vitest';
-import {AudioMixError, buildFfmpegArgs, mixAudio, SFXNotFoundError} from './mix-audio';
+import {AudioMixError, buildFfmpegArgs, mixAudio, resolveSfxPath, SFXNotFoundError} from './mix-audio';
 import * as fs from 'fs';
 import * as child_process from 'child_process';
+import * as path from 'path';
 import {UnifiedRenderManifest} from '@prometheus/shared-types';
 
 vi.mock('fs');
@@ -9,6 +10,15 @@ vi.mock('child_process');
 
 describe('mixAudio', () => {
   let mockManifest: UnifiedRenderManifest;
+  const sfx = (variant: number) => ({
+    id: '1',
+    cue: 'whoosh_fast' as const,
+    variant,
+    triggerMs: 500,
+    durationMs: 250,
+    volumeDb: -12,
+    duckMusicDb: -6,
+  });
 
   beforeEach(() => {
     vi.resetAllMocks();
@@ -67,6 +77,7 @@ describe('mixAudio', () => {
     };
 
     vi.mocked(fs.existsSync).mockReturnValue(true);
+    vi.mocked(fs.statSync).mockReturnValue({size: 1024} as fs.Stats);
   });
 
   it('generates correct filter_complex for voice + music only', () => {
@@ -107,6 +118,30 @@ describe('mixAudio', () => {
     vi.mocked(fs.existsSync).mockReturnValue(false);
 
     expect(() => buildFfmpegArgs(mockManifest, 'out.mp4')).toThrow(SFXNotFoundError);
+  });
+
+  it('resolves seeded SFX variant files when variant metadata is present', () => {
+    vi.mocked(fs.existsSync).mockImplementation((candidate) => String(candidate).endsWith('whoosh_fast_3.mp3'));
+
+    const resolved = resolveSfxPath('/mock/sfx/dir', sfx(3));
+
+    expect(path.basename(resolved)).toBe('whoosh_fast_3.mp3');
+  });
+
+  it('falls back to variant 1 when the selected SFX variant is missing', () => {
+    vi.mocked(fs.existsSync).mockImplementation((candidate) => String(candidate).endsWith('whoosh_fast_1.mp3'));
+
+    const resolved = resolveSfxPath('/mock/sfx/dir', sfx(4));
+
+    expect(path.basename(resolved)).toBe('whoosh_fast_1.mp3');
+  });
+
+  it('treats zero-byte SFX files as missing', () => {
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    vi.mocked(fs.statSync).mockReturnValue({size: 0} as fs.Stats);
+
+    expect(() => resolveSfxPath('/mock/sfx/dir', sfx(3)))
+      .toThrow(SFXNotFoundError);
   });
 
   it('throws AudioMixError on FFmpeg failure', async () => {

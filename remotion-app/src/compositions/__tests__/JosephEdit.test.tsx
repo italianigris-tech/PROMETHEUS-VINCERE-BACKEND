@@ -32,4 +32,10 @@ describe('JosephEdit Composition', () => {
   it('does not contain forbidden globals', () => {
     expect(content).not.toMatch(/Math\.random|Date\.now|performance\.now|requestAnimationFrame|setInterval|setTimeout|gsap/i);
   });
+
+  it('rejects local file video sources instead of allowing black renders', () => {
+    expect(content).toContain('cannot render local file video sources');
+    expect(content).toContain('Use MediaReference.browserUrl');
+    expect(content).not.toContain("candidate.startsWith('file:///')");
+  });
 });

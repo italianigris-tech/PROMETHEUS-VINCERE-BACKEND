@@ -12,14 +12,17 @@ const ParkMillerPRNG = (seed: number): number => seededRandom(seed)();
 
 const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
 
+const isLocalFileUrl = (value: string) => /^file:\/\//i.test(value);
+const isLocalAbsolutePath = (value: string) => /^[a-zA-Z]:[\\/]/.test(value) || /^\\\\/.test(value);
+
 const resolveVideoSrc = (track: VideoTrack | undefined, fallbackUrl: string): string | null => {
   const candidate = track?.sourcePath ?? fallbackUrl;
   if (!candidate) {
     return null;
   }
 
-  if (candidate.startsWith('file:///')) {
-    return candidate;
+  if (isLocalFileUrl(candidate) || isLocalAbsolutePath(candidate)) {
+    throw new Error(`JosephEdit cannot render local file video sources: ${candidate}. Use MediaReference.browserUrl.`);
   }
 
   return candidate;

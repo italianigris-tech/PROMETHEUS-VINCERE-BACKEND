@@ -11,8 +11,15 @@ type VideoPlaneProps = {
 const PLANE_WIDTH = 10.66;
 const PLANE_HEIGHT = 6;
 
+const isLocalFileUrl = (value: string) => /^file:\/\//i.test(value);
+const isLocalAbsolutePath = (value: string) => /^[a-zA-Z]:[\\/]/.test(value) || /^\\\\/.test(value);
+
 const resolveVideoSrc = (track: VideoTrack | undefined, fallbackUrl: string): string | null => {
   const candidate = track?.sourcePath ?? fallbackUrl;
+  if (candidate && (isLocalFileUrl(candidate) || isLocalAbsolutePath(candidate))) {
+    throw new Error(`VideoPlane cannot render local file video sources: ${candidate}. Use MediaReference.browserUrl.`);
+  }
+
   return candidate || null;
 };
 
