@@ -1,0 +1,29 @@
+@font-face {
+  font-family: 'PrometheusHeroBerylium';
+  src: url('/fonts/hero/berylium-rg-67d7e31492fa.otf') format('opentype');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'PrometheusHeroEchelon';
+  src: url('/fonts/hero/echelon-rg-e550ec4e2f9a.otf') format('opentype');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'PrometheusHeroCinzelBold';
+  src: url('/fonts/hero/cinzel-bold-f33b1b30736a.otf') format('opentype');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'PrometheusHeroFoglihten';
+  src: url('/fonts/hero/foglihten-068-317fa494dd0b.otf') format('opentype');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'PrometheusHeroGoudyBookletter';
+  src: url('/fonts/hero/goudybookletter1911-29a7765f69d5.otf') format('opentype');
+  font-display: swap;
+}

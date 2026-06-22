@@ -1,0 +1,108 @@
+{
+    "fonts":  [
+                  {
+                      "fontId":  "hero-berylium-regular",
+                      "family":  "Berylium",
+                      "cssFamily":  "PrometheusHeroBerylium",
+                      "publicUrl":  "/fonts/hero/berylium-rg-67d7e31492fa.otf",
+                      "localFilePath":  "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\remotion-app\\public\\fonts\\hero\\berylium-rg-67d7e31492fa.otf",
+                      "profileAffinity":  [
+                                              "minimal",
+                                              "cinematic"
+                                          ],
+                      "roleTags":  [
+                                       "fallback",
+                                       "readable",
+                                       "neutral",
+                                       "clean"
+                                   ],
+                      "readabilityScore":  1,
+                      "expressivenessScore":  0.3,
+                      "licenseStatus":  "cc0",
+                      "reviewOnly":  false
+                  },
+                  {
+                      "fontId":  "hero-echelon-regular",
+                      "family":  "Echelon",
+                      "cssFamily":  "PrometheusHeroEchelon",
+                      "publicUrl":  "/fonts/hero/echelon-rg-e550ec4e2f9a.otf",
+                      "localFilePath":  "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\remotion-app\\public\\fonts\\hero\\echelon-rg-e550ec4e2f9a.otf",
+                      "profileAffinity":  [
+                                              "minimal",
+                                              "aggressive"
+                                          ],
+                      "roleTags":  [
+                                       "hero",
+                                       "condensed",
+                                       "kinetic",
+                                       "bold"
+                                   ],
+                      "readabilityScore":  1,
+                      "expressivenessScore":  0.3,
+                      "licenseStatus":  "cc0",
+                      "reviewOnly":  false
+                  },
+                  {
+                      "fontId":  "hero-cinzel-bold",
+                      "family":  "Cinzel Bold",
+                      "cssFamily":  "PrometheusHeroCinzelBold",
+                      "publicUrl":  "/fonts/hero/cinzel-bold-f33b1b30736a.otf",
+                      "localFilePath":  "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\remotion-app\\public\\fonts\\hero\\cinzel-bold-f33b1b30736a.otf",
+                      "profileAffinity":  [
+                                              "cinematic",
+                                              "aggressive"
+                                          ],
+                      "roleTags":  [
+                                       "hero",
+                                       "editorial",
+                                       "premium",
+                                       "high-contrast"
+                                   ],
+                      "readabilityScore":  0.85,
+                      "expressivenessScore":  0.45,
+                      "licenseStatus":  "ofl",
+                      "reviewOnly":  false
+                  },
+                  {
+                      "fontId":  "hero-foglihten",
+                      "family":  "Foglihten",
+                      "cssFamily":  "PrometheusHeroFoglihten",
+                      "publicUrl":  "/fonts/hero/foglihten-068-317fa494dd0b.otf",
+                      "localFilePath":  "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\remotion-app\\public\\fonts\\hero\\foglihten-068-317fa494dd0b.otf",
+                      "profileAffinity":  [
+                                              "cinematic"
+                                          ],
+                      "roleTags":  [
+                                       "hero",
+                                       "editorial",
+                                       "restrained",
+                                       "premium"
+                                   ],
+                      "readabilityScore":  1,
+                      "expressivenessScore":  0.3,
+                      "licenseStatus":  "ofl",
+                      "reviewOnly":  false
+                  },
+                  {
+                      "fontId":  "hero-goudy-bookletter",
+                      "family":  "Goudy Bookletter 1911",
+                      "cssFamily":  "PrometheusHeroGoudyBookletter",
+                      "publicUrl":  "/fonts/hero/goudybookletter1911-29a7765f69d5.otf",
+                      "localFilePath":  "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\remotion-app\\public\\fonts\\hero\\goudybookletter1911-29a7765f69d5.otf",
+                      "profileAffinity":  [
+                                              "minimal",
+                                              "cinematic"
+                                          ],
+                      "roleTags":  [
+                                       "support",
+                                       "readable",
+                                       "editorial",
+                                       "fallback"
+                                   ],
+                      "readabilityScore":  0.85,
+                      "expressivenessScore":  0.3,
+                      "licenseStatus":  "public_domain",
+                      "reviewOnly":  false
+                  }
+              ]
+}

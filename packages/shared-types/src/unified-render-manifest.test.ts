@@ -1,5 +1,8 @@
-﻿import {describe, expect, it} from "vitest";
-import {UnifiedRenderManifestSchema} from "./unified-render-manifest.js";
+import {describe, expect, it} from "vitest";
+import {
+  MusicReferenceSchema,
+  UnifiedRenderManifestSchema,
+} from "./unified-render-manifest.js";
 
 describe("UnifiedRenderManifestSchema", () => {
   const baseManifest = {
@@ -113,6 +116,65 @@ describe("UnifiedRenderManifestSchema", () => {
           triggerMs: 500,
         }],
       },
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts Joseph typography metadata for render-time font loading", () => {
+    const manifest = UnifiedRenderManifestSchema.parse({
+      ...baseManifest,
+      typography: {
+        fontId: "hero-berylium",
+        fontFamily: "Prometheus Hero Berylium",
+        fontAssetUrl: "/fonts/hero/berylium-rg-67d7e31492fa.otf",
+        fallbackFamily: "Arial, sans-serif",
+      },
+    });
+
+    expect(manifest.typography?.fontFamily).toBe("Prometheus Hero Berylium");
+    expect(manifest.typography?.fontAssetUrl).toBe("/fonts/hero/berylium-rg-67d7e31492fa.otf");
+  });
+
+  it("rejects typography font assets that cannot load in the browser", () => {
+    const result = UnifiedRenderManifestSchema.safeParse({
+      ...baseManifest,
+      typography: {
+        fontId: "bad-font",
+        fontFamily: "Bad Font",
+        fontAssetUrl: "C:/fonts/bad.ttf",
+        fallbackFamily: "Arial, sans-serif",
+      },
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts render-safe music references with an FFmpeg local path", () => {
+    const reference = MusicReferenceSchema.parse({
+      trackId: "local-brutal-wishes",
+      title: "Brutal Wishes",
+      sourceKind: "local",
+      localFilePath: "C:/music/Brutal Wishes.mp3",
+      browserUrl: "/music/Brutal%20Wishes.mp3",
+      durationSeconds: 120,
+      renderSafe: true,
+      licenseStatus: "local_user_supplied",
+    });
+
+    expect(reference.renderSafe).toBe(true);
+    expect(reference.localFilePath).toBe("C:/music/Brutal Wishes.mp3");
+  });
+
+  it("rejects music references without an absolute local FFmpeg path", () => {
+    const result = MusicReferenceSchema.safeParse({
+      trackId: "remote-only",
+      title: "Remote Only",
+      sourceKind: "r2",
+      localFilePath: "r2://bucket/key.mp3",
+      durationSeconds: 120,
+      renderSafe: true,
+      licenseStatus: "licensed",
     });
 
     expect(result.success).toBe(false);

@@ -14,6 +14,7 @@ Target: Upload -> Joseph Edit -> MP4, 1080x1920, render-safe media, real audio, 
 | B1 | SFX real files and seeded selection | READY_FOR_REVIEW | 40 SFX files > 0 bytes; Director deterministic variants; mixer resolves variant files |
 | B2 | Asset resolver seam and browser-safe render source guard | READY_FOR_REVIEW | `MediaReference` carries browser-safe URL plus FFmpeg-safe file path; worker sample and Joseph video plane reject `file:///` leaks |
 | B3 | Manifest unification for Joseph render jobs | READY_FOR_REVIEW | Backend accepts validated `UnifiedRenderManifest`; worker leases raw manifests and posts terminal failures |
+| B4 | Font MVP and music infrastructure | READY_FOR_REVIEW | Hero font resolver, 577-font corpus index, local/R2 music references, analysis fallback, and deterministic ranking are green |
 
 ## Architecture Stance
 
@@ -28,6 +29,11 @@ Target: Upload -> Joseph Edit -> MP4, 1080x1920, render-safe media, real audio, 
 - `UnifiedRenderManifest` is now the default Joseph render-job interface. `/api/v1/render/jobs` accepts only `{manifest, variationKey?, evidencePath?}` and validates with `UnifiedRenderManifestSchema`.
 - Worker polling leases raw Joseph manifests from `/api/v1/render/jobs/next`; it validates again before rendering and posts `/failed` on schema or render failures.
 - The old `RenderManifestBridge` path is preserved explicitly as legacy at `/api/v1/render/jobs/legacy` and `/api/v1/render/jobs/legacy/next`.
+- `UnifiedRenderManifest.typography` is the Joseph typography handoff: `fontId`, CSS `fontFamily`, browser-safe `fontAssetUrl`, and `fallbackFamily`.
+- `MusicReference` is the final-render music seam: local/R2/HTTP sources must resolve to an absolute `localFilePath` before FFmpeg can use them.
+- `FontRuntimeResolver` hides the hero font subset and corpus details behind `selectHeroFonts(context, seed)`.
+- `MusicAnalysisAdapter` hides Python/librosa availability and deterministic FFmpeg/constant-BPM fallback behind `analyzeMusicTrack(filePath)`.
+- R2 music may be previewable remotely, but it is not `renderSafe` until a valid local cache file exists.
 
 ## Ticket Table
 
@@ -40,8 +46,8 @@ Target: Upload -> Joseph Edit -> MP4, 1080x1920, render-safe media, real audio, 
 | T37 | Browser-Safe Video Serving | IN_PROGRESS | Codex | `backend/src/asset/local-asset-resolver.ts`, `apps/worker/src/poller.ts`, `remotion-app/src/compositions/JosephEdit.tsx`, `remotion-app/src/compositions/VideoPlane.tsx` | T38 full render harness for Chromium log proof | 2026-06-21 | Resolver and fixture side complete; Chromium render log proof remains with full render batch |
 | T38 | Manifest To Silent MP4 | NOT_STARTED | Unclaimed | `scripts/test-full-render.ts` | T33-T37 | 2026-06-21 | Silent MP4 exists, >100KB, 1080x1920 |
 | T39 | SFX Real Files And Seeded Selection | READY_FOR_REVIEW | Codex | `packages/shared-types/src/unified-render-manifest.ts`, `backend/src/director/joseph-director.ts`, `backend/src/audio/mix-audio.ts`, `remotion-app/public/sfx/`, `scripts/generate-sfx-library.mjs`, `scripts/verify-sfx-library.mjs` | None | 2026-06-21 | Real SFX assets and deterministic variant resolution pass tests |
-| T40 | Font Pipeline Hero Set | NOT_STARTED | Unclaimed | `remotion-app/public/fonts/hero/`, `JosephEdit.tsx`, Director | T35 | 2026-06-21 | Deterministic hero font appears in manifest and render |
-| T41 | Music Beat Match MVP | NOT_STARTED | Unclaimed | `backend/src/music/`, `backend/src/audio/mix-audio.ts` | T39 | 2026-06-21 | Beat grid fallback and fade-to-duration pass tests |
+| T40 | Font Pipeline Hero Set | READY_FOR_REVIEW | Codex | `packages/shared-types/src/unified-render-manifest.ts`, `backend/src/font/font-runtime-resolver.ts`, `backend/src/font/font-corpus-indexer.ts`, `remotion-app/public/fonts/hero/`, `remotion-app/src/compositions/JosephEdit.tsx` | None | 2026-06-22 | Deterministic hero font appears in manifest and render |
+| T41 | Music Beat Match MVP | READY_FOR_REVIEW | Codex | `packages/shared-types/src/unified-render-manifest.ts`, `backend/src/music/catalog/local-music-catalog.ts`, `backend/src/music/catalog/r2-music-catalog.ts`, `backend/src/music/analyzer/music-analysis-adapter.ts`, `backend/src/music/rank-music-for-profile.ts` | None | 2026-06-22 | Beat grid fallback and fade-to-duration pass tests |
 | T42 | Audio Mix End To End | NOT_STARTED | Unclaimed | `scripts/test-full-render.ts`, audio modules | T39, T41 | 2026-06-21 | Final MP4 has AAC stream and target loudness check |
 | T43 | Render Entry Contract | NOT_STARTED | Unclaimed | `remotion-app/src/joseph-entry.tsx`, `remotion-app/src/joseph-bundle.ts` | T35 | 2026-06-21 | Joseph-only bundle entry is under 30 seconds |
 | T44 | Full Render Pixel Test | NOT_STARTED | Unclaimed | `scripts/test-full-render.ts`, `scripts/assert-nonblack.ts` | T38 | 2026-06-21 | Extracted frame has >5% non-black pixels |
@@ -67,6 +73,10 @@ Build T35 plus the first part of T38. Make backend render jobs and worker consum
 
 Build T34 plus the next slice of T38. Wire upload completion into the Director/orchestrator and enqueue a Joseph `UnifiedRenderManifest` render job using the asset resolver seam. Do not start full pixel-proof work until a queued upload can be leased by the worker.
 
+### Batch B5 Prompt
+
+Build T34 plus the next slice of T38. Use the Batch B4 font/music infrastructure from `selectHeroFonts`, `listLocalMusicCatalog`, `analyzeMusicTrack`, and `selectMusicForProfile` when creating the Joseph `UnifiedRenderManifest`. Keep full audio mix and pixel proof for later batches unless upload-to-queued-render cannot be verified without a small fixture render.
+
 ## Assumption Log
 
 - 2026-06-21: FFmpeg is available locally unless proven otherwise.
@@ -76,6 +86,8 @@ Build T34 plus the next slice of T38. Wire upload completion into the Director/o
 - 2026-06-21: B1 SFX files and B2 asset-resolver changes are coherent Wave 1 work. They should be committed together only after the tracker update and gate commands below are present.
 - 2026-06-21: Backend and shared-types currently use different Zod package instances. Render-job validation error formatting is intentionally structural so `UnifiedRenderManifestSchema` errors from shared-types can be reported by backend routes without nominal Zod type coupling.
 - 2026-06-21: Legacy bridge jobs remain available for non-Joseph experiments, but Joseph production work must use the unified manifest route.
+- 2026-06-22: Hero font MVP uses five materialized render-safe fonts only. The full 577-font corpus remains indexed on demand and is not copied wholesale to `public/fonts`.
+- 2026-06-22: Python librosa/Essentia analysis remains optional in this batch. `MusicAnalysisAdapter` records source attribution and warnings when deterministic FFmpeg/constant-BPM fallback is used.
 
 ## Verification Log
 
@@ -103,3 +115,12 @@ Build T34 plus the next slice of T38. Wire upload completion into the Director/o
 - 2026-06-21 B3: `npm.cmd --prefix backend run typecheck` passed.
 - 2026-06-21 B3: `npm.cmd --prefix apps/worker test` passed, 29 files / 137 tests.
 - 2026-06-21 B3: `npm.cmd --prefix apps/worker run typecheck` passed.
+- 2026-06-22 B4 red tests: shared-types initially failed 4 new typography/music-reference assertions; backend font/music tests failed on missing modules; JosephEdit test failed because it still used the hard-coded Antenna constant.
+- 2026-06-22 B4: `npm.cmd --prefix packages/shared-types run build` passed.
+- 2026-06-22 B4: `npm.cmd --prefix packages/shared-types test` passed, 6 files / 29 tests.
+- 2026-06-22 B4: `npm.cmd --prefix backend test -- src/font` passed, 2 files / 4 tests.
+- 2026-06-22 B4: `npm.cmd --prefix backend test -- src/music` passed, 4 files / 5 tests.
+- 2026-06-22 B4: `npm.cmd --prefix backend run typecheck` passed.
+- 2026-06-22 B4: `npm.cmd --prefix remotion-app test -- src/compositions/__tests__/JosephEdit.test.tsx` passed, 1 file / 6 tests.
+- 2026-06-22 B4: `npm.cmd --prefix remotion-app run typecheck` passed.
+- 2026-06-22 B4: `node scripts/verify-sfx-library.mjs` passed, 40 nonzero MP3 SFX assets.

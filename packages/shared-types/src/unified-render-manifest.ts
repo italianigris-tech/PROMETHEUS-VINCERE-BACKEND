@@ -1,4 +1,5 @@
-﻿import {z} from "zod";
+import {z} from "zod";
+import {isAbsoluteMediaFilePath, isBrowserSafeMediaUrl} from "./asset-resolver.js";
 
 export const WordSchema = z.object({
   text: z.string(),
@@ -25,6 +26,30 @@ export const SFXEventSchema = z.object({
   durationMs: z.number().default(300),
   volumeDb: z.number().default(-12),
   duckMusicDb: z.number().default(-6),
+});
+
+export const JosephTypographySchema = z.object({
+  fontFamily: z.string().trim().min(1),
+  fontAssetUrl: z.string().trim().min(1).refine(isBrowserSafeMediaUrl, {
+    message: "fontAssetUrl must be browser-safe: HTTP(S) or root-relative, not file:// or a local filesystem path",
+  }),
+  fallbackFamily: z.string().trim().min(1),
+  fontId: z.string().trim().min(1),
+});
+
+export const MusicReferenceSchema = z.object({
+  trackId: z.string().trim().min(1),
+  title: z.string().trim().min(1),
+  sourceKind: z.enum(["local", "r2", "http"]),
+  localFilePath: z.string().trim().min(1).refine(isAbsoluteMediaFilePath, {
+    message: "localFilePath must be absolute for FFmpeg and final render",
+  }),
+  browserUrl: z.string().trim().min(1).refine(isBrowserSafeMediaUrl, {
+    message: "browserUrl must be browser-safe when provided",
+  }).optional(),
+  durationSeconds: z.number().positive(),
+  renderSafe: z.boolean(),
+  licenseStatus: z.string().trim().min(1),
 });
 
 export const TextEventSchema = z.object({
@@ -139,6 +164,7 @@ export const UnifiedRenderManifestSchema = z.object({
   cameraMoves: z.array(CameraMoveSchema).default([]),
   textOverlays: z.array(TextOverlaySchema).default([]),
   transitions: z.array(TransitionSchema).default([]),
+  typography: JosephTypographySchema.optional(),
 
   source: z.object({
     videoUrl: z.string().min(1),
@@ -155,6 +181,7 @@ export const UnifiedRenderManifestSchema = z.object({
     onsets: z.array(z.number()).default([]),
     energyCurve: z.array(z.number()).optional(),
     musicTrackUrl: z.string().min(1).optional(),
+    musicReference: MusicReferenceSchema.optional(),
     musicBpm: z.number().optional(),
     sfx: z.array(SFXEventSchema).default([]),
     voiceVolumeDb: z.number().default(0),
@@ -185,6 +212,8 @@ export const UnifiedRenderManifestSchema = z.object({
 export type UnifiedRenderManifest = z.infer<typeof UnifiedRenderManifestSchema>;
 export type Word = z.infer<typeof WordSchema>;
 export type SFXEvent = z.infer<typeof SFXEventSchema>;
+export type JosephTypography = z.infer<typeof JosephTypographySchema>;
+export type MusicReference = z.infer<typeof MusicReferenceSchema>;
 export type TextEvent = z.infer<typeof TextEventSchema>;
 export type CutEvent = z.infer<typeof CutEventSchema>;
 export type CameraEvent = z.infer<typeof CameraEventSchema>;

@@ -6,7 +6,12 @@ import * as THREE from 'three';
 import type {CameraMove, TextOverlay, Transition, UnifiedRenderManifest, VideoTrack} from '@prometheus/shared-types';
 import {hashSeed, seededRandom} from '@prometheus/shared-types';
 
-const FONT_URL = staticFile('fonts/library/antenna/antenna-a14c59300f3b.ttf');
+const DEFAULT_JOSEPH_TYPOGRAPHY = {
+  fontId: 'hero-berylium-regular',
+  fontFamily: 'PrometheusHeroBerylium',
+  fontAssetUrl: '/fonts/hero/berylium-rg-67d7e31492fa.otf',
+  fallbackFamily: 'Arial, sans-serif',
+};
 
 const ParkMillerPRNG = (seed: number): number => seededRandom(seed)();
 
@@ -14,6 +19,26 @@ const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
 
 const isLocalFileUrl = (value: string) => /^file:\/\//i.test(value);
 const isLocalAbsolutePath = (value: string) => /^[a-zA-Z]:[\\/]/.test(value) || /^\\\\/.test(value);
+
+const resolveJosephTypography = (manifest: UnifiedRenderManifest) => {
+  const typography = manifest.typography ?? DEFAULT_JOSEPH_TYPOGRAPHY;
+  const fontAssetUrl = typography.fontAssetUrl || DEFAULT_JOSEPH_TYPOGRAPHY.fontAssetUrl;
+  const fallbackFamily = typography.fallbackFamily || DEFAULT_JOSEPH_TYPOGRAPHY.fallbackFamily;
+
+  if (isLocalFileUrl(fontAssetUrl) || isLocalAbsolutePath(fontAssetUrl)) {
+    return {
+      ...DEFAULT_JOSEPH_TYPOGRAPHY,
+      fallbackFamily,
+      fontAssetUrl: staticFile(DEFAULT_JOSEPH_TYPOGRAPHY.fontAssetUrl.replace(/^\//, '')),
+    };
+  }
+
+  return {
+    ...typography,
+    fallbackFamily,
+    fontAssetUrl: fontAssetUrl.startsWith('/') ? staticFile(fontAssetUrl.replace(/^\//, '')) : fontAssetUrl,
+  };
+};
 
 const resolveVideoSrc = (track: VideoTrack | undefined, fallbackUrl: string): string | null => {
   const candidate = track?.sourcePath ?? fallbackUrl;
@@ -193,8 +218,9 @@ const CameraRig: React.FC<{cameraMoves: readonly CameraMove[]; seed: number}> = 
   return null;
 };
 
-const KineticText: React.FC<{overlays: readonly TextOverlay[]}> = ({overlays}) => {
+const KineticText: React.FC<{overlays: readonly TextOverlay[]; manifest: UnifiedRenderManifest}> = ({overlays, manifest}) => {
   const frame = useCurrentFrame();
+  const typography = resolveJosephTypography(manifest);
 
   return (
     <group position={[0, 0, 0.6]}>
@@ -206,9 +232,10 @@ const KineticText: React.FC<{overlays: readonly TextOverlay[]}> = ({overlays}) =
           return (
             <Text
               key={`${overlayIndex}-${wordIndex}-${overlay.startFrame}`}
-              font={FONT_URL}
+              font={typography.fontAssetUrl}
               fontSize={0.58}
               color={overlay.color}
+              fontStyle="normal"
               anchorX="center"
               anchorY="middle"
               position={transform.position}
@@ -294,7 +321,7 @@ const JosephScene: React.FC<{manifest: UnifiedRenderManifest}> = ({manifest}) =>
       <directionalLight position={[0, 0, 4]} intensity={1.2} />
       <VideoPlane track={manifest.videoTracks[0]} manifest={manifest} />
       <CameraRig cameraMoves={manifest.cameraMoves} seed={manifest.seed} />
-      <KineticText overlays={activeOverlays} />
+      <KineticText overlays={activeOverlays} manifest={manifest} />
       <ZoomBlurQuad transition={activeTransition} />
     </>
   );

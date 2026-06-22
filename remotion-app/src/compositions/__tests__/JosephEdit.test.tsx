@@ -1,4 +1,4 @@
-﻿import {describe, expect, it} from 'vitest';
+import {describe, expect, it} from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -37,5 +37,13 @@ describe('JosephEdit Composition', () => {
     expect(content).toContain('cannot render local file video sources');
     expect(content).toContain('Use MediaReference.browserUrl');
     expect(content).not.toContain("candidate.startsWith('file:///')");
+  });
+
+  it('loads Joseph text font from manifest typography instead of only hard-coding Antenna', () => {
+    expect(content).toContain('resolveJosephTypography');
+    expect(content).toContain('manifest.typography');
+    expect(content).toContain('fontAssetUrl');
+    expect(content).toContain('fallbackFamily');
+    expect(content).not.toContain('const FONT_URL =');
   });
 });

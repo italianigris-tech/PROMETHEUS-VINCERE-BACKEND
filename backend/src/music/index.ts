@@ -41,6 +41,7 @@ export {
 export {buildBeatGrid} from "./analyzer/beat-grid-builder";
 export {detectSections} from "./analyzer/section-detector";
 export {analyzeTrack} from "./analyzer/track-analyzer";
+export {analyzeMusicTrack} from "./analyzer/music-analysis-adapter";
 export {indexTrack} from "./indexer/track-indexer";
 export {assertTrackUsableForExport} from "./indexer/license-guard";
 export {
@@ -59,6 +60,8 @@ export {
   readR2MusicCatalogArtifact,
   writeR2MusicCatalogArtifact
 } from "./catalog/r2-music-catalog-artifact";
+export {listLocalMusicCatalog} from "./catalog/local-music-catalog";
+export {resolveR2MusicReferences} from "./catalog/r2-music-catalog";
 export {
   buildPublicObjectUrl,
   encodeTrackId,
@@ -86,6 +89,7 @@ export type {
 } from "./catalog/catalog-candidate-selector";
 export {selectCatalogCandidatesForTimeline} from "./catalog/catalog-candidate-selector";
 export {rankTracks} from "./planner/music-ranker";
+export {rankMusicForProfile, selectMusicForProfile} from "./rank-music-for-profile";
 export {planTransition} from "./planner/transition-planner";
 export {synthesizeVideoTimeline} from "./video-aware-planner/timeline-synthesizer";
 export {orchestrateArrangement} from "./video-aware-planner/arrangement-orchestrator";
@@ -190,6 +194,12 @@ export type {
   MusicOverridesArtifact
 } from "./schemas/music-override.schema";
 export type {AnalyzeTrackInput} from "./analyzer/track-analyzer";
+export type {
+  AnalyzeMusicTrackOptions,
+  MusicAnalysisResult,
+  MusicAnalysisSection,
+  MusicAnalysisSource
+} from "./analyzer/music-analysis-adapter";
 export type {BuildBeatGridInput} from "./analyzer/beat-grid-builder";
 export type {DetectSectionsInput} from "./analyzer/section-detector";
 export type {IndexTrackInput} from "./indexer/track-indexer";
@@ -221,6 +231,12 @@ export type {
   ResolvedMusicLibraryEntry
 } from "./catalog/music-library-service";
 export type {RankTracksInput, RankedTrackCandidate} from "./planner/music-ranker";
+export type {
+  AnalyzedMusicReference,
+  MusicRankingProfile,
+  RankedMusicCandidate,
+  RankMusicForProfileInput
+} from "./rank-music-for-profile";
 export type {PlanTransitionInput} from "./planner/transition-planner";
 export type {
   ClipTimingInput,
