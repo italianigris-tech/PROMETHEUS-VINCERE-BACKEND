@@ -1535,6 +1535,21 @@ export class EditSessionManager {
     return this.getSession(sessionId);
   }
 
+  public async mergeSessionMetadata(
+    sessionId: string,
+    metadata: Record<string, unknown>,
+    statePatch: Partial<Pick<EditSessionState, "status" | "renderStatus" | "renderProgress">> = {}
+  ): Promise<EditSessionPublicState> {
+    const updated = await this.updateSession(sessionId, (current) => ({
+      ...statePatch,
+      metadata: {
+        ...current.metadata,
+        ...metadata
+      }
+    }));
+    return toPublicSession(updated, this.renderConfig);
+  }
+
   public async failSession(
     sessionId: string,
     payload: {

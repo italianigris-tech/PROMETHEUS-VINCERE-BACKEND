@@ -50,11 +50,23 @@ export const SANDBOX_WORDS: TranscribedWord[] = [
   {text: "way", startMs: 6700, endMs: 6940, confidence: 0.99}
 ];
 
-export const resolveWebPreviewRootRoute = (pathnameOrUrl: string): "sandbox" | "preview-app" => {
+export type WebPreviewRootRoute = "sandbox" | "preview-app" | "joseph-study";
+
+export const resolveWebPreviewRootRoute = (pathnameOrUrl: string): WebPreviewRootRoute => {
   const rawPath = pathnameOrUrl.split("?")[0]?.split("#")[0] ?? "/";
   const normalizedPath = rawPath.replace(/\/+$/, "") || "/";
-  return normalizedPath === "/sandbox" ? "sandbox" : "preview-app";
+  if (normalizedPath === "/sandbox") {
+    return "sandbox";
+  }
+
+  if (normalizedPath === "/joseph-study") {
+    return "joseph-study";
+  }
+
+  return "preview-app";
 };
+
+export const shouldPreloadWebPreviewFonts = (route: WebPreviewRootRoute): boolean => route !== "joseph-study";
 
 export const resolveSandboxDurationMs = (chunks: CaptionChunk[]): number => {
   const lastChunkEndMs = chunks.reduce((max, chunk) => Math.max(max, chunk.endMs), 0);

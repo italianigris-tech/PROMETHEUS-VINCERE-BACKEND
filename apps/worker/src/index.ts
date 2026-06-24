@@ -1,4 +1,4 @@
-﻿import {UnifiedRenderManifest, UnifiedRenderManifestSchema} from '@prometheus/shared-types';
+import {UnifiedRenderManifest, UnifiedRenderManifestSchema} from '@prometheus/shared-types';
 import {bundle} from '@remotion/bundler';
 import {renderMedia, selectComposition} from '@remotion/renderer';
 import * as fs from 'fs';
@@ -10,6 +10,10 @@ import {mixAudio} from '@prometheus/backend';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const JOSEPH_WIDTH = 1080;
+const JOSEPH_HEIGHT = 1920;
+const JOSEPH_ENTRY_POINT = path.resolve(__dirname, '../../../remotion-app/src/entries/joseph-entry.tsx');
+const DEFAULT_SFX_DIR = path.resolve(__dirname, '../../../remotion-app/public/sfx');
 let cachedServeUrlPromise: Promise<string> | null = null;
 
 export class ValidationError extends Error {
@@ -20,9 +24,12 @@ export class ValidationError extends Error {
 }
 
 export class RenderError extends Error {
-  constructor(message: string) {
+  readonly failureTags: string[];
+
+  constructor(message: string, failureTags: string[] = ['render_failed']) {
     super(message);
     this.name = 'RenderError';
+    this.failureTags = failureTags;
   }
 }
 
@@ -56,7 +63,35 @@ const removeIfPresent = (targetPath: string) => {
   }
 };
 
+export type RenderFromManifestOptions = {
+  tempDir?: string;
+  sfxDir?: string;
+  sourceVideoPath?: string;
+};
+
 const shouldRetryRender = (error: Error) => /timeout|timed out|chromium|browser/i.test(error.message);
+
+const audioFailureTagsForError = (error: unknown): string[] => {
+  const message = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+  if (/missing_sfx_asset|SFXNotFoundError|SFX file not found/i.test(message)) {
+    return ['missing_sfx_asset'];
+  }
+  return ['audio_mix_failed'];
+};
+
+export const renderFailureTagsForError = (error: unknown): string[] => {
+  if (error instanceof RenderError && error.failureTags.length > 0) {
+    return error.failureTags;
+  }
+  const message = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+  if (/missing_sfx_asset|SFXNotFoundError|SFX file not found/i.test(message)) {
+    return ['missing_sfx_asset'];
+  }
+  if (/audio|mixAudio|ffmpeg/i.test(message)) {
+    return ['audio_mix_failed'];
+  }
+  return ['render_failed'];
+};
 
 const logRenderProgress = (progress: {progress: number}) => {
   const rounded = Math.round(progress.progress * 100);
@@ -68,11 +103,35 @@ const logRenderProgress = (progress: {progress: number}) => {
 const getServeUrl = () => {
   if (!cachedServeUrlPromise) {
     cachedServeUrlPromise = bundle({
-      entryPoint: path.resolve(__dirname, '../../../remotion-app/src/index.ts'),
+      entryPoint: JOSEPH_ENTRY_POINT,
     });
   }
 
   return cachedServeUrlPromise;
+};
+
+const assertVerticalJosephManifest = (manifest: UnifiedRenderManifest): void => {
+  if (
+    manifest.width !== JOSEPH_WIDTH ||
+    manifest.height !== JOSEPH_HEIGHT ||
+    manifest.output.width !== JOSEPH_WIDTH ||
+    manifest.output.height !== JOSEPH_HEIGHT
+  ) {
+    throw new ValidationError(
+      `Joseph render manifest must be ${JOSEPH_WIDTH}x${JOSEPH_HEIGHT}; got manifest ${manifest.width}x${manifest.height} and output ${manifest.output.width}x${manifest.output.height}.`
+    );
+  }
+};
+
+const assertCompositionMatchesManifest = (
+  composition: {width: number; height: number},
+  manifest: UnifiedRenderManifest,
+): void => {
+  if (composition.width !== manifest.width || composition.height !== manifest.height) {
+    throw new ValidationError(
+      `Joseph composition metadata must match manifest dimensions ${manifest.width}x${manifest.height}; got ${composition.width}x${composition.height}.`
+    );
+  }
 };
 
 const renderSilentVideo = async (options: Record<string, unknown>, manifest: UnifiedRenderManifest) => {
@@ -106,7 +165,8 @@ const renderSilentVideo = async (options: Record<string, unknown>, manifest: Uni
 };
 
 export async function renderFromManifest(
-  manifest: UnifiedRenderManifest
+  manifest: UnifiedRenderManifest,
+  options: RenderFromManifestOptions = {},
 ): Promise<string> {
   const parseResult = UnifiedRenderManifestSchema.safeParse(manifest);
   if (!parseResult.success) {
@@ -114,7 +174,9 @@ export async function renderFromManifest(
   }
 
   const validatedManifest = parseResult.data;
-  const tmpDir = os.tmpdir();
+  assertVerticalJosephManifest(validatedManifest);
+  const tmpDir = options.tempDir ?? os.tmpdir();
+  const sfxDir = options.sfxDir ?? DEFAULT_SFX_DIR;
   const silentVideoPath = path.join(tmpDir, `${validatedManifest.jobId}_silent.mp4`);
   const audioPath = path.join(tmpDir, `${validatedManifest.jobId}_audio.m4a`);
   const finalVideoPath = path.join(tmpDir, `${validatedManifest.jobId}_final.mp4`);
@@ -124,6 +186,12 @@ export async function renderFromManifest(
   const cleanupTempFiles = () => {
     removeIfPresent(silentVideoPath);
     removeIfPresent(audioPath);
+  };
+
+  const cleanupSourceVideo = () => {
+    if (options.sourceVideoPath) {
+      removeIfPresent(options.sourceVideoPath);
+    }
   };
 
   try {
@@ -142,6 +210,7 @@ export async function renderFromManifest(
         headless: true,
       },
     } as any);
+    assertCompositionMatchesManifest(composition, validatedManifest);
 
     await renderSilentVideo({
       composition,
@@ -167,9 +236,12 @@ export async function renderFromManifest(
     }, validatedManifest);
 
     try {
-      await mixAudio(validatedManifest, audioPath);
+      await mixAudio(validatedManifest, audioPath, {sfxDir, tempDir: tmpDir});
     } catch (error: any) {
-      throw new RenderError(`mixAudio failed for job ${validatedManifest.jobId}: ${error.message}`);
+      throw new RenderError(
+        `mixAudio failed for job ${validatedManifest.jobId}: ${error.message}`,
+        audioFailureTagsForError(error),
+      );
     }
 
     await new Promise<void>((resolve, reject) => {
@@ -208,6 +280,7 @@ export async function renderFromManifest(
     });
 
     cleanupTempFiles();
+    cleanupSourceVideo();
     return finalVideoPath;
   } catch (error) {
     cleanupTempFiles();

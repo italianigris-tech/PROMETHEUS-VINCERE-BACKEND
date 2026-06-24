@@ -36,6 +36,7 @@ export type JosephProfile = "joseph_aggressive" | "joseph_cinematic" | "joseph_m
 
 export interface OrchestratorInput {
   sourceVideoPath: string;
+  sourceFingerprintPath?: string;
   transcriptPath: string;
   audioPath: string;
   musicPath?: string;
@@ -106,6 +107,16 @@ const PROFILE_CONFIG: Record<JosephProfile, {count: number; textCoverage: number
 };
 
 const stableHash = (value: string): string => createHash("sha256").update(value).digest("hex");
+
+const deterministicUuid = (value: string): string => {
+  const hex = stableHash(value);
+  const chars = hex.slice(0, 32).split("");
+  chars[12] = "4";
+  const variantNibble = Number.parseInt(chars[16] ?? "8", 16);
+  chars[16] = ((variantNibble & 0x3) | 0x8).toString(16);
+  const canonical = chars.join("");
+  return `${canonical.slice(0, 8)}-${canonical.slice(8, 12)}-${canonical.slice(12, 16)}-${canonical.slice(16, 20)}-${canonical.slice(20, 32)}`;
+};
 
 const seedFromVariationKey = (variationKey: VariationKey): number => {
   const hex = variationKey.key.slice(0, 12);
@@ -343,7 +354,7 @@ const annotateSequenceMemory = (manifest: UnifiedRenderManifest): CandidateWithS
 
 const canonicalizeManifestForResult = (manifest: UnifiedRenderManifest, variationKey: VariationKey): UnifiedRenderManifest => ({
   ...manifest,
-  jobId: `${variationKey.uploadInstanceId}:${variationKey.retryIndex}:${manifest.seed}`,
+  jobId: deterministicUuid(`${variationKey.key}:${manifest.seed}`),
   createdAt: "1970-01-01T00:00:00.000Z",
 });
 
@@ -371,7 +382,7 @@ export async function orchestrateRender(
   const governedPrompt = promptRegistry.register(input.promptText ?? DEFAULT_PROMPT, {tone: input.profile.replace("joseph_", "") as "aggressive" | "cinematic" | "minimal"});
   const uploadInstanceId = uploadInstanceIdFor(input);
   const variationKey = generateVariationKey(
-    input.sourceVideoPath,
+    input.sourceFingerprintPath ?? input.sourceVideoPath,
     governedPrompt.text,
     uploadInstanceId,
     input.retryIndex ?? 0,

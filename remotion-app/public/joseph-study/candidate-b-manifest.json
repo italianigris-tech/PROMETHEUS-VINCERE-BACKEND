@@ -1,0 +1,92 @@
+{
+  "version": "2.0",
+  "jobId": "423e4567-e89b-42d3-a456-426614174444",
+  "seed": 13579,
+  "createdAt": "2026-01-02T00:00:00.000Z",
+  "durationFrames": 210,
+  "fps": 30,
+  "width": 1080,
+  "height": 1920,
+  "videoTracks": [
+    {
+      "sourcePath": "/dev-fixtures/test-video.mp4",
+      "startFrame": 0,
+      "endFrame": 209
+    }
+  ],
+  "cameraMoves": [
+    {
+      "type": "pull_out",
+      "startFrame": 18,
+      "endFrame": 150
+    }
+  ],
+  "textOverlays": [
+    {
+      "text": "ALT TAKE",
+      "startFrame": 24,
+      "endFrame": 120,
+      "animation": "elastic_scale",
+      "color": "#8FD7C7"
+    }
+  ],
+  "transitions": [
+    {
+      "type": "flash",
+      "startFrame": 104,
+      "durationFrames": 8
+    }
+  ],
+  "typography": {
+    "fontId": "hero-berylium-regular",
+    "fontFamily": "PrometheusHeroBerylium",
+    "fontAssetUrl": "/fonts/hero/berylium-rg-67d7e31492fa.otf",
+    "fallbackFamily": "Arial, sans-serif"
+  },
+  "source": {
+    "videoUrl": "/dev-fixtures/test-video.mp4",
+    "audioUrl": "/dev-fixtures/test-video.mp4",
+    "transcript": [
+      {
+        "text": "Alt take",
+        "startMs": 0,
+        "endMs": 1400
+      }
+    ],
+    "durationMs": 7000,
+    "width": 1920,
+    "height": 1080,
+    "fps": 30
+  },
+  "audio": {
+    "beats": [300, 780, 1300, 2000, 3100],
+    "onsets": [0, 780, 1560, 2340],
+    "sfx": [
+      {
+        "id": "comparison-pop",
+        "type": "pop",
+        "startFrame": 24,
+        "volumeDb": -12
+      }
+    ],
+    "voiceVolumeDb": 0,
+    "musicVolumeDb": -18,
+    "targetLufs": -14
+  },
+  "timeline": [],
+  "creativeProfile": {
+    "name": "joseph_aggressive_alt",
+    "cutDensity": 0.85,
+    "textDensity": 0.72,
+    "sfxDensity": 0.45,
+    "cameraAggression": 0.64,
+    "colorIntensity": 0.82
+  },
+  "output": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "codec": "h264",
+    "crf": 18
+  }
+}

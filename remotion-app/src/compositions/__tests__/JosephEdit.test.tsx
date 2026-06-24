@@ -4,7 +4,10 @@ import * as path from 'path';
 
 describe('JosephEdit Composition', () => {
   const filePath = path.resolve(__dirname, '../JosephEdit.tsx');
+  const videoPlanePath = path.resolve(__dirname, '../VideoPlane.tsx');
+  const josephEntryPath = path.resolve(__dirname, '../../entries/joseph-entry.tsx');
   const content = fs.readFileSync(filePath, 'utf-8');
+  const videoPlaneContent = fs.readFileSync(videoPlanePath, 'utf-8');
 
   it('uses Canvas from @react-three/fiber and Text from @react-three/drei', () => {
     expect(content).toContain("import {Canvas");
@@ -15,8 +18,8 @@ describe('JosephEdit Composition', () => {
   });
 
   it('contains the required R3F architecture pieces', () => {
-    expect(content).toContain('const VideoPlane');
-    expect(content).toContain('THREE.VideoTexture');
+    expect(content).toContain('VideoPlane');
+    expect(videoPlaneContent).toContain('THREE.VideoTexture');
     expect(content).toContain('const CameraRig');
     expect(content).toContain('const KineticText');
     expect(content).toContain('const ZoomBlurQuad');
@@ -34,9 +37,15 @@ describe('JosephEdit Composition', () => {
   });
 
   it('rejects local file video sources instead of allowing black renders', () => {
-    expect(content).toContain('cannot render local file video sources');
-    expect(content).toContain('Use MediaReference.browserUrl');
-    expect(content).not.toContain("candidate.startsWith('file:///')");
+    expect(videoPlaneContent).toContain('cannot render local file video sources');
+    expect(videoPlaneContent).toContain('Use MediaReference.browserUrl');
+    expect(videoPlaneContent).not.toContain("candidate.startsWith('file:///')");
+  });
+
+  it('converts root-relative public video URLs through Remotion staticFile', () => {
+    expect(videoPlaneContent).toContain("import {staticFile");
+    expect(videoPlaneContent).toContain("staticFile(candidate.replace");
+    expect(videoPlaneContent).toContain("https?:");
   });
 
   it('loads Joseph text font from manifest typography instead of only hard-coding Antenna', () => {
@@ -45,5 +54,25 @@ describe('JosephEdit Composition', () => {
     expect(content).toContain('fontAssetUrl');
     expect(content).toContain('fallbackFamily');
     expect(content).not.toContain('const FONT_URL =');
+  });
+
+  it('keeps source video cover-cropped for vertical output instead of stretched', () => {
+    expect(videoPlaneContent).toContain('calculateCoverTextureTransform');
+    expect(videoPlaneContent).toContain('sourceAspect > outputAspect');
+    expect(videoPlaneContent).toContain('texture.repeat.set');
+    expect(videoPlaneContent).toContain('texture.offset.set');
+    expect(videoPlaneContent).toContain('viewport.width');
+    expect(videoPlaneContent).toContain('viewport.height');
+    expect(videoPlaneContent).toContain('videoElement.play');
+  });
+
+  it('has a Joseph-only Remotion entry that registers no unrelated compositions', () => {
+    const entryContent = fs.readFileSync(josephEntryPath, 'utf-8');
+    expect(entryContent).toContain('registerRoot');
+    expect(entryContent).toContain('JosephOnlyRoot');
+    expect(entryContent).toContain('JosephComposition');
+    expect(entryContent).not.toContain('FemaleCoachDeanGraziosi');
+    expect(entryContent).not.toContain('ProjectScopedMotionComposition');
+    expect(entryContent).not.toContain('CreativeAudioPreview');
   });
 });

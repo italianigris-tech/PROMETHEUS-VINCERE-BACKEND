@@ -74,8 +74,12 @@ const asNonEmptyString = (value: unknown, fieldName: string, index: number): str
   return value.trim();
 };
 
+const asOptionalNonEmptyString = (value: unknown): string | null => {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+};
+
 const asNullableString = (value: unknown, fieldName: string, index: number): string | null => {
-  if (value === null) {
+  if (value === null || typeof value === "undefined") {
     return null;
   }
 
@@ -87,7 +91,7 @@ const asNullableString = (value: unknown, fieldName: string, index: number): str
 };
 
 const asNullableNumber = (value: unknown, fieldName: string, index: number): number | null => {
-  if (value === null) {
+  if (value === null || typeof value === "undefined") {
     return null;
   }
 
@@ -104,6 +108,37 @@ const asRuntimeFontFormat = (value: unknown, index: number): RuntimeFontFormat =
   }
 
   return value as RuntimeFontFormat;
+};
+
+const sanitizeRuntimeToken = (value: string): string => {
+  const normalized = value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  return normalized || "unknown";
+};
+
+const deriveFamilyId = (value: Record<string, unknown>, familyName: string, fontId: string): string => {
+  const explicitFamilyId = asOptionalNonEmptyString(value.familyId);
+  if (explicitFamilyId) {
+    return explicitFamilyId;
+  }
+
+  const familyToken = sanitizeRuntimeToken(familyName);
+  return familyToken === "unknown"
+    ? `family_${sanitizeRuntimeToken(fontId)}`
+    : `family_${familyToken}`;
+};
+
+const deriveFileName = (value: Record<string, unknown>, publicUrl: string, index: number): string => {
+  const explicitFileName = asOptionalNonEmptyString(value.fileName);
+  if (explicitFileName) {
+    return explicitFileName;
+  }
+
+  const derivedFileName = publicUrl.split("/").filter(Boolean).at(-1);
+  if (!derivedFileName) {
+    throw new Error(`Invalid runtime font manifest record ${index}: could not derive 'fileName' from publicUrl.`);
+  }
+
+  return derivedFileName;
 };
 
 const compareRuntimeFontRecords = (
@@ -132,14 +167,17 @@ const buildRuntimeFontAssetRecord = (value: unknown, index: number): RuntimeFont
     throw new Error(`Invalid runtime font manifest record ${index}: publicUrl must start with '/'.`);
   }
 
+  const fontId = asNonEmptyString(value.fontId, "fontId", index);
+  const familyName = asNonEmptyString(value.familyName, "familyName", index);
+
   return {
-    fontId: asNonEmptyString(value.fontId, "fontId", index),
-    familyId: asNonEmptyString(value.familyId, "familyId", index),
-    familyName: asNonEmptyString(value.familyName, "familyName", index),
-    fileName: asNonEmptyString(value.fileName, "fileName", index),
+    fontId,
+    familyId: deriveFamilyId(value, familyName, fontId),
+    familyName,
+    fileName: deriveFileName(value, publicUrl, index),
     originalFileName: asNullableString(value.originalFileName, "originalFileName", index),
     weight: asNullableNumber(value.weight, "weight", index),
-    style: asNonEmptyString(value.style, "style", index),
+    style: asOptionalNonEmptyString(value.style) ?? "normal",
     format: asRuntimeFontFormat(value.format, index),
     publicUrl,
     localPublicPath: asNonEmptyString(value.localPublicPath, "localPublicPath", index),
@@ -200,11 +238,6 @@ export const getBundledRuntimeFontRegistry = (): RuntimeFontRegistry => {
   return defaultRuntimeFontRegistry;
 };
 
-const sanitizeAliasSegment = (value: string): string => {
-  const normalized = value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
-  return normalized || "unknown";
-};
-
 export const getRuntimeFontCssFamily = (
   recordOrFamily:
     | Pick<RuntimeFontAssetRecord, "familyId" | "fontId">
@@ -213,7 +246,7 @@ export const getRuntimeFontCssFamily = (
   const aliasSource = typeof recordOrFamily === "string"
     ? recordOrFamily
     : recordOrFamily.familyId || recordOrFamily.fontId;
-  return `__prometheus_font_${sanitizeAliasSegment(aliasSource)}`;
+  return `__prometheus_font_${sanitizeRuntimeToken(aliasSource)}`;
 };
 
 export const getRuntimeFontFormatLabel = (format: RuntimeFontFormat): string => {

@@ -37,15 +37,33 @@ export type SelectHeroFontsResult = {
 export type SelectHeroFontsContext = {
   profile: JosephProfile;
   heroManifestPath?: string;
+  libraryManifestPath?: string;
+  preferHydratedLibrary?: boolean;
 };
 
 type HeroFontManifest = {
   fonts?: HeroFontRecord[];
 };
 
+type HydratedLibraryFontRecord = {
+  fontId?: string;
+  familyName?: string;
+  publicUrl?: string;
+  localPublicPath?: string;
+  format?: string;
+  renderable?: boolean;
+  needsManualLicenseReview?: boolean;
+  license?: {
+    licenseTexts?: string[];
+  };
+  warnings?: string[];
+};
+
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(currentDir, "../../..");
 const defaultHeroManifestPath = path.join(repoRoot, "remotion-app", "public", "fonts", "hero", "hero-fonts.json");
+const defaultLibraryManifestPath = path.join(repoRoot, "remotion-app", "public", "fonts", "library", "font-manifest-urls.json");
+const renderableExtensions = new Set([".otf", ".ttf", ".woff", ".woff2"]);
 
 const normalizeProfile = (profile: JosephProfile): "aggressive" | "cinematic" | "minimal" => {
   if (profile === "joseph_aggressive") {
@@ -63,6 +81,81 @@ const normalizeProfile = (profile: JosephProfile): "aggressive" | "cinematic" | 
 const loadHeroFonts = (manifestPath: string): HeroFontRecord[] => {
   const parsed = JSON.parse(readFileSync(manifestPath, "utf8")) as HeroFontManifest;
   return Array.isArray(parsed.fonts) ? parsed.fonts : [];
+};
+
+const cssFamilyForLibraryFont = (familyName: string): string => {
+  const safe = familyName
+    .replace(/[^a-zA-Z0-9]+/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join("");
+  return `PrometheusLibrary${safe || "Font"}`;
+};
+
+const hasBlockedLicenseSignal = (record: HydratedLibraryFontRecord): boolean => {
+  const text = [
+    ...(record.license?.licenseTexts ?? []),
+    ...(record.warnings ?? []),
+    record.familyName ?? "",
+    record.fontId ?? "",
+  ].join(" ").toLowerCase();
+  return /personal\s+use|non[-\s]?commercial|no\s+commercial|free\s+trial|trial|demo/.test(text);
+};
+
+const resolveLibraryLocalPath = (localPublicPath: string): string => {
+  if (path.isAbsolute(localPublicPath)) {
+    return localPublicPath;
+  }
+  return path.join(repoRoot, "remotion-app", localPublicPath);
+};
+
+const libraryRecordToHeroRecord = (record: HydratedLibraryFontRecord): HeroFontRecord | null => {
+  const fontId = record.fontId?.trim() ?? "";
+  const family = record.familyName?.trim() ?? "";
+  const publicUrl = record.publicUrl?.trim() ?? "";
+  const localPublicPath = record.localPublicPath?.trim() ?? "";
+  const extension = path.extname(publicUrl || localPublicPath).toLowerCase();
+  const localFilePath = localPublicPath ? resolveLibraryLocalPath(localPublicPath) : "";
+
+  if (!fontId || !family || !publicUrl || !localFilePath) {
+    return null;
+  }
+  if (record.renderable !== true || record.needsManualLicenseReview || hasBlockedLicenseSignal(record)) {
+    return null;
+  }
+  if (!renderableExtensions.has(extension) || !existsSync(localFilePath)) {
+    return null;
+  }
+
+  return {
+    fontId,
+    family,
+    cssFamily: cssFamilyForLibraryFont(family),
+    publicUrl,
+    localFilePath,
+    profileAffinity: ["aggressive", "cinematic", "minimal"],
+    roleTags: ["hero", "support", "fallback", "hydrated", "display"],
+    readabilityScore: 0.82,
+    expressivenessScore: 0.82,
+    licenseStatus: "render_safe_hydrated_library",
+    reviewOnly: false,
+  };
+};
+
+const loadHydratedLibraryFonts = (manifestPath: string): HeroFontRecord[] => {
+  if (!existsSync(manifestPath)) {
+    return [];
+  }
+  const parsed = JSON.parse(readFileSync(manifestPath, "utf8")) as unknown;
+  if (!Array.isArray(parsed)) {
+    return [];
+  }
+  return parsed
+    .map((record) => libraryRecordToHeroRecord(record as HydratedLibraryFontRecord))
+    .filter((record): record is HeroFontRecord => record !== null)
+    .sort((left, right) => left.family.localeCompare(right.family) || left.fontId.localeCompare(right.fontId));
 };
 
 const toTypography = (record: HeroFontRecord): HeroFontSelection => ({
@@ -85,11 +178,14 @@ const scoreFont = (record: HeroFontRecord, profile: "aggressive" | "cinematic" |
   if (tags.has(role)) {
     score += 0.8;
   }
+  if (tags.has("hydrated")) {
+    score += 0.45;
+  }
   if (profile === "aggressive") {
-    score += record.expressivenessScore + (tags.has("bold") || tags.has("kinetic") || tags.has("condensed") ? 0.6 : 0);
+    score += record.expressivenessScore + (tags.has("bold") || tags.has("kinetic") || tags.has("condensed") || tags.has("display") ? 0.6 : 0);
   }
   if (profile === "cinematic") {
-    score += record.readabilityScore * 0.45 + (tags.has("editorial") || tags.has("premium") || tags.has("restrained") ? 0.7 : 0);
+    score += record.readabilityScore * 0.45 + (tags.has("editorial") || tags.has("premium") || tags.has("restrained") || tags.has("display") ? 0.7 : 0);
   }
   if (profile === "minimal") {
     score += record.readabilityScore * 1.1 + (tags.has("neutral") || tags.has("clean") || tags.has("readable") ? 0.7 : 0);
@@ -122,20 +218,27 @@ export const selectHeroFonts = (
   context: SelectHeroFontsContext,
   seed: number,
 ): SelectHeroFontsResult => {
-  const manifestPath = context.heroManifestPath ?? defaultHeroManifestPath;
-  const records = loadHeroFonts(manifestPath).filter((record) => !record.reviewOnly);
+  const heroManifestPath = context.heroManifestPath ?? defaultHeroManifestPath;
+  const libraryManifestPath = context.libraryManifestPath ?? defaultLibraryManifestPath;
+  const heroRecords = loadHeroFonts(heroManifestPath).filter((record) => !record.reviewOnly);
+  const hydratedRecords = context.preferHydratedLibrary ? loadHydratedLibraryFonts(libraryManifestPath) : [];
+  const records = hydratedRecords.length > 0 ? [...hydratedRecords, ...heroRecords] : heroRecords;
   if (records.length === 0) {
-    throw new Error(`FontRuntimeResolver: no render-safe hero fonts found in ${manifestPath}`);
+    throw new Error(`FontRuntimeResolver: no render-safe fonts found in ${heroManifestPath} or ${libraryManifestPath}`);
   }
 
   const profile = normalizeProfile(context.profile);
   const fallbackRecord = [...records]
     .sort((left, right) => right.readabilityScore - left.readabilityScore || left.fontId.localeCompare(right.fontId))[0];
   if (!fallbackRecord) {
-    throw new Error(`FontRuntimeResolver: no readable fallback font found in ${manifestPath}`);
+    throw new Error(`FontRuntimeResolver: no readable fallback font found in ${heroManifestPath} or ${libraryManifestPath}`);
   }
 
   const warnings: string[] = [];
+  if (context.preferHydratedLibrary && hydratedRecords.length === 0) {
+    warnings.push(`Hydrated font library unavailable or empty at ${libraryManifestPath}; using hero MVP fonts.`);
+  }
+
   const ensureRenderable = (record: HeroFontRecord, role: "hero" | "support" | "fallback"): HeroFontRecord => {
     if (existsSync(record.localFilePath)) {
       return record;

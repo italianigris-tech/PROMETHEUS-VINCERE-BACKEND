@@ -7,7 +7,6 @@ Thumbs.db
 .env.*
 !.env.example
 !.env.*.example
-!CONSOLIATED.env
 !.env.*.consolidated    
 
 # Dependencies
@@ -25,6 +24,7 @@ out-runtime/
 **/.cache/
 .logs/
 test-results/
+artifacts/full-render/
 tmp/
 tmp-live/
 tmp-sound-debug/
@@ -74,13 +74,13 @@ TEXT SVG ANIMATIONS/
 TRANSITION/
 FONTS/
 !remotion-app/public/fonts/
-!remotion-app/public/fonts/library/
-!remotion-app/public/fonts/library/**
+remotion-app/public/fonts/library/
 font-intelligence/extracted-fonts/
 font-intelligence/raw-zips/
 font-intelligence/specimens/
 font-intelligence/outputs/font-embeddings.jsonl
 font-intelligence/outputs/font-manifest.json
+font-intelligence/outputs/font-manifest-remapped.json
 font-intelligence/outputs/font-descriptors.jsonl
 
 # Local consolidated deployment env

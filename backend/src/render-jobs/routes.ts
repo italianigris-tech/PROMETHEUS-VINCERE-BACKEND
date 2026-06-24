@@ -52,7 +52,7 @@ type BaseRenderJob = {
   updated_at: string;
 };
 
-type JosephRenderJob = BaseRenderJob & {
+export type JosephRenderJob = BaseRenderJob & {
   kind: "joseph";
   manifest: UnifiedRenderManifest;
 };
@@ -63,6 +63,12 @@ type LegacyRenderJob = BaseRenderJob & {
 };
 
 type RenderJob = JosephRenderJob | LegacyRenderJob;
+
+export type CreateJosephRenderJobInput = {
+  manifest: UnifiedRenderManifest;
+  variationKey?: string;
+  evidencePath?: string;
+};
 
 type ZodIssueLike = {
   path: Array<string | number | symbol>;
@@ -152,6 +158,32 @@ const writeFailureEvidence = async (job: RenderJob): Promise<void> => {
   }, null, 2)}\n`, "utf8");
 };
 
+export const enqueueJosephRenderJob = async ({
+  manifest,
+  variationKey,
+  evidencePath,
+}: CreateJosephRenderJobInput): Promise<JosephRenderJob> => {
+  const stamp = nowIso();
+  const job: JosephRenderJob = {
+    id: manifest.jobId,
+    kind: "joseph",
+    status: "queued",
+    manifest,
+    variation_key: variationKey ?? `variation:${manifest.jobId}`,
+    evidence_path: evidencePath ?? defaultEvidencePath(manifest.jobId),
+    failure_tags: [],
+    lease_expires_at: null,
+    created_at: stamp,
+    updated_at: stamp,
+  };
+
+  await jobsLock.runExclusive(() => {
+    jobs.set(job.id, job);
+  });
+
+  return job;
+};
+
 const leaseJob = (kind: RenderJobKind): RenderJob | null => {
   const queued = Array.from(jobs.values()).find((candidate) => (
     candidate.kind === kind &&
@@ -232,23 +264,11 @@ export const registerRenderJobRoutes = async (app: FastifyInstance): Promise<voi
       return {error: invalidUnifiedManifestError(manifestResult.error)};
     }
 
-    const stamp = nowIso();
     const manifest = manifestResult.data;
-    const job: JosephRenderJob = {
-      id: manifest.jobId,
-      kind: "joseph",
-      status: "queued",
+    const job = await enqueueJosephRenderJob({
       manifest,
-      variation_key: request.data.variationKey ?? `variation:${manifest.jobId}`,
-      evidence_path: request.data.evidencePath ?? defaultEvidencePath(manifest.jobId),
-      failure_tags: [],
-      lease_expires_at: null,
-      created_at: stamp,
-      updated_at: stamp,
-    };
-
-    await jobsLock.runExclusive(() => {
-      jobs.set(job.id, job);
+      variationKey: request.data.variationKey,
+      evidencePath: request.data.evidencePath,
     });
 
     reply.code(202);

@@ -29,12 +29,13 @@ describe("strict hardcoded sandbox", () => {
     expect(bootstrap).toContain("import(\"./Sandbox\")");
   });
 
-  it("always waits for the preview font preload bootstrap before mounting any route", () => {
+  it("keeps sandbox and preview app behind the preview font preload bootstrap", () => {
     const bootstrap = readFileSync(path.resolve("src/web-preview/main.tsx"), "utf8");
 
     expect(bootstrap).not.toMatch(/import\s+\{preloadFontSystem\}\s+from\s+"\.\/font-preload-bootstrap"/);
     expect(bootstrap).toContain("import(\"./font-preload-bootstrap\")");
     expect(bootstrap).toContain("preloadFontSystem()");
+    expect(bootstrap).toContain("shouldPreloadWebPreviewFonts(route)");
     expect(bootstrap).not.toMatch(/if\s*\(\s*route\s*===\s*"sandbox"\s*\)/);
     expect(bootstrap.indexOf("preloadFontSystem()")).toBeLessThan(bootstrap.indexOf("renderRootApp(route)"));
   });

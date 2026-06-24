@@ -1,6 +1,8 @@
+import path from "node:path";
 import {resolveRetrievedFontsDir} from "../config/font-assets";
 import type {BackendEnv} from "../config";
 import type {MetadataProfile, NormalizedJobRequest} from "../schemas";
+import {selectHeroFonts, type HeroFontSelection} from "../font/font-runtime-resolver";
 import {
   resolveLocalFontPairByVibe,
   type ResolvedFontCandidate
@@ -311,39 +313,63 @@ const resolveLocalPlan = async ({
   });
 };
 
-const buildSystemPlan = (query: string, fallbackReasons: string[], warnings: string[]): TypographyDeliveryPlan =>
-  buildPlan({
-    primary: {
-      assetId: null,
-      family: "DM Sans",
-      browserUrl: null,
-      fileName: null,
-      format: null,
-      source: "system",
-      retrievalSource: "system",
-      role: "headline",
-      score: null,
-      confidence: null,
-      sources: []
-    },
-    secondary: {
-      assetId: null,
-      family: "DM Sans",
-      browserUrl: null,
-      fileName: null,
-      format: null,
-      source: "system",
-      retrievalSource: "system",
-      role: "support",
-      score: null,
-      confidence: null,
-      sources: []
-    },
+const inferMaterializedFormat = (assetUrl: string | null): MaterializedRetrievedFontAsset["format"] | null => {
+  const extension = assetUrl ? assetUrl.toLowerCase().match(/\.(ttf|otf|woff|woff2)$/)?.[1] : null;
+  return extension ? extension as MaterializedRetrievedFontAsset["format"] : null;
+};
+
+const seedFromRequest = (request: NormalizedJobRequest): number => {
+  return [...request.job_id].reduce((hash, char) => ((hash * 31) + char.charCodeAt(0)) >>> 0, 2166136261);
+};
+
+const toDeliveredHeroFont = (
+  font: HeroFontSelection,
+  role: DeliveredTypographyFont["role"]
+): DeliveredTypographyFont => ({
+  assetId: font.fontId,
+  family: font.fontFamily,
+  browserUrl: font.fontAssetUrl,
+  fileName: font.fontAssetUrl ? path.basename(font.fontAssetUrl) : null,
+  format: inferMaterializedFormat(font.fontAssetUrl),
+  source: "fallback",
+  retrievalSource: "system",
+  role,
+  score: null,
+  confidence: null,
+  sources: font.fontAssetUrl && inferMaterializedFormat(font.fontAssetUrl)
+    ? [{
+        fileName: path.basename(font.fontAssetUrl),
+        browserUrl: font.fontAssetUrl,
+        format: inferMaterializedFormat(font.fontAssetUrl)!
+      }]
+    : []
+});
+
+const buildSystemPlan = ({
+  query,
+  fallbackReasons,
+  warnings,
+  request
+}: {
+  query: string;
+  fallbackReasons: string[];
+  warnings: string[];
+  request: NormalizedJobRequest;
+}): TypographyDeliveryPlan => {
+  const selection = selectHeroFonts({
+    profile: "joseph_aggressive",
+    preferHydratedLibrary: true
+  }, seedFromRequest(request));
+
+  return buildPlan({
+    primary: toDeliveredHeroFont(selection.hero, "headline"),
+    secondary: toDeliveredHeroFont(selection.support, "support"),
     query,
     source: "system",
-    fallbackReasons,
+    fallbackReasons: [...fallbackReasons, ...selection.warnings],
     warnings
   });
+};
 
 export const resolveTypographyDeliveryPlan = async ({
   request,
@@ -393,5 +419,5 @@ export const resolveTypographyDeliveryPlan = async ({
   if (fallbackReasons.length === 0) {
     fallbackReasons.push("No Zilliz resolver or local ingested font candidate was available.");
   }
-  return buildSystemPlan(query, fallbackReasons, warnings);
+  return buildSystemPlan({query, fallbackReasons, warnings, request});
 };

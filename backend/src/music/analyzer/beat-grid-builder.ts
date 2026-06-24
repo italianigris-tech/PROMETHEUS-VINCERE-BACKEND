@@ -13,7 +13,7 @@ const roundToMillis = (value: number): number => {
 
 export const buildBeatGrid = (input: BuildBeatGridInput): BeatGrid => {
   const durationSec = Math.max(input.durationSec, 1);
-  const bpm = input.bpm && input.bpm > 0 ? input.bpm : 120;
+  const bpm = input.bpm && input.bpm > 0 ? input.bpm : 128;
   const beatIntervalSec = 60 / bpm;
   const beatTimesSec: number[] = [];
   const downbeatTimesSec: number[] = [];
@@ -32,6 +32,6 @@ export const buildBeatGrid = (input: BuildBeatGridInput): BeatGrid => {
     beatTimesSec,
     downbeatTimesSec,
     confidence: input.confidence ?? 0.25,
-    source: input.source ?? "phase1_placeholder"
+    source: input.source ?? "ffmpeg_fallback"
   });
 };

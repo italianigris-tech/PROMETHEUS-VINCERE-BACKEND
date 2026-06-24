@@ -33,7 +33,7 @@ export const planTransition = (input: PlanTransitionInput): TransitionEvent => {
     beatAligned: input.beatAligned ?? Boolean(input.downbeatTargetSec),
     downbeatTargetSec: input.downbeatTargetSec ?? null,
     settings: {
-      source: "phase1_placeholder"
+      source: "deterministic_transition_planner"
     }
   });
 };

@@ -37,6 +37,32 @@ describe("zilliz font materializer", () => {
       await rm(tempRoot, {recursive: true, force: true});
     }
   });
+  it("accepts otf and woff2 assets from a zip archive", async () => {
+    const tempRoot = await mkdtemp(path.join(os.tmpdir(), "zilliz-font-materializer-modern-"));
+    try {
+      const zip = new AdmZip();
+      zip.addFile("Ageya-Regular.otf", Buffer.from("otf-font"));
+      zip.addFile("Ageya-Regular.woff2", Buffer.from("woff2-font"));
+      const zipBuffer = zip.toBuffer();
+
+      const {materializeRetrievedFontAsset} = await import("../zilliz-font-materializer");
+      const results = await materializeRetrievedFontAsset({
+        family: "ageya",
+        sourceUrl: "https://r2.example.com/ageya-font.zip",
+        targetRootDir: tempRoot,
+        fetchImpl: async () => ({
+          ok: true,
+          arrayBuffer: async () => zipBuffer.buffer.slice(zipBuffer.byteOffset, zipBuffer.byteOffset + zipBuffer.byteLength)
+        } as Response)
+      });
+
+      expect(results.map((result) => result.format).sort()).toEqual(["otf", "woff2"]);
+      await expect(stat(path.join(tempRoot, "ageya", "Ageya-Regular.otf"))).resolves.toBeDefined();
+      await expect(stat(path.join(tempRoot, "ageya", "Ageya-Regular.woff2"))).resolves.toBeDefined();
+    } finally {
+      await rm(tempRoot, {recursive: true, force: true});
+    }
+  });
 
   it("writes a raw font file directly without zip extraction", async () => {
     const tempRoot = await mkdtemp(path.join(os.tmpdir(), "zilliz-font-materializer-raw-"));

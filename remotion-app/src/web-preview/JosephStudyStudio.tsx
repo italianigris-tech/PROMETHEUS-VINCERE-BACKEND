@@ -1,0 +1,368 @@
+import React, {useMemo, useState} from "react";
+import {Player} from "@remotion/player";
+import type {UnifiedRenderManifest} from "@prometheus/shared-types";
+
+import {buildJosephStudyOverlaySections} from "./joseph-study-overlays";
+import {
+  JOSEPH_STUDY_FAILURE_TAGS,
+  captureJosephStudyReview,
+  loadJosephStudyReviewLedger,
+  toggleJosephStudyFailureTag,
+  type JosephStudyFailureTag,
+  type JosephStudyReviewRecord,
+  type JosephStudyReviewStorage
+} from "./joseph-study-review-ledger";
+import {DEFAULT_JOSEPH_MANIFEST, JOSEPH_RENDER_FPS, JOSEPH_RENDER_HEIGHT, JOSEPH_RENDER_WIDTH} from "../compositions/joseph-default-manifest";
+import {JosephEdit} from "../compositions/JosephEdit";
+
+type JosephStudyPlayerConfig = {
+  durationInFrames: number;
+  fps: number;
+  compositionWidth: number;
+  compositionHeight: number;
+  inputProps: {
+    manifest: UnifiedRenderManifest;
+  };
+};
+
+type JosephStudyComparisonLane = {
+  id: string;
+  label: string;
+  manifestUrl: string;
+  manifest: UnifiedRenderManifest;
+};
+
+type JosephStudyComparisonState = {
+  mode: "comparison";
+  status: "ready" | "error";
+  manifestUrls: string[];
+  lanes: JosephStudyComparisonLane[];
+};
+
+type JosephStudyFixtureState = {
+  mode: "fixture";
+  status: "ready" | "error";
+  manifest?: UnifiedRenderManifest;
+};
+
+type JosephStudyCandidateState = {
+  mode: "candidate";
+  status: "ready" | "error";
+  manifestUrl: string;
+  errorMessage?: string;
+};
+
+type JosephStudyStudioState = JosephStudyComparisonState | JosephStudyFixtureState | JosephStudyCandidateState;
+
+type JosephStudyStudioViewProps = {
+  state: JosephStudyStudioState;
+  diagnosticsVisible?: boolean;
+  onToggleDiagnostics?: () => void;
+};
+
+type JosephStudyReviewPanelProps = {
+  lanes: JosephStudyComparisonLane[];
+};
+
+const getReviewStorage = (): JosephStudyReviewStorage | null => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+};
+
+export const toggleJosephStudyDiagnostics = (visible: boolean): boolean => !visible;
+
+export const parseJosephStudyCandidateManifest = (manifest: UnifiedRenderManifest): UnifiedRenderManifest => {
+  const requiredWidth = manifest.output?.width ?? manifest.width;
+  const requiredHeight = manifest.output?.height ?? manifest.height;
+
+  if (requiredWidth !== JOSEPH_RENDER_WIDTH) {
+    throw new Error(`Invalid Joseph candidate manifest: output.width must be ${JOSEPH_RENDER_WIDTH}.`);
+  }
+
+  if (requiredHeight !== JOSEPH_RENDER_HEIGHT) {
+    throw new Error(`Invalid Joseph candidate manifest: output.height must be ${JOSEPH_RENDER_HEIGHT}.`);
+  }
+
+  return manifest;
+};
+
+export const resolveJosephStudyInitialSource = (search: string): {
+  mode: "fixture" | "candidate";
+  manifestUrl?: string;
+  rejectedManifestUrl?: string;
+  rejectionReason?: string;
+} => {
+  const params = new URLSearchParams(search);
+  const manifestUrl = params.get("manifest")?.trim() ?? "";
+
+  if (!manifestUrl) {
+    return {mode: "fixture"};
+  }
+
+  if (/^(file|https?):/i.test(manifestUrl)) {
+    return {
+      mode: "fixture",
+      rejectedManifestUrl: manifestUrl,
+      rejectionReason: "Manifest URL must be browser-safe."
+    };
+  }
+
+  return {
+    mode: "candidate",
+    manifestUrl
+  };
+};
+
+export const buildJosephStudyPlayerConfig = (manifest: UnifiedRenderManifest = DEFAULT_JOSEPH_MANIFEST): JosephStudyPlayerConfig => {
+  const resolvedManifest = parseJosephStudyCandidateManifest(manifest);
+  return {
+    durationInFrames: resolvedManifest.durationFrames,
+    fps: resolvedManifest.fps ?? JOSEPH_RENDER_FPS,
+    compositionWidth: resolvedManifest.output?.width ?? JOSEPH_RENDER_WIDTH,
+    compositionHeight: resolvedManifest.output?.height ?? JOSEPH_RENDER_HEIGHT,
+    inputProps: {
+      manifest: resolvedManifest
+    }
+  };
+};
+
+export const syncJosephStudyPlayers = (
+  lanes: Array<{id: string; player: {play: () => void; pause: () => void; seekTo: (frame: number) => void}; durationInFrames: number}>,
+  command: {type: "play"} | {type: "pause"} | {type: "seek"; frame: number}
+): Array<{id: string; frame: number}> => {
+  if (command.type === "play") {
+    lanes.forEach((lane) => lane.player.play());
+    return [];
+  }
+
+  if (command.type === "pause") {
+    lanes.forEach((lane) => lane.player.pause());
+    return [];
+  }
+
+  return lanes.map((lane) => {
+    const frame = Math.max(0, Math.min(command.frame, lane.durationInFrames - 1));
+    lane.player.seekTo(frame);
+    return {id: lane.id, frame};
+  });
+};
+
+const buildComparisonOverlaySections = (manifest: UnifiedRenderManifest) => buildJosephStudyOverlaySections(manifest);
+
+const candidateLabelFromLane = (lane: JosephStudyComparisonLane): string => `${lane.label} (${lane.manifest.jobId})`;
+
+const JosephStudyReviewPanel: React.FC<JosephStudyReviewPanelProps> = ({lanes}) => {
+  const [activeCandidateId, setActiveCandidateId] = useState(() => lanes[0]?.id ?? "");
+  const [failureTags, setFailureTags] = useState<JosephStudyFailureTag[]>([]);
+  const [ledger, setLedger] = useState<JosephStudyReviewRecord[]>(() => loadJosephStudyReviewLedger(getReviewStorage()));
+
+  const activeCandidate = lanes.find((lane) => lane.id === activeCandidateId) ?? lanes[0] ?? null;
+
+  const captureReview = (verdict: "preferred" | "failed"): void => {
+    if (!activeCandidate) {
+      return;
+    }
+
+    const nextLedger = captureJosephStudyReview(getReviewStorage(), {
+      candidateId: activeCandidate.id,
+      candidateLabel: candidateLabelFromLane(activeCandidate),
+      verdict,
+      failureTags: verdict === "failed" ? failureTags : []
+    });
+
+    setLedger(nextLedger);
+  };
+
+  return (
+    <section aria-label="Candidate review capture" data-joseph-study-review-ledger="true" className="joseph-study-review-panel">
+      <h2>Review Capture</h2>
+      <div className="joseph-study-review-candidate-switcher">
+        {lanes.map((lane) => (
+          <button
+            key={lane.id}
+            type="button"
+            aria-pressed={lane.id === activeCandidate?.id}
+            onClick={() => setActiveCandidateId(lane.id)}
+          >
+            {lane.label}
+          </button>
+        ))}
+      </div>
+      <div className="joseph-study-review-controls">
+        <button type="button" onClick={() => captureReview("preferred")} disabled={!activeCandidate}>Mark preferred</button>
+        <button type="button" onClick={() => captureReview("failed")} disabled={!activeCandidate}>Mark failed</button>
+      </div>
+      <div className="joseph-study-review-tags">
+        {JOSEPH_STUDY_FAILURE_TAGS.map((tag) => {
+          const checked = failureTags.includes(tag.id);
+          return (
+            <label key={tag.id}>
+              <input
+                type="checkbox"
+                checked={checked}
+                onChange={() => setFailureTags((current) => toggleJosephStudyFailureTag(current, tag.id))}
+              />
+              <span>{tag.label}</span>
+            </label>
+          );
+        })}
+      </div>
+      <p>Selected tags: {failureTags.length > 0 ? failureTags.join(", ") : "None"}</p>
+      <div className="joseph-study-review-ledger">
+        {ledger.length > 0 ? ledger.map((entry) => (
+          <article key={`${entry.candidateId}-${entry.capturedAt}`}>
+            <strong>{entry.candidateLabel}</strong>
+            <span>{entry.verdict}</span>
+            <small>{entry.failureTags.length > 0 ? entry.failureTags.join(", ") : "No failure tags"}</small>
+          </article>
+        )) : <p>No reviews captured yet.</p>}
+      </div>
+    </section>
+  );
+};
+
+export const JosephStudyStudioView: React.FC<JosephStudyStudioViewProps> = ({
+  state,
+  diagnosticsVisible = false,
+  onToggleDiagnostics
+}) => {
+  const manifest = state.mode === "comparison"
+    ? state.lanes[0]?.manifest ?? DEFAULT_JOSEPH_MANIFEST
+    : state.mode === "candidate"
+      ? DEFAULT_JOSEPH_MANIFEST
+      : state.manifest ?? DEFAULT_JOSEPH_MANIFEST;
+  const diagnosticsSections = diagnosticsVisible ? buildComparisonOverlaySections(manifest) : [];
+
+  if (state.mode === "candidate" && state.status === "error") {
+    return (
+      <div data-joseph-study-route="true" data-joseph-study-mode={state.mode}>
+        <header className="joseph-study-header">
+          <h1>Joseph Study Studio</h1>
+          <button
+            type="button"
+            aria-pressed={diagnosticsVisible}
+            onClick={() => onToggleDiagnostics?.()}
+          >
+            {diagnosticsVisible ? "Diagnostics off" : "Diagnostics on"}
+          </button>
+        </header>
+        <div role="alert" className="joseph-study-error">
+          <strong>Candidate manifest failed</strong>
+          <span>{state.errorMessage ?? "Invalid Joseph candidate manifest."}</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div data-joseph-study-route="true" data-joseph-study-mode={state.mode}>
+      <header className="joseph-study-header">
+        <h1>Joseph Study Studio</h1>
+        <button
+          type="button"
+          aria-pressed={diagnosticsVisible}
+          onClick={() => onToggleDiagnostics?.()}
+        >
+          {diagnosticsVisible ? "Diagnostics off" : "Diagnostics on"}
+        </button>
+      </header>
+
+      {state.mode === "comparison" ? (
+        <section data-joseph-comparison-lanes={state.lanes.length} className="joseph-study-comparison">
+          {state.lanes.map((lane) => (
+            <article key={lane.id} className="joseph-study-comparison-lane">
+              <header>
+                <strong>{lane.label}</strong>
+                <span>{lane.manifest.jobId}</span>
+              </header>
+              <div className="joseph-study-comparison-player">
+                <Player
+                  component={JosephEdit}
+                  durationInFrames={buildJosephStudyPlayerConfig(lane.manifest).durationInFrames}
+                  fps={lane.manifest.fps}
+                  compositionWidth={lane.manifest.output?.width ?? JOSEPH_RENDER_WIDTH}
+                  compositionHeight={lane.manifest.output?.height ?? JOSEPH_RENDER_HEIGHT}
+                  inputProps={{manifest: lane.manifest}}
+                  controls
+                  clickToPlay
+                />
+              </div>
+            </article>
+          ))}
+        </section>
+      ) : (
+        <section className="joseph-study-stage">
+          <Player
+            component={JosephEdit}
+            durationInFrames={buildJosephStudyPlayerConfig(manifest).durationInFrames}
+            fps={manifest.fps}
+            compositionWidth={manifest.output?.width ?? JOSEPH_RENDER_WIDTH}
+            compositionHeight={manifest.output?.height ?? JOSEPH_RENDER_HEIGHT}
+            inputProps={{manifest}}
+            controls
+            clickToPlay
+          />
+        </section>
+      )}
+
+      {state.mode === "comparison" && state.lanes.length > 0 ? (
+        <JosephStudyReviewPanel lanes={state.lanes} />
+      ) : null}
+
+      {diagnosticsVisible ? (
+        <section data-joseph-study-overlays="true" aria-label="Diagnostic overlays">
+          {diagnosticsSections.map((section) => (
+            <article key={section.id}>
+              <h2>{section.title}</h2>
+              <ul>
+                {section.entries.map((entry) => (
+                  <li key={`${section.id}-${entry.label}-${entry.range}`}>
+                    <strong>{entry.label}</strong> <span>{entry.range}</span>
+                  </li>
+                ))}
+              </ul>
+            </article>
+          ))}
+        </section>
+      ) : null}
+    </div>
+  );
+};
+
+export const JosephStudyStudio: React.FC = () => {
+  const [diagnosticsVisible, setDiagnosticsVisible] = useState(false);
+  const initialSource = useMemo(() => {
+    if (typeof window === "undefined") {
+      return {mode: "fixture"} as const;
+    }
+
+    return resolveJosephStudyInitialSource(window.location.search);
+  }, []);
+
+  const state: JosephStudyStudioState = initialSource.mode === "candidate"
+    ? {
+        mode: "candidate",
+        status: "ready",
+        manifestUrl: initialSource.manifestUrl ?? "/joseph-study/candidate-manifest.json"
+      }
+    : {
+        mode: "fixture",
+        status: "ready",
+        manifest: DEFAULT_JOSEPH_MANIFEST
+      };
+
+  return (
+    <JosephStudyStudioView
+      state={state}
+      diagnosticsVisible={diagnosticsVisible}
+      onToggleDiagnostics={() => setDiagnosticsVisible((visible) => toggleJosephStudyDiagnostics(visible))}
+    />
+  );
+};

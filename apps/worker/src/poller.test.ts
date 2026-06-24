@@ -1,10 +1,15 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 
 import {pollOnce} from "./poller.js";
-import {renderFromManifest} from "./index.js";
+import {renderFailureTagsForError, renderFromManifest} from "./index.js";
 
 vi.mock("./index.js", () => ({
   renderFromManifest: vi.fn(),
+  renderFailureTagsForError: vi.fn((error: unknown) =>
+    error instanceof Error && error.message.includes("missing_sfx_asset")
+      ? ["missing_sfx_asset"]
+      : ["render_failed"]
+  ),
 }));
 
 const validManifest = {
@@ -62,6 +67,11 @@ describe("pollOnce", () => {
     vi.resetAllMocks();
     vi.stubGlobal("fetch", fetchMock);
     vi.mocked(renderFromManifest).mockResolvedValue("C:/tmp/final.mp4");
+    vi.mocked(renderFailureTagsForError).mockImplementation((error: unknown) =>
+      error instanceof Error && error.message.includes("missing_sfx_asset")
+        ? ["missing_sfx_asset"]
+        : ["render_failed"]
+    );
   });
 
   afterEach(() => {
@@ -123,5 +133,36 @@ describe("pollOnce", () => {
     fetchMock.mockResolvedValueOnce(new Response(null, {status: 204}));
 
     await expect(pollOnce({apiBase: "http://backend.test"})).resolves.toBe("idle");
+  });
+
+  it("marks missing SFX render failures with a specific terminal failure tag", async () => {
+    vi.mocked(renderFromManifest).mockRejectedValueOnce(new Error("missing_sfx_asset: whoosh_fast_3.mp3"));
+    fetchMock
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        ...validManifest,
+        jobId: "123e4567-e89b-12d3-a456-426614174202",
+      }), {
+        status: 200,
+        headers: {"Content-Type": "application/json"},
+      }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({status: "failed"}), {
+        status: 200,
+        headers: {"Content-Type": "application/json"},
+      }));
+
+    const result = await pollOnce({apiBase: "http://backend.test"});
+
+    expect(result).toBe("failed");
+    expect(renderFailureTagsForError).toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      "http://backend.test/api/v1/render/jobs/123e4567-e89b-12d3-a456-426614174202/failed",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          errorMessage: "missing_sfx_asset: whoosh_fast_3.mp3",
+          failureTags: ["missing_sfx_asset"],
+        }),
+      }),
+    );
   });
 });

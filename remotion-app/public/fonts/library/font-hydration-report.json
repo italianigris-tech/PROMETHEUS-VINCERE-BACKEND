@@ -1,38 +1,12 @@
 {
-  "generatedAt": "2026-05-07T06:14:57.844Z",
-  "totalMetadataRecordsRead": 577,
-  "sourceFilesFoundInFontsDir": 319,
-  "sourceZipCount": 319,
-  "sourceDirectFontFileCount": 0,
-  "matchedMetadataRecords": 577,
-  "fontsHydrated": 20,
-  "renderableManifestEntries": 20,
-  "skippedForLicenseReview": 342,
-  "missing": 0,
-  "notSelectedDueToLimit": 215,
-  "includeLicenseReview": false,
-  "limit": 20,
-  "ghostFontsSummary": {
-    "unmatchedRecordCount": 0,
-    "sampleFontIds": [],
-    "sampleFamilies": []
-  },
-  "matchedBy": {
-    "hash": 20,
-    "relative-path": 0,
-    "zip-entry": 0,
-    "filename": 0,
-    "unknown": 0
-  },
-  "hydratedFormats": {
-    "woff2": 11,
-    "woff": 4,
-    "ttf": 5
-  },
-  "warnings": [],
-  "outputPaths": {
-    "libraryDir": "public/fonts/library",
-    "manifestPath": "public/fonts/library/font-manifest-urls.json",
-    "reportPath": "public/fonts/library/font-hydration-report.json"
-  }
+  "sourceRoot": "font-intelligence/extracted-fonts",
+  "targetRoot": "remotion-app/public/fonts/library",
+  "totalSourceFonts": 577,
+  "hydratedCount": 0,
+  "skippedCount": 577,
+  "errorCount": 0,
+  "totalBytes": 43933990,
+  "hydratedBytes": 0,
+  "skippedBytes": 43933990,
+  "errors": []
 }

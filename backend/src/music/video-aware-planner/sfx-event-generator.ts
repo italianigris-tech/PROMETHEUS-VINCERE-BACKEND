@@ -51,7 +51,7 @@ const buildEventFromCaptionSync = ({
   return sfxEventSchema.parse({
     id: event.id,
     type: event.suggestedSfxType,
-    assetId: `placeholder-${event.suggestedSfxType}`,
+    assetId: event.suggestedSfxType,
     videoStartSec: Number(event.videoTimeSec.toFixed(3)),
     videoEndSec: Number((event.videoTimeSec + 0.35).toFixed(3)),
     intensity: event.intensity,
@@ -108,7 +108,7 @@ export const generateSfxEvents = (input: GenerateSfxEventsInput): SfxEvent[] => 
           sfxEventSchema.parse({
             id: `sfx-word-${token}-${word.start_ms}`,
             type: mappedEvent.type,
-            assetId: `placeholder-${mappedEvent.type}`,
+            assetId: mappedEvent.type,
             videoStartSec: Number(videoTimeSec.toFixed(3)),
             videoEndSec: Number((videoTimeSec + mappedEvent.durationSec).toFixed(3)),
             intensity: mappedEvent.intensity,
@@ -129,7 +129,7 @@ export const generateSfxEvents = (input: GenerateSfxEventsInput): SfxEvent[] => 
           sfxEventSchema.parse({
             id: `sfx-word-riser-${token}-${word.start_ms}`,
             type: "tension_riser",
-            assetId: "placeholder-tension_riser",
+            assetId: "tension_riser",
             videoStartSec: riserStartSec,
             videoEndSec: Number((riserStartSec + 0.65).toFixed(3)),
             intensity: 0.42,
@@ -144,7 +144,7 @@ export const generateSfxEvents = (input: GenerateSfxEventsInput): SfxEvent[] => 
           sfxEventSchema.parse({
             id: `sfx-word-impact-${token}-${word.start_ms}`,
             type: "cinematic_impact",
-            assetId: "placeholder-cinematic_impact",
+            assetId: "cinematic_impact",
             videoStartSec: Number((riserStartSec + 0.18).toFixed(3)),
             videoEndSec: Number((riserStartSec + 0.58).toFixed(3)),
             intensity: 0.48,
@@ -167,11 +167,11 @@ export const generateSfxEvents = (input: GenerateSfxEventsInput): SfxEvent[] => 
       return sfxEventSchema.parse({
         id: `sfx-${segment.id}`,
         type,
-        assetId: `placeholder-${type}`,
+        assetId: type,
         videoStartSec: segment.startSec,
         videoEndSec: Number(Math.min(segment.endSec, segment.startSec + 0.5).toFixed(3)),
         intensity: Math.max(segment.tension, 0.35),
-        reason: `Phase 1 placeholder event for ${segment.role}.`,
+        reason: `Deterministic fallback event for ${segment.role}.`,
         triggerText: segment.text,
         mixRole,
         volumeDb: -16,

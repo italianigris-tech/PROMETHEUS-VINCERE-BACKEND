@@ -9,10 +9,10 @@ export type MaterializedRetrievedFontAsset = {
   fileName: string;
   filePath: string;
   browserUrl: string;
-  format: "ttf" | "woff";
+  format: "ttf" | "otf" | "woff" | "woff2";
 };
 
-const fontFilePattern = /\.(woff|ttf)$/i;
+const fontFilePattern = /\.(ttf|otf|woff|woff2)$/i;
 
 const normalizePosixPath = (value: string): string => value.replace(/\\/g, "/");
 
@@ -22,9 +22,9 @@ export const sanitizeFontPathSegment = (value: string): string => {
 };
 
 const inferFontFormat = (fileName: string): MaterializedRetrievedFontAsset["format"] => {
-  const match = fileName.toLowerCase().match(/\.(ttf|woff)$/);
+  const match = fileName.toLowerCase().match(/\.(ttf|otf|woff|woff2)$/);
   if (!match) {
-    throw new Error(`Unsupported font format for worker: ${fileName}. Provide a static .ttf or .woff file.`);
+    throw new Error(`Unsupported font format for worker: ${fileName}. Provide a static .ttf, .otf, .woff, or .woff2 file.`);
   }
 
   return match[1] as MaterializedRetrievedFontAsset["format"];
@@ -126,16 +126,10 @@ export const materializeRetrievedFontAsset = async ({
 
   if (isZipArchive) {
     const zip = new AdmZip(buffer);
-    const unsupportedEntries = zip.getEntries().filter((entry) => !entry.isDirectory && /\.(woff2|otf)$/i.test(entry.entryName));
-    if (unsupportedEntries.length > 0) {
-      throw new Error(
-        `Retrieved ZIP ${sourceUrl} contains unsupported worker font formats. Provide static .ttf or .woff files.`
-      );
-    }
 
     const entries = zip.getEntries().filter((entry) => !entry.isDirectory && fontFilePattern.test(entry.entryName));
     if (entries.length === 0) {
-      throw new Error(`Retrieved ZIP ${sourceUrl} did not contain any worker-compatible .ttf or .woff font files.`);
+      throw new Error(`Retrieved ZIP ${sourceUrl} did not contain any worker-compatible .ttf, .otf, .woff, or .woff2 font files.`);
     }
 
     const materializedEntries = await Promise.all(entries.map(async (entry) => {

@@ -22,6 +22,7 @@ import {EditSessionStore} from "./edit-sessions/store";
 import {registerEditSessionRoutes} from "./edit-sessions/routes";
 import {createR2TransferService, type R2TransferService} from "./integrations/r2";
 import {registerUploadRoutes} from "./upload-routes";
+import {createJosephUploadPipeline, type JosephUploadPipeline} from "./upload/joseph-upload-pipeline";
 import {VideoContextService} from "./video-context/service";
 import {VideoContextStore} from "./video-context/store";
 import {registerVideoContextRoutes} from "./video-context/routes";
@@ -71,6 +72,7 @@ export type BackendAppContext = {
 
 export type BackendDependencies = PipelineDependencies & EditSessionDependencies & {
   r2Service?: R2TransferService;
+  josephUploadPipeline?: JosephUploadPipeline;
   extractAudioPreviewFile?: LocalPreviewRunnerDependencies["extractAudioPreviewFile"];
   musicPreviewUrlSigner?: MusicPreviewUrlSigner;
   videoContext?: ConstructorParameters<typeof VideoContextService>[4];
@@ -265,6 +267,9 @@ export const createBackendApp = async ({
   const assetRetrieval = new AssetRetrievalService(env);
   const vectorRetrieval = env.ASSET_MILVUS_ENABLED ? new VectorRetrievalService(env) : undefined;
   const r2Service = deps?.r2Service ?? createR2TransferService(env);
+  const josephUploadPipeline = deps?.josephUploadPipeline ?? createJosephUploadPipeline({
+    storageDir: env.STORAGE_DIR
+  });
   const musicPreviewUrlSigner = deps?.musicPreviewUrlSigner ?? createSignedMusicPreviewUrl;
 
   app.get("/health", async () => ({
@@ -827,7 +832,8 @@ export const createBackendApp = async ({
     queue,
     editSessions,
     editSessionStore,
-    r2Service
+    r2Service,
+    josephUploadPipeline
   });
   await registerVideoContextRoutes(app, videoContexts);
   await registerRenderJobRoutes(app);

@@ -49,7 +49,7 @@ export const waveformSummarySchema = z.object({
   windowSec: z.number().positive().default(1),
   peakAmplitudes: z.array(z.number().min(0).max(1)).default([]),
   rmsAmplitudes: z.array(z.number().min(0).max(1)).default([]),
-  source: z.string().trim().min(1).default("phase1_placeholder")
+  source: z.string().trim().min(1).default("ffmpeg_fallback")
 });
 
 export type WaveformSummary = z.infer<typeof waveformSummarySchema>;

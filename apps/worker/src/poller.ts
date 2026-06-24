@@ -3,7 +3,7 @@ import {fileURLToPath} from "node:url";
 import path from "node:path";
 import type {z} from "zod";
 
-import {renderFromManifest} from "./index.js";
+import {renderFailureTagsForError, renderFromManifest} from "./index.js";
 
 const API_BASE = process.env.API_BASE_URL || "http://localhost:8000";
 const POLL_INTERVAL_MS = Number.parseInt(process.env.POLL_INTERVAL_MS || "5000", 10);
@@ -59,8 +59,8 @@ const buildSampleJosephManifest = (): UnifiedRenderManifest => UnifiedRenderMani
   createdAt: "2026-01-01T00:00:00.000Z",
   durationFrames: 90,
   fps: 30,
-  width: 1920,
-  height: 1080,
+  width: 1080,
+  height: 1920,
   videoTracks: [{sourcePath: SAMPLE_VIDEO_BROWSER_URL, startFrame: 0, endFrame: 89}],
   cameraMoves: [{type: "push_in", startFrame: 0, endFrame: 45}],
   textOverlays: [{text: "PROMETHEUS", startFrame: 8, endFrame: 42, animation: "pop", color: "#FF0040"}],
@@ -92,8 +92,8 @@ const buildSampleJosephManifest = (): UnifiedRenderManifest => UnifiedRenderMani
     colorIntensity: 0.5,
   },
   output: {
-    width: 1920,
-    height: 1080,
+    width: 1080,
+    height: 1920,
     fps: 30,
     codec: "h264",
     crf: 18,
@@ -153,7 +153,7 @@ export const pollOnce = async ({apiBase = API_BASE}: PollOnceOptions = {}): Prom
       apiBase,
       jobId: manifest.jobId,
       errorMessage: error instanceof Error ? error.message : String(error),
-      failureTags: ["render_failed"],
+      failureTags: renderFailureTagsForError(error),
     });
     return "failed";
   }

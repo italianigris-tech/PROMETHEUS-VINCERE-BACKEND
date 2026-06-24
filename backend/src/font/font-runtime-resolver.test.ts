@@ -141,4 +141,37 @@ describe("selectHeroFonts", () => {
     expect(selection.fallback.fontFamily).toContain("PrometheusHero");
     expect(selection.warnings).toEqual([]);
   });
+  it("can prefer hydrated renderable library fonts over the hero MVP set", () => {
+    const heroManifestPath = createHeroManifest();
+    const dir = mkdtempSync(path.join(tmpdir(), "prometheus-library-fonts-"));
+    const libraryFontPath = path.join(dir, "library-display.woff2");
+    writeFileSync(libraryFontPath, "font-bytes");
+    const libraryManifestPath = path.join(dir, "font-manifest-urls.json");
+    writeFileSync(libraryManifestPath, JSON.stringify([
+      {
+        fontId: "font-library-display",
+        familyName: "Library Display",
+        publicUrl: "/fonts/library/library-display/library-display.woff2",
+        localPublicPath: libraryFontPath,
+        format: "woff2",
+        renderable: true,
+        needsManualLicenseReview: false,
+        license: {
+          licenseTexts: ["SIL Open Font License"],
+        },
+      },
+    ]));
+
+    const selection = selectHeroFonts({
+      profile: "joseph_cinematic",
+      heroManifestPath,
+      libraryManifestPath,
+      preferHydratedLibrary: true,
+    }, 12345);
+
+    expect(selection.hero.fontId).toBe("font-library-display");
+    expect(selection.hero.fontAssetUrl).toBe("/fonts/library/library-display/library-display.woff2");
+    expect(selection.hero.fontFamily).toBe("PrometheusLibraryLibraryDisplay");
+    expect(selection.hero.localFilePath).toBe(libraryFontPath);
+  });
 });

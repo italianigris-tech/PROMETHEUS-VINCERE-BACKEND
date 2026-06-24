@@ -5,6 +5,7 @@ export class QueueBacklogLimitError extends Error {
   }
 }
 
+// TODO: InProcessQueue is volatile process memory; migrate production render/job queues to Redis/BullMQ before multi-worker or crash-resumable operation.
 export class InProcessQueue {
   private readonly concurrency: number;
   private readonly maxPending: number;

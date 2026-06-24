@@ -1,4 +1,4 @@
-﻿import {spawn} from 'child_process';
+import {spawn} from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import {UnifiedRenderManifest} from '@prometheus/shared-types';
@@ -11,13 +11,38 @@ export class AudioMixError extends Error {
 }
 
 export class SFXNotFoundError extends Error {
+  readonly failureTag = 'missing_sfx_asset';
+
   constructor(message: string) {
     super(message);
     this.name = 'SFXNotFoundError';
   }
 }
 
-const normalizeFileOrUrl = (value: string) => value.startsWith('file:///') ? value.replace('file:///', '') : value;
+export type MixAudioOptions = {
+  sfxDir: string;
+  tempDir?: string;
+  ffmpegBinary?: string;
+};
+
+const WINDOWS_ABSOLUTE_PATH = /^[a-zA-Z]:[\\/]/;
+const UNC_ABSOLUTE_PATH = /^\\\\[^\\]+\\[^\\]+/;
+const POSIX_ABSOLUTE_PATH = /^\//;
+
+const normalizeFilePath = (value: string) => value.startsWith('file:///') ? value.replace('file:///', '') : value;
+
+const isFfmpegSafeLocalPath = (value: string) => {
+  const normalized = normalizeFilePath(value.trim());
+  if (!normalized || /^https?:\/\//i.test(normalized)) {
+    return false;
+  }
+  if (process.platform === 'win32' && POSIX_ABSOLUTE_PATH.test(normalized) && !normalized.startsWith('//')) {
+    return false;
+  }
+  return WINDOWS_ABSOLUTE_PATH.test(normalized)
+    || UNC_ABSOLUTE_PATH.test(normalized)
+    || POSIX_ABSOLUTE_PATH.test(normalized);
+};
 
 const isReadableAudioAsset = (assetPath: string) => {
   if (!fs.existsSync(assetPath)) {
@@ -30,6 +55,28 @@ const isReadableAudioAsset = (assetPath: string) => {
     return false;
   }
 };
+
+const assertExistingAbsoluteDirectory = (directoryPath: string, label: string) => {
+  if (!directoryPath || !isFfmpegSafeLocalPath(directoryPath)) {
+    throw new AudioMixError(`${label} must be an explicit absolute local path.`);
+  }
+  if (!fs.existsSync(directoryPath)) {
+    throw new AudioMixError(`${label} does not exist: ${directoryPath}`);
+  }
+};
+
+const assertReadableLocalFile = (filePath: string, label: string) => {
+  const normalized = normalizeFilePath(filePath);
+  if (!isFfmpegSafeLocalPath(normalized)) {
+    throw new AudioMixError(`${label} must be an explicit local file path for FFmpeg: ${filePath}`);
+  }
+  if (!isReadableAudioAsset(normalized)) {
+    throw new AudioMixError(`${label} is missing or empty: ${normalized}`);
+  }
+  return normalized;
+};
+export const sanitizeForFFmpeg = (value: string): string =>
+  value.replace(/[\\'";()\r\n]/g, "").trim();
 
 export function resolveSfxPath(sfxDir: string, sfxEvent: UnifiedRenderManifest["audio"]["sfx"][number]): string {
   const variant = sfxEvent.variant;
@@ -54,9 +101,10 @@ const buildVoiceDuckingExpression = (manifest: UnifiedRenderManifest) => {
     return null;
   }
 
-  const clauses = manifest.source.transcript.map((word) =>
-    `between(t,${(word.startMs / 1000).toFixed(2)},${(word.endMs / 1000).toFixed(2)})`
-  );
+  const clauses = manifest.source.transcript.map((word) => {
+    sanitizeForFFmpeg(word.text);
+    return `between(t,${(word.startMs / 1000).toFixed(2)},${(word.endMs / 1000).toFixed(2)})`;
+  });
 
   return `if(${clauses.join('+')},-24,-18)`;
 };
@@ -78,22 +126,30 @@ const buildSfxDuckingExpression = (manifest: UnifiedRenderManifest) => {
 
 export function buildFfmpegArgs(
   manifest: UnifiedRenderManifest,
-  outputPath: string
+  outputPath: string,
+  options: MixAudioOptions
 ): string[] {
-  const sfxDir = process.env.SFX_DIR || '';
+  assertExistingAbsoluteDirectory(options.sfxDir, 'sfxDir');
+  if (options.tempDir) {
+    assertExistingAbsoluteDirectory(options.tempDir, 'tempDir');
+  }
+
   const args: string[] = [];
 
-  let voiceTrack = normalizeFileOrUrl(manifest.source.audioUrl || manifest.source.videoUrl);
+  const voiceTrack = assertReadableLocalFile(manifest.source.audioUrl || manifest.source.videoUrl, 'source audio');
   args.push('-i', voiceTrack);
 
   let inputCount = 1;
   const filterParts: string[] = [];
   const sfxInputs: string[] = [];
 
-  let musicTrack = manifest.audio.musicTrackUrl;
+  let musicTrack = manifest.audio.musicReference?.localFilePath ?? manifest.audio.musicTrackUrl;
   const hasMusic = Boolean(musicTrack);
   if (hasMusic) {
-    musicTrack = normalizeFileOrUrl(musicTrack!);
+    if (manifest.audio.musicReference && !manifest.audio.musicReference.renderSafe) {
+      throw new AudioMixError(`musicReference is not renderSafe: ${manifest.audio.musicReference.trackId}`);
+    }
+    musicTrack = assertReadableLocalFile(musicTrack!, 'music track');
     args.push('-i', musicTrack!);
 
     const voiceDuck = buildVoiceDuckingExpression(manifest);
@@ -112,26 +168,29 @@ export function buildFfmpegArgs(
   const sfxCues = manifest.audio.sfx || [];
   if (sfxCues.length > 0) {
     sfxCues.forEach((sfxEvent) => {
-      const sfxPath = resolveSfxPath(sfxDir, sfxEvent);
+      const sfxPath = resolveSfxPath(options.sfxDir, sfxEvent);
       args.push('-i', sfxPath);
       const inputIdx = inputCount++;
-      filterParts.push(`[${inputIdx}:a]adelay=${sfxEvent.triggerMs}|${sfxEvent.triggerMs}[a${inputIdx}]`);
+      filterParts.push(`[${inputIdx}:a]volume=${sfxEvent.volumeDb}dB,adelay=${sfxEvent.triggerMs}|${sfxEvent.triggerMs}[a${inputIdx}]`);
       sfxInputs.push(`[a${inputIdx}]`);
     });
   }
 
   const musicInput = hasMusic ? (manifest.audio.sfx.length > 0 ? '[a1duck]' : '[a1]') : null;
-  const mixInputs = ['[0:a]'];
+  filterParts.unshift(`[0:a]volume=${manifest.audio.voiceVolumeDb}dB[voice]`);
+
+  const mixInputs = ['[voice]'];
   if (musicInput) {
     mixInputs.push(musicInput);
   }
   mixInputs.push(...sfxInputs);
 
   filterParts.push(`${mixInputs.join('')}amix=inputs=${mixInputs.length}:duration=first[mix]`);
-  filterParts.push(`[mix]loudnorm=I=-14:TP=-1:LRA=11[out]`);
+  filterParts.push(`[mix]loudnorm=I=${manifest.audio.targetLufs}:TP=-1:LRA=11[out]`);
 
   args.push('-filter_complex', filterParts.join(';'));
   args.push('-map', '[out]');
+  args.push('-t', (manifest.source.durationMs / 1000).toFixed(3));
   args.push('-c:a', 'aac');
   args.push('-y');
   args.push(outputPath);
@@ -141,12 +200,13 @@ export function buildFfmpegArgs(
 
 export async function mixAudio(
   manifest: UnifiedRenderManifest,
-  outputPath: string
+  outputPath: string,
+  options: MixAudioOptions
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     try {
-      const args = buildFfmpegArgs(manifest, outputPath);
-      const ffmpeg = spawn('ffmpeg', args);
+      const args = buildFfmpegArgs(manifest, outputPath, options);
+      const ffmpeg = spawn(options.ffmpegBinary ?? 'ffmpeg', args);
 
       let stderr = '';
       ffmpeg.stderr.on('data', (data) => {

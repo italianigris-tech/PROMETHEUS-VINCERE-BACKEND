@@ -18,7 +18,7 @@ const toWaveformSummary = (durationSec: number): MusicTrack["waveformSummary"] =
     windowSec: Number((durationSec / bucketCount).toFixed(3)),
     peakAmplitudes,
     rmsAmplitudes,
-    source: "phase1_placeholder"
+    source: "ffmpeg_fallback"
   };
 };
 
@@ -28,7 +28,7 @@ export const analyzeTrack = (input: AnalyzeTrackInput): MusicTrack => {
     durationSec: track.durationSec,
     bpm: track.bpm ?? undefined,
     confidence: input.beatGridInput?.confidence,
-    source: input.beatGridInput?.source ?? "phase1_placeholder"
+    source: input.beatGridInput?.source ?? "ffmpeg_fallback"
   });
   const sections = detectSections({
     trackId: track.id,

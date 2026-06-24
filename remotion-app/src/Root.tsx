@@ -20,6 +20,12 @@ import {
 import {getPresentationPreset} from "./lib/presentation-presets";
 import {normalizeCaptionStyleProfileId} from "./lib/stylebooks/caption-style-profiles";
 import {JosephEdit} from "./compositions/JosephEdit";
+import {
+  DEFAULT_JOSEPH_MANIFEST,
+  JOSEPH_RENDER_FPS,
+  JOSEPH_RENDER_HEIGHT,
+  JOSEPH_RENDER_WIDTH
+} from "./compositions/joseph-default-manifest";
 
 const importMetaEnv = typeof import.meta !== "undefined" ? import.meta.env : undefined;
 const envCaptionProfileId =
@@ -252,21 +258,30 @@ export const RemotionRoot: React.FC = () => {
         id="JosephEdit"
         component={JosephEdit}
         calculateMetadata={async ({ props }) => {
+          const manifest = props.manifest ?? DEFAULT_JOSEPH_MANIFEST;
+          if (
+            manifest.width !== JOSEPH_RENDER_WIDTH ||
+            manifest.height !== JOSEPH_RENDER_HEIGHT ||
+            manifest.output.width !== JOSEPH_RENDER_WIDTH ||
+            manifest.output.height !== JOSEPH_RENDER_HEIGHT
+          ) {
+            throw new Error(`JosephEdit composition requires ${JOSEPH_RENDER_WIDTH}x${JOSEPH_RENDER_HEIGHT} manifest/output dimensions.`);
+          }
+
           return {
-            durationInFrames: props.manifest.durationFrames || 300,
-            fps: props.manifest.fps || 30,
-            width: props.manifest.width || 1920,
-            height: props.manifest.height || 1080,
+            durationInFrames: manifest.durationFrames || DEFAULT_JOSEPH_MANIFEST.durationFrames,
+            fps: manifest.fps || JOSEPH_RENDER_FPS,
+            width: JOSEPH_RENDER_WIDTH,
+            height: JOSEPH_RENDER_HEIGHT,
+            props: {manifest},
           };
         }}
+        width={JOSEPH_RENDER_WIDTH}
+        height={JOSEPH_RENDER_HEIGHT}
+        fps={JOSEPH_RENDER_FPS}
+        durationInFrames={DEFAULT_JOSEPH_MANIFEST.durationFrames}
         defaultProps={{
-          manifest: {
-            durationFrames: 300,
-            fps: 30,
-            width: 1920,
-            height: 1080,
-            seed: 12345,
-          } as any
+          manifest: DEFAULT_JOSEPH_MANIFEST
         }}
       />
     </>

@@ -2,6 +2,7 @@ import {describe, expect, it} from "vitest";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import {UnifiedRenderManifestSchema} from "@prometheus/shared-types";
 import {ReplayLedger} from "../ledger/replay-ledger";
 import {PromptRegistry} from "./prompt-governance";
 import {orchestrateRender, type OrchestratorInput} from "./orchestrator";
@@ -32,6 +33,8 @@ describe("Director Orchestrator", () => {
     const ledger = new ReplayLedger(":memory:");
     const result = await orchestrateRender(baseInput("joseph_aggressive"), ledger, registry());
 
+    expect(() => UnifiedRenderManifestSchema.parse(result.manifest)).not.toThrow();
+    expect(result.manifest.jobId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
     expect(result.manifest.height).toBe(1920);
     expect(result.manifest.width).toBe(1080);
     expect(result.candidateCount).toBe(6);

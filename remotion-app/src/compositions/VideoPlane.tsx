@@ -1,5 +1,6 @@
 import React, {useEffect, useMemo, useRef} from 'react';
-import {useCurrentFrame, useVideoConfig} from 'remotion';
+import {staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
+import {useThree} from '@react-three/fiber';
 import * as THREE from 'three';
 import type {UnifiedRenderManifest, VideoTrack} from '@prometheus/shared-types';
 
@@ -8,11 +9,52 @@ type VideoPlaneProps = {
   manifest: UnifiedRenderManifest;
 };
 
-const PLANE_WIDTH = 10.66;
-const PLANE_HEIGHT = 6;
-
 const isLocalFileUrl = (value: string) => /^file:\/\//i.test(value);
 const isLocalAbsolutePath = (value: string) => /^[a-zA-Z]:[\\/]/.test(value) || /^\\\\/.test(value);
+
+export type CoverTextureTransform = {
+  repeatX: number;
+  repeatY: number;
+  offsetX: number;
+  offsetY: number;
+};
+
+export const calculateCoverTextureTransform = ({
+  sourceWidth,
+  sourceHeight,
+  outputWidth,
+  outputHeight,
+}: {
+  sourceWidth: number;
+  sourceHeight: number;
+  outputWidth: number;
+  outputHeight: number;
+}): CoverTextureTransform => {
+  const sourceAspect = sourceWidth / sourceHeight;
+  const outputAspect = outputWidth / outputHeight;
+
+  if (!Number.isFinite(sourceAspect) || !Number.isFinite(outputAspect) || sourceAspect <= 0 || outputAspect <= 0) {
+    return {repeatX: 1, repeatY: 1, offsetX: 0, offsetY: 0};
+  }
+
+  if (sourceAspect > outputAspect) {
+    const repeatX = outputAspect / sourceAspect;
+    return {
+      repeatX,
+      repeatY: 1,
+      offsetX: (1 - repeatX) / 2,
+      offsetY: 0,
+    };
+  }
+
+  const repeatY = sourceAspect / outputAspect;
+  return {
+    repeatX: 1,
+    repeatY,
+    offsetX: 0,
+    offsetY: (1 - repeatY) / 2,
+  };
+};
 
 const resolveVideoSrc = (track: VideoTrack | undefined, fallbackUrl: string): string | null => {
   const candidate = track?.sourcePath ?? fallbackUrl;
@@ -20,7 +62,13 @@ const resolveVideoSrc = (track: VideoTrack | undefined, fallbackUrl: string): st
     throw new Error(`VideoPlane cannot render local file video sources: ${candidate}. Use MediaReference.browserUrl.`);
   }
 
-  return candidate || null;
+  if (!candidate) {
+    return null;
+  }
+  if (/^https?:\/\//i.test(candidate)) {
+    return candidate;
+  }
+  return staticFile(candidate.replace(/^\/+/, ''));
 };
 
 const createVideoElement = (src: string): HTMLVideoElement => {
@@ -36,6 +84,7 @@ const createVideoElement = (src: string): HTMLVideoElement => {
 export const VideoPlane: React.FC<VideoPlaneProps> = ({track, manifest}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
+  const {viewport} = useThree();
   const meshRef = useRef<THREE.Mesh>(null);
 
   const src = useMemo(
@@ -51,7 +100,26 @@ export const VideoPlane: React.FC<VideoPlaneProps> = ({track, manifest}) => {
     t.minFilter = THREE.LinearFilter;
     t.magFilter = THREE.LinearFilter;
     t.colorSpace = THREE.SRGBColorSpace;
+    t.wrapS = THREE.ClampToEdgeWrapping;
+    t.wrapT = THREE.ClampToEdgeWrapping;
     return t;
+  }, [videoElement]);
+
+  const coverTransform = useMemo(() => calculateCoverTextureTransform({
+    sourceWidth: manifest.source.width,
+    sourceHeight: manifest.source.height,
+    outputWidth: manifest.width,
+    outputHeight: manifest.height,
+  }), [manifest.height, manifest.source.height, manifest.source.width, manifest.width]);
+
+  useEffect(() => {
+    if (!videoElement) return;
+    const playPromise = videoElement.play();
+    if (playPromise && typeof playPromise.catch === 'function') {
+      playPromise.catch(() => {
+        // Headless render can reject autoplay; frame seeking below still drives the texture.
+      });
+    }
   }, [videoElement]);
 
   useEffect(() => {
@@ -61,6 +129,13 @@ export const VideoPlane: React.FC<VideoPlaneProps> = ({track, manifest}) => {
       videoElement.currentTime = targetTimeSec;
     }
   }, [frame, fps, videoElement]);
+
+  useEffect(() => {
+    if (!texture) return;
+    texture.repeat.set(coverTransform.repeatX, coverTransform.repeatY);
+    texture.offset.set(coverTransform.offsetX, coverTransform.offsetY);
+    texture.needsUpdate = true;
+  }, [coverTransform, texture]);
 
   useEffect(() => {
     return () => {
@@ -79,7 +154,7 @@ export const VideoPlane: React.FC<VideoPlaneProps> = ({track, manifest}) => {
 
   return (
     <mesh ref={meshRef} position={[0, 0, 0]}>
-      <planeGeometry args={[PLANE_WIDTH, PLANE_HEIGHT]} />
+      <planeGeometry args={[viewport.width, viewport.height]} />
       <meshBasicMaterial map={texture} toneMapped={false} />
     </mesh>
   );

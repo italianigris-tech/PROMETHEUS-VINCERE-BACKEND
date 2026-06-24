@@ -1,4 +1,5 @@
 import path from "node:path";
+import {mkdir, writeFile} from "node:fs/promises";
 
 import type {FastifyInstance} from "fastify";
 import {z} from "zod";
@@ -9,6 +10,8 @@ import {editTypographyStyleIdSchema} from "./edit-sessions/types";
 import type {EditSessionManager} from "./edit-sessions/service";
 import type {EditSessionStore} from "./edit-sessions/store";
 import type {R2TransferService} from "./integrations/r2";
+import {createJosephUploadPipeline, type JosephUploadPipeline} from "./upload/joseph-upload-pipeline";
+import type {JosephProfile} from "./director/orchestrator";
 
 type UploadUrlRequest = {
   filename: string;
@@ -29,6 +32,9 @@ const processRequestSchema = z.object({
   contentType: z.string().trim().optional(),
   userId: z.string().trim().optional(),
   mediaUrl: z.string().trim().optional(),
+  josephProfile: z.enum(["joseph_aggressive", "joseph_cinematic", "joseph_minimal"]).optional(),
+  promptText: z.string().trim().optional(),
+  retryIndex: z.number().int().nonnegative().optional(),
   captionProfileId: editTypographyStyleIdSchema.optional(),
   motionTier: z.string().trim().optional(),
   metadata: z.record(z.string(), z.unknown()).default({}),
@@ -68,6 +74,29 @@ const createProcessErrorResponse = (error: unknown): {statusCode: number; body: 
   };
 };
 
+const isJosephProfile = (value: JosephProfile | undefined): value is JosephProfile => Boolean(value);
+
+const writeJosephFailureEvidence = async ({
+  editSessionStore,
+  sessionId,
+  error,
+}: {
+  editSessionStore: EditSessionStore;
+  sessionId: string;
+  error: unknown;
+}): Promise<string> => {
+  const evidencePath = path.join(editSessionStore.sessionDir(sessionId), "joseph-failure");
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  await mkdir(evidencePath, {recursive: true});
+  await writeFile(path.join(evidencePath, "failure.json"), `${JSON.stringify({
+    sessionId,
+    failureTags: ["orchestrator_failed"],
+    errorMessage,
+    createdAt: new Date().toISOString(),
+  }, null, 2)}\n`, "utf8");
+  return evidencePath;
+};
+
 export const registerUploadRoutes = async (
   app: FastifyInstance,
   {
@@ -75,13 +104,15 @@ export const registerUploadRoutes = async (
     queue,
     editSessions,
     editSessionStore,
-    r2Service
+    r2Service,
+    josephUploadPipeline = createJosephUploadPipeline({storageDir: env.STORAGE_DIR})
   }: {
     env: BackendEnv;
     queue: InProcessQueue;
     editSessions: EditSessionManager;
     editSessionStore: EditSessionStore;
     r2Service: R2TransferService;
+    josephUploadPipeline?: JosephUploadPipeline;
   }
 ): Promise<void> => {
   app.post("/api/upload-url", async (req, reply) => {
@@ -112,7 +143,7 @@ export const registerUploadRoutes = async (
 
       const publicMediaUrl = input.mediaUrl?.trim() || null;
       const session = await editSessions.createSession({
-        mediaUrl: publicMediaUrl,
+        ...(publicMediaUrl ? {mediaUrl: publicMediaUrl} : {}),
         storageKey: input.key,
         sourceFilename: input.filename ?? path.basename(input.key),
         captionProfileId: input.captionProfileId ?? "svg_typography_v1",
@@ -141,7 +172,7 @@ export const registerUploadRoutes = async (
               destinationPath
             });
 
-            await editSessions.completeUpload(session.id, {
+            const completed = await editSessions.completeUpload(session.id, {
               mediaUrl: publicMediaUrl ?? undefined,
               storageKey: input.key,
               sourcePath: destinationPath,
@@ -157,6 +188,52 @@ export const registerUploadRoutes = async (
               },
               autoStartPreview: input.autoStartPreview ?? true
             });
+
+            // Joseph is selected explicitly at upload completion with `josephProfile`.
+            // Non-Joseph uploads keep the existing edit-session preview path unchanged.
+            if (isJosephProfile(input.josephProfile)) {
+              try {
+                const result = await josephUploadPipeline.createRenderJob({
+                  sessionId: session.id,
+                  sourcePath: destinationPath,
+                  sourceFilename: input.filename ?? sourceFileName,
+                  sourceDurationMs: completed.sourceDurationMs,
+                  sourceWidth: completed.sourceWidth,
+                  sourceHeight: completed.sourceHeight,
+                  sourceFps: completed.sourceFps,
+                  profile: input.josephProfile,
+                  promptText: input.promptText,
+                  retryIndex: input.retryIndex,
+                });
+
+                await editSessions.mergeSessionMetadata(session.id, {
+                  josephProfile: input.josephProfile,
+                  josephRenderJobId: result.renderJobId,
+                  josephReplayLedgerEntryId: result.replayLedgerEntryId,
+                  josephEvidencePath: result.evidencePath,
+                  josephVariationKey: result.variationKey,
+                }, {
+                  status: "render_pending",
+                  renderStatus: "render_pending",
+                  renderProgress: 0,
+                });
+              } catch (error) {
+                const failureEvidencePath = await writeJosephFailureEvidence({
+                  editSessionStore,
+                  sessionId: session.id,
+                  error,
+                });
+                await editSessions.mergeSessionMetadata(session.id, {
+                  josephProfile: input.josephProfile,
+                  josephFailureTags: ["orchestrator_failed"],
+                  josephFailureEvidencePath: failureEvidencePath,
+                });
+                await editSessions.failSession(session.id, {
+                  errorCode: "joseph_orchestrator_failed",
+                  errorMessage: error instanceof Error ? error.message : String(error),
+                });
+              }
+            }
           } catch (error) {
             await editSessions.failSession(session.id, {
               errorCode: "r2_process_failed",

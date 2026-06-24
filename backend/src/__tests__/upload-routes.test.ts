@@ -1,7 +1,10 @@
+import {existsSync} from "node:fs";
 import {writeFile} from "node:fs/promises";
+import path from "node:path";
 
 import {afterEach, beforeEach, describe, expect, it} from "vitest";
 
+import {createJosephUploadPipeline} from "../upload/joseph-upload-pipeline";
 import {cleanupTempDir, createTestApp, makeTempDir} from "./test-utils";
 
 const sleep = async (ms: number): Promise<void> => {
@@ -202,6 +205,246 @@ describe("R2 upload routes", () => {
     expect(previewResponse.json().status).toBe("preview_text_ready");
 
     await sleep(250);
+    await context.app.close();
+  }, 15_000);
+
+  it("queues a Joseph UnifiedRenderManifest when upload completion requests a Joseph profile", async () => {
+    const context = await createTestApp({
+      storageDir: tempDir,
+      deps: {
+        probeVideoMetadata: async () => ({
+          width: 1920,
+          height: 1080,
+          duration_seconds: 8,
+          duration_in_frames: 240,
+          fps: 30
+        }),
+        josephUploadPipeline: createJosephUploadPipeline({
+          storageDir: tempDir,
+          publicDir: path.join(tempDir, "remotion-public"),
+          uploadDir: path.join(tempDir, "resolved-media"),
+          listLocalMusicCatalog: () => [{
+            trackId: "local-fixture",
+            title: "Fixture Track",
+            sourceKind: "local",
+            localFilePath: path.join(tempDir, "fixture-track.mp3"),
+            browserUrl: "/music/fixture-track.mp3",
+            durationSeconds: 1,
+            renderSafe: true,
+            licenseStatus: "test_fixture"
+          }],
+          analyzeMusicTrack: async () => ({
+            bpm: 128,
+            beatTimes: [0, 0.469, 0.938],
+            downbeats: [0],
+            sections: [{id: "section-01", startSeconds: 0, endSeconds: 8, label: "main", energy: 0.7}],
+            loudnessLUFS: -15,
+            energyCurve: [0.7, 0.72, 0.68],
+            duration: 8,
+            source: "ffmpeg_fallback",
+            warnings: []
+          })
+        }),
+        r2Service: {
+          isConfigured: true,
+          createUploadUrl: async () => {
+            throw new Error("createUploadUrl should not be called for process");
+          },
+          downloadObject: async ({destinationPath}) => {
+            await writeFile(destinationPath, Buffer.from("fake-video-data-for-joseph"));
+            return {
+              bucket: "prometheus-uploads",
+              key: "uploads/josh/joseph.mp4",
+              destinationPath,
+              sizeBytes: 26
+            };
+          }
+        }
+      }
+    });
+
+    const response = await context.app.inject({
+      method: "POST",
+      url: "/api/process",
+      payload: {
+        bucket: "prometheus-uploads",
+        key: "uploads/josh/joseph.mp4",
+        filename: "Joseph Upload.mp4",
+        contentType: "video/mp4",
+        userId: "josh",
+        josephProfile: "joseph_aggressive",
+        promptText: "Make the hook kinetic and premium.",
+        autoStartPreview: false
+      }
+    });
+
+    expect(response.statusCode).toBe(202);
+    const body = response.json();
+    await context.queue.onIdle();
+
+    const statusResponse = await context.app.inject({
+      method: "GET",
+      url: `/api/edit-sessions/${body.sessionId}/status`
+    });
+    expect(statusResponse.statusCode).toBe(200);
+    const status = statusResponse.json();
+    expect(status.metadata.josephProfile).toBe("joseph_aggressive");
+    expect(status.metadata.josephRenderJobId).toEqual(expect.any(String));
+    expect(status.metadata.josephReplayLedgerEntryId).toEqual(expect.any(String));
+    expect(existsSync(status.metadata.josephEvidencePath)).toBe(true);
+
+    const jobResponse = await context.app.inject({
+      method: "GET",
+      url: `/api/v1/render/jobs/${status.metadata.josephRenderJobId}`
+    });
+    expect(jobResponse.statusCode).toBe(200);
+    const job = jobResponse.json();
+    expect(job.kind).toBe("joseph");
+    expect(job.status).toBe("queued");
+    expect(job.manifest.width).toBe(1080);
+    expect(job.manifest.height).toBe(1920);
+    expect(job.manifest.output.width).toBe(1080);
+    expect(job.manifest.output.height).toBe(1920);
+    expect(job.manifest.source.videoUrl).not.toMatch(/^file:\/\//);
+    expect(job.manifest.source.videoUrl).not.toMatch(/^[A-Za-z]:[\\/]/);
+    expect(job.manifest.videoTracks[0].sourcePath).toBe(job.manifest.source.videoUrl);
+    expect(job.manifest.typography.fontAssetUrl).toMatch(/^\/fonts\/(hero|library)\//);
+    expect(job.manifest.audio.musicReference.durationSeconds).toBe(8);
+    expect(job.manifest.audio.musicBpm).toBe(128);
+
+    const nextResponse = await context.app.inject({
+      method: "GET",
+      url: "/api/v1/render/jobs/next"
+    });
+    expect(nextResponse.statusCode).toBe(200);
+    expect(nextResponse.json()).toEqual(job.manifest);
+
+    await context.app.close();
+  });
+
+  it("leaves the non-Joseph upload path on the existing edit-session pipeline", async () => {
+    const context = await createTestApp({
+      storageDir: tempDir,
+      deps: {
+        probeVideoMetadata: async () => ({
+          width: 1920,
+          height: 1080,
+          duration_seconds: 4,
+          duration_in_frames: 120,
+          fps: 30
+        }),
+        josephUploadPipeline: {
+          createRenderJob: async () => {
+            throw new Error("Joseph pipeline should not run for non-Joseph uploads.");
+          }
+        },
+        r2Service: {
+          isConfigured: true,
+          createUploadUrl: async () => {
+            throw new Error("createUploadUrl should not be called for process");
+          },
+          downloadObject: async ({destinationPath}) => {
+            await writeFile(destinationPath, Buffer.from("plain-upload"));
+            return {
+              bucket: "prometheus-uploads",
+              key: "uploads/josh/plain.mp4",
+              destinationPath,
+              sizeBytes: 12
+            };
+          }
+        }
+      }
+    });
+
+    const response = await context.app.inject({
+      method: "POST",
+      url: "/api/process",
+      payload: {
+        bucket: "prometheus-uploads",
+        key: "uploads/josh/plain.mp4",
+        filename: "Plain Upload.mp4",
+        contentType: "video/mp4",
+        userId: "josh",
+        autoStartPreview: false
+      }
+    });
+
+    expect(response.statusCode).toBe(202);
+    const body = response.json();
+    await context.queue.onIdle();
+
+    const statusResponse = await context.app.inject({
+      method: "GET",
+      url: `/api/edit-sessions/${body.sessionId}/status`
+    });
+    expect(statusResponse.json().metadata.josephRenderJobId).toBeUndefined();
+
+    await context.app.close();
+  });
+
+  it("records a visible failed session when the Joseph orchestrator path fails", async () => {
+    const context = await createTestApp({
+      storageDir: tempDir,
+      deps: {
+        probeVideoMetadata: async () => ({
+          width: 1920,
+          height: 1080,
+          duration_seconds: 4,
+          duration_in_frames: 120,
+          fps: 30
+        }),
+        josephUploadPipeline: {
+          createRenderJob: async () => {
+            throw new Error("orchestrator boom");
+          }
+        },
+        r2Service: {
+          isConfigured: true,
+          createUploadUrl: async () => {
+            throw new Error("createUploadUrl should not be called for process");
+          },
+          downloadObject: async ({destinationPath}) => {
+            await writeFile(destinationPath, Buffer.from("bad-joseph-upload"));
+            return {
+              bucket: "prometheus-uploads",
+              key: "uploads/josh/bad-joseph.mp4",
+              destinationPath,
+              sizeBytes: 17
+            };
+          }
+        }
+      }
+    });
+
+    const response = await context.app.inject({
+      method: "POST",
+      url: "/api/process",
+      payload: {
+        bucket: "prometheus-uploads",
+        key: "uploads/josh/bad-joseph.mp4",
+        filename: "Bad Joseph Upload.mp4",
+        contentType: "video/mp4",
+        josephProfile: "joseph_cinematic",
+        autoStartPreview: false
+      }
+    });
+
+    expect(response.statusCode).toBe(202);
+    const body = response.json();
+    await context.queue.onIdle();
+
+    const statusResponse = await context.app.inject({
+      method: "GET",
+      url: `/api/edit-sessions/${body.sessionId}/status`
+    });
+    const status = statusResponse.json();
+    expect(status.status).toBe("failed");
+    expect(status.errorCode).toBe("joseph_orchestrator_failed");
+    expect(status.errorMessage).toContain("orchestrator boom");
+    expect(status.metadata.josephFailureTags).toContain("orchestrator_failed");
+    expect(status.metadata.josephFailureEvidencePath).toEqual(expect.any(String));
+    expect(existsSync(status.metadata.josephFailureEvidencePath)).toBe(true);
+
     await context.app.close();
   });
 });

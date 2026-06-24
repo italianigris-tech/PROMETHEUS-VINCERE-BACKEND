@@ -3,8 +3,9 @@ import {AbsoluteFill, staticFile, useCurrentFrame, useVideoConfig} from 'remotio
 import {Canvas, useFrame, useThree} from '@react-three/fiber';
 import {Text} from '@react-three/drei';
 import * as THREE from 'three';
-import type {CameraMove, TextOverlay, Transition, UnifiedRenderManifest, VideoTrack} from '@prometheus/shared-types';
+import type {CameraMove, TextOverlay, Transition, UnifiedRenderManifest} from '@prometheus/shared-types';
 import {hashSeed, seededRandom} from '@prometheus/shared-types';
+import {VideoPlane} from './VideoPlane';
 
 const DEFAULT_JOSEPH_TYPOGRAPHY = {
   fontId: 'hero-berylium-regular',
@@ -38,19 +39,6 @@ const resolveJosephTypography = (manifest: UnifiedRenderManifest) => {
     fallbackFamily,
     fontAssetUrl: fontAssetUrl.startsWith('/') ? staticFile(fontAssetUrl.replace(/^\//, '')) : fontAssetUrl,
   };
-};
-
-const resolveVideoSrc = (track: VideoTrack | undefined, fallbackUrl: string): string | null => {
-  const candidate = track?.sourcePath ?? fallbackUrl;
-  if (!candidate) {
-    return null;
-  }
-
-  if (isLocalFileUrl(candidate) || isLocalAbsolutePath(candidate)) {
-    throw new Error(`JosephEdit cannot render local file video sources: ${candidate}. Use MediaReference.browserUrl.`);
-  }
-
-  return candidate;
 };
 
 const findActiveItem = <T extends {startFrame: number; endFrame: number}>(items: readonly T[], frame: number): T | null =>
@@ -102,84 +90,6 @@ const overlayTransform = (overlay: TextOverlay, wordIndex: number, frame: number
 
   const elastic = 1 + Math.sin(eased * Math.PI) * 0.35;
   return {position: [baseX, 0.5, 0.34] as [number, number, number], scale: [elastic, elastic, elastic] as [number, number, number], rotation: [0, 0, 0] as [number, number, number]};
-};
-
-const createVideoElement = (src: string) => {
-  const element = document.createElement('video');
-  element.src = src;
-  element.crossOrigin = 'anonymous';
-  element.muted = true;
-  element.playsInline = true;
-  element.preload = 'auto';
-  return element;
-};
-
-const VideoPlane: React.FC<{track: VideoTrack | undefined; manifest: UnifiedRenderManifest}> = ({track, manifest}) => {
-  const frame = useCurrentFrame();
-  const {fps} = useVideoConfig();
-  const src = resolveVideoSrc(track, manifest.source.videoUrl);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-
-  const texture = useMemo(() => {
-    if (!src) {
-      return null;
-    }
-
-    const video = createVideoElement(src);
-    videoRef.current = video;
-    const videoTexture = new THREE.VideoTexture(video);
-    videoTexture.colorSpace = THREE.SRGBColorSpace;
-    videoTexture.minFilter = THREE.LinearFilter;
-    videoTexture.magFilter = THREE.LinearFilter;
-    return videoTexture;
-  }, [src]);
-
-  useEffect(() => {
-    if (!videoRef.current) {
-      return;
-    }
-
-    const video = videoRef.current;
-    const playPromise = video.play();
-    if (playPromise && typeof playPromise.catch === 'function') {
-      playPromise.catch(() => {
-        // Headless render path may reject autoplay; time sync below still drives the frame.
-      });
-    }
-
-    return () => {
-      video.pause();
-      video.src = '';
-      video.load();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!videoRef.current) {
-      return;
-    }
-
-    const targetTime = frame / fps;
-    if (Math.abs(videoRef.current.currentTime - targetTime) > 1 / fps) {
-      videoRef.current.currentTime = targetTime;
-    }
-  }, [frame, fps]);
-
-  if (!texture) {
-    return (
-      <mesh position={[0, 0, -0.1]}>
-        <planeGeometry args={[10.66, 6]} />
-        <meshBasicMaterial color="#111111" toneMapped={false} />
-      </mesh>
-    );
-  }
-
-  return (
-    <mesh position={[0, 0, -0.1]}>
-      <planeGeometry args={[10.66, 6]} />
-      <meshBasicMaterial map={texture} toneMapped={false} />
-    </mesh>
-  );
 };
 
 const CameraRig: React.FC<{cameraMoves: readonly CameraMove[]; seed: number}> = ({cameraMoves, seed}) => {
