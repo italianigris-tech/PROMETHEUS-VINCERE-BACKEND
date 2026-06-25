@@ -1,0 +1,25 @@
+{
+  "name": "prometheus-orchestrator",
+  "version": "1.0.0",
+  "description": "Cloud-based Codex agent runner with Telegram human-in-the-loop",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "setup": "node src/setup.js"
+  },
+  "dependencies": {
+    "node-telegram-bot-api": "^0.66.0",
+    "octokit": "^4.0.2",
+    "better-sqlite3": "^11.5.0",
+    "dotenv": "^16.4.5",
+    "simple-git": "^3.27.0",
+    "chalk": "^4.1.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.7"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
