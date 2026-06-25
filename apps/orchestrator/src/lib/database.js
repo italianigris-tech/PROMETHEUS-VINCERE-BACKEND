@@ -45,6 +45,25 @@ function initDatabase() {
     )
   `);
 
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS codex_runs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      label TEXT,
+      source TEXT,
+      model TEXT,
+      status TEXT,
+      duration_seconds REAL DEFAULT 0,
+      issue_number INTEGER,
+      operator_username TEXT,
+      operator_display TEXT,
+      started_at TEXT,
+      completed_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      files_json TEXT DEFAULT '[]',
+      total_tokens INTEGER,
+      error TEXT
+    )
+  `);
+
   const defaults = [
     ['current_issue_number', 'null'],
     ['pipeline_status', 'idle'],
@@ -52,7 +71,13 @@ function initDatabase() {
     ['codex_status', 'idle'],
     ['current_model', process.env.CODEX_DEFAULT_MODEL || 'gpt-5.5'],
     ['api_key_index', '0'],
-    ['last_poll_time', 'null']
+    ['last_poll_time', 'null'],
+    ['codex_lock', 'null'],
+    ['pipeline_operator', 'null'],
+    ['priority_queue', '[]'],
+    ['batch_remaining', '0'],
+    ['watchdog_last_alert_at', 'null'],
+    ['watchdog_last_alert_signature', 'null']
   ];
 
   const stmt = db.prepare('INSERT OR IGNORE INTO pipeline_state (key, value) VALUES (?, ?)');
@@ -70,6 +95,20 @@ function getState(key) {
 
 function setState(key, value) {
   db.prepare('INSERT OR REPLACE INTO pipeline_state (key, value) VALUES (?, ?)').run(key, value);
+}
+
+function getJsonState(key, fallback = null) {
+  const value = getState(key);
+  if (!value || value === 'null') return fallback;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return fallback;
+  }
+}
+
+function setJsonState(key, value) {
+  setState(key, value === null || value === undefined ? 'null' : JSON.stringify(value));
 }
 
 function getCurrentIssue() {
@@ -105,9 +144,103 @@ function recordIssueComplete(issueNumber, summary, codexOutput) {
 function recordIssueError(issueNumber, error) {
   db.prepare(`
     UPDATE issues 
-    SET status = 'failed', error_log = ?
+    SET status = 'failed', completed_at = COALESCE(completed_at, datetime('now')), error_log = ?
     WHERE issue_number = ?
   `).run(error, issueNumber);
+  if (getState('current_issue_number') === String(issueNumber)) {
+    setCurrentIssue(null);
+  }
+}
+
+function recordIssueStopped(issueNumber, reason) {
+  if (!issueNumber) return;
+  db.prepare(`
+    UPDATE issues
+    SET status = 'stopped', completed_at = COALESCE(completed_at, datetime('now')), error_log = ?
+    WHERE issue_number = ?
+  `).run(reason || 'Stopped by operator', issueNumber);
+  if (getState('current_issue_number') === String(issueNumber)) {
+    setCurrentIssue(null);
+  }
+}
+
+function clearCurrentIssue(reason = 'unspecified') {
+  const issue = getCurrentIssue();
+  setCurrentIssue(null);
+  return {
+    cleared: Boolean(issue),
+    issue,
+    reason
+  };
+}
+
+function inspectActiveIssueState() {
+  const currentIssueNumber = getState('current_issue_number');
+  const current = getCurrentIssue();
+  const codexStatus = (getState('codex_status') || 'idle').toLowerCase();
+  const pipelineStatus = (getState('pipeline_status') || 'idle').toLowerCase();
+  const issues = [];
+
+  if (!currentIssueNumber || currentIssueNumber === 'null') {
+    return {
+      ok: true,
+      changed: false,
+      issues,
+      currentIssueNumber: null,
+      codexStatus,
+      pipelineStatus,
+      currentIssue: null
+    };
+  }
+
+  if (!current) {
+    issues.push(`current_issue_number=${currentIssueNumber} has no matching issue row`);
+  } else if (current.status !== 'in_progress') {
+    issues.push(`current issue #${current.issue_number} is ${current.status}, not in_progress`);
+  }
+
+  if (current && current.status === 'in_progress' && ['failed', 'stopped', 'idle'].includes(codexStatus)) {
+    issues.push(`current issue #${current.issue_number} is in_progress while codex_status=${codexStatus}`);
+  }
+
+  if (current && current.status !== 'in_progress' && ['running', 'paused', 'error'].includes(pipelineStatus)) {
+    issues.push(`pipeline_status=${pipelineStatus} while current issue #${current.issue_number} is ${current.status}`);
+  }
+
+  return {
+    ok: issues.length === 0,
+    issues,
+    currentIssueNumber,
+    currentIssue: current,
+    codexStatus,
+    pipelineStatus
+  };
+}
+
+function reconcileActiveIssueState(reason = 'state_reconcile') {
+  const inspection = inspectActiveIssueState();
+
+  if (inspection.issues.length === 0) {
+    return {
+      changed: false,
+      ...inspection
+    };
+  }
+
+  setCurrentIssue(null);
+  if (
+    ['failed', 'stopped', 'idle'].includes(inspection.codexStatus) ||
+    (inspection.currentIssue && inspection.currentIssue.status !== 'in_progress')
+  ) {
+    setState('pipeline_status', 'idle');
+  }
+
+  return {
+    changed: true,
+    ...inspection,
+    clearedIssueNumber: inspection.currentIssue?.issue_number || inspection.currentIssueNumber,
+    reason
+  };
 }
 
 function incrementRetry(issueNumber) {
@@ -123,6 +256,186 @@ function recordKeyRotation(oldSuffix, newSuffix, reason) {
     .run(oldSuffix, newSuffix, reason);
 }
 
+function normalizeOperator(operator) {
+  if (!operator) return null;
+
+  const user = operator.user || operator.from || operator;
+  const firstName = user.first_name || user.firstName || '';
+  const lastName = user.last_name || user.lastName || '';
+  const username = user.username || operator.username || null;
+  const displayName = operator.displayName ||
+    [firstName, lastName].filter(Boolean).join(' ') ||
+    (username ? `@${username}` : null) ||
+    (user.id ? `user ${user.id}` : null);
+
+  if (!displayName && !username && !user.id) return null;
+
+  return {
+    chatId: operator.chatId || operator.chat_id || null,
+    userId: user.id || user.user_id || operator.userId || null,
+    username,
+    firstName: firstName || null,
+    lastName: lastName || null,
+    displayName
+  };
+}
+
+function setPipelineOperator(operator) {
+  setJsonState('pipeline_operator', normalizeOperator(operator));
+}
+
+function getPipelineOperator() {
+  return getJsonState('pipeline_operator', null);
+}
+
+function clearPipelineOperator() {
+  setJsonState('pipeline_operator', null);
+}
+
+function setCodexLock(operator, label) {
+  const lock = {
+    operator: normalizeOperator(operator),
+    label: label || 'Codex run',
+    startedAt: new Date().toISOString()
+  };
+  setJsonState('codex_lock', lock);
+  return lock;
+}
+
+function getCodexLock() {
+  return getJsonState('codex_lock', null);
+}
+
+function clearCodexLock() {
+  setJsonState('codex_lock', null);
+}
+
+function getPriorityQueue() {
+  const raw = getJsonState('priority_queue', []);
+  if (!Array.isArray(raw)) return [];
+  return [...new Set(raw.map(Number).filter(Number.isInteger).filter(n => n > 0))];
+}
+
+function setPriorityQueue(issueNumbers) {
+  const normalized = [...new Set((issueNumbers || [])
+    .map(Number)
+    .filter(Number.isInteger)
+    .filter(n => n > 0))];
+  setJsonState('priority_queue', normalized);
+  return normalized;
+}
+
+function prioritizeIssue(issueNumber) {
+  const num = Number(issueNumber);
+  if (!Number.isInteger(num) || num <= 0) {
+    throw new Error('Issue number must be a positive integer');
+  }
+  return setPriorityQueue([num, ...getPriorityQueue().filter(n => n !== num)]);
+}
+
+function prunePriorityQueue(openIssueNumbers) {
+  const open = new Set((openIssueNumbers || []).map(Number));
+  return setPriorityQueue(getPriorityQueue().filter(n => open.has(n)));
+}
+
+function getBatchRemaining() {
+  const value = Number(getState('batch_remaining') || '0');
+  return Number.isInteger(value) && value > 0 ? value : 0;
+}
+
+function setBatchRemaining(count) {
+  const value = Math.max(0, parseInt(count, 10) || 0);
+  setState('batch_remaining', String(value));
+  return value;
+}
+
+function decrementBatchRemaining() {
+  const next = Math.max(0, getBatchRemaining() - 1);
+  setBatchRemaining(next);
+  return next;
+}
+
+function recordCodexRun(run) {
+  const operator = normalizeOperator(run.operator);
+  db.prepare(`
+    INSERT INTO codex_runs (
+      label, source, model, status, duration_seconds, issue_number,
+      operator_username, operator_display, started_at, completed_at,
+      files_json, total_tokens, error
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    run.label || null,
+    run.source || null,
+    run.model || null,
+    run.status || null,
+    Number(run.durationSeconds || run.duration || 0) || 0,
+    run.issueNumber || null,
+    operator?.username || null,
+    operator?.displayName || null,
+    run.startedAt || null,
+    run.completedAt || new Date().toISOString(),
+    JSON.stringify(run.files || []),
+    run.totalTokens || null,
+    run.error || null
+  );
+}
+
+function getStats() {
+  const issueRows = db.prepare(`
+    SELECT status, COUNT(*) AS count
+    FROM issues
+    GROUP BY status
+  `).all();
+  const runs = db.prepare('SELECT * FROM codex_runs ORDER BY completed_at DESC').all();
+  const rotationRow = db.prepare('SELECT COUNT(*) AS count FROM api_key_rotations').get();
+  const modelRows = db.prepare(`
+    SELECT model, COUNT(*) AS count
+    FROM codex_runs
+    WHERE model IS NOT NULL
+    GROUP BY model
+    ORDER BY count DESC, model ASC
+  `).all();
+
+  const issueCounts = {};
+  for (const row of issueRows) {
+    issueCounts[row.status || 'unknown'] = row.count;
+  }
+
+  const fileCounts = new Map();
+  let totalRuntimeSeconds = 0;
+  let totalTokens = 0;
+  for (const run of runs) {
+    totalRuntimeSeconds += Number(run.duration_seconds || 0);
+    totalTokens += Number(run.total_tokens || 0);
+    let files = [];
+    try {
+      files = JSON.parse(run.files_json || '[]');
+    } catch {
+      files = [];
+    }
+    for (const file of files) {
+      const filePath = typeof file === 'string' ? file : file?.path;
+      if (!filePath) continue;
+      fileCounts.set(filePath, (fileCounts.get(filePath) || 0) + 1);
+    }
+  }
+
+  return {
+    issueCounts,
+    lifetimeIssuesProcessed: (issueCounts.completed || 0) + (issueCounts.failed || 0) + (issueCounts.stopped || 0),
+    codexRuns: runs.length,
+    totalRuntimeSeconds,
+    totalTokens,
+    favoriteModel: modelRows[0] || null,
+    mostModifiedFiles: [...fileCounts.entries()]
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .slice(0, 5)
+      .map(([path, count]) => ({ path, count })),
+    apiKeyRotations: rotationRow?.count || 0,
+    lastRun: runs[0] || null
+  };
+}
+
 module.exports = {
   initDatabase,
   getState,
@@ -132,7 +445,27 @@ module.exports = {
   recordIssueStart,
   recordIssueComplete,
   recordIssueError,
+  recordIssueStopped,
+  clearCurrentIssue,
+  inspectActiveIssueState,
+  reconcileActiveIssueState,
   incrementRetry,
   getIssueHistory,
-  recordKeyRotation
+  recordKeyRotation,
+  normalizeOperator,
+  setPipelineOperator,
+  getPipelineOperator,
+  clearPipelineOperator,
+  setCodexLock,
+  getCodexLock,
+  clearCodexLock,
+  getPriorityQueue,
+  setPriorityQueue,
+  prioritizeIssue,
+  prunePriorityQueue,
+  getBatchRemaining,
+  setBatchRemaining,
+  decrementBatchRemaining,
+  recordCodexRun,
+  getStats
 };

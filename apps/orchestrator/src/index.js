@@ -2,14 +2,34 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const crypto = require('crypto');
-const { initDatabase, getState, setState, getCurrentIssue, setCurrentIssue, recordIssueStart, recordIssueComplete, recordIssueError, incrementRetry } = require('./lib/database');
+const os = require('os');
+const { execFile } = require('child_process');
+const {
+  initDatabase,
+  getState,
+  setState,
+  getCurrentIssue,
+  setCurrentIssue,
+  recordIssueStart,
+  recordIssueComplete,
+  recordIssueError,
+  incrementRetry,
+  getPriorityQueue,
+  prunePriorityQueue,
+  getBatchRemaining,
+  decrementBatchRemaining,
+  getPipelineOperator
+} = require('./lib/database');
 const { getOpenIssues, getIssue, closeIssue, addComment } = require('./lib/github');
 const { runCodex, generateSummaryMessage, rotateApiKey, getCurrentApiKey, getKeySuffix, getCodexRuntimeStatus, reconcileCodexPidOnBoot } = require('./lib/codex');
-const { initBot, sendCompletionPrompt, sendKeyExhaustedAlert, sendNotification } = require('./lib/telegram');
+const { initBot, sendCompletionPrompt, sendKeyExhaustedAlert, sendNotification, startDiffStream, stopDiffStream } = require('./lib/telegram');
 
 const CHAT_ID = process.env.AUTHORIZED_CHAT_IDS?.split(',')[0];
 const POLL_INTERVAL = (parseInt(process.env.POLL_INTERVAL) || 30) * 1000;
 const HEARTBEAT_INTERVAL = 60 * 1000;
+const WATCHDOG_THRESHOLD = parseInt(process.env.WATCHDOG_THRESHOLD_PERCENT, 10) || 80;
+const WATCHDOG_COOLDOWN_MS = (parseInt(process.env.WATCHDOG_COOLDOWN_MINUTES, 10) || 15) * 60 * 1000;
+const WATCHDOG_PATH = process.env.WATCHDOG_DISK_PATH || (process.env.CODEX_WORKDIR || process.cwd());
 
 let isProcessing = false;
 let isShuttingDown = false;
@@ -29,6 +49,12 @@ async function main() {
   } else if (codexPidState.running) {
     console.log(`🤖 Recovered live Codex PID ${codexPidState.pid}`);
   }
+  if (codexPidState.issueReconcile?.changed) {
+    console.warn(
+      `[state-reconcile] Cleared stale current issue ${codexPidState.issueReconcile.clearedIssueNumber}. ` +
+      `reason=${codexPidState.issueReconcile.reason} issues=${JSON.stringify(codexPidState.issueReconcile.issues)}`
+    );
+  }
 
   bot = initBot();
   if (!bot) {
@@ -43,7 +69,8 @@ async function main() {
         `━━━━━━━━━━━━━━━━━━━━━━\n` +
         `Model: \`${getState('current_model') || 'gpt-5.5'}\`\n` +
         `API Keys: ${getApiKeyCount()} available\n` +
-        `Status: Awaiting /pipeline start`
+        `Status: Awaiting Start button` +
+        buildStartupReconcileLine(codexPidState)
       );
     } catch (error) {
       console.error('[startup] Failed to send Telegram startup notification; continuing:', formatError(error));
@@ -61,6 +88,12 @@ async function main() {
   if (prepareResumeFromPreviousState()) {
     pollLoop();
   }
+}
+
+function buildStartupReconcileLine(codexPidState) {
+  const reconcile = codexPidState.issueReconcile;
+  if (!reconcile?.changed) return '';
+  return `\n\n🧹 Cleared stale issue pointer #${reconcile.clearedIssueNumber}. Open Doctor → Health for details.`;
 }
 
 function prepareResumeFromPreviousState() {
@@ -98,12 +131,13 @@ function createStateHash(value) {
 }
 
 function startHeartbeat() {
-  heartbeatTimer = setInterval(() => {
+  heartbeatTimer = setInterval(async () => {
     const current = getCurrentIssue();
     console.log(
       `[heartbeat] alive pid=${process.pid} uptime=${Math.round(process.uptime())}s ` +
       `status=${getState('pipeline_status') || 'unknown'} current_issue=${current?.issue_number || 'none'}`
     );
+    await runWatchdog('heartbeat');
   }, HEARTBEAT_INTERVAL);
 }
 
@@ -143,7 +177,7 @@ async function pollLoop() {
       return;
     }
 
-    const issue = issues[0];
+    const issue = selectNextIssue(issues);
     console.log(`🎯 Processing Issue #${issue.number}: ${issue.title}`);
 
     recordIssueStart(issue.number, issue.title);
@@ -162,8 +196,14 @@ async function pollLoop() {
     let result;
     
     try {
+      await runWatchdog('pre_codex', { notifyOk: false });
+      if (CHAT_ID) {
+        await startDiffStream(CHAT_ID, `Issue #${issue.number}: ${issue.title}`, getPipelineOperator());
+      }
       result = await runCodex(issue.number, issue.title, issue.body, model);
+      stopDiffStream();
     } catch (error) {
+      stopDiffStream();
       if (error.message.includes('API_KEY_EXHAUSTED')) {
         await handleApiKeyExhaustion(issue.number, issue.title, error.message);
         isProcessing = false;
@@ -177,9 +217,18 @@ async function pollLoop() {
 
     console.log(`✅ Issue #${issue.number} completed in ${result.duration}s`);
 
-    if (CHAT_ID) {
+    if (CHAT_ID && getBatchRemaining() <= 0) {
       const decision = await sendCompletionPrompt(CHAT_ID, summary);
       await handleHumanDecision(decision, issue.number, issue.title, summary);
+    } else if (CHAT_ID && getBatchRemaining() > 0) {
+      const remaining = decrementBatchRemaining();
+      await closeIssue(issue.number, `✅ Completed by Prometheus Orchestrator (batch mode)\n\n${summary}`);
+      setState('pipeline_status', remaining > 0 ? 'running' : 'paused');
+      await sendNotification(CHAT_ID,
+        `✅ *Issue #${issue.number} batch-complete*\n` +
+        `Remaining in batch: ${remaining}\n` +
+        `${remaining > 0 ? 'Continuing to the next issue.' : 'Batch complete. Pipeline paused.'}`
+      );
     } else {
       console.log('No TELEGRAM_CHAT configured. Auto-continuing...');
       await closeIssue(issue.number, `Completed by Prometheus Orchestrator\n\n${summary}`);
@@ -200,7 +249,7 @@ async function pollLoop() {
           `❌ *ERROR on Issue #${current.issue_number}*\n` +
           `━━━━━━━━━━━━━━━━━━━━━━\n` +
           `${error.message.substring(0, 300)}\n\n` +
-          `Pipeline paused. Use /pipeline resume to continue.`
+          `Pipeline paused. Use the Continue button to resume.`
         );
       }
     }
@@ -208,6 +257,114 @@ async function pollLoop() {
   } finally {
     isProcessing = false;
   }
+}
+
+async function runWatchdog(reason, options = {}) {
+  const report = await getWatchdogReport();
+  const warnings = report.warnings;
+
+  if (warnings.length === 0) {
+    if (options.notifyOk && CHAT_ID) {
+      await sendNotification(CHAT_ID, `✅ Watchdog OK. RAM ${report.memory.usedPercent}% | Disk ${report.disk.usedPercent}%`);
+    }
+    return report;
+  }
+
+  const signature = warnings.join('|');
+  const lastSignature = getState('watchdog_last_alert_signature');
+  const lastAlertAt = getState('watchdog_last_alert_at');
+  const lastAlertMs = lastAlertAt && lastAlertAt !== 'null' ? Date.parse(lastAlertAt) : 0;
+  const shouldAlert = signature !== lastSignature || Date.now() - lastAlertMs > WATCHDOG_COOLDOWN_MS;
+
+  console.warn(`[watchdog] reason=${reason} warnings=${JSON.stringify(warnings)} report=${JSON.stringify(report)}`);
+  if (shouldAlert && CHAT_ID) {
+    setState('watchdog_last_alert_signature', signature);
+    setState('watchdog_last_alert_at', new Date().toISOString());
+    await sendNotification(CHAT_ID,
+      `⚠️ *EC2 Watchdog Warning*\n` +
+      `Reason: ${reason}\n` +
+      `RAM: ${report.memory.usedPercent}% used (${formatBytes(report.memory.used)} / ${formatBytes(report.memory.total)})\n` +
+      `Disk: ${report.disk.usedPercent}% used on \`${report.disk.path}\`\n\n` +
+      warnings.map(warning => `• ${warning}`).join('\n')
+    );
+  }
+
+  return report;
+}
+
+async function getWatchdogReport() {
+  const memoryTotal = os.totalmem();
+  const memoryFree = os.freemem();
+  const memoryUsed = memoryTotal - memoryFree;
+  const memoryUsedPercent = Math.round((memoryUsed / memoryTotal) * 100);
+  const disk = await getDiskUsage(WATCHDOG_PATH);
+  const warnings = [];
+
+  if (memoryUsedPercent >= WATCHDOG_THRESHOLD) {
+    warnings.push(`RAM usage is ${memoryUsedPercent}% (threshold ${WATCHDOG_THRESHOLD}%)`);
+  }
+  if (disk.usedPercent >= WATCHDOG_THRESHOLD) {
+    warnings.push(`Disk usage is ${disk.usedPercent}% on ${disk.path} (threshold ${WATCHDOG_THRESHOLD}%)`);
+  }
+
+  return {
+    threshold: WATCHDOG_THRESHOLD,
+    memory: {
+      total: memoryTotal,
+      free: memoryFree,
+      used: memoryUsed,
+      usedPercent: memoryUsedPercent
+    },
+    disk,
+    warnings
+  };
+}
+
+function getDiskUsage(targetPath) {
+  return new Promise((resolve) => {
+    execFile('df', ['-Pk', targetPath], { timeout: 10000 }, (error, stdout) => {
+      if (error) {
+        resolve({
+          path: targetPath,
+          totalKb: 0,
+          usedKb: 0,
+          availableKb: 0,
+          usedPercent: 0,
+          error: error.message
+        });
+        return;
+      }
+
+      const line = stdout.trim().split('\n')[1] || '';
+      const parts = line.split(/\s+/);
+      const totalKb = Number(parts[1] || 0);
+      const usedKb = Number(parts[2] || 0);
+      const availableKb = Number(parts[3] || 0);
+      const usedPercent = Number(String(parts[4] || '0').replace('%', '')) || 0;
+      resolve({
+        path: targetPath,
+        filesystem: parts[0] || 'unknown',
+        totalKb,
+        usedKb,
+        availableKb,
+        usedPercent
+      });
+    });
+  });
+}
+
+function formatBytes(bytes) {
+  const gib = bytes / 1024 / 1024 / 1024;
+  return `${gib.toFixed(1)} GiB`;
+}
+
+function selectNextIssue(issues) {
+  const openNumbers = issues.map(issue => issue.number);
+  const priorityQueue = prunePriorityQueue(openNumbers);
+  const priorityIssue = priorityQueue
+    .map(issueNumber => issues.find(issue => issue.number === issueNumber))
+    .find(Boolean);
+  return priorityIssue || issues[0];
 }
 
 async function handleApiKeyExhaustion(issueNumber, title, errorMessage) {
@@ -268,7 +425,7 @@ async function handleHumanDecision(decision, issueNumber, title, summary) {
     case 'pause':
       console.log(`⏸️ Pipeline paused by human after Issue #${issueNumber}`);
       setState('pipeline_status', 'paused');
-      await sendNotification(CHAT_ID, '⏸️ Pipeline paused. Use /pipeline resume to continue.');
+      await sendNotification(CHAT_ID, '⏸️ Pipeline paused. Use the Continue button to resume.');
       break;
 
     case 'skip':
@@ -281,7 +438,7 @@ async function handleHumanDecision(decision, issueNumber, title, summary) {
       await sendNotification(CHAT_ID, 
         `🤖 *Change Model*\n` +
         `Current: \`${getState('current_model')}\`\n` +
-        `Reply with: /model gpt-5.5-xhigh`
+        `Open Settings → Model to change it.`
       );
       const afterModelPrompt = generateSummaryMessage(issueNumber, title, { output: [], duration: 'N/A' }, getState('current_model'));
       const afterModelDecision = await sendCompletionPrompt(CHAT_ID, afterModelPrompt);

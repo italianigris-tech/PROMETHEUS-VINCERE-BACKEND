@@ -1,7 +1,24 @@
 const TelegramBot = require('node-telegram-bot-api');
 const fs = require('fs');
 const path = require('path');
-const { getState, setState, getCurrentIssue, setCurrentIssue } = require('./database');
+const os = require('os');
+const { execFile } = require('child_process');
+const {
+  getState,
+  setState,
+  getCurrentIssue,
+  setCurrentIssue,
+  inspectActiveIssueState,
+  setPipelineOperator,
+  clearPipelineOperator,
+  normalizeOperator,
+  getPriorityQueue,
+  prioritizeIssue,
+  prunePriorityQueue,
+  getBatchRemaining,
+  setBatchRemaining,
+  getStats
+} = require('./database');
 const {
   runCodexPrompt,
   stopCodex,
@@ -20,6 +37,10 @@ const OUT_LOG = path.join(LOG_DIR, 'out.log');
 const ERR_LOG = path.join(LOG_DIR, 'err.log');
 const MAX_LOG_CHARS = 2200;
 const MAX_TRACKED_MESSAGES_PER_CHAT = 40;
+const DIFF_STREAM_INTERVAL = (parseInt(process.env.DIFF_STREAM_INTERVAL_SECONDS, 10) || 30) * 1000;
+const DIFF_STREAM_WORKDIR = process.env.CODEX_WORKDIR || process.cwd();
+const WATCHDOG_THRESHOLD = parseInt(process.env.WATCHDOG_THRESHOLD_PERCENT, 10) || 80;
+const WATCHDOG_PATH = process.env.WATCHDOG_DISK_PATH || DIFF_STREAM_WORKDIR;
 
 let bot;
 let messageCallbacks = new Map();
@@ -27,6 +48,7 @@ let pendingInputs = new Map();
 let trackedBotMessages = new Map();
 let pollingRetryTimer = null;
 let pollingRetryDelay = 5000;
+let diffStream = null;
 
 function initBot() {
   if (!TOKEN) {
@@ -51,164 +73,6 @@ function initBot() {
     await sendControlPanel(chatId, msg.from.first_name || 'there');
   });
 
-  bot.onText(/\/panel/, async (msg) => {
-    if (!isAuthorized(msg.chat.id)) return;
-    await sendControlPanel(msg.chat.id, msg.from.first_name || 'there');
-  });
-
-  bot.onText(/\/status/, (msg) => {
-    if (!isAuthorized(msg.chat.id)) return;
-    sendStatus(msg.chat.id);
-  });
-
-  bot.onText(/\/issues/, async (msg) => {
-    if (!isAuthorized(msg.chat.id)) return;
-    const { getOpenIssues } = require('./github');
-    const issues = await getOpenIssues();
-    
-    let text = `📋 *OPEN ISSUES (${issues.length})*\n━━━━━━━━━━━━━━━━━━━━━━\n`;
-    for (const issue of issues.slice(0, 15)) {
-      text += `#${issue.number}: ${escapeMarkdown(issue.title.substring(0, 50))}${issue.title.length > 50 ? '...' : ''}\n`;
-    }
-    if (issues.length > 15) text += `\n...and ${issues.length - 15} more`;
-    
-    sendTrackedMessage(msg.chat.id, text, { parse_mode: 'Markdown' });
-  });
-
-  bot.onText(/\/model(?:\s+(\S+))?/, (msg, match) => {
-    if (!isAuthorized(msg.chat.id)) return;
-    const newModel = match[1];
-    
-    if (!newModel) {
-      const current = getState('current_model') || 'gpt-5.5';
-      sendTrackedMessage(msg.chat.id,
-        `🤖 *Current model:* \`${current}\`\n\n` +
-        `Available models:\n` +
-        `• gpt-5.4\n` +
-        `• gpt-5.5\n` +
-        `• gpt-5.5-high\n` +
-        `• gpt-5.5-xhigh\n\n` +
-        `To change: /model gpt-5.5-xhigh`,
-        { parse_mode: 'Markdown' }
-      );
-    } else {
-      const validModels = ['gpt-5.4', 'gpt-5.5', 'gpt-5.5-high', 'gpt-5.5-xhigh'];
-      if (!validModels.includes(newModel)) {
-        sendTrackedMessage(msg.chat.id, `Invalid model. Use: ${validModels.join(', ')}`);
-        return;
-      }
-      setState('current_model', newModel);
-      sendTrackedMessage(msg.chat.id, `✅ Model set to \`${newModel}\``, { parse_mode: 'Markdown' });
-    }
-  });
-
-  bot.onText(/\/key(?:\s+(\S+))?/, async (msg, match) => {
-    if (!isAuthorized(msg.chat.id)) return;
-    const newKey = match[1];
-
-    if (!newKey) {
-      await askForInput(
-        msg.chat.id,
-        'api_key',
-        '🔑 *API Key Update*\nSend the new Codex/OpenAI API key in your next message.\n\nUse /cancel to abort.'
-      );
-      return;
-    }
-    
-    await updateApiKeyFromMessage(msg.chat.id, msg.message_id, newKey);
-  });
-
-  bot.onText(/\/pipeline\s+(start|pause|resume|stop)/, (msg, match) => {
-    if (!isAuthorized(msg.chat.id)) return;
-    const action = match[1];
-    
-    if (action === 'start') {
-      setState('pipeline_status', 'running');
-      sendTrackedMessage(msg.chat.id, '▶️ Pipeline started. Processing next issue...');
-    } else if (action === 'pause') {
-      setState('pipeline_status', 'paused');
-      sendTrackedMessage(msg.chat.id, '⏸️ Pipeline will pause after the current issue completes.');
-    } else if (action === 'resume') {
-      setState('pipeline_status', 'running');
-      sendTrackedMessage(msg.chat.id, '▶️ Pipeline resumed.');
-    } else if (action === 'stop') {
-      setState('pipeline_status', 'stopped');
-      sendTrackedMessage(msg.chat.id, '⏹️ Pipeline stopped.');
-    }
-  });
-
-  bot.onText(/\/history/, (msg) => {
-    if (!isAuthorized(msg.chat.id)) return;
-    const { getIssueHistory } = require('./database');
-    const history = getIssueHistory();
-    
-    let text = `📜 *ISSUE HISTORY*\n━━━━━━━━━━━━━━━━━━━━━━\n`;
-    if (history.length === 0) {
-      text += '_No completed issues yet._';
-    } else {
-      for (const issue of history.slice(0, 10)) {
-        const status = issue.status === 'completed' ? '✅' : '❌';
-        text += `${status} #${issue.issue_number}: ${escapeMarkdown(issue.title?.substring(0, 40) || 'Untitled')}\n`;
-      }
-    }
-    
-    sendTrackedMessage(msg.chat.id, text, { parse_mode: 'Markdown' });
-  });
-
-  bot.onText(/\/logs(?:\s+(technical|simple))?/, async (msg, match) => {
-    if (!isAuthorized(msg.chat.id)) return;
-    await sendLogs(msg.chat.id, match[1] === 'technical' ? 'technical' : 'simple');
-  });
-
-  bot.onText(/\/codex(?:\s+(logs|status))?(?:\s+(technical|simple))?/, async (msg, match) => {
-    if (!isAuthorized(msg.chat.id)) return;
-    if (match[1] === 'logs') {
-      await maybeWarnCodexLiveDuringRun(msg.chat.id);
-      await sendCodexActivity(msg.chat.id, match[2] === 'technical' ? 'technical' : 'simple');
-      return;
-    }
-    await sendCodexStatus(msg.chat.id);
-  });
-
-  bot.onText(/\/prompt(?:\s+([\s\S]+))?/, async (msg, match) => {
-    if (!isAuthorized(msg.chat.id)) return;
-    const prompt = match[1]?.trim();
-    if (await warnIfCodexRunning(msg.chat.id)) return;
-
-    if (!prompt) {
-      await askForInput(
-        msg.chat.id,
-        'codex_prompt',
-        '💬 *Send Prompt to Codex*\nSend the prompt in your next message.\n\nUse /cancel to abort.'
-      );
-      return;
-    }
-    await runPromptFromTelegram(msg.chat.id, prompt, 'Manual Telegram prompt');
-  });
-
-  bot.onText(/\/doctor/, async (msg) => {
-    if (!isAuthorized(msg.chat.id)) return;
-    await sendDoctorConfirmation(msg.chat.id);
-  });
-
-  bot.onText(/\/cancel/, async (msg) => {
-    if (!isAuthorized(msg.chat.id)) return;
-    const hadPendingInput = pendingInputs.delete(msg.chat.id);
-    try {
-      const result = await stopCodex('telegram_cancel', { silentIfMissing: true });
-
-      if (result.stopped) {
-        await sendStopCodexResult(msg.chat.id, result);
-        return;
-      }
-    } catch (error) {
-      await sendTrackedMessage(msg.chat.id, `Unable to stop Codex: ${escapeMarkdown(error.message)}`, { parse_mode: 'Markdown' });
-      return;
-    }
-
-    await sendTrackedMessage(msg.chat.id, hadPendingInput ? 'Cancelled.' : 'No Codex process is currently running.');
-  });
-
   bot.on('message', async (msg) => {
     await handlePendingInputMessage(msg);
   });
@@ -225,6 +89,11 @@ function initBot() {
     if (data === 'logs:refresh' || data === 'logs:refresh:simple' || data === 'logs:refresh:technical') {
       await bot.answerCallbackQuery(query.id, { text: 'Refreshing logs' });
       await refreshLogsMessage(query.message, data.endsWith(':technical') ? 'technical' : 'simple');
+      return;
+    }
+
+    if (data.startsWith('help:')) {
+      await handleHelpAction(query);
       return;
     }
 
@@ -293,31 +162,41 @@ function controlPanelKeyboard() {
       [
         { text: '▶️ Start', callback_data: 'panel:pipeline:start' },
         { text: '⏸️ Pause', callback_data: 'panel:pipeline:pause' },
-        { text: '➡️ Continue', callback_data: 'panel:pipeline:resume' }
+        { text: '❓', callback_data: 'help:main:pipeline' }
       ],
       [
+        { text: '➡️ Continue', callback_data: 'panel:pipeline:resume' },
         { text: '🛑 Stop Codex', callback_data: 'panel:codex_stop' },
+        { text: '❓', callback_data: 'help:main:runtime' }
+      ],
+      [
         { text: '⛔ Stop All', callback_data: 'panel:stop_all' },
-        { text: '🤖 Codex State', callback_data: 'panel:codex_status' }
+        { text: '❌ Cancel', callback_data: 'panel:cancel' },
+        { text: '❓', callback_data: 'help:main:stop' }
       ],
       [
-        { text: '📊 Status', callback_data: 'panel:status' }
+        { text: '📊 Status', callback_data: 'panel:status' },
+        { text: '📋 Queue', callback_data: 'panel:queue' },
+        { text: '❓', callback_data: 'help:main:status_queue' }
       ],
       [
-        { text: '📜 Logs', callback_data: 'panel:logs:simple' },
-        { text: '🧾 Codex Live', callback_data: 'panel:codex_logs:simple' }
+        { text: '📊 Stats', callback_data: 'panel:stats' },
+        { text: '🩺 Doctor', callback_data: 'panel:doctor' },
+        { text: '❓', callback_data: 'help:main:stats_doctor' }
       ],
       [
-        { text: '💬 Prompt Codex', callback_data: 'panel:prompt' },
-        { text: '🩺 Doctor', callback_data: 'panel:doctor' }
+        { text: '💬 Prompt', callback_data: 'panel:prompt' },
+        { text: '📜 Logs', callback_data: 'panel:logs' },
+        { text: '❓', callback_data: 'help:main:prompt_logs' }
       ],
       [
-        { text: '🔑 API Key', callback_data: 'panel:key' },
-        { text: '🤖 Model', callback_data: 'panel:model' },
-        { text: '🧹 Clear', callback_data: 'panel:clear' }
+        { text: '⚙️ Settings', callback_data: 'panel:settings' },
+        { text: '❔ Help', callback_data: 'panel:help' },
+        { text: '❓', callback_data: 'help:main:settings_help' }
       ],
       [
-        { text: '🔄 Refresh', callback_data: 'panel:refresh' }
+        { text: '🔄 Refresh', callback_data: 'panel:refresh' },
+        { text: '❓', callback_data: 'help:main:refresh' }
       ]
     ]
   };
@@ -353,6 +232,30 @@ async function handlePanelAction(query) {
     return;
   }
 
+  if (data === 'panel:queue') {
+    await bot.answerCallbackQuery(query.id, { text: 'Queue' });
+    await sendQueuePanel(chatId);
+    return;
+  }
+
+  if (data === 'panel:stats') {
+    await bot.answerCallbackQuery(query.id, { text: 'Stats' });
+    await sendStatsPanel(chatId);
+    return;
+  }
+
+  if (data === 'panel:settings') {
+    await bot.answerCallbackQuery(query.id, { text: 'Settings' });
+    await sendSettingsPanel(chatId);
+    return;
+  }
+
+  if (data === 'panel:help') {
+    await bot.answerCallbackQuery(query.id, { text: 'Help' });
+    await sendHelpPanel(chatId);
+    return;
+  }
+
   if (data === 'panel:codex_status') {
     await bot.answerCallbackQuery(query.id, { text: 'Codex status' });
     await sendCodexStatus(chatId);
@@ -360,8 +263,8 @@ async function handlePanelAction(query) {
   }
 
   if (data === 'panel:logs') {
-    await bot.answerCallbackQuery(query.id, { text: 'Opening logs' });
-    await sendLogs(chatId, 'simple');
+    await bot.answerCallbackQuery(query.id, { text: 'Logs' });
+    await sendLogsPanel(chatId);
     return;
   }
 
@@ -400,20 +303,26 @@ async function handlePanelAction(query) {
     await askForInput(
       chatId,
       'codex_prompt',
-      '💬 *Send Prompt to Codex*\nSend the prompt in your next message.\n\nUse /cancel to abort.'
+      '💬 *Send Prompt to Codex*\nSend the prompt in your next message.\n\nUse the Cancel button below to abort.'
     );
     return;
   }
 
   if (data === 'panel:doctor') {
-    await bot.answerCallbackQuery(query.id, { text: 'Confirm doctor run' });
-    await sendDoctorConfirmation(chatId);
+    await bot.answerCallbackQuery(query.id, { text: 'Doctor' });
+    await sendDoctorPanel(chatId);
+    return;
+  }
+
+  if (data === 'panel:watchdog') {
+    await bot.answerCallbackQuery(query.id, { text: 'Watchdog' });
+    await sendWatchdog(chatId);
     return;
   }
 
   if (data === 'panel:doctor:confirm') {
     await bot.answerCallbackQuery(query.id, { text: 'Doctor started' });
-    await runDoctor(chatId);
+    await runDoctor(chatId, operatorFromQuery(query));
     return;
   }
 
@@ -428,14 +337,63 @@ async function handlePanelAction(query) {
     await askForInput(
       chatId,
       'api_key',
-      '🔑 *API Key Update*\nSend the new Codex/OpenAI API key in your next message.\n\nThe active key will switch immediately. Use /cancel to abort.'
+      '🔑 *API Key Update*\nSend the new Codex/OpenAI API key in your next message.\n\nUse the Cancel button below to abort.'
     );
     return;
   }
 
-  if (data === 'panel:model') {
-    await bot.answerCallbackQuery(query.id, { text: 'Choose model' });
-    await sendModelPicker(chatId);
+  if (data === 'panel:cancel') {
+    await bot.answerCallbackQuery(query.id, { text: 'Cancelling' });
+    await cancelCurrentOperation(chatId);
+    return;
+  }
+
+  if (data === 'panel:back') {
+    await bot.answerCallbackQuery(query.id, { text: 'Main panel' });
+    await sendControlPanel(chatId);
+    return;
+  }
+
+  if (data === 'panel:queue:priority') {
+    await bot.answerCallbackQuery(query.id, { text: 'Priority picker' });
+    await sendPriorityPicker(chatId);
+    return;
+  }
+
+  if (data === 'panel:queue:batch') {
+    await bot.answerCallbackQuery(query.id, { text: 'Batch picker' });
+    await sendBatchPicker(chatId);
+    return;
+  }
+
+  if (data.startsWith('panel:priority:')) {
+    const issueNumber = parseInt(data.replace('panel:priority:', ''), 10);
+    await prioritizeIssueFromPanel(chatId, issueNumber);
+    await bot.answerCallbackQuery(query.id, { text: `Priority #${issueNumber}` });
+    return;
+  }
+
+  if (data.startsWith('panel:batch:')) {
+    const count = parseInt(data.replace('panel:batch:', ''), 10);
+    setBatchRemaining(count);
+    setPipelineOperator(operatorFromQuery(query));
+    setState('pipeline_status', 'running');
+    await bot.answerCallbackQuery(query.id, { text: `Batch ${count}` });
+    await sendTrackedMessage(chatId, `🔢 Batch mode armed for ${count} issue${count === 1 ? '' : 's'}. Pipeline started.`, {
+      reply_markup: queuePanelKeyboard()
+    });
+    return;
+  }
+
+  if (data === 'panel:stats:history') {
+    await bot.answerCallbackQuery(query.id, { text: 'History' });
+    await sendHistory(chatId);
+    return;
+  }
+
+  if (data === 'panel:doctor:health') {
+    await bot.answerCallbackQuery(query.id, { text: 'Health' });
+    await sendHealth(chatId);
     return;
   }
 
@@ -452,15 +410,62 @@ async function handlePanelAction(query) {
     return;
   }
 
+  if (data === 'panel:model') {
+    await bot.answerCallbackQuery(query.id, { text: 'Choose model' });
+    await sendModelPicker(chatId);
+    return;
+  }
+
   if (data.startsWith('panel:pipeline:')) {
     const action = data.replace('panel:pipeline:', '');
-    await setPipelineAction(chatId, action);
+    await setPipelineAction(chatId, action, operatorFromQuery(query));
     await bot.answerCallbackQuery(query.id, { text: `Pipeline ${action}` });
     return;
   }
 
   await bot.answerCallbackQuery(query.id, { text: 'Unknown action' });
 }
+
+async function handleHelpAction(query) {
+  const helpKey = query.data.replace('help:', '');
+  const text = HELP_TEXT[helpKey] || 'No help is registered for this row yet.';
+
+  if (text.length <= 180) {
+    await bot.answerCallbackQuery(query.id, { text, show_alert: true });
+    return;
+  }
+
+  await bot.answerCallbackQuery(query.id, { text: 'Help opened' });
+  await sendTrackedMessage(query.message.chat.id, `❓ *Help*\n${escapeMarkdown(text)}`, { parse_mode: 'Markdown' });
+}
+
+const HELP_TEXT = {
+  'main:pipeline': 'Start begins issue processing. Pause stops after the current job.',
+  'main:runtime': 'Continue resumes a paused pipeline. Stop Codex kills only the active Codex process.',
+  'main:stop': 'Stop All pauses the pipeline and stops Codex. Cancel clears pending input and stops Codex if one is running.',
+  'main:status_queue': 'Status shows live pipeline/Codex state. Queue opens issue order, priority, and batch controls.',
+  'main:stats_doctor': 'Stats shows lifetime usage. Doctor opens health checks and a guarded Codex doctor run.',
+  'main:prompt_logs': 'Prompt sends a one-off Codex task. Logs opens system and Codex activity views.',
+  'main:settings_help': 'Settings contains model/API key/watchdog/cleanup controls. Help opens the command-free guide.',
+  'main:refresh': 'Refresh updates this control panel message.',
+  'queue:actions': 'Priority moves an issue to the front. Batch runs the next N issues back-to-back. Refresh reloads the queue.',
+  'queue:nav': 'Back returns to the main control panel.',
+  'priority:list': 'Choose an issue number to move it to the front of the queue.',
+  'batch:sizes': 'Choose how many issues to process automatically before pausing.',
+  'stats:actions': 'Refresh recalculates stats from SQLite. History shows recent issue outcomes.',
+  'stats:nav': 'Back returns to the main control panel.',
+  'doctor:actions': 'Health checks DB/runtime consistency. Watchdog checks EC2 disk and RAM. Run Doctor starts a Codex inspection.',
+  'doctor:nav': 'Back returns to the main control panel.',
+  'logs:actions': 'System Logs reads PM2 out/err logs. Codex Live shows recent Codex events.',
+  'logs:mode': 'Simple mode summarizes. Technical mode shows rawer tails and events.',
+  'settings:actions': 'Model changes Codex model. API Key starts secure key input. Clear removes recent bot messages.',
+  'settings:nav': 'Back returns to the main control panel.',
+  'model:choices': 'Pick the model for future Codex runs.',
+  'input:cancel': 'Cancel abandons the pending input request.',
+  'completion:review': 'View details shows raw output. Continue closes the issue and resumes processing.',
+  'completion:control': 'Redo retries the issue. Pause stops after this issue.',
+  'completion:finish': 'Change Model opens model guidance. Skip comments on the issue and moves on.'
+};
 
 function attachPollingLifecycleHandlers(activeBot) {
   activeBot.on('polling_error', (error) => {
@@ -510,6 +515,100 @@ async function sendTrackedMessage(chatId, text, options = {}) {
   return sent;
 }
 
+async function startDiffStream(chatId, label, operator = null) {
+  if (!bot || !chatId) return null;
+
+  stopDiffStream();
+
+  const stream = {
+    chatId,
+    label,
+    operator: normalizeOperator(operator),
+    startedAt: Date.now(),
+    messageId: null,
+    timer: null,
+    updating: false
+  };
+  diffStream = stream;
+
+  const sent = await sendTrackedMessage(chatId, buildDiffStreamText(stream, 'Starting diff stream...'), {
+    parse_mode: 'Markdown'
+  });
+  stream.messageId = sent.message_id;
+
+  await refreshDiffStream();
+  stream.timer = setInterval(refreshDiffStream, DIFF_STREAM_INTERVAL);
+  return stream;
+}
+
+function stopDiffStream(finalText = null) {
+  if (!diffStream) return;
+  if (diffStream.timer) {
+    clearInterval(diffStream.timer);
+  }
+  const stream = diffStream;
+  diffStream = null;
+
+  if (finalText && bot && stream.messageId) {
+    safeEditMessageText(finalText, {
+      chat_id: stream.chatId,
+      message_id: stream.messageId,
+      parse_mode: 'Markdown'
+    }).catch(error => console.warn('[telegram] Unable to finalize diff stream:', formatError(error)));
+  }
+}
+
+async function refreshDiffStream() {
+  const stream = diffStream;
+  if (!stream || stream.updating || !stream.messageId) return;
+  stream.updating = true;
+
+  try {
+    const stat = await readGitDiffStat(DIFF_STREAM_WORKDIR);
+    await safeEditMessageText(buildDiffStreamText(stream, stat), {
+      chat_id: stream.chatId,
+      message_id: stream.messageId,
+      parse_mode: 'Markdown'
+    });
+  } catch (error) {
+    await safeEditMessageText(buildDiffStreamText(stream, `Unable to read git diff: ${error.message}`), {
+      chat_id: stream.chatId,
+      message_id: stream.messageId,
+      parse_mode: 'Markdown'
+    });
+  } finally {
+    stream.updating = false;
+  }
+}
+
+function readGitDiffStat(workdir) {
+  return new Promise((resolve, reject) => {
+    execFile('git', ['diff', '--stat'], { cwd: workdir, timeout: 10000 }, (error, stdout, stderr) => {
+      if (error) {
+        reject(new Error(stderr?.trim() || error.message));
+        return;
+      }
+      resolve(stdout.trim() || 'No working tree diff yet.');
+    });
+  });
+}
+
+function buildDiffStreamText(stream, stat) {
+  const owner = formatOperatorMention(stream.operator);
+  const elapsedSeconds = Math.max(0, Math.round((Date.now() - stream.startedAt) / 1000));
+  const safeStat = String(stat || 'No working tree diff yet.').slice(-2200);
+
+  return (
+    `🧾 *LIVE DIFF STREAM*\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `Task: ${escapeMarkdown(stream.label || 'Codex run')}\n` +
+    `${owner ? `Operator: ${escapeMarkdown(owner)}\n` : ''}` +
+    `Elapsed: ${elapsedSeconds}s\n` +
+    `Updated: \`${new Date().toISOString()}\`\n\n` +
+    `\`\`\`\n${escapeCodeBlock(safeStat)}\n\`\`\``
+  ).slice(0, 3900);
+}
+
 function trackMessage(chatId, messageId) {
   if (!messageId) return;
   const key = chatId.toString();
@@ -543,7 +642,10 @@ async function askForInput(chatId, type, prompt) {
     createdAt: Date.now()
   });
 
-  await sendTrackedMessage(chatId, prompt, { parse_mode: 'Markdown' });
+  await sendTrackedMessage(chatId, prompt, {
+    parse_mode: 'Markdown',
+    reply_markup: inputCancelKeyboard()
+  });
 }
 
 async function handlePendingInputMessage(msg) {
@@ -566,7 +668,7 @@ async function handlePendingInputMessage(msg) {
   }
 
   if (pending.type === 'codex_prompt') {
-    await runPromptFromTelegram(msg.chat.id, msg.text.trim(), 'Manual Telegram prompt');
+    await runPromptFromTelegram(msg.chat.id, msg.text.trim(), 'Manual Telegram prompt', operatorFromMessage(msg));
     return;
   }
 }
@@ -594,8 +696,9 @@ async function deleteSensitiveMessage(chatId, messageId) {
   }
 }
 
-async function setPipelineAction(chatId, action) {
+async function setPipelineAction(chatId, action, operator = null) {
   if (action === 'start' || action === 'resume') {
+    setPipelineOperator(operator || { chatId });
     setState('pipeline_status', 'running');
     await sendTrackedMessage(chatId, action === 'start' ? '▶️ Pipeline started.' : '➡️ Pipeline resumed.');
     return;
@@ -608,6 +711,7 @@ async function setPipelineAction(chatId, action) {
   }
 
   if (action === 'stop') {
+    clearPipelineOperator();
     setState('pipeline_status', 'stopped');
     await sendTrackedMessage(chatId, '⏹️ Pipeline stopped.');
   }
@@ -633,15 +737,37 @@ function describeRunningCodex(codex) {
   return 'Codex process';
 }
 
+function operatorFromMessage(msg) {
+  return normalizeOperator({
+    chatId: msg.chat?.id,
+    user: msg.from
+  });
+}
+
+function operatorFromQuery(query) {
+  return normalizeOperator({
+    chatId: query.message?.chat?.id,
+    user: query.from
+  });
+}
+
+function formatOperatorMention(operator) {
+  const normalized = normalizeOperator(operator);
+  if (!normalized) return '';
+  return normalized.username ? `@${normalized.username}` : normalized.displayName;
+}
+
 async function warnIfCodexRunning(chatId) {
   const codex = getCodexRuntimeStatus();
   if (codex.state !== 'running') {
     return false;
   }
 
+  const owner = formatOperatorMention(codex.activeRun?.operator || codex.activeRun?.lock?.operator);
   await sendTrackedMessage(
     chatId,
-    `⚠️ Codex is already running${codex.pid ? ` (PID: ${codex.pid})` : ''}. Stop it before starting another prompt.`,
+    `🔒 Codex is busy${owner ? `, started by ${escapeMarkdown(owner)}` : ''}${codex.pid ? ` (PID: ${codex.pid})` : ''}.\n` +
+    `${escapeMarkdown(describeRunningCodex(codex))}`,
     { parse_mode: 'Markdown' }
   );
   return true;
@@ -670,6 +796,28 @@ async function stopCodexFromTelegram(chatId, reason = 'telegram_stop_codex') {
     await sendTrackedMessage(chatId, `Unable to stop Codex: ${escapeMarkdown(error.message)}`, { parse_mode: 'Markdown' });
     return { stopped: false, error };
   }
+}
+
+async function cancelCurrentOperation(chatId) {
+  const hadPendingInput = pendingInputs.delete(chatId);
+
+  try {
+    const result = await stopCodex('telegram_cancel', { silentIfMissing: true });
+    if (result.stopped) {
+      await sendStopCodexResult(chatId, result);
+      return;
+    }
+  } catch (error) {
+    await sendTrackedMessage(chatId, `Unable to stop Codex: ${escapeMarkdown(error.message)}`, {
+      parse_mode: 'Markdown',
+      reply_markup: controlPanelKeyboard()
+    });
+    return;
+  }
+
+  await sendTrackedMessage(chatId, hadPendingInput ? 'Cancelled pending input.' : 'Nothing is waiting for input, and Codex is not running.', {
+    reply_markup: controlPanelKeyboard()
+  });
 }
 
 async function stopAllFromTelegram(chatId) {
@@ -711,15 +859,97 @@ async function sendModelPicker(chatId) {
       inline_keyboard: [
         [
           { text: 'gpt-5.5', callback_data: 'panel:model:gpt-5.5' },
-          { text: 'gpt-5.5-high', callback_data: 'panel:model:gpt-5.5-high' }
+          { text: 'gpt-5.5-high', callback_data: 'panel:model:gpt-5.5-high' },
+          { text: '❓', callback_data: 'help:model:choices' }
         ],
         [
           { text: 'gpt-5.5-xhigh', callback_data: 'panel:model:gpt-5.5-xhigh' },
-          { text: 'gpt-5.4', callback_data: 'panel:model:gpt-5.4' }
+          { text: 'gpt-5.4', callback_data: 'panel:model:gpt-5.4' },
+          { text: '❓', callback_data: 'help:model:choices' }
+        ],
+        [
+          { text: '⬅️ Back', callback_data: 'panel:settings' },
+          { text: '❓', callback_data: 'help:settings:nav' }
         ]
       ]
     }
   });
+}
+
+async function sendSettingsPanel(chatId) {
+  await sendTrackedMessage(chatId,
+    `⚙️ *SETTINGS*\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `Model: \`${escapeMarkdown(getState('current_model') || 'gpt-5.5')}\`\n` +
+    `API key: \`...${escapeMarkdown(getKeySuffix(getCurrentApiKey()))}\`\n\n` +
+    `Change runtime settings or clean up recent bot messages.`,
+    {
+      parse_mode: 'Markdown',
+      reply_markup: settingsPanelKeyboard()
+    }
+  );
+}
+
+function settingsPanelKeyboard() {
+  return {
+    inline_keyboard: [
+      [
+        { text: '🤖 Model', callback_data: 'panel:model' },
+        { text: '🔑 API Key', callback_data: 'panel:key' },
+        { text: '❓', callback_data: 'help:settings:actions' }
+      ],
+      [
+        { text: '🧹 Clear', callback_data: 'panel:clear' },
+        { text: '⬅️ Back', callback_data: 'panel:back' },
+        { text: '❓', callback_data: 'help:settings:nav' }
+      ]
+    ]
+  };
+}
+
+async function sendHelpPanel(chatId) {
+  await sendTrackedMessage(chatId,
+    `❔ *PROMETHEUS HELP*\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `Use the inline panels instead of slash commands. Each button row has a ❓ button explaining that row.\n\n` +
+    `Main areas:\n` +
+    `• Pipeline controls start, pause, resume, or stop work.\n` +
+    `• Queue controls priority and batch mode.\n` +
+    `• Doctor checks health and EC2 pressure.\n` +
+    `• Settings manages model and API key updates.`,
+    {
+      parse_mode: 'Markdown',
+      reply_markup: helpPanelKeyboard()
+    }
+  );
+}
+
+function helpPanelKeyboard() {
+  return {
+    inline_keyboard: [
+      [
+        { text: '📋 Queue', callback_data: 'panel:queue' },
+        { text: '🩺 Doctor', callback_data: 'panel:doctor' },
+        { text: '❓', callback_data: 'help:main:status_queue' }
+      ],
+      [
+        { text: '⚙️ Settings', callback_data: 'panel:settings' },
+        { text: '⬅️ Back', callback_data: 'panel:back' },
+        { text: '❓', callback_data: 'help:main:settings_help' }
+      ]
+    ]
+  };
+}
+
+function inputCancelKeyboard() {
+  return {
+    inline_keyboard: [
+      [
+        { text: '❌ Cancel', callback_data: 'panel:cancel' },
+        { text: '❓', callback_data: 'help:input:cancel' }
+      ]
+    ]
+  };
 }
 
 async function sendDoctorConfirmation(chatId) {
@@ -736,25 +966,32 @@ async function sendDoctorConfirmation(chatId) {
     {
       parse_mode: 'Markdown',
       reply_markup: {
-        inline_keyboard: [[
-          { text: 'Run Doctor', callback_data: 'panel:doctor:confirm' },
-          { text: 'Cancel', callback_data: 'panel:doctor:cancel' }
-        ]]
+        inline_keyboard: [
+          [
+            { text: 'Run Doctor', callback_data: 'panel:doctor:confirm' },
+            { text: 'Cancel', callback_data: 'panel:doctor:cancel' },
+            { text: '❓', callback_data: 'help:doctor:actions' }
+          ],
+          [
+            { text: '⬅️ Back', callback_data: 'panel:doctor' },
+            { text: '❓', callback_data: 'help:doctor:nav' }
+          ]
+        ]
       }
     }
   );
 }
 
-async function runDoctor(chatId) {
+async function runDoctor(chatId, operator = null) {
   const prompt =
     `Doctor check for the Prometheus orchestrator.\n\n` +
     `Inspect the current orchestrator in /home/ec2-user/prometheus-orchestrator and verify: PM2 lifecycle, Telegram polling, Telegram control panel, API key handling, Codex run health, and logs. ` +
     `Only make narrow fixes for concrete issues you find. Do not change business logic. Run relevant syntax checks. Report what changed and what verified.`;
 
-  await runPromptFromTelegram(chatId, prompt, 'Doctor check');
+  await runPromptFromTelegram(chatId, prompt, 'Doctor check', operator);
 }
 
-async function runPromptFromTelegram(chatId, prompt, label) {
+async function runPromptFromTelegram(chatId, prompt, label, operator = null) {
   const codex = getCodexRuntimeStatus();
   if (codex.state === 'running') {
     await sendTrackedMessage(chatId, `Codex is already running: ${escapeMarkdown(describeRunningCodex(codex))}`, { parse_mode: 'Markdown' });
@@ -767,19 +1004,34 @@ async function runPromptFromTelegram(chatId, prompt, label) {
     `Task: ${escapeMarkdown(label)}\n` +
     `Model: \`${escapeMarkdown(model)}\`\n` +
     `Key: \`...${escapeMarkdown(getKeySuffix(getCurrentApiKey()))}\`\n\n` +
-    `Use /codex logs or the Codex Activity pill to watch operational output.`,
+    `Use the Logs panel or Codex Activity button to watch operational output.`,
     { parse_mode: 'Markdown' }
   );
 
   try {
-    const result = await runCodexPrompt(prompt, { label, model, source: 'telegram' });
-    await sendTrackedMessage(chatId, buildManualCodexSummary(label, result, model), {
+    await startDiffStream(chatId, label, operator);
+    const result = await runCodexPrompt(prompt, { label, model, source: 'telegram', operator });
+    stopDiffStream(buildDiffStreamText({
+      chatId,
+      label,
+      operator: normalizeOperator(operator),
+      startedAt: Date.now()
+    }, 'Codex run completed. Use the Logs panel for the event log.'));
+    await sendTrackedMessage(chatId, buildManualCodexSummary(label, result, model, operator), {
       parse_mode: 'Markdown',
       reply_markup: postCodexKeyboard()
     });
   } catch (error) {
+    stopDiffStream(buildDiffStreamText({
+      chatId,
+      label,
+      operator: normalizeOperator(operator),
+      startedAt: Date.now()
+    }, `Codex run stopped or failed: ${error.message.slice(0, 500)}`));
+    const owner = formatOperatorMention(operator);
     await sendTrackedMessage(chatId,
       `❌ *Codex Failed*\n` +
+      `${owner ? `${escapeMarkdown(owner)} ` : ''}` +
       `${escapeMarkdown(error.message.slice(0, 1200))}\n\n` +
       `Use the API Key pill if this is a key/quota issue.`,
       { parse_mode: 'Markdown', reply_markup: controlPanelKeyboard() }
@@ -787,10 +1039,12 @@ async function runPromptFromTelegram(chatId, prompt, label) {
   }
 }
 
-function buildManualCodexSummary(label, result, model) {
+function buildManualCodexSummary(label, result, model, operator = null) {
   const parsed = parseCodexOutput(result.output);
+  const owner = formatOperatorMention(operator);
   let text =
     `✅ *Codex Complete*\n` +
+    `${owner ? `${escapeMarkdown(owner)} ` : ''}` +
     `Task: ${escapeMarkdown(label)}\n` +
     `Model: \`${escapeMarkdown(model)}\`\n` +
     `Duration: ${result.duration}s\n\n`;
@@ -828,11 +1082,13 @@ function postCodexKeyboard() {
     inline_keyboard: [
       [
         { text: '🧾 Codex Activity', callback_data: 'panel:codex_logs' },
-        { text: '➡️ Continue Pipeline', callback_data: 'panel:pipeline:resume' }
+        { text: '➡️ Continue Pipeline', callback_data: 'panel:pipeline:resume' },
+        { text: '❓', callback_data: 'help:main:runtime' }
       ],
       [
         { text: '📊 Status', callback_data: 'panel:status' },
-        { text: '💬 Prompt Again', callback_data: 'panel:prompt' }
+        { text: '💬 Prompt Again', callback_data: 'panel:prompt' },
+        { text: '❓', callback_data: 'help:main:prompt_logs' }
       ]
     ]
   };
@@ -853,6 +1109,8 @@ async function sendStatus(chatId) {
   const model = getState('current_model') || 'gpt-5.5';
   const keyCount = getKeyCount();
   const codex = getCodexRuntimeStatus();
+  const batchRemaining = getBatchRemaining();
+  const priorityQueue = getPriorityQueue();
   
   let text = `📊 *SYSTEM STATUS*\n━━━━━━━━━━━━━━━━━━━━━━\n`;
   text += `${humanSystemStatusLine(status, codex)}\n\n`;
@@ -860,6 +1118,8 @@ async function sendStatus(chatId) {
   text += `Codex: *${escapeMarkdown(formatCodexStatusSummary(codex))}*\n`;
   text += `Model: \`${escapeMarkdown(model)}\`\n`;
   text += `API keys: ${keyCount} | Active: \`...${escapeMarkdown(codex.keySuffix)}\`\n`;
+  text += `Batch remaining: ${batchRemaining}\n`;
+  text += `Priority queue: ${priorityQueue.length ? priorityQueue.map(n => `#${n}`).join(', ') : 'empty'}\n`;
   
   if (current) {
     text += `\n🔄 *Current Issue:*\n`;
@@ -871,6 +1131,381 @@ async function sendStatus(chatId) {
   }
   
   await sendTrackedMessage(chatId, text, { parse_mode: 'Markdown', reply_markup: controlPanelKeyboard() });
+}
+
+async function sendQueue(chatId) {
+  const { getOpenIssues } = require('./github');
+  const issues = await getOpenIssues();
+  const priorityQueue = prunePriorityQueue(issues.map(issue => issue.number));
+  const ordered = orderIssuesForQueue(issues, priorityQueue);
+  const batchRemaining = getBatchRemaining();
+
+  let text =
+    `📋 *ISSUE QUEUE (${issues.length})*\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `Batch remaining: ${batchRemaining}\n` +
+    `Priority: ${priorityQueue.length ? priorityQueue.map(n => `#${n}`).join(', ') : 'empty'}\n\n`;
+
+  if (ordered.length === 0) {
+    text += `_No open issues match the configured GitHub filter._`;
+  } else {
+    for (const [index, issue] of ordered.slice(0, 15).entries()) {
+      const priorityMark = priorityQueue.includes(issue.number) ? ' ⚡' : '';
+      text += `${index + 1}. #${issue.number}${priorityMark} ${escapeMarkdown(issue.title.slice(0, 70))}${issue.title.length > 70 ? '...' : ''}\n`;
+    }
+    if (ordered.length > 15) {
+      text += `\n...and ${ordered.length - 15} more`;
+    }
+  }
+
+  await sendTrackedMessage(chatId, text, { parse_mode: 'Markdown', reply_markup: queuePanelKeyboard() });
+}
+
+async function sendQueuePanel(chatId) {
+  await sendQueue(chatId);
+}
+
+function queuePanelKeyboard() {
+  return {
+    inline_keyboard: [
+      [
+        { text: '⬆️ Priority', callback_data: 'panel:queue:priority' },
+        { text: '🔢 Batch', callback_data: 'panel:queue:batch' },
+        { text: '❓', callback_data: 'help:queue:actions' }
+      ],
+      [
+        { text: '🔄 Refresh', callback_data: 'panel:queue' },
+        { text: '⬅️ Back', callback_data: 'panel:back' },
+        { text: '❓', callback_data: 'help:queue:nav' }
+      ]
+    ]
+  };
+}
+
+async function sendPriorityPicker(chatId) {
+  const { getOpenIssues } = require('./github');
+  const issues = await getOpenIssues();
+  const priorityQueue = prunePriorityQueue(issues.map(issue => issue.number));
+  const ordered = orderIssuesForQueue(issues, priorityQueue).slice(0, 9);
+
+  let text =
+    `⬆️ *PRIORITY PICKER*\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `Current priority: ${priorityQueue.length ? priorityQueue.map(n => `#${n}`).join(', ') : 'empty'}\n\n`;
+
+  if (ordered.length === 0) {
+    text += `_No open issues are available._`;
+  } else {
+    text += `Choose an issue to move to the front.`;
+  }
+
+  await sendTrackedMessage(chatId, text, {
+    parse_mode: 'Markdown',
+    reply_markup: priorityPickerKeyboard(ordered)
+  });
+}
+
+function priorityPickerKeyboard(issues) {
+  const rows = [];
+  for (let index = 0; index < issues.length; index += 2) {
+    const row = issues.slice(index, index + 2).map(issue => ({
+      text: `#${issue.number}`,
+      callback_data: `panel:priority:${issue.number}`
+    }));
+    row.push({ text: '❓', callback_data: 'help:priority:list' });
+    rows.push(row);
+  }
+  rows.push([
+    { text: '⬅️ Back', callback_data: 'panel:queue' },
+    { text: '❓', callback_data: 'help:queue:nav' }
+  ]);
+  return { inline_keyboard: rows };
+}
+
+async function prioritizeIssueFromPanel(chatId, issueNumber) {
+  const { getOpenIssues } = require('./github');
+  const issues = await getOpenIssues();
+  const exists = issues.some(issue => issue.number === issueNumber);
+  if (!exists) {
+    await sendTrackedMessage(chatId, `Issue #${issueNumber} is not in the open queue.`, {
+      reply_markup: queuePanelKeyboard()
+    });
+    return;
+  }
+  prioritizeIssue(issueNumber);
+  await sendTrackedMessage(chatId, `⬆️ Issue #${issueNumber} moved to the front.`, {
+    reply_markup: queuePanelKeyboard()
+  });
+  await sendQueue(chatId);
+}
+
+async function sendBatchPicker(chatId) {
+  await sendTrackedMessage(chatId,
+    `🔢 *BATCH MODE*\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `Current batch remaining: ${getBatchRemaining()}\n\n` +
+    `Choose how many issues to process automatically before pausing.`,
+    {
+      parse_mode: 'Markdown',
+      reply_markup: batchPickerKeyboard()
+    }
+  );
+}
+
+function batchPickerKeyboard() {
+  return {
+    inline_keyboard: [
+      [
+        { text: '1', callback_data: 'panel:batch:1' },
+        { text: '3', callback_data: 'panel:batch:3' },
+        { text: '❓', callback_data: 'help:batch:sizes' }
+      ],
+      [
+        { text: '5', callback_data: 'panel:batch:5' },
+        { text: '10', callback_data: 'panel:batch:10' },
+        { text: '❓', callback_data: 'help:batch:sizes' }
+      ],
+      [
+        { text: '⬅️ Back', callback_data: 'panel:queue' },
+        { text: '❓', callback_data: 'help:queue:nav' }
+      ]
+    ]
+  };
+}
+
+async function sendStats(chatId) {
+  const stats = getStats();
+  const counts = stats.issueCounts;
+  let text =
+    `🏅 *PROMETHEUS STATS*\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `Issues processed: ${stats.lifetimeIssuesProcessed}\n` +
+    `Completed: ${counts.completed || 0} | Failed: ${counts.failed || 0} | Stopped: ${counts.stopped || 0}\n` +
+    `Codex runs: ${stats.codexRuns}\n` +
+    `Total Codex runtime: ${formatDuration(stats.totalRuntimeSeconds)}\n` +
+    `Total tokens reported: ${stats.totalTokens || 0}\n` +
+    `API key rotations: ${stats.apiKeyRotations}\n`;
+
+  if (stats.favoriteModel) {
+    text += `Favorite model: \`${escapeMarkdown(stats.favoriteModel.model)}\` (${stats.favoriteModel.count} runs)\n`;
+  } else {
+    text += `Favorite model: n/a\n`;
+  }
+
+  if (stats.mostModifiedFiles.length > 0) {
+    text += `\n*Most modified files:*\n`;
+    for (const file of stats.mostModifiedFiles) {
+      text += `• \`${escapeMarkdown(file.path)}\` (${file.count})\n`;
+    }
+  }
+
+  if (stats.lastRun) {
+    text +=
+      `\n*Last run:*\n` +
+      `${escapeMarkdown(stats.lastRun.label || 'Codex run')}\n` +
+      `Status: ${escapeMarkdown(stats.lastRun.status || 'unknown')} | Model: \`${escapeMarkdown(stats.lastRun.model || 'n/a')}\`\n`;
+  }
+
+  await sendTrackedMessage(chatId, text.slice(0, 3900), { parse_mode: 'Markdown', reply_markup: statsPanelKeyboard() });
+}
+
+async function sendStatsPanel(chatId) {
+  await sendStats(chatId);
+}
+
+function statsPanelKeyboard() {
+  return {
+    inline_keyboard: [
+      [
+        { text: '📜 History', callback_data: 'panel:stats:history' },
+        { text: '🔄 Refresh', callback_data: 'panel:stats' },
+        { text: '❓', callback_data: 'help:stats:actions' }
+      ],
+      [
+        { text: '⬅️ Back', callback_data: 'panel:back' },
+        { text: '❓', callback_data: 'help:stats:nav' }
+      ]
+    ]
+  };
+}
+
+async function sendHistory(chatId) {
+  const { getIssueHistory } = require('./database');
+  const history = getIssueHistory();
+
+  let text = `📜 *ISSUE HISTORY*\n━━━━━━━━━━━━━━━━━━━━━━\n`;
+  if (history.length === 0) {
+    text += '_No completed issues yet._';
+  } else {
+    for (const issue of history.slice(0, 10)) {
+      const status = issue.status === 'completed' ? '✅' : issue.status === 'stopped' ? '🛑' : '❌';
+      text += `${status} #${issue.issue_number}: ${escapeMarkdown(issue.title?.substring(0, 50) || 'Untitled')}\n`;
+    }
+  }
+
+  await sendTrackedMessage(chatId, text, { parse_mode: 'Markdown', reply_markup: statsPanelKeyboard() });
+}
+
+function orderIssuesForQueue(issues, priorityQueue) {
+  const priority = priorityQueue
+    .map(issueNumber => issues.find(issue => issue.number === issueNumber))
+    .filter(Boolean);
+  const priorityNumbers = new Set(priority.map(issue => issue.number));
+  return [...priority, ...issues.filter(issue => !priorityNumbers.has(issue.number))];
+}
+
+function formatDuration(seconds) {
+  const total = Math.round(Number(seconds || 0));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const secs = total % 60;
+  if (hours > 0) return `${hours}h ${minutes}m ${secs}s`;
+  if (minutes > 0) return `${minutes}m ${secs}s`;
+  return `${secs}s`;
+}
+
+async function sendHealth(chatId) {
+  const inspection = inspectActiveIssueState();
+  const codex = getCodexRuntimeStatus();
+  const current = inspection.currentIssue;
+  const watchdog = await getWatchdogSnapshot();
+
+  let text =
+    `🩺 *PROMETHEUS HEALTH*\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `State: *${inspection.ok ? 'OK' : 'MISMATCH'}*\n` +
+    `Pipeline: \`${escapeMarkdown(inspection.pipelineStatus)}\`\n` +
+    `Codex DB: \`${escapeMarkdown(inspection.codexStatus)}\`\n` +
+    `Codex runtime: *${escapeMarkdown(formatCodexStatusSummary(codex))}*\n` +
+    `Current issue pointer: \`${escapeMarkdown(inspection.currentIssueNumber || 'null')}\`\n` +
+    `RAM: ${watchdog.memory.usedPercent}% | Disk: ${watchdog.disk.usedPercent}%\n`;
+
+  if (current) {
+    text +=
+      `Issue row: #${current.issue_number} \`${escapeMarkdown(current.status)}\`\n` +
+      `Started: \`${escapeMarkdown(current.started_at || 'n/a')}\`\n`;
+  } else if (inspection.currentIssueNumber) {
+    text += `Issue row: _missing_\n`;
+  }
+
+  if (inspection.issues.length > 0) {
+    text += `\n*State mismatches:*\n`;
+    for (const issue of inspection.issues) {
+      text += `• ${escapeMarkdown(issue)}\n`;
+    }
+    text += `\nRestarting the orchestrator will run boot reconciliation, or use Stop All to clear a stale live run.`;
+  } else {
+    text += `\nNo active state mismatch detected.`;
+  }
+
+  await sendTrackedMessage(chatId, text.slice(0, 3900), { parse_mode: 'Markdown', reply_markup: doctorPanelKeyboard() });
+}
+
+async function sendWatchdog(chatId) {
+  const watchdog = await getWatchdogSnapshot();
+  let text =
+    `🧯 *EC2 WATCHDOG*\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `Threshold: ${WATCHDOG_THRESHOLD}%\n` +
+    `RAM: ${watchdog.memory.usedPercent}% used (${formatBytes(watchdog.memory.used)} / ${formatBytes(watchdog.memory.total)})\n` +
+    `Disk: ${watchdog.disk.usedPercent}% used on \`${escapeMarkdown(watchdog.disk.path)}\`\n`;
+
+  if (watchdog.warnings.length > 0) {
+    text += `\n*Warnings:*\n`;
+    for (const warning of watchdog.warnings) {
+      text += `• ${escapeMarkdown(warning)}\n`;
+    }
+  } else {
+    text += `\nNo watchdog warnings at the current threshold.`;
+  }
+
+  await sendTrackedMessage(chatId, text, { parse_mode: 'Markdown', reply_markup: doctorPanelKeyboard() });
+}
+
+async function sendDoctorPanel(chatId) {
+  const inspection = inspectActiveIssueState();
+  const codex = getCodexRuntimeStatus();
+  const text =
+    `🩺 *DOCTOR PANEL*\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `Health: *${inspection.ok ? 'OK' : 'MISMATCH'}*\n` +
+    `Codex: *${escapeMarkdown(formatCodexStatusSummary(codex))}*\n\n` +
+    `Run quick checks or start a guarded Codex doctor run.`;
+
+  await sendTrackedMessage(chatId, text, {
+    parse_mode: 'Markdown',
+    reply_markup: doctorPanelKeyboard()
+  });
+}
+
+function doctorPanelKeyboard() {
+  return {
+    inline_keyboard: [
+      [
+        { text: '🩺 Health', callback_data: 'panel:doctor:health' },
+        { text: '🧯 Watchdog', callback_data: 'panel:watchdog' },
+        { text: '❓', callback_data: 'help:doctor:actions' }
+      ],
+      [
+        { text: 'Run Doctor', callback_data: 'panel:doctor:confirm' },
+        { text: '⬅️ Back', callback_data: 'panel:back' },
+        { text: '❓', callback_data: 'help:doctor:nav' }
+      ]
+    ]
+  };
+}
+
+async function getWatchdogSnapshot() {
+  const memoryTotal = os.totalmem();
+  const memoryFree = os.freemem();
+  const memoryUsed = memoryTotal - memoryFree;
+  const memoryUsedPercent = Math.round((memoryUsed / memoryTotal) * 100);
+  const disk = await readDiskUsage(WATCHDOG_PATH);
+  const warnings = [];
+
+  if (memoryUsedPercent >= WATCHDOG_THRESHOLD) {
+    warnings.push(`RAM usage is ${memoryUsedPercent}%`);
+  }
+  if (disk.usedPercent >= WATCHDOG_THRESHOLD) {
+    warnings.push(`Disk usage is ${disk.usedPercent}%`);
+  }
+
+  return {
+    memory: {
+      total: memoryTotal,
+      used: memoryUsed,
+      free: memoryFree,
+      usedPercent: memoryUsedPercent
+    },
+    disk,
+    warnings
+  };
+}
+
+function readDiskUsage(targetPath) {
+  return new Promise((resolve) => {
+    execFile('df', ['-Pk', targetPath], { timeout: 10000 }, (error, stdout) => {
+      if (error) {
+        resolve({ path: targetPath, usedPercent: 0, error: error.message });
+        return;
+      }
+
+      const line = stdout.trim().split('\n')[1] || '';
+      const parts = line.split(/\s+/);
+      resolve({
+        path: targetPath,
+        filesystem: parts[0] || 'unknown',
+        totalKb: Number(parts[1] || 0),
+        usedKb: Number(parts[2] || 0),
+        availableKb: Number(parts[3] || 0),
+        usedPercent: Number(String(parts[4] || '0').replace('%', '')) || 0
+      });
+    });
+  });
+}
+
+function formatBytes(bytes) {
+  return `${(Number(bytes || 0) / 1024 / 1024 / 1024).toFixed(1)} GiB`;
 }
 
 async function sendCodexStatus(chatId) {
@@ -891,12 +1526,16 @@ function buildCodexStatusText(status) {
     `API keys: ${status.keyCount} | Active: \`...${escapeMarkdown(status.keySuffix)}\`\n`;
 
   if (status.activeRun) {
+    const owner = formatOperatorMention(status.activeRun.operator || status.activeRun.lock?.operator);
     text +=
       `\n*Active run:*\n` +
       `Task: ${escapeMarkdown(status.activeRun.label)}\n` +
       `PID: ${status.pid || status.activeRun?.pid || 'unknown'}\n` +
       `Started: \`${escapeMarkdown(status.activeRun.startedAt)}\`\n` +
       `Events: ${status.activeRun.eventCount}\n`;
+    if (owner) {
+      text += `Operator: ${escapeMarkdown(owner)}\n`;
+    }
     if (status.activeRun.latestEvent) {
       text += `Now: ${escapeMarkdown(status.activeRun.latestEvent)}\n`;
     }
@@ -928,6 +1567,34 @@ async function sendCodexActivity(chatId, mode = 'simple') {
   });
 }
 
+async function sendLogsPanel(chatId) {
+  await sendTrackedMessage(chatId,
+    `📜 *LOGS PANEL*\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `Open system logs or live Codex activity.`,
+    {
+      parse_mode: 'Markdown',
+      reply_markup: logsPanelKeyboard()
+    }
+  );
+}
+
+function logsPanelKeyboard() {
+  return {
+    inline_keyboard: [
+      [
+        { text: '📜 System Logs', callback_data: 'panel:logs:simple' },
+        { text: '🧾 Codex Live', callback_data: 'panel:codex_logs:simple' },
+        { text: '❓', callback_data: 'help:logs:actions' }
+      ],
+      [
+        { text: '⬅️ Back', callback_data: 'panel:back' },
+        { text: '❓', callback_data: 'help:logs:mode' }
+      ]
+    ]
+  };
+}
+
 async function refreshCodexActivity(message, mode = 'simple') {
   await safeEditMessageText(buildCodexActivityText(mode), {
     chat_id: message.chat.id,
@@ -943,10 +1610,13 @@ function codexActivityKeyboard(mode = 'simple') {
     inline_keyboard: [
       [
         { text: '🔄 Refresh', callback_data: `panel:codex_logs_refresh:${mode}` },
-        { text: mode === 'technical' ? 'Simple Mode' : 'Technical Mode', callback_data: `panel:codex_logs_refresh:${otherMode}` }
+        { text: mode === 'technical' ? 'Simple Mode' : 'Technical Mode', callback_data: `panel:codex_logs_refresh:${otherMode}` },
+        { text: '❓', callback_data: 'help:logs:mode' }
       ],
       [
-        { text: '🤖 Status', callback_data: 'panel:codex_status' }
+        { text: '🤖 Status', callback_data: 'panel:codex_status' },
+        { text: '⬅️ Back', callback_data: 'panel:logs' },
+        { text: '❓', callback_data: 'help:logs:actions' }
       ]
     ]
   };
@@ -985,11 +1655,13 @@ function buildSimpleCodexActivityText() {
     `${humanCodexStateLine(status)}\n\n`;
 
   if (status.activeRun) {
+    const owner = formatOperatorMention(status.activeRun.operator || status.activeRun.lock?.operator);
     text +=
       `*Current work:*\n` +
       `${escapeMarkdown(status.activeRun.label)}\n` +
       `PID: ${status.pid || status.activeRun?.pid || 'unknown'}\n` +
       `Started: \`${escapeMarkdown(status.activeRun.startedAt)}\`\n` +
+      `${owner ? `Operator: ${escapeMarkdown(owner)}\n` : ''}` +
       `Latest: ${escapeMarkdown(status.activeRun.latestEvent || 'waiting for the next Codex update')}\n\n`;
   } else if (status.state === 'running' && status.pid) {
     text += `*Current work:*\nPID: ${status.pid}\n\n`;
@@ -1042,10 +1714,13 @@ function logsKeyboard(mode = 'simple') {
     inline_keyboard: [
       [
         { text: '🔄 Refresh', callback_data: `logs:refresh:${mode}` },
-        { text: mode === 'technical' ? 'Simple Mode' : 'Technical Mode', callback_data: `logs:refresh:${otherMode}` }
+        { text: mode === 'technical' ? 'Simple Mode' : 'Technical Mode', callback_data: `logs:refresh:${otherMode}` },
+        { text: '❓', callback_data: 'help:logs:mode' }
       ],
       [
-        { text: '🤖 Codex Live', callback_data: 'panel:codex_status' }
+        { text: '🤖 Codex Live', callback_data: 'panel:codex_status' },
+        { text: '⬅️ Back', callback_data: 'panel:logs' },
+        { text: '❓', callback_data: 'help:logs:actions' }
       ]
     ]
   };
@@ -1313,15 +1988,18 @@ async function sendCompletionPrompt(chatId, message) {
     inline_keyboard: [
       [
         { text: '👁️ View Details', callback_data: 'view_details' },
-        { text: '✅ Continue', callback_data: 'continue' }
+        { text: '✅ Continue', callback_data: 'continue' },
+        { text: '❓', callback_data: 'help:completion:review' }
       ],
       [
         { text: '❌ Redo Issue', callback_data: 'retry' },
-        { text: '⏸️ Pause Pipeline', callback_data: 'pause' }
+        { text: '⏸️ Pause Pipeline', callback_data: 'pause' },
+        { text: '❓', callback_data: 'help:completion:control' }
       ],
       [
         { text: '🤖 Change Model', callback_data: 'change_model' },
-        { text: '📋 Skip to Next', callback_data: 'skip' }
+        { text: '📋 Skip to Next', callback_data: 'skip' },
+        { text: '❓', callback_data: 'help:completion:finish' }
       ]
     ]
   };
@@ -1353,11 +2031,9 @@ async function sendKeyExhaustedAlert(chatId, issueNumber, title, progress) {
     `🔑 Current key index: ${parseInt(currentKey) + 1}/${totalKeys}\n` +
     `🔄 *Issue #${issueNumber}:* ${escapeMarkdown(title || 'Unknown')}\n` +
     `📊 Progress: ${progress || 'Unknown'}\n\n` +
-    `💡 *To resume, reply with:*\n` +
-    `/key YOUR_NEW_API_KEY_HERE\n\n` +
-    `Or reply /skip to abort this issue and move to the next.`;
+    `Use Settings → API Key to replace the active key, or use the completion controls to skip this issue.`;
 
-  await sendTrackedMessage(chatId, message, { parse_mode: 'Markdown' });
+  await sendTrackedMessage(chatId, message, { parse_mode: 'Markdown', reply_markup: settingsPanelKeyboard() });
 }
 
 async function sendNotification(chatId, text) {
@@ -1400,6 +2076,9 @@ module.exports = {
   sendKeyExhaustedAlert,
   sendNotification,
   sendStatus,
+  sendHealth,
   sendLogs,
+  startDiffStream,
+  stopDiffStream,
   isAuthorized
 };

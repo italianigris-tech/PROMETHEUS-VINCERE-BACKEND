@@ -1,7 +1,21 @@
 const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const { getState, setState, getCurrentIssue, setCurrentIssue, recordKeyRotation } = require('./database');
+const {
+  getState,
+  setState,
+  getCurrentIssue,
+  setCurrentIssue,
+  recordKeyRotation,
+  recordIssueStopped,
+  reconcileActiveIssueState,
+  setCodexLock,
+  getCodexLock,
+  clearCodexLock,
+  recordCodexRun,
+  normalizeOperator,
+  getPipelineOperator
+} = require('./database');
 
 const WORKDIR = process.env.CODEX_WORKDIR || process.cwd();
 const CODEX_LOG_LIMIT = 80;
@@ -76,9 +90,15 @@ function clearCodexProcessState(status = 'idle') {
   setCodexStatus(status);
 }
 
+function clearCodexRunState(status = 'idle', reason = 'codex_state_clear') {
+  clearCodexProcessState(status);
+  return reconcileActiveIssueState(reason);
+}
+
 function clearActiveRun(runId, status = 'idle') {
   if (activeRun?.id === runId) {
     activeRun = null;
+    clearCodexLock();
   }
   clearCodexProcessState(status);
 }
@@ -168,7 +188,8 @@ function runCodex(issueNumber, issueTitle, issueBody, model) {
     label: `Issue #${issueNumber}: ${issueTitle}`,
     model,
     source: 'pipeline',
-    metadata: { issueNumber, issueTitle }
+    metadata: { issueNumber, issueTitle },
+    operator: getPipelineOperator()
   });
 }
 
@@ -177,7 +198,8 @@ function runCodexPrompt(prompt, options = {}) {
     label: options.label || 'Manual Telegram prompt',
     model: options.model || getState('current_model') || 'gpt-5.5',
     source: options.source || 'telegram',
-    metadata: options.metadata || {}
+    metadata: options.metadata || {},
+    operator: options.operator || null
   });
 }
 
@@ -187,11 +209,13 @@ function runCodexCommand(prompt, options) {
     if (activeRun || (persistedPid && isLikelyCodexProcess(persistedPid))) {
       const label = activeRun?.label || `Codex process PID ${persistedPid}`;
       const startedAt = activeRun?.startedAt || 'before this orchestrator process started';
-      reject(new Error(`CODEX_BUSY: ${label} has been running since ${startedAt}`));
+      const lock = activeRun?.lock || getCodexLock();
+      const owner = formatOperator(lock?.operator || activeRun?.operator);
+      reject(new Error(`CODEX_BUSY: ${label} has been running since ${startedAt}${owner ? ` by ${owner}` : ''}`));
       return;
     }
     if (persistedPid) {
-      clearCodexProcessState('idle');
+      clearCodexRunState('idle', 'stale_persisted_pid_before_start');
     }
 
     const apiKey = getCurrentApiKey();
@@ -213,6 +237,7 @@ function runCodexCommand(prompt, options) {
     };
 
     const startTime = Date.now();
+    const startedAt = new Date().toISOString();
     const output = [];
     let errorOutput = '';
     let isRateLimitError = false;
@@ -225,19 +250,23 @@ function runCodexCommand(prompt, options) {
       label: options.label,
       source: options.source,
       model,
-      startedAt: new Date().toISOString(),
+      startedAt,
       pid: null,
       eventCount: 0,
       latestEvent: null,
       keySuffix: getKeySuffix(apiKey),
       metadata: options.metadata || {},
+      operator: normalizeOperator(options.operator),
+      lock: null,
       child: null
     };
+    activeRun.lock = setCodexLock(activeRun.operator, options.label);
     logCodexEvent('start', `Codex started: ${options.label}`, {
       runId,
       model,
       source: options.source,
-      keySuffix: activeRun.keySuffix
+      keySuffix: activeRun.keySuffix,
+      operator: formatOperator(activeRun.operator)
     });
 
     const codex = spawn('codex', args, {
@@ -297,6 +326,7 @@ function runCodexCommand(prompt, options) {
       if (stoppedReason) {
         const error = new Error(`CODEX_STOPPED: Codex run stopped by ${stoppedReason}`);
         lastRun = buildLastRun(runId, options, model, duration, 'stopped', error.message, output, errorOutput);
+        persistCodexRun(options, model, duration, 'stopped', error.message, output, startedAt);
         logCodexEvent('stop', `Codex stopped: ${options.label}`, { runId, pid: codex.pid || null, reason: stoppedReason });
         settled = true;
         reject(error);
@@ -306,6 +336,7 @@ function runCodexCommand(prompt, options) {
       if (code !== 0 && (isRateLimitError || isExhaustionError)) {
         const error = new Error(`API_KEY_EXHAUSTED: Key ending in ...${getKeySuffix(apiKey)} hit limit. ${errorOutput}`);
         lastRun = buildLastRun(runId, options, model, duration, 'api_key_exhausted', error.message, output, errorOutput);
+        persistCodexRun(options, model, duration, 'api_key_exhausted', error.message, output, startedAt);
         logCodexEvent('error', `Codex stopped: ${error.message.slice(0, 500)}`, { runId });
         settled = true;
         reject(error);
@@ -315,6 +346,7 @@ function runCodexCommand(prompt, options) {
       if (code !== 0) {
         const error = new Error(`CODEX_FAILED: Exit code ${code}. ${errorOutput}`);
         lastRun = buildLastRun(runId, options, model, duration, 'failed', error.message, output, errorOutput);
+        persistCodexRun(options, model, duration, 'failed', error.message, output, startedAt);
         logCodexEvent('error', `Codex failed with exit code ${code}`, { runId });
         settled = true;
         reject(error);
@@ -328,6 +360,7 @@ function runCodexCommand(prompt, options) {
         errorOutput: errorOutput || null
       };
       lastRun = buildLastRun(runId, options, model, duration, 'completed', null, output, errorOutput);
+      persistCodexRun(options, model, duration, 'completed', null, output, startedAt);
       logCodexEvent('complete', `Codex completed: ${options.label} in ${duration}s`, { runId });
       settled = true;
       resolve(result);
@@ -341,6 +374,7 @@ function runCodexCommand(prompt, options) {
         : new Error(`CODEX_SPAWN_ERROR: ${err.message}`);
       const duration = ((Date.now() - startTime) / 1000).toFixed(1);
       lastRun = buildLastRun(runId, options, model, duration, 'spawn_error', error.message, output, errorOutput);
+      persistCodexRun(options, model, duration, 'spawn_error', error.message, output, startedAt);
       logCodexEvent('error', error.message, { runId });
       settled = true;
       reject(error);
@@ -363,7 +397,11 @@ async function stopCodex(reason = 'operator', options = {}) {
     if (run && (!run.pid || !isLikelyCodexProcess(run.pid))) {
       activeRun = null;
     }
-    clearCodexProcessState('idle');
+    clearCodexLock();
+    if (issueNumber) {
+      recordIssueStopped(issueNumber, `Codex stop requested (${reason}) but no live Codex process was found.`);
+    }
+    clearCodexRunState('idle', 'stop_no_live_process');
     if (silentIfMissing) {
       return {
         stopped: false,
@@ -394,21 +432,41 @@ async function stopCodex(reason = 'operator', options = {}) {
     reason
   });
 
-  sendSignal(pid, run?.child, 'SIGTERM');
-  let exited = await waitForProcessExit(pid, run?.child, STOP_TIMEOUT_MS);
+  let exited = false;
   let forced = false;
+  let stopError = null;
 
-  if (!exited && isLikelyCodexProcess(pid)) {
-    forced = true;
-    sendSignal(pid, run?.child, 'SIGKILL');
-    exited = await waitForProcessExit(pid, run?.child, 1000);
+  try {
+    sendSignal(pid, run?.child, 'SIGTERM');
+    exited = await waitForProcessExit(pid, run?.child, STOP_TIMEOUT_MS);
+
+    if (!exited && isLikelyCodexProcess(pid)) {
+      forced = true;
+      sendSignal(pid, run?.child, 'SIGKILL');
+      exited = await waitForProcessExit(pid, run?.child, 1000);
+    }
+  } catch (error) {
+    stopError = error;
   }
 
-  setCurrentIssue(null);
+  if (issueNumber) {
+    recordIssueStopped(issueNumber, forced
+      ? `Codex was force-killed by ${reason}.`
+      : `Codex was stopped by ${reason}.`
+    );
+  } else {
+    setCurrentIssue(null);
+  }
   if (!run?.id) {
     activeRun = null;
+    clearCodexLock();
   }
-  clearCodexProcessState('stopped');
+  clearCodexRunState('stopped', forced ? 'stop_forced_kill' : 'stop_graceful');
+
+  if (stopError) {
+    stopError.message = `CODEX_STOP_SIGNAL_FAILED: ${stopError.message}`;
+    throw stopError;
+  }
 
   return {
     stopped: true,
@@ -472,25 +530,30 @@ function waitForProcessExit(pid, child, timeoutMs) {
 function reconcileCodexPidOnBoot() {
   const pid = getStoredCodexPid();
   const storedStatus = safeGetState('codex_status') || 'idle';
+  let issueReconcile;
 
   if (!pid) {
     if (storedStatus === 'running') {
       setCodexStatus('idle');
     }
+    issueReconcile = reconcileActiveIssueState('boot_no_codex_pid');
     return {
       pid: null,
       running: false,
-      cleared: false
+      cleared: false,
+      issueReconcile
     };
   }
 
   if (!isLikelyCodexProcess(pid)) {
-    clearCodexProcessState(storedStatus === 'running' ? 'stopped' : 'idle');
+    clearCodexRunState(storedStatus === 'running' ? 'stopped' : 'idle', 'boot_stale_codex_pid');
     logCodexEvent('stop', `Cleared stale Codex PID ${pid} on boot`, { pid });
+    issueReconcile = reconcileActiveIssueState('boot_stale_codex_pid');
     return {
       pid,
       running: false,
-      cleared: true
+      cleared: true,
+      issueReconcile
     };
   }
 
@@ -516,6 +579,34 @@ function buildLastRun(runId, options, model, duration, status, error, output = [
     errorOutput: errorOutput ? errorOutput.slice(-1200) : null,
     completedAt: new Date().toISOString()
   };
+}
+
+function persistCodexRun(options, model, duration, status, error, output, startedAt) {
+  const parsed = parseCodexOutput(output);
+  try {
+    recordCodexRun({
+      label: options.label,
+      source: options.source,
+      model,
+      status,
+      durationSeconds: Number(duration) || 0,
+      issueNumber: options.metadata?.issueNumber || null,
+      operator: options.operator || null,
+      startedAt,
+      completedAt: new Date().toISOString(),
+      files: parsed.filesChanged,
+      totalTokens: parsed.totalTokens,
+      error
+    });
+  } catch (persistError) {
+    logCodexEvent('error', `Failed to persist Codex run stats: ${persistError.message}`);
+  }
+}
+
+function formatOperator(operator) {
+  const normalized = normalizeOperator(operator);
+  if (!normalized) return '';
+  return normalized.username ? `@${normalized.username}` : normalized.displayName;
 }
 
 function summarizeCodexEvent(event) {
