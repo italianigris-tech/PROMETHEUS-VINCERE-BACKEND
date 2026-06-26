@@ -83,6 +83,162 @@ describe("UnifiedRenderManifestSchema", () => {
     expect(result.success).toBe(false);
   });
 
+  it("accepts inspectable Joseph micro-animation primitive metadata", () => {
+    const manifest = UnifiedRenderManifestSchema.parse({
+      ...baseManifest,
+      textOverlays: [{
+        text: "WIN",
+        startFrame: 10,
+        endFrame: 30,
+        animation: "elastic_scale",
+        color: "#FF0040",
+        microAnimation: {
+          primitiveId: "text-entry.word-riser",
+          family: "text_entry",
+          role: "entry",
+          renderFallback: "elastic_scale",
+          combinationGroup: "entry",
+          semanticRole: "hero",
+          parameters: {
+            intensity: 0.82,
+            durationMs: 420,
+            delayMs: 0,
+            anchor: "word",
+            direction: "up",
+          },
+        },
+      }],
+      microAnimationAudit: {
+        taxonomyVersion: "joseph-micro-animation-v1",
+        primitiveIds: ["text-entry.word-riser"],
+        score: 0.94,
+        failures: [],
+        warnings: ["entry-only support lane"],
+      },
+    });
+
+    expect(manifest.textOverlays[0]?.microAnimation?.primitiveId).toBe("text-entry.word-riser");
+    expect(manifest.microAnimationAudit?.taxonomyVersion).toBe("joseph-micro-animation-v1");
+  });
+
+  it("accepts an inspectable Joseph picture-in-picture composition plan", () => {
+    const manifest = UnifiedRenderManifestSchema.parse({
+      ...baseManifest,
+      josephPiP: {
+        version: "joseph-pip-v1",
+        layout: "speaker_right_text_left",
+        sourceTrackId: "primary",
+        subjectAnchor: {
+          xPercent: 51,
+          yPercent: 34,
+          confidence: 0.82,
+          source: "heuristic",
+        },
+        frame: {
+          leftPercent: 58,
+          topPercent: 12,
+          widthPercent: 34,
+          heightPercent: 38,
+          borderRadiusPx: 28,
+          safeMarginPercent: 4,
+          depth: "subject",
+        },
+        dockingPosition: "upper_right",
+        availableMotionBehaviors: ["enter", "dock", "expand", "collapse", "handoff"],
+        activeMotion: [
+          {behavior: "enter", startFrame: 0, endFrame: 20, easing: "ease_out"},
+          {behavior: "dock", startFrame: 20, endFrame: 60, easing: "ease_in_out"},
+          {behavior: "handoff", startFrame: 60, endFrame: 90, easing: "ease_out"},
+        ],
+        typographyZones: [
+          {
+            role: "hero",
+            leftPercent: 7,
+            topPercent: 14,
+            widthPercent: 43,
+            heightPercent: 28,
+            align: "left",
+            minClearancePercent: 6,
+          },
+        ],
+        backgroundLayers: [
+          {
+            role: "focus_field",
+            leftPercent: 54,
+            topPercent: 8,
+            widthPercent: 42,
+            heightPercent: 46,
+            intensity: 0.64,
+          },
+        ],
+        coexistenceRules: {
+          preserveSubjectFocus: true,
+          protectTypography: true,
+          textClearancePercent: 6,
+          backgroundDefocus: 0.42,
+        },
+      },
+    });
+
+    expect(manifest.josephPiP?.layout).toBe("speaker_right_text_left");
+    expect(manifest.josephPiP?.availableMotionBehaviors).toEqual(
+      expect.arrayContaining(["enter", "dock", "expand", "collapse", "handoff"]),
+    );
+    expect(manifest.josephPiP?.typographyZones[0]?.minClearancePercent).toBeGreaterThan(0);
+  });
+
+  it("accepts an inspectable Joseph background primitive plan", () => {
+    const manifest = UnifiedRenderManifestSchema.parse({
+      ...baseManifest,
+      josephBackground: {
+        version: "joseph-background-v1",
+        catalogVersion: "2026.06",
+        selectedPrimitiveIds: [
+          "shader.depth-vignette",
+          "lightfield.cinematic-bloom",
+          "accent.editorial-rails",
+        ],
+        primitives: [
+          {
+            primitiveId: "shader.depth-vignette",
+            family: "shader_background",
+            role: "background",
+            layer: "foundation",
+            blendMode: "normal",
+            renderStrategy: "curated_mesh",
+            parameters: {
+              colorFamily: "cinematic_cool",
+              speed: 0.18,
+              noiseIntensity: 0.22,
+              bloomIntensity: 0.18,
+              distortionAmount: 0.08,
+              contrast: 0.68,
+              density: 0.42,
+              opacity: 0.92,
+            },
+          },
+        ],
+        layeringRules: {
+          sourceFootageMode: "pip_protected",
+          textProtection: "contrast_scrim",
+          pipProtection: "reserved_safe_zone",
+          overlayInteraction: "accent_below_text",
+          maxActivePrimitives: 4,
+        },
+        parameterAudit: {
+          governed: true,
+          clampedParameterCount: 0,
+          warnings: [],
+        },
+      },
+    });
+
+    expect(manifest.josephBackground?.version).toBe("joseph-background-v1");
+    expect(manifest.josephBackground?.selectedPrimitiveIds).toEqual(
+      expect.arrayContaining(["shader.depth-vignette"]),
+    );
+    expect(manifest.josephBackground?.layeringRules.pipProtection).toBe("reserved_safe_zone");
+  });
   it("accepts deterministic SFX variant metadata without changing semantic cue names", () => {
     const manifest = UnifiedRenderManifestSchema.parse({
       ...baseManifest,

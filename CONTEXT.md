@@ -100,6 +100,18 @@ _Avoid_: raw per-moment score only, sequence-blind optimization
 A first-class planner trace artifact containing the observation snapshot, planning snapshot, doctrine branches, genome candidates, archive hits, beam expansions, selected path, and handoff shortlist.
 _Avoid_: opaque planner choice, untraceable search
 
+**Manifest Compiler**:
+The deterministic handoff module that translates selected planner intent into the expanded `UnifiedRenderManifest` fields the renderer must honor.
+_Avoid_: renderer fallback logic, ad hoc manifest mutation, hidden adapter
+
+**Candidate Score Summary**:
+The backend scoring summary for candidate genomes, expected cuts, governed prompt state, and sequence-memory signals.
+_Avoid_: Planner Audit, full planner trace, render contract
+
+**Render Contract Test**:
+A test that proves a planner-selected manifest field produces observable renderer behavior or an explicit governed fallback.
+_Avoid_: schema-only test, private implementation assertion
+
 **Judgment Layer**:
 The governed evaluation layer that scores, blocks, and approves planner candidates against editorial and production constraints.
 _Avoid_: planner, generator, renderer
@@ -127,6 +139,9 @@ _Avoid_: prompt parser, user override, hidden architecture switch
 - **Retrieval Intent** and **GOD Escalation Intent** are separate genome controls
 - The planner uses a sequence-level **Sequence Objective** rather than only per-moment quality
 - The planner emits a first-class **Planner Audit** for inspection and testing
+- The **Manifest Compiler** translates selected planner intent into `UnifiedRenderManifest`
+- The **Candidate Score Summary** records backend candidate scoring but is not the **Planner Audit**
+- **Render Contract Tests** protect the handoff between `UnifiedRenderManifest` and renderer behavior
 - **Evaluator Staging** improves the **Judgment Layer** in phases instead of replacing it outright
 - The **Failure Taxonomy** gives the **Judgment Layer** named editorial failure classes to detect and learn from
 - The **Review Surface** is the primary source of evaluator truth labels
@@ -160,3 +175,5 @@ _Avoid_: prompt parser, user override, hidden architecture switch
 - asset search and GOD generation could have collapsed into one vague control — resolved: keep **Retrieval Intent** and **GOD Escalation Intent** separate.
 - beam search could have optimized local flash instead of sequence quality — resolved: use a sequence-level **Sequence Objective**.
 - planner decisions could have become impossible to inspect — resolved: emit a first-class **Planner Audit**.
+- "PlannerAudit" was being used for both rich planner trace and flat backend scoring summary - resolved: reserve **Planner Audit** for the rich trace and call the backend artifact **Candidate Score Summary**.
+- renderer fallback behavior could have silently ignored planner-selected primitive fields - resolved: introduce the **Manifest Compiler** and protect it with **Render Contract Tests**.

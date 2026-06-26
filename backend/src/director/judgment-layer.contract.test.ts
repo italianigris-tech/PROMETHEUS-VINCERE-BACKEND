@@ -166,6 +166,23 @@ describe("JudgmentLayer active contract", () => {
     expect(score.floorFailures).toContain("shake_zoom_blur_collision");
   });
 
+  it("fails candidate with micro-animation primitive quality failures", () => {
+    const manifest = validManifest("bad-micro-animation", {
+      microAnimationAudit: {
+        taxonomyVersion: "joseph-micro-animation-v1",
+        primitiveIds: ["text-emphasis.sweep-highlight"],
+        score: 0.62,
+        failures: ["micro_animation_visual_chaos"],
+        warnings: [],
+      },
+    });
+
+    const score = meetsQualityFloor(manifest);
+
+    expect(score.passedFloor).toBe(false);
+    expect(score.floorFailures).toContain("micro_animation_visual_chaos");
+  });
+
   it("vetoes candidate too similar to replay ledger", async () => {
     const repeated = validManifest("repeat");
     const novel = validManifest("novel", {

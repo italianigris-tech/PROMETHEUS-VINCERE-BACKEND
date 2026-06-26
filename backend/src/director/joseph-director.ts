@@ -7,12 +7,23 @@ import {
   type Transition,
   type TransitionEvent,
   type UnifiedRenderManifest,
+  type JosephBackgroundPlan,
+  type JosephPiPPlan,
+  type JosephTypographyIntelligencePlan,
   type Word,
   seededChance,
   seededPick,
   seededRandom,
 } from "@prometheus/shared-types";
 import { randomUUID } from "crypto";
+import {
+  buildMicroAnimationAudit,
+  JOSEPH_MICRO_ANIMATION_TAXONOMY,
+  selectMicroAnimationPrimitive,
+} from "./micro-animation-primitives";
+import {buildJosephBackgroundPrimitivePlan} from "./joseph-background-primitives";
+import {buildJosephPiPCompositionPlan} from "./joseph-pip-composition";
+import {buildJosephTypographyIntelligencePlan, JOSEPH_TYPOGRAPHY_STYLEBOOKS} from "./joseph-typography-intelligence";
 export interface DirectorInput {
   videoUrl: string;
   musicTrackUrl?: string;
@@ -49,6 +60,12 @@ export type JosephVisualPlan = {
   emotionalArc: string[];
   visualDensityPlan: string;
   primitiveComposition: string[];
+  microAnimationTaxonomy: string[];
+  microAnimationPrimitives: string[];
+  pipComposition: string[];
+  typographyStylebooks: string[];
+  typographyRules: string[];
+  typographyHierarchy: string[];
   attentionAnchors: string[];
 };
 export type JosephTemporalChoreography = {
@@ -87,6 +104,8 @@ export type DoctrineBranch = {
   textEntryFamily: string;
   motionDoctrine: string;
   primitiveComposition: string[];
+  microAnimationFocus: string[];
+  pipDoctrine: string[];
   tune: DoctrineTune;
 };
 export type DoctrineTune = {
@@ -191,6 +210,18 @@ export const DOCTRINE_BRANCHES: readonly DoctrineBranch[] = [
       "camera:push-in",
       "sfx:beat-drop-stack",
     ],
+    microAnimationFocus: [
+      "text-entry.word-riser",
+      "text-entry.velocity-slide-reveal",
+      "text-emphasis.sweep-highlight",
+      "text-emphasis.marker-stroke",
+      "accent-motion.bracket-lock",
+    ],
+    pipDoctrine: [
+      "pip:subject-dock",
+      "pip:typography-coexistence",
+      "pip:focus-handoff",
+    ],
     tune: {
       textCoverageMultiplier: 1.1,
       textStylePool: ["pop", "elastic_scale", "glitch"],
@@ -209,6 +240,20 @@ export const DOCTRINE_BRANCHES: readonly DoctrineBranch[] = [
       "camera:slow-push-in",
       "background:depth-vignette",
     ],
+    microAnimationFocus: [
+      "text-entry.letter-riser",
+      "text-entry.soft-letter-tracking",
+      "text-entry.clipped-mask-reveal",
+      "text-emphasis.underline-reveal",
+      "text-emphasis.semantic-glow",
+      "accent-motion.caption-rail",
+      "spatial-motion.anchored-drift",
+    ],
+    pipDoctrine: [
+      "pip:subject-dock",
+      "pip:background-coexistence",
+      "pip:restrained-frame",
+    ],
     tune: {
       textCoverageMultiplier: 0.7,
       textStylePool: ["slide_up", "typewriter"],
@@ -226,6 +271,18 @@ export const DOCTRINE_BRANCHES: readonly DoctrineBranch[] = [
       "motion:anchor-handoff",
       "sfx:impact-spotlight",
       "background:focus-tunnel",
+    ],
+    microAnimationFocus: [
+      "text-emphasis.capsule-highlight",
+      "text-mutation.weight-escalation",
+      "text-mutation.emphasis-handoff",
+      "accent-motion.bracket-lock",
+      "text-entry.clipped-mask-reveal",
+    ],
+    pipDoctrine: [
+      "pip:subject-dock",
+      "pip:typography-coexistence",
+      "pip:spotlight-handoff",
     ],
     tune: {
       textCoverageMultiplier: 0.9,
@@ -401,6 +458,7 @@ const buildTextOverlays = (
   durationFrames: number,
   rng: () => number,
   ctaStartMs: number,
+  doctrine?: DoctrineBranch,
 ) => {
   const overlays: TextOverlay[] = [];
   const textEvents: TextEvent[] = [];
@@ -415,12 +473,14 @@ const buildTextOverlays = (
       const duration = isHighEnergy ? 18 : 12;
       const { startFrame: clampedStart, endFrame: clampedEnd } =
         clampFrameRange(startFrame, startFrame + duration, durationFrames);
-      const animation = chooseAnimation(
+      const microAnimation = selectMicroAnimationPrimitive({
         rng,
-        profile,
-        phrase.energy,
-        isHighEnergy,
-      );
+        doctrineId: doctrine?.id,
+        semanticRole: isHighEnergy ? "hero" : "support",
+        energy: phrase.energy,
+        overlayIndex: overlays.length,
+      });
+      const animation = microAnimation.renderFallback;
       const color = isHighEnergy ? "#FF0040" : "#FFFFFF";
       const overlay: TextOverlay = {
         text: word.text.replace(/[.!?]$/, "").toUpperCase(),
@@ -428,6 +488,7 @@ const buildTextOverlays = (
         endFrame: clampedEnd,
         animation,
         color,
+        microAnimation,
       };
       overlays.push(overlay);
       textEvents.push({
@@ -455,12 +516,20 @@ const buildTextOverlays = (
       const startFrame = msToFrame(ctaStartMs) + index * 12;
       const { startFrame: clampedStart, endFrame: clampedEnd } =
         clampFrameRange(startFrame, startFrame + 18, durationFrames);
+      const microAnimation = selectMicroAnimationPrimitive({
+        rng,
+        doctrineId: doctrine?.id,
+        semanticRole: "cta",
+        energy: 1,
+        overlayIndex: overlays.length + index,
+      });
       overlays.push({
         text: word.text.replace(/[.!?]$/, "").toUpperCase(),
         startFrame: clampedStart,
         endFrame: clampedEnd,
-        animation: "pop",
+        animation: microAnimation.renderFallback,
         color: "#FF0040",
+        microAnimation,
       });
     });
   }
@@ -792,6 +861,18 @@ const buildVisualPlan = (
     primitiveComposition: doctrine
       ? [...doctrine.primitiveComposition]
       : baseComposition,
+    microAnimationTaxonomy: JOSEPH_MICRO_ANIMATION_TAXONOMY.map(
+      (entry) => entry.family,
+    ),
+    microAnimationPrimitives: doctrine
+      ? [...doctrine.microAnimationFocus]
+      : ["text-entry.word-riser", "text-emphasis.underline-reveal"],
+    pipComposition: doctrine
+      ? [...doctrine.pipDoctrine]
+      : ["pip:subject-dock", "pip:typography-coexistence"],
+    typographyStylebooks: JOSEPH_TYPOGRAPHY_STYLEBOOKS.map((stylebook) => stylebook.id),
+    typographyRules: ["lexical-weighting", "filler-suppression", "line-rhythm", "hierarchy-contrast"],
+    typographyHierarchy: ["filler", "support", "hero", "cta"],
     attentionAnchors: phrases
       .slice(0, 2)
       .flatMap((phrase) =>
@@ -857,6 +938,7 @@ const buildCandidatePlan = (
     durationFrames,
     rng,
     ctaStartMs,
+    doctrine,
   );
   const cuts = buildCuts(input, phrases, profile, hookEndMs);
   const cameraMoves = buildCameraMoves(
@@ -882,11 +964,40 @@ const buildCandidatePlan = (
     sfx,
     transitionEvents,
   );
+  const microAnimationAudit = buildMicroAnimationAudit(textOverlays);
+  const josephPiP: JosephPiPPlan = buildJosephPiPCompositionPlan({
+    durationFrames,
+    width: WIDTH,
+    height: HEIGHT,
+    profile: input.profile,
+    sourceTrackId: "primary",
+    attentionAnchors: visualPlan.attentionAnchors,
+    doctrineId: doctrine?.id,
+  });
+  const josephBackground: JosephBackgroundPlan = buildJosephBackgroundPrimitivePlan({
+    seed: input.seed,
+    profile: input.profile,
+    doctrineId: doctrine?.id,
+    visualDensityPlan: visualPlan.visualDensityPlan,
+    hasPiP: true,
+    durationFrames,
+  });
+  const josephTypography: JosephTypographyIntelligencePlan = buildJosephTypographyIntelligencePlan({
+    words: input.transcript,
+    energyCurve: input.energyCurve,
+    durationMs: input.durationMs,
+    profile: input.profile,
+    doctrineId: doctrine?.id,
+  });
   return {
     semanticSummary,
     visualPlan,
     temporalChoreography,
     observationSnapshot,
+    microAnimationAudit,
+    josephPiP,
+    josephBackground,
+    josephTypography,
     textOverlays,
     cuts,
     cameraMoves,
@@ -907,6 +1018,7 @@ const buildManifestFromPlan = (
   const plan = buildCandidatePlan(input, doctrine);
   const videoTracks = [
     {
+      id: "primary",
       sourcePath: input.videoUrl,
       startFrame: 0,
       endFrame: plan.durationFrames - 1,
@@ -949,6 +1061,10 @@ const buildManifestFromPlan = (
     cameraMoves: plan.cameraMoves,
     textOverlays: plan.textOverlays,
     transitions: plan.transitions,
+    microAnimationAudit: plan.microAnimationAudit,
+    josephPiP: plan.josephPiP,
+    josephBackground: plan.josephBackground,
+    josephTypography: plan.josephTypography,
     source: {
       videoUrl: input.videoUrl,
       audioUrl: input.musicTrackUrl,

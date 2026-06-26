@@ -35,6 +35,7 @@ export interface EvidencePackage {
   rejected: UnifiedRenderManifest[];
   verdict: JudgmentVerdict;
   timestamp: string;
+  candidateScoreSummary?: unknown;
   plannerAudit?: unknown;
   audit?: unknown;
 }
@@ -83,7 +84,7 @@ const selectedJobId = (manifest: UnifiedRenderManifest): string | undefined =>
   typeof manifest.jobId === "string" ? manifest.jobId : undefined;
 
 const buildAuditPayload = (pkg: EvidencePackage): unknown =>
-  pkg.plannerAudit ?? pkg.audit ?? {
+  pkg.candidateScoreSummary ?? pkg.plannerAudit ?? pkg.audit ?? {
     jobId: pkg.jobId,
     variationKey: pkg.variationKey,
     timestamp: pkg.timestamp,

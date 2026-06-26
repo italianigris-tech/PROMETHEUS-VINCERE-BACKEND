@@ -15,12 +15,13 @@ import {decideCognitiveStage} from "../cognitive-governor";
 import {preserveEvidence, type EvidenceArtifactPaths, type EvidencePackage} from "../ledger/evidence-preservation";
 import {ReplayLedger} from "../ledger/replay-ledger";
 import {findCutPoints, type Phrase as BoundaryPhrase} from "./dynamic-boundaries";
-import {computeSimilarityHash, JudgmentLayer} from "./judgment-layer";
+import {computeSimilarityHash, JudgmentLayer, type CandidateScore} from "./judgment-layer";
 import {
   generateCandidateGenomes,
   generateJosephManifest,
   type DirectorInput,
 } from "./joseph-director";
+import {compileJosephManifest, type JosephManifestCompilerAudit} from "./joseph-manifest-compiler";
 import {PromptRegistry, type GovernedPrompt} from "./prompt-governance";
 import {
   canUseEffect,
@@ -48,11 +49,13 @@ export interface OrchestratorInput {
   env?: BackendEnv;
 }
 
-export interface PlannerAudit {
+export interface CandidateScoreSummary {
   cognitiveDecision: ReturnType<typeof decideCognitiveStage>;
   governedPrompt: GovernedPrompt;
-  candidateScores: unknown[];
+  candidateScores: CandidateScore[];
   expectedCuts: number[];
+  manifestCompilerAudit: JosephManifestCompilerAudit;
+  sequenceDiscipline: SequenceDisciplineSummary[];
   sequenceMemory: SequenceMemorySummary[];
 }
 
@@ -64,7 +67,7 @@ export interface OrchestratorResult {
   candidateCount: number;
   rejectedCount: number;
   qualityScore: number;
-  plannerAudit: PlannerAudit;
+  candidateScoreSummary: CandidateScoreSummary;
   renderPath?: string;
 }
 
@@ -90,6 +93,13 @@ type SequenceMemorySummary = {
   breatheFrames: number[];
   highEnergy20sWindows: number;
   blockedEffectFrames: number;
+};
+
+type SequenceDisciplineSummary = {
+  enabled: boolean;
+  penalty: number;
+  violationRuleIds: string[];
+  metrics: CandidateScore["sequenceDiscipline"]["metrics"];
 };
 
 type CandidateWithSequenceMemory = UnifiedRenderManifest & {
@@ -358,17 +368,25 @@ const canonicalizeManifestForResult = (manifest: UnifiedRenderManifest, variatio
   createdAt: "1970-01-01T00:00:00.000Z",
 });
 
-const buildPlannerAudit = (
+const buildCandidateScoreSummary = (
   env: BackendEnv,
   governedPrompt: GovernedPrompt,
-  candidateScores: unknown[],
+  candidateScores: CandidateScore[],
   expectedCuts: number[],
+  manifestCompilerAudit: JosephManifestCompilerAudit,
   candidates: CandidateWithSequenceMemory[],
-): PlannerAudit => ({
+): CandidateScoreSummary => ({
   cognitiveDecision: decideCognitiveStage({env, stage: "planning"}),
   governedPrompt,
   candidateScores,
   expectedCuts,
+  manifestCompilerAudit,
+  sequenceDiscipline: candidateScores.map((score) => ({
+    enabled: score.sequenceDiscipline.enabled,
+    penalty: score.sequenceDiscipline.penalty,
+    violationRuleIds: score.sequenceDiscipline.violations.map((violation) => violation.ruleId),
+    metrics: score.sequenceDiscipline.metrics,
+  })),
   sequenceMemory: candidates.map((candidate) => candidate._sequenceMemory).filter((summary): summary is SequenceMemorySummary => Boolean(summary)),
 });
 
@@ -410,9 +428,18 @@ export async function orchestrateRender(
   generateJosephManifest(directorInput);
 
   const judgment = await judgmentLayer.judgeCandidates(candidates, variationKey, governedPrompt);
-  const selected = canonicalizeManifestForResult(judgment.selected, variationKey);
+  const selectedCandidate = canonicalizeManifestForResult(judgment.selected, variationKey);
+  const compiledSelected = compileJosephManifest({
+    manifest: selectedCandidate,
+    auditReferences: {
+      candidateScoreSummary: true,
+      candidateScoreCount: judgment.scores.length,
+      expectedCutCount: expectedCuts.length,
+    },
+  });
+  const selected = compiledSelected.manifest;
   const rejected = judgment.rejected.map((candidate) => canonicalizeManifestForResult(candidate, variationKey));
-  const plannerAudit = buildPlannerAudit(env, governedPrompt, judgment.scores, expectedCuts, candidates);
+  const candidateScoreSummary = buildCandidateScoreSummary(env, governedPrompt, judgment.scores, expectedCuts, compiledSelected.audit, candidates);
   const evidence: EvidencePackage = {
     jobId: variationKey.uploadInstanceId,
     variationKey,
@@ -421,7 +448,7 @@ export async function orchestrateRender(
     rejected,
     verdict: judgment.verdict,
     timestamp: new Date().toISOString(),
-    plannerAudit,
+    candidateScoreSummary,
   };
   const evidencePaths = preserveEvidence(evidence, input.evidenceDir ?? path.join(os.homedir(), ".prometheus", "evidence"));
 
@@ -434,7 +461,7 @@ export async function orchestrateRender(
     profile: input.profile,
     chosenGenome: JSON.stringify(selected),
     rejectedGenomes: JSON.stringify(rejected),
-    plannerAudit: JSON.stringify(plannerAudit),
+    plannerAudit: JSON.stringify(candidateScoreSummary),
     similarityHash: computeSimilarityHash(selected),
     qualityScore: judgment.verdict.qualityScore,
     failureTags: judgment.verdict.failureTags.join(","),
@@ -449,6 +476,6 @@ export async function orchestrateRender(
     candidateCount: candidates.length,
     rejectedCount: rejected.length,
     qualityScore: judgment.verdict.qualityScore,
-    plannerAudit,
+    candidateScoreSummary,
   };
 }
