@@ -101,6 +101,7 @@ function initDatabase() {
     ['codex_lock', 'null'],
     ['pipeline_operator', 'null'],
     ['priority_queue', '[]'],
+    ['queue_order', '[]'],
     ['batch_remaining', '0'],
     ['last_delivery_issue_number', 'null'],
     ['watchdog_last_alert_at', 'null'],
@@ -520,6 +521,26 @@ function prunePriorityQueue(openIssueNumbers) {
   return setPriorityQueue(getPriorityQueue().filter(n => open.has(n)));
 }
 
+function getQueueOrder() {
+  const raw = getJsonState('queue_order', []);
+  if (!Array.isArray(raw)) return [];
+  return [...new Set(raw.map(Number).filter(Number.isInteger).filter(n => n > 0))];
+}
+
+function setQueueOrder(issueNumbers) {
+  const normalized = [...new Set((issueNumbers || [])
+    .map(Number)
+    .filter(Number.isInteger)
+    .filter(n => n > 0))];
+  setJsonState('queue_order', normalized);
+  return normalized;
+}
+
+function pruneQueueOrder(openIssueNumbers) {
+  const open = new Set((openIssueNumbers || []).map(Number));
+  return setQueueOrder(getQueueOrder().filter(n => open.has(n)));
+}
+
 function getBatchRemaining() {
   const value = Number(getState('batch_remaining') || '0');
   return Number.isInteger(value) && value > 0 ? value : 0;
@@ -651,6 +672,9 @@ module.exports = {
   setPriorityQueue,
   prioritizeIssue,
   prunePriorityQueue,
+  getQueueOrder,
+  setQueueOrder,
+  pruneQueueOrder,
   getBatchRemaining,
   setBatchRemaining,
   decrementBatchRemaining,

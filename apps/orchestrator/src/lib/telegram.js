@@ -18,6 +18,9 @@ const {
   getPriorityQueue,
   prioritizeIssue,
   prunePriorityQueue,
+  getQueueOrder,
+  setQueueOrder,
+  pruneQueueOrder,
   getBatchRemaining,
   setBatchRemaining,
   getStats,
@@ -62,7 +65,7 @@ let pendingInputs = new Map();
 let trackedBotMessages = new Map();
 let pollingRetryTimer = null;
 let pollingRetryDelay = 5000;
-let diffStream = null;
+let diffStreams = new Map();
 
 function initBot() {
   if (!TOKEN) {
@@ -94,6 +97,24 @@ function initBot() {
       return;
     }
     await cancelCurrentOperation(chatId);
+  });
+
+  bot.onText(/\/queue(?:@\w+)?(?:\s|$)/, async (msg) => {
+    const chatId = msg.chat.id;
+    if (!isAuthorized(chatId)) {
+      await sendTrackedMessage(chatId, `Unauthorized chat. Your chat ID is \`${chatId}\`.`, { parse_mode: 'Markdown' });
+      return;
+    }
+    await sendQueuePanel(chatId);
+  });
+
+  bot.onText(/\/stats(?:@\w+)?(?:\s|$)/, async (msg) => {
+    const chatId = msg.chat.id;
+    if (!isAuthorized(chatId)) {
+      await sendTrackedMessage(chatId, `Unauthorized chat. Your chat ID is \`${chatId}\`.`, { parse_mode: 'Markdown' });
+      return;
+    }
+    await sendStatsPanel(chatId);
   });
 
   bot.on('message', async (msg) => {
@@ -805,10 +826,10 @@ async function sendTrackedMessage(chatId, text, options = {}) {
 async function startDiffStream(chatId, label, operator = null) {
   if (!bot || !chatId) return null;
 
-  stopDiffStream();
+  stopDiffStream(null, chatId);
 
   const stream = {
-    chatId,
+    chatId: chatId.toString(),
     label,
     operator: normalizeOperator(operator),
     startedAt: Date.now(),
@@ -816,25 +837,32 @@ async function startDiffStream(chatId, label, operator = null) {
     timer: null,
     updating: false
   };
-  diffStream = stream;
+  diffStreams.set(stream.chatId, stream);
 
   const sent = await sendTrackedMessage(chatId, buildDiffStreamText(stream, 'Starting diff stream...'), {
     parse_mode: 'Markdown'
   });
   stream.messageId = sent.message_id;
 
-  await refreshDiffStream();
-  stream.timer = setInterval(refreshDiffStream, DIFF_STREAM_INTERVAL);
+  await refreshDiffStream(stream.chatId);
+  stream.timer = setInterval(() => refreshDiffStream(stream.chatId), DIFF_STREAM_INTERVAL);
   return stream;
 }
 
-function stopDiffStream(finalText = null) {
-  if (!diffStream) return;
-  if (diffStream.timer) {
-    clearInterval(diffStream.timer);
+function stopDiffStream(finalText = null, chatId = null) {
+  const keys = chatId ? [chatId.toString()] : [...diffStreams.keys()];
+  for (const key of keys) {
+    stopSingleDiffStream(key, finalText);
   }
-  const stream = diffStream;
-  diffStream = null;
+}
+
+function stopSingleDiffStream(key, finalText = null) {
+  const stream = diffStreams.get(key);
+  if (!stream) return;
+  if (stream.timer) {
+    clearInterval(stream.timer);
+  }
+  diffStreams.delete(key);
 
   if (finalText && bot && stream.messageId) {
     safeEditMessageText(finalText, {
@@ -845,8 +873,8 @@ function stopDiffStream(finalText = null) {
   }
 }
 
-async function refreshDiffStream() {
-  const stream = diffStream;
+async function refreshDiffStream(chatId) {
+  const stream = diffStreams.get(chatId?.toString());
   if (!stream || stream.updating || !stream.messageId) return;
   stream.updating = true;
 
@@ -1321,8 +1349,8 @@ async function pushDeliveryFromTelegram(chatId, issueNumber, message = null) {
       clearCurrentIssue: true,
       completedAt: true
     });
-    setState('pipeline_status', 'paused');
-    await sendTrackedMessage(chatId, `✅ Issue #${issueNumber} pushed and closed`, {
+    const batchMessage = resumeBatchIfArmed();
+    await sendTrackedMessage(chatId, `✅ Issue #${issueNumber} pushed and closed${batchMessage}`, {
       reply_markup: controlPanelKeyboard()
     });
   } catch (error) {
@@ -1356,8 +1384,8 @@ async function retryPushDeliveryFromTelegram(chatId, issueNumber, message = null
       clearCurrentIssue: true,
       completedAt: true
     });
-    setState('pipeline_status', 'paused');
-    await sendTrackedMessage(chatId, `✅ Issue #${issueNumber} pushed and closed`, {
+    const batchMessage = resumeBatchIfArmed();
+    await sendTrackedMessage(chatId, `✅ Issue #${issueNumber} pushed and closed${batchMessage}`, {
       reply_markup: controlPanelKeyboard()
     });
   } catch (error) {
@@ -1380,8 +1408,8 @@ async function forcePushDeliveryFromTelegram(chatId, issueNumber, message = null
       clearCurrentIssue: true,
       completedAt: true
     });
-    setState('pipeline_status', 'paused');
-    await sendTrackedMessage(chatId, `✅ Issue #${issueNumber} force-pushed and closed`, {
+    const batchMessage = resumeBatchIfArmed();
+    await sendTrackedMessage(chatId, `✅ Issue #${issueNumber} force-pushed and closed${batchMessage}`, {
       reply_markup: controlPanelKeyboard()
     });
   } catch (error) {
@@ -1433,13 +1461,23 @@ async function discardDeliveryFromTelegram(chatId, issueNumber) {
     clearCurrentIssue: true,
     completedAt: true
   });
-  setState('pipeline_status', 'idle');
-  await sendTrackedMessage(chatId, `🗑️ Changes discarded. Issue #${issueNumber} marked as failed.`, {
+  const batchMessage = resumeBatchIfArmed('idle');
+  await sendTrackedMessage(chatId, `🗑️ Changes discarded. Issue #${issueNumber} marked as failed.${batchMessage}`, {
     reply_markup: controlPanelKeyboard()
   });
   if (!issue) {
     console.warn(`[delivery] Discarded work for Issue #${issueNumber}, but no local issue row was found.`);
   }
+}
+
+function resumeBatchIfArmed(defaultStatus = 'paused') {
+  const remaining = getBatchRemaining();
+  if (remaining > 0) {
+    setState('pipeline_status', 'running');
+    return `\n\n🔢 Batch continuing with ${remaining} issue${remaining === 1 ? '' : 's'} remaining.`;
+  }
+  setState('pipeline_status', defaultStatus);
+  return '';
 }
 
 async function sendPushFailure(chatId, issue, error, message = null) {
@@ -1695,7 +1733,20 @@ async function runDoctor(chatId, operator = null) {
 async function runPromptFromTelegram(chatId, prompt, label, operator = null) {
   const codex = getCodexRuntimeStatus();
   if (codex.state === 'running') {
-    await sendTrackedMessage(chatId, `Codex is already running: ${escapeMarkdown(describeRunningCodex(codex))}`, { parse_mode: 'Markdown' });
+    await warnIfCodexRunning(chatId);
+    return;
+  }
+
+  const watchdog = await getWatchdogSnapshot();
+  if (watchdog.warnings.length > 0) {
+    await sendTrackedMessage(chatId,
+      `🧯 *Codex start blocked by EC2 Watchdog*\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━\n` +
+      `RAM: ${watchdog.memory.usedPercent}% used\n` +
+      `Disk: ${watchdog.disk.usedPercent}% used on \`${escapeMarkdown(watchdog.disk.path)}\`\n\n` +
+      `Free resources, then retry.`,
+      { parse_mode: 'Markdown', reply_markup: doctorPanelKeyboard() }
+    );
     return;
   }
 
@@ -1817,6 +1868,10 @@ function getKeyCount() {
   return getCodexRuntimeStatus().keyCount;
 }
 
+function getAuthorizedChatIds() {
+  return [...AUTHORIZED_CHATS];
+}
+
 async function sendStatus(chatId) {
   const status = getState('pipeline_status') || 'idle';
   const current = getCurrentIssue();
@@ -1858,14 +1913,16 @@ async function sendQueue(chatId) {
   const { getOpenIssues } = require('./github');
   const issues = await getOpenIssues();
   const priorityQueue = prunePriorityQueue(issues.map(issue => issue.number));
-  const ordered = orderIssuesForQueue(issues, priorityQueue);
+  const queueOrder = reconcileQueueOrder(issues, priorityQueue);
+  const ordered = orderIssuesForQueue(issues, priorityQueue, queueOrder);
   const batchRemaining = getBatchRemaining();
 
   let text =
     `📋 *ISSUE QUEUE (${issues.length})*\n` +
     `━━━━━━━━━━━━━━━━━━━━━━\n` +
     `Batch remaining: ${batchRemaining}\n` +
-    `Priority: ${priorityQueue.length ? priorityQueue.map(n => `#${n}`).join(', ') : 'empty'}\n\n`;
+    `Priority: ${priorityQueue.length ? priorityQueue.map(n => `#${n}`).join(', ') : 'empty'}\n` +
+    `Stored order: ${queueOrder.length ? queueOrder.map(n => `#${n}`).join(', ') : 'empty'}\n\n`;
 
   if (ordered.length === 0) {
     text += `_No open issues match the configured GitHub filter._`;
@@ -1907,7 +1964,8 @@ async function sendPriorityPicker(chatId) {
   const { getOpenIssues } = require('./github');
   const issues = await getOpenIssues();
   const priorityQueue = prunePriorityQueue(issues.map(issue => issue.number));
-  const ordered = orderIssuesForQueue(issues, priorityQueue).slice(0, 9);
+  const queueOrder = reconcileQueueOrder(issues, priorityQueue);
+  const ordered = orderIssuesForQueue(issues, priorityQueue, queueOrder).slice(0, 9);
 
   let text =
     `⬆️ *PRIORITY PICKER*\n` +
@@ -1953,7 +2011,8 @@ async function prioritizeIssueFromPanel(chatId, issueNumber) {
     });
     return;
   }
-  prioritizeIssue(issueNumber);
+  const priorityQueue = prioritizeIssue(issueNumber);
+  reconcileQueueOrder(issues, priorityQueue);
   await sendTrackedMessage(chatId, `⬆️ Issue #${issueNumber} moved to the front.`, {
     reply_markup: queuePanelKeyboard()
   });
@@ -2067,12 +2126,29 @@ async function sendHistory(chatId) {
   await sendTrackedMessage(chatId, text, { parse_mode: 'Markdown', reply_markup: statsPanelKeyboard() });
 }
 
-function orderIssuesForQueue(issues, priorityQueue) {
+function reconcileQueueOrder(issues, priorityQueue = null) {
+  const openNumbers = issues.map(issue => issue.number);
+  const existing = pruneQueueOrder(openNumbers);
+  const missing = openNumbers.filter(issueNumber => !existing.includes(issueNumber));
+  const baseOrder = [...existing, ...missing];
+  const priority = priorityQueue || prunePriorityQueue(openNumbers);
+  const prioritySet = new Set(priority);
+  return setQueueOrder([...priority, ...baseOrder.filter(issueNumber => !prioritySet.has(issueNumber))]);
+}
+
+function orderIssuesForQueue(issues, priorityQueue, queueOrder = null) {
+  const persistedOrder = queueOrder || getQueueOrder();
+  const byNumber = new Map(issues.map(issue => [issue.number, issue]));
   const priority = priorityQueue
-    .map(issueNumber => issues.find(issue => issue.number === issueNumber))
+    .map(issueNumber => byNumber.get(issueNumber))
     .filter(Boolean);
   const priorityNumbers = new Set(priority.map(issue => issue.number));
-  return [...priority, ...issues.filter(issue => !priorityNumbers.has(issue.number))];
+  const ordered = persistedOrder
+    .map(issueNumber => byNumber.get(issueNumber))
+    .filter(Boolean)
+    .filter(issue => !priorityNumbers.has(issue.number));
+  const orderedNumbers = new Set([...priorityNumbers, ...ordered.map(issue => issue.number)]);
+  return [...priority, ...ordered, ...issues.filter(issue => !orderedNumbers.has(issue.number))];
 }
 
 function formatDuration(seconds) {
@@ -2201,6 +2277,10 @@ async function getWatchdogSnapshot() {
     disk,
     warnings
   };
+}
+
+async function getWatchdogReport() {
+  return getWatchdogSnapshot();
 }
 
 function readDiskUsage(targetPath) {
@@ -2765,6 +2845,20 @@ async function sendNotification(chatId, text) {
   await sendTrackedMessage(chatId, text, { parse_mode: 'Markdown' });
 }
 
+async function broadcastNotification(text, chatIds = getAuthorizedChatIds()) {
+  const results = [];
+  for (const chatId of chatIds) {
+    try {
+      await sendNotification(chatId, text);
+      results.push({ chatId, ok: true });
+    } catch (error) {
+      console.warn(`[telegram] Broadcast notification failed for chat ${chatId}:`, formatError(error));
+      results.push({ chatId, ok: false, error });
+    }
+  }
+  return results;
+}
+
 function escapeMarkdown(text) {
   if (!text) return '';
   return text
@@ -2802,10 +2896,13 @@ module.exports = {
   sendDirtyWorktreePrompt,
   sendKeyExhaustedAlert,
   sendNotification,
+  broadcastNotification,
   sendStatus,
   sendHealth,
   sendLogs,
+  getWatchdogReport,
   startDiffStream,
   stopDiffStream,
-  isAuthorized
+  isAuthorized,
+  getAuthorizedChatIds
 };

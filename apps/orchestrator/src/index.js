@@ -18,8 +18,11 @@ const {
   recordIssueComplete,
   recordIssueError,
   setIssueDeliveryStatus,
-  getPriorityQueue,
   prunePriorityQueue,
+  getQueueOrder,
+  setQueueOrder,
+  decrementBatchRemaining,
+  getBatchRemaining,
   getPipelineOperator
 } = require('./lib/database');
 const { getOpenIssues } = require('./lib/github');
@@ -39,14 +42,16 @@ const {
   sendDeliveryReviewPanel,
   sendDirtyWorktreePrompt,
   sendKeyExhaustedAlert,
-  sendNotification,
+  broadcastNotification,
   startDiffStream,
   stopDiffStream
 } = require('./lib/telegram');
 
-const CHAT_ID = process.env.AUTHORIZED_CHAT_IDS?.split(',')[0];
+const ADMIN_CHAT_IDS = (process.env.AUTHORIZED_CHAT_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
+const CHAT_ID = ADMIN_CHAT_IDS[0] || null;
 const POLL_INTERVAL = (parseInt(process.env.POLL_INTERVAL) || 30) * 1000;
 const HEARTBEAT_INTERVAL = 60 * 1000;
+const WATCHDOG_INTERVAL = 5 * 60 * 1000;
 const WATCHDOG_THRESHOLD = parseInt(process.env.WATCHDOG_THRESHOLD_PERCENT, 10) || 80;
 const WATCHDOG_COOLDOWN_MS = (parseInt(process.env.WATCHDOG_COOLDOWN_MINUTES, 10) || 15) * 60 * 1000;
 const WATCHDOG_PATH = process.env.WATCHDOG_DISK_PATH || (process.env.CODEX_WORKDIR || process.cwd());
@@ -56,6 +61,7 @@ let isShuttingDown = false;
 let bot;
 let pollTimer;
 let heartbeatTimer;
+let watchdogTimer;
 
 async function main() {
   console.log('🔧 PROMETHEUS ORCHESTRATOR v1.0');
@@ -82,9 +88,9 @@ async function main() {
     return;
   }
 
-  if (CHAT_ID) {
+  if (hasAdmins()) {
     try {
-      await sendNotification(CHAT_ID,
+      await notifyAdmins(
         `🚀 *Orchestrator Started*\n` +
         `━━━━━━━━━━━━━━━━━━━━━━\n` +
         `Model: \`${getState('current_model') || 'gpt-5.5'}\`\n` +
@@ -103,6 +109,7 @@ async function main() {
 
   pollTimer = setInterval(pollLoop, POLL_INTERVAL);
   startHeartbeat();
+  startWatchdogTimer();
   notifyReady();
   
   if (prepareResumeFromPreviousState()) {
@@ -157,8 +164,18 @@ function startHeartbeat() {
       `[heartbeat] alive pid=${process.pid} uptime=${Math.round(process.uptime())}s ` +
       `status=${getState('pipeline_status') || 'unknown'} current_issue=${current?.issue_number || 'none'}`
     );
-    await runWatchdog('heartbeat');
   }, HEARTBEAT_INTERVAL);
+}
+
+function startWatchdogTimer() {
+  watchdogTimer = setInterval(() => {
+    runWatchdog('scheduled').catch(error => {
+      console.error('[watchdog] scheduled check failed:', formatError(error));
+    });
+  }, WATCHDOG_INTERVAL);
+  runWatchdog('startup', { notifyOk: false }).catch(error => {
+    console.error('[watchdog] startup check failed:', formatError(error));
+  });
 }
 
 function notifyReady() {
@@ -194,8 +211,8 @@ async function pollLoop() {
     
     if (issues.length === 0) {
       console.log('📭 No open issues found.');
-      if (CHAT_ID) {
-        await sendNotification(CHAT_ID, '✅ *All issues completed!* Pipeline is idle.');
+      if (hasAdmins()) {
+        await notifyAdmins('✅ *All issues completed!* Pipeline is idle.');
       }
       setState('pipeline_status', 'idle');
       isProcessing = false;
@@ -204,6 +221,20 @@ async function pollLoop() {
 
     const issue = selectNextIssue(issues);
     console.log(`🎯 Processing Issue #${issue.number}: ${issue.title}`);
+
+    const watchdog = await runWatchdog('pre_codex', { notifyOk: false });
+    if (watchdog.critical) {
+      setState('pipeline_status', 'paused');
+      await notifyAdmins(
+        `🧯 *Codex start blocked by EC2 Watchdog*\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `Issue #${issue.number}: ${issue.title}\n` +
+        `RAM: ${watchdog.memory.usedPercent}% used\n` +
+        `Disk: ${watchdog.disk.usedPercent}% used on \`${watchdog.disk.path}\`\n\n` +
+        `Pipeline paused. Free resources, then press Continue.`
+      );
+      return;
+    }
 
     const dirtyStatus = await getGitStatusShort();
     if (dirtyStatus) {
@@ -214,21 +245,24 @@ async function pollLoop() {
       const decision = await sendDirtyWorktreePrompt(CHAT_ID, dirtyStatus);
       if (decision === 'dirty_discard_continue') {
         await discardCodexChanges('pre_codex_dirty_guard');
-        await sendNotification(CHAT_ID, '🧹 Dirty working tree discarded. Continuing with Codex.');
+        await notifyAdmins('🧹 Dirty working tree discarded. Continuing with Codex.');
       } else {
         setState('pipeline_status', 'paused');
-        await sendNotification(CHAT_ID, '⏸️ Codex start cancelled. Pipeline paused and working tree was left untouched.');
+        await notifyAdmins('⏸️ Codex start cancelled. Pipeline paused and working tree was left untouched.');
         return;
       }
     }
 
     recordIssueStart(issue.number, issue.title, issue.body || null);
     
-    if (CHAT_ID) {
-      await sendNotification(CHAT_ID, 
+    if (hasAdmins()) {
+      const operator = getPipelineOperator();
+      const operatorLine = operator ? `👤 Operator: ${formatOperator(operator)}\n` : '';
+      await notifyAdmins(
         `🔧 *Issue #${issue.number} STARTED*\n` +
         `━━━━━━━━━━━━━━━━━━━━━━\n` +
         `📋 ${issue.title}\n` +
+        operatorLine +
         `🤖 Model: \`${getState('current_model') || 'gpt-5.5'}\`\n` +
         `⏳ Working...`
       );
@@ -238,9 +272,8 @@ async function pollLoop() {
     let result;
     
     try {
-      await runWatchdog('pre_codex', { notifyOk: false });
-      if (CHAT_ID) {
-        await startDiffStream(CHAT_ID, `Issue #${issue.number}: ${issue.title}`, getPipelineOperator());
+      if (hasAdmins()) {
+        await startDiffStreamsForAdmins(`Issue #${issue.number}: ${issue.title}`, getPipelineOperator());
       }
       result = await runCodex(issue.number, issue.title, issue.body, model);
       stopDiffStream();
@@ -272,8 +305,15 @@ async function pollLoop() {
         completedAt: true
       });
       setState('pipeline_status', 'paused');
-      if (CHAT_ID) {
-        await sendNotification(CHAT_ID, `⚠️ Codex finished but no files were modified for Issue #${issue.number}.`);
+      const remaining = finishBatchSlot();
+      if (remaining > 0) {
+        setState('pipeline_status', 'running');
+      }
+      if (hasAdmins()) {
+        await notifyAdmins(
+          `⚠️ Codex finished but no files were modified for Issue #${issue.number}.` +
+          `${remaining > 0 ? `\n\n🔢 Batch continuing with ${remaining} issue${remaining === 1 ? '' : 's'} remaining.` : ''}`
+        );
       }
       return;
     }
@@ -281,8 +321,10 @@ async function pollLoop() {
     recordIssueComplete(issue.number, summary, result.rawOutput, 'pending_review');
     setState('pipeline_status', 'awaiting_delivery');
 
-    if (CHAT_ID) {
-      await sendDeliveryReviewPanel(CHAT_ID, {
+    finishBatchSlot();
+
+    if (hasAdmins()) {
+      await sendDeliveryReviewPanelsForAdmins({
         issueNumber: issue.number,
         issueTitle: issue.title,
         result
@@ -307,8 +349,8 @@ async function pollLoop() {
     const current = getCurrentIssue();
     if (current) {
       recordIssueError(current.issue_number, error.message);
-      if (CHAT_ID) {
-        await sendNotification(CHAT_ID, 
+      if (hasAdmins()) {
+        await notifyAdmins(
           `❌ *ERROR on Issue #${current.issue_number}*\n` +
           `━━━━━━━━━━━━━━━━━━━━━━\n` +
           `${error.message.substring(0, 300)}\n\n` +
@@ -332,11 +374,47 @@ async function handleCodexTimeout(issueNumber, error) {
   console.warn(`⏱️ ${issueText} timed out after ${minutes} minutes.`);
   setState('pipeline_status', 'paused');
   setCurrentIssue(null);
-  if (CHAT_ID && issueNumber) {
-    await sendNotification(CHAT_ID, `⏱️ Codex timed out after ${minutes} minutes. Issue #${issueNumber} aborted.`);
-  } else if (CHAT_ID) {
-    await sendNotification(CHAT_ID, `⏱️ Codex timed out after ${minutes} minutes. Task aborted.`);
+  if (hasAdmins() && issueNumber) {
+    await notifyAdmins(`⏱️ Codex timed out after ${minutes} minutes. Issue #${issueNumber} aborted.`);
+  } else if (hasAdmins()) {
+    await notifyAdmins(`⏱️ Codex timed out after ${minutes} minutes. Task aborted.`);
   }
+}
+
+function hasAdmins() {
+  return ADMIN_CHAT_IDS.length > 0;
+}
+
+async function notifyAdmins(text) {
+  if (!hasAdmins()) return [];
+  return broadcastNotification(text, ADMIN_CHAT_IDS);
+}
+
+async function startDiffStreamsForAdmins(label, operator) {
+  for (const chatId of ADMIN_CHAT_IDS) {
+    try {
+      await startDiffStream(chatId, label, operator);
+    } catch (error) {
+      console.warn(`[diff-stream] Failed to start stream for chat ${chatId}:`, formatError(error));
+    }
+  }
+}
+
+async function sendDeliveryReviewPanelsForAdmins(review) {
+  for (const chatId of ADMIN_CHAT_IDS) {
+    try {
+      await sendDeliveryReviewPanel(chatId, review);
+    } catch (error) {
+      console.warn(`[delivery] Failed to send review panel to chat ${chatId}:`, formatError(error));
+    }
+  }
+}
+
+function finishBatchSlot() {
+  const before = getBatchRemaining();
+  if (before <= 0) return 0;
+  const remaining = decrementBatchRemaining();
+  return remaining;
 }
 
 async function runWatchdog(reason, options = {}) {
@@ -344,8 +422,8 @@ async function runWatchdog(reason, options = {}) {
   const warnings = report.warnings;
 
   if (warnings.length === 0) {
-    if (options.notifyOk && CHAT_ID) {
-      await sendNotification(CHAT_ID, `✅ Watchdog OK. RAM ${report.memory.usedPercent}% | Disk ${report.disk.usedPercent}%`);
+    if (options.notifyOk && hasAdmins()) {
+      await notifyAdmins(`✅ Watchdog OK. RAM ${report.memory.usedPercent}% | Disk ${report.disk.usedPercent}%`);
     }
     return report;
   }
@@ -357,10 +435,10 @@ async function runWatchdog(reason, options = {}) {
   const shouldAlert = signature !== lastSignature || Date.now() - lastAlertMs > WATCHDOG_COOLDOWN_MS;
 
   console.warn(`[watchdog] reason=${reason} warnings=${JSON.stringify(warnings)} report=${JSON.stringify(report)}`);
-  if (shouldAlert && CHAT_ID) {
+  if (shouldAlert && hasAdmins()) {
     setState('watchdog_last_alert_signature', signature);
     setState('watchdog_last_alert_at', new Date().toISOString());
-    await sendNotification(CHAT_ID,
+    await notifyAdmins(
       `⚠️ *EC2 Watchdog Warning*\n` +
       `Reason: ${reason}\n` +
       `RAM: ${report.memory.usedPercent}% used (${formatBytes(report.memory.used)} / ${formatBytes(report.memory.total)})\n` +
@@ -396,7 +474,8 @@ async function getWatchdogReport() {
       usedPercent: memoryUsedPercent
     },
     disk,
-    warnings
+    warnings,
+    critical: warnings.length > 0
   };
 }
 
@@ -438,13 +517,29 @@ function formatBytes(bytes) {
   return `${gib.toFixed(1)} GiB`;
 }
 
+function formatOperator(operator) {
+  if (!operator) return '';
+  return operator.username ? `@${operator.username}` : operator.displayName || `user ${operator.userId || 'unknown'}`;
+}
+
 function selectNextIssue(issues) {
   const openNumbers = issues.map(issue => issue.number);
   const priorityQueue = prunePriorityQueue(openNumbers);
+  const existingOrder = getQueueOrder().filter(issueNumber => openNumbers.includes(issueNumber));
+  const missing = openNumbers.filter(issueNumber => !existingOrder.includes(issueNumber));
+  const queueOrder = setQueueOrder([...existingOrder, ...missing]);
+  const byNumber = new Map(issues.map(issue => [issue.number, issue]));
   const priorityIssue = priorityQueue
-    .map(issueNumber => issues.find(issue => issue.number === issueNumber))
+    .map(issueNumber => byNumber.get(issueNumber))
     .find(Boolean);
-  return priorityIssue || issues[0];
+  if (priorityIssue) {
+    setQueueOrder([
+      priorityIssue.number,
+      ...queueOrder.filter(issueNumber => issueNumber !== priorityIssue.number)
+    ]);
+    return priorityIssue;
+  }
+  return queueOrder.map(issueNumber => byNumber.get(issueNumber)).find(Boolean) || issues[0];
 }
 
 function getRetryIssue() {
@@ -462,20 +557,32 @@ async function handleApiKeyExhaustion(issueNumber, title, errorMessage) {
   
   const rotation = rotateApiKey('Rate limit / exhaustion detected during issue execution');
   
-  if (CHAT_ID) {
-    if (rotation.exhausted) {
-      await sendKeyExhaustedAlert(CHAT_ID, issueNumber, title, '67% (interrupted)');
-      setState('pipeline_status', 'awaiting_key');
-    } else {
-      await sendNotification(CHAT_ID,
+  if (rotation.exhausted) {
+    if (hasAdmins()) {
+      await sendKeyExhaustedAlertsForAdmins(issueNumber, title, '67% (interrupted)');
+    }
+    setState('pipeline_status', 'awaiting_key');
+  } else {
+    if (hasAdmins()) {
+      await notifyAdmins(
         `🔄 *API Key Auto-Rotated*\n` +
         `━━━━━━━━━━━━━━━━━━━━━━\n` +
         `Old key: ...${rotation.oldSuffix}\n` +
         `New key: ...${rotation.newSuffix}\n\n` +
         `Retrying Issue #${issueNumber} with new key...`
       );
-      isProcessing = false;
-      return;
+    }
+    isProcessing = false;
+    return;
+  }
+}
+
+async function sendKeyExhaustedAlertsForAdmins(issueNumber, title, progress) {
+  for (const chatId of ADMIN_CHAT_IDS) {
+    try {
+      await sendKeyExhaustedAlert(chatId, issueNumber, title, progress);
+    } catch (error) {
+      console.warn(`[api-key] Failed to send exhausted alert to chat ${chatId}:`, formatError(error));
     }
   }
 }
@@ -529,6 +636,7 @@ async function shutdown(reason, details, exitCode = 0) {
   console.log('\n👋 Shutting down gracefully...');
   if (pollTimer) clearInterval(pollTimer);
   if (heartbeatTimer) clearInterval(heartbeatTimer);
+  if (watchdogTimer) clearInterval(watchdogTimer);
 
   try {
     if (bot) await bot.stopPolling();
