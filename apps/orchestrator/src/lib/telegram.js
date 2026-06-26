@@ -55,6 +55,7 @@ const ERR_LOG = path.join(LOG_DIR, 'err.log');
 const MAX_LOG_CHARS = 2200;
 const MAX_TRACKED_MESSAGES_PER_CHAT = 40;
 const DIFF_STREAM_INTERVAL = (parseInt(process.env.DIFF_STREAM_INTERVAL_SECONDS, 10) || 30) * 1000;
+const THINKING_STREAM_INTERVAL = (parseInt(process.env.THINKING_STREAM_INTERVAL_SECONDS, 10) || 30) * 1000;
 const DIFF_STREAM_WORKDIR = process.env.CODEX_WORKDIR || process.cwd();
 const WATCHDOG_THRESHOLD = parseInt(process.env.WATCHDOG_THRESHOLD_PERCENT, 10) || 80;
 const WATCHDOG_PATH = process.env.WATCHDOG_DISK_PATH || DIFF_STREAM_WORKDIR;
@@ -66,6 +67,7 @@ let trackedBotMessages = new Map();
 let pollingRetryTimer = null;
 let pollingRetryDelay = 5000;
 let diffStreams = new Map();
+let thinkingStreams = new Map();
 
 function initBot() {
   if (!TOKEN) {
@@ -611,10 +613,16 @@ const HELP_ROWS = {
   'input:cancel': [
     ['❌ Cancel', 'Abandons pending input and stops any running Codex process.']
   ],
+  'thinking:stop': [
+    ['🛑 Stop Codex', 'Immediately kills the running Codex process with SIGTERM, then SIGKILL if needed.']
+  ],
   'delivery:review': [
     ['🚀 Push Changes', 'Commits, pushes to origin/main, and closes the GitHub issue.'],
     ['🔄 Retry', 'Discards the current diff and reruns Codex on the same issue.'],
     ['🗑️ Discard', 'Resets the working tree and marks the issue failed.']
+  ],
+  'delivery:peek': [
+    ['🔍 Peek', 'Shows a short summary and file-level diff stat before pushing.']
   ],
   'delivery:push_failure': [
     ['🔁 Retry Push', 'Attempts the commit/push flow again.'],
@@ -702,6 +710,7 @@ const HELP_INDEX = [
   ]],
   ['Delivery Review', [
     ['🚀 Push Changes', 'Commit, push, and close the issue.'],
+    ['🔍 Peek', 'Show a short summary and file-level diff stat before pushing.'],
     ['🔄 Retry', 'Reset changes and rerun Codex.'],
     ['🗑️ Discard', 'Reset changes and mark failed.'],
     ['🔁 Retry Push', 'Retry a failed push.'],
@@ -847,6 +856,120 @@ async function startDiffStream(chatId, label, operator = null) {
   await refreshDiffStream(stream.chatId);
   stream.timer = setInterval(() => refreshDiffStream(stream.chatId), DIFF_STREAM_INTERVAL);
   return stream;
+}
+
+async function startThinkingStream(chatId, label, operator = null) {
+  if (!bot || !chatId) return null;
+
+  stopThinkingStream(null, chatId);
+
+  const stream = {
+    chatId: chatId.toString(),
+    label,
+    operator: normalizeOperator(operator),
+    startedAt: Date.now(),
+    messageId: null,
+    timer: null,
+    updating: false,
+    lastThinking: null
+  };
+  thinkingStreams.set(stream.chatId, stream);
+
+  const sent = await sendTrackedMessage(chatId, buildThinkingStreamText(stream), {
+    parse_mode: 'Markdown',
+    reply_markup: thinkingStreamKeyboard()
+  });
+  stream.messageId = sent.message_id;
+
+  await refreshThinkingStream(stream.chatId);
+  stream.timer = setInterval(() => refreshThinkingStream(stream.chatId), THINKING_STREAM_INTERVAL);
+  return stream;
+}
+
+function stopThinkingStream(finalCurrent = null, chatId = null) {
+  const keys = chatId ? [chatId.toString()] : [...thinkingStreams.keys()];
+  for (const key of keys) {
+    stopSingleThinkingStream(key, finalCurrent);
+  }
+}
+
+function stopSingleThinkingStream(key, finalCurrent = null) {
+  const stream = thinkingStreams.get(key);
+  if (!stream) return;
+  if (stream.timer) {
+    clearInterval(stream.timer);
+  }
+  thinkingStreams.delete(key);
+
+  if (bot && stream.messageId) {
+    safeEditMessageText(buildThinkingStreamText(stream, finalCurrent), {
+      chat_id: stream.chatId,
+      message_id: stream.messageId,
+      parse_mode: 'Markdown',
+      reply_markup: thinkingStreamKeyboard()
+    }).catch(error => console.warn('[telegram] Unable to finalize thinking stream:', formatError(error)));
+  }
+}
+
+async function refreshThinkingStream(chatId) {
+  const stream = thinkingStreams.get(chatId?.toString());
+  if (!stream || stream.updating || !stream.messageId) return;
+  stream.updating = true;
+
+  try {
+    const fileStats = parseGitNumstat(await getGitNumstat());
+    await safeEditMessageText(buildThinkingStreamText(stream, null, fileStats.length), {
+      chat_id: stream.chatId,
+      message_id: stream.messageId,
+      parse_mode: 'Markdown',
+      reply_markup: thinkingStreamKeyboard()
+    });
+  } catch (error) {
+    await safeEditMessageText(buildThinkingStreamText(stream, `Unable to read thinking state: ${error.message}`), {
+      chat_id: stream.chatId,
+      message_id: stream.messageId,
+      parse_mode: 'Markdown',
+      reply_markup: thinkingStreamKeyboard()
+    });
+  } finally {
+    stream.updating = false;
+  }
+}
+
+function buildThinkingStreamText(stream, currentOverride = null, fileCountOverride = null) {
+  const status = getCodexRuntimeStatus();
+  const thinking = status.activeRun?.thinking || stream.lastThinking || {};
+  if (status.activeRun?.thinking) {
+    stream.lastThinking = status.activeRun.thinking;
+  }
+
+  const elapsedSeconds = Math.max(0, Math.round((Date.now() - stream.startedAt) / 1000));
+  const current = currentOverride || thinking.current || '🧠 Planning approach...';
+  const filesTouched = Number.isInteger(fileCountOverride)
+    ? fileCountOverride
+    : Number(thinking.filesTouchedCount || thinking.filesTouched?.length || 0);
+  const owner = formatOperatorMention(stream.operator);
+
+  return (
+    `🤖 *Codex Thinking — ${escapeMarkdown(stream.label || 'Codex run')}*\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `Current: ${escapeMarkdown(current)}\n` +
+    `Files touched: ${filesTouched}\n` +
+    `Time elapsed: ${formatDuration(elapsedSeconds)}\n` +
+    `${owner ? `Operator: ${escapeMarkdown(owner)}\n` : ''}` +
+    `Updated: \`${new Date().toISOString()}\``
+  ).slice(0, 3900);
+}
+
+function thinkingStreamKeyboard() {
+  return {
+    inline_keyboard: [
+      [
+        { text: '🛑 Stop Codex', callback_data: 'panel:codex_stop' },
+        { text: '❓', callback_data: 'help:thinking:stop' }
+      ]
+    ]
+  };
 }
 
 function stopDiffStream(finalText = null, chatId = null) {
@@ -1249,6 +1372,10 @@ function deliveryReviewKeyboard(issueNumber, options = {}) {
       { text: '🗑️ Discard', callback_data: `panel:delivery:discard:${issueNumber}` },
       { text: '❓', callback_data: 'help:delivery:review' }
     ]);
+    rows.push([
+      { text: '🔍 Peek', callback_data: `panel:delivery:peek:${issueNumber}` },
+      { text: '❓', callback_data: 'help:delivery:peek' }
+    ]);
   }
 
   return { inline_keyboard: rows };
@@ -1262,6 +1389,12 @@ async function handleDeliveryAction(query) {
 
   if (!Number.isInteger(issueNumber) || issueNumber <= 0) {
     await bot.answerCallbackQuery(query.id, { text: 'Missing issue number' });
+    return;
+  }
+
+  if (action === 'peek') {
+    await bot.answerCallbackQuery(query.id, { text: 'Opening peek' });
+    await sendDeliveryPeek(chatId, issueNumber);
     return;
   }
 
@@ -1306,6 +1439,95 @@ async function handleDeliveryAction(query) {
   }
 
   await bot.answerCallbackQuery(query.id, { text: 'Unknown delivery action' });
+}
+
+async function sendDeliveryPeek(chatId, issueNumber) {
+  const issue = await resolveDeliveryIssue(issueNumber);
+  if (!issue) {
+    await sendTrackedMessage(chatId, `Issue #${issueNumber} is not in the delivery database.`);
+    return;
+  }
+
+  const status = await getGitStatusShort();
+  if (!status) {
+    await sendTrackedMessage(chatId, `No working tree changes are currently available for Issue #${issueNumber}.`, {
+      reply_markup: controlPanelKeyboard()
+    });
+    return;
+  }
+
+  await sendTrackedMessage(chatId, await buildDeliveryPeekText(issue), {
+    parse_mode: 'Markdown',
+    reply_markup: deliveryReviewKeyboard(issueNumber)
+  });
+}
+
+async function buildDeliveryPeekText(issue) {
+  const issueNumber = issue.issue_number || issue.number;
+  const fileStats = parseGitNumstat(await getGitNumstat());
+  const summary = buildPeekSummary(issue, fileStats);
+  let text =
+    `🔍 *Peek — Issue #${issueNumber}*\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `${escapeMarkdown(summary)}\n\n` +
+    `📁 *Files modified:*\n`;
+
+  if (fileStats.length === 0) {
+    const stat = await getGitDiffStat();
+    text += stat ? `\`\`\`\n${escapeCodeBlock(stat)}\n\`\`\`\n` : `_No file-level diff stat available._\n`;
+  } else {
+    for (const file of fileStats.slice(0, 18)) {
+      text += `\`${escapeMarkdown(file.path)}\` (+${file.additions}, -${file.deletions})\n`;
+    }
+    if (fileStats.length > 18) {
+      text += `_...and ${fileStats.length - 18} more files_\n`;
+    }
+  }
+
+  text += `\n⚠️ *Review before pushing.*`;
+  return text.slice(0, 3900);
+}
+
+function buildPeekSummary(issue, fileStats) {
+  const issueNumber = issue.issue_number || issue.number;
+  const issueTitle = issue.title || 'Untitled';
+  const totals = fileStats.reduce((acc, file) => {
+    acc.additions += file.additions;
+    acc.deletions += file.deletions;
+    return acc;
+  }, { additions: 0, deletions: 0 });
+  const extracted = splitSentences(cleanSummaryText(issue.result_summary || '')).filter(Boolean);
+  const first = `Codex completed Issue #${issueNumber}: "${issueTitle}".`;
+  const second = ensureSentence(extracted[0] || 'Codex reported changes in the working tree for operator review.');
+  const third = fileStats.length > 0
+    ? `Git currently shows ${fileStats.length} changed file${fileStats.length === 1 ? '' : 's'} with ${totals.additions} insertion${totals.additions === 1 ? '' : 's'} and ${totals.deletions} deletion${totals.deletions === 1 ? '' : 's'}.`
+    : 'Git did not return file-level numstat details for the current diff.';
+  return [first, second, third].join(' ');
+}
+
+function cleanSummaryText(text) {
+  return String(text || '')
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/[*_~#[\]()]/g, '')
+    .replace(/[•✅📁⚡📊⚠️🤖]/g, ' ')
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line && !/^(codex complete|stats:?|files changed:?|commands run:?|model:|duration:|issue #?\d+)/i.test(line))
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function splitSentences(text) {
+  return String(text || '')
+    .match(/[^.!?]+[.!?]+|[^.!?]+$/g)?.map(sentence => sentence.trim()).filter(Boolean) || [];
+}
+
+function ensureSentence(text) {
+  const trimmed = String(text || '').trim().slice(0, 300);
+  if (!trimmed) return 'Codex reported changes in the working tree for operator review.';
+  return /[.!?]$/.test(trimmed) ? trimmed : `${trimmed}.`;
 }
 
 async function runLockedDeliveryAction(query, action, issueNumber, deliveryAction) {
@@ -1762,6 +1984,7 @@ async function runPromptFromTelegram(chatId, prompt, label, operator = null) {
 
   try {
     await startDiffStream(chatId, label, operator);
+    await startThinkingStream(chatId, label, operator);
     const result = await runCodexPrompt(prompt, { label, model, source: 'telegram', operator });
     stopDiffStream(buildDiffStreamText({
       chatId,
@@ -1769,6 +1992,7 @@ async function runPromptFromTelegram(chatId, prompt, label, operator = null) {
       operator: normalizeOperator(operator),
       startedAt: Date.now()
     }, 'Codex run completed. Use the Logs panel for the event log.'));
+    stopThinkingStream('✅ Wrapping up...', chatId);
     await sendTrackedMessage(chatId, buildManualCodexSummary(label, result, model, operator), {
       parse_mode: 'Markdown',
       reply_markup: postCodexKeyboard()
@@ -1780,6 +2004,7 @@ async function runPromptFromTelegram(chatId, prompt, label, operator = null) {
       operator: normalizeOperator(operator),
       startedAt: Date.now()
     }, `Codex run stopped or failed: ${error.message.slice(0, 500)}`));
+    stopThinkingStream(`Codex run stopped or failed: ${error.message.slice(0, 160)}`, chatId);
     if (isCodexTimeoutError(error)) {
       const minutes = error.timeoutMinutes || 'configured limit';
       const issueText = error.issueNumber ? `Issue #${error.issueNumber}` : 'Task';
@@ -2903,6 +3128,8 @@ module.exports = {
   getWatchdogReport,
   startDiffStream,
   stopDiffStream,
+  startThinkingStream,
+  stopThinkingStream,
   isAuthorized,
   getAuthorizedChatIds
 };

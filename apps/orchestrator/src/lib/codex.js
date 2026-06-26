@@ -21,12 +21,15 @@ const WORKDIR = process.env.CODEX_WORKDIR || process.env.REPO_PATH || process.cw
 const CODEX_LOG_LIMIT = 80;
 const STOP_TIMEOUT_MS = 5000;
 const CODEX_MAX_RUNTIME_MINUTES = parsePositiveNumber(process.env.CODEX_MAX_RUNTIME_MINUTES, 30);
-const CODEX_NO_OUTPUT_TIMEOUT_MINUTES = parsePositiveNumber(
+const DEFAULT_NO_OUTPUT_TIMEOUT_MINUTES = parsePositiveNumber(
   process.env.CODEX_NO_OUTPUT_TIMEOUT_MINUTES || process.env.CODEX_NO_OUTPUT_MINUTES,
   10
 );
+const MANUAL_NO_OUTPUT_TIMEOUT_MINUTES = parsePositiveNumber(
+  process.env.CODEX_MANUAL_NO_OUTPUT_TIMEOUT_MINUTES,
+  2
+);
 const CODEX_MAX_RUNTIME_MS = CODEX_MAX_RUNTIME_MINUTES * 60 * 1000;
-const CODEX_NO_OUTPUT_TIMEOUT_MS = CODEX_NO_OUTPUT_TIMEOUT_MINUTES * 60 * 1000;
 const GIT_TIMEOUT_MS = 120000;
 const GIT_COMMITTER_NAME = process.env.GIT_COMMITTER_NAME || 'Prometheus Orchestrator';
 const GIT_COMMITTER_EMAIL = process.env.GIT_COMMITTER_EMAIL || 'prometheus-orchestrator@localhost';
@@ -40,6 +43,29 @@ let stoppedRunIds = new Map();
 function parsePositiveNumber(value, fallback) {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function writePromptTempFile(prompt) {
+  const filePath = path.join(
+    '/tmp',
+    `codex-prompt-${Date.now()}-${process.pid}-${Math.random().toString(36).slice(2, 8)}.md`
+  );
+  fs.writeFileSync(filePath, String(prompt || ''), {
+    encoding: 'utf8',
+    mode: 0o600
+  });
+  return filePath;
+}
+
+function deletePromptTempFile(filePath) {
+  if (!filePath) return;
+  try {
+    fs.unlinkSync(filePath);
+  } catch (error) {
+    if (error?.code !== 'ENOENT') {
+      logCodexEvent('error', `Failed to delete prompt temp file: ${error.message}`, { promptFile: filePath });
+    }
+  }
 }
 
 function safeGetState(key) {
@@ -214,7 +240,8 @@ function runCodexPrompt(prompt, options = {}) {
     model: options.model || getState('current_model') || 'gpt-5.5',
     source: options.source || 'telegram',
     metadata: options.metadata || {},
-    operator: options.operator || null
+    operator: options.operator || null,
+    noOutputTimeoutMinutes: options.noOutputTimeoutMinutes || MANUAL_NO_OUTPUT_TIMEOUT_MINUTES
   });
 }
 
@@ -532,7 +559,13 @@ function runCodexCommand(prompt, options) {
     }
 
     const model = options.model || getState('current_model') || 'gpt-5.5';
-    const args = ['exec', '-m', model, '--json', prompt];
+    const promptFile = writePromptTempFile(prompt);
+    const args = ['exec', '-m', model, '--json', '-'];
+    const noOutputTimeoutMinutes = parsePositiveNumber(
+      options.noOutputTimeoutMinutes,
+      options.source === 'telegram' ? MANUAL_NO_OUTPUT_TIMEOUT_MINUTES : DEFAULT_NO_OUTPUT_TIMEOUT_MINUTES
+    );
+    const noOutputTimeoutMs = noOutputTimeoutMinutes * 60 * 1000;
 
     const env = {
       ...process.env,
@@ -554,6 +587,10 @@ function runCodexCommand(prompt, options) {
     let timeoutTriggered = null;
     const runId = ++runCounter;
 
+    const cleanupPromptFile = () => {
+      deletePromptTempFile(promptFile);
+    };
+
     const clearRunTimers = () => {
       if (runtimeTimer) {
         clearTimeout(runtimeTimer);
@@ -568,7 +605,7 @@ function runCodexCommand(prompt, options) {
     const triggerTimeout = (type) => {
       if (settled || timeoutTriggered) return;
       const minutes = type === 'no_output'
-        ? CODEX_NO_OUTPUT_TIMEOUT_MINUTES
+        ? noOutputTimeoutMinutes
         : CODEX_MAX_RUNTIME_MINUTES;
       timeoutTriggered = {
         type,
@@ -602,7 +639,7 @@ function runCodexCommand(prompt, options) {
     const resetNoOutputTimer = () => {
       if (settled || timeoutTriggered) return;
       if (noOutputTimer) clearTimeout(noOutputTimer);
-      noOutputTimer = setTimeout(() => triggerTimeout('no_output'), CODEX_NO_OUTPUT_TIMEOUT_MS);
+      noOutputTimer = setTimeout(() => triggerTimeout('no_output'), noOutputTimeoutMs);
     };
 
     activeRun = {
@@ -621,15 +658,18 @@ function runCodexCommand(prompt, options) {
       child: null,
       timeoutConfig: {
         maxRuntimeMinutes: CODEX_MAX_RUNTIME_MINUTES,
-        noOutputTimeoutMinutes: CODEX_NO_OUTPUT_TIMEOUT_MINUTES
+        noOutputTimeoutMinutes
       },
-      timeout: null
+      timeout: null,
+      promptFile,
+      thinking: createThinkingState(options.label)
     };
     activeRun.lock = setCodexLock(activeRun.operator, options.label);
     logCodexEvent('start', `Codex started: ${options.label}`, {
       runId,
       model,
       source: options.source,
+      promptFile,
       keySuffix: activeRun.keySuffix,
       operator: formatOperator(activeRun.operator)
     });
@@ -637,8 +677,25 @@ function runCodexCommand(prompt, options) {
     const codex = spawn('codex', args, {
       cwd: WORKDIR,
       env,
-      shell: false
+      shell: false,
+      stdio: ['pipe', 'pipe', 'pipe']
     });
+    const promptStream = fs.createReadStream(promptFile, { encoding: 'utf8' });
+    promptStream.on('error', (error) => {
+      logCodexEvent('error', `Failed to read Codex prompt temp file: ${error.message}`, { runId, promptFile });
+      codex.stdin?.destroy(error);
+    });
+    if (codex.stdin) {
+      codex.stdin.on('error', (error) => {
+        if (error?.code !== 'EPIPE') {
+          logCodexEvent('error', `Failed to write Codex prompt stdin: ${error.message}`, { runId, promptFile });
+        }
+      });
+      promptStream.pipe(codex.stdin);
+    } else {
+      promptStream.destroy();
+      logCodexEvent('error', 'Codex stdin was not available for prompt delivery', { runId, promptFile });
+    }
     activeRun.child = codex;
     activeRun.pid = codex.pid || null;
     if (activeRun.pid) {
@@ -663,6 +720,7 @@ function runCodexCommand(prompt, options) {
         if (activeRun && activeRun.id === runId) {
           activeRun.eventCount += 1;
           activeRun.latestEvent = summary;
+          updateThinkingState(activeRun, event, line);
         }
         logCodexEvent('event', summary, { runId, eventType: event.type || 'unknown' });
       }
@@ -682,12 +740,16 @@ function runCodexCommand(prompt, options) {
           text.includes('out of credits') || text.includes('limit reached')) {
         isExhaustionError = true;
       }
+      if (activeRun && activeRun.id === runId) {
+        updateThinkingState(activeRun, { type: 'stderr', content: text }, text);
+      }
       logCodexEvent('stderr', text.trim().slice(0, 500), { runId });
     });
 
     codex.on('close', (code) => {
       if (settled) return;
       clearRunTimers();
+      cleanupPromptFile();
       const duration = ((Date.now() - startTime) / 1000).toFixed(1);
       const stoppedEntry = stoppedRunIds.get(runId) || (timeoutTriggered ? {
         reason: `timeout_${timeoutTriggered.type}`,
@@ -767,6 +829,7 @@ function runCodexCommand(prompt, options) {
     codex.on('error', (err) => {
       if (settled) return;
       clearRunTimers();
+      cleanupPromptFile();
       clearActiveRun(runId, 'idle');
       const error = err.code === 'ENOENT'
         ? new Error('CODEX_NOT_FOUND: codex CLI not installed')
@@ -1025,6 +1088,109 @@ function formatOperator(operator) {
   const normalized = normalizeOperator(operator);
   if (!normalized) return '';
   return normalized.username ? `@${normalized.username}` : normalized.displayName;
+}
+
+function createThinkingState(label) {
+  return {
+    label: label || 'Codex run',
+    current: '🧠 Planning approach...',
+    phase: 'planning',
+    filesTouched: [],
+    filesTouchedCount: 0,
+    lastSignal: null,
+    updatedAt: new Date().toISOString()
+  };
+}
+
+function updateThinkingState(run, event, rawText = '') {
+  if (!run) return;
+  if (!run.thinking) {
+    run.thinking = createThinkingState(run.label);
+  }
+
+  const text = [
+    rawText,
+    extractEventText(event),
+    event?.message,
+    event?.content,
+    event?.command,
+    event?.path,
+    event?.name,
+    event?.tool
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const lower = text.toLowerCase();
+  const filePath = extractEventFilePath(event, text);
+
+  if (filePath) {
+    addThinkingFile(run.thinking, filePath);
+  }
+
+  let phase = null;
+  let current = null;
+
+  if (event?.type === 'reasoning' || /\b(planning|plan|thinking|approach)\b/.test(lower)) {
+    phase = 'planning';
+    current = '🧠 Planning approach...';
+  }
+
+  if (!phase && /\b(reading|read file|opened|searching|rg |grep |listing|inspecting|analyzing)\b/.test(lower)) {
+    phase = 'reading';
+    current = '📖 Reading codebase...';
+  }
+
+  if (!phase && (
+    event?.type === 'file' ||
+    /\b(editing|modified|created|deleted|patch|apply_patch|writing|updated)\b/.test(lower)
+  )) {
+    phase = 'editing';
+    current = `✏️ Editing ${filePath || 'files'}...`;
+  }
+
+  if (!phase && (
+    event?.type === 'command' ||
+    /\b(test|tests|testing|verification|verify|lint|node --check|npm test|pytest|jest|build)\b/.test(lower)
+  )) {
+    phase = 'testing';
+    current = '🧪 Running verification...';
+  }
+
+  if (!phase && /\b(complete|completed|done|finished|wrapping up|final)\b/.test(lower)) {
+    phase = 'complete';
+    current = '✅ Wrapping up...';
+  }
+
+  if (phase && current) {
+    run.thinking.phase = phase;
+    run.thinking.current = current;
+  }
+
+  if (text) {
+    run.thinking.lastSignal = text.slice(0, 240);
+  }
+  run.thinking.updatedAt = new Date().toISOString();
+}
+
+function extractEventFilePath(event, text = '') {
+  if (event?.path) return String(event.path);
+  if (event?.file) return String(event.file);
+
+  const match = String(text || '').match(/\b(?:editing|modified|created|deleted|updated|file)\s+([A-Za-z0-9_./-]+\.[A-Za-z0-9_./-]+)/i);
+  return match ? match[1] : null;
+}
+
+function addThinkingFile(thinking, filePath) {
+  if (!filePath) return;
+  const normalized = String(filePath).trim();
+  if (!normalized) return;
+  if (!thinking.filesTouched.includes(normalized)) {
+    thinking.filesTouched.push(normalized);
+    thinking.filesTouched = thinking.filesTouched.slice(-25);
+  }
+  thinking.filesTouchedCount = thinking.filesTouched.length;
 }
 
 function summarizeCodexEvent(event) {

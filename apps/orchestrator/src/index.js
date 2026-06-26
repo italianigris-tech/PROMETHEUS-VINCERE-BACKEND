@@ -44,7 +44,9 @@ const {
   sendKeyExhaustedAlert,
   broadcastNotification,
   startDiffStream,
-  stopDiffStream
+  stopDiffStream,
+  startThinkingStream,
+  stopThinkingStream
 } = require('./lib/telegram');
 
 const ADMIN_CHAT_IDS = (process.env.AUTHORIZED_CHAT_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
@@ -274,11 +276,14 @@ async function pollLoop() {
     try {
       if (hasAdmins()) {
         await startDiffStreamsForAdmins(`Issue #${issue.number}: ${issue.title}`, getPipelineOperator());
+        await startThinkingStreamsForAdmins(`Issue #${issue.number}`, getPipelineOperator());
       }
       result = await runCodex(issue.number, issue.title, issue.body, model);
       stopDiffStream();
+      stopThinkingStream('✅ Wrapping up...');
     } catch (error) {
       stopDiffStream();
+      stopThinkingStream(`Codex run stopped or failed: ${error.message.slice(0, 160)}`);
       if (error.message.includes('API_KEY_EXHAUSTED')) {
         await handleApiKeyExhaustion(issue.number, issue.title, error.message);
         isProcessing = false;
@@ -396,6 +401,16 @@ async function startDiffStreamsForAdmins(label, operator) {
       await startDiffStream(chatId, label, operator);
     } catch (error) {
       console.warn(`[diff-stream] Failed to start stream for chat ${chatId}:`, formatError(error));
+    }
+  }
+}
+
+async function startThinkingStreamsForAdmins(label, operator) {
+  for (const chatId of ADMIN_CHAT_IDS) {
+    try {
+      await startThinkingStream(chatId, label, operator);
+    } catch (error) {
+      console.warn(`[thinking-stream] Failed to start stream for chat ${chatId}:`, formatError(error));
     }
   }
 }
