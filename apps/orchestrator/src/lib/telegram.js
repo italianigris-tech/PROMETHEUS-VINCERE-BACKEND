@@ -25,6 +25,9 @@ const {
   getBatchRemaining,
   setBatchRemaining,
   getStats,
+  getSetting,
+  setSetting,
+  DEFAULT_SETTINGS,
   getRunAnalytics,
   getBooleanSetting,
   setBooleanSetting,
@@ -86,6 +89,26 @@ const WATCHDOG_THRESHOLD = parseInt(process.env.WATCHDOG_THRESHOLD_PERCENT, 10) 
 const WATCHDOG_PATH = process.env.WATCHDOG_DISK_PATH || DIFF_STREAM_WORKDIR;
 const SESSION_RESERVATION_TTL_MS = 10 * 60 * 1000;
 const PREFLIGHT_DEFAULT_ENABLED = process.env.PREFLIGHT_ENABLED === 'true';
+const SETTINGS_MODEL_CHOICES = ['gpt-5.4', 'gpt-5.5', 'gpt-5.5-high', 'gpt-5.5-xhigh'];
+const SETTING_ENV_OVERRIDES = {
+  auto_surprise: 'AUTO_SURPRISE_ENABLED',
+  preflight_check: 'PREFLIGHT_ENABLED',
+  self_heal: 'SELF_HEAL_ENABLED',
+  live_stream: 'LIVE_STREAM_ENABLED',
+  auto_retry_503: 'AUTO_RETRY_503'
+};
+const LEGACY_BOOLEAN_SETTINGS = {
+  auto_surprise: 'autoSurpriseEnabled',
+  preflight_check: 'preflightEnabled',
+  self_heal: 'selfHealEnabled'
+};
+const SETTINGS_LABELS = {
+  auto_surprise: 'Auto-Surprise',
+  preflight_check: 'Pre-Flight Check',
+  self_heal: 'Self-Heal',
+  live_stream: 'Live Stream',
+  auto_retry_503: '503 Auto-Retry'
+};
 
 let bot;
 let messageCallbacks = new Map();
@@ -165,10 +188,10 @@ function initBot() {
     }
     const value = String(match?.[1] || '').toLowerCase();
     if (value === 'on' || value === 'off') {
-      setBooleanSetting('autoSurpriseEnabled', value === 'on');
+      setCanonicalBooleanSetting('auto_surprise', value === 'on');
     }
     await sendTrackedMessage(chatId,
-      `🎁 Auto-surprise is ${getBooleanSetting('autoSurpriseEnabled', false) ? 'ON' : 'OFF'}.`,
+      `🎁 Auto-surprise is ${getSettingBoolean('auto_surprise') ? 'ON' : 'OFF'}.`,
       { reply_markup: settingsPanelKeyboard() }
     );
   });
@@ -261,60 +284,207 @@ function buildControlPanelText(name) {
     `Pipeline: *${escapeMarkdown(status.toUpperCase())}*\n` +
     `Codex: *${escapeMarkdown(formatCodexStatusSummary(codex))}* | Model: \`${escapeMarkdown(codex.model)}\`\n` +
     `API keys: ${codex.keyCount} | Active: \`...${escapeMarkdown(codex.keySuffix)}\`\n` +
-    `Current issue: ${currentLine}\n`
+    `Current issue: ${currentLine}\n` +
+    `Settings: ${formatSettingsStatusLine()}\n`
   );
+}
+
+function getSettingBoolean(key, fallback = DEFAULT_SETTINGS[key] === 'true') {
+  const envName = SETTING_ENV_OVERRIDES[key];
+  if (envName && Object.prototype.hasOwnProperty.call(process.env, envName)) {
+    return ['1', 'true', 'yes', 'on'].includes(String(process.env[envName] || '').toLowerCase());
+  }
+
+  return getBooleanSetting(key, fallback);
+}
+
+function setCanonicalBooleanSetting(key, value) {
+  setBooleanSetting(key, value);
+  const legacyKey = LEGACY_BOOLEAN_SETTINGS[key];
+  if (legacyKey) {
+    setBooleanSetting(legacyKey, value);
+  }
+}
+
+function toggleBooleanSetting(key) {
+  const next = !getSettingBoolean(key);
+  setCanonicalBooleanSetting(key, next);
+  return next;
+}
+
+function resetDefaultSettings() {
+  for (const [key, value] of Object.entries(DEFAULT_SETTINGS)) {
+    setSetting(key, value);
+    if (Object.prototype.hasOwnProperty.call(LEGACY_BOOLEAN_SETTINGS, key)) {
+      setCanonicalBooleanSetting(key, value === 'true');
+    }
+  }
+  setState('current_model', DEFAULT_SETTINGS.default_model);
+}
+
+function getDefaultModelSetting() {
+  return getSetting('default_model', getState('current_model') || DEFAULT_SETTINGS.default_model);
+}
+
+function formatSettingsStatusLine() {
+  const onOff = (key) => getSettingBoolean(key) ? 'ON' : 'OFF';
+  return [
+    `🎁${onOff('auto_surprise')}`,
+    `⚠️${onOff('preflight_check')}`,
+    `🩹${onOff('self_heal')}`,
+    `📡${onOff('live_stream')}`
+  ].join(' ');
+}
+
+function buildSettingsPanelText() {
+  const keySummary = getApiKeySummary();
+  const status = (key) => getSettingBoolean(key) ? '🟢 ON' : '🔴 OFF';
+  const model = getDefaultModelSetting();
+  const envOverrideLine = Object.entries(SETTING_ENV_OVERRIDES)
+    .filter(([, envName]) => Object.prototype.hasOwnProperty.call(process.env, envName))
+    .map(([key]) => SETTINGS_LABELS[key] || key);
+
+  return (
+    `⚙️ *PROMETHEUS SETTINGS*\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `Configure orchestrator behavior. Settings persist across restarts.\n\n` +
+    `🎁 Auto-Surprise: ${status('auto_surprise')}\n` +
+    `   Audit the repo every 6 hours and notify on high-severity findings.\n\n` +
+    `⚠️ Pre-Flight Check: ${status('preflight_check')}\n` +
+    `   Validate manual prompts before Codex spends tokens.\n\n` +
+    `🩹 Self-Heal: ${status('self_heal')}\n` +
+    `   Detect orchestrator bugs and create human-approved repair tasks.\n\n` +
+    `📡 Live Stream: ${status('live_stream')}\n` +
+    `   Show real-time code and thinking updates during pipeline runs.\n\n` +
+    `🔁 503 Auto-Retry: ${status('auto_retry_503')}\n` +
+    `   Retry temporary Codex service outages without rotating keys.\n\n` +
+    `🧠 Default Model: \`${escapeMarkdown(model)}\`\n` +
+    `🔑 Active key: \`${escapeMarkdown(keySummary.currentRedacted)}\` | Fallbacks: ${keySummary.fallbackCount}` +
+    `${envOverrideLine.length ? `\n\n_Env override active: ${escapeMarkdown(envOverrideLine.join(', '))}_` : ''}`
+  ).slice(0, 3900);
+}
+
+function settingsPanelKeyboard() {
+  const toggle = (key) => getSettingBoolean(key) ? 'Turn Off' : 'Turn On';
+  return {
+    inline_keyboard: [
+      [
+        { text: `🎁 ${toggle('auto_surprise')}`, callback_data: 'panel:settings:toggle:auto_surprise' },
+        { text: `⚠️ ${toggle('preflight_check')}`, callback_data: 'panel:settings:toggle:preflight_check' }
+      ],
+      [
+        { text: `🩹 ${toggle('self_heal')}`, callback_data: 'panel:settings:toggle:self_heal' },
+        { text: `📡 ${toggle('live_stream')}`, callback_data: 'panel:settings:toggle:live_stream' }
+      ],
+      [
+        { text: `🔁 ${toggle('auto_retry_503')}`, callback_data: 'panel:settings:toggle:auto_retry_503' },
+        { text: '🧠 Change Model', callback_data: 'panel:settings:change_model' }
+      ],
+      [
+        { text: '🔑 API Key Manager', callback_data: 'panel:key' },
+        { text: '🔄 Rotate API Key', callback_data: 'panel:rotate_keys' }
+      ],
+      [
+        { text: '💾 Save & Close', callback_data: 'panel:settings:save' },
+        { text: '↩️ Reset Defaults', callback_data: 'panel:settings:reset' }
+      ],
+      [
+        { text: '⬅️ Back to Control Panel', callback_data: 'panel:back' },
+        { text: '❓ Settings Help', callback_data: 'help:settings:central' }
+      ]
+    ]
+  };
+}
+
+function settingsModelPickerKeyboard() {
+  return {
+    inline_keyboard: [
+      [
+        { text: 'gpt-5.4', callback_data: 'panel:model:gpt-5.4' },
+        { text: 'gpt-5.5', callback_data: 'panel:model:gpt-5.5' }
+      ],
+      [
+        { text: 'gpt-5.5-high', callback_data: 'panel:model:gpt-5.5-high' },
+        { text: 'gpt-5.5-xhigh', callback_data: 'panel:model:gpt-5.5-xhigh' }
+      ],
+      [
+        { text: '⬅️ Back to Settings', callback_data: 'panel:settings' },
+        { text: '❓ Model Help', callback_data: 'help:model:choices' }
+      ]
+    ]
+  };
 }
 
 function controlPanelKeyboard() {
   return {
     inline_keyboard: [
       [
-        { text: '▶️ Start', callback_data: 'panel:pipeline:start' },
-        { text: '⏸️ Pause', callback_data: 'panel:pipeline:pause' },
-        { text: '⏯️ Continue', callback_data: 'panel:pipeline:resume' },
-        { text: '❓', callback_data: 'help:main:pipeline' }
+        { text: '▶️ Start Pipeline', callback_data: 'panel:pipeline:start' },
+        { text: '⏸️ Pause Pipeline', callback_data: 'panel:pipeline:pause' }
       ],
       [
-        { text: '🛑 Stop Codex', callback_data: 'panel:codex_stop' },
-        { text: '⛔ Stop All', callback_data: 'panel:stop_all' },
-        { text: '❓', callback_data: 'help:main:emergency' }
+        { text: '⏯️ Resume Pipeline', callback_data: 'panel:pipeline:resume' },
+        { text: '❓ Pipeline Controls', callback_data: 'help:main:pipeline' }
       ],
       [
-        { text: '📊 Status', callback_data: 'panel:status' },
-        { text: '🤖 Codex State', callback_data: 'panel:codex_status' },
-        { text: '❓', callback_data: 'help:main:status_codex' }
+        { text: '⛔ Stop Current Codex', callback_data: 'panel:codex_stop' },
+        { text: '⛔ Stop All / Emergency', callback_data: 'panel:stop_all' }
       ],
       [
-        { text: '📝 Logs', callback_data: 'panel:logs' },
-        { text: '🎥 Codex Live', callback_data: 'panel:codex_logs:simple' },
-        { text: '❓', callback_data: 'help:main:logs_live' }
+        { text: '❓ Emergency Controls', callback_data: 'help:main:emergency' }
       ],
       [
-        { text: '💬 Prompt Codex', callback_data: 'panel:prompt' },
-        { text: '🎁 Surprise Me', callback_data: 'panel:surprise' },
-        { text: '❓', callback_data: 'help:main:prompt_doctor' }
+        { text: '📊 System Status', callback_data: 'panel:status' },
+        { text: '🤖 Codex Process State', callback_data: 'panel:codex_status' }
       ],
       [
-        { text: '🩺 Doctor', callback_data: 'panel:doctor' },
-        { text: '📊 Analytics', callback_data: 'panel:analytics' },
-        { text: '❓', callback_data: 'help:main:queue_stats_help' }
+        { text: '❓ Status & State', callback_data: 'help:main:status_codex' }
       ],
       [
-        { text: '🔑 API Key', callback_data: 'panel:key' },
-        { text: '🔄 Rotate Keys', callback_data: 'panel:rotate_keys' },
-        { text: '🧠 Model', callback_data: 'panel:model' },
-        { text: '🗑️ Clear', callback_data: 'panel:clear' },
-        { text: '❓', callback_data: 'help:main:settings_shortcuts' }
+        { text: '📝 View Logs', callback_data: 'panel:logs' },
+        { text: '🎥 Watch Codex Live', callback_data: 'panel:codex_logs:simple' }
       ],
       [
-        { text: '📋 Queue', callback_data: 'panel:queue' },
-        { text: '📊 Stats', callback_data: 'panel:stats' },
-        { text: '📖 Help', callback_data: 'panel:help' },
-        { text: '❓', callback_data: 'help:main:queue_stats_help' }
+        { text: '❓ Logs & Live', callback_data: 'help:main:logs_live' }
       ],
       [
-        { text: '🔄 Refresh', callback_data: 'panel:refresh' },
-        { text: '❓', callback_data: 'help:main:refresh' }
+        { text: '💬 Send Prompt to Codex', callback_data: 'panel:prompt' },
+        { text: '🎁 Surprise Me (Audit)', callback_data: 'panel:surprise' }
+      ],
+      [
+        { text: '❓ Prompt & Surprise', callback_data: 'help:main:prompt_surprise' }
+      ],
+      [
+        { text: '🩺 Self-Heal / Doctor', callback_data: 'panel:doctor' },
+        { text: '📊 Analytics Dashboard', callback_data: 'panel:analytics' }
+      ],
+      [
+        { text: '❓ Doctor & Analytics', callback_data: 'help:main:doctor_analytics' }
+      ],
+      [
+        { text: '🔑 API Key Manager', callback_data: 'panel:key' },
+        { text: '🔄 Rotate API Key', callback_data: 'panel:rotate_keys' }
+      ],
+      [
+        { text: '🧠 Model Selector', callback_data: 'panel:model' },
+        { text: '🗑️ Clear Chat', callback_data: 'panel:clear' }
+      ],
+      [
+        { text: '❓ Keys & Settings', callback_data: 'help:main:settings_shortcuts' }
+      ],
+      [
+        { text: '📋 View Task Queue', callback_data: 'panel:queue' },
+        { text: '📊 Pipeline Stats', callback_data: 'panel:stats' }
+      ],
+      [
+        { text: '📖 Full Help Guide', callback_data: 'panel:help' },
+        { text: '⚙️ Settings', callback_data: 'panel:settings' }
+      ],
+      [
+        { text: '🔄 Refresh Menu', callback_data: 'panel:refresh' }
+      ],
+      [
+        { text: '❓ Queue & Help', callback_data: 'help:main:queue_stats_help' }
       ]
     ]
   };
@@ -503,27 +673,41 @@ async function handlePanelAction(query) {
     return;
   }
 
-  if (data === 'panel:settings:auto_surprise') {
-    const next = !getBooleanSetting('autoSurpriseEnabled', false);
-    setBooleanSetting('autoSurpriseEnabled', next);
-    await bot.answerCallbackQuery(query.id, { text: `Auto-surprise ${next ? 'on' : 'off'}` });
-    await sendSettingsPanel(chatId);
+  if (data.startsWith('panel:settings:toggle:')) {
+    const key = data.replace('panel:settings:toggle:', '');
+    const next = toggleBooleanSetting(key);
+    await bot.answerCallbackQuery(query.id, {
+      text: `${SETTINGS_LABELS[key] || key} is now ${next ? 'ON' : 'OFF'}`
+    });
+    await refreshSettingsPanel(query.message);
     return;
   }
 
-  if (data === 'panel:settings:preflight') {
-    const next = !isPreflightEnabled();
-    setBooleanSetting('preflightEnabled', next);
-    await bot.answerCallbackQuery(query.id, { text: `Preflight ${next ? 'on' : 'off'}` });
-    await sendSettingsPanel(chatId);
+  if (data === 'panel:settings:reset') {
+    resetDefaultSettings();
+    await bot.answerCallbackQuery(query.id, { text: 'Settings reset to defaults' });
+    await refreshSettingsPanel(query.message);
     return;
   }
 
-  if (data === 'panel:settings:self_heal') {
-    const next = !getBooleanSetting('selfHealEnabled', false);
-    setBooleanSetting('selfHealEnabled', next);
-    await bot.answerCallbackQuery(query.id, { text: `Self-heal ${next ? 'on' : 'off'}` });
-    await sendSettingsPanel(chatId);
+  if (data === 'panel:settings:save') {
+    await bot.answerCallbackQuery(query.id, { text: 'Settings saved' });
+    await safeEditMessageText('✅ Settings saved. They will persist across restarts.', {
+      chat_id: chatId,
+      message_id: query.message.message_id,
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '⚙️ Reopen Settings', callback_data: 'panel:settings' }],
+          [{ text: '⬅️ Back to Control Panel', callback_data: 'panel:back' }]
+        ]
+      }
+    });
+    return;
+  }
+
+  if (data === 'panel:settings:change_model') {
+    await bot.answerCallbackQuery(query.id, { text: 'Choose model' });
+    await refreshSettingsModelPicker(query.message);
     return;
   }
 
@@ -638,47 +822,72 @@ async function handlePanelAction(query) {
 
 async function handleHelpAction(query) {
   const helpKey = query.data.replace('help:', '');
+  const chatId = query.message.chat.id;
+
+  if (helpKey === 'dismiss') {
+    await bot.answerCallbackQuery(query.id, { text: 'Help closed' });
+    await refreshControlPanel(query.message);
+    return;
+  }
+
   await bot.answerCallbackQuery(query.id, { text: 'Help opened' });
-  await sendTrackedMessage(query.message.chat.id, buildRowHelpText(helpKey), {
-    reply_markup: helpBackKeyboard()
-  });
+
+  const options = {
+    chat_id: chatId,
+    message_id: query.message.message_id,
+    parse_mode: 'Markdown',
+    reply_markup: helpDismissKeyboard()
+  };
+
+  try {
+    await safeEditMessageText(buildRowHelpText(helpKey), options);
+  } catch (error) {
+    console.warn('[telegram] Unable to edit help panel; sending fallback help message:', formatError(error));
+    await sendTrackedMessage(chatId, buildRowHelpText(helpKey), {
+      parse_mode: 'Markdown',
+      reply_markup: helpDismissKeyboard()
+    });
+  }
 }
 
 const HELP_ROWS = {
   'main:pipeline': [
-    ['▶️ Start', 'Begins polling GitHub for new issues and auto-processing them.'],
-    ['⏸️ Pause', 'Stops accepting new issues while letting the current Codex job finish.'],
-    ['⏯️ Continue', 'Resumes polling after a pause or delivery gate.']
+    ['▶️ Start Pipeline', 'Starts issue polling and lets Codex process queued GitHub issues.'],
+    ['⏸️ Pause Pipeline', 'Pauses new work after the current Codex run finishes.'],
+    ['⏯️ Resume Pipeline', 'Resumes a paused pipeline and checks the queue immediately.']
   ],
   'main:emergency': [
-    ['🛑 Stop Codex', 'Immediately kills the running Codex process with SIGTERM, then SIGKILL if needed.'],
-    ['⛔ Stop All', 'Kills Codex and pauses the pipeline. Emergency brake.']
+    ['⛔ Stop Current Codex', 'Stops the active Codex child process and saves partial work when possible.'],
+    ['⛔ Stop All / Emergency', 'Pauses the pipeline, clears the current issue, and stops any active Codex run.']
   ],
   'main:status_codex': [
-    ['📊 Status', 'Shows pipeline state, Codex state, model, queue, current issue, and last delivery.'],
-    ['🤖 Codex State', 'Shows active Codex PID, current task, recent run result, and latest event.']
+    ['📊 System Status', 'Shows pipeline health, Codex state, model, queue, and delivery status.'],
+    ['🤖 Codex Process State', 'Shows the current Codex task, PID, recent result, and latest event.']
   ],
   'main:logs_live': [
-    ['📝 Logs', 'Opens system logs and log mode controls.'],
-    ['🎥 Codex Live', 'Shows live or recent Codex activity without starting a new run.']
+    ['📝 View Logs', 'Opens PM2 log controls with redacted system output.'],
+    ['🎥 Watch Codex Live', 'Shows live or recent Codex file activity without starting a new run.']
   ],
-  'main:prompt_doctor': [
-    ['💬 Prompt Codex', 'Starts a one-off manual Codex prompt after checking Codex is idle.'],
-    ['🩺 Doctor', 'Opens health, watchdog, and guarded Doctor run controls.']
+  'main:prompt_surprise': [
+    ['💬 Send Prompt to Codex', 'Opens prompt mode; your next message becomes a manual Codex task.'],
+    ['🎁 Surprise Me (Audit)', 'Audits the repo and suggests high-value fixes you can approve.']
+  ],
+  'main:doctor_analytics': [
+    ['🩺 Self-Heal / Doctor', 'Opens health checks, watchdog status, and guarded repair controls.'],
+    ['📊 Analytics Dashboard', 'Shows success rate, duration, cost, and model performance trends.']
   ],
   'main:settings_shortcuts': [
-    ['🔑 API Key', 'Prompts for a replacement Codex/OpenAI API key and deletes the secret message.'],
-    ['🔄 Rotate Keys', 'Shows the active redacted key and fallback-key controls.'],
-    ['🧠 Model', 'Opens the model picker for future Codex runs.'],
-    ['🗑️ Clear', 'Deletes recent tracked bot messages from this chat.']
+    ['🔑 API Key Manager', 'Prompts for a replacement key and deletes your secret message.'],
+    ['🔄 Rotate API Key', 'Shows the active key and fallback-key management controls.'],
+    ['🧠 Model Selector', 'Opens the model picker for future Codex runs.'],
+    ['🗑️ Clear Chat', 'Deletes recent bot messages without changing Codex or pipeline state.']
   ],
   'main:queue_stats_help': [
-    ['📋 Queue', 'Shows open GitHub issues plus priority and batch controls.'],
-    ['📊 Stats', 'Shows processed counts, run history, token totals, and recent outcomes.'],
-    ['📖 Help', 'Shows the complete button index.']
-  ],
-  'main:refresh': [
-    ['🔄 Refresh', 'Refreshes this control panel message in place.']
+    ['📋 View Task Queue', 'Shows pending GitHub issues with priority and batch controls.'],
+    ['📊 Pipeline Stats', 'Shows processed counts, run history, tokens, and recent outcomes.'],
+    ['📖 Full Help Guide', 'Shows the complete button and command index.'],
+    ['⚙️ Settings', 'Opens persistent toggles for automation, safety checks, live streams, retries, and model choice.'],
+    ['🔄 Refresh Menu', 'Redraws this control panel if the buttons look stale.']
   ],
   'main:runtime': [
     ['🧾 Codex Activity', 'Opens recent Codex events after a manual run.'],
@@ -757,6 +966,14 @@ const HELP_ROWS = {
     ['🗑️ Clear', 'Deletes recent tracked bot messages from this chat.'],
     ['⬅️ Back', 'Returns to the main control panel.']
   ],
+  'settings:central': [
+    ['🎁 Auto-Surprise', 'Runs scheduled audits and sends high-severity discoveries when enabled.'],
+    ['⚠️ Pre-Flight Check', 'Checks manual prompts for risks before Codex runs.'],
+    ['🩹 Self-Heal', 'Creates human-approved repair tasks when orchestrator errors are detected.'],
+    ['📡 Live Stream', 'Shows live code and thinking updates during pipeline Codex runs.'],
+    ['🔁 503 Auto-Retry', 'Retries temporary Codex service outages without rotating API keys.'],
+    ['🧠 Change Model', 'Selects the default model for future Codex runs.']
+  ],
   'model:choices': [
     ['gpt-5.5', 'Uses the default model for future Codex runs.'],
     ['gpt-5.5-high', 'Uses the high reasoning variant for future Codex runs.'],
@@ -820,25 +1037,28 @@ const HELP_ROWS = {
 
 const HELP_INDEX = [
   ['Main Controls', [
-    ['▶️ Start', 'Begin GitHub polling and auto-processing.'],
-    ['⏸️ Pause', 'Stop accepting new issues after the current job.'],
-    ['⏯️ Continue', 'Resume polling after pause or review.'],
-    ['🛑 Stop Codex', 'Kill the active Codex process.'],
-    ['⛔ Stop All', 'Kill Codex and pause the pipeline.'],
-    ['📊 Status', 'Show pipeline, Codex, queue, and delivery state.'],
-    ['🤖 Codex State', 'Show Codex PID, active task, and last result.'],
-    ['📝 Logs', 'Open system log controls.'],
-    ['🎥 Codex Live', 'Open live/recent Codex activity.'],
-    ['💬 Prompt Codex', 'Send a manual Codex prompt.'],
-    ['🩺 Doctor', 'Open health, watchdog, and Doctor controls.'],
-    ['🔑 API Key', 'Replace the active Codex/OpenAI key.'],
-    ['🔄 Rotate Keys', 'Manage fallback Codex/OpenAI keys.'],
-    ['🧠 Model', 'Choose the model for future runs.'],
-    ['🗑️ Clear', 'Delete recent tracked bot messages.'],
-    ['📋 Queue', 'Show open issues and queue controls.'],
-    ['📊 Stats', 'Show run and issue metrics.'],
-    ['📖 Help', 'Show this complete index.'],
-    ['🔄 Refresh', 'Refresh the current panel.']
+    ['▶️ Start Pipeline', 'Begin GitHub polling and auto-processing.'],
+    ['⏸️ Pause Pipeline', 'Stop accepting new issues after the current job.'],
+    ['⏯️ Resume Pipeline', 'Resume polling after pause or review.'],
+    ['⛔ Stop Current Codex', 'Stop the active Codex process.'],
+    ['⛔ Stop All / Emergency', 'Pause the pipeline and stop active Codex work.'],
+    ['📊 System Status', 'Show pipeline, Codex, queue, and delivery state.'],
+    ['🤖 Codex Process State', 'Show Codex PID, active task, and last result.'],
+    ['📝 View Logs', 'Open system log controls.'],
+    ['🎥 Watch Codex Live', 'Open live/recent Codex activity.'],
+    ['💬 Send Prompt to Codex', 'Send a manual Codex prompt.'],
+    ['🎁 Surprise Me (Audit)', 'Audit the repo and suggest fixable tasks.'],
+    ['🩺 Self-Heal / Doctor', 'Open health, watchdog, and Doctor controls.'],
+    ['📊 Analytics Dashboard', 'Show Codex run performance analytics.'],
+    ['🔑 API Key Manager', 'Replace the active Codex/OpenAI key.'],
+    ['🔄 Rotate API Key', 'Manage fallback Codex/OpenAI keys.'],
+    ['🧠 Model Selector', 'Choose the model for future runs.'],
+    ['🗑️ Clear Chat', 'Delete recent tracked bot messages.'],
+    ['📋 View Task Queue', 'Show open issues and queue controls.'],
+    ['📊 Pipeline Stats', 'Show run and issue metrics.'],
+    ['📖 Full Help Guide', 'Show this complete index.'],
+    ['⚙️ Settings', 'Open persistent bot settings and toggles.'],
+    ['🔄 Refresh Menu', 'Refresh the current panel.']
   ]],
   ['Queue', [
     ['⬆️ Priority', 'Move an issue to the front.'],
@@ -907,9 +1127,11 @@ function buildRowHelpText(helpKey) {
   }
 
   return [
-    '❓ Button Help',
+    '❓ *Button Help*',
     '━━━━━━━━━━━━━━━━━━━━━━',
-    ...entries.map(([label, description]) => `${label} - ${description}`)
+    ...entries.map(([label, description]) => `• *${escapeMarkdown(label)}*\n  ${escapeMarkdown(description)}`),
+    '',
+    '_Tap ✅ Got it or ❓ Close Help to return to the controls._'
   ].join('\n');
 }
 
@@ -930,13 +1152,12 @@ function buildHelpIndexText() {
   return lines.join('\n').slice(0, 3900);
 }
 
-function helpBackKeyboard() {
+function helpDismissKeyboard() {
   return {
     inline_keyboard: [
       [
-        { text: '⬅️ Back to panel', callback_data: 'panel:back' },
-        { text: '📖 Help', callback_data: 'panel:help' },
-        { text: '❓', callback_data: 'help:help:navigation' }
+        { text: '✅ Got it', callback_data: 'help:dismiss' },
+        { text: '❓ Close Help', callback_data: 'help:dismiss' }
       ]
     ]
   };
@@ -1601,7 +1822,7 @@ async function maybeRunPromptWithPreflight(chatId, prompt, label, operator = nul
 }
 
 function isPreflightEnabled() {
-  return getBooleanSetting('preflightEnabled', PREFLIGHT_DEFAULT_ENABLED);
+  return getSettingBoolean('preflight_check', PREFLIGHT_DEFAULT_ENABLED);
 }
 
 function buildPreflightText(warnings) {
@@ -1724,7 +1945,7 @@ async function handleSurpriseAction(query) {
   const id = parts[3];
 
   if (action === 'notify') {
-    setBooleanSetting('autoSurpriseEnabled', true);
+    setCanonicalBooleanSetting('auto_surprise', true);
     await bot.answerCallbackQuery(query.id, { text: 'Auto-surprise enabled' });
     await sendTrackedMessage(chatId, '🔔 Auto-surprise enabled. High severity findings will be sent proactively.', {
       reply_markup: settingsPanelKeyboard()
@@ -1987,12 +2208,13 @@ async function setPipelineAction(chatId, action, operator = null) {
 }
 
 async function setModel(chatId, model) {
-  const validModels = ['gpt-5.4', 'gpt-5.5', 'gpt-5.5-high', 'gpt-5.5-xhigh'];
+  const validModels = SETTINGS_MODEL_CHOICES;
   if (!validModels.includes(model)) {
     await sendTrackedMessage(chatId, `Invalid model. Use: ${validModels.join(', ')}`);
     return;
   }
   setState('current_model', model);
+  setSetting('default_model', model);
   await sendTrackedMessage(chatId, `✅ Model set to \`${model}\``, { parse_mode: 'Markdown' });
 }
 
@@ -2863,50 +3085,28 @@ async function sendModelPicker(chatId) {
 }
 
 async function sendSettingsPanel(chatId) {
-  const keySummary = getApiKeySummary();
-  await sendTrackedMessage(chatId,
-    `⚙️ *SETTINGS*\n` +
-    `━━━━━━━━━━━━━━━━━━━━━━\n` +
-    `Model: \`${escapeMarkdown(getState('current_model') || 'gpt-5.5')}\`\n` +
-    `API key: \`${escapeMarkdown(keySummary.currentRedacted)}\`\n` +
-    `Fallback keys: ${keySummary.fallbackCount}\n` +
-    `Auto-surprise: ${getBooleanSetting('autoSurpriseEnabled', false) ? 'ON' : 'OFF'}\n` +
-    `Preflight: ${isPreflightEnabled() ? 'ON' : 'OFF'}\n` +
-    `Self-heal: ${getBooleanSetting('selfHealEnabled', false) ? 'ON' : 'OFF'}\n\n` +
-    `Change runtime settings or clean up recent bot messages.`,
-    {
-      parse_mode: 'Markdown',
-      reply_markup: settingsPanelKeyboard()
-    }
-  );
+  await sendTrackedMessage(chatId, buildSettingsPanelText(), {
+    parse_mode: 'Markdown',
+    reply_markup: settingsPanelKeyboard()
+  });
 }
 
-function settingsPanelKeyboard() {
-  return {
-    inline_keyboard: [
-      [
-        { text: '🧠 Model', callback_data: 'panel:model' },
-        { text: '🔑 API Key', callback_data: 'panel:key' },
-        { text: '❓', callback_data: 'help:settings:actions' }
-      ],
-      [
-        { text: '🔄 Rotate Keys', callback_data: 'panel:rotate_keys' },
-        { text: '❓', callback_data: 'help:settings:rotate' }
-      ],
-      [
-        { text: '🎁 Auto-Surprise', callback_data: 'panel:settings:auto_surprise' },
-        { text: '🛡️ Preflight', callback_data: 'panel:settings:preflight' }
-      ],
-      [
-        { text: '🩹 Self-Heal', callback_data: 'panel:settings:self_heal' }
-      ],
-      [
-        { text: '🗑️ Clear', callback_data: 'panel:clear' },
-        { text: '⬅️ Back', callback_data: 'panel:back' },
-        { text: '❓', callback_data: 'help:settings:clear_nav' }
-      ]
-    ]
-  };
+async function refreshSettingsPanel(message) {
+  await safeEditMessageText(buildSettingsPanelText(), {
+    chat_id: message.chat.id,
+    message_id: message.message_id,
+    parse_mode: 'Markdown',
+    reply_markup: settingsPanelKeyboard()
+  });
+}
+
+async function refreshSettingsModelPicker(message) {
+  await safeEditMessageText('🧠 *Select default model*', {
+    chat_id: message.chat.id,
+    message_id: message.message_id,
+    parse_mode: 'Markdown',
+    reply_markup: settingsModelPickerKeyboard()
+  });
 }
 
 async function sendRotateKeysPanel(chatId, notice = null) {

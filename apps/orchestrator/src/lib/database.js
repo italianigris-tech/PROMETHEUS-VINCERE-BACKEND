@@ -12,6 +12,19 @@ const {
 } = require('./security');
 
 const DB_PATH = path.join(process.cwd(), 'data', 'orchestrator.db');
+const DEFAULT_SETTINGS = Object.freeze({
+  auto_surprise: 'false',
+  preflight_check: 'false',
+  self_heal: 'false',
+  live_stream: 'true',
+  default_model: process.env.CODEX_DEFAULT_MODEL || 'gpt-5.5-xhigh',
+  auto_retry_503: 'true'
+});
+const LEGACY_SETTING_KEYS = Object.freeze({
+  auto_surprise: 'autoSurpriseEnabled',
+  preflight_check: 'preflightEnabled',
+  self_heal: 'selfHealEnabled'
+});
 
 let db;
 
@@ -36,7 +49,7 @@ function initDatabase() {
   db.exec(`
     CREATE TABLE IF NOT EXISTS settings (
       key TEXT PRIMARY KEY,
-      value TEXT,
+      value TEXT NOT NULL,
       updated_at TEXT DEFAULT CURRENT_TIMESTAMP
     )
   `);
@@ -190,7 +203,7 @@ function initDatabase() {
     ['pipeline_status', 'idle'],
     ['codex_pid', 'null'],
     ['codex_status', 'idle'],
-    ['current_model', process.env.CODEX_DEFAULT_MODEL || 'gpt-5.5'],
+    ['current_model', process.env.CODEX_DEFAULT_MODEL || DEFAULT_SETTINGS.default_model],
     ['api_key_index', '0'],
     ['last_poll_time', 'null'],
     ['codex_lock', 'null'],
@@ -208,6 +221,8 @@ function initDatabase() {
   for (const [k, v] of defaults) {
     stmt.run(k, v);
   }
+
+  initDefaultSettings();
 
   return db;
 }
@@ -235,6 +250,26 @@ function setSetting(key, value) {
       value = excluded.value,
       updated_at = excluded.updated_at
   `).run(key, String(value), new Date().toISOString());
+}
+
+function getAllSettings() {
+  return db.prepare('SELECT key, value FROM settings ORDER BY key ASC').all();
+}
+
+function initDefaultSettings() {
+  for (const [key, defaultValue] of Object.entries(DEFAULT_SETTINGS)) {
+    if (getSetting(key) !== null) continue;
+
+    const legacyKey = LEGACY_SETTING_KEYS[key];
+    const legacyValue = legacyKey ? getSetting(legacyKey) : null;
+    const initialValue = legacyValue !== null ? legacyValue : defaultValue;
+    setSetting(key, initialValue);
+  }
+
+  const currentModel = getState('current_model');
+  if (!currentModel || currentModel === 'null') {
+    setState('current_model', getSetting('default_model', DEFAULT_SETTINGS.default_model));
+  }
 }
 
 function getBooleanSetting(key, fallback = false) {
@@ -1192,6 +1227,9 @@ module.exports = {
   setState,
   getSetting,
   setSetting,
+  getAllSettings,
+  initDefaultSettings,
+  DEFAULT_SETTINGS,
   getBooleanSetting,
   setBooleanSetting,
   getCurrentIssue,

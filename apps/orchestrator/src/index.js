@@ -21,7 +21,9 @@ const {
   recordIssueServiceUnavailable,
   resumeDueServiceOutageIssues,
   getIssueRecord,
+  getSetting,
   getBooleanSetting,
+  DEFAULT_SETTINGS,
   recordSurprise,
   getDismissedSurprises,
   recordSelfHealTask,
@@ -77,8 +79,12 @@ const WATCHDOG_PATH = process.env.WATCHDOG_DISK_PATH || (process.env.CODEX_WORKD
 const SERVICE_OUTAGE_RETRY_DELAYS_MS = [5 * 60 * 1000, 10 * 60 * 1000, 20 * 60 * 1000];
 const SERVICE_OUTAGE_RETRY_INTERVAL = 60 * 1000;
 const AUTO_SURPRISE_INTERVAL_MS = parsePositiveNumber(process.env.AUTO_SURPRISE_INTERVAL_HOURS, 6) * 60 * 60 * 1000;
-const AUTO_SURPRISE_ENABLED_BY_ENV = process.env.AUTO_SURPRISE_ENABLED === 'true';
-const SELF_HEAL_ENABLED_BY_ENV = process.env.SELF_HEAL_ENABLED === 'true';
+const SETTING_ENV_OVERRIDES = {
+  auto_surprise: 'AUTO_SURPRISE_ENABLED',
+  self_heal: 'SELF_HEAL_ENABLED',
+  live_stream: 'LIVE_STREAM_ENABLED',
+  auto_retry_503: 'AUTO_RETRY_503'
+};
 
 let isProcessing = false;
 let isShuttingDown = false;
@@ -120,7 +126,7 @@ async function main() {
       await notifyAdmins(
         `🚀 *Orchestrator Started*\n` +
         `━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `Model: \`${getState('current_model') || 'gpt-5.5'}\`\n` +
+        `Model: \`${getCurrentModelSetting()}\`\n` +
         `API Keys: ${getApiKeyCount()} available\n` +
         `Status: Awaiting Start button` +
         buildStartupReconcileLine(codexPidState)
@@ -191,6 +197,23 @@ function parsePositiveNumber(value, fallback) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+function getSettingBoolean(key, fallback = DEFAULT_SETTINGS[key] === 'true') {
+  const envName = SETTING_ENV_OVERRIDES[key];
+  if (envName && Object.prototype.hasOwnProperty.call(process.env, envName)) {
+    return ['1', 'true', 'yes', 'on'].includes(String(process.env[envName] || '').toLowerCase());
+  }
+
+  return getBooleanSetting(key, fallback);
+}
+
+function getCurrentModelSetting() {
+  return getState('current_model') || getSetting('default_model', DEFAULT_SETTINGS.default_model);
+}
+
+function isLiveStreamEnabled() {
+  return getSettingBoolean('live_stream', true);
+}
+
 function startHeartbeat() {
   heartbeatTimer = setInterval(async () => {
     const current = getCurrentIssue();
@@ -233,7 +256,7 @@ function startAutoSurpriseTimer() {
 }
 
 function isAutoSurpriseEnabled() {
-  return AUTO_SURPRISE_ENABLED_BY_ENV || getBooleanSetting('autoSurpriseEnabled', false);
+  return getSettingBoolean('auto_surprise', false);
 }
 
 async function runAutoSurpriseAudit(reason = 'scheduled') {
@@ -381,16 +404,16 @@ async function pollLoop() {
         `━━━━━━━━━━━━━━━━━━━━━━\n` +
         `📋 ${issue.title}\n` +
         operatorLine +
-        `🤖 Model: \`${getState('current_model') || 'gpt-5.5'}\`\n` +
+        `🤖 Model: \`${getCurrentModelSetting()}\`\n` +
         `⏳ Working...`
       );
     }
 
-    const model = getState('current_model') || 'gpt-5.5';
+    const model = getCurrentModelSetting();
     let result;
     
     try {
-      if (hasAdmins()) {
+      if (hasAdmins() && isLiveStreamEnabled()) {
         await startDiffStreamsForAdmins(`Issue #${issue.number}: ${issue.title}`, getPipelineOperator());
         await startThinkingStreamsForAdmins(`Issue #${issue.number}`, getPipelineOperator());
       }
@@ -523,7 +546,7 @@ function isApiKeyFailure(error) {
 }
 
 function isServiceOutage(error) {
-  return isServiceOutageError(error);
+  return getSettingBoolean('auto_retry_503', true) && isServiceOutageError(error);
 }
 
 async function handleServiceOutage(issue, error) {
@@ -978,7 +1001,7 @@ process.on('uncaughtException', (error) => {
 });
 
 function isSelfHealEnabled() {
-  return SELF_HEAL_ENABLED_BY_ENV || getBooleanSetting('selfHealEnabled', false);
+  return getSettingBoolean('self_heal', false);
 }
 
 async function handleSelfHealCandidate(error, source) {
