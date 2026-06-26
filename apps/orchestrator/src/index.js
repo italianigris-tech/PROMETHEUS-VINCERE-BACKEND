@@ -23,7 +23,8 @@ const {
   setQueueOrder,
   decrementBatchRemaining,
   getBatchRemaining,
-  getPipelineOperator
+  getPipelineOperator,
+  getWaitingUsers
 } = require('./lib/database');
 const { getOpenIssues } = require('./lib/github');
 const {
@@ -46,7 +47,8 @@ const {
   startDiffStream,
   stopDiffStream,
   startThinkingStream,
-  stopThinkingStream
+  stopThinkingStream,
+  notifyWaitingUsersCodexFree
 } = require('./lib/telegram');
 
 const ADMIN_CHAT_IDS = (process.env.AUTHORIZED_CHAT_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
@@ -320,6 +322,7 @@ async function pollLoop() {
           `${remaining > 0 ? `\n\n🔢 Batch continuing with ${remaining} issue${remaining === 1 ? '' : 's'} remaining.` : ''}`
         );
       }
+      await notifyCodexQueueAvailable(issue, result, 'completed_no_changes');
       return;
     }
 
@@ -337,6 +340,7 @@ async function pollLoop() {
     } else {
       console.log(`Codex finished Issue #${issue.number}; changes are pending human delivery review.`);
     }
+    await notifyCodexQueueAvailable(issue, result, 'completed');
 
   } catch (error) {
     if (isCodexTimeoutError(error)) {
@@ -347,6 +351,8 @@ async function pollLoop() {
 
     if (String(error?.message || '').includes('CODEX_STOPPED')) {
       console.warn('🛑 Codex run stopped by operator.');
+      const current = getCurrentIssue();
+      await notifyCodexQueueAvailable(current, null, 'stopped');
       return;
     }
 
@@ -362,6 +368,7 @@ async function pollLoop() {
           `Pipeline paused. Use the Continue button to resume.`
         );
       }
+      await notifyCodexQueueAvailable(current, null, 'failed');
     }
     setState('pipeline_status', 'error');
   } finally {
@@ -384,6 +391,11 @@ async function handleCodexTimeout(issueNumber, error) {
   } else if (hasAdmins()) {
     await notifyAdmins(`⏱️ Codex timed out after ${minutes} minutes. Task aborted.`);
   }
+  await notifyCodexQueueAvailable(
+    issueNumber ? { number: issueNumber, title: issueText } : null,
+    null,
+    'timeout'
+  );
 }
 
 function hasAdmins() {
@@ -393,6 +405,35 @@ function hasAdmins() {
 async function notifyAdmins(text) {
   if (!hasAdmins()) return [];
   return broadcastNotification(text, ADMIN_CHAT_IDS);
+}
+
+async function notifyCodexQueueAvailable(issue, result = null, status = 'completed') {
+  try {
+    const waiters = getWaitingUsers();
+    const current = getCurrentIssue();
+    const preserveDeliveryGate = current?.delivery_status === 'pending_review';
+    if (
+      waiters.length > 0 &&
+      !preserveDeliveryGate &&
+      ['completed', 'completed_no_changes', 'failed', 'stopped', 'timeout'].includes(status)
+    ) {
+      setState('pipeline_status', 'paused');
+    }
+
+    const issueNumber = issue?.number || issue?.issue_number || null;
+    const issueTitle = issue?.title || (issueNumber ? `Issue #${issueNumber}` : 'Codex task');
+    const label = issueNumber ? `Issue #${issueNumber}: ${issueTitle}` : issueTitle;
+    await notifyWaitingUsersCodexFree({
+      operator: getPipelineOperator(),
+      label,
+      task: issueNumber ? `Issue #${issueNumber}` : label,
+      metadata: issueNumber ? { issueNumber, issueTitle } : {},
+      duration: Number(result?.duration || 0),
+      status
+    });
+  } catch (error) {
+    console.warn('[queue] Failed to notify waiting users that Codex is free:', formatError(error));
+  }
 }
 
 async function startDiffStreamsForAdmins(label, operator) {

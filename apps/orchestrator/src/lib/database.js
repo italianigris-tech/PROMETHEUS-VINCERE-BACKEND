@@ -90,6 +90,19 @@ function initDatabase() {
     )
   `);
 
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS waiting_users (
+      user_id TEXT PRIMARY KEY,
+      username TEXT,
+      requested_at TEXT NOT NULL,
+      task_description TEXT,
+      chat_id TEXT,
+      display_name TEXT
+    )
+  `);
+  ensureColumn('waiting_users', 'chat_id', 'TEXT');
+  ensureColumn('waiting_users', 'display_name', 'TEXT');
+
   const defaults = [
     ['current_issue_number', 'null'],
     ['pipeline_status', 'idle'],
@@ -493,6 +506,107 @@ function releaseDeliveryLock(lock = null) {
   );
 }
 
+function getWaitingUserId(operatorOrId) {
+  if (operatorOrId === null || operatorOrId === undefined) return null;
+  if (typeof operatorOrId === 'string' || typeof operatorOrId === 'number') {
+    const raw = String(operatorOrId).trim();
+    return raw || null;
+  }
+
+  const operator = normalizeOperator(operatorOrId);
+  if (!operator) return null;
+  if (operator.userId) return String(operator.userId);
+  if (operator.chatId) return `chat:${operator.chatId}`;
+  if (operator.username) return `username:${operator.username}`;
+  return null;
+}
+
+function rowToWaitingUser(row) {
+  if (!row) return null;
+  return {
+    userId: row.user_id,
+    username: row.username || null,
+    chatId: row.chat_id || null,
+    displayName: row.display_name || null,
+    requestedAt: row.requested_at,
+    taskDescription: row.task_description || null
+  };
+}
+
+function getWaitingUsers() {
+  return db.prepare(`
+    SELECT user_id, username, chat_id, display_name, requested_at, task_description
+    FROM waiting_users
+    ORDER BY requested_at ASC, user_id ASC
+  `).all().map(rowToWaitingUser);
+}
+
+function getWaitingUser(operatorOrId) {
+  const userId = getWaitingUserId(operatorOrId);
+  if (!userId) return null;
+  return rowToWaitingUser(db.prepare(`
+    SELECT user_id, username, chat_id, display_name, requested_at, task_description
+    FROM waiting_users
+    WHERE user_id = ?
+  `).get(userId));
+}
+
+function getWaitingUserPosition(operatorOrId) {
+  const userId = getWaitingUserId(operatorOrId);
+  if (!userId) return null;
+  const waiters = getWaitingUsers();
+  const index = waiters.findIndex(waiter => waiter.userId === userId);
+  return index >= 0 ? index + 1 : null;
+}
+
+function addWaitingUser(operatorOrId, taskDescription = 'Codex session') {
+  const operator = normalizeOperator(operatorOrId) || {};
+  const userId = getWaitingUserId(operator) || getWaitingUserId(operatorOrId);
+  if (!userId) {
+    throw new Error('WAITING_USER_MISSING_ID: Telegram user id is required to queue for Codex');
+  }
+
+  const existing = getWaitingUser(userId);
+  const requestedAt = existing?.requestedAt || new Date().toISOString();
+  db.prepare(`
+    INSERT INTO waiting_users (
+      user_id, username, chat_id, display_name, requested_at, task_description
+    ) VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT(user_id) DO UPDATE SET
+      username = excluded.username,
+      chat_id = excluded.chat_id,
+      display_name = excluded.display_name,
+      task_description = excluded.task_description
+  `).run(
+    userId,
+    operator.username || null,
+    operator.chatId ? String(operator.chatId) : null,
+    operator.displayName || null,
+    requestedAt,
+    taskDescription || existing?.taskDescription || 'Codex session'
+  );
+
+  return {
+    user: getWaitingUser(userId),
+    position: getWaitingUserPosition(userId),
+    alreadyWaiting: Boolean(existing)
+  };
+}
+
+function removeWaitingUser(operatorOrId) {
+  const userId = getWaitingUserId(operatorOrId);
+  if (!userId) return null;
+  const existing = getWaitingUser(userId);
+  db.prepare('DELETE FROM waiting_users WHERE user_id = ?').run(userId);
+  return existing;
+}
+
+function clearWaitingUsers() {
+  const users = getWaitingUsers();
+  db.prepare('DELETE FROM waiting_users').run();
+  return users;
+}
+
 function getPriorityQueue() {
   const raw = getJsonState('priority_queue', []);
   if (!Array.isArray(raw)) return [];
@@ -668,6 +782,12 @@ module.exports = {
   getDeliveryLock,
   acquireDeliveryLock,
   releaseDeliveryLock,
+  addWaitingUser,
+  getWaitingUser,
+  getWaitingUsers,
+  getWaitingUserPosition,
+  removeWaitingUser,
+  clearWaitingUsers,
   getPriorityQueue,
   setPriorityQueue,
   prioritizeIssue,

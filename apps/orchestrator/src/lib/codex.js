@@ -1132,35 +1132,33 @@ function updateThinkingState(run, event, rawText = '') {
   let phase = null;
   let current = null;
 
-  if (event?.type === 'reasoning' || /\b(planning|plan|thinking|approach)\b/.test(lower)) {
-    phase = 'planning';
-    current = '🧠 Planning approach...';
+  if (/\bcomplete(?:d)?\b|wrapping up|finished|done/.test(lower)) {
+    phase = 'complete';
+    current = '✅ Wrapping up...';
   }
 
-  if (!phase && /\b(reading|read file|opened|searching|rg |grep |listing|inspecting|analyzing)\b/.test(lower)) {
-    phase = 'reading';
-    current = '📖 Reading codebase...';
-  }
-
-  if (!phase && (
-    event?.type === 'file' ||
-    /\b(editing|modified|created|deleted|patch|apply_patch|writing|updated)\b/.test(lower)
-  )) {
-    phase = 'editing';
-    current = `✏️ Editing ${filePath || 'files'}...`;
-  }
-
-  if (!phase && (
-    event?.type === 'command' ||
-    /\b(test|tests|testing|verification|verify|lint|node --check|npm test|pytest|jest|build)\b/.test(lower)
-  )) {
+  if (!phase && /\brunning tests(?:\.\.\.)?\b|\b(test|tests|testing|verification|verify|lint|node --check|npm test|pytest|jest|build)\b/.test(lower)) {
     phase = 'testing';
     current = '🧪 Running verification...';
   }
 
-  if (!phase && /\b(complete|completed|done|finished|wrapping up|final)\b/.test(lower)) {
-    phase = 'complete';
-    current = '✅ Wrapping up...';
+  if (!phase && (
+    event?.type === 'file' ||
+    /\bediting\s+/.test(lower) ||
+    /\b(modified|created|deleted|patch|apply_patch|writing|updated)\b/.test(lower)
+  )) {
+    phase = 'editing';
+    current = `✏️ Editing ${filePath || extractEditingTarget(text) || 'files'}...`;
+  }
+
+  if (!phase && /\breading files(?:\.\.\.)?\b|\b(reading|read file|opened|searching|rg |grep |listing|inspecting|analyzing)\b/.test(lower)) {
+    phase = 'reading';
+    current = '📖 Reading codebase...';
+  }
+
+  if (!phase && (event?.type === 'reasoning' || /\bplanning(?:\.\.\.)?\b|\b(plan|thinking|approach)\b/.test(lower))) {
+    phase = 'planning';
+    current = '🧠 Planning approach...';
   }
 
   if (phase && current) {
@@ -1178,8 +1176,13 @@ function extractEventFilePath(event, text = '') {
   if (event?.path) return String(event.path);
   if (event?.file) return String(event.file);
 
-  const match = String(text || '').match(/\b(?:editing|modified|created|deleted|updated|file)\s+([A-Za-z0-9_./-]+\.[A-Za-z0-9_./-]+)/i);
+  const match = String(text || '').match(/\b(?:editing|modified|created|deleted|updated|file)\s+([A-Za-z0-9_./-]+\.[A-Za-z0-9_-]+)/i);
   return match ? match[1] : null;
+}
+
+function extractEditingTarget(text = '') {
+  const match = String(text || '').match(/\bediting\s+([^.\n]+(?:\.[A-Za-z0-9_-]+)?)/i);
+  return match ? match[1].trim().replace(/\.+$/, '') : null;
 }
 
 function addThinkingFile(thinking, filePath) {

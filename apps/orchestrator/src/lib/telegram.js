@@ -15,6 +15,7 @@ const {
   setPipelineOperator,
   clearPipelineOperator,
   normalizeOperator,
+  getCodexLock,
   getPriorityQueue,
   prioritizeIssue,
   prunePriorityQueue,
@@ -25,7 +26,12 @@ const {
   setBatchRemaining,
   getStats,
   acquireDeliveryLock,
-  releaseDeliveryLock
+  releaseDeliveryLock,
+  addWaitingUser,
+  getWaitingUser,
+  getWaitingUsers,
+  getWaitingUserPosition,
+  removeWaitingUser
 } = require('./database');
 const {
   runCodexPrompt,
@@ -59,6 +65,7 @@ const THINKING_STREAM_INTERVAL = (parseInt(process.env.THINKING_STREAM_INTERVAL_
 const DIFF_STREAM_WORKDIR = process.env.CODEX_WORKDIR || process.cwd();
 const WATCHDOG_THRESHOLD = parseInt(process.env.WATCHDOG_THRESHOLD_PERCENT, 10) || 80;
 const WATCHDOG_PATH = process.env.WATCHDOG_DISK_PATH || DIFF_STREAM_WORKDIR;
+const SESSION_RESERVATION_TTL_MS = 10 * 60 * 1000;
 
 let bot;
 let messageCallbacks = new Map();
@@ -68,6 +75,8 @@ let pollingRetryTimer = null;
 let pollingRetryDelay = 5000;
 let diffStreams = new Map();
 let thinkingStreams = new Map();
+let sessionReservation = null;
+let sessionReservationTimer = null;
 
 function initBot() {
   if (!TOKEN) {
@@ -357,17 +366,13 @@ async function handlePanelAction(query) {
     return;
   }
 
+  if (data === 'panel:waiter:start') {
+    await handleWaiterStartRequest(query);
+    return;
+  }
+
   if (data === 'panel:prompt') {
-    if (await warnIfCodexRunning(chatId)) {
-      await bot.answerCallbackQuery(query.id, { text: 'Codex is already running' });
-      return;
-    }
-    await bot.answerCallbackQuery(query.id, { text: 'Waiting for prompt' });
-    await askForInput(
-      chatId,
-      'codex_prompt',
-      '💬 *Send Prompt to Codex*\nSend the prompt in your next message.\n\nUse the Cancel button below to abort.'
-    );
+    await handlePromptRequest(query);
     return;
   }
 
@@ -384,8 +389,7 @@ async function handlePanelAction(query) {
   }
 
   if (data === 'panel:doctor:confirm') {
-    await bot.answerCallbackQuery(query.id, { text: 'Doctor started' });
-    await runDoctor(chatId, operatorFromQuery(query));
+    await handleDoctorConfirmRequest(query);
     return;
   }
 
@@ -481,8 +485,8 @@ async function handlePanelAction(query) {
 
   if (data.startsWith('panel:pipeline:')) {
     const action = data.replace('panel:pipeline:', '');
-    await setPipelineAction(chatId, action, operatorFromQuery(query));
-    await bot.answerCallbackQuery(query.id, { text: `Pipeline ${action}` });
+    const result = await setPipelineAction(chatId, action, operatorFromQuery(query));
+    await bot.answerCallbackQuery(query.id, { text: result?.queued ? 'Codex is busy; you are queued' : `Pipeline ${action}` });
     return;
   }
 
@@ -1086,6 +1090,261 @@ async function askForInput(chatId, type, prompt) {
   });
 }
 
+async function handlePromptRequest(query) {
+  const chatId = query.message.chat.id;
+  const operator = operatorFromQuery(query);
+  const busy = await queueIfCodexUnavailable(chatId, operator, 'Manual Telegram prompt');
+  if (busy) {
+    await bot.answerCallbackQuery(query.id, { text: 'Codex is busy; you are queued' });
+    return;
+  }
+
+  await bot.answerCallbackQuery(query.id, { text: 'Waiting for prompt' });
+  await claimWaitingSession(operator);
+  await openCodexPromptInput(chatId, operator);
+}
+
+async function openCodexPromptInput(chatId, operator = null) {
+  setSessionReservation(operator || { chatId }, chatId);
+
+  await askForInput(
+    chatId,
+    'codex_prompt',
+    '💬 *Send Prompt to Codex*\nSend the prompt in your next message.\n\nUse the Cancel button below to abort.'
+  );
+}
+
+async function handleDoctorConfirmRequest(query) {
+  const chatId = query.message.chat.id;
+  const operator = operatorFromQuery(query);
+  const busy = await queueIfCodexUnavailable(chatId, operator, 'Doctor check');
+  if (busy) {
+    await bot.answerCallbackQuery(query.id, { text: 'Codex is busy; you are queued' });
+    return;
+  }
+
+  await bot.answerCallbackQuery(query.id, { text: 'Doctor started' });
+  await claimWaitingSession(operator);
+  await runDoctor(chatId, operator);
+}
+
+async function handleWaiterStartRequest(query) {
+  const chatId = query.message.chat.id;
+  const operator = operatorFromQuery(query);
+  const waiter = getWaitingUser(operator);
+
+  const unavailable = await queueIfCodexUnavailable(chatId, operator, waiter?.taskDescription || 'Manual Telegram prompt', {
+    notifyActive: true,
+    fromWaiterStart: true
+  });
+  if (unavailable) {
+    await bot.answerCallbackQuery(query.id, { text: 'Codex is busy; queue updated' });
+    return;
+  }
+
+  if (!waiter && getWaitingUsers().length > 0) {
+    const queueEntry = addWaitingUser({ ...operator, chatId }, 'Manual Telegram prompt');
+    await bot.answerCallbackQuery(query.id, { text: `Queue position ${queueEntry.position || 1}` });
+    await sendQueuePositionUpdate(chatId, queueEntry.position || 1, getWaitingUsers().length);
+    return;
+  }
+
+  if (waiter) {
+    removeWaitingUser(operator);
+  }
+  setSessionReservation(operator, chatId);
+  await bot.answerCallbackQuery(query.id, { text: 'Your turn. Send prompt.' });
+  await openCodexPromptInput(chatId, operator);
+  await notifyRemainingWaitersQueuePositions(operator);
+}
+
+async function claimWaitingSession(operator) {
+  const waiter = getWaitingUser(operator);
+  if (!waiter) return null;
+  removeWaitingUser(operator);
+  await notifyRemainingWaitersQueuePositions(operator);
+  return waiter;
+}
+
+async function queueIfCodexUnavailable(chatId, operator, taskDescription, options = {}) {
+  const codex = getCodexRuntimeStatus();
+  const reservation = getActiveSessionReservation();
+  const sameReservationOwner = reservation && isSameOperator(reservation.operator, operator);
+  const waiters = getWaitingUsers();
+
+  if (codex.state === 'running') {
+    const queueEntry = addWaitingUser({ ...operator, chatId }, taskDescription);
+    await sendCodexBusyQueuedMessage(chatId, queueEntry, codex);
+    if (options.notifyActive !== false) {
+      await notifyActiveOperatorAboutWaiter(operator, queueEntry, codex);
+    }
+    return true;
+  }
+
+  if (reservation && !sameReservationOwner) {
+    const queueEntry = addWaitingUser({ ...operator, chatId }, taskDescription);
+    await sendReservationQueuedMessage(chatId, queueEntry, reservation);
+    await notifyReservedOperatorAboutWaiter(reservation, operator, queueEntry);
+    return true;
+  }
+
+  if (!options.fromWaiterStart && waiters.length > 0) {
+    const existingWaiter = getWaitingUser(operator);
+    if (!existingWaiter) {
+      const queueEntry = existingWaiter
+        ? { user: existingWaiter, position: getWaitingUserPosition(operator), alreadyWaiting: true }
+        : addWaitingUser({ ...operator, chatId }, taskDescription);
+      await sendQueuePositionUpdate(chatId, queueEntry.position || waiters.length + 1, getWaitingUsers().length);
+      return true;
+    }
+  }
+
+  return false;
+}
+
+async function sendCodexBusyQueuedMessage(chatId, queueEntry, codex) {
+  const details = getCodexBusyDetails(codex);
+  const owner = formatOperatorMention(details.operator);
+  const position = queueEntry.position || getWaitingUserPosition(queueEntry.user) || 1;
+
+  await sendTrackedMessage(
+    chatId,
+    `🔒 *Codex is currently busy.*\n\n` +
+    `Started by: ${escapeMarkdown(owner || 'unknown')}${details.durationSeconds !== null ? ` (${escapeMarkdown(formatAgoFromSeconds(details.durationSeconds))})` : ''}\n` +
+    `Current task: ${escapeMarkdown(details.task)}\n` +
+    `Phase: ${escapeMarkdown(details.phase)}\n` +
+    `Queue position: ${position}\n\n` +
+    `You'll be notified when Codex is free.`,
+    { parse_mode: 'Markdown' }
+  );
+}
+
+async function sendReservationQueuedMessage(chatId, queueEntry, reservation) {
+  const position = queueEntry.position || getWaitingUserPosition(queueEntry.user) || 1;
+  const owner = describeReservationOwner(reservation);
+  await sendTrackedMessage(
+    chatId,
+    `🔒 *Codex is currently reserved.*\n\n` +
+    `Started by: ${escapeMarkdown(owner)} (waiting for their prompt)\n` +
+    `Current task: ${escapeMarkdown(queueEntry.user?.taskDescription || 'Codex session')}\n` +
+    `Phase: 🧠 Planning approach...\n` +
+    `Queue position: ${position}\n\n` +
+    `You'll be notified when Codex is free.`,
+    { parse_mode: 'Markdown' }
+  );
+}
+
+async function notifyActiveOperatorAboutWaiter(waitingOperator, queueEntry, codex = getCodexRuntimeStatus()) {
+  const details = getCodexBusyDetails(codex);
+  const activeChatId = getOperatorChatId(details.operator);
+  if (!activeChatId) return;
+
+  const waiter = formatOperatorMention(waitingOperator) || 'Someone';
+  const taskShort = formatTaskShort(details.label, codex.activeRun?.metadata);
+  await sendTrackedMessage(
+    activeChatId,
+    `⚠️ ${escapeMarkdown(waiter)} tried to start a Codex session.\n\n` +
+    `Your current task (${escapeMarkdown(taskShort)}) is still running.\n` +
+    `No action needed - they are queued at position ${queueEntry.position || 1} and will be notified when you're done.`,
+    { parse_mode: 'Markdown' }
+  );
+}
+
+async function notifyReservedOperatorAboutWaiter(reservation, waitingOperator, queueEntry) {
+  const activeChatId = reservation.chatId || getOperatorChatId(reservation.operator);
+  if (!activeChatId) return;
+  const waiter = formatOperatorMention(waitingOperator) || 'Someone';
+  await sendTrackedMessage(
+    activeChatId,
+    `⚠️ ${escapeMarkdown(waiter)} tried to start a Codex session.\n\n` +
+    `Your Codex prompt slot is still reserved.\n` +
+    `No action needed - they are queued at position ${queueEntry.position || 1} and will be notified when you're done.`,
+    { parse_mode: 'Markdown' }
+  );
+}
+
+function getOperatorChatId(operator) {
+  const normalized = normalizeOperator(operator);
+  return normalized?.chatId ? String(normalized.chatId) : null;
+}
+
+async function sendQueuePositionUpdate(chatId, position, total) {
+  await sendTrackedMessage(
+    chatId,
+    `⏳ *You are in the Codex queue.*\n\n` +
+    `Your updated queue position: ${position}/${total}\n` +
+    `You'll be notified when Codex is free again.`,
+    { parse_mode: 'Markdown', reply_markup: waiterQueueKeyboard() }
+  );
+}
+
+async function notifyRemainingWaitersQueuePositions(claimingOperator) {
+  const waiters = getWaitingUsers();
+  for (const [index, waiter] of waiters.entries()) {
+    if (isSameOperator(waiter, claimingOperator) || !waiter.chatId) continue;
+    try {
+      await sendTrackedMessage(
+        waiter.chatId,
+        `⏳ ${escapeMarkdown(formatOperatorMention(claimingOperator) || 'Another user')} claimed the Codex session.\n\n` +
+        `Your updated queue position: ${index + 1}/${waiters.length}.`,
+        { parse_mode: 'Markdown', reply_markup: waiterQueueKeyboard() }
+      );
+    } catch (error) {
+      console.warn(`[telegram] Failed to send queue position update to ${waiter.chatId}:`, formatError(error));
+    }
+  }
+}
+
+function waiterQueueKeyboard() {
+  return {
+    inline_keyboard: [
+      [
+        { text: '💬 Prompt Codex', callback_data: 'panel:waiter:start' }
+      ]
+    ]
+  };
+}
+
+async function notifyWaitingUsersCodexFree(completed = {}) {
+  const waiters = getWaitingUsers();
+  if (waiters.length === 0) return [];
+
+  const results = [];
+  for (const waiter of waiters) {
+    if (!waiter.chatId) {
+      results.push({ waiter, ok: false, error: 'missing chat_id' });
+      continue;
+    }
+
+    try {
+      await sendTrackedMessage(waiter.chatId, buildCodexFreeMessage(completed), {
+        parse_mode: 'Markdown',
+        reply_markup: waiterQueueKeyboard()
+      });
+      results.push({ waiter, ok: true });
+    } catch (error) {
+      console.warn(`[telegram] Failed to notify waiting user ${waiter.userId}:`, formatError(error));
+      results.push({ waiter, ok: false, error });
+    }
+  }
+
+  return results;
+}
+
+function buildCodexFreeMessage(completed = {}) {
+  const operator = formatOperatorMention(completed.operator) || 'The previous operator';
+  const label = completed.label || 'their session';
+  const task = completed.task || formatTaskShort(label, completed.metadata || {});
+  const duration = completed.durationSeconds || completed.duration;
+  const durationText = duration ? `, ${formatDuration(duration)}` : '';
+
+  return (
+    `🎉 *Codex is now free!*\n\n` +
+    `${escapeMarkdown(operator)} just finished their session (${escapeMarkdown(task)}${escapeMarkdown(durationText)}).\n\n` +
+    `You can now start your session:`
+  );
+}
+
 async function handlePendingInputMessage(msg) {
   if (!msg.text || msg.text.startsWith('/')) return;
   if (!isAuthorized(msg.chat.id)) return;
@@ -1096,6 +1355,14 @@ async function handlePendingInputMessage(msg) {
   pendingInputs.delete(msg.chat.id);
 
   if (Date.now() - pending.createdAt > 10 * 60 * 1000) {
+    if (pending.type === 'codex_prompt') {
+      clearSessionReservation({ chatId: msg.chat.id });
+      await notifyWaitingUsersCodexFree({
+        operator: operatorFromMessage(msg),
+        label: 'Codex prompt expired',
+        status: 'available'
+      });
+    }
     await sendTrackedMessage(msg.chat.id, 'That input request expired. Press the panel button again.');
     return;
   }
@@ -1136,6 +1403,10 @@ async function deleteSensitiveMessage(chatId, messageId) {
 
 async function setPipelineAction(chatId, action, operator = null) {
   if (action === 'start' || action === 'resume') {
+    if (await queueIfCodexUnavailable(chatId, operator || { chatId }, `Pipeline ${action}`)) {
+      return { queued: true };
+    }
+
     const pendingDelivery = getCurrentIssue();
     if (pendingDelivery?.delivery_status === 'pending_review') {
       setState('pipeline_status', 'awaiting_delivery');
@@ -1144,25 +1415,29 @@ async function setPipelineAction(chatId, action, operator = null) {
         `Issue #${pendingDelivery.issue_number} is pending delivery review. Use Push Changes, Retry, or Discard before resuming.`,
         { reply_markup: deliveryReviewKeyboard(pendingDelivery.issue_number) }
       );
-      return;
+      return { pendingDelivery: true };
     }
     setPipelineOperator(operator || { chatId });
+    await claimWaitingSession(operator || { chatId });
     setState('pipeline_status', 'running');
     await sendTrackedMessage(chatId, action === 'start' ? '▶️ Pipeline started.' : '➡️ Pipeline resumed.');
-    return;
+    return { started: true };
   }
 
   if (action === 'pause') {
     setState('pipeline_status', 'paused');
     await sendTrackedMessage(chatId, '⏸️ Pipeline paused.');
-    return;
+    return { paused: true };
   }
 
   if (action === 'stop') {
     clearPipelineOperator();
     setState('pipeline_status', 'stopped');
     await sendTrackedMessage(chatId, '⏹️ Pipeline stopped.');
+    return { stopped: true };
   }
+
+  return { unknown: true };
 }
 
 async function setModel(chatId, model) {
@@ -1183,6 +1458,125 @@ function describeRunningCodex(codex) {
     return `Codex process PID ${codex.pid}`;
   }
   return 'Codex process';
+}
+
+function getCodexBusyDetails(codex = getCodexRuntimeStatus()) {
+  const activeRun = codex.activeRun || {};
+  const lock = activeRun.lock || getCodexLock() || {};
+  const operator = normalizeOperator(activeRun.operator || lock.operator);
+  const startedAt = activeRun.startedAt || lock.startedAt || null;
+  const label = activeRun.label || lock.label || describeRunningCodex(codex);
+  const thinking = activeRun.thinking || {};
+
+  return {
+    operator,
+    startedAt,
+    label,
+    task: formatTaskDescription(label, activeRun.metadata),
+    phase: thinking.current || '🧠 Planning approach...',
+    durationSeconds: startedAt ? Math.max(0, Math.round((Date.now() - Date.parse(startedAt)) / 1000)) : null
+  };
+}
+
+function formatTaskDescription(label, metadata = {}) {
+  if (metadata?.issueNumber) {
+    const title = metadata.issueTitle || String(label || '').replace(/^Issue #\d+:\s*/i, '');
+    return `Issue #${metadata.issueNumber} - "${title || 'Untitled'}"`;
+  }
+
+  const issueMatch = String(label || '').match(/^Issue #(\d+):\s*(.+)$/i);
+  if (issueMatch) {
+    return `Issue #${issueMatch[1]} - "${issueMatch[2]}"`;
+  }
+
+  return label || 'Codex session';
+}
+
+function formatTaskShort(label, metadata = {}) {
+  if (metadata?.issueNumber) return `Issue #${metadata.issueNumber}`;
+  const issueMatch = String(label || '').match(/^(Issue #\d+)/i);
+  return issueMatch ? issueMatch[1] : (label || 'Codex task');
+}
+
+function formatAgoFromSeconds(seconds) {
+  if (!Number.isFinite(seconds)) return 'unknown time ago';
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+  const hours = Math.floor(minutes / 60);
+  const remMinutes = minutes % 60;
+  return `${hours}h${remMinutes ? ` ${remMinutes}m` : ''} ago`;
+}
+
+function isSameOperator(left, right) {
+  const a = normalizeOperator(left);
+  const b = normalizeOperator(right);
+  if (!a || !b) return false;
+  if (a.userId && b.userId) return String(a.userId) === String(b.userId);
+  if (a.chatId && b.chatId) return String(a.chatId) === String(b.chatId);
+  if (a.username && b.username) return a.username === b.username;
+  return false;
+}
+
+function setSessionReservation(operator, chatId) {
+  const normalized = normalizeOperator(operator || { chatId });
+  if (!normalized) return null;
+
+  if (sessionReservationTimer) {
+    clearTimeout(sessionReservationTimer);
+    sessionReservationTimer = null;
+  }
+
+  sessionReservation = {
+    operator: normalized,
+    chatId: chatId?.toString() || (normalized.chatId ? String(normalized.chatId) : null),
+    reservedAt: Date.now()
+  };
+
+  sessionReservationTimer = setTimeout(() => {
+    if (!sessionReservation || !isSessionReservationExpired()) return;
+    const expired = sessionReservation;
+    sessionReservation = null;
+    sessionReservationTimer = null;
+    if (expired.chatId) {
+      pendingInputs.delete(Number(expired.chatId));
+      pendingInputs.delete(expired.chatId);
+    }
+    notifyWaitingUsersCodexFree({
+      operator: expired.operator,
+      label: 'Codex reservation expired',
+      status: 'available'
+    }).catch(error => console.warn('[telegram] Failed to notify waiters after reservation expiry:', formatError(error)));
+  }, SESSION_RESERVATION_TTL_MS + 1000);
+
+  return sessionReservation;
+}
+
+function clearSessionReservation(operator = null) {
+  if (operator && sessionReservation && !isSameOperator(sessionReservation.operator, operator)) {
+    return false;
+  }
+  sessionReservation = null;
+  if (sessionReservationTimer) {
+    clearTimeout(sessionReservationTimer);
+    sessionReservationTimer = null;
+  }
+  return true;
+}
+
+function isSessionReservationExpired() {
+  return Boolean(sessionReservation && Date.now() - sessionReservation.reservedAt > SESSION_RESERVATION_TTL_MS);
+}
+
+function getActiveSessionReservation() {
+  if (isSessionReservationExpired()) {
+    clearSessionReservation();
+  }
+  return sessionReservation;
+}
+
+function describeReservationOwner(reservation) {
+  return formatOperatorMention(reservation?.operator) || 'another user';
 }
 
 function operatorFromMessage(msg) {
@@ -1211,11 +1605,14 @@ async function warnIfCodexRunning(chatId) {
     return false;
   }
 
-  const owner = formatOperatorMention(codex.activeRun?.operator || codex.activeRun?.lock?.operator);
+  const details = getCodexBusyDetails(codex);
+  const owner = formatOperatorMention(details.operator);
   await sendTrackedMessage(
     chatId,
-    `🔒 Codex is busy${owner ? `, started by ${escapeMarkdown(owner)}` : ''}${codex.pid ? ` (PID: ${codex.pid})` : ''}.\n` +
-    `${escapeMarkdown(describeRunningCodex(codex))}`,
+    `🔒 *Codex is currently busy.*\n\n` +
+    `Started by: ${escapeMarkdown(owner || 'unknown')}${details.durationSeconds !== null ? ` (${escapeMarkdown(formatAgoFromSeconds(details.durationSeconds))})` : ''}\n` +
+    `Current task: ${escapeMarkdown(details.task)}\n` +
+    `Phase: ${escapeMarkdown(details.phase)}`,
     { parse_mode: 'Markdown' }
   );
   return true;
@@ -1247,7 +1644,16 @@ async function stopCodexFromTelegram(chatId, reason = 'telegram_stop_codex') {
 }
 
 async function cancelCurrentOperation(chatId) {
+  const pending = pendingInputs.get(chatId);
   const hadPendingInput = pendingInputs.delete(chatId);
+  if (pending?.type === 'codex_prompt') {
+    clearSessionReservation({ chatId });
+    await notifyWaitingUsersCodexFree({
+      operator: { chatId },
+      label: 'Codex prompt cancelled',
+      status: 'cancelled'
+    });
+  }
 
   try {
     const result = await stopCodex('telegram_cancel', { silentIfMissing: true });
@@ -1298,6 +1704,12 @@ async function sendStopCodexResult(chatId, result) {
   const issueText = result.issueNumber ? `Issue #${result.issueNumber}` : result.label || 'Current task';
   const message = `🛑 Codex stopped. ${issueText} was aborted.`;
   await sendTrackedMessage(chatId, message);
+  await notifyWaitingUsersCodexFree({
+    operator: { chatId },
+    label: result.label || issueText,
+    task: issueText,
+    status: 'stopped'
+  });
 }
 
 async function sendDeliveryReviewPanel(chatId, review) {
@@ -1312,17 +1724,22 @@ async function sendDeliveryReviewPanel(chatId, review) {
     return;
   }
 
-  await sendTrackedMessage(chatId, await buildDeliveryReviewText(issueNumber, issueTitle), {
+  await sendTrackedMessage(chatId, await buildDeliveryReviewText(issueNumber, issueTitle, null, review.result), {
     parse_mode: 'Markdown',
     reply_markup: deliveryReviewKeyboard(issueNumber)
   });
 }
 
-async function buildDeliveryReviewText(issueNumber, issueTitle, errorText = null) {
+async function buildDeliveryReviewText(issueNumber, issueTitle, errorText = null, result = null) {
   const fileStats = parseGitNumstat(await getGitNumstat());
+  const durationSeconds = Number(result?.duration || 0);
+  const changedCount = fileStats.length || parseCodexOutput(result?.output || []).filesChanged.length;
   let text =
-    `✅ *Codex finished Issue #${issueNumber}:* "${escapeMarkdown(issueTitle)}"\n` +
+    `✅ *Your Codex session is complete!*\n` +
     `━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `Task: Issue #${issueNumber} - "${escapeMarkdown(issueTitle)}"\n` +
+    `Duration: ${durationSeconds > 0 ? formatDuration(durationSeconds) : 'n/a'}\n` +
+    `Result: ${changedCount} file${changedCount === 1 ? '' : 's'} changed\n\n` +
     `📁 *Files changed:*\n`;
 
   if (fileStats.length === 0) {
@@ -1955,9 +2372,16 @@ async function runDoctor(chatId, operator = null) {
 async function runPromptFromTelegram(chatId, prompt, label, operator = null) {
   const codex = getCodexRuntimeStatus();
   if (codex.state === 'running') {
-    await warnIfCodexRunning(chatId);
+    await queueIfCodexUnavailable(chatId, operator || { chatId }, label || 'Manual Telegram prompt');
     return;
   }
+
+  const reservation = getActiveSessionReservation();
+  if (reservation && !isSameOperator(reservation.operator, operator || { chatId })) {
+    await queueIfCodexUnavailable(chatId, operator || { chatId }, label || 'Manual Telegram prompt');
+    return;
+  }
+  clearSessionReservation(operator || { chatId });
 
   const watchdog = await getWatchdogSnapshot();
   if (watchdog.warnings.length > 0) {
@@ -1969,6 +2393,11 @@ async function runPromptFromTelegram(chatId, prompt, label, operator = null) {
       `Free resources, then retry.`,
       { parse_mode: 'Markdown', reply_markup: doctorPanelKeyboard() }
     );
+    await notifyWaitingUsersCodexFree({
+      operator,
+      label,
+      status: 'watchdog_blocked'
+    });
     return;
   }
 
@@ -1997,6 +2426,12 @@ async function runPromptFromTelegram(chatId, prompt, label, operator = null) {
       parse_mode: 'Markdown',
       reply_markup: postCodexKeyboard()
     });
+    await notifyWaitingUsersCodexFree({
+      operator,
+      label,
+      duration: Number(result.duration || 0),
+      status: 'completed'
+    });
   } catch (error) {
     stopDiffStream(buildDiffStreamText({
       chatId,
@@ -2012,6 +2447,11 @@ async function runPromptFromTelegram(chatId, prompt, label, operator = null) {
         `⏱️ Codex timed out after ${escapeMarkdown(String(minutes))} minutes. ${escapeMarkdown(issueText)} aborted.`,
         { parse_mode: 'Markdown', reply_markup: controlPanelKeyboard() }
       );
+      await notifyWaitingUsersCodexFree({
+        operator,
+        label,
+        status: 'timeout'
+      });
       return;
     }
     const owner = formatOperatorMention(operator);
@@ -2022,6 +2462,11 @@ async function runPromptFromTelegram(chatId, prompt, label, operator = null) {
       `Use the API Key pill if this is a key/quota issue.`,
       { parse_mode: 'Markdown', reply_markup: controlPanelKeyboard() }
     );
+    await notifyWaitingUsersCodexFree({
+      operator,
+      label,
+      status: 'failed'
+    });
   }
 }
 
@@ -3130,6 +3575,7 @@ module.exports = {
   stopDiffStream,
   startThinkingStream,
   stopThinkingStream,
+  notifyWaitingUsersCodexFree,
   isAuthorized,
   getAuthorizedChatIds
 };
