@@ -54,6 +54,7 @@ describe("edit sessions", () => {
       errorMessage: null as string | null,
       progress: 0
     };
+    let renderStatusPolls = 0;
 
     const context = await createTestApp({
       storageDir: tempDir,
@@ -110,15 +111,18 @@ describe("edit sessions", () => {
             renderState.state = "running";
             renderState.stage = "drafting";
             renderState.progress = 55;
-            setTimeout(() => {
+          },
+          getStatus: async () => {
+            renderStatusPolls += 1;
+            if (renderStatusPolls > 1) {
               renderState.state = "completed";
               renderState.stage = "completed";
               renderState.progress = 100;
               renderState.outputUrl = "/master-renders/edit-session/current.mp4";
               renderState.outputPath = "/tmp/edit-session-current.mp4";
-            }, 25);
-          },
-          getStatus: async () => renderState
+            }
+            return renderState;
+          }
         }
       }
     });

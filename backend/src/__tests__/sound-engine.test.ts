@@ -209,6 +209,7 @@ describe("sound engine", () => {
     expect(plan.sfxCues).toHaveLength(2);
     expect(compilation.filterComplexScript).toContain("acrossfade");
     expect(compilation.filterComplexScript).toContain("loudnorm");
+    expect(compilation.filterComplexScript).toContain("[dialogue_bus_raw]asplit=2");
     expect(compilation.inputFiles.length).toBeGreaterThanOrEqual(6);
 
     const masterPath = path.join(tempDir, "renders", "master.wav");

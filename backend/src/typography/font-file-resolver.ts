@@ -3,6 +3,7 @@ import path from "node:path";
 import {fileURLToPath} from "node:url";
 
 import {FONT_SERVE_PATH} from "../config/font-assets";
+import {basenameAnyPlatform} from "../path-utils";
 
 type FontManifestEntry = {
   observed?: {
@@ -49,7 +50,7 @@ const isRenderableFontExtension = (extension: string | undefined): boolean => {
 };
 
 const toBrowserFontUrl = (filePath: string): string => {
-  const fileName = path.basename(filePath);
+  const fileName = basenameAnyPlatform(filePath);
   return `${FONT_SERVE_PATH}/${fileName}`;
 };
 

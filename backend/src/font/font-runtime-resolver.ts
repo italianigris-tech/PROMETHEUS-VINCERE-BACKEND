@@ -4,6 +4,7 @@ import {fileURLToPath} from "node:url";
 
 import {seededPick, seededRandom} from "@prometheus/shared-types";
 import type {JosephTypography} from "@prometheus/shared-types";
+import {basenameAnyPlatform} from "../path-utils";
 
 type JosephProfile = "aggressive" | "cinematic" | "minimal" | "joseph_aggressive" | "joseph_cinematic" | "joseph_minimal";
 
@@ -109,6 +110,29 @@ const resolveLibraryLocalPath = (localPublicPath: string): string => {
     return localPublicPath;
   }
   return path.join(repoRoot, "remotion-app", localPublicPath);
+};
+
+const resolveManifestLocalFilePath = (filePath: string): string => {
+  if (existsSync(filePath)) {
+    return filePath;
+  }
+
+  const normalized = filePath.replace(/\\/g, "/");
+  const publicIndex = normalized.toLowerCase().lastIndexOf("remotion-app/public/");
+  if (publicIndex >= 0) {
+    const repoRelative = normalized.slice(publicIndex);
+    const rebasedPath = path.join(repoRoot, ...repoRelative.split("/"));
+    if (existsSync(rebasedPath)) {
+      return rebasedPath;
+    }
+  }
+
+  const heroFilePath = path.join(repoRoot, "remotion-app", "public", "fonts", "hero", basenameAnyPlatform(filePath));
+  if (existsSync(heroFilePath)) {
+    return heroFilePath;
+  }
+
+  return filePath;
 };
 
 const libraryRecordToHeroRecord = (record: HydratedLibraryFontRecord): HeroFontRecord | null => {
@@ -240,11 +264,14 @@ export const selectHeroFonts = (
   }
 
   const ensureRenderable = (record: HeroFontRecord, role: "hero" | "support" | "fallback"): HeroFontRecord => {
-    if (existsSync(record.localFilePath)) {
-      return record;
+    const resolvedLocalFilePath = resolveManifestLocalFilePath(record.localFilePath);
+    if (existsSync(resolvedLocalFilePath)) {
+      return {...record, localFilePath: resolvedLocalFilePath};
     }
+
+    const fallbackLocalFilePath = resolveManifestLocalFilePath(fallbackRecord.localFilePath);
     warnings.push(`Selected ${role} font ${record.fontId} missing at ${record.localFilePath}; using ${fallbackRecord.fontId}.`);
-    return fallbackRecord;
+    return {...fallbackRecord, localFilePath: fallbackLocalFilePath};
   };
 
   const hero = ensureRenderable(pickRanked(records, profile, "hero", seed), "hero");
