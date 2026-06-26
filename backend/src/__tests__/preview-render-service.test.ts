@@ -7,7 +7,6 @@ import {describe, expect, it} from "vitest";
 import {PreviewRenderService} from "../render/preview-render-service";
 import type {CreativeDecisionManifest} from "../contracts/creative-decision-manifest";
 import {runFfmpegCommand} from "../sound-engine/ffmpeg";
-import {resolveRequestedOrFallbackFontPair} from "../typography/font-file-resolver";
 
 const buildManifest = (overrides?: Partial<CreativeDecisionManifest["typography"]>): CreativeDecisionManifest => ({
   manifestVersion: "1.0.0",
@@ -116,8 +115,7 @@ describe("PreviewRenderService", () => {
   it("renders a real preview video artifact when a valid source media path is available", async () => {
     const tempRoot = await mkdtemp(path.join(os.tmpdir(), "preview-render-video-"));
     const sourceVideoPath = path.join(tempRoot, "source.mp4");
-    const fontPair = resolveRequestedOrFallbackFontPair("Satoshi", "Canela");
-    expect(fontPair).not.toBeNull();
+    const fontPath = await resolvePortableDrawtextFont();
 
     await runFfmpegCommand([
       "-y",
@@ -150,10 +148,10 @@ describe("PreviewRenderService", () => {
         manifest: {
           ...buildManifest({
             primaryFont: {
-              family: fontPair!.primary.family,
+              family: "Portable Test Sans",
               source: "custom_ingested",
               role: "headline",
-              fileUrl: fontPair!.primary.filePath
+              fileUrl: fontPath
             }
           }),
           scene: {durationMs: 2000, aspectRatio: "16:9", width: 1280, height: 720, fps: 30},
@@ -192,4 +190,27 @@ const writeTestFont = async (root: string): Promise<string> => {
   const filePath = path.join(root, "Satoshi.woff2");
   await writeFile(filePath, Buffer.from("test-font-bytes"));
   return filePath;
+};
+
+const resolvePortableDrawtextFont = async (): Promise<string> => {
+  const candidates =
+    process.platform === "win32"
+      ? ["C:\\Windows\\Fonts\\arial.ttf", "C:\\Windows\\Fonts\\segoeui.ttf"]
+      : process.platform === "darwin"
+        ? ["/System/Library/Fonts/Supplemental/Arial.ttf", "/System/Library/Fonts/Supplemental/Helvetica.ttf"]
+        : [
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+            "/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf"
+          ];
+
+  for (const candidate of candidates) {
+    try {
+      await stat(candidate);
+      return candidate;
+    } catch {
+      // Try the next platform font candidate.
+    }
+  }
+
+  throw new Error("No portable FFmpeg drawtext font was available for the preview render test.");
 };

@@ -34,6 +34,9 @@ jobs:
       - name: Typecheck shared types
         run: npm run typecheck --workspace=packages/shared-types
 
+      - name: Build shared types
+        run: npm run build --workspace=packages/shared-types
+
       - name: Typecheck backend
         run: npm run typecheck --workspace=backend
 
