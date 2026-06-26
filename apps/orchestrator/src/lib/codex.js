@@ -1,5 +1,6 @@
 const { spawn, execFile } = require('child_process');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const {
   getState,
@@ -7,6 +8,7 @@ const {
   getCurrentIssue,
   setCurrentIssue,
   recordKeyRotation,
+  recordApiKeyChange,
   recordIssueStopped,
   reconcileActiveIssueState,
   setCodexLock,
@@ -16,8 +18,20 @@ const {
   normalizeOperator,
   getPipelineOperator
 } = require('./database');
+const {
+  updateEnvFile,
+  writeFilePrivate,
+  securePath
+} = require('./security');
 
 const WORKDIR = process.env.CODEX_WORKDIR || process.env.REPO_PATH || process.cwd();
+const HOME_DIR = process.env.HOME || os.homedir();
+const CODEX_CONFIG_PATHS = [
+  path.join(HOME_DIR, '.config', 'codex', 'config.toml'),
+  path.join(HOME_DIR, '.codex', 'config.toml')
+];
+const ORCHESTRATOR_ENV_PATH = path.join(process.cwd(), '.env');
+const BACKEND_ENV_PATH = process.env.BACKEND_ENV_PATH || '/home/ec2-user/prometheus-backend/.env';
 const CODEX_LOG_LIMIT = 80;
 const STOP_TIMEOUT_MS = 5000;
 const CODEX_MAX_RUNTIME_MINUTES = parsePositiveNumber(process.env.CODEX_MAX_RUNTIME_MINUTES, 30);
@@ -145,22 +159,25 @@ function clearActiveRun(runId, status = 'idle') {
 }
 
 function getApiKeys() {
-  const keys = [];
-  const primary = safeGetState('codex_primary_api_key') || process.env.CODEX_API_KEY;
-  if (primary) keys.push(primary);
-  
-  const fallbacks = process.env.CODEX_FALLBACK_KEYS;
-  if (fallbacks) {
-    keys.push(...fallbacks.split(',').map(k => k.trim()).filter(k => k));
-  }
-  
-  return keys;
+  return getApiKeyState().keys;
+}
+
+function getApiKeyState() {
+  const primary = normalizeApiKey(safeGetState('codex_primary_api_key') || process.env.CODEX_API_KEY);
+  const fallbackKeys = parseFallbackKeys(process.env.CODEX_FALLBACK_KEYS);
+  const keys = [primary, ...fallbackKeys].filter(Boolean);
+  const index = normalizeApiKeyIndex(getState('api_key_index'), keys.length);
+  return {
+    primary,
+    fallbackKeys,
+    keys,
+    index,
+    current: keys[index] || keys[0] || null
+  };
 }
 
 function getCurrentApiKey() {
-  const keys = getApiKeys();
-  const index = parseInt(getState('api_key_index') || '0');
-  return keys[index] || keys[0] || null;
+  return getApiKeyState().current;
 }
 
 function getKeySuffix(key) {
@@ -168,64 +185,437 @@ function getKeySuffix(key) {
   return key.slice(-4);
 }
 
+function getKeyPrefix(key) {
+  if (!key) return 'none';
+  const normalized = String(key);
+  return normalized.length <= 8 ? normalized : normalized.slice(0, 7);
+}
+
+function redactKey(key) {
+  if (!key) return 'none';
+  return `${getKeyPrefix(key)}...${getKeySuffix(key)}`;
+}
+
+function redactSecrets(text) {
+  return String(text || '')
+    .replace(/\b(sk|gsk|sess|codex)-[A-Za-z0-9_-]{10,}\b/g, (match) => redactKey(match));
+}
+
 function rotateApiKey(reason) {
-  const keys = getApiKeys();
+  const state = getApiKeyState();
+  const keys = state.keys;
   if (keys.length === 0) {
     return {
       rotated: false,
       oldSuffix: 'none',
       newSuffix: 'none',
+      oldKey: null,
+      newKey: null,
       exhausted: true
     };
   }
 
-  const currentIndex = parseInt(getState('api_key_index') || '0');
-  const oldSuffix = getKeySuffix(keys[currentIndex]);
+  const currentIndex = state.index;
+  const oldKey = keys[currentIndex] || keys[0];
+  const oldSuffix = getKeySuffix(oldKey);
   
+  if (keys.length < 2) {
+    return {
+      rotated: false,
+      oldSuffix,
+      newSuffix: oldSuffix,
+      oldKey,
+      newKey: oldKey,
+      exhausted: true
+    };
+  }
+
   const nextIndex = (currentIndex + 1) % keys.length;
+  if (nextIndex === 0) {
+    return {
+      rotated: false,
+      oldSuffix,
+      newSuffix: oldSuffix,
+      oldKey,
+      newKey: oldKey,
+      exhausted: true
+    };
+  }
+
   setState('api_key_index', nextIndex.toString());
-  
-  const newSuffix = getKeySuffix(keys[nextIndex]);
+  const newKey = keys[nextIndex] || keys[0];
+  applyRuntimeApiKey(newKey);
+  propagateActiveKeyToConfigs(newKey, state.fallbackKeys);
+
+  const newSuffix = getKeySuffix(newKey);
   recordKeyRotation(oldSuffix, newSuffix, reason);
+  recordApiKeyChange({
+    action: 'rotate',
+    target: 'all',
+    oldKeyPrefix: getKeyPrefix(oldKey),
+    oldKeySuffix: oldSuffix,
+    newKeyPrefix: getKeyPrefix(newKey),
+    newKeySuffix: newSuffix,
+    fallbackCount: state.fallbackKeys.length,
+    note: reason
+  });
   
   return {
     rotated: true,
     oldSuffix,
     newSuffix,
-    exhausted: nextIndex === 0
+    oldKey,
+    newKey,
+    exhausted: false
   };
 }
 
-function setPrimaryApiKey(apiKey, reason = 'Manual Telegram update') {
-  const key = String(apiKey || '').trim();
-  if (!isLikelyApiKey(key)) {
-    throw new Error('INVALID_API_KEY: key must start with sk- and be at least 20 characters');
-  }
+function setPrimaryApiKey(apiKey, reason = 'Manual Telegram update', options = {}) {
+  const key = validateApiKey(apiKey);
+  const state = getApiKeyState();
+  const oldKey = state.current;
+  const fallbackKeys = options.fallbackKeys || state.fallbackKeys.filter(existing => existing !== key);
+  const oldSuffix = getKeySuffix(oldKey);
 
-  const oldSuffix = getKeySuffix(getCurrentApiKey());
   setState('codex_primary_api_key', key);
   setState('api_key_index', '0');
-  process.env.CODEX_API_KEY = key;
-  process.env.OPENAI_API_KEY = key;
+  applyRuntimeApiKey(key);
+  process.env.CODEX_FALLBACK_KEYS = fallbackKeys.join(',');
 
   const newSuffix = getKeySuffix(key);
   recordKeyRotation(oldSuffix, newSuffix, reason);
+  if (options.audit !== false) {
+    recordApiKeyChange({
+      operator: options.operator,
+      action: options.action || 'set_primary',
+      target: options.target || 'runtime',
+      oldKeyPrefix: getKeyPrefix(oldKey),
+      oldKeySuffix: oldSuffix,
+      newKeyPrefix: getKeyPrefix(key),
+      newKeySuffix: newSuffix,
+      fallbackCount: fallbackKeys.length,
+      note: reason
+    });
+  }
   logCodexEvent('key', `Active Codex API key updated to ...${newSuffix}`);
 
   return {
     oldSuffix,
     newSuffix,
-    totalKeys: getApiKeys().length
+    oldKeyPrefix: getKeyPrefix(oldKey),
+    newKeyPrefix: getKeyPrefix(key),
+    fallbackCount: fallbackKeys.length,
+    totalKeys: 1 + fallbackKeys.length
   };
 }
 
 function isLikelyApiKey(apiKey) {
-  return typeof apiKey === 'string' && apiKey.trim().startsWith('sk-') && apiKey.trim().length >= 20;
+  try {
+    validateApiKey(apiKey);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function validateApiKey(apiKey) {
+  const key = normalizeApiKey(apiKey);
+  if (!key || !/^(sk|gsk|sess|codex)-[A-Za-z0-9_-]{16,}$/.test(key)) {
+    throw new Error('INVALID_API_KEY: key must start with sk-, gsk-, sess-, or codex- and be at least 20 characters');
+  }
+  return key;
+}
+
+function normalizeApiKey(apiKey) {
+  return String(apiKey || '').trim();
+}
+
+function parseFallbackKeys(value) {
+  return [...new Set(String(value || '')
+    .split(',')
+    .map(normalizeApiKey)
+    .filter(Boolean))];
+}
+
+function normalizeApiKeyIndex(value, keyCount) {
+  const index = parseInt(value || '0', 10);
+  if (!Number.isInteger(index) || index < 0 || index >= keyCount) return 0;
+  return index;
+}
+
+async function updateApiKeyEverywhere(apiKey, options = {}) {
+  const key = validateApiKey(apiKey);
+  const state = getApiKeyState();
+  const fallbackKeys = options.fallbackKeys || state.fallbackKeys.filter(existing => existing !== key);
+  const result = setPrimaryApiKey(key, options.reason || 'Telegram operator update', {
+    ...options,
+    fallbackKeys,
+    audit: false
+  });
+
+  const propagation = propagateActiveKeyToConfigs(key, fallbackKeys);
+  const verification = await testCodexKey(key);
+  recordApiKeyChange({
+    operator: options.operator,
+    action: 'set_primary',
+    target: 'all',
+    oldKeyPrefix: result.oldKeyPrefix,
+    oldKeySuffix: result.oldSuffix,
+    newKeyPrefix: result.newKeyPrefix,
+    newKeySuffix: result.newSuffix,
+    fallbackCount: fallbackKeys.length,
+    note: `${options.reason || 'Telegram operator update'}; verification=${verification.ok ? 'ok' : 'failed'}`
+  });
+
+  return {
+    ...result,
+    key: redactKey(key),
+    fallbackCount: fallbackKeys.length,
+    propagation,
+    verification
+  };
+}
+
+function propagateActiveKeyToConfigs(activeKey = getCurrentApiKey(), fallbackKeys = getApiKeyState().fallbackKeys) {
+  if (!activeKey) return [];
+  const targets = [];
+
+  for (const targetPath of getCodexConfigTargets()) {
+    targets.push(updateCodexConfigFile(targetPath, activeKey));
+  }
+
+  targets.push(updateEnvFile(ORCHESTRATOR_ENV_PATH, {
+    CODEX_API_KEY: activeKey,
+    OPENAI_API_KEY: activeKey,
+    CODEX_FALLBACK_KEYS: fallbackKeys.join(',')
+  }, { label: 'orchestrator .env' }));
+
+  if (fs.existsSync(BACKEND_ENV_PATH)) {
+    targets.push(updateEnvFile(BACKEND_ENV_PATH, {
+      CODEX_API_KEY: activeKey,
+      OPENAI_API_KEY: activeKey
+    }, { label: 'backend .env', createIfMissing: false }));
+  } else {
+    targets.push({ path: BACKEND_ENV_PATH, exists: false, changed: false, skipped: true });
+  }
+
+  return targets;
+}
+
+function getCodexConfigTargets() {
+  const existing = CODEX_CONFIG_PATHS.filter(filePath => fs.existsSync(filePath));
+  return existing.length > 0 ? existing : [CODEX_CONFIG_PATHS[0]];
+}
+
+function updateCodexConfigFile(filePath, apiKey) {
+  const exists = fs.existsSync(filePath);
+  const original = exists ? fs.readFileSync(filePath, 'utf8') : defaultCodexConfig();
+  let next;
+  if (/^api_key\s*=/m.test(original)) {
+    next = original.replace(/^api_key\s*=.*$/m, `api_key = ${JSON.stringify(apiKey)}`);
+  } else {
+    next = `${original.replace(/\s*$/, '')}\napi_key = ${JSON.stringify(apiKey)}\n`;
+  }
+
+  if (next !== original || !exists) {
+    writeFilePrivate(filePath, next, { label: `Codex config ${filePath}` });
+  } else {
+    securePath(filePath, { label: `Codex config ${filePath}` });
+  }
+
+  return {
+    path: filePath,
+    exists,
+    changed: next !== original || !exists,
+    updatedKeys: ['api_key']
+  };
+}
+
+function defaultCodexConfig() {
+  return [
+    'model_provider = "OpenAI"',
+    'model = "gpt-5.5"',
+    '',
+    '[model_providers.OpenAI]',
+    'name = "OpenAI"',
+    'base_url = "https://api.openai.com/v1"',
+    'requires_openai_auth = true',
+    ''
+  ].join('\n');
+}
+
+function applyRuntimeApiKey(apiKey) {
+  if (!apiKey) return;
+  process.env.CODEX_API_KEY = apiKey;
+  process.env.OPENAI_API_KEY = apiKey;
+}
+
+async function testCodexKey(apiKey = getCurrentApiKey()) {
+  if (!apiKey) {
+    return { ok: false, error: 'No API key configured' };
+  }
+
+  return new Promise((resolve) => {
+    execFile('codex', ['--version'], {
+      timeout: 15000,
+      env: {
+        ...process.env,
+        CODEX_API_KEY: apiKey,
+        OPENAI_API_KEY: apiKey,
+        HOME: process.env.HOME,
+        PATH: process.env.PATH
+      }
+    }, (error, stdout, stderr) => {
+      const output = `${stdout || ''}\n${stderr || ''}`;
+      if (error) {
+        resolve({
+          ok: false,
+          command: 'codex --version',
+          error: redactSecrets(stderr?.trim() || error.message),
+          authRejected: isApiKeyFailureText(output)
+        });
+        return;
+      }
+      resolve({
+        ok: true,
+        command: 'codex --version',
+        output: redactSecrets(String(stdout || stderr || '').trim()).slice(0, 200)
+      });
+    });
+  });
+}
+
+function getApiKeySummary() {
+  const state = getApiKeyState();
+  return {
+    currentIndex: state.index,
+    currentSuffix: getKeySuffix(state.current),
+    currentPrefix: getKeyPrefix(state.current),
+    currentRedacted: redactKey(state.current),
+    totalKeys: state.keys.length,
+    fallbackCount: state.fallbackKeys.length,
+    fallbackSuffixes: state.fallbackKeys.map(getKeySuffix),
+    fallbackRedacted: state.fallbackKeys.map(redactKey),
+    codexConfigPaths: getCodexConfigTargets(),
+    orchestratorEnvPath: ORCHESTRATOR_ENV_PATH,
+    backendEnvPath: BACKEND_ENV_PATH
+  };
+}
+
+async function addFallbackApiKey(apiKey, options = {}) {
+  const key = validateApiKey(apiKey);
+  const state = getApiKeyState();
+  const fallbackKeys = [...new Set([...state.fallbackKeys, key])].filter(existing => existing !== state.primary);
+  process.env.CODEX_FALLBACK_KEYS = fallbackKeys.join(',');
+  const propagation = propagateActiveKeyToConfigs(state.current, fallbackKeys);
+  const verification = await testCodexKey(key);
+  recordApiKeyChange({
+    operator: options.operator,
+    action: 'add_fallback',
+    target: 'all',
+    oldKeyPrefix: getKeyPrefix(state.current),
+    oldKeySuffix: getKeySuffix(state.current),
+    newKeyPrefix: getKeyPrefix(key),
+    newKeySuffix: getKeySuffix(key),
+    fallbackCount: fallbackKeys.length,
+    note: options.reason || 'Telegram fallback add'
+  });
+  return {
+    added: true,
+    key: redactKey(key),
+    fallbackCount: fallbackKeys.length,
+    propagation,
+    verification,
+    summary: getApiKeySummary()
+  };
+}
+
+function removeFallbackApiKey(identifier, options = {}) {
+  const state = getApiKeyState();
+  const token = String(identifier || '').trim();
+  const index = Number(token);
+  const fallbackKeys = state.fallbackKeys.filter((key, idx) => {
+    if (Number.isInteger(index) && index > 0) return idx !== index - 1;
+    return getKeySuffix(key) !== token && redactKey(key) !== token && key !== token;
+  });
+  const removed = fallbackKeys.length !== state.fallbackKeys.length;
+  process.env.CODEX_FALLBACK_KEYS = fallbackKeys.join(',');
+  propagateActiveKeyToConfigs(state.current, fallbackKeys);
+  recordApiKeyChange({
+    operator: options.operator,
+    action: 'remove_fallback',
+    target: 'all',
+    oldKeyPrefix: token,
+    oldKeySuffix: token,
+    newKeyPrefix: getKeyPrefix(state.current),
+    newKeySuffix: getKeySuffix(state.current),
+    fallbackCount: fallbackKeys.length,
+    note: options.reason || 'Telegram fallback remove'
+  });
+  return {
+    removed,
+    fallbackCount: fallbackKeys.length,
+    summary: getApiKeySummary()
+  };
+}
+
+function isApiKeyFailureText(text) {
+  const lower = String(text || '').toLowerCase();
+  return (
+    lower.includes('api key') ||
+    lower.includes('invalid_api_key') ||
+    lower.includes('invalid api key') ||
+    lower.includes('unauthorized') ||
+    lower.includes('authentication') ||
+    lower.includes('rate limit') ||
+    lower.includes('insufficient_quota') ||
+    lower.includes('quota') ||
+    lower.includes('429') ||
+    lower.includes('exhausted') ||
+    lower.includes('depleted') ||
+    lower.includes('limit reached')
+  );
+}
+
+function isApiKeyFailureError(error) {
+  if (!error) return false;
+  return (
+    error.code === 'API_KEY_FAILED' ||
+    error.code === 'API_KEY_EXHAUSTED' ||
+    error.retryableKeyFailure === true ||
+    isApiKeyFailureText(`${error.message || ''}\n${error.stderr || ''}\n${error.errorOutput || ''}`)
+  );
+}
+
+function classifyApiKeyFailureText(text) {
+  const lower = String(text || '').toLowerCase();
+  if (
+    lower.includes('rate limit') ||
+    lower.includes('insufficient_quota') ||
+    lower.includes('quota') ||
+    lower.includes('429') ||
+    lower.includes('exhausted') ||
+    lower.includes('depleted') ||
+    lower.includes('out of credits') ||
+    lower.includes('limit reached')
+  ) {
+    return 'exhausted';
+  }
+  if (
+    lower.includes('invalid_api_key') ||
+    lower.includes('invalid api key') ||
+    lower.includes('unauthorized') ||
+    lower.includes('authentication') ||
+    lower.includes('api key')
+  ) {
+    return 'invalid';
+  }
+  return null;
 }
 
 function runCodex(issueNumber, issueTitle, issueBody, model) {
   const prompt = buildPrompt(issueNumber, issueTitle, issueBody);
-  return runCodexCommand(prompt, {
+  return runCodexWithFallback(prompt, {
     label: `Issue #${issueNumber}: ${issueTitle}`,
     model,
     source: 'pipeline',
@@ -235,7 +625,7 @@ function runCodex(issueNumber, issueTitle, issueBody, model) {
 }
 
 function runCodexPrompt(prompt, options = {}) {
-  return runCodexCommand(prompt, {
+  return runCodexWithFallback(prompt, {
     label: options.label || 'Manual Telegram prompt',
     model: options.model || getState('current_model') || 'gpt-5.5',
     source: options.source || 'telegram',
@@ -243,6 +633,32 @@ function runCodexPrompt(prompt, options = {}) {
     operator: options.operator || null,
     noOutputTimeoutMinutes: options.noOutputTimeoutMinutes || MANUAL_NO_OUTPUT_TIMEOUT_MINUTES
   });
+}
+
+async function runCodexWithFallback(prompt, options) {
+  try {
+    return await runCodexCommand(prompt, options);
+  } catch (error) {
+    if (!isApiKeyFailureError(error) || options._fallbackRetried) {
+      throw error;
+    }
+
+    const rotation = rotateApiKey(`Auto fallback after ${error.code || 'API key failure'}`);
+    if (!rotation.rotated || rotation.exhausted) {
+      throw error;
+    }
+
+    const retryOptions = {
+      ...options,
+      _fallbackRetried: true
+    };
+    logCodexEvent('key', `Retrying Codex with fallback key ...${rotation.newSuffix}`, {
+      oldSuffix: rotation.oldSuffix,
+      newSuffix: rotation.newSuffix,
+      label: options.label
+    });
+    return runCodexCommand(prompt, retryOptions);
+  }
 }
 
 function runGit(args, options = {}) {
@@ -579,8 +995,7 @@ function runCodexCommand(prompt, options) {
     const startedAt = new Date().toISOString();
     const output = [];
     let errorOutput = '';
-    let isRateLimitError = false;
-    let isExhaustionError = false;
+    let apiKeyFailureType = null;
     let settled = false;
     let runtimeTimer = null;
     let noOutputTimer = null;
@@ -731,19 +1146,14 @@ function runCodexCommand(prompt, options) {
       const text = data.toString();
       errorOutput += text;
       
-      if (text.includes('rate limit') || text.includes('429') || 
-          text.includes('exceeded') || text.includes('quota') ||
-          text.includes('insufficient_quota') || text.includes('billing')) {
-        isRateLimitError = true;
-      }
-      if (text.includes('exhausted') || text.includes('depleted') ||
-          text.includes('out of credits') || text.includes('limit reached')) {
-        isExhaustionError = true;
+      const detectedFailure = classifyApiKeyFailureText(text);
+      if (detectedFailure) {
+        apiKeyFailureType = detectedFailure;
       }
       if (activeRun && activeRun.id === runId) {
         updateThinkingState(activeRun, { type: 'stderr', content: text }, text);
       }
-      logCodexEvent('stderr', text.trim().slice(0, 500), { runId });
+      logCodexEvent('stderr', redactSecrets(text).trim().slice(0, 500), { runId });
     });
 
     codex.on('close', (code) => {
@@ -778,7 +1188,8 @@ function runCodexCommand(prompt, options) {
           error.timeoutType = timeoutType || null;
           error.issueNumber = options.metadata?.issueNumber || null;
         }
-        lastRun = buildLastRun(runId, options, model, duration, stoppedStatus, error.message, output, errorOutput);
+        const stoppedErrorOutput = redactSecrets(errorOutput);
+        lastRun = buildLastRun(runId, options, model, duration, stoppedStatus, error.message, output, stoppedErrorOutput);
         persistCodexRun(options, model, duration, stoppedStatus, error.message, output, startedAt);
         logCodexEvent(isTimeout ? 'timeout' : 'stop', `Codex ${isTimeout ? 'timed out' : 'stopped'}: ${options.label}`, {
           runId,
@@ -792,19 +1203,32 @@ function runCodexCommand(prompt, options) {
         return;
       }
       
-      if (code !== 0 && (isRateLimitError || isExhaustionError)) {
-        const error = new Error(`API_KEY_EXHAUSTED: Key ending in ...${getKeySuffix(apiKey)} hit limit. ${errorOutput}`);
-        lastRun = buildLastRun(runId, options, model, duration, 'api_key_exhausted', error.message, output, errorOutput);
-        persistCodexRun(options, model, duration, 'api_key_exhausted', error.message, output, startedAt);
-        logCodexEvent('error', `Codex stopped: ${error.message.slice(0, 500)}`, { runId });
+      const fullErrorOutput = redactSecrets(errorOutput);
+      const closeFailureType = apiKeyFailureType || classifyApiKeyFailureText(errorOutput);
+      if (code !== 0 && closeFailureType) {
+        const exhausted = closeFailureType === 'exhausted';
+        const errorCode = exhausted ? 'API_KEY_EXHAUSTED' : 'API_KEY_FAILED';
+        const status = exhausted ? 'api_key_exhausted' : 'api_key_failed';
+        const reason = exhausted ? 'hit a quota or rate limit' : 'was rejected by Codex';
+        const error = new Error(`${errorCode}: Key ${redactKey(apiKey)} ${reason}. ${fullErrorOutput}`);
+        error.code = errorCode;
+        error.retryableKeyFailure = true;
+        error.keySuffix = getKeySuffix(apiKey);
+        error.keyPrefix = getKeyPrefix(apiKey);
+        error.keyRedacted = redactKey(apiKey);
+        error.failureType = closeFailureType;
+        error.errorOutput = fullErrorOutput;
+        lastRun = buildLastRun(runId, options, model, duration, status, error.message, output, fullErrorOutput);
+        persistCodexRun(options, model, duration, status, error.message, output, startedAt);
+        logCodexEvent('error', `Codex stopped: ${redactSecrets(error.message).slice(0, 500)}`, { runId });
         settled = true;
         reject(error);
         return;
       }
 
       if (code !== 0) {
-        const error = new Error(`CODEX_FAILED: Exit code ${code}. ${errorOutput}`);
-        lastRun = buildLastRun(runId, options, model, duration, 'failed', error.message, output, errorOutput);
+        const error = new Error(`CODEX_FAILED: Exit code ${code}. ${fullErrorOutput}`);
+        lastRun = buildLastRun(runId, options, model, duration, 'failed', error.message, output, fullErrorOutput);
         persistCodexRun(options, model, duration, 'failed', error.message, output, startedAt);
         logCodexEvent('error', `Codex failed with exit code ${code}`, { runId });
         settled = true;
@@ -817,9 +1241,9 @@ function runCodexCommand(prompt, options) {
         duration,
         exitCode: code,
         rawOutput: output.map(e => JSON.stringify(e)).join('\n'),
-        errorOutput: errorOutput || null
+        errorOutput: redactSecrets(errorOutput) || null
       };
-      lastRun = buildLastRun(runId, options, model, duration, 'completed', null, output, errorOutput);
+      lastRun = buildLastRun(runId, options, model, duration, 'completed', null, output, redactSecrets(errorOutput));
       persistCodexRun(options, model, duration, 'completed', null, output, startedAt);
       logCodexEvent('complete', `Codex completed: ${options.label} in ${duration}s`, { runId });
       settled = true;
@@ -835,7 +1259,7 @@ function runCodexCommand(prompt, options) {
         ? new Error('CODEX_NOT_FOUND: codex CLI not installed')
         : new Error(`CODEX_SPAWN_ERROR: ${err.message}`);
       const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-      lastRun = buildLastRun(runId, options, model, duration, 'spawn_error', error.message, output, errorOutput);
+      lastRun = buildLastRun(runId, options, model, duration, 'spawn_error', error.message, output, redactSecrets(errorOutput));
       persistCodexRun(options, model, duration, 'spawn_error', error.message, output, startedAt);
       logCodexEvent('error', error.message, { runId });
       settled = true;
@@ -1054,10 +1478,10 @@ function buildLastRun(runId, options, model, duration, status, error, output = [
     model,
     duration,
     status,
-    error,
+    error: redactSecrets(error),
     metadata: options.metadata || {},
     outputPreview: buildOutputPreview(output),
-    errorOutput: errorOutput ? errorOutput.slice(-1200) : null,
+    errorOutput: errorOutput ? redactSecrets(errorOutput).slice(-1200) : null,
     completedAt: new Date().toISOString()
   };
 }
@@ -1077,7 +1501,7 @@ function persistCodexRun(options, model, duration, status, error, output, starte
       completedAt: new Date().toISOString(),
       files: parsed.filesChanged,
       totalTokens: parsed.totalTokens,
-      error
+      error: redactSecrets(error)
     });
   } catch (persistError) {
     logCodexEvent('error', `Failed to persist Codex run stats: ${persistError.message}`);
@@ -1463,6 +1887,15 @@ module.exports = {
   generateSummaryMessage,
   rotateApiKey,
   setPrimaryApiKey,
+  updateApiKeyEverywhere,
+  getApiKeySummary,
+  addFallbackApiKey,
+  removeFallbackApiKey,
+  testCodexKey,
+  validateApiKey,
+  isApiKeyFailureText,
+  isApiKeyFailureError,
+  redactKey,
   getCurrentApiKey,
   getKeySuffix,
   getApiKeys,

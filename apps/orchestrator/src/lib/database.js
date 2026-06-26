@@ -59,6 +59,24 @@ function initDatabase() {
   `);
 
   db.exec(`
+    CREATE TABLE IF NOT EXISTS api_key_changes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      changed_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      changed_by_user_id TEXT,
+      changed_by_username TEXT,
+      changed_by_display TEXT,
+      action TEXT,
+      target TEXT,
+      old_key_prefix TEXT,
+      old_key_suffix TEXT,
+      new_key_prefix TEXT,
+      new_key_suffix TEXT,
+      fallback_count INTEGER DEFAULT 0,
+      note TEXT
+    )
+  `);
+
+  db.exec(`
     CREATE TABLE IF NOT EXISTS codex_runs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       label TEXT,
@@ -194,6 +212,16 @@ function recordIssueError(issueNumber, error) {
   }
 }
 
+function recordIssueAwaitingKey(issueNumber, error) {
+  db.prepare(`
+    UPDATE issues
+    SET status = 'pending', delivery_status = 'retrying', error_log = ?
+    WHERE issue_number = ?
+  `).run(error, issueNumber);
+  setCurrentIssue(issueNumber);
+  setState('pipeline_status', 'awaiting_key');
+}
+
 function recordIssueStopped(issueNumber, reason) {
   if (!issueNumber) return;
   db.prepare(`
@@ -299,7 +327,7 @@ function inspectActiveIssueState() {
   const pendingDeliveryRetry = current &&
     current.delivery_status === 'retrying' &&
     current.status === 'pending' &&
-    pipelineStatus === 'running';
+    (pipelineStatus === 'running' || pipelineStatus === 'awaiting_key');
 
   if (!current) {
     issues.push(`current_issue_number=${currentIssueNumber} has no matching issue row`);
@@ -311,7 +339,7 @@ function inspectActiveIssueState() {
     issues.push(`current issue #${current.issue_number} is in_progress while codex_status=${codexStatus}`);
   }
 
-  if (current && current.status !== 'in_progress' && !pendingDeliveryReview && !pendingDeliveryRetry && ['running', 'paused', 'error'].includes(pipelineStatus)) {
+  if (current && current.status !== 'in_progress' && !pendingDeliveryReview && !pendingDeliveryRetry && ['running', 'paused', 'error', 'awaiting_key'].includes(pipelineStatus)) {
     issues.push(`pipeline_status=${pipelineStatus} while current issue #${current.issue_number} is ${current.status}`);
   }
 
@@ -362,6 +390,29 @@ function getIssueHistory() {
 function recordKeyRotation(oldSuffix, newSuffix, reason) {
   db.prepare('INSERT INTO api_key_rotations (old_key_suffix, new_key_suffix, reason) VALUES (?, ?, ?)')
     .run(oldSuffix, newSuffix, reason);
+}
+
+function recordApiKeyChange(change = {}) {
+  const operator = normalizeOperator(change.operator);
+  db.prepare(`
+    INSERT INTO api_key_changes (
+      changed_by_user_id, changed_by_username, changed_by_display,
+      action, target, old_key_prefix, old_key_suffix,
+      new_key_prefix, new_key_suffix, fallback_count, note
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    operator?.userId ? String(operator.userId) : null,
+    operator?.username || null,
+    operator?.displayName || null,
+    change.action || null,
+    change.target || null,
+    change.oldKeyPrefix || null,
+    change.oldKeySuffix || null,
+    change.newKeyPrefix || null,
+    change.newKeySuffix || null,
+    Number(change.fallbackCount || 0) || 0,
+    change.note || null
+  );
 }
 
 function ensureColumn(table, column, definition) {
@@ -762,6 +813,7 @@ module.exports = {
   recordIssueStart,
   recordIssueComplete,
   recordIssueError,
+  recordIssueAwaitingKey,
   recordIssueStopped,
   setIssueDeliveryStatus,
   getIssueRecord,
@@ -772,6 +824,7 @@ module.exports = {
   incrementRetry,
   getIssueHistory,
   recordKeyRotation,
+  recordApiKeyChange,
   normalizeOperator,
   setPipelineOperator,
   getPipelineOperator,

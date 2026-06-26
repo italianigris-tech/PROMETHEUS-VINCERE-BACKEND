@@ -37,7 +37,10 @@ const {
   runCodexPrompt,
   stopCodex,
   parseCodexOutput,
-  setPrimaryApiKey,
+  updateApiKeyEverywhere,
+  getApiKeySummary,
+  addFallbackApiKey,
+  removeFallbackApiKey,
   getCodexRuntimeStatus,
   getCodexEventLog,
   getCurrentApiKey,
@@ -251,6 +254,7 @@ function controlPanelKeyboard() {
       ],
       [
         { text: '🔑 API Key', callback_data: 'panel:key' },
+        { text: '🔄 Rotate Keys', callback_data: 'panel:rotate_keys' },
         { text: '🧠 Model', callback_data: 'panel:model' },
         { text: '🗑️ Clear', callback_data: 'panel:clear' },
         { text: '❓', callback_data: 'help:main:settings_shortcuts' }
@@ -409,6 +413,37 @@ async function handlePanelAction(query) {
     return;
   }
 
+  if (data === 'panel:rotate_keys') {
+    await bot.answerCallbackQuery(query.id, { text: 'Key rotation' });
+    await sendRotateKeysPanel(chatId);
+    return;
+  }
+
+  if (data === 'panel:key:add_fallback') {
+    await bot.answerCallbackQuery(query.id, { text: 'Waiting for fallback key' });
+    await askForInput(
+      chatId,
+      'fallback_key',
+      '🔄 *Add Fallback Key*\nSend the fallback Codex/OpenAI API key in your next message.\n\nUse the Cancel button below to abort.'
+    );
+    return;
+  }
+
+  if (data.startsWith('panel:key:remove:')) {
+    const fallbackIndex = Number(data.replace('panel:key:remove:', ''));
+    if (!Number.isInteger(fallbackIndex) || fallbackIndex < 1) {
+      await bot.answerCallbackQuery(query.id, { text: 'Invalid fallback key' });
+      return;
+    }
+    const result = removeFallbackApiKey(fallbackIndex, {
+      operator: operatorFromQuery(query),
+      reason: 'Telegram fallback remove'
+    });
+    await bot.answerCallbackQuery(query.id, { text: result.removed ? 'Fallback removed' : 'Fallback not found' });
+    await sendRotateKeysPanel(chatId, result.removed ? 'Fallback key removed.' : 'Fallback key was not found.');
+    return;
+  }
+
   if (data === 'panel:cancel') {
     await bot.answerCallbackQuery(query.id, { text: 'Cancelling' });
     await cancelCurrentOperation(chatId);
@@ -525,6 +560,7 @@ const HELP_ROWS = {
   ],
   'main:settings_shortcuts': [
     ['🔑 API Key', 'Prompts for a replacement Codex/OpenAI API key and deletes the secret message.'],
+    ['🔄 Rotate Keys', 'Shows the active redacted key and fallback-key controls.'],
     ['🧠 Model', 'Opens the model picker for future Codex runs.'],
     ['🗑️ Clear', 'Deletes recent tracked bot messages from this chat.']
   ],
@@ -601,6 +637,11 @@ const HELP_ROWS = {
     ['🧠 Model', 'Opens the model picker for future Codex runs.'],
     ['🔑 API Key', 'Prompts for a replacement Codex/OpenAI API key.']
   ],
+  'settings:rotate': [
+    ['🔄 Rotate Keys', 'Shows the active redacted key and configured fallbacks.'],
+    ['➕ Add Fallback', 'Adds a fallback key and writes CODEX_FALLBACK_KEYS to .env.'],
+    ['Remove #', 'Removes that fallback key from CODEX_FALLBACK_KEYS.']
+  ],
   'settings:nav': [
     ['⬅️ Back', 'Returns to the previous settings panel or main control panel.']
   ],
@@ -647,6 +688,7 @@ const HELP_ROWS = {
   ],
   'help:settings': [
     ['🔑 API Key', 'Prompts for a replacement Codex/OpenAI API key.'],
+    ['🔄 Rotate Keys', 'Opens fallback key management.'],
     ['🧠 Model', 'Opens the model picker.']
   ],
   'help:navigation': [
@@ -682,6 +724,7 @@ const HELP_INDEX = [
     ['💬 Prompt Codex', 'Send a manual Codex prompt.'],
     ['🩺 Doctor', 'Open health, watchdog, and Doctor controls.'],
     ['🔑 API Key', 'Replace the active Codex/OpenAI key.'],
+    ['🔄 Rotate Keys', 'Manage fallback Codex/OpenAI keys.'],
     ['🧠 Model', 'Choose the model for future runs.'],
     ['🗑️ Clear', 'Delete recent tracked bot messages.'],
     ['📋 Queue', 'Show open issues and queue controls.'],
@@ -734,6 +777,9 @@ const HELP_INDEX = [
     ['gpt-5.5-high', 'Select high reasoning model.'],
     ['gpt-5.5-xhigh', 'Select highest reasoning model.'],
     ['gpt-5.4', 'Select prior model option.'],
+    ['🔄 Rotate Keys', 'Show active and fallback keys without exposing full secrets.'],
+    ['➕ Add Fallback', 'Add a fallback Codex/OpenAI key.'],
+    ['Remove #', 'Remove a fallback key.'],
     ['⬅️ Back', 'Return to the previous panel.']
   ]],
   ['Legacy Completion', [
@@ -1368,7 +1414,12 @@ async function handlePendingInputMessage(msg) {
   }
 
   if (pending.type === 'api_key') {
-    await updateApiKeyFromMessage(msg.chat.id, msg.message_id, msg.text);
+    await updateApiKeyFromMessage(msg.chat.id, msg.message_id, msg.text, operatorFromMessage(msg));
+    return;
+  }
+
+  if (pending.type === 'fallback_key') {
+    await addFallbackKeyFromMessage(msg.chat.id, msg.message_id, msg.text, operatorFromMessage(msg));
     return;
   }
 
@@ -1378,19 +1429,58 @@ async function handlePendingInputMessage(msg) {
   }
 }
 
-async function updateApiKeyFromMessage(chatId, messageId, rawKey) {
+async function updateApiKeyFromMessage(chatId, messageId, rawKey, operator = null) {
   try {
-    const result = setPrimaryApiKey(rawKey, 'Telegram operator update');
     await deleteSensitiveMessage(chatId, messageId);
+    const result = await updateApiKeyEverywhere(rawKey, {
+      operator,
+      reason: 'Telegram operator update'
+    });
+    const verificationLine = result.verification?.ok
+      ? '✅ API key updated and verified across all configs.'
+      : '⚠️ Key saved but Codex rejected it. Check key validity.';
     await sendTrackedMessage(chatId,
-      `🔑 *API Key Updated*\n` +
-      `Active Codex key is now \`...${escapeMarkdown(result.newSuffix)}\`.\n` +
-      `Total configured keys: ${result.totalKeys}`,
+      `${verificationLine}\n\n` +
+      `Active key: \`${escapeMarkdown(result.key)}\`\n` +
+      `Fallback keys: ${result.fallbackCount}\n` +
+      `Updated targets: ${formatPropagationSummary(result.propagation)}`,
       { parse_mode: 'Markdown', reply_markup: controlPanelKeyboard() }
     );
   } catch (error) {
+    await deleteSensitiveMessage(chatId, messageId);
     await sendTrackedMessage(chatId, `Invalid API key: ${escapeMarkdown(error.message)}`, { parse_mode: 'Markdown' });
   }
+}
+
+async function addFallbackKeyFromMessage(chatId, messageId, rawKey, operator = null) {
+  try {
+    await deleteSensitiveMessage(chatId, messageId);
+    const result = await addFallbackApiKey(rawKey, {
+      operator,
+      reason: 'Telegram fallback add'
+    });
+    const verificationLine = result.verification?.ok
+      ? '✅ Fallback key saved and verified.'
+      : '⚠️ Fallback key saved but Codex rejected it. Check key validity before relying on it.';
+    await sendTrackedMessage(chatId,
+      `${verificationLine}\n\n` +
+      `Fallback key: \`${escapeMarkdown(result.key)}\`\n` +
+      `Fallback keys: ${result.fallbackCount}\n` +
+      `Updated targets: ${formatPropagationSummary(result.propagation)}`,
+      { parse_mode: 'Markdown', reply_markup: rotateKeysKeyboard(result.summary) }
+    );
+  } catch (error) {
+    await deleteSensitiveMessage(chatId, messageId);
+    await sendTrackedMessage(chatId, `Invalid fallback key: ${escapeMarkdown(error.message)}`, { parse_mode: 'Markdown' });
+  }
+}
+
+function formatPropagationSummary(targets = []) {
+  const changed = targets.filter(target => target.changed).length;
+  const skipped = targets.filter(target => target.skipped).length;
+  const total = targets.length;
+  if (total === 0) return 'none';
+  return `${changed}/${total} changed${skipped ? `, ${skipped} skipped` : ''}`;
 }
 
 async function deleteSensitiveMessage(chatId, messageId) {
@@ -2260,11 +2350,13 @@ async function sendModelPicker(chatId) {
 }
 
 async function sendSettingsPanel(chatId) {
+  const keySummary = getApiKeySummary();
   await sendTrackedMessage(chatId,
     `⚙️ *SETTINGS*\n` +
     `━━━━━━━━━━━━━━━━━━━━━━\n` +
     `Model: \`${escapeMarkdown(getState('current_model') || 'gpt-5.5')}\`\n` +
-    `API key: \`...${escapeMarkdown(getKeySuffix(getCurrentApiKey()))}\`\n\n` +
+    `API key: \`${escapeMarkdown(keySummary.currentRedacted)}\`\n` +
+    `Fallback keys: ${keySummary.fallbackCount}\n\n` +
     `Change runtime settings or clean up recent bot messages.`,
     {
       parse_mode: 'Markdown',
@@ -2282,12 +2374,65 @@ function settingsPanelKeyboard() {
         { text: '❓', callback_data: 'help:settings:actions' }
       ],
       [
+        { text: '🔄 Rotate Keys', callback_data: 'panel:rotate_keys' },
+        { text: '❓', callback_data: 'help:settings:rotate' }
+      ],
+      [
         { text: '🗑️ Clear', callback_data: 'panel:clear' },
         { text: '⬅️ Back', callback_data: 'panel:back' },
         { text: '❓', callback_data: 'help:settings:clear_nav' }
       ]
     ]
   };
+}
+
+async function sendRotateKeysPanel(chatId, notice = null) {
+  const summary = getApiKeySummary();
+  await sendTrackedMessage(chatId, buildRotateKeysText(summary, notice), {
+    parse_mode: 'Markdown',
+    reply_markup: rotateKeysKeyboard(summary)
+  });
+}
+
+function buildRotateKeysText(summary = getApiKeySummary(), notice = null) {
+  const fallbackLines = summary.fallbackRedacted.length
+    ? summary.fallbackRedacted.map((key, index) => `${index + 1}. \`${escapeMarkdown(key)}\``).join('\n')
+    : '_No fallback keys configured._';
+
+  return (
+    `🔄 *Rotate Keys*\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `${notice ? `${escapeMarkdown(notice)}\n\n` : ''}` +
+    `Current key: \`${escapeMarkdown(summary.currentRedacted)}\`\n` +
+    `Fallback keys: ${summary.fallbackCount}\n\n` +
+    `*Fallback list:*\n${fallbackLines}\n\n` +
+    `Codex configs: ${summary.codexConfigPaths.length}\n` +
+    `Orchestrator .env: \`${escapeMarkdown(summary.orchestratorEnvPath)}\`\n` +
+    `Backend .env: \`${escapeMarkdown(summary.backendEnvPath)}\``
+  ).slice(0, 3900);
+}
+
+function rotateKeysKeyboard(summary = getApiKeySummary()) {
+  const rows = [
+    [
+      { text: '🔑 Replace Primary', callback_data: 'panel:key' },
+      { text: '➕ Add Fallback', callback_data: 'panel:key:add_fallback' },
+      { text: '❓', callback_data: 'help:settings:rotate' }
+    ]
+  ];
+
+  summary.fallbackRedacted.slice(0, 8).forEach((key, index) => {
+    rows.push([
+      { text: `Remove ${index + 1}: ${key}`, callback_data: `panel:key:remove:${index + 1}` }
+    ]);
+  });
+
+  rows.push([
+    { text: '🔄 Refresh', callback_data: 'panel:rotate_keys' },
+    { text: '⬅️ Back', callback_data: 'panel:settings' }
+  ]);
+
+  return { inline_keyboard: rows };
 }
 
 async function sendHelpPanel(chatId) {
@@ -3437,7 +3582,7 @@ function formatLogTime(date) {
 function redactSecrets(text) {
   return String(text || '')
     .replace(/bot\d+:[A-Za-z0-9_-]+/g, 'bot<redacted>')
-    .replace(/\bsk-[A-Za-z0-9_-]{10,}\b/g, 'sk-...redacted');
+    .replace(/\b(sk|gsk|sess|codex)-[A-Za-z0-9_-]{10,}\b/g, '$1-...redacted');
 }
 
 function readLogTail(filePath, maxChars) {
@@ -3496,17 +3641,20 @@ async function sendCompletionPrompt(chatId, message) {
   });
 }
 
-async function sendKeyExhaustedAlert(chatId, issueNumber, title, progress) {
-  const currentKey = getState('api_key_index') || '0';
-  const totalKeys = getKeyCount();
+async function sendKeyExhaustedAlert(chatId, issueNumber, title, details = {}) {
+  const data = typeof details === 'string' ? { progress: details } : (details || {});
+  const summary = getApiKeySummary();
+  const key = data.keyRedacted || summary.currentRedacted || `...${getKeySuffix(getCurrentApiKey())}`;
+  const failure = data.failureType === 'invalid' ? 'API key rejected' : 'API key exhausted';
   
   const message = 
-    `⚠️ *API KEY EXHAUSTED*\n` +
+    `⛔ *Codex failed: ${escapeMarkdown(failure)} (${escapeMarkdown(key)}).* \n` +
     `━━━━━━━━━━━━━━━━━━━━━━\n` +
-    `🔑 Current key index: ${parseInt(currentKey) + 1}/${totalKeys}\n` +
-    `🔄 *Issue #${issueNumber}:* ${escapeMarkdown(title || 'Unknown')}\n` +
-    `📊 Progress: ${progress || 'Unknown'}\n\n` +
-    `Use Settings → API Key to replace the active key, or use the completion controls to skip this issue.`;
+    `Issue #${issueNumber}: ${escapeMarkdown(title || 'Unknown')}\n` +
+    `Progress: ${escapeMarkdown(data.progress || 'interrupted')}\n` +
+    `Fallback keys: ${summary.fallbackCount}\n\n` +
+    `No usable fallback key is available, or the retry also failed.\n` +
+    `Use 🔑 API Key to update the active key.`;
 
   await sendTrackedMessage(chatId, message, { parse_mode: 'Markdown', reply_markup: settingsPanelKeyboard() });
 }

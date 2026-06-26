@@ -17,6 +17,7 @@ const {
   recordIssueStart,
   recordIssueComplete,
   recordIssueError,
+  recordIssueAwaitingKey,
   setIssueDeliveryStatus,
   prunePriorityQueue,
   getQueueOrder,
@@ -30,9 +31,6 @@ const { getOpenIssues } = require('./lib/github');
 const {
   runCodex,
   generateSummaryMessage,
-  rotateApiKey,
-  getCurrentApiKey,
-  getKeySuffix,
   getCodexRuntimeStatus,
   reconcileCodexPidOnBoot,
   getGitStatusShort,
@@ -286,8 +284,8 @@ async function pollLoop() {
     } catch (error) {
       stopDiffStream();
       stopThinkingStream(`Codex run stopped or failed: ${error.message.slice(0, 160)}`);
-      if (error.message.includes('API_KEY_EXHAUSTED')) {
-        await handleApiKeyExhaustion(issue.number, issue.title, error.message);
+      if (isApiKeyFailure(error)) {
+        await handleApiKeyExhaustion(issue.number, issue.title, error);
         isProcessing = false;
         return;
       }
@@ -378,6 +376,17 @@ async function pollLoop() {
 
 function isCodexTimeoutError(error) {
   return error?.code === 'CODEX_TIMEOUT' || String(error?.message || '').includes('CODEX_TIMEOUT');
+}
+
+function isApiKeyFailure(error) {
+  const code = error?.code;
+  const message = String(error?.message || '');
+  return (
+    code === 'API_KEY_EXHAUSTED' ||
+    code === 'API_KEY_FAILED' ||
+    message.includes('API_KEY_EXHAUSTED') ||
+    message.includes('API_KEY_FAILED')
+  );
 }
 
 async function handleCodexTimeout(issueNumber, error) {
@@ -608,35 +617,25 @@ function getRetryIssue() {
   };
 }
 
-async function handleApiKeyExhaustion(issueNumber, title, errorMessage) {
-  console.error('🔑 API Key exhausted:', errorMessage);
-  
-  const rotation = rotateApiKey('Rate limit / exhaustion detected during issue execution');
-  
-  if (rotation.exhausted) {
-    if (hasAdmins()) {
-      await sendKeyExhaustedAlertsForAdmins(issueNumber, title, '67% (interrupted)');
-    }
-    setState('pipeline_status', 'awaiting_key');
-  } else {
-    if (hasAdmins()) {
-      await notifyAdmins(
-        `🔄 *API Key Auto-Rotated*\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `Old key: ...${rotation.oldSuffix}\n` +
-        `New key: ...${rotation.newSuffix}\n\n` +
-        `Retrying Issue #${issueNumber} with new key...`
-      );
-    }
-    isProcessing = false;
-    return;
+async function handleApiKeyExhaustion(issueNumber, title, error) {
+  console.error('🔑 API key failure:', error?.message || error);
+
+  recordIssueAwaitingKey(issueNumber, error?.message || 'API key failure');
+
+  if (hasAdmins()) {
+    await sendKeyExhaustedAlertsForAdmins(issueNumber, title, 'interrupted', error);
   }
 }
 
-async function sendKeyExhaustedAlertsForAdmins(issueNumber, title, progress) {
+async function sendKeyExhaustedAlertsForAdmins(issueNumber, title, progress, error = null) {
   for (const chatId of ADMIN_CHAT_IDS) {
     try {
-      await sendKeyExhaustedAlert(chatId, issueNumber, title, progress);
+      await sendKeyExhaustedAlert(chatId, issueNumber, title, {
+        progress,
+        keyRedacted: error?.keyRedacted,
+        failureType: error?.failureType,
+        message: error?.message
+      });
     } catch (error) {
       console.warn(`[api-key] Failed to send exhausted alert to chat ${chatId}:`, formatError(error));
     }

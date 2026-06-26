@@ -59,6 +59,88 @@ function ensurePrivateDir(dirPath, options = {}) {
   });
 }
 
+function writeFilePrivate(filePath, content, options = {}) {
+  applySecureUmask();
+  ensurePrivateDir(path.dirname(filePath), {
+    label: options.dirLabel || path.dirname(filePath),
+    warn: options.warn || console.warn
+  });
+
+  const tempPath = path.join(
+    path.dirname(filePath),
+    `.${path.basename(filePath)}.${process.pid}.${Date.now()}.tmp`
+  );
+
+  fs.writeFileSync(tempPath, content, {
+    encoding: options.encoding || 'utf8',
+    mode: options.mode || SECURE_FILE_MODE
+  });
+  fs.renameSync(tempPath, filePath);
+  securePath(filePath, {
+    mode: options.mode || SECURE_FILE_MODE,
+    label: options.label || filePath,
+    warn: options.warn || console.warn
+  });
+}
+
+function updateEnvFile(filePath, updates, options = {}) {
+  const exists = fs.existsSync(filePath);
+  if (!exists && options.createIfMissing === false) {
+    return { path: filePath, exists: false, changed: false, updatedKeys: [] };
+  }
+
+  const original = exists ? fs.readFileSync(filePath, 'utf8') : '';
+  const lines = original ? original.split(/\r?\n/) : [];
+  const updatedKeys = [];
+  const pending = new Map(Object.entries(updates || {}).filter(([, value]) => value !== undefined));
+  const nextLines = lines.map((line) => {
+    const match = line.match(/^(\s*export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=/);
+    if (!match || !pending.has(match[2])) return line;
+    const key = match[2];
+    updatedKeys.push(key);
+    const prefix = match[1] || '';
+    const value = pending.get(key);
+    pending.delete(key);
+    return `${prefix}${key}=${formatEnvValue(value)}`;
+  });
+
+  if (nextLines.length > 0 && nextLines[nextLines.length - 1] === '') {
+    nextLines.pop();
+  }
+
+  for (const [key, value] of pending.entries()) {
+    nextLines.push(`${key}=${formatEnvValue(value)}`);
+    updatedKeys.push(key);
+  }
+
+  const next = `${nextLines.join('\n')}${nextLines.length ? '\n' : ''}`;
+  if (next !== original) {
+    writeFilePrivate(filePath, next, {
+      label: options.label || filePath,
+      warn: options.warn || console.warn
+    });
+  } else if (exists) {
+    securePath(filePath, {
+      mode: SECURE_FILE_MODE,
+      label: options.label || filePath,
+      warn: options.warn || console.warn
+    });
+  }
+
+  return {
+    path: filePath,
+    exists,
+    changed: next !== original,
+    updatedKeys
+  };
+}
+
+function formatEnvValue(value) {
+  const text = String(value ?? '');
+  if (/^[A-Za-z0-9_./:@,+\-]*$/.test(text)) return text;
+  return JSON.stringify(text);
+}
+
 function hardenRuntimePermissions(rootDir = process.cwd(), options = {}) {
   applySecureUmask();
 
@@ -126,6 +208,8 @@ module.exports = {
   applySecureUmask,
   securePath,
   ensurePrivateDir,
+  writeFilePrivate,
+  updateEnvFile,
   hardenRuntimePermissions,
   modeString
 };
