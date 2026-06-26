@@ -390,7 +390,7 @@ function settingsPanelKeyboard() {
       ],
       [
         { text: '⬅️ Back to Control Panel', callback_data: 'panel:back' },
-        { text: '❓ Settings Help', callback_data: 'help:settings:central' }
+        { text: '❓', callback_data: 'help:settings:central' }
       ]
     ]
   };
@@ -409,7 +409,7 @@ function settingsModelPickerKeyboard() {
       ],
       [
         { text: '⬅️ Back to Settings', callback_data: 'panel:settings' },
-        { text: '❓ Model Help', callback_data: 'help:model:choices' }
+        { text: '❓', callback_data: 'help:model:choices' }
       ]
     ]
   };
@@ -420,71 +420,55 @@ function controlPanelKeyboard() {
     inline_keyboard: [
       [
         { text: '▶️ Start Pipeline', callback_data: 'panel:pipeline:start' },
-        { text: '⏸️ Pause Pipeline', callback_data: 'panel:pipeline:pause' }
-      ],
-      [
+        { text: '⏸️ Pause Pipeline', callback_data: 'panel:pipeline:pause' },
         { text: '⏯️ Resume Pipeline', callback_data: 'panel:pipeline:resume' },
-        { text: '❓ Pipeline Controls', callback_data: 'help:main:pipeline' }
+        { text: '❓', callback_data: 'help:main:pipeline' }
       ],
       [
         { text: '⛔ Stop Current Codex', callback_data: 'panel:codex_stop' },
-        { text: '⛔ Stop All / Emergency', callback_data: 'panel:stop_all' }
-      ],
-      [
-        { text: '❓ Emergency Controls', callback_data: 'help:main:emergency' }
+        { text: '⛔ Stop All / Emergency', callback_data: 'panel:stop_all' },
+        { text: '❓', callback_data: 'help:main:emergency' }
       ],
       [
         { text: '📊 System Status', callback_data: 'panel:status' },
-        { text: '🤖 Codex Process State', callback_data: 'panel:codex_status' }
-      ],
-      [
-        { text: '❓ Status & State', callback_data: 'help:main:status_codex' }
+        { text: '🤖 Codex Process State', callback_data: 'panel:codex_status' },
+        { text: '❓', callback_data: 'help:main:status_codex' }
       ],
       [
         { text: '📝 View Logs', callback_data: 'panel:logs' },
-        { text: '🎥 Watch Codex Live', callback_data: 'panel:codex_logs:simple' }
-      ],
-      [
-        { text: '❓ Logs & Live', callback_data: 'help:main:logs_live' }
+        { text: '🎥 Watch Codex Live', callback_data: 'panel:codex_logs:simple' },
+        { text: '❓', callback_data: 'help:main:logs_live' }
       ],
       [
         { text: '💬 Send Prompt to Codex', callback_data: 'panel:prompt' },
-        { text: '🎁 Surprise Me (Audit)', callback_data: 'panel:surprise' }
-      ],
-      [
-        { text: '❓ Prompt & Surprise', callback_data: 'help:main:prompt_surprise' }
+        { text: '🎁 Surprise Me (Audit)', callback_data: 'panel:surprise' },
+        { text: '❓', callback_data: 'help:main:prompt_surprise' }
       ],
       [
         { text: '🩺 Self-Heal / Doctor', callback_data: 'panel:doctor' },
-        { text: '📊 Analytics Dashboard', callback_data: 'panel:analytics' }
-      ],
-      [
-        { text: '❓ Doctor & Analytics', callback_data: 'help:main:doctor_analytics' }
+        { text: '📊 Analytics Dashboard', callback_data: 'panel:analytics' },
+        { text: '❓', callback_data: 'help:main:doctor_analytics' }
       ],
       [
         { text: '🔑 API Key Manager', callback_data: 'panel:key' },
-        { text: '🔄 Rotate API Key', callback_data: 'panel:rotate_keys' }
+        { text: '🔄 Rotate API Key', callback_data: 'panel:rotate_keys' },
+        { text: '❓', callback_data: 'help:main:settings_shortcuts' }
       ],
       [
         { text: '🧠 Model Selector', callback_data: 'panel:model' },
-        { text: '🗑️ Clear Chat', callback_data: 'panel:clear' }
-      ],
-      [
-        { text: '❓ Keys & Settings', callback_data: 'help:main:settings_shortcuts' }
+        { text: '🗑️ Clear Chat', callback_data: 'panel:clear' },
+        { text: '❓', callback_data: 'help:main:settings_shortcuts' }
       ],
       [
         { text: '📋 View Task Queue', callback_data: 'panel:queue' },
-        { text: '📊 Pipeline Stats', callback_data: 'panel:stats' }
+        { text: '📊 Pipeline Stats', callback_data: 'panel:stats' },
+        { text: '❓', callback_data: 'help:main:queue_stats_help' }
       ],
       [
         { text: '📖 Full Help Guide', callback_data: 'panel:help' },
-        { text: '⚙️ Settings', callback_data: 'panel:settings' }
-      ],
-      [
-        { text: '🔄 Refresh Menu', callback_data: 'panel:refresh' }
-      ],
-      [
-        { text: '❓ Queue & Help', callback_data: 'help:main:queue_stats_help' }
+        { text: '⚙️ Settings', callback_data: 'panel:settings' },
+        { text: '🔄 Refresh Menu', callback_data: 'panel:refresh' },
+        { text: '❓', callback_data: 'help:main:queue_stats_help' }
       ]
     ]
   };
@@ -1157,7 +1141,7 @@ function helpDismissKeyboard() {
     inline_keyboard: [
       [
         { text: '✅ Got it', callback_data: 'help:dismiss' },
-        { text: '❓ Close Help', callback_data: 'help:dismiss' }
+        { text: '❓', callback_data: 'help:dismiss' }
       ]
     ]
   };
