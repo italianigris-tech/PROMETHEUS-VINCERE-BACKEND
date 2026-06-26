@@ -613,6 +613,44 @@ function classifyApiKeyFailureText(text) {
   return null;
 }
 
+function preferApiKeyFailureType(current, next) {
+  if (!next) return current;
+  if (current === 'exhausted') return current;
+  return next;
+}
+
+function extractCodexFailureText(event) {
+  if (!event || typeof event !== 'object') return '';
+
+  const parts = [];
+  if (event.type && /(?:error|failed|failure)/i.test(event.type)) {
+    parts.push(event.type);
+  }
+
+  for (const key of ['message', 'error', 'content', 'output', 'text']) {
+    const value = event[key];
+    if (!value) continue;
+    if (typeof value === 'string') {
+      parts.push(value);
+    } else if (typeof value === 'object') {
+      for (const nestedKey of ['message', 'error', 'code', 'status', 'type']) {
+        if (value[nestedKey]) parts.push(String(value[nestedKey]));
+      }
+    }
+  }
+
+  return parts.join(' ').replace(/\s+/g, ' ').trim();
+}
+
+function collectCodexFailureOutput(output = []) {
+  const lines = [];
+  for (const event of output) {
+    const text = extractCodexFailureText(event);
+    if (text) lines.push(text);
+  }
+  return lines.join('\n');
+}
+
 function runCodex(issueNumber, issueTitle, issueBody, model) {
   const prompt = buildPrompt(issueNumber, issueTitle, issueBody);
   return runCodexWithFallback(prompt, {
@@ -1137,6 +1175,8 @@ function runCodexCommand(prompt, options) {
           activeRun.latestEvent = summary;
           updateThinkingState(activeRun, event, line);
         }
+        const detectedFailure = classifyApiKeyFailureText(`${line}\n${extractCodexFailureText(event)}`);
+        apiKeyFailureType = preferApiKeyFailureType(apiKeyFailureType, detectedFailure);
         logCodexEvent('event', summary, { runId, eventType: event.type || 'unknown' });
       }
     });
@@ -1147,9 +1187,7 @@ function runCodexCommand(prompt, options) {
       errorOutput += text;
       
       const detectedFailure = classifyApiKeyFailureText(text);
-      if (detectedFailure) {
-        apiKeyFailureType = detectedFailure;
-      }
+      apiKeyFailureType = preferApiKeyFailureType(apiKeyFailureType, detectedFailure);
       if (activeRun && activeRun.id === runId) {
         updateThinkingState(activeRun, { type: 'stderr', content: text }, text);
       }
@@ -1203,8 +1241,9 @@ function runCodexCommand(prompt, options) {
         return;
       }
       
-      const fullErrorOutput = redactSecrets(errorOutput);
-      const closeFailureType = apiKeyFailureType || classifyApiKeyFailureText(errorOutput);
+      const codexFailureOutput = collectCodexFailureOutput(output);
+      const fullErrorOutput = redactSecrets([errorOutput, codexFailureOutput].filter(Boolean).join('\n'));
+      const closeFailureType = apiKeyFailureType || classifyApiKeyFailureText(fullErrorOutput);
       if (code !== 0 && closeFailureType) {
         const exhausted = closeFailureType === 'exhausted';
         const errorCode = exhausted ? 'API_KEY_EXHAUSTED' : 'API_KEY_FAILED';
