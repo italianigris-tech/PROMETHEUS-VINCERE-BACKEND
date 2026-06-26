@@ -1,6 +1,5 @@
-import path from "node:path";
-
 import type {BackendEnv} from "../config";
+import {basenameAnyPlatform} from "../path-utils";
 import {AssetRetrievalService, type AssetRetrievalResponse} from "../assets/service";
 import {
   materializeLocalFontAsset,
@@ -32,7 +31,7 @@ type FontRetrievalDependency = {
 };
 
 const inferFontFamilyFromPath = (filePath: string): string => {
-  const fileName = path.basename(filePath).replace(/\.(woff|ttf|zip)$/i, "");
+  const fileName = basenameAnyPlatform(filePath).replace(/\.(woff|ttf|zip)$/i, "");
   return fileName || "Unknown Font";
 };
 

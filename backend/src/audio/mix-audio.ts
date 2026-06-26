@@ -36,6 +36,9 @@ const isFfmpegSafeLocalPath = (value: string) => {
   if (!normalized || /^https?:\/\//i.test(normalized)) {
     return false;
   }
+  if (/^\/(api|assets|fonts|music|uploads)\//i.test(normalized)) {
+    return false;
+  }
   if (process.platform === 'win32' && POSIX_ABSOLUTE_PATH.test(normalized) && !normalized.startsWith('//')) {
     return false;
   }

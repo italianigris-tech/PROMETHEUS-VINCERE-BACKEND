@@ -400,11 +400,18 @@ export const compileFilterGraph = (
   const masterGraphPieces: string[] = [...musicBus.lines, ...dialogueBus.lines, ...sfxBus.lines];
   const previewGraphPieces: string[] = [...musicBus.lines, ...dialogueBus.lines, ...sfxBus.lines];
   let dialogueMixLabel = dialogueBus.label;
+  let dialogueFinalLabel = dialogueBus.label;
   let dialogueStemLabel = dialogueBus.label;
-  if (mode === "stems" && dialogueBus.label) {
+  if (dialogueBus.label) {
     dialogueMixLabel = `${dialogueBus.label}_mix`;
-    dialogueStemLabel = `${dialogueBus.label}_stem`;
-    masterGraphPieces.push(`[${dialogueBus.label}]asplit=2[${dialogueMixLabel}][${dialogueStemLabel}]`);
+    if (mode === "stems") {
+      dialogueStemLabel = `${dialogueBus.label}_stem`;
+      masterGraphPieces.push(`[${dialogueBus.label}]asplit=2[${dialogueMixLabel}][${dialogueStemLabel}]`);
+    } else {
+      dialogueFinalLabel = `${dialogueBus.label}_final`;
+      masterGraphPieces.push(`[${dialogueBus.label}]asplit=2[${dialogueMixLabel}][${dialogueFinalLabel}]`);
+      previewGraphPieces.push(`[${dialogueBus.label}]asplit=2[${dialogueMixLabel}][${dialogueFinalLabel}]`);
+    }
   }
 
   const duckedMusic = buildDuckedMusic({
@@ -445,7 +452,7 @@ export const compileFilterGraph = (
       : buildFinalMix({
           plan,
           musicLabel: musicMixLabel,
-          dialogueLabel: dialogueMixLabel,
+          dialogueLabel: dialogueFinalLabel,
           sfxLabel: sfxMixLabel,
           previewMode: false
         });
@@ -463,7 +470,7 @@ export const compileFilterGraph = (
       : buildFinalMix({
           plan,
           musicLabel: musicMixLabel,
-          dialogueLabel: dialogueMixLabel,
+          dialogueLabel: dialogueFinalLabel,
           sfxLabel: sfxMixLabel,
           previewMode: true
         });
