@@ -251,6 +251,11 @@ async function pollLoop() {
         isProcessing = false;
         return;
       }
+      if (isCodexTimeoutError(error)) {
+        await handleCodexTimeout(issue.number, error);
+        isProcessing = false;
+        return;
+      }
       throw error;
     }
 
@@ -287,6 +292,12 @@ async function pollLoop() {
     }
 
   } catch (error) {
+    if (isCodexTimeoutError(error)) {
+      const current = getCurrentIssue();
+      await handleCodexTimeout(current?.issue_number || null, error);
+      return;
+    }
+
     if (String(error?.message || '').includes('CODEX_STOPPED')) {
       console.warn('🛑 Codex run stopped by operator.');
       return;
@@ -308,6 +319,23 @@ async function pollLoop() {
     setState('pipeline_status', 'error');
   } finally {
     isProcessing = false;
+  }
+}
+
+function isCodexTimeoutError(error) {
+  return error?.code === 'CODEX_TIMEOUT' || String(error?.message || '').includes('CODEX_TIMEOUT');
+}
+
+async function handleCodexTimeout(issueNumber, error) {
+  const minutes = error?.timeoutMinutes || 'configured limit';
+  const issueText = issueNumber ? `Issue #${issueNumber}` : 'Codex task';
+  console.warn(`⏱️ ${issueText} timed out after ${minutes} minutes.`);
+  setState('pipeline_status', 'paused');
+  setCurrentIssue(null);
+  if (CHAT_ID && issueNumber) {
+    await sendNotification(CHAT_ID, `⏱️ Codex timed out after ${minutes} minutes. Issue #${issueNumber} aborted.`);
+  } else if (CHAT_ID) {
+    await sendNotification(CHAT_ID, `⏱️ Codex timed out after ${minutes} minutes. Task aborted.`);
   }
 }
 

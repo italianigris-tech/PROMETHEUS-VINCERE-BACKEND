@@ -20,6 +20,13 @@ const {
 const WORKDIR = process.env.CODEX_WORKDIR || process.env.REPO_PATH || process.cwd();
 const CODEX_LOG_LIMIT = 80;
 const STOP_TIMEOUT_MS = 5000;
+const CODEX_MAX_RUNTIME_MINUTES = parsePositiveNumber(process.env.CODEX_MAX_RUNTIME_MINUTES, 30);
+const CODEX_NO_OUTPUT_TIMEOUT_MINUTES = parsePositiveNumber(
+  process.env.CODEX_NO_OUTPUT_TIMEOUT_MINUTES || process.env.CODEX_NO_OUTPUT_MINUTES,
+  10
+);
+const CODEX_MAX_RUNTIME_MS = CODEX_MAX_RUNTIME_MINUTES * 60 * 1000;
+const CODEX_NO_OUTPUT_TIMEOUT_MS = CODEX_NO_OUTPUT_TIMEOUT_MINUTES * 60 * 1000;
 const GIT_TIMEOUT_MS = 120000;
 const GIT_COMMITTER_NAME = process.env.GIT_COMMITTER_NAME || 'Prometheus Orchestrator';
 const GIT_COMMITTER_EMAIL = process.env.GIT_COMMITTER_EMAIL || 'prometheus-orchestrator@localhost';
@@ -29,6 +36,11 @@ let lastRun = null;
 let runCounter = 0;
 let codexEventLog = [];
 let stoppedRunIds = new Map();
+
+function parsePositiveNumber(value, fallback) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
 
 function safeGetState(key) {
   try {
@@ -537,7 +549,61 @@ function runCodexCommand(prompt, options) {
     let isRateLimitError = false;
     let isExhaustionError = false;
     let settled = false;
+    let runtimeTimer = null;
+    let noOutputTimer = null;
+    let timeoutTriggered = null;
     const runId = ++runCounter;
+
+    const clearRunTimers = () => {
+      if (runtimeTimer) {
+        clearTimeout(runtimeTimer);
+        runtimeTimer = null;
+      }
+      if (noOutputTimer) {
+        clearTimeout(noOutputTimer);
+        noOutputTimer = null;
+      }
+    };
+
+    const triggerTimeout = (type) => {
+      if (settled || timeoutTriggered) return;
+      const minutes = type === 'no_output'
+        ? CODEX_NO_OUTPUT_TIMEOUT_MINUTES
+        : CODEX_MAX_RUNTIME_MINUTES;
+      timeoutTriggered = {
+        type,
+        minutes,
+        triggeredAt: new Date().toISOString()
+      };
+      if (activeRun?.id === runId) {
+        activeRun.timeout = timeoutTriggered;
+      }
+      stoppedRunIds.set(runId, {
+        reason: `timeout_${type}`,
+        status: 'timeout',
+        timeoutType: type,
+        timeoutMinutes: minutes
+      });
+      logCodexEvent('timeout', `Codex timed out after ${minutes} minutes: ${options.label}`, {
+        runId,
+        type,
+        minutes
+      });
+      stopCodex(`timeout_${type}`, {
+        status: 'timeout',
+        timeoutType: type,
+        timeoutMinutes: minutes,
+        silentIfMissing: true
+      }).catch((error) => {
+        logCodexEvent('error', `Timeout stop failed: ${error.message}`, { runId, type });
+      });
+    };
+
+    const resetNoOutputTimer = () => {
+      if (settled || timeoutTriggered) return;
+      if (noOutputTimer) clearTimeout(noOutputTimer);
+      noOutputTimer = setTimeout(() => triggerTimeout('no_output'), CODEX_NO_OUTPUT_TIMEOUT_MS);
+    };
 
     activeRun = {
       id: runId,
@@ -552,7 +618,12 @@ function runCodexCommand(prompt, options) {
       metadata: options.metadata || {},
       operator: normalizeOperator(options.operator),
       lock: null,
-      child: null
+      child: null,
+      timeoutConfig: {
+        maxRuntimeMinutes: CODEX_MAX_RUNTIME_MINUTES,
+        noOutputTimeoutMinutes: CODEX_NO_OUTPUT_TIMEOUT_MINUTES
+      },
+      timeout: null
     };
     activeRun.lock = setCodexLock(activeRun.operator, options.label);
     logCodexEvent('start', `Codex started: ${options.label}`, {
@@ -574,8 +645,11 @@ function runCodexCommand(prompt, options) {
       setCodexPid(activeRun.pid);
       setCodexStatus('running');
     }
+    runtimeTimer = setTimeout(() => triggerTimeout('runtime'), CODEX_MAX_RUNTIME_MS);
+    resetNoOutputTimer();
 
     codex.stdout.on('data', (data) => {
+      resetNoOutputTimer();
       const lines = data.toString().split('\n').filter(l => l.trim());
       for (const line of lines) {
         let event;
@@ -595,6 +669,7 @@ function runCodexCommand(prompt, options) {
     });
 
     codex.stderr.on('data', (data) => {
+      resetNoOutputTimer();
       const text = data.toString();
       errorOutput += text;
       
@@ -612,16 +687,44 @@ function runCodexCommand(prompt, options) {
 
     codex.on('close', (code) => {
       if (settled) return;
+      clearRunTimers();
       const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-      const stoppedReason = stoppedRunIds.get(runId);
+      const stoppedEntry = stoppedRunIds.get(runId) || (timeoutTriggered ? {
+        reason: `timeout_${timeoutTriggered.type}`,
+        status: 'timeout',
+        timeoutType: timeoutTriggered.type,
+        timeoutMinutes: timeoutTriggered.minutes
+      } : null);
       stoppedRunIds.delete(runId);
-      clearActiveRun(runId, stoppedReason ? 'stopped' : 'idle');
+      const stoppedReason = typeof stoppedEntry === 'string' ? stoppedEntry : stoppedEntry?.reason;
+      const stoppedStatus = stoppedEntry && typeof stoppedEntry === 'object' && stoppedEntry.status
+        ? stoppedEntry.status
+        : 'stopped';
+      clearActiveRun(runId, stoppedReason ? stoppedStatus : 'idle');
 
       if (stoppedReason) {
-        const error = new Error(`CODEX_STOPPED: Codex run stopped by ${stoppedReason}`);
-        lastRun = buildLastRun(runId, options, model, duration, 'stopped', error.message, output, errorOutput);
-        persistCodexRun(options, model, duration, 'stopped', error.message, output, startedAt);
-        logCodexEvent('stop', `Codex stopped: ${options.label}`, { runId, pid: codex.pid || null, reason: stoppedReason });
+        const isTimeout = stoppedStatus === 'timeout';
+        const timeoutMinutes = typeof stoppedEntry === 'object' ? stoppedEntry.timeoutMinutes : null;
+        const timeoutType = typeof stoppedEntry === 'object' ? stoppedEntry.timeoutType : null;
+        const error = isTimeout
+          ? new Error(`CODEX_TIMEOUT: Codex timed out after ${timeoutMinutes || CODEX_MAX_RUNTIME_MINUTES} minutes. ${options.label} aborted.`)
+          : new Error(`CODEX_STOPPED: Codex run stopped by ${stoppedReason}`);
+        error.code = isTimeout ? 'CODEX_TIMEOUT' : 'CODEX_STOPPED';
+        if (isTimeout) {
+          error.timeout = true;
+          error.timeoutMinutes = timeoutMinutes || CODEX_MAX_RUNTIME_MINUTES;
+          error.timeoutType = timeoutType || null;
+          error.issueNumber = options.metadata?.issueNumber || null;
+        }
+        lastRun = buildLastRun(runId, options, model, duration, stoppedStatus, error.message, output, errorOutput);
+        persistCodexRun(options, model, duration, stoppedStatus, error.message, output, startedAt);
+        logCodexEvent(isTimeout ? 'timeout' : 'stop', `Codex ${isTimeout ? 'timed out' : 'stopped'}: ${options.label}`, {
+          runId,
+          pid: codex.pid || null,
+          reason: stoppedReason,
+          timeoutType,
+          timeoutMinutes
+        });
         settled = true;
         reject(error);
         return;
@@ -663,6 +766,7 @@ function runCodexCommand(prompt, options) {
 
     codex.on('error', (err) => {
       if (settled) return;
+      clearRunTimers();
       clearActiveRun(runId, 'idle');
       const error = err.code === 'ENOENT'
         ? new Error('CODEX_NOT_FOUND: codex CLI not installed')
@@ -679,6 +783,10 @@ function runCodexCommand(prompt, options) {
 
 async function stopCodex(reason = 'operator', options = {}) {
   const silentIfMissing = Boolean(options.silentIfMissing);
+  const finalStatus = options.status || (options.timeout ? 'timeout' : 'stopped');
+  const isTimeout = finalStatus === 'timeout';
+  const timeoutType = options.timeoutType || null;
+  const timeoutMinutes = options.timeoutMinutes || null;
   const currentIssue = getCurrentIssue();
   const run = activeRun;
   const pid = normalizePid(run?.pid) || getStoredCodexPid();
@@ -694,9 +802,12 @@ async function stopCodex(reason = 'operator', options = {}) {
     }
     clearCodexLock();
     if (issueNumber) {
-      recordIssueStopped(issueNumber, `Codex stop requested (${reason}) but no live Codex process was found.`);
+      recordIssueStopped(issueNumber, isTimeout
+        ? `Codex timed out after ${timeoutMinutes || 'configured'} minutes (${timeoutType || 'timeout'}), but no live Codex process was found.`
+        : `Codex stop requested (${reason}) but no live Codex process was found.`
+      );
     }
-    clearCodexRunState('idle', 'stop_no_live_process');
+    clearCodexRunState(isTimeout ? 'timeout' : 'idle', 'stop_no_live_process');
     if (silentIfMissing) {
       return {
         stopped: false,
@@ -716,7 +827,12 @@ async function stopCodex(reason = 'operator', options = {}) {
   }
 
   if (run?.id) {
-    stoppedRunIds.set(run.id, reason);
+    stoppedRunIds.set(run.id, {
+      reason,
+      status: finalStatus,
+      timeoutType,
+      timeoutMinutes
+    });
     run.stopRequestedAt = new Date().toISOString();
     run.stopReason = reason;
   }
@@ -745,10 +861,16 @@ async function stopCodex(reason = 'operator', options = {}) {
   }
 
   if (issueNumber) {
-    recordIssueStopped(issueNumber, forced
-      ? `Codex was force-killed by ${reason}.`
-      : `Codex was stopped by ${reason}.`
-    );
+    let stopReason;
+    if (isTimeout) {
+      stopReason = `Codex timed out after ${timeoutMinutes || 'configured'} minutes${timeoutType ? ` (${timeoutType})` : ''}.`;
+      if (forced) stopReason += ' SIGKILL was required.';
+    } else {
+      stopReason = forced
+        ? `Codex was force-killed by ${reason}.`
+        : `Codex was stopped by ${reason}.`;
+    }
+    recordIssueStopped(issueNumber, stopReason);
   } else {
     setCurrentIssue(null);
   }
@@ -756,7 +878,7 @@ async function stopCodex(reason = 'operator', options = {}) {
     activeRun = null;
     clearCodexLock();
   }
-  clearCodexRunState('stopped', forced ? 'stop_forced_kill' : 'stop_graceful');
+  clearCodexRunState(finalStatus, forced ? 'stop_forced_kill' : 'stop_graceful');
 
   if (stopError) {
     stopError.message = `CODEX_STOP_SIGNAL_FAILED: ${stopError.message}`;
@@ -1000,6 +1122,7 @@ function getCodexRuntimeStatus() {
     state = persistedStatus === 'running' ? 'stopped' : 'idle';
   }
   else if (persistedStatus === 'stopped') state = 'stopped';
+  else if (persistedStatus === 'timeout') state = 'timeout';
   else if (keyCount === 0) state = 'missing_api_key';
   else if (lastRun?.status && lastRun.status !== 'completed') state = lastRun.status;
 

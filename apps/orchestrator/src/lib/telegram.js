@@ -20,7 +20,9 @@ const {
   prunePriorityQueue,
   getBatchRemaining,
   setBatchRemaining,
-  getStats
+  getStats,
+  acquireDeliveryLock,
+  releaseDeliveryLock
 } = require('./database');
 const {
   runCodexPrompt,
@@ -1235,39 +1237,35 @@ async function handleDeliveryAction(query) {
     return;
   }
 
-  if (action === 'push') {
-    await bot.answerCallbackQuery(query.id, { text: 'Pushing changes' });
-    await pushDeliveryFromTelegram(chatId, issueNumber, query.message);
-    return;
-  }
+  const deliveryActions = {
+    push: {
+      progress: 'Pushing changes',
+      run: () => pushDeliveryFromTelegram(chatId, issueNumber, query.message)
+    },
+    retry_push: {
+      progress: 'Retrying push',
+      run: () => retryPushDeliveryFromTelegram(chatId, issueNumber, query.message)
+    },
+    force_push: {
+      progress: 'Force pushing',
+      run: () => forcePushDeliveryFromTelegram(chatId, issueNumber, query.message)
+    },
+    pull_merge: {
+      progress: 'Pulling and merging',
+      run: () => pullMergeDeliveryFromTelegram(chatId, issueNumber, query.message)
+    },
+    retry: {
+      progress: 'Retrying issue',
+      run: () => retryDeliveryFromTelegram(chatId, issueNumber)
+    },
+    discard: {
+      progress: 'Discarding changes',
+      run: () => discardDeliveryFromTelegram(chatId, issueNumber)
+    }
+  };
 
-  if (action === 'retry_push') {
-    await bot.answerCallbackQuery(query.id, { text: 'Retrying push' });
-    await retryPushDeliveryFromTelegram(chatId, issueNumber, query.message);
-    return;
-  }
-
-  if (action === 'force_push') {
-    await bot.answerCallbackQuery(query.id, { text: 'Force pushing' });
-    await forcePushDeliveryFromTelegram(chatId, issueNumber, query.message);
-    return;
-  }
-
-  if (action === 'pull_merge') {
-    await bot.answerCallbackQuery(query.id, { text: 'Pulling and merging' });
-    await pullMergeDeliveryFromTelegram(chatId, issueNumber, query.message);
-    return;
-  }
-
-  if (action === 'retry') {
-    await bot.answerCallbackQuery(query.id, { text: 'Retrying issue' });
-    await retryDeliveryFromTelegram(chatId, issueNumber);
-    return;
-  }
-
-  if (action === 'discard') {
-    await bot.answerCallbackQuery(query.id, { text: 'Discarding changes' });
-    await discardDeliveryFromTelegram(chatId, issueNumber);
+  if (deliveryActions[action]) {
+    await runLockedDeliveryAction(query, action, issueNumber, deliveryActions[action]);
     return;
   }
 
@@ -1280,6 +1278,24 @@ async function handleDeliveryAction(query) {
   }
 
   await bot.answerCallbackQuery(query.id, { text: 'Unknown delivery action' });
+}
+
+async function runLockedDeliveryAction(query, action, issueNumber, deliveryAction) {
+  const chatId = query.message.chat.id;
+  const lockResult = acquireDeliveryLock(operatorFromQuery(query), action, issueNumber);
+
+  if (!lockResult.acquired) {
+    await bot.answerCallbackQuery(query.id, { text: 'Delivery in progress, try again' });
+    await sendTrackedMessage(chatId, 'Delivery in progress, try again');
+    return;
+  }
+
+  try {
+    await bot.answerCallbackQuery(query.id, { text: deliveryAction.progress });
+    await deliveryAction.run();
+  } finally {
+    releaseDeliveryLock(lockResult.lock);
+  }
 }
 
 async function pushDeliveryFromTelegram(chatId, issueNumber, message = null) {
@@ -1713,6 +1729,15 @@ async function runPromptFromTelegram(chatId, prompt, label, operator = null) {
       operator: normalizeOperator(operator),
       startedAt: Date.now()
     }, `Codex run stopped or failed: ${error.message.slice(0, 500)}`));
+    if (isCodexTimeoutError(error)) {
+      const minutes = error.timeoutMinutes || 'configured limit';
+      const issueText = error.issueNumber ? `Issue #${error.issueNumber}` : 'Task';
+      await sendTrackedMessage(chatId,
+        `⏱️ Codex timed out after ${escapeMarkdown(String(minutes))} minutes. ${escapeMarkdown(issueText)} aborted.`,
+        { parse_mode: 'Markdown', reply_markup: controlPanelKeyboard() }
+      );
+      return;
+    }
     const owner = formatOperatorMention(operator);
     await sendTrackedMessage(chatId,
       `❌ *Codex Failed*\n` +
@@ -1722,6 +1747,10 @@ async function runPromptFromTelegram(chatId, prompt, label, operator = null) {
       { parse_mode: 'Markdown', reply_markup: controlPanelKeyboard() }
     );
   }
+}
+
+function isCodexTimeoutError(error) {
+  return error?.code === 'CODEX_TIMEOUT' || String(error?.message || '').includes('CODEX_TIMEOUT');
 }
 
 function buildManualCodexSummary(label, result, model, operator = null) {
@@ -2527,6 +2556,9 @@ function humanCodexStateLine(status) {
   if (status.state === 'api_key_exhausted') {
     return `Codex hit an API-key/quota problem. Use the API Key pill to replace the active key.`;
   }
+  if (status.state === 'timeout') {
+    return `Codex timed out. The last Codex task was aborted.`;
+  }
   if (status.state === 'spawn_error') {
     return `Codex could not start on the EC2 instance.`;
   }
@@ -2544,6 +2576,7 @@ function formatCodexStatusSummary(status) {
   if (status.state === 'stopped') return 'STOPPED';
   if (status.state === 'missing_api_key') return 'MISSING API KEY';
   if (status.state === 'api_key_exhausted') return 'API KEY EXHAUSTED';
+  if (status.state === 'timeout') return 'TIMEOUT';
   if (status.state === 'failed') return 'FAILED';
   if (status.state === 'spawn_error') return 'SPAWN ERROR';
   return 'IDLE';

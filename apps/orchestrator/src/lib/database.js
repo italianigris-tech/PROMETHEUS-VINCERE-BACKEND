@@ -77,6 +77,19 @@ function initDatabase() {
     )
   `);
 
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS delivery_lock (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      holder_user_id TEXT,
+      holder_chat_id TEXT,
+      holder_username TEXT,
+      holder_display TEXT,
+      operation TEXT,
+      issue_number INTEGER,
+      locked_at TEXT NOT NULL
+    )
+  `);
+
   const defaults = [
     ['current_issue_number', 'null'],
     ['pipeline_status', 'idle'],
@@ -280,7 +293,7 @@ function inspectActiveIssueState() {
     issues.push(`current issue #${current.issue_number} is ${current.status}, not in_progress`);
   }
 
-  if (current && current.status === 'in_progress' && ['failed', 'stopped', 'idle'].includes(codexStatus)) {
+  if (current && current.status === 'in_progress' && ['failed', 'stopped', 'timeout', 'idle'].includes(codexStatus)) {
     issues.push(`current issue #${current.issue_number} is in_progress while codex_status=${codexStatus}`);
   }
 
@@ -310,7 +323,7 @@ function reconcileActiveIssueState(reason = 'state_reconcile') {
 
   setCurrentIssue(null);
   if (
-    ['failed', 'stopped', 'idle'].includes(inspection.codexStatus) ||
+    ['failed', 'stopped', 'timeout', 'idle'].includes(inspection.codexStatus) ||
     (inspection.currentIssue && inspection.currentIssue.status !== 'in_progress')
   ) {
     setState('pipeline_status', 'idle');
@@ -395,6 +408,88 @@ function getCodexLock() {
 
 function clearCodexLock() {
   setJsonState('codex_lock', null);
+}
+
+function getDeliveryLock() {
+  return db.prepare('SELECT * FROM delivery_lock WHERE id = 1').get() || null;
+}
+
+function clearDeliveryLock() {
+  db.prepare('DELETE FROM delivery_lock WHERE id = 1').run();
+}
+
+function parseLockTime(lockedAt) {
+  if (!lockedAt) return 0;
+  const parsed = Date.parse(lockedAt);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function acquireDeliveryLock(holder, operation, issueNumber, staleMs = 5 * 60 * 1000) {
+  const existing = getDeliveryLock();
+  const now = Date.now();
+
+  if (existing) {
+    const ageMs = now - parseLockTime(existing.locked_at);
+    if (ageMs >= 0 && ageMs < staleMs) {
+      return {
+        acquired: false,
+        lock: existing,
+        ageMs
+      };
+    }
+    db.prepare('DELETE FROM delivery_lock WHERE id = 1 AND locked_at = ?').run(existing.locked_at);
+  }
+
+  const operator = normalizeOperator(holder) || {};
+  const lockedAt = new Date(now).toISOString();
+  const result = db.prepare(`
+    INSERT OR IGNORE INTO delivery_lock (
+      id, holder_user_id, holder_chat_id, holder_username,
+      holder_display, operation, issue_number, locked_at
+    ) VALUES (1, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    operator.userId ? String(operator.userId) : null,
+    operator.chatId ? String(operator.chatId) : null,
+    operator.username || null,
+    operator.displayName || null,
+    operation || null,
+    Number.isInteger(Number(issueNumber)) ? Number(issueNumber) : null,
+    lockedAt
+  );
+
+  const lock = getDeliveryLock();
+  if (result.changes !== 1) {
+    return {
+      acquired: false,
+      lock,
+      ageMs: lock ? now - parseLockTime(lock.locked_at) : null
+    };
+  }
+
+  return {
+    acquired: true,
+    lock,
+    ageMs: 0
+  };
+}
+
+function releaseDeliveryLock(lock = null) {
+  if (!lock?.locked_at) {
+    clearDeliveryLock();
+    return;
+  }
+
+  db.prepare(`
+    DELETE FROM delivery_lock
+    WHERE id = 1
+      AND locked_at = ?
+      AND COALESCE(holder_user_id, '') = COALESCE(?, '')
+      AND COALESCE(operation, '') = COALESCE(?, '')
+  `).run(
+    lock.locked_at,
+    lock.holder_user_id || null,
+    lock.operation || null
+  );
 }
 
 function getPriorityQueue() {
@@ -549,6 +644,9 @@ module.exports = {
   setCodexLock,
   getCodexLock,
   clearCodexLock,
+  getDeliveryLock,
+  acquireDeliveryLock,
+  releaseDeliveryLock,
   getPriorityQueue,
   setPriorityQueue,
   prioritizeIssue,
