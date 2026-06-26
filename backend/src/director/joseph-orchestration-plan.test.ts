@@ -44,6 +44,19 @@ describe("buildJosephOrchestrationPlan", () => {
     expect(plan.semanticSummary.intent).toContain("hook");
     expect(plan.visualPlan.emotionalArc.length).toBeGreaterThan(0);
     expect(plan.visualPlan.primitiveComposition.length).toBeGreaterThan(0);
+    expect(plan.visualPlan.microAnimationTaxonomy).toEqual(
+      expect.arrayContaining([
+        "text_emphasis",
+        "text_entry",
+        "text_mutation",
+        "accent_motion",
+        "spatial_micro_motion",
+      ]),
+    );
+    expect(plan.visualPlan.microAnimationPrimitives.length).toBeGreaterThan(0);
+    expect(plan.visualPlan.pipComposition).toEqual(
+      expect.arrayContaining(["pip:subject-dock"]),
+    );
     expect(plan.temporalChoreography.cuts.length).toBeGreaterThan(0);
     expect(plan.temporalChoreography.sfx.length).toBeGreaterThan(0);
     expect(plan.llmAuthority).toEqual([
@@ -57,6 +70,23 @@ describe("buildJosephOrchestrationPlan", () => {
     ]);
   });
 
+  it("builds an inspectable PiP composition grammar for Joseph candidates", () => {
+    const manifest = generateJosephManifest(INPUT);
+
+    expect(manifest.josephPiP?.version).toBe("joseph-pip-v1");
+    expect(manifest.videoTracks[0]?.id).toBe("primary");
+    expect(manifest.josephPiP?.sourceTrackId).toBe("primary");
+    expect(manifest.josephPiP?.frame.depth).toBe("subject");
+    expect(manifest.josephPiP?.availableMotionBehaviors).toEqual(
+      expect.arrayContaining(["enter", "dock", "expand", "collapse", "handoff"]),
+    );
+    expect(manifest.josephPiP?.activeMotion.map((motion) => motion.behavior)).toEqual(
+      expect.arrayContaining(["enter", "dock", "handoff"]),
+    );
+    expect(manifest.josephPiP?.typographyZones.some((zone) => zone.role === "hero")).toBe(true);
+    expect(manifest.josephPiP?.backgroundLayers.some((layer) => layer.role === "focus_field")).toBe(true);
+    expect(manifest.josephPiP?.coexistenceRules.protectTypography).toBe(true);
+  });
   it("can produce the same manifest from the same planning inputs", () => {
     const left = generateJosephManifest(INPUT);
     const right = generateJosephManifest(INPUT);
@@ -129,6 +159,23 @@ describe("doctrine branches (acceptance criterion: shared semantics, divergent p
       ),
     );
     expect(textSignatures.size).toBeGreaterThan(1);
+
+    const primitiveSignatures = new Set(
+      candidates.map((c) =>
+        JSON.stringify(
+          c.textOverlays.map((o) => o.microAnimation?.primitiveId ?? ""),
+        ),
+      ),
+    );
+    expect(primitiveSignatures.size).toBeGreaterThan(1);
+    expect(
+      candidates.every(
+        (candidate) =>
+          candidate.microAnimationAudit?.taxonomyVersion ===
+            "joseph-micro-animation-v1" &&
+          candidate.microAnimationAudit.primitiveIds.length > 0,
+      ),
+    ).toBe(true);
   });
 
   it("the same seed + doctrine branch reproduces the same manifest", () => {

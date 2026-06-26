@@ -15,6 +15,9 @@ import type {JudgmentVerdict} from "../ledger/evidence-preservation";
 import type {GovernedPrompt} from "./prompt-governance";
 import {fingerprintString} from "./prompt-governance";
 import type {VariationKey} from "./variation-key";
+import {evaluateManifestMicroAnimationQuality} from "./micro-animation-primitives";
+import {evaluateManifestTypographyQuality} from "./joseph-typography-intelligence";
+import {evaluateJosephSequenceDiscipline, type SequenceDisciplineEvaluation} from "./joseph-sequence-discipline";
 
 export interface CandidateScore {
   manifest: UnifiedRenderManifest;
@@ -22,6 +25,7 @@ export interface CandidateScore {
   similarityScore: number;
   passedFloor: boolean;
   floorFailures: string[];
+  sequenceDiscipline: SequenceDisciplineEvaluation;
 }
 
 export interface JudgmentResult {
@@ -34,6 +38,7 @@ export interface JudgmentResult {
 export interface JudgmentLayerOptions {
   similarityThresholdSamePrompt?: number;
   similarityThresholdDiffPrompt?: number;
+  sequenceDisciplineEnabled?: boolean;
 }
 
 type ManifestWithExtensions = UnifiedRenderManifest & {
@@ -262,7 +267,10 @@ const densityPenaltyOf = (manifest: UnifiedRenderManifest, cuts: CutEvent[], tex
   return penalty;
 };
 
-export const meetsQualityFloor = (manifest: UnifiedRenderManifest): CandidateScore => {
+export const meetsQualityFloor = (
+  manifest: UnifiedRenderManifest,
+  options: {sequenceDisciplineEnabled?: boolean} = {},
+): CandidateScore => {
   const failures: string[] = [];
   const durationMs = durationMsOf(manifest);
   const cuts = cutsOf(manifest);
@@ -316,8 +324,23 @@ export const meetsQualityFloor = (manifest: UnifiedRenderManifest): CandidateSco
     failures.push("sfx_animation_desync");
   }
 
+  const microAnimationQuality = evaluateManifestMicroAnimationQuality(manifest);
+  failures.push(...microAnimationQuality.failures);
+  const typographyQuality = evaluateManifestTypographyQuality(manifest);
+  failures.push(...typographyQuality.failures);
+
+  const sequenceDiscipline = evaluateJosephSequenceDiscipline(manifest, {enabled: options.sequenceDisciplineEnabled});
   const densityPenalty = densityPenaltyOf(manifest, cuts, texts, sfx, durationMs);
-  const qualityScore = clamp01(1 - failures.length * 0.1 - densityPenalty * 0.05);
+  const microAnimationPenalty = 1 - microAnimationQuality.score;
+  const typographyPenalty = 1 - typographyQuality.score;
+  const qualityScore = clamp01(
+    1 -
+      failures.length * 0.1 -
+      densityPenalty * 0.05 -
+      microAnimationPenalty * 0.15 -
+      typographyPenalty * 0.12 -
+      sequenceDiscipline.penalty * 0.2,
+  );
 
   return {
     manifest,
@@ -325,6 +348,7 @@ export const meetsQualityFloor = (manifest: UnifiedRenderManifest): CandidateSco
     similarityScore: 0,
     passedFloor: failures.length === 0,
     floorFailures: failures,
+    sequenceDiscipline,
   };
 };
 
@@ -477,6 +501,7 @@ const uniqueFailureTags = (scores: CandidateScore[], rejected: UnifiedRenderMani
 export class JudgmentLayer {
   private readonly similarityThresholdSamePrompt: number;
   private readonly similarityThresholdDiffPrompt: number;
+  private readonly sequenceDisciplineEnabled: boolean;
 
   constructor(
     private readonly ledger: ReplayLedger,
@@ -484,6 +509,7 @@ export class JudgmentLayer {
   ) {
     this.similarityThresholdSamePrompt = options.similarityThresholdSamePrompt ?? 0.85;
     this.similarityThresholdDiffPrompt = options.similarityThresholdDiffPrompt ?? 0.7;
+    this.sequenceDisciplineEnabled = options.sequenceDisciplineEnabled ?? true;
   }
 
   async judgeCandidates(
@@ -491,7 +517,9 @@ export class JudgmentLayer {
     variationKey: VariationKey,
     _prompt?: GovernedPrompt,
   ): Promise<JudgmentResult> {
-    const floorScores = candidates.map(meetsQualityFloor);
+    const floorScores = candidates.map((candidate) =>
+      meetsQualityFloor(candidate, {sequenceDisciplineEnabled: this.sequenceDisciplineEnabled})
+    );
     const floorPassed = floorScores.filter((score) => score.passedFloor);
 
     if (floorPassed.length === 0) {

@@ -1,4 +1,4 @@
-﻿import {describe, expect, it} from "vitest";
+import {describe, expect, it} from "vitest";
 import {generateJosephManifest} from "./joseph-director";
 import type {CutEvent} from "@prometheus/shared-types";
 
@@ -58,6 +58,41 @@ describe("generateJosephManifest", () => {
     expect(redWords.length).toBeGreaterThan(0);
   });
 
+  it("records inspectable micro-animation primitive selections", () => {
+    const manifest = generateJosephManifest(MOCK_INPUT);
+
+    expect(manifest.microAnimationAudit?.taxonomyVersion).toBe("joseph-micro-animation-v1");
+    expect(manifest.microAnimationAudit?.primitiveIds.length).toBeGreaterThan(0);
+    expect(manifest.microAnimationAudit?.score).toBeGreaterThan(0.7);
+    expect(manifest.textOverlays.some((overlay) => overlay.microAnimation)).toBe(true);
+    expect(
+      manifest.textOverlays.every((overlay) =>
+        overlay.microAnimation
+          ? overlay.animation === overlay.microAnimation.renderFallback
+          : true,
+      ),
+    ).toBe(true);
+  });
+
+  it("records a reusable Joseph PiP rig with docking and coexistence rules", () => {
+    const manifest = generateJosephManifest(MOCK_INPUT);
+
+    expect(manifest.josephPiP?.layout).toMatch(/^speaker_|^corner_/);
+    expect(manifest.josephPiP?.frame.safeMarginPercent).toBeGreaterThan(0);
+    expect(manifest.josephPiP?.dockingPosition).toMatch(/upper|lower/);
+    expect(manifest.josephPiP?.activeMotion.length).toBeGreaterThanOrEqual(3);
+    expect(manifest.josephPiP?.typographyZones.length).toBeGreaterThan(0);
+    expect(manifest.josephPiP?.backgroundLayers.length).toBeGreaterThan(0);
+  });
+
+  it("records a curated Joseph background primitive plan", () => {
+    const manifest = generateJosephManifest(MOCK_INPUT);
+
+    expect(manifest.josephBackground?.version).toBe("joseph-background-v1");
+    expect(manifest.josephBackground?.parameterAudit.governed).toBe(true);
+    expect(manifest.josephBackground?.primitives.length).toBeGreaterThanOrEqual(3);
+    expect(manifest.josephBackground?.layeringRules.pipProtection).toBe("reserved_safe_zone");
+  });
   it("cuts land near beats", () => {
     const manifest = generateJosephManifest(MOCK_INPUT);
     const cuts = manifest.timeline.filter((event) => event.type === "cut") as CutEvent[];

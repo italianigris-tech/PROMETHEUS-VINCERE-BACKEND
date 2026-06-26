@@ -1,11 +1,11 @@
-﻿import React, {useEffect, useMemo, useRef} from 'react';
+import React, {useEffect, useMemo, useRef} from 'react';
 import {AbsoluteFill, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
 import {Canvas, useFrame, useThree} from '@react-three/fiber';
 import {Text} from '@react-three/drei';
 import * as THREE from 'three';
-import type {CameraMove, TextOverlay, Transition, UnifiedRenderManifest} from '@prometheus/shared-types';
+import type {CameraMove, JosephPiPBackgroundLayer, JosephPiPFrame, JosephPiPPlan, TextOverlay, Transition, UnifiedRenderManifest} from '@prometheus/shared-types';
 import {hashSeed, seededRandom} from '@prometheus/shared-types';
-import {VideoPlane} from './VideoPlane';
+import {percentRectToViewport, VideoPlane} from './VideoPlane';
 
 const DEFAULT_JOSEPH_TYPOGRAPHY = {
   fontId: 'hero-berylium-regular',
@@ -219,6 +219,70 @@ const ZoomBlurQuad: React.FC<{transition: Transition | null}> = ({transition}) =
   );
 };
 
+const PiPFrameChrome: React.FC<{frameRect: JosephPiPFrame; opacity?: number}> = ({frameRect, opacity = 0.32}) => {
+  const {viewport} = useThree();
+  const rect = percentRectToViewport({frameRect, viewportWidth: viewport.width, viewportHeight: viewport.height});
+  const padding = Math.max(0.04, frameRect.safeMarginPercent / 100);
+
+  return (
+    <group position={[rect.x, rect.y, 0.18]}>
+      <mesh position={[0, -padding * 0.7, -0.02]}>
+        <planeGeometry args={[rect.width + padding * 2.4, rect.height + padding * 2.4]} />
+        <meshBasicMaterial color="#05070B" transparent opacity={opacity} depthWrite={false} />
+      </mesh>
+      <mesh position={[0, 0, 0.08]}>
+        <planeGeometry args={[rect.width + padding, rect.height + padding]} />
+        <meshBasicMaterial color="#FFFFFF" transparent opacity={0.22} wireframe depthWrite={false} />
+      </mesh>
+    </group>
+  );
+};
+
+const layerAsFrame = (layer: JosephPiPBackgroundLayer): JosephPiPFrame => ({
+  leftPercent: layer.leftPercent,
+  topPercent: layer.topPercent,
+  widthPercent: layer.widthPercent,
+  heightPercent: layer.heightPercent,
+  borderRadiusPx: 0,
+  safeMarginPercent: 0,
+  depth: 'background',
+});
+
+const PiPBackgroundLayer: React.FC<{layer: JosephPiPBackgroundLayer}> = ({layer}) => {
+  const {viewport} = useThree();
+  const rect = percentRectToViewport({
+    frameRect: layerAsFrame(layer),
+    viewportWidth: viewport.width,
+    viewportHeight: viewport.height,
+  });
+  const color = layer.role === 'focus_field' ? '#2F6BFF' : layer.role === 'asset_board' ? '#F6C85F' : '#111827';
+
+  return (
+    <mesh position={[rect.x, rect.y, 0.08]}>
+      <planeGeometry args={[rect.width, rect.height]} />
+      <meshBasicMaterial color={color} transparent opacity={0.12 + layer.intensity * 0.16} depthWrite={false} />
+    </mesh>
+  );
+};
+
+const JosephPiPRig: React.FC<{plan: JosephPiPPlan | undefined}> = ({plan}) => {
+  const frame = useCurrentFrame();
+  if (!plan) {
+    return null;
+  }
+
+  const activeMotion = plan.activeMotion.find((segment) => frame >= segment.startFrame && frame <= segment.endFrame) ?? plan.activeMotion.at(-1);
+  const motionProgress = activeMotion ? easeOutCubic(frameProgress(activeMotion, frame)) : 1;
+
+  return (
+    <group scale={[0.96 + motionProgress * 0.04, 0.96 + motionProgress * 0.04, 1]}>
+      {plan.backgroundLayers.map((layer, index) => (
+        <PiPBackgroundLayer key={`${layer.role}-${index}`} layer={layer} />
+      ))}
+      <PiPFrameChrome frameRect={plan.frame} opacity={0.24 + motionProgress * 0.18} />
+    </group>
+  );
+};
 const JosephScene: React.FC<{manifest: UnifiedRenderManifest}> = ({manifest}) => {
   const frame = useCurrentFrame();
   const activeOverlays = findActiveOverlays(manifest.textOverlays, frame);
@@ -229,7 +293,8 @@ const JosephScene: React.FC<{manifest: UnifiedRenderManifest}> = ({manifest}) =>
       <color attach="background" args={["#000000"]} />
       <ambientLight intensity={0.9} />
       <directionalLight position={[0, 0, 4]} intensity={1.2} />
-      <VideoPlane track={manifest.videoTracks[0]} manifest={manifest} />
+      <JosephPiPRig plan={manifest.josephPiP} />
+      <VideoPlane track={manifest.videoTracks[0]} manifest={manifest} frameRect={manifest.josephPiP?.frame} />
       <CameraRig cameraMoves={manifest.cameraMoves} seed={manifest.seed} />
       <KineticText overlays={activeOverlays} manifest={manifest} />
       <ZoomBlurQuad transition={activeTransition} />

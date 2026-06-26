@@ -19,6 +19,7 @@ describe('JosephEdit Composition', () => {
 
   it('contains the required R3F architecture pieces', () => {
     expect(content).toContain('VideoPlane');
+    expect(content).toContain('JosephPiPRig');
     expect(videoPlaneContent).toContain('THREE.VideoTexture');
     expect(content).toContain('const CameraRig');
     expect(content).toContain('const KineticText');
@@ -66,6 +67,13 @@ describe('JosephEdit Composition', () => {
     expect(videoPlaneContent).toContain('videoElement.play');
   });
 
+  it('renders Joseph PiP from the manifest without DOM overlays', () => {
+    expect(content).toContain('manifest.josephPiP');
+    expect(content).toContain('PiPFrameChrome');
+    expect(content).toContain('activeMotion');
+    expect(videoPlaneContent).toContain('frameRect');
+    expect(videoPlaneContent).toContain('percentRectToViewport');
+  });
   it('has a Joseph-only Remotion entry that registers no unrelated compositions', () => {
     const entryContent = fs.readFileSync(josephEntryPath, 'utf-8');
     expect(entryContent).toContain('registerRoot');

@@ -2,11 +2,12 @@ import React, {useEffect, useMemo, useRef} from 'react';
 import {staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
 import {useThree} from '@react-three/fiber';
 import * as THREE from 'three';
-import type {UnifiedRenderManifest, VideoTrack} from '@prometheus/shared-types';
+import type {JosephPiPFrame, UnifiedRenderManifest, VideoTrack} from '@prometheus/shared-types';
 
 type VideoPlaneProps = {
   track: VideoTrack | undefined;
   manifest: UnifiedRenderManifest;
+  frameRect?: JosephPiPFrame;
 };
 
 const isLocalFileUrl = (value: string) => /^file:\/\//i.test(value);
@@ -17,6 +18,39 @@ export type CoverTextureTransform = {
   repeatY: number;
   offsetX: number;
   offsetY: number;
+};
+
+export type ViewportRect = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+export const percentRectToViewport = ({
+  frameRect,
+  viewportWidth,
+  viewportHeight,
+}: {
+  frameRect: JosephPiPFrame | undefined;
+  viewportWidth: number;
+  viewportHeight: number;
+}): ViewportRect => {
+  if (!frameRect) {
+    return {x: 0, y: 0, width: viewportWidth, height: viewportHeight};
+  }
+
+  const width = viewportWidth * (frameRect.widthPercent / 100);
+  const height = viewportHeight * (frameRect.heightPercent / 100);
+  const left = viewportWidth * (frameRect.leftPercent / 100) - viewportWidth / 2;
+  const top = viewportHeight / 2 - viewportHeight * (frameRect.topPercent / 100);
+
+  return {
+    x: left + width / 2,
+    y: top - height / 2,
+    width,
+    height,
+  };
 };
 
 export const calculateCoverTextureTransform = ({
@@ -81,7 +115,7 @@ const createVideoElement = (src: string): HTMLVideoElement => {
   return element;
 };
 
-export const VideoPlane: React.FC<VideoPlaneProps> = ({track, manifest}) => {
+export const VideoPlane: React.FC<VideoPlaneProps> = ({track, manifest, frameRect}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const {viewport} = useThree();
@@ -105,12 +139,18 @@ export const VideoPlane: React.FC<VideoPlaneProps> = ({track, manifest}) => {
     return t;
   }, [videoElement]);
 
+  const viewportRect = useMemo(() => percentRectToViewport({
+    frameRect,
+    viewportWidth: viewport.width,
+    viewportHeight: viewport.height,
+  }), [frameRect, viewport.height, viewport.width]);
+
   const coverTransform = useMemo(() => calculateCoverTextureTransform({
     sourceWidth: manifest.source.width,
     sourceHeight: manifest.source.height,
-    outputWidth: manifest.width,
-    outputHeight: manifest.height,
-  }), [manifest.height, manifest.source.height, manifest.source.width, manifest.width]);
+    outputWidth: frameRect ? manifest.width * (frameRect.widthPercent / 100) : manifest.width,
+    outputHeight: frameRect ? manifest.height * (frameRect.heightPercent / 100) : manifest.height,
+  }), [frameRect, manifest.height, manifest.source.height, manifest.source.width, manifest.width]);
 
   useEffect(() => {
     if (!videoElement) return;
@@ -153,8 +193,8 @@ export const VideoPlane: React.FC<VideoPlaneProps> = ({track, manifest}) => {
   }
 
   return (
-    <mesh ref={meshRef} position={[0, 0, 0]}>
-      <planeGeometry args={[viewport.width, viewport.height]} />
+    <mesh ref={meshRef} position={[viewportRect.x, viewportRect.y, frameRect ? 0.24 : 0]}>
+      <planeGeometry args={[viewportRect.width, viewportRect.height]} />
       <meshBasicMaterial map={texture} toneMapped={false} />
     </mesh>
   );
