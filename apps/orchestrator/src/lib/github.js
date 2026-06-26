@@ -59,9 +59,27 @@ async function addComment(issueNumber, body) {
   });
 }
 
+async function createIssue(title, body, options = {}) {
+  const params = {
+    owner: OWNER,
+    repo: REPO,
+    title,
+    body
+  };
+
+  const labels = options.labels || (LABEL && LABEL.trim() ? [LABEL.trim()] : []);
+  if (labels.length > 0) {
+    params.labels = labels;
+  }
+
+  const { data } = await octokit.rest.issues.create(params);
+  return data;
+}
+
 module.exports = {
   getOpenIssues,
   getIssue,
   closeIssue,
-  addComment
+  addComment,
+  createIssue
 };

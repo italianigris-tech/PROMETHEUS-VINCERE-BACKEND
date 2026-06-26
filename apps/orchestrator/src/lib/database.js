@@ -1,6 +1,10 @@
 const Database = require('better-sqlite3');
 const path = require('path');
 const {
+  classifyFailureReason,
+  classifyTaskType
+} = require('./analytics');
+const {
   applySecureUmask,
   ensurePrivateDir,
   securePath,
@@ -30,6 +34,14 @@ function initDatabase() {
   `);
 
   db.exec(`
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  db.exec(`
     CREATE TABLE IF NOT EXISTS issues (
       issue_number INTEGER PRIMARY KEY,
       title TEXT,
@@ -47,6 +59,9 @@ function initDatabase() {
 
   ensureColumn('issues', 'body', 'TEXT');
   ensureColumn('issues', 'delivery_status', 'TEXT');
+  ensureColumn('issues', 'service_outage_retry_count', 'INTEGER DEFAULT 0');
+  ensureColumn('issues', 'service_outage_next_retry_at', 'TEXT');
+  ensureColumn('issues', 'service_outage_first_seen_at', 'TEXT');
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS api_key_rotations (
@@ -121,6 +136,55 @@ function initDatabase() {
   ensureColumn('waiting_users', 'chat_id', 'TEXT');
   ensureColumn('waiting_users', 'display_name', 'TEXT');
 
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS surprises (
+      id TEXT PRIMARY KEY,
+      category TEXT,
+      severity TEXT,
+      title TEXT,
+      description TEXT,
+      affectedFiles TEXT,
+      suggestedPrompt TEXT,
+      status TEXT DEFAULT 'pending',
+      createdAt TEXT,
+      dismissedAt TEXT,
+      dismissedBy TEXT,
+      issueId TEXT,
+      detailsJson TEXT
+    )
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS run_analytics (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      issueId TEXT,
+      model TEXT,
+      promptLength INTEGER,
+      taskType TEXT,
+      exitCode INTEGER,
+      durationMs INTEGER,
+      tokenCost REAL,
+      failureReason TEXT,
+      filesModified INTEGER,
+      testsPassing INTEGER,
+      createdAt TEXT DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS self_heal_tasks (
+      id TEXT PRIMARY KEY,
+      title TEXT,
+      description TEXT,
+      prompt TEXT,
+      affectedFile TEXT,
+      status TEXT DEFAULT 'pending',
+      createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+      approvedAt TEXT,
+      ignoredAt TEXT
+    )
+  `);
+
   const defaults = [
     ['current_issue_number', 'null'],
     ['pipeline_status', 'idle'],
@@ -136,7 +200,8 @@ function initDatabase() {
     ['batch_remaining', '0'],
     ['last_delivery_issue_number', 'null'],
     ['watchdog_last_alert_at', 'null'],
-    ['watchdog_last_alert_signature', 'null']
+    ['watchdog_last_alert_signature', 'null'],
+    ['self_heal_last_created_at', 'null']
   ];
 
   const stmt = db.prepare('INSERT OR IGNORE INTO pipeline_state (key, value) VALUES (?, ?)');
@@ -154,6 +219,31 @@ function getState(key) {
 
 function setState(key, value) {
   db.prepare('INSERT OR REPLACE INTO pipeline_state (key, value) VALUES (?, ?)').run(key, value);
+}
+
+function getSetting(key, fallback = null) {
+  const row = db.prepare('SELECT value FROM settings WHERE key = ?').get(key);
+  if (!row) return fallback;
+  return row.value;
+}
+
+function setSetting(key, value) {
+  db.prepare(`
+    INSERT INTO settings (key, value, updated_at)
+    VALUES (?, ?, ?)
+    ON CONFLICT(key) DO UPDATE SET
+      value = excluded.value,
+      updated_at = excluded.updated_at
+  `).run(key, String(value), new Date().toISOString());
+}
+
+function getBooleanSetting(key, fallback = false) {
+  const value = getSetting(key, fallback ? 'true' : 'false');
+  return ['1', 'true', 'yes', 'on'].includes(String(value || '').toLowerCase());
+}
+
+function setBooleanSetting(key, value) {
+  setSetting(key, value ? 'true' : 'false');
 }
 
 function getJsonState(key, fallback = null) {
@@ -183,9 +273,19 @@ function setCurrentIssue(issueNumber) {
 function recordIssueStart(issueNumber, title, body = null) {
   db.prepare(`
     INSERT OR REPLACE INTO issues 
-    (issue_number, title, body, status, delivery_status, started_at, retry_count) 
-    VALUES (?, ?, ?, 'in_progress', 'retrying', datetime('now'), COALESCE((SELECT retry_count FROM issues WHERE issue_number = ?), 0))
-  `).run(issueNumber, title, body, issueNumber);
+    (
+      issue_number, title, body, status, delivery_status, started_at,
+      retry_count, service_outage_retry_count, service_outage_next_retry_at,
+      service_outage_first_seen_at
+    )
+    VALUES (
+      ?, ?, ?, 'in_progress', 'retrying', datetime('now'),
+      COALESCE((SELECT retry_count FROM issues WHERE issue_number = ?), 0),
+      COALESCE((SELECT service_outage_retry_count FROM issues WHERE issue_number = ?), 0),
+      (SELECT service_outage_next_retry_at FROM issues WHERE issue_number = ?),
+      (SELECT service_outage_first_seen_at FROM issues WHERE issue_number = ?)
+    )
+  `).run(issueNumber, title, body, issueNumber, issueNumber, issueNumber, issueNumber);
   setCurrentIssue(issueNumber);
   setState('pipeline_status', 'running');
 }
@@ -220,6 +320,97 @@ function recordIssueAwaitingKey(issueNumber, error) {
   `).run(error, issueNumber);
   setCurrentIssue(issueNumber);
   setState('pipeline_status', 'awaiting_key');
+}
+
+function isServiceOutageState(status) {
+  return status === 'service_unavailable';
+}
+
+function recordIssueServiceUnavailable(issueNumber, options = {}) {
+  if (!issueNumber) return null;
+  const now = options.now || new Date().toISOString();
+  const retryCount = Math.max(0, Number(options.retryCount || 0));
+  db.prepare(`
+    UPDATE issues
+    SET status = 'service_unavailable',
+        delivery_status = 'retrying',
+        service_outage_retry_count = ?,
+        service_outage_next_retry_at = ?,
+        service_outage_first_seen_at = COALESCE(service_outage_first_seen_at, ?),
+        error_log = ?
+    WHERE issue_number = ?
+  `).run(
+    retryCount,
+    options.nextRetryAt || null,
+    now,
+    options.error || 'Codex service temporarily unavailable.',
+    issueNumber
+  );
+  if (getState('current_issue_number') === String(issueNumber)) {
+    setCurrentIssue(null);
+  }
+  return getIssueRecord(issueNumber);
+}
+
+function resetIssueServiceOutage(issueNumber, options = {}) {
+  if (!issueNumber) return null;
+  db.prepare(`
+    UPDATE issues
+    SET status = 'pending',
+        delivery_status = 'retrying',
+        service_outage_retry_count = ?,
+        service_outage_next_retry_at = NULL,
+        service_outage_first_seen_at = CASE WHEN ? THEN NULL ELSE service_outage_first_seen_at END,
+        error_log = COALESCE(?, error_log)
+    WHERE issue_number = ?
+  `).run(
+    Number(options.retryCount || 0) || 0,
+    options.clearFirstSeen ? 1 : 0,
+    options.error || null,
+    issueNumber
+  );
+  return getIssueRecord(issueNumber);
+}
+
+function getDueServiceOutageIssues(now = new Date().toISOString()) {
+  return db.prepare(`
+    SELECT * FROM issues
+    WHERE status = 'service_unavailable'
+      AND service_outage_next_retry_at IS NOT NULL
+      AND service_outage_next_retry_at <= ?
+    ORDER BY service_outage_next_retry_at ASC, issue_number ASC
+  `).all(now);
+}
+
+function resumeDueServiceOutageIssues(now = new Date().toISOString()) {
+  const due = getDueServiceOutageIssues(now);
+  const update = db.prepare(`
+    UPDATE issues
+    SET status = 'pending',
+        delivery_status = 'retrying',
+        service_outage_next_retry_at = NULL
+    WHERE issue_number = ?
+  `);
+  for (const issue of due) {
+    update.run(issue.issue_number);
+  }
+  return due;
+}
+
+function discardServiceOutageIssue(issueNumber, reason = 'Discarded by admin') {
+  if (!issueNumber) return null;
+  db.prepare(`
+    UPDATE issues
+    SET status = 'failed',
+        delivery_status = 'discarded',
+        completed_at = COALESCE(completed_at, datetime('now')),
+        error_log = ?
+    WHERE issue_number = ?
+  `).run(reason, issueNumber);
+  if (getState('current_issue_number') === String(issueNumber)) {
+    setCurrentIssue(null);
+  }
+  return getIssueRecord(issueNumber);
 }
 
 function recordIssueStopped(issueNumber, reason) {
@@ -418,7 +609,13 @@ function recordApiKeyChange(change = {}) {
 function ensureColumn(table, column, definition) {
   const columns = db.prepare(`PRAGMA table_info(${table})`).all();
   if (columns.some(existing => existing.name === column)) return;
-  db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  try {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  } catch (error) {
+    if (!/duplicate column name/i.test(String(error?.message || ''))) {
+      throw error;
+    }
+  }
 }
 
 function normalizeOperator(operator) {
@@ -658,6 +855,112 @@ function clearWaitingUsers() {
   return users;
 }
 
+function recordSurprise(surprise) {
+  if (!surprise?.id) return null;
+  const createdAt = surprise.createdAt || new Date().toISOString();
+  db.prepare(`
+    INSERT INTO surprises (
+      id, category, severity, title, description, affectedFiles,
+      suggestedPrompt, status, createdAt, detailsJson
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      category = excluded.category,
+      severity = excluded.severity,
+      title = excluded.title,
+      description = excluded.description,
+      affectedFiles = excluded.affectedFiles,
+      suggestedPrompt = excluded.suggestedPrompt,
+      detailsJson = excluded.detailsJson
+  `).run(
+    surprise.id,
+    surprise.category || null,
+    surprise.severity || null,
+    surprise.title || null,
+    surprise.description || null,
+    JSON.stringify(surprise.affectedFiles || []),
+    surprise.suggestedPrompt || null,
+    createdAt,
+    JSON.stringify(surprise)
+  );
+  return getSurprise(surprise.id);
+}
+
+function getSurprise(id) {
+  const row = db.prepare('SELECT * FROM surprises WHERE id = ?').get(id);
+  return rowToSurprise(row);
+}
+
+function getPendingSurprises(limit = 10) {
+  return db.prepare(`
+    SELECT * FROM surprises
+    WHERE status = 'pending'
+    ORDER BY createdAt DESC
+    LIMIT ?
+  `).all(limit).map(rowToSurprise);
+}
+
+function getDismissedSurprises() {
+  return db.prepare(`
+    SELECT id, dismissedAt, dismissedBy
+    FROM surprises
+    WHERE status = 'dismissed' AND dismissedAt IS NOT NULL
+  `).all();
+}
+
+function dismissSurprise(id, dismissedBy = null) {
+  db.prepare(`
+    UPDATE surprises
+    SET status = 'dismissed', dismissedAt = ?, dismissedBy = ?
+    WHERE id = ?
+  `).run(new Date().toISOString(), dismissedBy || null, id);
+  return getSurprise(id);
+}
+
+function acceptSurprise(id, issueId = null) {
+  db.prepare(`
+    UPDATE surprises
+    SET status = 'accepted', issueId = ?
+    WHERE id = ?
+  `).run(issueId ? String(issueId) : null, id);
+  return getSurprise(id);
+}
+
+function completeSurprise(id) {
+  db.prepare('UPDATE surprises SET status = ? WHERE id = ?').run('completed', id);
+  return getSurprise(id);
+}
+
+function rowToSurprise(row) {
+  if (!row) return null;
+  let affectedFiles = [];
+  let details = {};
+  try {
+    affectedFiles = JSON.parse(row.affectedFiles || '[]');
+  } catch {
+    affectedFiles = [];
+  }
+  try {
+    details = JSON.parse(row.detailsJson || '{}');
+  } catch {
+    details = {};
+  }
+  return {
+    ...details,
+    id: row.id,
+    category: row.category,
+    severity: row.severity,
+    title: row.title,
+    description: row.description,
+    affectedFiles,
+    suggestedPrompt: row.suggestedPrompt,
+    status: row.status,
+    createdAt: row.createdAt,
+    dismissedAt: row.dismissedAt,
+    dismissedBy: row.dismissedBy,
+    issueId: row.issueId
+  };
+}
+
 function getPriorityQueue() {
   const raw = getJsonState('priority_queue', []);
   if (!Array.isArray(raw)) return [];
@@ -725,6 +1028,10 @@ function decrementBatchRemaining() {
 
 function recordCodexRun(run) {
   const operator = normalizeOperator(run.operator);
+  const status = run.status || null;
+  const durationSeconds = Number(run.durationSeconds || run.duration || 0) || 0;
+  const files = run.files || [];
+  const error = run.error || null;
   db.prepare(`
     INSERT INTO codex_runs (
       label, source, model, status, duration_seconds, issue_number,
@@ -735,17 +1042,92 @@ function recordCodexRun(run) {
     run.label || null,
     run.source || null,
     run.model || null,
-    run.status || null,
-    Number(run.durationSeconds || run.duration || 0) || 0,
+    status,
+    durationSeconds,
     run.issueNumber || null,
     operator?.username || null,
     operator?.displayName || null,
     run.startedAt || null,
     run.completedAt || new Date().toISOString(),
-    JSON.stringify(run.files || []),
+    JSON.stringify(files),
     run.totalTokens || null,
-    run.error || null
+    error
   );
+  recordRunAnalytics({
+    issueId: run.issueNumber || run.label || null,
+    model: run.model || null,
+    promptLength: run.promptLength || 0,
+    taskType: classifyTaskType(`${run.label || ''}\n${run.error || ''}`),
+    exitCode: status === 'completed' ? 0 : 1,
+    durationMs: Math.round(durationSeconds * 1000),
+    tokenCost: run.tokenCost || null,
+    failureReason: classifyFailureReason(error || status),
+    filesModified: Array.isArray(files) ? files.length : 0,
+    testsPassing: run.testsPassing ?? null,
+    createdAt: run.completedAt || new Date().toISOString()
+  });
+}
+
+function recordRunAnalytics(row = {}) {
+  db.prepare(`
+    INSERT INTO run_analytics (
+      issueId, model, promptLength, taskType, exitCode, durationMs,
+      tokenCost, failureReason, filesModified, testsPassing, createdAt
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    row.issueId ? String(row.issueId) : null,
+    row.model || null,
+    Number(row.promptLength || 0) || 0,
+    row.taskType || null,
+    Number.isInteger(Number(row.exitCode)) ? Number(row.exitCode) : null,
+    Number(row.durationMs || 0) || 0,
+    row.tokenCost || null,
+    row.failureReason || null,
+    Number(row.filesModified || 0) || 0,
+    row.testsPassing === null || row.testsPassing === undefined ? null : Number(row.testsPassing),
+    row.createdAt || new Date().toISOString()
+  );
+}
+
+function getRunAnalytics(limit = 500) {
+  return db.prepare(`
+    SELECT * FROM run_analytics
+    ORDER BY createdAt DESC
+    LIMIT ?
+  `).all(limit);
+}
+
+function recordSelfHealTask(task) {
+  if (!task?.id) return null;
+  db.prepare(`
+    INSERT OR IGNORE INTO self_heal_tasks (
+      id, title, description, prompt, affectedFile, status, createdAt
+    ) VALUES (?, ?, ?, ?, ?, 'pending', ?)
+  `).run(
+    task.id,
+    task.title || null,
+    task.description || null,
+    task.prompt || null,
+    task.affectedFile || null,
+    task.createdAt || new Date().toISOString()
+  );
+  setState('self_heal_last_created_at', new Date().toISOString());
+  return getSelfHealTask(task.id);
+}
+
+function getSelfHealTask(id) {
+  return db.prepare('SELECT * FROM self_heal_tasks WHERE id = ?').get(id) || null;
+}
+
+function updateSelfHealTaskStatus(id, status) {
+  const field = status === 'approved' ? 'approvedAt' : status === 'ignored' ? 'ignoredAt' : null;
+  if (field) {
+    db.prepare(`UPDATE self_heal_tasks SET status = ?, ${field} = ? WHERE id = ?`)
+      .run(status, new Date().toISOString(), id);
+  } else {
+    db.prepare('UPDATE self_heal_tasks SET status = ? WHERE id = ?').run(status, id);
+  }
+  return getSelfHealTask(id);
 }
 
 function getStats() {
@@ -808,12 +1190,22 @@ module.exports = {
   initDatabase,
   getState,
   setState,
+  getSetting,
+  setSetting,
+  getBooleanSetting,
+  setBooleanSetting,
   getCurrentIssue,
   setCurrentIssue,
   recordIssueStart,
   recordIssueComplete,
   recordIssueError,
   recordIssueAwaitingKey,
+  isServiceOutageState,
+  recordIssueServiceUnavailable,
+  resetIssueServiceOutage,
+  getDueServiceOutageIssues,
+  resumeDueServiceOutageIssues,
+  discardServiceOutageIssue,
   recordIssueStopped,
   setIssueDeliveryStatus,
   getIssueRecord,
@@ -841,6 +1233,13 @@ module.exports = {
   getWaitingUserPosition,
   removeWaitingUser,
   clearWaitingUsers,
+  recordSurprise,
+  getSurprise,
+  getPendingSurprises,
+  getDismissedSurprises,
+  dismissSurprise,
+  acceptSurprise,
+  completeSurprise,
   getPriorityQueue,
   setPriorityQueue,
   prioritizeIssue,
@@ -852,5 +1251,10 @@ module.exports = {
   setBatchRemaining,
   decrementBatchRemaining,
   recordCodexRun,
+  recordRunAnalytics,
+  getRunAnalytics,
+  recordSelfHealTask,
+  getSelfHealTask,
+  updateSelfHealTaskStatus,
   getStats
 };

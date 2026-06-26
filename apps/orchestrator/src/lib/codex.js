@@ -23,6 +23,11 @@ const {
   writeFilePrivate,
   securePath
 } = require('./security');
+const {
+  parseCodexStream,
+  createLiveStreamState,
+  appendLiveEvents
+} = require('./live-streamer');
 
 const WORKDIR = process.env.CODEX_WORKDIR || process.env.REPO_PATH || process.cwd();
 const HOME_DIR = process.env.HOME || os.homedir();
@@ -47,6 +52,7 @@ const CODEX_MAX_RUNTIME_MS = CODEX_MAX_RUNTIME_MINUTES * 60 * 1000;
 const GIT_TIMEOUT_MS = 120000;
 const GIT_COMMITTER_NAME = process.env.GIT_COMMITTER_NAME || 'Prometheus Orchestrator';
 const GIT_COMMITTER_EMAIL = process.env.GIT_COMMITTER_EMAIL || 'prometheus-orchestrator@localhost';
+const SERVICE_OUTAGE_RETRY_DELAYS_MS = [5 * 60 * 1000, 10 * 60 * 1000, 20 * 60 * 1000];
 
 let activeRun = null;
 let lastRun = null;
@@ -613,6 +619,84 @@ function classifyApiKeyFailureText(text) {
   return null;
 }
 
+function classifyServiceOutageText(text) {
+  const normalized = String(text || '');
+  const lower = normalized.toLowerCase();
+  if (
+    lower.includes('503 service unavailable') ||
+    lower.includes('service temporarily unavailable') ||
+    lower.includes('unexpected status 503') ||
+    /\b503\b/.test(lower)
+  ) {
+    return {
+      code: 'SERVICE_UNAVAILABLE',
+      serviceOutage: true,
+      isRetryable: true,
+      maxRetries: SERVICE_OUTAGE_RETRY_DELAYS_MS.length,
+      retryDelays: SERVICE_OUTAGE_RETRY_DELAYS_MS,
+      cfRayId: extractHeaderValue(normalized, 'cf-ray'),
+      requestId: extractRequestId(normalized)
+    };
+  }
+  return null;
+}
+
+function extractHeaderValue(text, headerName) {
+  const escaped = String(headerName || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const match = String(text || '').match(new RegExp(`${escaped}\\s*[:=]\\s*([A-Za-z0-9_-]+)`, 'i'));
+  return match ? match[1] : null;
+}
+
+function extractRequestId(text) {
+  const match = String(text || '').match(/\b(?:request(?:\s|-|_)?id|req(?:\s|-|_)?id)\s*[:=]?\s*([A-Za-z0-9_-]{8,})/i);
+  return match ? match[1] : null;
+}
+
+function classifyCodexError({ stdout = '', stderr = '', exitCode = null } = {}) {
+  const text = [stdout, stderr].filter(Boolean).join('\n');
+  const outage = classifyServiceOutageText(text);
+  if (outage) {
+    const error = new Error('SERVICE_UNAVAILABLE: Codex service temporarily unavailable.');
+    Object.assign(error, outage, {
+      stdout: redactSecrets(stdout),
+      stderr: redactSecrets(stderr),
+      exitCode
+    });
+    return error;
+  }
+
+  const apiKeyFailureType = classifyApiKeyFailureText(text);
+  if (apiKeyFailureType) {
+    const exhausted = apiKeyFailureType === 'exhausted';
+    const error = new Error(exhausted
+      ? 'API_KEY_EXHAUSTED: Codex key hit a quota or rate limit.'
+      : 'API_KEY_FAILED: Codex key was rejected.');
+    error.code = exhausted ? 'API_KEY_EXHAUSTED' : 'API_KEY_FAILED';
+    error.retryableKeyFailure = true;
+    error.failureType = apiKeyFailureType;
+    error.stdout = redactSecrets(stdout);
+    error.stderr = redactSecrets(stderr);
+    error.exitCode = exitCode;
+    return error;
+  }
+
+  const error = new Error(`CODEX_FAILED: Exit code ${exitCode ?? 'unknown'}. ${redactSecrets(text)}`);
+  error.code = 'CODEX_FAILED';
+  error.stdout = redactSecrets(stdout);
+  error.stderr = redactSecrets(stderr);
+  error.exitCode = exitCode;
+  return error;
+}
+
+function isServiceOutageError(error) {
+  if (!error) return false;
+  return (
+    error.code === 'SERVICE_UNAVAILABLE' ||
+    error.serviceOutage === true ||
+    classifyServiceOutageText(`${error.message || ''}\n${error.stdout || ''}\n${error.stderr || ''}\n${error.errorOutput || ''}`) !== null
+  );
+}
+
 function preferApiKeyFailureType(current, next) {
   if (!next) return current;
   if (current === 'exhausted') return current;
@@ -677,6 +761,9 @@ async function runCodexWithFallback(prompt, options) {
   try {
     return await runCodexCommand(prompt, options);
   } catch (error) {
+    if (isServiceOutageError(error)) {
+      throw error;
+    }
     if (!isApiKeyFailureError(error) || options._fallbackRetried) {
       throw error;
     }
@@ -1013,6 +1100,7 @@ function runCodexCommand(prompt, options) {
     }
 
     const model = options.model || getState('current_model') || 'gpt-5.5';
+    options.promptLength = String(prompt || '').length;
     const promptFile = writePromptTempFile(prompt);
     const args = ['exec', '-m', model, '--json', '-'];
     const noOutputTimeoutMinutes = parsePositiveNumber(
@@ -1115,7 +1203,8 @@ function runCodexCommand(prompt, options) {
       },
       timeout: null,
       promptFile,
-      thinking: createThinkingState(options.label)
+      thinking: createThinkingState(options.label),
+      liveStream: createLiveStreamState(options.label, model)
     };
     activeRun.lock = setCodexLock(activeRun.operator, options.label);
     logCodexEvent('start', `Codex started: ${options.label}`, {
@@ -1160,6 +1249,9 @@ function runCodexCommand(prompt, options) {
 
     codex.stdout.on('data', (data) => {
       resetNoOutputTimer();
+      if (activeRun && activeRun.id === runId) {
+        appendLiveEvents(activeRun.liveStream, parseCodexStream(data));
+      }
       const lines = data.toString().split('\n').filter(l => l.trim());
       for (const line of lines) {
         let event;
@@ -1243,6 +1335,32 @@ function runCodexCommand(prompt, options) {
       
       const codexFailureOutput = collectCodexFailureOutput(output);
       const fullErrorOutput = redactSecrets([errorOutput, codexFailureOutput].filter(Boolean).join('\n'));
+      const classifiedError = classifyCodexError({
+        stdout: codexFailureOutput,
+        stderr: errorOutput,
+        exitCode: code
+      });
+      if (code !== 0 && isServiceOutageError(classifiedError)) {
+        const error = classifiedError;
+        const cfRay = error.cfRayId || 'not reported';
+        const requestId = error.requestId || 'not reported';
+        error.message = `SERVICE_UNAVAILABLE: Codex service temporarily unavailable (503). Cloudflare ray: ${cfRay}. Request ID: ${requestId}.`;
+        error.errorOutput = fullErrorOutput;
+        lastRun = buildLastRun(runId, options, model, duration, 'service_unavailable', error.message, output, fullErrorOutput);
+        persistCodexRun(options, model, duration, 'service_unavailable', error.message, output, startedAt);
+        logCodexEvent('error', 'Service outage detected: 503 Service Unavailable', {
+          runId,
+          cfRayId: error.cfRayId || null,
+          requestId: error.requestId || null,
+          issueNumber: options.metadata?.issueNumber || null
+        });
+        console.warn('[Codex] Service outage detected: 503 Service Unavailable');
+        console.warn(`[Codex] Cloudflare ray: ${cfRay}`);
+        console.warn(`[Codex] Request ID: ${requestId}`);
+        settled = true;
+        reject(error);
+        return;
+      }
       const closeFailureType = apiKeyFailureType || classifyApiKeyFailureText(fullErrorOutput);
       if (code !== 0 && closeFailureType) {
         const exhausted = closeFailureType === 'exhausted';
@@ -1540,7 +1658,8 @@ function persistCodexRun(options, model, duration, status, error, output, starte
       completedAt: new Date().toISOString(),
       files: parsed.filesChanged,
       totalTokens: parsed.totalTokens,
-      error: redactSecrets(error)
+      error: redactSecrets(error),
+      promptLength: options.promptLength || 0
     });
   } catch (persistError) {
     logCodexEvent('error', `Failed to persist Codex run stats: ${persistError.message}`);
@@ -1934,6 +2053,8 @@ module.exports = {
   validateApiKey,
   isApiKeyFailureText,
   isApiKeyFailureError,
+  classifyCodexError,
+  isServiceOutageError,
   redactKey,
   getCurrentApiKey,
   getKeySuffix,

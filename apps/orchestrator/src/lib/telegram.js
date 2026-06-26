@@ -25,13 +25,25 @@ const {
   getBatchRemaining,
   setBatchRemaining,
   getStats,
+  getRunAnalytics,
+  getBooleanSetting,
+  setBooleanSetting,
   acquireDeliveryLock,
   releaseDeliveryLock,
   addWaitingUser,
   getWaitingUser,
   getWaitingUsers,
   getWaitingUserPosition,
-  removeWaitingUser
+  removeWaitingUser,
+  resetIssueServiceOutage,
+  discardServiceOutageIssue,
+  recordSurprise,
+  getSurprise,
+  getDismissedSurprises,
+  dismissSurprise,
+  acceptSurprise,
+  getSelfHealTask,
+  updateSelfHealTaskStatus
 } = require('./database');
 const {
   runCodexPrompt,
@@ -52,9 +64,13 @@ const {
   commitAndPushIssueChanges,
   pushMain,
   pullAndMergeMain,
-  discardCodexChanges
+  discardCodexChanges,
+  isServiceOutageError
 } = require('./codex');
-const { getIssue, closeIssue } = require('./github');
+const { getIssue, closeIssue, createIssue } = require('./github');
+const surpriseEngine = require('./surprise-engine');
+const { runPreflightCheck } = require('./preflight-check');
+const { summarizeAnalytics } = require('./analytics');
 
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const AUTHORIZED_CHATS = (process.env.AUTHORIZED_CHAT_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
@@ -69,6 +85,7 @@ const DIFF_STREAM_WORKDIR = process.env.CODEX_WORKDIR || process.cwd();
 const WATCHDOG_THRESHOLD = parseInt(process.env.WATCHDOG_THRESHOLD_PERCENT, 10) || 80;
 const WATCHDOG_PATH = process.env.WATCHDOG_DISK_PATH || DIFF_STREAM_WORKDIR;
 const SESSION_RESERVATION_TTL_MS = 10 * 60 * 1000;
+const PREFLIGHT_DEFAULT_ENABLED = process.env.PREFLIGHT_ENABLED === 'true';
 
 let bot;
 let messageCallbacks = new Map();
@@ -129,6 +146,31 @@ function initBot() {
       return;
     }
     await sendStatsPanel(chatId);
+  });
+
+  bot.onText(/\/analytics(?:@\w+)?(?:\s|$)/, async (msg) => {
+    const chatId = msg.chat.id;
+    if (!isAuthorized(chatId)) {
+      await sendTrackedMessage(chatId, `Unauthorized chat. Your chat ID is \`${chatId}\`.`, { parse_mode: 'Markdown' });
+      return;
+    }
+    await sendAnalyticsPanel(chatId);
+  });
+
+  bot.onText(/\/autosurprise(?:@\w+)?(?:\s+(on|off))?/i, async (msg, match) => {
+    const chatId = msg.chat.id;
+    if (!isAuthorized(chatId)) {
+      await sendTrackedMessage(chatId, `Unauthorized chat. Your chat ID is \`${chatId}\`.`, { parse_mode: 'Markdown' });
+      return;
+    }
+    const value = String(match?.[1] || '').toLowerCase();
+    if (value === 'on' || value === 'off') {
+      setBooleanSetting('autoSurpriseEnabled', value === 'on');
+    }
+    await sendTrackedMessage(chatId,
+      `🎁 Auto-surprise is ${getBooleanSetting('autoSurpriseEnabled', false) ? 'ON' : 'OFF'}.`,
+      { reply_markup: settingsPanelKeyboard() }
+    );
   });
 
   bot.on('message', async (msg) => {
@@ -249,8 +291,13 @@ function controlPanelKeyboard() {
       ],
       [
         { text: '💬 Prompt Codex', callback_data: 'panel:prompt' },
-        { text: '🩺 Doctor', callback_data: 'panel:doctor' },
+        { text: '🎁 Surprise Me', callback_data: 'panel:surprise' },
         { text: '❓', callback_data: 'help:main:prompt_doctor' }
+      ],
+      [
+        { text: '🩺 Doctor', callback_data: 'panel:doctor' },
+        { text: '📊 Analytics', callback_data: 'panel:analytics' },
+        { text: '❓', callback_data: 'help:main:queue_stats_help' }
       ],
       [
         { text: '🔑 API Key', callback_data: 'panel:key' },
@@ -276,6 +323,31 @@ function controlPanelKeyboard() {
 async function handlePanelAction(query) {
   const chatId = query.message.chat.id;
   const data = query.data;
+
+  if (data.startsWith('panel:service_outage:')) {
+    await handleServiceOutageAction(query);
+    return;
+  }
+
+  if (data.startsWith('panel:surprise:')) {
+    await handleSurpriseAction(query);
+    return;
+  }
+
+  if (data.startsWith('panel:self_heal:')) {
+    await handleSelfHealAction(query);
+    return;
+  }
+
+  if (data.startsWith('panel:preflight:')) {
+    await handlePreflightAction(query);
+    return;
+  }
+
+  if (data.startsWith('panel:live:')) {
+    await handleLiveAction(query);
+    return;
+  }
 
   if (data.startsWith('panel:delivery:')) {
     await handleDeliveryAction(query);
@@ -317,6 +389,18 @@ async function handlePanelAction(query) {
   if (data === 'panel:stats') {
     await bot.answerCallbackQuery(query.id, { text: 'Stats' });
     await sendStatsPanel(chatId);
+    return;
+  }
+
+  if (data === 'panel:analytics') {
+    await bot.answerCallbackQuery(query.id, { text: 'Analytics' });
+    await sendAnalyticsPanel(chatId);
+    return;
+  }
+
+  if (data === 'panel:surprise') {
+    await bot.answerCallbackQuery(query.id, { text: 'Auditing codebase' });
+    await sendSurpriseDiscovery(chatId);
     return;
   }
 
@@ -416,6 +500,30 @@ async function handlePanelAction(query) {
   if (data === 'panel:rotate_keys') {
     await bot.answerCallbackQuery(query.id, { text: 'Key rotation' });
     await sendRotateKeysPanel(chatId);
+    return;
+  }
+
+  if (data === 'panel:settings:auto_surprise') {
+    const next = !getBooleanSetting('autoSurpriseEnabled', false);
+    setBooleanSetting('autoSurpriseEnabled', next);
+    await bot.answerCallbackQuery(query.id, { text: `Auto-surprise ${next ? 'on' : 'off'}` });
+    await sendSettingsPanel(chatId);
+    return;
+  }
+
+  if (data === 'panel:settings:preflight') {
+    const next = !isPreflightEnabled();
+    setBooleanSetting('preflightEnabled', next);
+    await bot.answerCallbackQuery(query.id, { text: `Preflight ${next ? 'on' : 'off'}` });
+    await sendSettingsPanel(chatId);
+    return;
+  }
+
+  if (data === 'panel:settings:self_heal') {
+    const next = !getBooleanSetting('selfHealEnabled', false);
+    setBooleanSetting('selfHealEnabled', next);
+    await bot.answerCallbackQuery(query.id, { text: `Self-heal ${next ? 'on' : 'off'}` });
+    await sendSettingsPanel(chatId);
     return;
   }
 
@@ -899,7 +1007,8 @@ async function startDiffStream(chatId, label, operator = null) {
   diffStreams.set(stream.chatId, stream);
 
   const sent = await sendTrackedMessage(chatId, buildDiffStreamText(stream, 'Starting diff stream...'), {
-    parse_mode: 'Markdown'
+    parse_mode: 'Markdown',
+    reply_markup: liveStreamKeyboard()
   });
   stream.messageId = sent.message_id;
 
@@ -1056,13 +1165,15 @@ async function refreshDiffStream(chatId) {
     await safeEditMessageText(buildDiffStreamText(stream, stat), {
       chat_id: stream.chatId,
       message_id: stream.messageId,
-      parse_mode: 'Markdown'
+      parse_mode: 'Markdown',
+      reply_markup: liveStreamKeyboard()
     });
   } catch (error) {
     await safeEditMessageText(buildDiffStreamText(stream, `Unable to read git diff: ${error.message}`), {
       chat_id: stream.chatId,
       message_id: stream.messageId,
-      parse_mode: 'Markdown'
+      parse_mode: 'Markdown',
+      reply_markup: liveStreamKeyboard()
     });
   } finally {
     stream.updating = false;
@@ -1082,19 +1193,52 @@ function readGitDiffStat(workdir) {
 }
 
 function buildDiffStreamText(stream, stat) {
+  const runtime = getCodexRuntimeStatus();
+  const live = runtime.activeRun?.liveStream;
   const owner = formatOperatorMention(stream.operator);
   const elapsedSeconds = Math.max(0, Math.round((Date.now() - stream.startedAt) / 1000));
   const safeStat = String(stat || 'No working tree diff yet.').slice(-2200);
+  const liveLines = formatLiveStreamEvents(live?.events || []);
 
   return (
-    `🧾 *LIVE DIFF STREAM*\n` +
+    `🤖 *LIVE CODING STREAM*\n` +
     `━━━━━━━━━━━━━━━━━━━━━━\n` +
     `Task: ${escapeMarkdown(stream.label || 'Codex run')}\n` +
+    `Model: \`${escapeMarkdown(runtime.model || 'unknown')}\`\n` +
     `${owner ? `Operator: ${escapeMarkdown(owner)}\n` : ''}` +
     `Elapsed: ${elapsedSeconds}s\n` +
     `Updated: \`${new Date().toISOString()}\`\n\n` +
+    `${liveLines ? `${liveLines}\n\n` : ''}` +
     `\`\`\`\n${escapeCodeBlock(safeStat)}\n\`\`\``
   ).slice(0, 3900);
+}
+
+function formatLiveStreamEvents(events = []) {
+  if (!events.length) return '';
+  return events.slice(-8).map(event => {
+    if (event.kind === 'file') {
+      return `📝 Writing \`${escapeMarkdown(event.file)}\`\n   └─ ${escapeMarkdown(String(event.delta || '').replace(/\s+/g, ' ').slice(0, 120))}`;
+    }
+    if (event.kind === 'tool') {
+      return `🔧 Running: \`${escapeMarkdown(String(event.command || event.tool || '').slice(0, 120))}\``;
+    }
+    if (event.kind === 'thought') {
+      return `💭 Thinking: ${escapeMarkdown(String(event.content || '').replace(/\s+/g, ' ').slice(0, 140))}`;
+    }
+    return null;
+  }).filter(Boolean).join('\n');
+}
+
+function liveStreamKeyboard() {
+  return {
+    inline_keyboard: [
+      [
+        { text: '⏹ Stop', callback_data: 'panel:live:stop' },
+        { text: '⏸️ Pause', callback_data: 'panel:live:pause' },
+        { text: '↩️ Revert Last', callback_data: 'panel:live:revert' }
+      ]
+    ]
+  };
 }
 
 function trackMessage(chatId, messageId) {
@@ -1424,9 +1568,321 @@ async function handlePendingInputMessage(msg) {
   }
 
   if (pending.type === 'codex_prompt') {
-    await runPromptFromTelegram(msg.chat.id, msg.text.trim(), 'Manual Telegram prompt', operatorFromMessage(msg));
+    await maybeRunPromptWithPreflight(msg.chat.id, msg.text.trim(), 'Manual Telegram prompt', operatorFromMessage(msg));
     return;
   }
+}
+
+async function maybeRunPromptWithPreflight(chatId, prompt, label, operator = null) {
+  if (!isPreflightEnabled()) {
+    await runPromptFromTelegram(chatId, prompt, label, operator);
+    return;
+  }
+
+  const warnings = runPreflightCheck(prompt);
+  if (warnings.length === 0) {
+    await runPromptFromTelegram(chatId, prompt, label, operator);
+    return;
+  }
+
+  const id = `preflight-${Date.now()}`;
+  pendingInputs.set(id, {
+    type: 'preflight_prompt',
+    chatId,
+    prompt,
+    label,
+    operator,
+    expiresAt: Date.now() + 30 * 60 * 1000
+  });
+  await sendTrackedMessage(chatId, buildPreflightText(warnings), {
+    parse_mode: 'Markdown',
+    reply_markup: preflightKeyboard(id)
+  });
+}
+
+function isPreflightEnabled() {
+  return getBooleanSetting('preflightEnabled', PREFLIGHT_DEFAULT_ENABLED);
+}
+
+function buildPreflightText(warnings) {
+  const counts = warnings.length;
+  const lines = warnings.slice(0, 8).map(warning => {
+    const icon = warning.severity === 'high' ? '🔴 HIGH' : warning.severity === 'medium' ? '🟡 MEDIUM' : '⚪ LOW';
+    return `${icon}: ${escapeMarkdown(warning.message)}`;
+  });
+  return (
+    `⚠️ *PREFLIGHT CHECK — ${counts} warning${counts === 1 ? '' : 's'}*\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+    `Before running Codex, I found potential issues:\n\n` +
+    `${lines.join('\n')}`
+  ).slice(0, 3900);
+}
+
+function preflightKeyboard(id) {
+  return {
+    inline_keyboard: [
+      [
+        { text: '🚀 Proceed Anyway', callback_data: `panel:preflight:proceed:${id}` },
+        { text: '❌ Cancel', callback_data: `panel:preflight:cancel:${id}` }
+      ],
+      [
+        { text: '✏️ Edit Prompt', callback_data: `panel:preflight:edit:${id}` }
+      ]
+    ]
+  };
+}
+
+async function handlePreflightAction(query) {
+  const chatId = query.message.chat.id;
+  const parts = query.data.split(':');
+  const action = parts[2];
+  const id = parts[3];
+  const pending = pendingInputs.get(id);
+  if (!pending || pending.type !== 'preflight_prompt' || pending.chatId !== chatId) {
+    await bot.answerCallbackQuery(query.id, { text: 'Preflight expired' });
+    return;
+  }
+  if (action === 'cancel') {
+    pendingInputs.delete(id);
+    await bot.answerCallbackQuery(query.id, { text: 'Cancelled' });
+    await sendTrackedMessage(chatId, '❌ Codex prompt cancelled.', { reply_markup: controlPanelKeyboard() });
+    return;
+  }
+  if (action === 'edit') {
+    pendingInputs.delete(id);
+    await bot.answerCallbackQuery(query.id, { text: 'Edit prompt' });
+    await askForInput(chatId, 'codex_prompt', '✏️ Send the revised Codex prompt.');
+    return;
+  }
+  if (action === 'proceed') {
+    pendingInputs.delete(id);
+    await bot.answerCallbackQuery(query.id, { text: 'Proceeding' });
+    await runPromptFromTelegram(chatId, pending.prompt, pending.label, pending.operator);
+    return;
+  }
+  await bot.answerCallbackQuery(query.id, { text: 'Unknown preflight action' });
+}
+
+async function sendSurpriseDiscovery(chatId, providedFindings = null) {
+  const findings = providedFindings || surpriseEngine.getTopSurprises({
+    root: DIFF_STREAM_WORKDIR,
+    dismissed: getDismissedSurprises(),
+    limit: 3
+  });
+
+  if (findings.length === 0) {
+    await sendTrackedMessage(chatId,
+      `🎁 *SURPRISE DISCOVERY*\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+      `No new high-value findings surfaced in this lightweight audit.`,
+      { parse_mode: 'Markdown', reply_markup: controlPanelKeyboard() }
+    );
+    return;
+  }
+
+  for (const finding of findings) {
+    recordSurprise(finding);
+  }
+  await sendSurpriseAlert(chatId, findings[0]);
+}
+
+async function sendSurpriseAlert(chatId, finding) {
+  const files = (finding.affectedFiles || []).slice(0, 4).join(', ');
+  const text =
+    `🎁 *SURPRISE DISCOVERY*\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+    `${finding.emoji || '🎁'} *${escapeMarkdown(finding.category || 'Finding')}:* ${escapeMarkdown(finding.title || 'Codebase opportunity')}\n\n` +
+    `${escapeMarkdown(finding.description || '')}\n\n` +
+    `Files: ${escapeMarkdown(files || 'n/a')}\n` +
+    `Impact: ${escapeMarkdown(finding.estimatedImpact || 'Improves codebase quality')}`;
+
+  await sendTrackedMessage(chatId, text.slice(0, 3900), {
+    parse_mode: 'Markdown',
+    reply_markup: surpriseKeyboard(finding.id)
+  });
+}
+
+function surpriseKeyboard(id) {
+  return {
+    inline_keyboard: [
+      [
+        { text: '✅ Fix It Now', callback_data: `panel:surprise:fix:${id}` },
+        { text: '📋 View Details', callback_data: `panel:surprise:details:${id}` }
+      ],
+      [
+        { text: '❌ Dismiss', callback_data: `panel:surprise:dismiss:${id}` },
+        { text: '🔔 Future Surprises', callback_data: 'panel:surprise:notify' }
+      ]
+    ]
+  };
+}
+
+async function handleSurpriseAction(query) {
+  const chatId = query.message.chat.id;
+  const parts = query.data.split(':');
+  const action = parts[2];
+  const id = parts[3];
+
+  if (action === 'notify') {
+    setBooleanSetting('autoSurpriseEnabled', true);
+    await bot.answerCallbackQuery(query.id, { text: 'Auto-surprise enabled' });
+    await sendTrackedMessage(chatId, '🔔 Auto-surprise enabled. High severity findings will be sent proactively.', {
+      reply_markup: settingsPanelKeyboard()
+    });
+    return;
+  }
+
+  const surprise = getSurprise(id);
+  if (!surprise) {
+    await bot.answerCallbackQuery(query.id, { text: 'Surprise expired' });
+    return;
+  }
+
+  if (action === 'details') {
+    await bot.answerCallbackQuery(query.id, { text: 'Details' });
+    await sendSurpriseDetails(chatId, surprise);
+    return;
+  }
+
+  if (action === 'dismiss') {
+    dismissSurprise(id, String(query.from?.id || chatId));
+    await bot.answerCallbackQuery(query.id, { text: 'Dismissed' });
+    await sendTrackedMessage(chatId, '❌ Surprise dismissed for 7 days.', {
+      reply_markup: controlPanelKeyboard()
+    });
+    return;
+  }
+
+  if (action === 'fix') {
+    await bot.answerCallbackQuery(query.id, { text: 'Creating issue' });
+    const issue = await createIssue(
+      `🎁 Surprise: ${surprise.title}`,
+      buildSurpriseIssueBody(surprise)
+    );
+    acceptSurprise(id, issue.number);
+    prioritizeIssue(issue.number);
+    setState('pipeline_status', 'running');
+    await sendTrackedMessage(chatId,
+      `✅ Created Issue #${issue.number} for the surprise task and moved it to the front of the queue.`,
+      { reply_markup: controlPanelKeyboard() }
+    );
+    return;
+  }
+
+  await bot.answerCallbackQuery(query.id, { text: 'Unknown surprise action' });
+}
+
+function buildSurpriseIssueBody(surprise) {
+  const files = (surprise.affectedFiles || []).map(file => `- ${file}`).join('\n') || '- n/a';
+  return [
+    'Autonomous surprise discovery from the Prometheus orchestrator.',
+    '',
+    `Category: ${surprise.category}`,
+    `Severity: ${surprise.severity}`,
+    '',
+    surprise.description || '',
+    '',
+    'Affected files:',
+    files,
+    '',
+    'Suggested prompt:',
+    surprise.suggestedPrompt || ''
+  ].join('\n');
+}
+
+async function sendSurpriseDetails(chatId, surprise) {
+  const occurrences = (surprise.occurrences || []).slice(0, 12);
+  const lines = occurrences.map(item =>
+    `• \`${escapeMarkdown(item.file || 'unknown')}:${escapeMarkdown(String(item.line || '?'))}\`\n  ${escapeMarkdown(item.snippet || '')}`
+  );
+  const text =
+    `📋 *Surprise Details*\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `${escapeMarkdown(surprise.title || 'Finding')}\n\n` +
+    `${lines.join('\n') || '_No snippet details available._'}\n\n` +
+    `*Suggested prompt:*\n${escapeMarkdown((surprise.suggestedPrompt || '').slice(0, 1000))}`;
+  await sendTrackedMessage(chatId, text.slice(0, 3900), {
+    parse_mode: 'Markdown',
+    reply_markup: surpriseKeyboard(surprise.id)
+  });
+}
+
+async function handleSelfHealAction(query) {
+  const chatId = query.message.chat.id;
+  const parts = query.data.split(':');
+  const action = parts[2];
+  const id = parts[3];
+  const task = getSelfHealTask(id);
+  if (!task) {
+    await bot.answerCallbackQuery(query.id, { text: 'Self-heal task not found' });
+    return;
+  }
+
+  if (action === 'review') {
+    await bot.answerCallbackQuery(query.id, { text: 'Review' });
+    await sendTrackedMessage(chatId, buildSelfHealReviewText(task), {
+      parse_mode: 'Markdown',
+      reply_markup: selfHealKeyboard(task.id)
+    });
+    return;
+  }
+
+  if (action === 'approve') {
+    updateSelfHealTaskStatus(id, 'approved');
+    await bot.answerCallbackQuery(query.id, { text: 'Approved' });
+    await runPromptFromTelegram(chatId, task.prompt, task.title, operatorFromQuery(query));
+    return;
+  }
+
+  if (action === 'ignore') {
+    updateSelfHealTaskStatus(id, 'ignored');
+    await bot.answerCallbackQuery(query.id, { text: 'Ignored' });
+    await sendTrackedMessage(chatId, '❌ Self-heal task ignored.', { reply_markup: controlPanelKeyboard() });
+    return;
+  }
+
+  await bot.answerCallbackQuery(query.id, { text: 'Unknown self-heal action' });
+}
+
+function buildSelfHealReviewText(task) {
+  return (
+    `🩹 *SELF-HEAL DETECTED*\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `File: \`${escapeMarkdown(task.affectedFile || 'unknown')}\`\n` +
+    `Task: ${escapeMarkdown(task.title || task.id)}\n\n` +
+    `${escapeMarkdown((task.description || '').slice(0, 1800))}`
+  ).slice(0, 3900);
+}
+
+function selfHealKeyboard(id) {
+  return {
+    inline_keyboard: [
+      [
+        { text: '🔍 Review Fix', callback_data: `panel:self_heal:review:${id}` },
+        { text: '✅ Approve & Apply', callback_data: `panel:self_heal:approve:${id}` }
+      ],
+      [
+        { text: '❌ Ignore', callback_data: `panel:self_heal:ignore:${id}` }
+      ]
+    ]
+  };
+}
+
+async function sendSelfHealAlert(chatId, task) {
+  await sendTrackedMessage(chatId, buildSelfHealReviewText(task), {
+    parse_mode: 'Markdown',
+    reply_markup: selfHealKeyboard(task.id)
+  });
+}
+
+async function handleLiveAction(query) {
+  const action = query.data.split(':')[2];
+  if (action === 'stop') {
+    await bot.answerCallbackQuery(query.id, { text: 'Stopping Codex' });
+    await stopCodexFromTelegram(query.message.chat.id);
+    return;
+  }
+  await bot.answerCallbackQuery(query.id, { text: 'Live control is not available yet' });
 }
 
 async function updateApiKeyFromMessage(chatId, messageId, rawKey, operator = null) {
@@ -2209,6 +2665,63 @@ function resumeBatchIfArmed(defaultStatus = 'paused') {
   return '';
 }
 
+async function handleServiceOutageAction(query) {
+  const chatId = query.message.chat.id;
+  const parts = query.data.split(':');
+  const action = parts[2];
+  const issueNumber = Number(parts[3]);
+
+  if (!Number.isInteger(issueNumber) || issueNumber <= 0) {
+    await bot.answerCallbackQuery(query.id, { text: 'Missing issue number' });
+    return;
+  }
+
+  const issue = getIssueRecord(issueNumber);
+  if (!issue) {
+    await bot.answerCallbackQuery(query.id, { text: 'Issue not found' });
+    await sendTrackedMessage(chatId, `Issue #${issueNumber} is not in the local database.`, {
+      reply_markup: controlPanelKeyboard()
+    });
+    return;
+  }
+
+  if (action === 'retry_now') {
+    resetIssueServiceOutage(issueNumber, {
+      retryCount: 0,
+      clearFirstSeen: true,
+      error: 'Service outage retry requested by Telegram operator.'
+    });
+    prioritizeIssue(issueNumber);
+    setCurrentIssue(null);
+    setState('pipeline_status', 'running');
+    await bot.answerCallbackQuery(query.id, { text: `Retrying #${issueNumber}` });
+    await sendTrackedMessage(chatId, `🔄 Issue #${issueNumber} moved back to pending and prioritized.`, {
+      reply_markup: controlPanelKeyboard()
+    });
+    return;
+  }
+
+  if (action === 'pause') {
+    setState('pipeline_status', 'paused');
+    await bot.answerCallbackQuery(query.id, { text: 'Pipeline paused' });
+    await sendTrackedMessage(chatId, '⏸️ Pipeline paused. The service outage issue remains queued for retry.', {
+      reply_markup: controlPanelKeyboard()
+    });
+    return;
+  }
+
+  if (action === 'discard') {
+    discardServiceOutageIssue(issueNumber, 'Discarded by admin after Codex service outage.');
+    await bot.answerCallbackQuery(query.id, { text: `Discarded #${issueNumber}` });
+    await sendTrackedMessage(chatId, `🗑️ Issue #${issueNumber} marked failed and removed from outage retry.`, {
+      reply_markup: controlPanelKeyboard()
+    });
+    return;
+  }
+
+  await bot.answerCallbackQuery(query.id, { text: 'Unknown service outage action' });
+}
+
 async function sendPushFailure(chatId, issue, error, message = null) {
   const conflict = Boolean(error.conflict);
   const issueNumber = issue.issue_number || issue.number;
@@ -2356,7 +2869,10 @@ async function sendSettingsPanel(chatId) {
     `━━━━━━━━━━━━━━━━━━━━━━\n` +
     `Model: \`${escapeMarkdown(getState('current_model') || 'gpt-5.5')}\`\n` +
     `API key: \`${escapeMarkdown(keySummary.currentRedacted)}\`\n` +
-    `Fallback keys: ${keySummary.fallbackCount}\n\n` +
+    `Fallback keys: ${keySummary.fallbackCount}\n` +
+    `Auto-surprise: ${getBooleanSetting('autoSurpriseEnabled', false) ? 'ON' : 'OFF'}\n` +
+    `Preflight: ${isPreflightEnabled() ? 'ON' : 'OFF'}\n` +
+    `Self-heal: ${getBooleanSetting('selfHealEnabled', false) ? 'ON' : 'OFF'}\n\n` +
     `Change runtime settings or clean up recent bot messages.`,
     {
       parse_mode: 'Markdown',
@@ -2376,6 +2892,13 @@ function settingsPanelKeyboard() {
       [
         { text: '🔄 Rotate Keys', callback_data: 'panel:rotate_keys' },
         { text: '❓', callback_data: 'help:settings:rotate' }
+      ],
+      [
+        { text: '🎁 Auto-Surprise', callback_data: 'panel:settings:auto_surprise' },
+        { text: '🛡️ Preflight', callback_data: 'panel:settings:preflight' }
+      ],
+      [
+        { text: '🩹 Self-Heal', callback_data: 'panel:settings:self_heal' }
       ],
       [
         { text: '🗑️ Clear', callback_data: 'panel:clear' },
@@ -2596,6 +3119,23 @@ async function runPromptFromTelegram(chatId, prompt, label, operator = null) {
         operator,
         label,
         status: 'timeout'
+      });
+      return;
+    }
+    if (isServiceOutageError(error)) {
+      await sendTrackedMessage(chatId,
+        `⏸️ *Codex service temporarily unavailable (503)*\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `OpenAI's Codex API is experiencing an outage. This is *NOT* an API key issue.\n\n` +
+        `Task: ${escapeMarkdown(label)}\n` +
+        `Cloudflare ray: \`${escapeMarkdown(error.cfRayId || 'not reported')}\`\n\n` +
+        `Try again later. No key rotation is needed.`,
+        { parse_mode: 'Markdown', reply_markup: controlPanelKeyboard() }
+      );
+      await notifyWaitingUsersCodexFree({
+        operator,
+        label,
+        status: 'service_unavailable'
       });
       return;
     }
@@ -2906,6 +3446,34 @@ async function sendStats(chatId) {
 
 async function sendStatsPanel(chatId) {
   await sendStats(chatId);
+}
+
+async function sendAnalyticsPanel(chatId) {
+  const summary = summarizeAnalytics(getRunAnalytics(500));
+  const byModel = formatAnalyticsGroup(summary.byModel);
+  const byTask = formatAnalyticsGroup(summary.byTaskType);
+  const successRate = Math.round(summary.successRate * 100);
+  const avgDuration = formatDuration(Math.round(summary.avgDurationMs / 1000));
+  const text =
+    `📊 *PROMETHEUS ANALYTICS*\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+    `Success Rate: ${successRate}% (${summary.successes}/${summary.totalRuns})\n` +
+    `Avg Duration: ${avgDuration}\n\n` +
+    `*By Model:*\n${byModel}\n\n` +
+    `*By Task Type:*\n${byTask}\n\n` +
+    `💡 ${escapeMarkdown(summary.insight)}`;
+  await sendTrackedMessage(chatId, text.slice(0, 3900), {
+    parse_mode: 'Markdown',
+    reply_markup: statsPanelKeyboard()
+  });
+}
+
+function formatAnalyticsGroup(rows = []) {
+  if (rows.length === 0) return '_No data yet._';
+  return rows.slice(0, 6).map(row => {
+    const rate = Math.round(row.successRate * 100);
+    return `  ${escapeMarkdown(row.name)}: ${rate}% success (${row.successes}/${row.total})`;
+  }).join('\n');
 }
 
 function statsPanelKeyboard() {
@@ -3659,6 +4227,73 @@ async function sendKeyExhaustedAlert(chatId, issueNumber, title, details = {}) {
   await sendTrackedMessage(chatId, message, { parse_mode: 'Markdown', reply_markup: settingsPanelKeyboard() });
 }
 
+async function sendServiceOutageAlert(chatId, issueNumber, title, details = {}) {
+  const nextRetry = details.nextRetryAt ? new Date(details.nextRetryAt) : null;
+  const retryMinutes = details.retryDelayMinutes || (nextRetry
+    ? Math.max(1, Math.round((nextRetry.getTime() - Date.now()) / 60000))
+    : 'unknown');
+  const cfRay = details.cfRayId || 'not reported';
+  const retryCount = details.retryCount || 1;
+  const maxRetries = details.maxRetries || 3;
+  const nextRetryText = nextRetry && Number.isFinite(nextRetry.getTime())
+    ? nextRetry.toISOString()
+    : 'not scheduled';
+
+  const message =
+    `⏸️ *Codex service temporarily unavailable (503)*\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `OpenAI's Codex API is experiencing an outage. This is *NOT* an API key issue.\n\n` +
+    `Issue: #${issueNumber} — ${escapeMarkdown(title || 'Unknown')}\n` +
+    `Retry: ${retryCount}/${maxRetries}\n` +
+    `Next retry: ${escapeMarkdown(nextRetryText)} (in ${escapeMarkdown(String(retryMinutes))} minutes)\n` +
+    `Cloudflare ray: \`${escapeMarkdown(cfRay)}\`\n\n` +
+    `The pipeline will auto-retry. No action needed.`;
+
+  await sendTrackedMessage(chatId, message, {
+    parse_mode: 'Markdown',
+    reply_markup: serviceOutageKeyboard(issueNumber)
+  });
+}
+
+async function sendServiceOutageFailedAlert(chatId, issueNumber, title, details = {}) {
+  const retryCount = details.retryCount || 3;
+  const message =
+    `❌ *Codex service outage exceeded max retries*\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `Issue #${issueNumber} failed after ${retryCount} service outage retries.\n` +
+    `OpenAI's Codex API may still be down.`;
+
+  await sendTrackedMessage(chatId, message, {
+    parse_mode: 'Markdown',
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: '🔄 Retry Issue', callback_data: `panel:service_outage:retry_now:${issueNumber}` },
+          { text: '🗑️ Discard', callback_data: `panel:service_outage:discard:${issueNumber}` }
+        ],
+        [
+          { text: '📊 Status', callback_data: 'panel:status' }
+        ]
+      ]
+    }
+  });
+}
+
+function serviceOutageKeyboard(issueNumber) {
+  return {
+    inline_keyboard: [
+      [
+        { text: '🔄 Retry Now', callback_data: `panel:service_outage:retry_now:${issueNumber}` },
+        { text: '⏸️ Pause Pipeline', callback_data: `panel:service_outage:pause:${issueNumber}` }
+      ],
+      [
+        { text: '🗑️ Discard Issue', callback_data: `panel:service_outage:discard:${issueNumber}` },
+        { text: '📊 Status', callback_data: 'panel:status' }
+      ]
+    ]
+  };
+}
+
 async function sendNotification(chatId, text) {
   await sendTrackedMessage(chatId, text, { parse_mode: 'Markdown' });
 }
@@ -3713,6 +4348,10 @@ module.exports = {
   sendDeliveryReviewPanel,
   sendDirtyWorktreePrompt,
   sendKeyExhaustedAlert,
+  sendServiceOutageAlert,
+  sendServiceOutageFailedAlert,
+  sendSurpriseAlert,
+  sendSelfHealAlert,
   sendNotification,
   broadcastNotification,
   sendStatus,

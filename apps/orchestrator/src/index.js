@@ -18,6 +18,13 @@ const {
   recordIssueComplete,
   recordIssueError,
   recordIssueAwaitingKey,
+  recordIssueServiceUnavailable,
+  resumeDueServiceOutageIssues,
+  getIssueRecord,
+  getBooleanSetting,
+  recordSurprise,
+  getDismissedSurprises,
+  recordSelfHealTask,
   setIssueDeliveryStatus,
   prunePriorityQueue,
   getQueueOrder,
@@ -33,6 +40,7 @@ const {
   generateSummaryMessage,
   getCodexRuntimeStatus,
   reconcileCodexPidOnBoot,
+  isServiceOutageError,
   getGitStatusShort,
   discardCodexChanges
 } = require('./lib/codex');
@@ -41,6 +49,10 @@ const {
   sendDeliveryReviewPanel,
   sendDirtyWorktreePrompt,
   sendKeyExhaustedAlert,
+  sendServiceOutageAlert,
+  sendServiceOutageFailedAlert,
+  sendSurpriseAlert,
+  sendSelfHealAlert,
   broadcastNotification,
   startDiffStream,
   stopDiffStream,
@@ -48,6 +60,11 @@ const {
   stopThinkingStream,
   notifyWaitingUsersCodexFree
 } = require('./lib/telegram');
+const surpriseEngine = require('./lib/surprise-engine');
+const {
+  createSelfHealTask,
+  canCreateSelfHealTask
+} = require('./lib/self-heal');
 
 const ADMIN_CHAT_IDS = (process.env.AUTHORIZED_CHAT_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
 const CHAT_ID = ADMIN_CHAT_IDS[0] || null;
@@ -57,6 +74,11 @@ const WATCHDOG_INTERVAL = 5 * 60 * 1000;
 const WATCHDOG_THRESHOLD = parseInt(process.env.WATCHDOG_THRESHOLD_PERCENT, 10) || 80;
 const WATCHDOG_COOLDOWN_MS = (parseInt(process.env.WATCHDOG_COOLDOWN_MINUTES, 10) || 15) * 60 * 1000;
 const WATCHDOG_PATH = process.env.WATCHDOG_DISK_PATH || (process.env.CODEX_WORKDIR || process.cwd());
+const SERVICE_OUTAGE_RETRY_DELAYS_MS = [5 * 60 * 1000, 10 * 60 * 1000, 20 * 60 * 1000];
+const SERVICE_OUTAGE_RETRY_INTERVAL = 60 * 1000;
+const AUTO_SURPRISE_INTERVAL_MS = parsePositiveNumber(process.env.AUTO_SURPRISE_INTERVAL_HOURS, 6) * 60 * 60 * 1000;
+const AUTO_SURPRISE_ENABLED_BY_ENV = process.env.AUTO_SURPRISE_ENABLED === 'true';
+const SELF_HEAL_ENABLED_BY_ENV = process.env.SELF_HEAL_ENABLED === 'true';
 
 let isProcessing = false;
 let isShuttingDown = false;
@@ -64,6 +86,8 @@ let bot;
 let pollTimer;
 let heartbeatTimer;
 let watchdogTimer;
+let serviceOutageRetryTimer;
+let autoSurpriseTimer;
 
 async function main() {
   console.log('🔧 PROMETHEUS ORCHESTRATOR v1.0');
@@ -71,6 +95,7 @@ async function main() {
 
   initDatabase();
   console.log('✅ Database initialized');
+  await resumeDueServiceOutages('boot', { triggerPoll: false });
   const codexPidState = reconcileCodexPidOnBoot();
   if (codexPidState.cleared) {
     console.log(`🧹 Cleared stale Codex PID ${codexPidState.pid}`);
@@ -112,6 +137,8 @@ async function main() {
   pollTimer = setInterval(pollLoop, POLL_INTERVAL);
   startHeartbeat();
   startWatchdogTimer();
+  startServiceOutageRetryWatcher();
+  startAutoSurpriseTimer();
   notifyReady();
   
   if (prepareResumeFromPreviousState()) {
@@ -159,6 +186,11 @@ function createStateHash(value) {
     .slice(0, 12);
 }
 
+function parsePositiveNumber(value, fallback) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
 function startHeartbeat() {
   heartbeatTimer = setInterval(async () => {
     const current = getCurrentIssue();
@@ -178,6 +210,84 @@ function startWatchdogTimer() {
   runWatchdog('startup', { notifyOk: false }).catch(error => {
     console.error('[watchdog] startup check failed:', formatError(error));
   });
+}
+
+function startServiceOutageRetryWatcher() {
+  serviceOutageRetryTimer = setInterval(() => {
+    resumeDueServiceOutages('watcher').catch(error => {
+      console.error('[Pipeline] Service outage retry watcher failed:', formatError(error));
+    });
+  }, SERVICE_OUTAGE_RETRY_INTERVAL);
+}
+
+function startAutoSurpriseTimer() {
+  autoSurpriseTimer = setInterval(() => {
+    runAutoSurpriseAudit('scheduled').catch(error => {
+      console.error('[surprise] Auto-surprise audit failed:', formatError(error));
+    });
+  }, AUTO_SURPRISE_INTERVAL_MS);
+
+  runAutoSurpriseAudit('startup').catch(error => {
+    console.error('[surprise] Startup auto-surprise audit failed:', formatError(error));
+  });
+}
+
+function isAutoSurpriseEnabled() {
+  return AUTO_SURPRISE_ENABLED_BY_ENV || getBooleanSetting('autoSurpriseEnabled', false);
+}
+
+async function runAutoSurpriseAudit(reason = 'scheduled') {
+  if (!isAutoSurpriseEnabled()) return [];
+  const findings = surpriseEngine.getTopSurprises({
+    root: WATCHDOG_PATH,
+    dismissed: getDismissedSurprises(),
+    limit: 3
+  });
+  const highSeverity = findings.filter(finding => finding.severity === 'high' && finding.isNew);
+  if (highSeverity.length === 0) return [];
+
+  for (const finding of highSeverity) {
+    recordSurprise(finding);
+  }
+  console.log(`[surprise] ${reason} audit found ${highSeverity.length} high severity finding(s).`);
+
+  if (hasAdmins()) {
+    for (const finding of highSeverity.slice(0, 3)) {
+      for (const chatId of ADMIN_CHAT_IDS) {
+        try {
+          await sendSurpriseAlert(chatId, finding);
+        } catch (error) {
+          console.warn(`[surprise] Failed to send surprise alert to chat ${chatId}:`, formatError(error));
+        }
+      }
+    }
+  }
+
+  return highSeverity;
+}
+
+async function resumeDueServiceOutages(reason = 'watcher', options = {}) {
+  const due = resumeDueServiceOutageIssues();
+  if (reason === 'boot') {
+    console.log(`[boot] Resumed ${due.length} issues from service_unavailable state`);
+  }
+  for (const issue of due) {
+    console.log(
+      `[Pipeline] Resuming issue #${issue.issue_number} from service_unavailable ` +
+      `(retry ${Number(issue.service_outage_retry_count || 0)}/3)`
+    );
+    console.log(`[Pipeline] Next retry window: ${issue.service_outage_next_retry_at || new Date().toISOString()}`);
+  }
+  if (due.length === 0) return due;
+
+  const status = getState('pipeline_status');
+  if (!['paused', 'awaiting_delivery', 'awaiting_key'].includes(status)) {
+    setState('pipeline_status', 'running');
+    if (options.triggerPoll !== false) {
+      pollLoop();
+    }
+  }
+  return due;
 }
 
 function notifyReady() {
@@ -208,16 +318,22 @@ async function pollLoop() {
   isProcessing = true;
 
   try {
+    await resumeDueServiceOutages('poll', { triggerPoll: false });
     const retryIssue = getRetryIssue();
-    const issues = retryIssue ? [retryIssue] : await getOpenIssues();
+    const openIssues = retryIssue ? [retryIssue] : await getOpenIssues();
+    const issues = retryIssue ? openIssues : filterRunnableIssues(openIssues);
     
     if (issues.length === 0) {
+      if (openIssues.length > 0) {
+        console.log('⏸️ Open issues are waiting on service_unavailable retry windows.');
+        setState('pipeline_status', 'idle');
+        return;
+      }
       console.log('📭 No open issues found.');
       if (hasAdmins()) {
         await notifyAdmins('✅ *All issues completed!* Pipeline is idle.');
       }
       setState('pipeline_status', 'idle');
-      isProcessing = false;
       return;
     }
 
@@ -284,6 +400,11 @@ async function pollLoop() {
     } catch (error) {
       stopDiffStream();
       stopThinkingStream(`Codex run stopped or failed: ${error.message.slice(0, 160)}`);
+      if (isServiceOutage(error)) {
+        await handleServiceOutage(issue, error);
+        isProcessing = false;
+        return;
+      }
       if (isApiKeyFailure(error)) {
         await handleApiKeyExhaustion(issue.number, issue.title, error);
         isProcessing = false;
@@ -341,6 +462,18 @@ async function pollLoop() {
     await notifyCodexQueueAvailable(issue, result, 'completed');
 
   } catch (error) {
+    if (isServiceOutage(error)) {
+      const current = getCurrentIssue();
+      if (current) {
+        await handleServiceOutage({
+          number: current.issue_number,
+          title: current.title,
+          body: current.body || ''
+        }, error);
+      }
+      return;
+    }
+
     if (isCodexTimeoutError(error)) {
       const current = getCurrentIssue();
       await handleCodexTimeout(current?.issue_number || null, error);
@@ -387,6 +520,63 @@ function isApiKeyFailure(error) {
     message.includes('API_KEY_EXHAUSTED') ||
     message.includes('API_KEY_FAILED')
   );
+}
+
+function isServiceOutage(error) {
+  return isServiceOutageError(error);
+}
+
+async function handleServiceOutage(issue, error) {
+  const issueNumber = issue?.number || issue?.issue_number;
+  const title = issue?.title || 'Unknown';
+  const record = getIssueRecord(issueNumber);
+  const retryCount = Number(record?.service_outage_retry_count || 0);
+  const maxRetries = Number(error?.maxRetries || SERVICE_OUTAGE_RETRY_DELAYS_MS.length);
+
+  if (retryCount >= maxRetries) {
+    const reason = `Max service outage retries exceeded after ${retryCount} attempts. ${error?.message || ''}`.trim();
+    console.error(`❌ Codex service outage exceeded max retries for Issue #${issueNumber}`);
+    recordIssueError(issueNumber, reason);
+    setCurrentIssue(null);
+    setState('pipeline_status', 'running');
+    if (hasAdmins()) {
+      await sendServiceOutageFailedAlertsForAdmins(issueNumber, title, { retryCount });
+    }
+    await notifyCodexQueueAvailable(issue, null, 'failed');
+    return;
+  }
+
+  const nextRetryCount = retryCount + 1;
+  const retryDelays = Array.isArray(error?.retryDelays) && error.retryDelays.length > 0
+    ? error.retryDelays
+    : SERVICE_OUTAGE_RETRY_DELAYS_MS;
+  const delayMs = retryDelays[Math.min(retryCount, retryDelays.length - 1)];
+  const nextRetryAt = new Date(Date.now() + delayMs).toISOString();
+  const nextRetryMinutes = Math.round(delayMs / 60000);
+
+  recordIssueServiceUnavailable(issueNumber, {
+    retryCount: nextRetryCount,
+    nextRetryAt,
+    error: error?.message || 'SERVICE_UNAVAILABLE: Codex service temporarily unavailable.'
+  });
+  setState('pipeline_status', 'running');
+
+  console.warn('[Codex] Will retry issue #' + issueNumber + ` in ${nextRetryMinutes} minutes (attempt ${nextRetryCount}/${maxRetries})`);
+  console.warn(
+    `[Pipeline] Issue #${issueNumber} moved to service_unavailable until ${nextRetryAt} ` +
+    `(retry ${nextRetryCount}/${maxRetries})`
+  );
+
+  if (hasAdmins()) {
+    await sendServiceOutageAlertsForAdmins(issueNumber, title, {
+      retryCount: nextRetryCount,
+      maxRetries,
+      nextRetryAt,
+      retryDelayMinutes: nextRetryMinutes,
+      cfRayId: error?.cfRayId,
+      requestId: error?.requestId
+    });
+  }
 }
 
 async function handleCodexTimeout(issueNumber, error) {
@@ -607,6 +797,13 @@ function selectNextIssue(issues) {
   return queueOrder.map(issueNumber => byNumber.get(issueNumber)).find(Boolean) || issues[0];
 }
 
+function filterRunnableIssues(issues) {
+  return (issues || []).filter(issue => {
+    const record = getIssueRecord(issue.number);
+    return record?.status !== 'service_unavailable';
+  });
+}
+
 function getRetryIssue() {
   const current = getCurrentIssue();
   if (!current || current.delivery_status !== 'retrying') return null;
@@ -638,6 +835,26 @@ async function sendKeyExhaustedAlertsForAdmins(issueNumber, title, progress, err
       });
     } catch (error) {
       console.warn(`[api-key] Failed to send exhausted alert to chat ${chatId}:`, formatError(error));
+    }
+  }
+}
+
+async function sendServiceOutageAlertsForAdmins(issueNumber, title, details = {}) {
+  for (const chatId of ADMIN_CHAT_IDS) {
+    try {
+      await sendServiceOutageAlert(chatId, issueNumber, title, details);
+    } catch (error) {
+      console.warn(`[service-outage] Failed to send outage alert to chat ${chatId}:`, formatError(error));
+    }
+  }
+}
+
+async function sendServiceOutageFailedAlertsForAdmins(issueNumber, title, details = {}) {
+  for (const chatId of ADMIN_CHAT_IDS) {
+    try {
+      await sendServiceOutageFailedAlert(chatId, issueNumber, title, details);
+    } catch (error) {
+      console.warn(`[service-outage] Failed to send final outage alert to chat ${chatId}:`, formatError(error));
     }
   }
 }
@@ -692,6 +909,8 @@ async function shutdown(reason, details, exitCode = 0) {
   if (pollTimer) clearInterval(pollTimer);
   if (heartbeatTimer) clearInterval(heartbeatTimer);
   if (watchdogTimer) clearInterval(watchdogTimer);
+  if (serviceOutageRetryTimer) clearInterval(serviceOutageRetryTimer);
+  if (autoSurpriseTimer) clearInterval(autoSurpriseTimer);
 
   try {
     if (bot) await bot.stopPolling();
@@ -746,11 +965,44 @@ process.on('SIGHUP', handleSighup);
 
 process.on('unhandledRejection', (reason) => {
   console.error('[process] Unhandled rejection caught; keeping orchestrator alive:', formatError(reason));
+  handleSelfHealCandidate(reason, 'unhandledRejection').catch(error => {
+    console.error('[self-heal] Failed to record unhandled rejection:', formatError(error));
+  });
 });
 
 process.on('uncaughtException', (error) => {
   console.error('[process] Uncaught exception caught; keeping orchestrator alive:', formatError(error));
+  handleSelfHealCandidate(error, 'uncaughtException').catch(selfHealError => {
+    console.error('[self-heal] Failed to record uncaught exception:', formatError(selfHealError));
+  });
 });
+
+function isSelfHealEnabled() {
+  return SELF_HEAL_ENABLED_BY_ENV || getBooleanSetting('selfHealEnabled', false);
+}
+
+async function handleSelfHealCandidate(error, source) {
+  if (!isSelfHealEnabled()) return null;
+  if (!canCreateSelfHealTask(getState('self_heal_last_created_at'))) {
+    console.warn(`[self-heal] Cooldown active; skipped ${source}.`);
+    return null;
+  }
+
+  const task = recordSelfHealTask(createSelfHealTask(error instanceof Error ? error : new Error(String(error))));
+  console.warn(`[self-heal] Created gated self-heal task ${task.id} from ${source}.`);
+
+  if (hasAdmins()) {
+    for (const chatId of ADMIN_CHAT_IDS) {
+      try {
+        await sendSelfHealAlert(chatId, task);
+      } catch (notifyError) {
+        console.warn(`[self-heal] Failed to notify chat ${chatId}:`, formatError(notifyError));
+      }
+    }
+  }
+
+  return task;
+}
 
 main().catch(err => {
   exitFatally('main_unhandled_error', err);
