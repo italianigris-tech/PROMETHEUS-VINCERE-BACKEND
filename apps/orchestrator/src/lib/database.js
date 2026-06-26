@@ -1,18 +1,26 @@
 const Database = require('better-sqlite3');
 const path = require('path');
+const {
+  applySecureUmask,
+  ensurePrivateDir,
+  securePath,
+  SECURE_FILE_MODE
+} = require('./security');
 
 const DB_PATH = path.join(process.cwd(), 'data', 'orchestrator.db');
 
 let db;
 
 function initDatabase() {
-  const fs = require('fs');
   const dir = path.dirname(DB_PATH);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
+  applySecureUmask();
+  ensurePrivateDir(dir, { label: 'data/' });
 
   db = new Database(DB_PATH);
+  securePath(DB_PATH, {
+    mode: SECURE_FILE_MODE,
+    label: 'SQLite DB'
+  });
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS pipeline_state (
@@ -25,7 +33,9 @@ function initDatabase() {
     CREATE TABLE IF NOT EXISTS issues (
       issue_number INTEGER PRIMARY KEY,
       title TEXT,
+      body TEXT,
       status TEXT DEFAULT 'pending',
+      delivery_status TEXT,
       started_at TEXT,
       completed_at TEXT,
       result_summary TEXT,
@@ -34,6 +44,9 @@ function initDatabase() {
       error_log TEXT
     )
   `);
+
+  ensureColumn('issues', 'body', 'TEXT');
+  ensureColumn('issues', 'delivery_status', 'TEXT');
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS api_key_rotations (
@@ -76,6 +89,7 @@ function initDatabase() {
     ['pipeline_operator', 'null'],
     ['priority_queue', '[]'],
     ['batch_remaining', '0'],
+    ['last_delivery_issue_number', 'null'],
     ['watchdog_last_alert_at', 'null'],
     ['watchdog_last_alert_signature', 'null']
   ];
@@ -121,30 +135,31 @@ function setCurrentIssue(issueNumber) {
   setState('current_issue_number', issueNumber ? issueNumber.toString() : 'null');
 }
 
-function recordIssueStart(issueNumber, title) {
+function recordIssueStart(issueNumber, title, body = null) {
   db.prepare(`
     INSERT OR REPLACE INTO issues 
-    (issue_number, title, status, started_at, retry_count) 
-    VALUES (?, ?, 'in_progress', datetime('now'), COALESCE((SELECT retry_count FROM issues WHERE issue_number = ?), 0))
-  `).run(issueNumber, title, issueNumber);
+    (issue_number, title, body, status, delivery_status, started_at, retry_count) 
+    VALUES (?, ?, ?, 'in_progress', 'retrying', datetime('now'), COALESCE((SELECT retry_count FROM issues WHERE issue_number = ?), 0))
+  `).run(issueNumber, title, body, issueNumber);
   setCurrentIssue(issueNumber);
   setState('pipeline_status', 'running');
 }
 
-function recordIssueComplete(issueNumber, summary, codexOutput) {
+function recordIssueComplete(issueNumber, summary, codexOutput, deliveryStatus = 'pending_review') {
   db.prepare(`
     UPDATE issues 
-    SET status = 'completed', completed_at = datetime('now'), result_summary = ?, codex_output = ?
+    SET status = 'completed', delivery_status = ?, completed_at = datetime('now'), result_summary = ?, codex_output = ?
     WHERE issue_number = ?
-  `).run(summary, codexOutput, issueNumber);
-  setCurrentIssue(null);
-  setState('pipeline_status', 'awaiting_approval');
+  `).run(deliveryStatus, summary, codexOutput, issueNumber);
+  setCurrentIssue(issueNumber);
+  setState('last_delivery_issue_number', String(issueNumber));
+  setState('pipeline_status', deliveryStatus === 'pending_review' ? 'awaiting_delivery' : 'awaiting_approval');
 }
 
 function recordIssueError(issueNumber, error) {
   db.prepare(`
     UPDATE issues 
-    SET status = 'failed', completed_at = COALESCE(completed_at, datetime('now')), error_log = ?
+    SET status = 'failed', delivery_status = COALESCE(delivery_status, 'discarded'), completed_at = COALESCE(completed_at, datetime('now')), error_log = ?
     WHERE issue_number = ?
   `).run(error, issueNumber);
   if (getState('current_issue_number') === String(issueNumber)) {
@@ -156,12 +171,70 @@ function recordIssueStopped(issueNumber, reason) {
   if (!issueNumber) return;
   db.prepare(`
     UPDATE issues
-    SET status = 'stopped', completed_at = COALESCE(completed_at, datetime('now')), error_log = ?
+    SET status = 'stopped', delivery_status = 'discarded', completed_at = COALESCE(completed_at, datetime('now')), error_log = ?
     WHERE issue_number = ?
   `).run(reason || 'Stopped by operator', issueNumber);
   if (getState('current_issue_number') === String(issueNumber)) {
     setCurrentIssue(null);
   }
+}
+
+function setIssueDeliveryStatus(issueNumber, deliveryStatus, options = {}) {
+  const fields = ['delivery_status = ?'];
+  const values = [deliveryStatus];
+
+  if (options.status) {
+    fields.push('status = ?');
+    values.push(options.status);
+  }
+  if (options.summary !== undefined) {
+    fields.push('result_summary = ?');
+    values.push(options.summary);
+  }
+  if (options.codexOutput !== undefined) {
+    fields.push('codex_output = ?');
+    values.push(options.codexOutput);
+  }
+  if (options.error !== undefined) {
+    fields.push('error_log = ?');
+    values.push(options.error);
+  }
+  if (options.completedAt) {
+    fields.push('completed_at = COALESCE(completed_at, datetime(\'now\'))');
+  }
+
+  values.push(issueNumber);
+  db.prepare(`UPDATE issues SET ${fields.join(', ')} WHERE issue_number = ?`).run(...values);
+
+  if (deliveryStatus) {
+    setState('last_delivery_issue_number', String(issueNumber));
+  }
+
+  if (options.clearCurrentIssue && getState('current_issue_number') === String(issueNumber)) {
+    setCurrentIssue(null);
+  }
+}
+
+function getIssueRecord(issueNumber) {
+  return db.prepare('SELECT * FROM issues WHERE issue_number = ?').get(Number(issueNumber));
+}
+
+function getLastDeliveryIssue() {
+  const current = getCurrentIssue();
+  if (current?.delivery_status) return current;
+
+  const lastNumber = getState('last_delivery_issue_number');
+  if (lastNumber && lastNumber !== 'null') {
+    const last = getIssueRecord(lastNumber);
+    if (last) return last;
+  }
+
+  return db.prepare(`
+    SELECT * FROM issues
+    WHERE delivery_status IS NOT NULL
+    ORDER BY completed_at DESC, started_at DESC
+    LIMIT 1
+  `).get() || null;
 }
 
 function clearCurrentIssue(reason = 'unspecified') {
@@ -193,9 +266,17 @@ function inspectActiveIssueState() {
     };
   }
 
+  const pendingDeliveryReview = current &&
+    current.delivery_status === 'pending_review' &&
+    pipelineStatus === 'awaiting_delivery';
+  const pendingDeliveryRetry = current &&
+    current.delivery_status === 'retrying' &&
+    current.status === 'pending' &&
+    pipelineStatus === 'running';
+
   if (!current) {
     issues.push(`current_issue_number=${currentIssueNumber} has no matching issue row`);
-  } else if (current.status !== 'in_progress') {
+  } else if (current.status !== 'in_progress' && !pendingDeliveryReview && !pendingDeliveryRetry) {
     issues.push(`current issue #${current.issue_number} is ${current.status}, not in_progress`);
   }
 
@@ -203,7 +284,7 @@ function inspectActiveIssueState() {
     issues.push(`current issue #${current.issue_number} is in_progress while codex_status=${codexStatus}`);
   }
 
-  if (current && current.status !== 'in_progress' && ['running', 'paused', 'error'].includes(pipelineStatus)) {
+  if (current && current.status !== 'in_progress' && !pendingDeliveryReview && !pendingDeliveryRetry && ['running', 'paused', 'error'].includes(pipelineStatus)) {
     issues.push(`pipeline_status=${pipelineStatus} while current issue #${current.issue_number} is ${current.status}`);
   }
 
@@ -254,6 +335,12 @@ function getIssueHistory() {
 function recordKeyRotation(oldSuffix, newSuffix, reason) {
   db.prepare('INSERT INTO api_key_rotations (old_key_suffix, new_key_suffix, reason) VALUES (?, ?, ?)')
     .run(oldSuffix, newSuffix, reason);
+}
+
+function ensureColumn(table, column, definition) {
+  const columns = db.prepare(`PRAGMA table_info(${table})`).all();
+  if (columns.some(existing => existing.name === column)) return;
+  db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
 }
 
 function normalizeOperator(operator) {
@@ -446,6 +533,9 @@ module.exports = {
   recordIssueComplete,
   recordIssueError,
   recordIssueStopped,
+  setIssueDeliveryStatus,
+  getIssueRecord,
+  getLastDeliveryIssue,
   clearCurrentIssue,
   inspectActiveIssueState,
   reconcileActiveIssueState,

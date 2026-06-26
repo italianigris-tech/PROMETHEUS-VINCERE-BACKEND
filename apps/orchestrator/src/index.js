@@ -1,3 +1,7 @@
+const { applySecureUmask, hardenRuntimePermissions } = require('./lib/security');
+applySecureUmask();
+hardenRuntimePermissions();
+
 const dotenv = require('dotenv');
 dotenv.config();
 
@@ -13,16 +17,32 @@ const {
   recordIssueStart,
   recordIssueComplete,
   recordIssueError,
-  incrementRetry,
+  setIssueDeliveryStatus,
   getPriorityQueue,
   prunePriorityQueue,
-  getBatchRemaining,
-  decrementBatchRemaining,
   getPipelineOperator
 } = require('./lib/database');
-const { getOpenIssues, getIssue, closeIssue, addComment } = require('./lib/github');
-const { runCodex, generateSummaryMessage, rotateApiKey, getCurrentApiKey, getKeySuffix, getCodexRuntimeStatus, reconcileCodexPidOnBoot } = require('./lib/codex');
-const { initBot, sendCompletionPrompt, sendKeyExhaustedAlert, sendNotification, startDiffStream, stopDiffStream } = require('./lib/telegram');
+const { getOpenIssues } = require('./lib/github');
+const {
+  runCodex,
+  generateSummaryMessage,
+  rotateApiKey,
+  getCurrentApiKey,
+  getKeySuffix,
+  getCodexRuntimeStatus,
+  reconcileCodexPidOnBoot,
+  getGitStatusShort,
+  discardCodexChanges
+} = require('./lib/codex');
+const {
+  initBot,
+  sendDeliveryReviewPanel,
+  sendDirtyWorktreePrompt,
+  sendKeyExhaustedAlert,
+  sendNotification,
+  startDiffStream,
+  stopDiffStream
+} = require('./lib/telegram');
 
 const CHAT_ID = process.env.AUTHORIZED_CHAT_IDS?.split(',')[0];
 const POLL_INTERVAL = (parseInt(process.env.POLL_INTERVAL) || 30) * 1000;
@@ -161,11 +181,16 @@ async function pollLoop() {
   if (current && current.status === 'in_progress') {
     return;
   }
+  if (current && current.delivery_status === 'pending_review') {
+    setState('pipeline_status', 'awaiting_delivery');
+    return;
+  }
 
   isProcessing = true;
 
   try {
-    const issues = await getOpenIssues();
+    const retryIssue = getRetryIssue();
+    const issues = retryIssue ? [retryIssue] : await getOpenIssues();
     
     if (issues.length === 0) {
       console.log('📭 No open issues found.');
@@ -180,7 +205,24 @@ async function pollLoop() {
     const issue = selectNextIssue(issues);
     console.log(`🎯 Processing Issue #${issue.number}: ${issue.title}`);
 
-    recordIssueStart(issue.number, issue.title);
+    const dirtyStatus = await getGitStatusShort();
+    if (dirtyStatus) {
+      if (!CHAT_ID) {
+        throw new Error(`DIRTY_WORKTREE: CODEX_WORKDIR has uncommitted changes:\n${dirtyStatus}`);
+      }
+
+      const decision = await sendDirtyWorktreePrompt(CHAT_ID, dirtyStatus);
+      if (decision === 'dirty_discard_continue') {
+        await discardCodexChanges('pre_codex_dirty_guard');
+        await sendNotification(CHAT_ID, '🧹 Dirty working tree discarded. Continuing with Codex.');
+      } else {
+        setState('pipeline_status', 'paused');
+        await sendNotification(CHAT_ID, '⏸️ Codex start cancelled. Pipeline paused and working tree was left untouched.');
+        return;
+      }
+    }
+
+    recordIssueStart(issue.number, issue.title, issue.body || null);
     
     if (CHAT_ID) {
       await sendNotification(CHAT_ID, 
@@ -213,25 +255,35 @@ async function pollLoop() {
     }
 
     const summary = generateSummaryMessage(issue.number, issue.title, result, model);
-    recordIssueComplete(issue.number, summary, result.rawOutput);
+    const statusAfterCodex = await getGitStatusShort();
 
     console.log(`✅ Issue #${issue.number} completed in ${result.duration}s`);
 
-    if (CHAT_ID && getBatchRemaining() <= 0) {
-      const decision = await sendCompletionPrompt(CHAT_ID, summary);
-      await handleHumanDecision(decision, issue.number, issue.title, summary);
-    } else if (CHAT_ID && getBatchRemaining() > 0) {
-      const remaining = decrementBatchRemaining();
-      await closeIssue(issue.number, `✅ Completed by Prometheus Orchestrator (batch mode)\n\n${summary}`);
-      setState('pipeline_status', remaining > 0 ? 'running' : 'paused');
-      await sendNotification(CHAT_ID,
-        `✅ *Issue #${issue.number} batch-complete*\n` +
-        `Remaining in batch: ${remaining}\n` +
-        `${remaining > 0 ? 'Continuing to the next issue.' : 'Batch complete. Pipeline paused.'}`
-      );
+    if (!statusAfterCodex) {
+      recordIssueComplete(issue.number, summary, result.rawOutput, 'discarded');
+      setIssueDeliveryStatus(issue.number, 'discarded', {
+        status: 'completed',
+        clearCurrentIssue: true,
+        completedAt: true
+      });
+      setState('pipeline_status', 'paused');
+      if (CHAT_ID) {
+        await sendNotification(CHAT_ID, `⚠️ Codex finished but no files were modified for Issue #${issue.number}.`);
+      }
+      return;
+    }
+
+    recordIssueComplete(issue.number, summary, result.rawOutput, 'pending_review');
+    setState('pipeline_status', 'awaiting_delivery');
+
+    if (CHAT_ID) {
+      await sendDeliveryReviewPanel(CHAT_ID, {
+        issueNumber: issue.number,
+        issueTitle: issue.title,
+        result
+      });
     } else {
-      console.log('No TELEGRAM_CHAT configured. Auto-continuing...');
-      await closeIssue(issue.number, `Completed by Prometheus Orchestrator\n\n${summary}`);
+      console.log(`Codex finished Issue #${issue.number}; changes are pending human delivery review.`);
     }
 
   } catch (error) {
@@ -367,6 +419,16 @@ function selectNextIssue(issues) {
   return priorityIssue || issues[0];
 }
 
+function getRetryIssue() {
+  const current = getCurrentIssue();
+  if (!current || current.delivery_status !== 'retrying') return null;
+  return {
+    number: current.issue_number,
+    title: current.title,
+    body: current.body || ''
+  };
+}
+
 async function handleApiKeyExhaustion(issueNumber, title, errorMessage) {
   console.error('🔑 API Key exhausted:', errorMessage);
   
@@ -387,73 +449,6 @@ async function handleApiKeyExhaustion(issueNumber, title, errorMessage) {
       isProcessing = false;
       return;
     }
-  }
-}
-
-async function handleHumanDecision(decision, issueNumber, title, summary) {
-  switch (decision) {
-    case 'continue':
-      console.log(`✅ Human approved Issue #${issueNumber}. Closing and continuing...`);
-      await closeIssue(issueNumber, `✅ Completed by Prometheus Orchestrator\n\n${summary}`);
-      setState('pipeline_status', 'running');
-      break;
-
-    case 'view_details':
-      const current = getCurrentIssue();
-      if (current && current.codex_output) {
-        let details = current.codex_output;
-        if (details.length > 3500) {
-          details = details.substring(0, 3500) + '\n\n... (truncated)';
-        }
-        await sendNotification(CHAT_ID, 
-          `📋 *Detailed Output for Issue #${issueNumber}*\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-          `\`\`\`\n${details}\n\`\`\``
-        );
-      }
-      const rePrompt = generateSummaryMessage(issueNumber, title, { output: [], duration: 'N/A' }, getState('current_model'));
-      const newDecision = await sendCompletionPrompt(CHAT_ID, rePrompt);
-      await handleHumanDecision(newDecision, issueNumber, title, summary);
-      break;
-
-    case 'retry':
-      console.log(`🔄 Human requested retry for Issue #${issueNumber}`);
-      incrementRetry(issueNumber);
-      setState('pipeline_status', 'running');
-      break;
-
-    case 'pause':
-      console.log(`⏸️ Pipeline paused by human after Issue #${issueNumber}`);
-      setState('pipeline_status', 'paused');
-      await sendNotification(CHAT_ID, '⏸️ Pipeline paused. Use the Continue button to resume.');
-      break;
-
-    case 'skip':
-      console.log(`⏭️ Human skipped Issue #${issueNumber}`);
-      await addComment(issueNumber, `⏭️ Skipped by human operator. Moving to next issue.`);
-      setState('pipeline_status', 'running');
-      break;
-
-    case 'change_model':
-      await sendNotification(CHAT_ID, 
-        `🤖 *Change Model*\n` +
-        `Current: \`${getState('current_model')}\`\n` +
-        `Open Settings → Model to change it.`
-      );
-      const afterModelPrompt = generateSummaryMessage(issueNumber, title, { output: [], duration: 'N/A' }, getState('current_model'));
-      const afterModelDecision = await sendCompletionPrompt(CHAT_ID, afterModelPrompt);
-      await handleHumanDecision(afterModelDecision, issueNumber, title, summary);
-      break;
-
-    case 'timeout':
-      console.log(`⏰ No response from human for Issue #${issueNumber}. Auto-continuing...`);
-      await closeIssue(issueNumber, `✅ Completed by Prometheus Orchestrator (auto-approved after timeout)\n\n${summary}`);
-      setState('pipeline_status', 'running');
-      break;
-
-    default:
-      console.log(`Unknown decision: ${decision}. Pausing.`);
-      setState('pipeline_status', 'paused');
   }
 }
 

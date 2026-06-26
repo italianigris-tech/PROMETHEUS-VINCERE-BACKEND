@@ -8,6 +8,9 @@ const {
   setState,
   getCurrentIssue,
   setCurrentIssue,
+  setIssueDeliveryStatus,
+  getIssueRecord,
+  getLastDeliveryIssue,
   inspectActiveIssueState,
   setPipelineOperator,
   clearPipelineOperator,
@@ -27,8 +30,17 @@ const {
   getCodexRuntimeStatus,
   getCodexEventLog,
   getCurrentApiKey,
-  getKeySuffix
+  getKeySuffix,
+  getCodexWorkdir,
+  getGitStatusShort,
+  getGitDiffStat,
+  getGitNumstat,
+  commitAndPushIssueChanges,
+  pushMain,
+  pullAndMergeMain,
+  discardCodexChanges
 } = require('./codex');
+const { getIssue, closeIssue } = require('./github');
 
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const AUTHORIZED_CHATS = (process.env.AUTHORIZED_CHAT_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
@@ -73,6 +85,15 @@ function initBot() {
     await sendControlPanel(chatId, msg.from.first_name || 'there');
   });
 
+  bot.onText(/\/cancel(?:@\w+)?(?:\s|$)/, async (msg) => {
+    const chatId = msg.chat.id;
+    if (!isAuthorized(chatId)) {
+      await sendTrackedMessage(chatId, `Unauthorized chat. Your chat ID is \`${chatId}\`.`, { parse_mode: 'Markdown' });
+      return;
+    }
+    await cancelCurrentOperation(chatId);
+  });
+
   bot.on('message', async (msg) => {
     await handlePendingInputMessage(msg);
   });
@@ -102,7 +123,16 @@ function initBot() {
       return;
     }
 
-    const completionActions = new Set(['view_details', 'continue', 'retry', 'pause', 'change_model', 'skip']);
+    const completionActions = new Set([
+      'view_details',
+      'continue',
+      'retry',
+      'pause',
+      'change_model',
+      'skip',
+      'dirty_discard_continue',
+      'dirty_cancel'
+    ]);
     if (messageCallbacks.has(chatId)) {
       if (!completionActions.has(data)) {
         await bot.answerCallbackQuery(query.id, { text: 'Use the review buttons for this issue first.' });
@@ -162,37 +192,40 @@ function controlPanelKeyboard() {
       [
         { text: '▶️ Start', callback_data: 'panel:pipeline:start' },
         { text: '⏸️ Pause', callback_data: 'panel:pipeline:pause' },
+        { text: '⏯️ Continue', callback_data: 'panel:pipeline:resume' },
         { text: '❓', callback_data: 'help:main:pipeline' }
       ],
       [
-        { text: '➡️ Continue', callback_data: 'panel:pipeline:resume' },
         { text: '🛑 Stop Codex', callback_data: 'panel:codex_stop' },
-        { text: '❓', callback_data: 'help:main:runtime' }
-      ],
-      [
         { text: '⛔ Stop All', callback_data: 'panel:stop_all' },
-        { text: '❌ Cancel', callback_data: 'panel:cancel' },
-        { text: '❓', callback_data: 'help:main:stop' }
+        { text: '❓', callback_data: 'help:main:emergency' }
       ],
       [
         { text: '📊 Status', callback_data: 'panel:status' },
-        { text: '📋 Queue', callback_data: 'panel:queue' },
-        { text: '❓', callback_data: 'help:main:status_queue' }
+        { text: '🤖 Codex State', callback_data: 'panel:codex_status' },
+        { text: '❓', callback_data: 'help:main:status_codex' }
       ],
       [
-        { text: '📊 Stats', callback_data: 'panel:stats' },
+        { text: '📝 Logs', callback_data: 'panel:logs' },
+        { text: '🎥 Codex Live', callback_data: 'panel:codex_logs:simple' },
+        { text: '❓', callback_data: 'help:main:logs_live' }
+      ],
+      [
+        { text: '💬 Prompt Codex', callback_data: 'panel:prompt' },
         { text: '🩺 Doctor', callback_data: 'panel:doctor' },
-        { text: '❓', callback_data: 'help:main:stats_doctor' }
+        { text: '❓', callback_data: 'help:main:prompt_doctor' }
       ],
       [
-        { text: '💬 Prompt', callback_data: 'panel:prompt' },
-        { text: '📜 Logs', callback_data: 'panel:logs' },
-        { text: '❓', callback_data: 'help:main:prompt_logs' }
+        { text: '🔑 API Key', callback_data: 'panel:key' },
+        { text: '🧠 Model', callback_data: 'panel:model' },
+        { text: '🗑️ Clear', callback_data: 'panel:clear' },
+        { text: '❓', callback_data: 'help:main:settings_shortcuts' }
       ],
       [
-        { text: '⚙️ Settings', callback_data: 'panel:settings' },
-        { text: '❔ Help', callback_data: 'panel:help' },
-        { text: '❓', callback_data: 'help:main:settings_help' }
+        { text: '📋 Queue', callback_data: 'panel:queue' },
+        { text: '📊 Stats', callback_data: 'panel:stats' },
+        { text: '📖 Help', callback_data: 'panel:help' },
+        { text: '❓', callback_data: 'help:main:queue_stats_help' }
       ],
       [
         { text: '🔄 Refresh', callback_data: 'panel:refresh' },
@@ -205,6 +238,11 @@ function controlPanelKeyboard() {
 async function handlePanelAction(query) {
   const chatId = query.message.chat.id;
   const data = query.data;
+
+  if (data.startsWith('panel:delivery:')) {
+    await handleDeliveryAction(query);
+    return;
+  }
 
   if (data === 'panel:refresh') {
     await bot.answerCallbackQuery(query.id, { text: 'Refreshing panel' });
@@ -428,44 +466,291 @@ async function handlePanelAction(query) {
 
 async function handleHelpAction(query) {
   const helpKey = query.data.replace('help:', '');
-  const text = HELP_TEXT[helpKey] || 'No help is registered for this row yet.';
-
-  if (text.length <= 180) {
-    await bot.answerCallbackQuery(query.id, { text, show_alert: true });
-    return;
-  }
-
   await bot.answerCallbackQuery(query.id, { text: 'Help opened' });
-  await sendTrackedMessage(query.message.chat.id, `❓ *Help*\n${escapeMarkdown(text)}`, { parse_mode: 'Markdown' });
+  await sendTrackedMessage(query.message.chat.id, buildRowHelpText(helpKey), {
+    reply_markup: helpBackKeyboard()
+  });
 }
 
-const HELP_TEXT = {
-  'main:pipeline': 'Start begins issue processing. Pause stops after the current job.',
-  'main:runtime': 'Continue resumes a paused pipeline. Stop Codex kills only the active Codex process.',
-  'main:stop': 'Stop All pauses the pipeline and stops Codex. Cancel clears pending input and stops Codex if one is running.',
-  'main:status_queue': 'Status shows live pipeline/Codex state. Queue opens issue order, priority, and batch controls.',
-  'main:stats_doctor': 'Stats shows lifetime usage. Doctor opens health checks and a guarded Codex doctor run.',
-  'main:prompt_logs': 'Prompt sends a one-off Codex task. Logs opens system and Codex activity views.',
-  'main:settings_help': 'Settings contains model/API key/watchdog/cleanup controls. Help opens the command-free guide.',
-  'main:refresh': 'Refresh updates this control panel message.',
-  'queue:actions': 'Priority moves an issue to the front. Batch runs the next N issues back-to-back. Refresh reloads the queue.',
-  'queue:nav': 'Back returns to the main control panel.',
-  'priority:list': 'Choose an issue number to move it to the front of the queue.',
-  'batch:sizes': 'Choose how many issues to process automatically before pausing.',
-  'stats:actions': 'Refresh recalculates stats from SQLite. History shows recent issue outcomes.',
-  'stats:nav': 'Back returns to the main control panel.',
-  'doctor:actions': 'Health checks DB/runtime consistency. Watchdog checks EC2 disk and RAM. Run Doctor starts a Codex inspection.',
-  'doctor:nav': 'Back returns to the main control panel.',
-  'logs:actions': 'System Logs reads PM2 out/err logs. Codex Live shows recent Codex events.',
-  'logs:mode': 'Simple mode summarizes. Technical mode shows rawer tails and events.',
-  'settings:actions': 'Model changes Codex model. API Key starts secure key input. Clear removes recent bot messages.',
-  'settings:nav': 'Back returns to the main control panel.',
-  'model:choices': 'Pick the model for future Codex runs.',
-  'input:cancel': 'Cancel abandons the pending input request.',
-  'completion:review': 'View details shows raw output. Continue closes the issue and resumes processing.',
-  'completion:control': 'Redo retries the issue. Pause stops after this issue.',
-  'completion:finish': 'Change Model opens model guidance. Skip comments on the issue and moves on.'
+const HELP_ROWS = {
+  'main:pipeline': [
+    ['▶️ Start', 'Begins polling GitHub for new issues and auto-processing them.'],
+    ['⏸️ Pause', 'Stops accepting new issues while letting the current Codex job finish.'],
+    ['⏯️ Continue', 'Resumes polling after a pause or delivery gate.']
+  ],
+  'main:emergency': [
+    ['🛑 Stop Codex', 'Immediately kills the running Codex process with SIGTERM, then SIGKILL if needed.'],
+    ['⛔ Stop All', 'Kills Codex and pauses the pipeline. Emergency brake.']
+  ],
+  'main:status_codex': [
+    ['📊 Status', 'Shows pipeline state, Codex state, model, queue, current issue, and last delivery.'],
+    ['🤖 Codex State', 'Shows active Codex PID, current task, recent run result, and latest event.']
+  ],
+  'main:logs_live': [
+    ['📝 Logs', 'Opens system logs and log mode controls.'],
+    ['🎥 Codex Live', 'Shows live or recent Codex activity without starting a new run.']
+  ],
+  'main:prompt_doctor': [
+    ['💬 Prompt Codex', 'Starts a one-off manual Codex prompt after checking Codex is idle.'],
+    ['🩺 Doctor', 'Opens health, watchdog, and guarded Doctor run controls.']
+  ],
+  'main:settings_shortcuts': [
+    ['🔑 API Key', 'Prompts for a replacement Codex/OpenAI API key and deletes the secret message.'],
+    ['🧠 Model', 'Opens the model picker for future Codex runs.'],
+    ['🗑️ Clear', 'Deletes recent tracked bot messages from this chat.']
+  ],
+  'main:queue_stats_help': [
+    ['📋 Queue', 'Shows open GitHub issues plus priority and batch controls.'],
+    ['📊 Stats', 'Shows processed counts, run history, token totals, and recent outcomes.'],
+    ['📖 Help', 'Shows the complete button index.']
+  ],
+  'main:refresh': [
+    ['🔄 Refresh', 'Refreshes this control panel message in place.']
+  ],
+  'main:runtime': [
+    ['🧾 Codex Activity', 'Opens recent Codex events after a manual run.'],
+    ['⏯️ Continue Pipeline', 'Resumes the pipeline after a manual Codex run.']
+  ],
+  'main:prompt_logs': [
+    ['📊 Status', 'Shows the current system state.'],
+    ['💬 Prompt Again', 'Starts another one-off manual Codex prompt if Codex is idle.']
+  ],
+  'queue:actions': [
+    ['⬆️ Priority', 'Moves a selected issue to the front of the queue.'],
+    ['🔢 Batch', 'Runs the next selected number of issues before pausing.']
+  ],
+  'queue:nav': [
+    ['🔄 Refresh', 'Reloads the queue from GitHub.'],
+    ['⬅️ Back', 'Returns to the main control panel.']
+  ],
+  'priority:list': [
+    ['# issue', 'Moves that issue number to the front of the priority queue.']
+  ],
+  'batch:sizes': [
+    ['1 / 3 / 5 / 10', 'Selects how many issues the pipeline should process automatically.']
+  ],
+  'stats:actions': [
+    ['📜 History', 'Shows recent issue outcomes from SQLite.'],
+    ['🔄 Refresh', 'Recalculates and redisplays stats.']
+  ],
+  'stats:nav': [
+    ['⬅️ Back', 'Returns to the main control panel.']
+  ],
+  'doctor:actions': [
+    ['🩺 Health', 'Checks database/runtime consistency and active issue state.'],
+    ['🧯 Watchdog', 'Checks EC2 RAM and disk pressure.']
+  ],
+  'doctor:confirm': [
+    ['Run Doctor', 'Starts the Doctor Codex run.'],
+    ['Cancel', 'Cancels the Doctor confirmation prompt.']
+  ],
+  'doctor:nav': [
+    ['⬅️ Back', 'Returns to the previous Doctor panel or main panel.']
+  ],
+  'doctor:run_nav': [
+    ['Run Doctor', 'Opens the confirmation prompt for a guarded Codex Doctor run.'],
+    ['⬅️ Back', 'Returns to the main control panel.']
+  ],
+  'logs:actions': [
+    ['📜 System Logs', 'Reads PM2 out/err logs with secret redaction.'],
+    ['🧾 Codex Live', 'Shows recent Codex runtime events.']
+  ],
+  'logs:mode': [
+    ['🔄 Refresh', 'Reloads the current log or activity view.'],
+    ['Simple Mode', 'Shows summarized, operator-friendly log output.'],
+    ['Technical Mode', 'Shows rawer log tails and event details.']
+  ],
+  'logs:nav': [
+    ['⬅️ Back', 'Returns to the logs panel.']
+  ],
+  'logs:status_nav': [
+    ['🤖 Status', 'Shows Codex state, PID, active task, and last run.'],
+    ['🤖 Codex Live', 'Opens Codex status details from the logs view.'],
+    ['⬅️ Back', 'Returns to the logs panel.']
+  ],
+  'settings:actions': [
+    ['🧠 Model', 'Opens the model picker for future Codex runs.'],
+    ['🔑 API Key', 'Prompts for a replacement Codex/OpenAI API key.']
+  ],
+  'settings:nav': [
+    ['⬅️ Back', 'Returns to the previous settings panel or main control panel.']
+  ],
+  'settings:clear_nav': [
+    ['🗑️ Clear', 'Deletes recent tracked bot messages from this chat.'],
+    ['⬅️ Back', 'Returns to the main control panel.']
+  ],
+  'model:choices': [
+    ['gpt-5.5', 'Uses the default model for future Codex runs.'],
+    ['gpt-5.5-high', 'Uses the high reasoning variant for future Codex runs.'],
+    ['gpt-5.5-xhigh', 'Uses the highest reasoning variant for future Codex runs.'],
+    ['gpt-5.4', 'Uses the prior model option for future Codex runs.']
+  ],
+  'input:cancel': [
+    ['❌ Cancel', 'Abandons pending input and stops any running Codex process.']
+  ],
+  'delivery:review': [
+    ['🚀 Push Changes', 'Commits, pushes to origin/main, and closes the GitHub issue.'],
+    ['🔄 Retry', 'Discards the current diff and reruns Codex on the same issue.'],
+    ['🗑️ Discard', 'Resets the working tree and marks the issue failed.']
+  ],
+  'delivery:push_failure': [
+    ['🔁 Retry Push', 'Attempts the commit/push flow again.'],
+    ['❌ Cancel', 'Leaves the delivery review pending.']
+  ],
+  'delivery:merge_conflict': [
+    ['⚠️ Force Push', 'Uses force-with-lease after explicit approval.'],
+    ['🔀 Pull & Merge', 'Pulls origin/main, merges, then retries push.'],
+    ['❌ Cancel', 'Leaves the delivery review pending.']
+  ],
+  'dirty:actions': [
+    ['🧹 Discard & Continue', 'Runs git reset/clean in CODEX_WORKDIR, then starts Codex.'],
+    ['❌ Cancel', 'Leaves the dirty worktree untouched and pauses the pipeline.']
+  ],
+  'help:index_shortcuts': [
+    ['📋 Queue', 'Opens queue controls.'],
+    ['🩺 Doctor', 'Opens health and watchdog controls.']
+  ],
+  'help:settings': [
+    ['🔑 API Key', 'Prompts for a replacement Codex/OpenAI API key.'],
+    ['🧠 Model', 'Opens the model picker.']
+  ],
+  'help:navigation': [
+    ['⬅️ Back to panel', 'Returns to the main control panel.'],
+    ['📖 Help', 'Opens the complete button index.'],
+    ['🔄 Refresh', 'Reloads the help index.']
+  ],
+  'completion:review': [
+    ['👁️ View Details', 'Shows raw completion details for the old completion flow.'],
+    ['✅ Continue', 'Continues the old completion flow.']
+  ],
+  'completion:control': [
+    ['❌ Redo Issue', 'Retries the issue in the old completion flow.'],
+    ['⏸️ Pause Pipeline', 'Pauses the pipeline in the old completion flow.']
+  ],
+  'completion:finish': [
+    ['🤖 Change Model', 'Opens model guidance in the old completion flow.'],
+    ['📋 Skip to Next', 'Skips the current issue in the old completion flow.']
+  ]
 };
+
+const HELP_INDEX = [
+  ['Main Controls', [
+    ['▶️ Start', 'Begin GitHub polling and auto-processing.'],
+    ['⏸️ Pause', 'Stop accepting new issues after the current job.'],
+    ['⏯️ Continue', 'Resume polling after pause or review.'],
+    ['🛑 Stop Codex', 'Kill the active Codex process.'],
+    ['⛔ Stop All', 'Kill Codex and pause the pipeline.'],
+    ['📊 Status', 'Show pipeline, Codex, queue, and delivery state.'],
+    ['🤖 Codex State', 'Show Codex PID, active task, and last result.'],
+    ['📝 Logs', 'Open system log controls.'],
+    ['🎥 Codex Live', 'Open live/recent Codex activity.'],
+    ['💬 Prompt Codex', 'Send a manual Codex prompt.'],
+    ['🩺 Doctor', 'Open health, watchdog, and Doctor controls.'],
+    ['🔑 API Key', 'Replace the active Codex/OpenAI key.'],
+    ['🧠 Model', 'Choose the model for future runs.'],
+    ['🗑️ Clear', 'Delete recent tracked bot messages.'],
+    ['📋 Queue', 'Show open issues and queue controls.'],
+    ['📊 Stats', 'Show run and issue metrics.'],
+    ['📖 Help', 'Show this complete index.'],
+    ['🔄 Refresh', 'Refresh the current panel.']
+  ]],
+  ['Queue', [
+    ['⬆️ Priority', 'Move an issue to the front.'],
+    ['# issue', 'Select the issue to prioritize.'],
+    ['🔢 Batch', 'Choose an auto-processing batch size.'],
+    ['1 / 3 / 5 / 10', 'Set batch count.'],
+    ['🔄 Refresh', 'Reload queue data from GitHub.']
+  ]],
+  ['Stats', [
+    ['📜 History', 'Show recent issue outcomes.'],
+    ['🔄 Refresh', 'Reload stats.']
+  ]],
+  ['Codex And Logs', [
+    ['📜 System Logs', 'Read redacted PM2 logs.'],
+    ['🧾 Codex Live', 'Show recent Codex runtime events.'],
+    ['🧾 Codex Activity', 'Open Codex event history.'],
+    ['🎥 Codex Live', 'Open live/recent Codex activity from the main panel.'],
+    ['Simple Mode', 'Show summarized logs/activity.'],
+    ['Technical Mode', 'Show rawer logs/activity.'],
+    ['🤖 Status', 'Open Codex state details.'],
+    ['🤖 Codex Live', 'Open Codex status from the logs view.'],
+    ['💬 Prompt Again', 'Start another manual prompt.'],
+    ['⏯️ Continue Pipeline', 'Resume the pipeline.']
+  ]],
+  ['Delivery Review', [
+    ['🚀 Push Changes', 'Commit, push, and close the issue.'],
+    ['🔄 Retry', 'Reset changes and rerun Codex.'],
+    ['🗑️ Discard', 'Reset changes and mark failed.'],
+    ['🔁 Retry Push', 'Retry a failed push.'],
+    ['⚠️ Force Push', 'Force-with-lease after approval.'],
+    ['🔀 Pull & Merge', 'Pull origin/main and retry push.'],
+    ['❌ Cancel', 'Cancel input or leave review pending.'],
+    ['🧹 Discard & Continue', 'Clean a dirty worktree before starting Codex.']
+  ]],
+  ['Doctor', [
+    ['🩺 Health', 'Check runtime/database consistency.'],
+    ['🧯 Watchdog', 'Check EC2 RAM and disk usage.'],
+    ['Run Doctor', 'Start the guarded Doctor Codex run.'],
+    ['Cancel', 'Cancel Doctor confirmation.']
+  ]],
+  ['Settings', [
+    ['gpt-5.5', 'Select default model.'],
+    ['gpt-5.5-high', 'Select high reasoning model.'],
+    ['gpt-5.5-xhigh', 'Select highest reasoning model.'],
+    ['gpt-5.4', 'Select prior model option.'],
+    ['⬅️ Back', 'Return to the previous panel.']
+  ]],
+  ['Legacy Completion', [
+    ['👁️ View Details', 'Show old completion details.'],
+    ['✅ Continue', 'Continue old completion flow.'],
+    ['❌ Redo Issue', 'Retry old completion flow.'],
+    ['⏸️ Pause Pipeline', 'Pause old completion flow.'],
+    ['🤖 Change Model', 'Open model guidance.'],
+    ['📋 Skip to Next', 'Skip current issue.']
+  ]]
+];
+
+function buildRowHelpText(helpKey) {
+  const entries = HELP_ROWS[helpKey];
+  if (!entries) {
+    return '❓ Help\n━━━━━━━━━━━━━━━━━━━━━━\nNo help is registered for this button row yet.';
+  }
+
+  return [
+    '❓ Button Help',
+    '━━━━━━━━━━━━━━━━━━━━━━',
+    ...entries.map(([label, description]) => `${label} - ${description}`)
+  ].join('\n');
+}
+
+function buildHelpIndexText() {
+  const lines = [
+    '📖 PROMETHEUS HELP',
+    '━━━━━━━━━━━━━━━━━━━━━━',
+    'Tap ❓ next to any button row for specific help.'
+  ];
+
+  for (const [group, entries] of HELP_INDEX) {
+    lines.push('', group);
+    for (const [label, description] of entries) {
+      lines.push(`${label} - ${description}`);
+    }
+  }
+
+  return lines.join('\n').slice(0, 3900);
+}
+
+function helpBackKeyboard() {
+  return {
+    inline_keyboard: [
+      [
+        { text: '⬅️ Back to panel', callback_data: 'panel:back' },
+        { text: '📖 Help', callback_data: 'panel:help' },
+        { text: '❓', callback_data: 'help:help:navigation' }
+      ]
+    ]
+  };
+}
 
 function attachPollingLifecycleHandlers(activeBot) {
   activeBot.on('polling_error', (error) => {
@@ -698,6 +983,16 @@ async function deleteSensitiveMessage(chatId, messageId) {
 
 async function setPipelineAction(chatId, action, operator = null) {
   if (action === 'start' || action === 'resume') {
+    const pendingDelivery = getCurrentIssue();
+    if (pendingDelivery?.delivery_status === 'pending_review') {
+      setState('pipeline_status', 'awaiting_delivery');
+      await sendTrackedMessage(
+        chatId,
+        `Issue #${pendingDelivery.issue_number} is pending delivery review. Use Push Changes, Retry, or Discard before resuming.`,
+        { reply_markup: deliveryReviewKeyboard(pendingDelivery.issue_number) }
+      );
+      return;
+    }
     setPipelineOperator(operator || { chatId });
     setState('pipeline_status', 'running');
     await sendTrackedMessage(chatId, action === 'start' ? '▶️ Pipeline started.' : '➡️ Pipeline resumed.');
@@ -852,6 +1147,401 @@ async function sendStopCodexResult(chatId, result) {
   await sendTrackedMessage(chatId, message);
 }
 
+async function sendDeliveryReviewPanel(chatId, review) {
+  const issueNumber = review.issueNumber;
+  const issueTitle = review.issueTitle || 'Untitled';
+  const status = await getGitStatusShort();
+
+  if (!status) {
+    await sendTrackedMessage(chatId, `⚠️ Codex finished but no files were modified for Issue #${issueNumber}.`, {
+      reply_markup: controlPanelKeyboard()
+    });
+    return;
+  }
+
+  await sendTrackedMessage(chatId, await buildDeliveryReviewText(issueNumber, issueTitle), {
+    parse_mode: 'Markdown',
+    reply_markup: deliveryReviewKeyboard(issueNumber)
+  });
+}
+
+async function buildDeliveryReviewText(issueNumber, issueTitle, errorText = null) {
+  const fileStats = parseGitNumstat(await getGitNumstat());
+  let text =
+    `✅ *Codex finished Issue #${issueNumber}:* "${escapeMarkdown(issueTitle)}"\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `📁 *Files changed:*\n`;
+
+  if (fileStats.length === 0) {
+    const stat = await getGitDiffStat();
+    text += stat ? `\`\`\`\n${escapeCodeBlock(stat)}\n\`\`\`\n` : `_No file-level diff stat available._\n`;
+  } else {
+    for (const file of fileStats.slice(0, 18)) {
+      text += `\`${escapeMarkdown(file.path)}\` (+${file.additions}, -${file.deletions})\n`;
+    }
+    if (fileStats.length > 18) {
+      text += `_...and ${fileStats.length - 18} more files_\n`;
+    }
+  }
+
+  text += `\nWorkdir: \`${escapeMarkdown(getCodexWorkdir())}\`\n`;
+
+  if (errorText) {
+    text += `\n⚠️ *Last error:*\n${escapeMarkdown(errorText.slice(0, 1200))}\n`;
+  }
+
+  return text.slice(0, 3900);
+}
+
+function deliveryReviewKeyboard(issueNumber, options = {}) {
+  const rows = [];
+
+  if (options.retryPushOnly) {
+    rows.push([
+      { text: '🔁 Retry Push', callback_data: `panel:delivery:retry_push:${issueNumber}` },
+      { text: '❌ Cancel', callback_data: `panel:delivery:cancel:${issueNumber}` },
+      { text: '❓', callback_data: 'help:delivery:push_failure' }
+    ]);
+  } else if (options.mergeConflict) {
+    rows.push([
+      { text: '⚠️ Force Push', callback_data: `panel:delivery:force_push:${issueNumber}` },
+      { text: '🔀 Pull & Merge', callback_data: `panel:delivery:pull_merge:${issueNumber}` },
+      { text: '❓', callback_data: 'help:delivery:merge_conflict' }
+    ]);
+    rows.push([
+      { text: '❌ Cancel', callback_data: `panel:delivery:cancel:${issueNumber}` },
+      { text: '❓', callback_data: 'help:delivery:push_failure' }
+    ]);
+  } else {
+    rows.push([
+      { text: '🚀 Push Changes', callback_data: `panel:delivery:push:${issueNumber}` },
+      { text: '🔄 Retry', callback_data: `panel:delivery:retry:${issueNumber}` },
+      { text: '🗑️ Discard', callback_data: `panel:delivery:discard:${issueNumber}` },
+      { text: '❓', callback_data: 'help:delivery:review' }
+    ]);
+  }
+
+  return { inline_keyboard: rows };
+}
+
+async function handleDeliveryAction(query) {
+  const chatId = query.message.chat.id;
+  const parts = query.data.split(':');
+  const action = parts[2];
+  const issueNumber = Number(parts[3]);
+
+  if (!Number.isInteger(issueNumber) || issueNumber <= 0) {
+    await bot.answerCallbackQuery(query.id, { text: 'Missing issue number' });
+    return;
+  }
+
+  if (action === 'push') {
+    await bot.answerCallbackQuery(query.id, { text: 'Pushing changes' });
+    await pushDeliveryFromTelegram(chatId, issueNumber, query.message);
+    return;
+  }
+
+  if (action === 'retry_push') {
+    await bot.answerCallbackQuery(query.id, { text: 'Retrying push' });
+    await retryPushDeliveryFromTelegram(chatId, issueNumber, query.message);
+    return;
+  }
+
+  if (action === 'force_push') {
+    await bot.answerCallbackQuery(query.id, { text: 'Force pushing' });
+    await forcePushDeliveryFromTelegram(chatId, issueNumber, query.message);
+    return;
+  }
+
+  if (action === 'pull_merge') {
+    await bot.answerCallbackQuery(query.id, { text: 'Pulling and merging' });
+    await pullMergeDeliveryFromTelegram(chatId, issueNumber, query.message);
+    return;
+  }
+
+  if (action === 'retry') {
+    await bot.answerCallbackQuery(query.id, { text: 'Retrying issue' });
+    await retryDeliveryFromTelegram(chatId, issueNumber);
+    return;
+  }
+
+  if (action === 'discard') {
+    await bot.answerCallbackQuery(query.id, { text: 'Discarding changes' });
+    await discardDeliveryFromTelegram(chatId, issueNumber);
+    return;
+  }
+
+  if (action === 'cancel') {
+    await bot.answerCallbackQuery(query.id, { text: 'Review left pending' });
+    await sendTrackedMessage(chatId, `Review for Issue #${issueNumber} is still pending.`, {
+      reply_markup: deliveryReviewKeyboard(issueNumber)
+    });
+    return;
+  }
+
+  await bot.answerCallbackQuery(query.id, { text: 'Unknown delivery action' });
+}
+
+async function pushDeliveryFromTelegram(chatId, issueNumber, message = null) {
+  const issue = await resolveDeliveryIssue(issueNumber);
+  if (!issue) {
+    await sendTrackedMessage(chatId, `Issue #${issueNumber} is not in the delivery database.`);
+    return;
+  }
+
+  const status = await getGitStatusShort();
+  if (!status) {
+    await sendTrackedMessage(chatId, 'No changes are available to push.', {
+      reply_markup: controlPanelKeyboard()
+    });
+    return;
+  }
+
+  try {
+    const delivery = await commitAndPushIssueChanges(issueNumber, issue.title);
+    await closeIssue(issueNumber, buildIssueClosedComment(issueNumber, issue.title, delivery));
+    setIssueDeliveryStatus(issueNumber, 'pushed', {
+      status: 'completed',
+      clearCurrentIssue: true,
+      completedAt: true
+    });
+    setState('pipeline_status', 'paused');
+    await sendTrackedMessage(chatId, `✅ Issue #${issueNumber} pushed and closed`, {
+      reply_markup: controlPanelKeyboard()
+    });
+  } catch (error) {
+    await sendPushFailure(chatId, issue, error, message);
+  }
+}
+
+async function retryPushDeliveryFromTelegram(chatId, issueNumber, message = null) {
+  const issue = await resolveDeliveryIssue(issueNumber);
+  if (!issue) {
+    await sendTrackedMessage(chatId, `Issue #${issueNumber} is not in the delivery database.`);
+    return;
+  }
+
+  try {
+    const status = await getGitStatusShort();
+    let delivery = null;
+    if (status) {
+      delivery = await commitAndPushIssueChanges(issueNumber, issue.title);
+    } else {
+      await pushMain();
+      delivery = {
+        commitSha: 'existing local HEAD',
+        commitMessage: 'existing local commit'
+      };
+    }
+
+    await closeIssue(issueNumber, buildIssueClosedComment(issueNumber, issue.title, delivery));
+    setIssueDeliveryStatus(issueNumber, 'pushed', {
+      status: 'completed',
+      clearCurrentIssue: true,
+      completedAt: true
+    });
+    setState('pipeline_status', 'paused');
+    await sendTrackedMessage(chatId, `✅ Issue #${issueNumber} pushed and closed`, {
+      reply_markup: controlPanelKeyboard()
+    });
+  } catch (error) {
+    await sendPushFailure(chatId, issue, error, message);
+  }
+}
+
+async function forcePushDeliveryFromTelegram(chatId, issueNumber, message = null) {
+  const issue = await resolveDeliveryIssue(issueNumber);
+  if (!issue) {
+    await sendTrackedMessage(chatId, `Issue #${issueNumber} is not in the delivery database.`);
+    return;
+  }
+
+  try {
+    await pushMain({ force: true });
+    await closeIssue(issueNumber, `✅ Force-pushed by Prometheus Orchestrator after explicit Telegram approval.\n\nCloses #${issueNumber}`);
+    setIssueDeliveryStatus(issueNumber, 'pushed', {
+      status: 'completed',
+      clearCurrentIssue: true,
+      completedAt: true
+    });
+    setState('pipeline_status', 'paused');
+    await sendTrackedMessage(chatId, `✅ Issue #${issueNumber} force-pushed and closed`, {
+      reply_markup: controlPanelKeyboard()
+    });
+  } catch (error) {
+    await sendPushFailure(chatId, issue, error, message);
+  }
+}
+
+async function pullMergeDeliveryFromTelegram(chatId, issueNumber, message = null) {
+  const issue = await resolveDeliveryIssue(issueNumber);
+  if (!issue) {
+    await sendTrackedMessage(chatId, `Issue #${issueNumber} is not in the delivery database.`);
+    return;
+  }
+
+  try {
+    await pullAndMergeMain();
+    await sendTrackedMessage(chatId, '🔀 Pull/merge completed. Retrying push now...');
+    await pushDeliveryFromTelegram(chatId, issueNumber, message);
+  } catch (error) {
+    await sendPushFailure(chatId, issue, error, message);
+  }
+}
+
+async function retryDeliveryFromTelegram(chatId, issueNumber) {
+  const issue = await resolveDeliveryIssue(issueNumber);
+  if (!issue) {
+    await sendTrackedMessage(chatId, `Issue #${issueNumber} is not available to retry.`);
+    return;
+  }
+
+  await discardCodexChanges('delivery_retry');
+  setIssueDeliveryStatus(issueNumber, 'retrying', {
+    status: 'pending'
+  });
+  setCurrentIssue(issueNumber);
+  prioritizeIssue(issueNumber);
+  setState('pipeline_status', 'running');
+  await sendTrackedMessage(chatId, `🔄 Retrying Issue #${issueNumber}...`, {
+    reply_markup: controlPanelKeyboard()
+  });
+}
+
+async function discardDeliveryFromTelegram(chatId, issueNumber) {
+  const issue = await resolveDeliveryIssue(issueNumber);
+  await discardCodexChanges('delivery_discard');
+  setIssueDeliveryStatus(issueNumber, 'discarded', {
+    status: 'failed',
+    error: 'Changes discarded by Telegram operator.',
+    clearCurrentIssue: true,
+    completedAt: true
+  });
+  setState('pipeline_status', 'idle');
+  await sendTrackedMessage(chatId, `🗑️ Changes discarded. Issue #${issueNumber} marked as failed.`, {
+    reply_markup: controlPanelKeyboard()
+  });
+  if (!issue) {
+    console.warn(`[delivery] Discarded work for Issue #${issueNumber}, but no local issue row was found.`);
+  }
+}
+
+async function sendPushFailure(chatId, issue, error, message = null) {
+  const conflict = Boolean(error.conflict);
+  const issueNumber = issue.issue_number || issue.number;
+  const text =
+    `❌ *Push failed for Issue #${issueNumber}*\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `${escapeMarkdown(formatGitError(error).slice(0, 1600))}`;
+
+  const markup = conflict
+    ? deliveryReviewKeyboard(issueNumber, { mergeConflict: true })
+    : deliveryReviewKeyboard(issueNumber, { retryPushOnly: true });
+
+  if (message) {
+    try {
+      await safeEditMessageText(text, {
+        chat_id: message.chat.id,
+        message_id: message.message_id,
+        parse_mode: 'Markdown',
+        reply_markup: markup
+      });
+      return;
+    } catch (editError) {
+      console.warn('[telegram] Unable to edit failed push panel:', formatError(editError));
+    }
+  }
+
+  await sendTrackedMessage(chatId, text, {
+    parse_mode: 'Markdown',
+    reply_markup: markup
+  });
+}
+
+async function resolveDeliveryIssue(issueNumber) {
+  const localIssue = getIssueRecord(issueNumber);
+  if (localIssue) return localIssue;
+
+  try {
+    const remoteIssue = await getIssue(issueNumber);
+    return {
+      issue_number: remoteIssue.number,
+      title: remoteIssue.title
+    };
+  } catch {
+    return null;
+  }
+}
+
+function buildIssueClosedComment(issueNumber, issueTitle, delivery) {
+  return (
+    `✅ Pushed by Prometheus Orchestrator\n\n` +
+    `Issue: #${issueNumber} ${issueTitle || ''}\n` +
+    `Commit: ${delivery.commitSha || 'n/a'}\n` +
+    `Message: ${delivery.commitMessage || 'n/a'}\n\n` +
+    `Closes #${issueNumber}`
+  );
+}
+
+function parseGitNumstat(numstat) {
+  return String(numstat || '')
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean)
+    .map(line => {
+      const [additionsRaw, deletionsRaw, ...pathParts] = line.split(/\s+/);
+      return {
+        additions: additionsRaw === '-' ? 0 : Number(additionsRaw || 0) || 0,
+        deletions: deletionsRaw === '-' ? 0 : Number(deletionsRaw || 0) || 0,
+        path: pathParts.join(' ')
+      };
+    })
+    .filter(file => file.path);
+}
+
+function formatGitError(error) {
+  const result = error?.result;
+  const parts = [
+    error?.message,
+    result?.stderr,
+    result?.stdout
+  ].filter(Boolean);
+  return parts.join('\n').trim() || 'Unknown git error';
+}
+
+async function sendDirtyWorktreePrompt(chatId, statusShort) {
+  const text =
+    `⚠️ *CODEX_WORKDIR is dirty before Codex starts*\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `Workdir: \`${escapeMarkdown(getCodexWorkdir())}\`\n\n` +
+    `\`\`\`\n${escapeCodeBlock(String(statusShort || '').slice(0, 2500))}\n\`\`\`\n` +
+    `Discard these changes and continue?`;
+
+  const sent = await sendTrackedMessage(chatId, text, {
+    parse_mode: 'Markdown',
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: '🧹 Discard & Continue', callback_data: 'dirty_discard_continue' },
+          { text: '❌ Cancel', callback_data: 'dirty_cancel' },
+          { text: '❓', callback_data: 'help:dirty:actions' }
+        ]
+      ]
+    }
+  });
+
+  return new Promise((resolve) => {
+    messageCallbacks.set(chatId, resolve);
+
+    setTimeout(() => {
+      if (messageCallbacks.has(chatId)) {
+        messageCallbacks.delete(chatId);
+        resolve('dirty_cancel');
+      }
+    }, 10 * 60 * 1000);
+  });
+}
+
 async function sendModelPicker(chatId) {
   await sendTrackedMessage(chatId, '🤖 *Choose Codex model*', {
     parse_mode: 'Markdown',
@@ -894,34 +1584,23 @@ function settingsPanelKeyboard() {
   return {
     inline_keyboard: [
       [
-        { text: '🤖 Model', callback_data: 'panel:model' },
+        { text: '🧠 Model', callback_data: 'panel:model' },
         { text: '🔑 API Key', callback_data: 'panel:key' },
         { text: '❓', callback_data: 'help:settings:actions' }
       ],
       [
-        { text: '🧹 Clear', callback_data: 'panel:clear' },
+        { text: '🗑️ Clear', callback_data: 'panel:clear' },
         { text: '⬅️ Back', callback_data: 'panel:back' },
-        { text: '❓', callback_data: 'help:settings:nav' }
+        { text: '❓', callback_data: 'help:settings:clear_nav' }
       ]
     ]
   };
 }
 
 async function sendHelpPanel(chatId) {
-  await sendTrackedMessage(chatId,
-    `❔ *PROMETHEUS HELP*\n` +
-    `━━━━━━━━━━━━━━━━━━━━━━\n` +
-    `Use the inline panels instead of slash commands. Each button row has a ❓ button explaining that row.\n\n` +
-    `Main areas:\n` +
-    `• Pipeline controls start, pause, resume, or stop work.\n` +
-    `• Queue controls priority and batch mode.\n` +
-    `• Doctor checks health and EC2 pressure.\n` +
-    `• Settings manages model and API key updates.`,
-    {
-      parse_mode: 'Markdown',
-      reply_markup: helpPanelKeyboard()
-    }
-  );
+  await sendTrackedMessage(chatId, buildHelpIndexText(), {
+    reply_markup: helpPanelKeyboard()
+  });
 }
 
 function helpPanelKeyboard() {
@@ -930,12 +1609,17 @@ function helpPanelKeyboard() {
       [
         { text: '📋 Queue', callback_data: 'panel:queue' },
         { text: '🩺 Doctor', callback_data: 'panel:doctor' },
-        { text: '❓', callback_data: 'help:main:status_queue' }
+        { text: '❓', callback_data: 'help:help:index_shortcuts' }
       ],
       [
-        { text: '⚙️ Settings', callback_data: 'panel:settings' },
+        { text: '🔑 API Key', callback_data: 'panel:key' },
+        { text: '🧠 Model', callback_data: 'panel:model' },
+        { text: '❓', callback_data: 'help:help:settings' }
+      ],
+      [
+        { text: '🔄 Refresh', callback_data: 'panel:help' },
         { text: '⬅️ Back', callback_data: 'panel:back' },
-        { text: '❓', callback_data: 'help:main:settings_help' }
+        { text: '❓', callback_data: 'help:help:navigation' }
       ]
     ]
   };
@@ -970,7 +1654,7 @@ async function sendDoctorConfirmation(chatId) {
           [
             { text: 'Run Doctor', callback_data: 'panel:doctor:confirm' },
             { text: 'Cancel', callback_data: 'panel:doctor:cancel' },
-            { text: '❓', callback_data: 'help:doctor:actions' }
+            { text: '❓', callback_data: 'help:doctor:confirm' }
           ],
           [
             { text: '⬅️ Back', callback_data: 'panel:doctor' },
@@ -983,9 +1667,10 @@ async function sendDoctorConfirmation(chatId) {
 }
 
 async function runDoctor(chatId, operator = null) {
+  const workdir = getCodexWorkdir();
   const prompt =
     `Doctor check for the Prometheus orchestrator.\n\n` +
-    `Inspect the current orchestrator in /home/ec2-user/prometheus-orchestrator and verify: PM2 lifecycle, Telegram polling, Telegram control panel, API key handling, Codex run health, and logs. ` +
+    `Inspect the current Codex working directory in ${workdir} and verify: PM2 lifecycle, Telegram polling, Telegram control panel, API key handling, Codex run health, and logs. ` +
     `Only make narrow fixes for concrete issues you find. Do not change business logic. Run relevant syntax checks. Report what changed and what verified.`;
 
   await runPromptFromTelegram(chatId, prompt, 'Doctor check', operator);
@@ -1106,6 +1791,7 @@ function getKeyCount() {
 async function sendStatus(chatId) {
   const status = getState('pipeline_status') || 'idle';
   const current = getCurrentIssue();
+  const lastDelivery = getLastDeliveryIssue();
   const model = getState('current_model') || 'gpt-5.5';
   const keyCount = getKeyCount();
   const codex = getCodexRuntimeStatus();
@@ -1116,6 +1802,9 @@ async function sendStatus(chatId) {
   text += `${humanSystemStatusLine(status, codex)}\n\n`;
   text += `Pipeline: *${escapeMarkdown(status.toUpperCase())}*\n`;
   text += `Codex: *${escapeMarkdown(formatCodexStatusSummary(codex))}*\n`;
+  if (lastDelivery) {
+    text += `Last: Issue #${lastDelivery.issue_number} (${escapeMarkdown(lastDelivery.delivery_status || lastDelivery.status || 'unknown')})\n`;
+  }
   text += `Model: \`${escapeMarkdown(model)}\`\n`;
   text += `API keys: ${keyCount} | Active: \`...${escapeMarkdown(codex.keySuffix)}\`\n`;
   text += `Batch remaining: ${batchRemaining}\n`;
@@ -1124,6 +1813,9 @@ async function sendStatus(chatId) {
   if (current) {
     text += `\n🔄 *Current Issue:*\n`;
     text += `#${current.issue_number}: ${escapeMarkdown(current.title || 'Unknown')}\n`;
+    if (current.delivery_status) {
+      text += `Delivery: ${escapeMarkdown(current.delivery_status)}\n`;
+    }
     text += `Started: ${current.started_at || 'N/A'}\n`;
     text += `Retries: ${current.retry_count || 0}\n`;
   } else {
@@ -1449,7 +2141,7 @@ function doctorPanelKeyboard() {
       [
         { text: 'Run Doctor', callback_data: 'panel:doctor:confirm' },
         { text: '⬅️ Back', callback_data: 'panel:back' },
-        { text: '❓', callback_data: 'help:doctor:nav' }
+        { text: '❓', callback_data: 'help:doctor:run_nav' }
       ]
     ]
   };
@@ -1589,7 +2281,7 @@ function logsPanelKeyboard() {
       ],
       [
         { text: '⬅️ Back', callback_data: 'panel:back' },
-        { text: '❓', callback_data: 'help:logs:mode' }
+        { text: '❓', callback_data: 'help:logs:nav' }
       ]
     ]
   };
@@ -1616,7 +2308,7 @@ function codexActivityKeyboard(mode = 'simple') {
       [
         { text: '🤖 Status', callback_data: 'panel:codex_status' },
         { text: '⬅️ Back', callback_data: 'panel:logs' },
-        { text: '❓', callback_data: 'help:logs:actions' }
+        { text: '❓', callback_data: 'help:logs:status_nav' }
       ]
     ]
   };
@@ -1720,7 +2412,7 @@ function logsKeyboard(mode = 'simple') {
       [
         { text: '🤖 Codex Live', callback_data: 'panel:codex_status' },
         { text: '⬅️ Back', callback_data: 'panel:logs' },
-        { text: '❓', callback_data: 'help:logs:actions' }
+        { text: '❓', callback_data: 'help:logs:status_nav' }
       ]
     ]
   };
@@ -2073,6 +2765,8 @@ function formatError(error) {
 module.exports = {
   initBot,
   sendCompletionPrompt,
+  sendDeliveryReviewPanel,
+  sendDirtyWorktreePrompt,
   sendKeyExhaustedAlert,
   sendNotification,
   sendStatus,

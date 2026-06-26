@@ -1,4 +1,4 @@
-const { spawn } = require('child_process');
+const { spawn, execFile } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const {
@@ -17,9 +17,12 @@ const {
   getPipelineOperator
 } = require('./database');
 
-const WORKDIR = process.env.CODEX_WORKDIR || process.cwd();
+const WORKDIR = process.env.CODEX_WORKDIR || process.env.REPO_PATH || process.cwd();
 const CODEX_LOG_LIMIT = 80;
 const STOP_TIMEOUT_MS = 5000;
+const GIT_TIMEOUT_MS = 120000;
+const GIT_COMMITTER_NAME = process.env.GIT_COMMITTER_NAME || 'Prometheus Orchestrator';
+const GIT_COMMITTER_EMAIL = process.env.GIT_COMMITTER_EMAIL || 'prometheus-orchestrator@localhost';
 
 let activeRun = null;
 let lastRun = null;
@@ -203,6 +206,297 @@ function runCodexPrompt(prompt, options = {}) {
   });
 }
 
+function runGit(args, options = {}) {
+  return new Promise((resolve, reject) => {
+    execFile('git', args, {
+      cwd: options.workdir || WORKDIR,
+      timeout: options.timeout || GIT_TIMEOUT_MS,
+      env: {
+        ...process.env,
+        GIT_AUTHOR_NAME: process.env.GIT_AUTHOR_NAME || GIT_COMMITTER_NAME,
+        GIT_AUTHOR_EMAIL: process.env.GIT_AUTHOR_EMAIL || GIT_COMMITTER_EMAIL,
+        GIT_COMMITTER_NAME,
+        GIT_COMMITTER_EMAIL
+      }
+    }, (error, stdout, stderr) => {
+      const result = {
+        args,
+        stdout: String(stdout || '').trim(),
+        stderr: String(stderr || '').trim()
+      };
+      if (error) {
+        const gitError = new Error(`git ${args.join(' ')} failed: ${result.stderr || result.stdout || error.message}`);
+        gitError.result = result;
+        reject(gitError);
+        return;
+      }
+      resolve(result);
+    });
+  });
+}
+
+function getCodexWorkdir() {
+  return WORKDIR;
+}
+
+async function getGitBranchState() {
+  await runGit(['rev-parse', '--is-inside-work-tree']);
+  const head = (await runGit(['rev-parse', 'HEAD'])).stdout;
+  let branch = null;
+  let detached = false;
+
+  try {
+    branch = (await runGit(['branch', '--show-current'])).stdout;
+  } catch {
+    branch = null;
+  }
+
+  if (!branch) {
+    const abbrev = (await runGit(['rev-parse', '--abbrev-ref', 'HEAD'])).stdout;
+    if (abbrev && abbrev !== 'HEAD') {
+      branch = abbrev;
+    } else {
+      detached = true;
+    }
+  }
+
+  return {
+    head,
+    branch,
+    detached
+  };
+}
+
+async function getGitStatusShort() {
+  return (await runGit(['status', '--short'])).stdout;
+}
+
+async function getGitDiffStat() {
+  const diff = (await runGit(['diff', '--stat'])).stdout;
+  const untracked = (await runGit(['ls-files', '--others', '--exclude-standard'])).stdout;
+  if (!untracked) return diff;
+
+  const untrackedLines = untracked
+    .split('\n')
+    .filter(Boolean)
+    .map(file => `${file} | new file`)
+    .join('\n');
+
+  return [diff, untrackedLines].filter(Boolean).join('\n');
+}
+
+async function getGitNumstat() {
+  const diff = (await runGit(['diff', '--numstat'])).stdout;
+  const untracked = (await runGit(['ls-files', '--others', '--exclude-standard'])).stdout;
+  if (!untracked) return diff;
+
+  const untrackedLines = [];
+  for (const file of untracked.split('\n').filter(Boolean)) {
+    let additions = 0;
+    try {
+      const content = fs.readFileSync(path.join(WORKDIR, file), 'utf8');
+      additions = content.length === 0 ? 0 : content.split('\n').length - (content.endsWith('\n') ? 1 : 0);
+    } catch {
+      additions = 0;
+    }
+    untrackedLines.push(`${additions}\t0\t${file}`);
+  }
+
+  return [diff, untrackedLines.join('\n')].filter(Boolean).join('\n');
+}
+
+function buildDeliveryBranchName(issueNumber) {
+  return `codex/issue-${issueNumber || 'manual'}`;
+}
+
+function buildCommitMessage(issueNumber, issueTitle) {
+  const title = String(issueTitle || `Issue #${issueNumber || 'manual'}`)
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 140);
+  return issueNumber
+    ? `fix: ${title} [Closes #${issueNumber}]`
+    : `fix: ${title}`;
+}
+
+async function rollbackGitChanges(options = {}) {
+  const target = options.targetRef || 'HEAD';
+  const reason = options.reason || 'rollback';
+  const reset = await runGit(['reset', '--hard', target]);
+  const clean = await runGit(['clean', '-fd']);
+  logCodexEvent('git', `Rolled back working tree to ${target}: ${reason}`, {
+    target,
+    reason,
+    reset: reset.stdout,
+    clean: clean.stdout
+  });
+  return {
+    target,
+    reason,
+    reset: reset.stdout,
+    clean: clean.stdout,
+    statusShort: await getGitStatusShort()
+  };
+}
+
+async function discardCodexChanges(reason = 'operator_discard') {
+  return rollbackGitChanges({ targetRef: 'HEAD', reason });
+}
+
+async function pushMain(options = {}) {
+  const args = options.force
+    ? ['push', '--force-with-lease', 'origin', 'main']
+    : ['push', 'origin', 'main'];
+  try {
+    const result = await runGit(args, { timeout: options.timeout || GIT_TIMEOUT_MS });
+    logCodexEvent('git', `${options.force ? 'Force pushed' : 'Pushed'} main to origin`, result);
+    return result;
+  } catch (error) {
+    error.stage = options.force ? 'force_push' : 'push';
+    error.conflict = isPushConflictError(error);
+    throw error;
+  }
+}
+
+async function pullAndMergeMain() {
+  try {
+    const result = await runGit(['pull', '--no-edit', 'origin', 'main']);
+    logCodexEvent('git', 'Pulled and merged origin/main', result);
+    return result;
+  } catch (error) {
+    error.stage = 'pull_merge';
+    error.conflict = true;
+    throw error;
+  }
+}
+
+async function commitAndPushIssueChanges(issueNumber, issueTitle) {
+  const statusBefore = await getGitStatusShort();
+  if (!statusBefore) {
+    const error = new Error('NO_CHANGES_TO_PUSH: working tree is clean');
+    error.stage = 'status';
+    throw error;
+  }
+
+  const commitMessage = buildCommitMessage(issueNumber, issueTitle);
+  try {
+    await runGit(['add', '-A']);
+    await runGit(['commit', '-m', commitMessage]);
+  } catch (error) {
+    error.stage = 'commit';
+    throw error;
+  }
+
+  const commitSha = (await runGit(['rev-parse', 'HEAD'])).stdout;
+  try {
+    await pushMain();
+  } catch (error) {
+    error.commitSha = commitSha;
+    error.commitMessage = commitMessage;
+    throw error;
+  }
+
+  return {
+    statusBefore,
+    commitMessage,
+    commitSha,
+    pushed: true
+  };
+}
+
+function isPushConflictError(error) {
+  const text = `${error?.message || ''}\n${error?.result?.stderr || ''}\n${error?.result?.stdout || ''}`.toLowerCase();
+  return (
+    text.includes('non-fast-forward') ||
+    text.includes('fetch first') ||
+    text.includes('rejected') ||
+    text.includes('failed to push some refs') ||
+    text.includes('merge conflict') ||
+    text.includes('conflict')
+  );
+}
+
+async function deliverCodexChanges(options = {}) {
+  const issueNumber = options.issueNumber || options.metadata?.issueNumber || null;
+  const issueTitle = options.issueTitle || options.metadata?.issueTitle || 'Codex changes';
+  const remote = options.remote || process.env.GIT_REMOTE || 'origin';
+  const statusBefore = await getGitStatusShort();
+
+  if (!statusBefore) {
+    logCodexEvent('git', `Codex completed but no files were modified for ${issueNumber ? `Issue #${issueNumber}` : issueTitle}`);
+    return {
+      changed: false,
+      committed: false,
+      pushed: false,
+      noChanges: true,
+      statusBefore,
+      message: 'Codex completed but no files were modified'
+    };
+  }
+
+  const branchState = await getGitBranchState();
+  const originalHead = branchState.head;
+  let branch = branchState.branch;
+  let branchCreated = false;
+
+  try {
+    if (branchState.detached || !branch) {
+      branch = buildDeliveryBranchName(issueNumber);
+      await runGit(['checkout', '-B', branch]);
+      branchCreated = true;
+      logCodexEvent('git', `Detached or unknown HEAD; created delivery branch ${branch}`, { branch, originalHead });
+    }
+
+    const commitMessage = buildCommitMessage(issueNumber, issueTitle);
+    await runGit(['add', '-A']);
+    await runGit(['commit', '-m', commitMessage]);
+    const commitSha = (await runGit(['rev-parse', 'HEAD'])).stdout;
+    await runGit(['push', remote, branch]);
+
+    const statusAfter = await getGitStatusShort();
+    const delivery = {
+      changed: true,
+      committed: true,
+      pushed: true,
+      noChanges: false,
+      branch,
+      branchCreated,
+      commitSha,
+      commitMessage,
+      remote,
+      originalHead,
+      statusBefore,
+      statusAfter
+    };
+
+    logCodexEvent('git', `Delivered Codex changes on ${branch} at ${commitSha.slice(0, 12)}`, delivery);
+    return delivery;
+  } catch (error) {
+    let rollback = null;
+    try {
+      rollback = await rollbackGitChanges({
+        targetRef: originalHead || 'HEAD',
+        reason: `delivery_failed:${error.message.slice(0, 180)}`
+      });
+    } catch (rollbackError) {
+      rollback = {
+        failed: true,
+        error: rollbackError.message
+      };
+    }
+
+    error.delivery = {
+      branch,
+      branchCreated,
+      originalHead,
+      statusBefore,
+      rollback
+    };
+    logCodexEvent('error', `Delivery failed: ${error.message}`, error.delivery);
+    throw error;
+  }
+}
+
 function runCodexCommand(prompt, options) {
   return new Promise((resolve, reject) => {
     const persistedPid = getStoredCodexPid();
@@ -356,6 +650,7 @@ function runCodexCommand(prompt, options) {
       const result = {
         output,
         duration,
+        exitCode: code,
         rawOutput: output.map(e => JSON.stringify(e)).join('\n'),
         errorOutput: errorOutput || null
       };
@@ -575,6 +870,7 @@ function buildLastRun(runId, options, model, duration, status, error, output = [
     duration,
     status,
     error,
+    metadata: options.metadata || {},
     outputPreview: buildOutputPreview(output),
     errorOutput: errorOutput ? errorOutput.slice(-1200) : null,
     completedAt: new Date().toISOString()
@@ -860,6 +1156,17 @@ module.exports = {
   runCodex,
   runCodexPrompt,
   stopCodex,
+  getCodexWorkdir,
+  deliverCodexChanges,
+  discardCodexChanges,
+  rollbackGitChanges,
+  commitAndPushIssueChanges,
+  pushMain,
+  pullAndMergeMain,
+  getGitBranchState,
+  getGitStatusShort,
+  getGitDiffStat,
+  getGitNumstat,
   parseCodexOutput,
   generateSummaryMessage,
   rotateApiKey,

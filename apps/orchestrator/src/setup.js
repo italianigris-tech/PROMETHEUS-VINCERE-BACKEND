@@ -1,6 +1,14 @@
-const { execSync } = require('child_process');
+const { execFileSync, execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const {
+  applySecureUmask,
+  ensurePrivateDir,
+  securePath,
+  SECURE_FILE_MODE
+} = require('./lib/security');
+
+applySecureUmask();
 
 console.log('🔧 PROMETHEUS ORCHESTRATOR SETUP');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -14,11 +22,13 @@ if (!nodeVersion.startsWith('v20') && !nodeVersion.startsWith('v22')) {
 const envPath = path.join(process.cwd(), '.env');
 if (!fs.existsSync(envPath)) {
   console.log('📝 Creating .env from template...');
-  fs.copyFileSync('.env.example', '.env');
+  fs.copyFileSync('.env.example', '.env', fs.constants.COPYFILE_EXCL);
+  fs.chmodSync(envPath, SECURE_FILE_MODE);
   console.log('✅ .env created. EDIT IT NOW with your actual values.');
   console.log('   Then run: npm install && npm start');
   process.exit(0);
 }
+securePath(envPath, { mode: SECURE_FILE_MODE, label: '.env' });
 
 const required = ['TELEGRAM_BOT_TOKEN', 'GITHUB_TOKEN', 'CODEX_API_KEY'];
 const missing = required.filter(key => !process.env[key]);
@@ -46,7 +56,7 @@ if (!fs.existsSync(repoPath)) {
   const repo = process.env.GITHUB_REPO || 'PROMETHEUS-CORE-BACKEND-DEXTER';
   
   try {
-    execSync(`git clone https://${process.env.GITHUB_TOKEN}@github.com/${owner}/${repo}.git ${repoPath}`, { stdio: 'inherit' });
+    execFileSync('git', ['clone', `https://${process.env.GITHUB_TOKEN}@github.com/${owner}/${repo}.git`, repoPath], { stdio: 'inherit' });
     console.log('✅ Repository cloned');
   } catch (err) {
     console.error('❌ Failed to clone repository:', err.message);
@@ -58,8 +68,10 @@ if (!fs.existsSync(repoPath)) {
 
 const dataDir = path.join(process.cwd(), 'data');
 if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
+  ensurePrivateDir(dataDir, { label: 'data/' });
   console.log('✅ Data directory created');
+} else {
+  ensurePrivateDir(dataDir, { label: 'data/' });
 }
 
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
