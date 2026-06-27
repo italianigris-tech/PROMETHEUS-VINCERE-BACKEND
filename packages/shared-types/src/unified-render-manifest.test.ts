@@ -239,6 +239,94 @@ describe("UnifiedRenderManifestSchema", () => {
     );
     expect(manifest.josephBackground?.layeringRules.pipProtection).toBe("reserved_safe_zone");
   });
+  it("accepts an inspectable Joseph audio-visual choreography plan", () => {
+    const vocabulary = [
+      "punch",
+      "hold",
+      "bloom",
+      "ratchet",
+      "glide",
+      "suspend",
+      "detonate",
+    ].map((id) => ({
+      id,
+      label: id,
+      momentumRole: id === "detonate" ? "detonation" : id === "hold" ? "restraint" : "escalation",
+      cutBehavior: `${id} cut behavior`,
+      textBehavior: `${id} text behavior`,
+      cameraBehavior: `${id} camera behavior`,
+      sfxBehavior: `${id} sfx behavior`,
+      backgroundBehavior: `${id} background behavior`,
+    }));
+    const window = {
+      eventId: "cut-0",
+      segmentId: "segment-hook-0",
+      segmentRole: "hook",
+      doctrineId: "punch",
+      startMs: 480,
+      endMs: 620,
+      triggerMs: 500,
+      intensity: 0.9,
+      sync: "beat",
+    };
+    const manifest = UnifiedRenderManifestSchema.parse({
+      ...baseManifest,
+      josephChoreography: {
+        version: "joseph-choreography-v1",
+        vocabulary,
+        segments: [
+          {
+            id: "segment-hook-0",
+            role: "hook",
+            doctrineId: "punch",
+            startMs: 0,
+            endMs: 1800,
+            score: 0.91,
+            momentum: 0.82,
+            intensity: 0.88,
+            breathWindowMs: 180,
+            climaxBudget: 0.22,
+          },
+          {
+            id: "segment-cta-1",
+            role: "cta",
+            doctrineId: "detonate",
+            startMs: 7000,
+            endMs: 10000,
+            score: 0.86,
+            momentum: 0.94,
+            intensity: 0.96,
+            breathWindowMs: 260,
+            climaxBudget: 0.9,
+          },
+        ],
+        timingPlan: {
+          cutWindows: [{...window, lane: "cut"}],
+          textWindows: [{...window, lane: "text", eventId: "text-0", sync: "phrase"}],
+          cameraWindows: [{...window, lane: "camera", eventId: "camera-0", sync: "onset"}],
+          sfxWindows: [{...window, lane: "sfx", eventId: "sfx-0", sync: "beat"}],
+          backgroundWindows: [{...window, lane: "background", eventId: "background-0", sync: "background_cycle"}],
+        },
+        qualityAudit: {
+          score: 0.76,
+          failures: ["dead_zone", "non_musical_emphasis"],
+          warnings: ["long breath before CTA"],
+        },
+      },
+    });
+
+    expect(manifest.josephChoreography?.version).toBe("joseph-choreography-v1");
+    expect(manifest.josephChoreography?.vocabulary.map((entry) => entry.id)).toEqual(
+      expect.arrayContaining(["punch", "hold", "bloom", "ratchet", "glide", "suspend", "detonate"]),
+    );
+    expect(manifest.josephChoreography?.segments.map((segment) => segment.role)).toEqual(
+      expect.arrayContaining(["hook", "cta"]),
+    );
+    expect(manifest.josephChoreography?.timingPlan.sfxWindows[0]?.lane).toBe("sfx");
+    expect(manifest.josephChoreography?.qualityAudit.failures).toEqual(
+      expect.arrayContaining(["dead_zone", "non_musical_emphasis"]),
+    );
+  });
   it("accepts deterministic SFX variant metadata without changing semantic cue names", () => {
     const manifest = UnifiedRenderManifestSchema.parse({
       ...baseManifest,

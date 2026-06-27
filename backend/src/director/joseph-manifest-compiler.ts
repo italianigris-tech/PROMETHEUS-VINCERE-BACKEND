@@ -13,6 +13,7 @@ export const JOSEPH_MANIFEST_COMPILER_PRESERVED_FIELD_PATHS = [
   "josephPiP",
   "josephBackground",
   "josephTypography",
+  "josephChoreography",
   "cameraMoves",
 ] as const;
 

@@ -362,6 +362,116 @@ export const JosephBackgroundPlanSchema = z.object({
   layeringRules: JosephBackgroundLayeringRulesSchema,
   parameterAudit: JosephBackgroundParameterAuditSchema,
 });
+export const JosephChoreographyDoctrineIdSchema = z.enum([
+  "punch",
+  "hold",
+  "bloom",
+  "ratchet",
+  "glide",
+  "suspend",
+  "detonate",
+]);
+
+export const JosephChoreographySegmentRoleSchema = z.enum([
+  "hook",
+  "setup",
+  "revelation",
+  "escalation",
+  "release",
+  "cta",
+]);
+
+export const JosephChoreographyLaneSchema = z.enum([
+  "cut",
+  "text",
+  "camera",
+  "sfx",
+  "background",
+]);
+
+export const JosephChoreographyMomentumRoleSchema = z.enum([
+  "anticipation",
+  "release",
+  "escalation",
+  "restraint",
+  "carry_through",
+  "detonation",
+]);
+
+export const JosephChoreographySyncKindSchema = z.enum([
+  "beat",
+  "onset",
+  "phrase",
+  "breath",
+  "background_cycle",
+]);
+
+export const JosephChoreographyPacingFailureSchema = z.enum([
+  "flat_pacing",
+  "overcutting",
+  "climax_overspend",
+  "dead_zone",
+  "non_musical_emphasis",
+]);
+
+export const JosephChoreographyDoctrineSchema = z.object({
+  id: JosephChoreographyDoctrineIdSchema,
+  label: z.string().trim().min(1),
+  momentumRole: JosephChoreographyMomentumRoleSchema,
+  cutBehavior: z.string().trim().min(1),
+  textBehavior: z.string().trim().min(1),
+  cameraBehavior: z.string().trim().min(1),
+  sfxBehavior: z.string().trim().min(1),
+  backgroundBehavior: z.string().trim().min(1),
+});
+
+export const JosephChoreographySegmentSchema = z.object({
+  id: z.string().trim().min(1),
+  role: JosephChoreographySegmentRoleSchema,
+  doctrineId: JosephChoreographyDoctrineIdSchema,
+  startMs: z.number().nonnegative(),
+  endMs: z.number().nonnegative(),
+  score: z.number().min(0).max(1),
+  momentum: z.number().min(0).max(1),
+  intensity: z.number().min(0).max(1),
+  breathWindowMs: z.number().int().nonnegative(),
+  climaxBudget: z.number().min(0).max(1),
+});
+
+export const JosephChoreographyTimingWindowSchema = z.object({
+  lane: JosephChoreographyLaneSchema,
+  eventId: z.string().trim().min(1),
+  segmentId: z.string().trim().min(1),
+  segmentRole: JosephChoreographySegmentRoleSchema,
+  doctrineId: JosephChoreographyDoctrineIdSchema,
+  startMs: z.number().nonnegative(),
+  endMs: z.number().nonnegative(),
+  triggerMs: z.number().nonnegative(),
+  intensity: z.number().min(0).max(1),
+  sync: JosephChoreographySyncKindSchema,
+});
+
+export const JosephChoreographyTimingPlanSchema = z.object({
+  cutWindows: z.array(JosephChoreographyTimingWindowSchema).default([]),
+  textWindows: z.array(JosephChoreographyTimingWindowSchema).default([]),
+  cameraWindows: z.array(JosephChoreographyTimingWindowSchema).default([]),
+  sfxWindows: z.array(JosephChoreographyTimingWindowSchema).default([]),
+  backgroundWindows: z.array(JosephChoreographyTimingWindowSchema).default([]),
+});
+
+export const JosephChoreographyQualityAuditSchema = z.object({
+  score: z.number().min(0).max(1),
+  failures: z.array(JosephChoreographyPacingFailureSchema).default([]),
+  warnings: z.array(z.string().trim().min(1)).default([]),
+});
+
+export const JosephChoreographyPlanSchema = z.object({
+  version: z.literal("joseph-choreography-v1"),
+  vocabulary: z.array(JosephChoreographyDoctrineSchema).min(7),
+  segments: z.array(JosephChoreographySegmentSchema).default([]),
+  timingPlan: JosephChoreographyTimingPlanSchema,
+  qualityAudit: JosephChoreographyQualityAuditSchema,
+});
 export const TimelineEventSchema = z.union([
   CutEventSchema,
   TextEventSchema,
@@ -416,6 +526,7 @@ export const UnifiedRenderManifestSchema = z.object({
   josephPiP: JosephPiPPlanSchema.optional(),
   josephBackground: JosephBackgroundPlanSchema.optional(),
   josephTypography: JosephTypographyIntelligencePlanSchema.optional(),
+  josephChoreography: JosephChoreographyPlanSchema.optional(),
 
   source: z.object({
     videoUrl: z.string().min(1),
@@ -499,7 +610,20 @@ export type JosephBackgroundPrimitiveParameters = z.infer<typeof JosephBackgroun
 export type JosephBackgroundPrimitiveSelection = z.infer<typeof JosephBackgroundPrimitiveSelectionSchema>;
 export type JosephBackgroundLayeringRules = z.infer<typeof JosephBackgroundLayeringRulesSchema>;
 export type JosephBackgroundParameterAudit = z.infer<typeof JosephBackgroundParameterAuditSchema>;
-export type JosephBackgroundPlan = z.infer<typeof JosephBackgroundPlanSchema>;export type VideoTrack = z.infer<typeof VideoTrackSchema>;
+export type JosephBackgroundPlan = z.infer<typeof JosephBackgroundPlanSchema>;
+export type JosephChoreographyDoctrineId = z.infer<typeof JosephChoreographyDoctrineIdSchema>;
+export type JosephChoreographySegmentRole = z.infer<typeof JosephChoreographySegmentRoleSchema>;
+export type JosephChoreographyLane = z.infer<typeof JosephChoreographyLaneSchema>;
+export type JosephChoreographyMomentumRole = z.infer<typeof JosephChoreographyMomentumRoleSchema>;
+export type JosephChoreographySyncKind = z.infer<typeof JosephChoreographySyncKindSchema>;
+export type JosephChoreographyPacingFailure = z.infer<typeof JosephChoreographyPacingFailureSchema>;
+export type JosephChoreographyDoctrine = z.infer<typeof JosephChoreographyDoctrineSchema>;
+export type JosephChoreographySegment = z.infer<typeof JosephChoreographySegmentSchema>;
+export type JosephChoreographyTimingWindow = z.infer<typeof JosephChoreographyTimingWindowSchema>;
+export type JosephChoreographyTimingPlan = z.infer<typeof JosephChoreographyTimingPlanSchema>;
+export type JosephChoreographyQualityAudit = z.infer<typeof JosephChoreographyQualityAuditSchema>;
+export type JosephChoreographyPlan = z.infer<typeof JosephChoreographyPlanSchema>;
+export type VideoTrack = z.infer<typeof VideoTrackSchema>;
 export type CameraMove = z.infer<typeof CameraMoveSchema>;
 export type TextOverlay = z.infer<typeof TextOverlaySchema>;
 export type Transition = z.infer<typeof TransitionSchema>;

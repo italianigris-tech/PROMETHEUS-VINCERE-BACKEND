@@ -52,6 +52,7 @@ describe("Director Orchestrator Manifest Compiler", () => {
         "josephPiP",
         "josephBackground",
         "josephTypography",
+        "josephChoreography",
         "cameraMoves",
         "timeline",
       ]),

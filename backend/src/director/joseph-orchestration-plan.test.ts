@@ -59,6 +59,16 @@ describe("buildJosephOrchestrationPlan", () => {
     );
     expect(plan.temporalChoreography.cuts.length).toBeGreaterThan(0);
     expect(plan.temporalChoreography.sfx.length).toBeGreaterThan(0);
+    expect(plan.temporalChoreography.doctrines).toEqual(
+      expect.arrayContaining(["punch", "hold", "bloom", "ratchet", "glide", "suspend", "detonate"]),
+    );
+    expect(plan.temporalChoreography.segmentScores).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/^hook:/),
+        expect.stringMatching(/^cta:/),
+      ]),
+    );
+    expect(plan.temporalChoreography.backgroundWindows.length).toBeGreaterThan(0);
     expect(plan.llmAuthority).toEqual([
       "semantic-extraction",
       "rhetorical-labeling",
@@ -86,6 +96,18 @@ describe("buildJosephOrchestrationPlan", () => {
     expect(manifest.josephPiP?.typographyZones.some((zone) => zone.role === "hero")).toBe(true);
     expect(manifest.josephPiP?.backgroundLayers.some((layer) => layer.role === "focus_field")).toBe(true);
     expect(manifest.josephPiP?.coexistenceRules.protectTypography).toBe(true);
+  });
+
+  it("threads Joseph choreography metadata through generated manifests", () => {
+    const manifest = generateJosephManifest(INPUT);
+
+    expect(manifest.josephChoreography?.version).toBe("joseph-choreography-v1");
+    expect(manifest.josephChoreography?.segments.some((segment) => segment.role === "hook")).toBe(true);
+    expect(manifest.josephChoreography?.segments.some((segment) => segment.role === "cta")).toBe(true);
+    expect(manifest.josephChoreography?.timingPlan.backgroundWindows.length).toBeGreaterThan(0);
+    expect(manifest.josephChoreography?.qualityAudit.score).toBeGreaterThanOrEqual(0);
+    expect(manifest.josephChoreography?.qualityAudit.score).toBeLessThanOrEqual(1);
+    expect(Array.isArray(manifest.josephChoreography?.qualityAudit.failures)).toBe(true);
   });
   it("can produce the same manifest from the same planning inputs", () => {
     const left = generateJosephManifest(INPUT);

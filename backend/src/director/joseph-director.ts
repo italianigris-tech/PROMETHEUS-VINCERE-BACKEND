@@ -8,6 +8,7 @@ import {
   type TransitionEvent,
   type UnifiedRenderManifest,
   type JosephBackgroundPlan,
+  type JosephChoreographyPlan,
   type JosephPiPPlan,
   type JosephTypographyIntelligencePlan,
   type Word,
@@ -24,6 +25,7 @@ import {
 import {buildJosephBackgroundPrimitivePlan} from "./joseph-background-primitives";
 import {buildJosephPiPCompositionPlan} from "./joseph-pip-composition";
 import {buildJosephTypographyIntelligencePlan, JOSEPH_TYPOGRAPHY_STYLEBOOKS} from "./joseph-typography-intelligence";
+import {buildJosephAudioVisualChoreographyPlan} from "./joseph-audio-visual-choreography";
 export interface DirectorInput {
   videoUrl: string;
   musicTrackUrl?: string;
@@ -73,6 +75,10 @@ export type JosephTemporalChoreography = {
   cameraMoves: string[];
   sfx: string[];
   transitions: string[];
+  doctrines: string[];
+  segmentScores: string[];
+  backgroundWindows: string[];
+  pacingFailures: string[];
 };
 export type JosephOrchestrationPlan = {
   semanticSummary: JosephSemanticSummary;
@@ -885,6 +891,7 @@ const buildTemporalChoreography = (
   cameraMoves: CameraMove[],
   sfx: SFXEvent[],
   transitions: TransitionEvent[],
+  choreography: JosephChoreographyPlan,
 ): JosephTemporalChoreography => ({
   cuts: cuts.map((cut) => cut.atMs),
   cameraMoves: cameraMoves.map(
@@ -892,6 +899,14 @@ const buildTemporalChoreography = (
   ),
   sfx: sfx.map((event) => `${event.cue}:${event.triggerMs}`),
   transitions: transitions.map((event) => `${event.style}:${event.atMs}`),
+  doctrines: choreography.vocabulary.map((doctrine) => doctrine.id),
+  segmentScores: choreography.segments.map(
+    (segment) => `${segment.role}:${segment.doctrineId}:${segment.score.toFixed(2)}`,
+  ),
+  backgroundWindows: choreography.timingPlan.backgroundWindows.map(
+    (window) => `${window.segmentRole}:${window.eventId}`,
+  ),
+  pacingFailures: choreography.qualityAudit.failures,
 });
 const applyDoctrineToProfile = (
   base: ProfileTuning,
@@ -958,12 +973,6 @@ const buildCandidatePlan = (
   const semanticSummary = summarizeSemantics(input, phrases);
   const visualPlan = buildVisualPlan(input, phrases, doctrine);
   const observationSnapshot = buildObservationSnapshot(input, phrases);
-  const temporalChoreography = buildTemporalChoreography(
-    cuts,
-    cameraMoves,
-    sfx,
-    transitionEvents,
-  );
   const microAnimationAudit = buildMicroAnimationAudit(textOverlays);
   const josephPiP: JosephPiPPlan = buildJosephPiPCompositionPlan({
     durationFrames,
@@ -989,6 +998,29 @@ const buildCandidatePlan = (
     profile: input.profile,
     doctrineId: doctrine?.id,
   });
+  const josephChoreography: JosephChoreographyPlan = buildJosephAudioVisualChoreographyPlan({
+    profile: input.profile,
+    durationMs: input.durationMs,
+    fps: FPS,
+    phrases,
+    cuts,
+    textOverlays,
+    cameraMoves,
+    sfx,
+    transitions: transitionEvents,
+    beats: input.beats,
+    onsets: input.onsets,
+    energyCurve: input.energyCurve,
+    backgroundPlan: josephBackground,
+    doctrineId: doctrine?.id,
+  });
+  const temporalChoreography = buildTemporalChoreography(
+    cuts,
+    cameraMoves,
+    sfx,
+    transitionEvents,
+    josephChoreography,
+  );
   return {
     semanticSummary,
     visualPlan,
@@ -998,6 +1030,7 @@ const buildCandidatePlan = (
     josephPiP,
     josephBackground,
     josephTypography,
+    josephChoreography,
     textOverlays,
     cuts,
     cameraMoves,
@@ -1065,6 +1098,7 @@ const buildManifestFromPlan = (
     josephPiP: plan.josephPiP,
     josephBackground: plan.josephBackground,
     josephTypography: plan.josephTypography,
+    josephChoreography: plan.josephChoreography,
     source: {
       videoUrl: input.videoUrl,
       audioUrl: input.musicTrackUrl,

@@ -92,7 +92,24 @@ describe("generateJosephManifest", () => {
     expect(manifest.josephBackground?.parameterAudit.governed).toBe(true);
     expect(manifest.josephBackground?.primitives.length).toBeGreaterThanOrEqual(3);
     expect(manifest.josephBackground?.layeringRules.pipProtection).toBe("reserved_safe_zone");
+  });  it("records a governed Joseph audio-visual choreography plan", () => {
+    const manifest = generateJosephManifest(MOCK_INPUT);
+
+    expect(manifest.josephChoreography?.version).toBe("joseph-choreography-v1");
+    expect(manifest.josephChoreography?.vocabulary.map((doctrine) => doctrine.id)).toEqual(
+      expect.arrayContaining(["punch", "hold", "bloom", "ratchet", "glide", "suspend", "detonate"]),
+    );
+    expect(manifest.josephChoreography?.segments.map((segment) => segment.role)).toEqual(
+      expect.arrayContaining(["hook", "setup", "revelation", "escalation", "release", "cta"]),
+    );
+    expect(manifest.josephChoreography?.timingPlan.cutWindows.length).toBeGreaterThan(0);
+    expect(manifest.josephChoreography?.timingPlan.textWindows.length).toBeGreaterThan(0);
+    expect(manifest.josephChoreography?.timingPlan.cameraWindows.length).toBeGreaterThan(0);
+    expect(manifest.josephChoreography?.timingPlan.sfxWindows.length).toBeGreaterThan(0);
+    expect(manifest.josephChoreography?.timingPlan.backgroundWindows.length).toBeGreaterThan(0);
+    expect(manifest.josephChoreography?.qualityAudit.score).toBeGreaterThan(0.5);
   });
+
   it("cuts land near beats", () => {
     const manifest = generateJosephManifest(MOCK_INPUT);
     const cuts = manifest.timeline.filter((event) => event.type === "cut") as CutEvent[];
