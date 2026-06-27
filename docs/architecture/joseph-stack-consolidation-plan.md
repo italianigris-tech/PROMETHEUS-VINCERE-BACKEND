@@ -13,7 +13,7 @@ This plan intentionally avoids deleting Stack A first. Stack A contains useful a
 The target flow is:
 
 1. Director input is normalized into phrases, beats, assets, timing, and production constraints.
-2. The unified planner ranks treatment genomes using sequence objective, negative grammar, taste criticism, archive diversity, and deterministic constraints.
+2. The unified planner ranks treatment genomes using sequence objective, negative grammar, taste criticism, backend diversity-cell pressure, and deterministic constraints.
 3. The Manifest Compiler translates the selected treatment path into `UnifiedRenderManifest`.
 4. The Judgment Layer evaluates candidates and records the governed decision.
 5. Evidence, ledger records, variation checks, and canonicalization run against the compiled manifest.
@@ -32,7 +32,7 @@ Responsibilities:
 - Apply Negative Grammar predicates.
 - Use pairwise taste criticism as a re-ranker.
 - Track Sequence Memory for contrast and anti-repetition.
-- Optionally preserve Quality-Diversity Archive behavior for diverse strong candidates.
+- Preserve the useful Quality-Diversity Archive behavior as backend-owned diversity-cell pressure for strong candidates.
 
 ### Manifest Compiler
 
@@ -59,7 +59,7 @@ Render contract tests prove that planner-selected manifest fields reach renderer
 | Category | Items | Rationale |
 | --- | --- | --- |
 | Keep as spine | Backend director, worker path, evidence ledger, deterministic variation, canonicalization, `UnifiedRenderManifest`, `JosephEdit` | These are the live production contracts. |
-| Graft soon | Sequence Objective, Negative Grammar predicates, pairwise taste critic, QD archive behavior, sequence metrics | These are useful algorithms and can be made pure against Stack B data. |
+| Grafted | Sequence Objective, Negative Grammar predicates, diversity-cell pressure, sequence metrics | These useful algorithms now run as pure Stack B/backend-owned modules with focused tests. |
 | Defer | Doctrine branch engine, observation/planning snapshot engines, retrieval policy, governance/deviation machinery, creator budget learning | These need a stable planner-render handoff first. |
 | Excise later | Creative Context orchestration apparatus, duplicate Core Judgment stack, duplicate Sequence Memory engine, duplicate Planner Audit type | These should go only after grafted behavior has equivalent coverage. |
 
@@ -88,9 +88,9 @@ Introduce the Manifest Compiler as a pass-through first. It should carry the ric
 
 Gate: compiled manifests are schema-valid, canonicalized, and byte-stable for existing inputs where the new fields are disabled.
 
-### Phase 3: Graft Sequence Objective And Archive Diversity
+### Phase 3: Graft Sequence Objective And Diversity Cells
 
-Replace seed-only doctrine choice with objective ranking and QD-aware diversity. Keep deterministic fallbacks.
+Replace seed-only doctrine choice with objective ranking and backend-owned diversity-cell pressure. Keep deterministic fallbacks.
 
 Gate: variation and determinism suites pass; audit output explains why the winning treatment path was selected.
 
@@ -111,6 +111,8 @@ Remove orphaned orchestration after its useful algorithms have been ported and c
 
 Gate: no live imports depend on the old apparatus, and the consolidated planner has equivalent or stronger tests.
 
+Phase 5 status: the surviving `remotion-app/src/creative-orchestration` subtree is archived as a legacy browser-preview/demo surface, not Joseph authority. A backend guard test now prevents Joseph backend/director, worker, script, entry, renderer, and render-contract files from importing the old apparatus.
+
 ## Risk Controls
 
 - Determinism risk: keep seeded decisions and canonicalization tests at every phase.
@@ -128,5 +130,5 @@ The consolidation is complete when:
 - `UnifiedRenderManifest` contains the planner-selected fields the renderer needs.
 - `JosephEdit` renders micro-animation, PiP, typography, background, and camera intent from the manifest contract.
 - Planner Audit and Candidate Score Summary are distinct named artifacts.
-- Stack A contains no live duplicate orchestration, or only pure archived references waiting for deletion.
+- Stack A contains no live Joseph duplicate orchestration, and the remaining browser-preview references are archived intentionally.
 

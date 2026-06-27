@@ -24,7 +24,7 @@ export type JosephArchiveCell = {
   editorialRole: "setup" | "tension" | "payoff";
 };
 
-export type JosephQualityDiversityArchiveEntry = {
+export type JosephDiversityCellEntry = {
   candidateId: string;
   doctrineBranchId: string;
   archiveCell: JosephArchiveCell;
@@ -46,7 +46,7 @@ export type JosephSequenceObjectiveRanking = {
   selectedCandidateId: string | null;
   selectedDoctrineBranchId: string | null;
   candidates: JosephSequenceObjectiveCandidate[];
-  archiveEntries: JosephQualityDiversityArchiveEntry[];
+  archiveEntries: JosephDiversityCellEntry[];
   selectedPath: {
     candidateIds: string[];
     doctrineBranchIds: string[];
@@ -159,8 +159,8 @@ const qdPlannerScore = (candidate: {
   );
 };
 
-const buildArchiveEntries = (scores: CandidateScore[]): JosephQualityDiversityArchiveEntry[] => {
-  const elites = new Map<string, JosephQualityDiversityArchiveEntry>();
+const buildArchiveEntries = (scores: CandidateScore[]): JosephDiversityCellEntry[] => {
+  const elites = new Map<string, JosephDiversityCellEntry>();
 
   for (const score of scores) {
     const archiveCell = buildArchiveCell(score.manifest);
@@ -184,7 +184,7 @@ const buildArchiveEntries = (scores: CandidateScore[]): JosephQualityDiversityAr
 
 const scoreCandidate = (
   score: CandidateScore,
-  archiveEntries: JosephQualityDiversityArchiveEntry[],
+  archiveEntries: JosephDiversityCellEntry[],
 ): JosephSequenceObjectiveBreakdown => {
   const metrics = score.sequenceDiscipline.metrics;
   const manifest = score.manifest;
@@ -257,8 +257,8 @@ const reasonsFor = (breakdown: JosephSequenceObjectiveBreakdown, score: Candidat
   `Sequence Objective scored ${breakdown.finalScore.toFixed(3)} for ${score.manifest.jobId}.`,
   `Sequence consequence ${breakdown.sequenceConsequence.toFixed(3)} after penalty ${score.sequenceDiscipline.penalty.toFixed(3)}.`,
   breakdown.qdDiversityPressure > 0
-    ? "Quality-Diversity Archive preserved this candidate as an elite for its behavior cell."
-    : "Quality-Diversity Archive did not select this candidate as its cell elite.",
+    ? "Backend diversity cells preserved this candidate as an elite for its behavior cell."
+    : "Backend diversity cells did not select this candidate as its cell elite.",
 ];
 
 export const rankJosephSequenceObjective = ({

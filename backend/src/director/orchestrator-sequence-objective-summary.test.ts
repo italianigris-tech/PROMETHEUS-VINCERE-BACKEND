@@ -25,7 +25,7 @@ const baseInput = (): OrchestratorInput => ({
 });
 
 describe("Director Orchestrator Sequence Objective summary", () => {
-  it("records selected path, score breakdown, and QD archive evidence in Candidate Score Summary", async () => {
+  it("records selected path, score breakdown, and backend diversity-cell evidence in Candidate Score Summary", async () => {
     const result = await orchestrateRender(baseInput(), new ReplayLedger(":memory:"), registry());
 
     expect(result.candidateScoreSummary.sequenceObjective).toMatchObject({

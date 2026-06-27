@@ -47,9 +47,15 @@
       statusLine.textContent = text;
     }
 
+    function clearElement(element) {
+      while (element.firstChild) {
+        element.removeChild(element.firstChild);
+      }
+    }
+
     function buildPresetOptions() {
       var presetNames = engine.getPresets();
-      presetSelect.innerHTML = "";
+      clearElement(presetSelect);
       presetNames.forEach(function (name) {
         var option = document.createElement("option");
         option.value = name;
@@ -121,7 +127,7 @@
       var words = textCompartment.getVisibleWordBank();
       var activeWord = textCompartment.getCurrentWord();
 
-      wordBankSelect.innerHTML = "";
+      clearElement(wordBankSelect);
       if (words.length === 0) {
         var emptyOption = document.createElement("option");
         emptyOption.value = "";

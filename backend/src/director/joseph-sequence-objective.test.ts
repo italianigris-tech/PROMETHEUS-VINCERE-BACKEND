@@ -167,7 +167,7 @@ describe("Joseph Sequence Objective", () => {
     expect(ranking.candidates[0]?.reasons.join(" ")).toContain("Sequence Objective");
   });
 
-  it("builds a QD archive that preserves the strongest candidate per behavior cell", () => {
+  it("builds backend diversity cells that preserve the strongest candidate per behavior cell", () => {
     const kineticWeak = scoreFor(baseManifest("kinetic-weak", "kinetic-pulse"), 0.78, 0.12);
     const kineticStrong = scoreFor(baseManifest("kinetic-strong", "kinetic-pulse"), 0.92, 0.02);
     const spotlight = scoreFor(

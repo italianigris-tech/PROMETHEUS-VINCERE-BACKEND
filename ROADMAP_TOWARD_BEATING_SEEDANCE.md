@@ -1,14 +1,29 @@
 # Roadmap Toward Beating Seedance
 
 Date: 2026-06-24
+Last updated: 2026-06-27
 
 Status: Full replacement of the earlier roadmap after critique.
+Addendum 2026-06-27: Extended after a codebase-wide audit that found the planner and renderer operate as two disconnected stacks (the "seam" problem). Programs 16–20 and the corrected execution order in this update capture the consequences: stack consolidation as the keystone, the corrected IRL economics, the multi-style / multi-vehicle architecture, and the render-infrastructure decision.
 
 ## Root-Cause Correction
+
+### First correction (2026-06-24)
 
 The prior roadmap failed because it over-compressed the architecture.
 
 It treated multiple load-bearing systems as broad future themes instead of independent programs with their own interfaces, data, acceptance proofs, and issue streams. That was the wrong shape for this ambition.
+
+### Second correction (2026-06-27): the two-stack seam
+
+A second structural failure was found in audit. The repository contains two independent planning stacks that do not connect:
+
+- **Stack A** (`remotion-app/src/creative-orchestration/`): the rich planner — SteppingStonePlanner, treatment genomes, beam search, QD archive, negative grammar, pairwise taste critic, 7-axis sequence memory, surprise/identity budgets. Emits `EditDecisionPlan` + `CreativeTrack[]` + a rich `PlannerAudit`.
+- **Stack B** (`backend/src/director/`): the deterministic director that emits `UnifiedRenderManifest`, wired to the worker, evidence pipeline, replay ledger, determinism scripts, and the renderer (`JosephEdit.tsx`). It selects doctrine by seed and derives everything from `seededRandom`.
+
+The two stacks share a type name (`PlannerAudit`) with unrelated schemas. The rich planner emits a depth-layered, primitive-aware, genome-selected decision. The renderer receives five fallback animation strings and one flat plane. Between them is **a translation layer that was never built**, so Stack A's intelligence is, today, a write-only system.
+
+The corrected roadmap therefore adds **Program 16: Stack Consolidation And The Manifest Compiler** as the keystone: every other program's intelligence reaches pixels only through this seam.
 
 The corrected roadmap below treats the following as first-class programs:
 
@@ -25,6 +40,11 @@ The corrected roadmap below treats the following as first-class programs:
 - MaxEnt IRL reward learning
 - historical exploration bias
 - review and regression evidence
+- stack consolidation and the planner-to-renderer seam (added 2026-06-27)
+- style-conditioned reward, prompt inference, and brand ingestion (added 2026-06-27)
+- multi-vehicle scene-type routing (added 2026-06-27)
+- render infrastructure as GPU-first with software fallback (added 2026-06-27)
+- feature audit and feature-space discipline (added 2026-06-27)
 
 This is still grounded in the current codebase, but it is no longer anchored to the current issue tracker as the ceiling of the architecture.
 
@@ -61,6 +81,26 @@ The system we are building is not simply a video renderer. It is an AI director 
 - Do not optimize for the single highest-scoring candidate every time.
 - Do not let best score become same video forever.
 - Do not call a pass/fail quality floor an evaluator.
+
+### Added 2026-06-27
+
+- Do not let the rich planner stay write-only. Intelligence that never reaches the renderer is decorative. The seam is the keystone; build it before enriching the planner.
+- Do not learn a reward on top of a renderer that ignores the planner. A learned reward applied greedily on an unfaithful manifest produces confident templated garbage.
+- Do not confuse inference speed with IRL cost. Inference is ~ms and free; trajectory extraction is the GPU-bound, minutes-per-video, validation-heavy step. Plan infra for the latter, not the former.
+- Do not conflate absolute demonstrations (reference edits) with pairwise preferences (studio winner/loser). They are different algorithms: MaxEnt IRL consumes the former, preference-based reward modeling consumes the latter. The system needs both, fused.
+- Do not train one unconditional reward on a mixed multi-creator corpus. That produces a mongrel mean. Learn per-style weight vectors; use transfer/fine-tune to seed small corpora from large ones.
+- Do not promise "learned brand style" from 1–5 videos. Below ~30 videos the weights are noise-dominated. Use retrieval/matching for few-video brands; reserve learned reward for 30+.
+- Do not ship a learned reward greedily. Greedy argmax collapses the reward landscape to a single peak and produces templates. The exploration engine (QD + surprise budget) is not optional polish; it is the difference between a template engine and a creative system.
+- Do not let the learned reward replace the hand-coded floor. IRL proposes, the judgment layer vetoes. The floor is the inspectability moat and stays hand-coded forever; the learned reward augments it within a safe envelope.
+- Do not exceed the demonstrator by sample size alone. IRL is capped at the demonstrator's quality. "Better than Joseph" requires the exploration + preference-confirmation loop, which is structurally downstream of the studio and the seam.
+- Do not let GPU cost be framed as the IRL bottleneck. Extraction is ~$3–30 per full corpus run on spot GPU, ~20 min wall-clock at 25-parallel. The binding constraint is feature engineering and extraction validation (a human-judgment cost), not silicon.
+- Do not reach for visible quantities (GPU dollars, video count, link count) as the binding constraint. The recurring failure mode is mistaking an easy-to-count quantity for the gate. The gate is invisible: feature quality, curation quality, seam completeness, exploration wiring.
+- Do not treat "more features" as better. The target for ~200–600 trajectories is ~60–80 low-correlation features. More overfits, increases extraction cost linearly, and destabilizes weights.
+- Do not train on a creator's weak period or failures. Curate down to the ceiling, not the average. 200 excellent beats 600 mixed.
+- Do not treat YouTube as the production corpus. Compression destroys the fine features that matter most; provenance and ToS make it a legal risk for a shipped product. Use it for research/proof only; license or user-upload for the moat.
+- Do not treat Windows as the render-infrastructure destination. Software WebGL (swangle) is OS-agnostic and runs identically on Linux for ~half the cost. The Windows choice is a scar from a misdiagnosed headless-GPU crash; it is the wrong long-term default.
+- Do not treat talking-head as the only vehicle. The 1B-person vision spans real estate, consultants, lawyers, specialists, drone, product. Each vehicle is a different scene model, not a profile config. The scene-type router is a first-class program.
+- Do not promise direct integration with platform recommendation algorithms. YouTube/Instagram/TikTok do not expose their ranking algorithms via API to anyone. The achievable surface is auto-publish + analytics feedback into reward learning, not "talking to the algorithm."
 
 ## Current Codebase Baseline
 
@@ -145,6 +185,28 @@ The existing issue tracker is correct that Fast Feedback Studio matters, but it 
 
 This program can run before most intelligence work, but it must be designed to display future planner and evaluator artifacts rather than hardcoding today's manifest shape.
 
+### Added 2026-06-27: the studio is the upstream of the entire learning loop
+
+The studio is not only a test surface. It is the **data source that IRL and the preference model train on.** This makes "test first" structurally mandatory, not a sequencing preference:
+
+- The studio captures **pairwise preferences** (candidate A preferred over B; candidate C failed). That data shape is the training input for **preference-based reward modeling**, not for MaxEnt IRL.
+- Reference edits (Joseph's actual videos) provide **absolute demonstrations.** That data shape is the training input for MaxEnt IRL.
+- The full learning loop requires both, fused (see Program 11). Therefore the studio's review ledger and the trajectory corpus are co-equal halves of the learning dataset.
+
+The current codebase already has a studio implementation (`remotion-app/src/web-preview/JosephStudyStudio.tsx`) that meets the **player** and **review-capture** acceptance proofs via live Remotion `<Player>` (real GPU, real-time, no MP4 render). It does NOT use the slow production path (`renderMedia` + swangle), so "review 12 candidates in under 10 minutes" is already architecturally satisfied by the live-Player path, not the render path.
+
+The studio is currently estimated at ~55% of this program. The remaining work, in priority order:
+
+1. **Deep per-frame diagnostics.** The current overlay sections only list frame ranges. They must resolve, for a frozen frame, the active primitive IDs, PiP depth/layer state, camera vector, evaluator warnings, and planner-audit graph nodes. This is gated by Program 16 (the seam): the studio cannot show what the planner decided until the renderer reads from the planner.
+2. **Generator-to-lanes wiring.** The studio loads from a static fixture or URL today; there is no trigger that fires the planner and populates lanes from `generateCandidateGenomes`.
+3. **Full failure-tag taxonomy.** The studio ships 5 generic tags today. The Review Surface must capture the full Program 10 negative ontology so preference data is labeled at the granularity the evaluator learns from.
+4. **Frame-proof capture** (screenshot with overlays) and **regression gallery export**.
+5. **Planner-audit overlay** (beam candidates, selected path, genome shortlist) — gated by Program 16.
+
+### Critical path note
+
+The studio's highest-value diagnostic — "show me what the planner decided at this frame, and let me mark it preferred/failed with the right failure tags" — cannot work until the renderer reads from the planner. Therefore **Program 16 (the seam) gates the studio's deep diagnostics and the renderer fidelity work together.** The studio is a prerequisite for IRL data, and the seam is a prerequisite for the studio's depth. Build the seam, then complete the studio, then begin reviewing — and that review data is the IRL on-ramp.
+
 ## Program 1: Data Surfaces And Golden 100 Extraction
 
 ### Why This Exists
@@ -208,6 +270,36 @@ This makes reward learning practical without massive compute.
 ### Independence Rule
 
 This is its own program. Do not fold it into the evaluator or planner.
+
+### Added 2026-06-27: the real economics and the binding constraint
+
+The economics of extraction are dramatically cheaper than the dominant folk assumption. They must be stated precisely so the program is not blocked on a phantom cost.
+
+**Wall-clock and cost (spot GPU, A10G / RTX 4090 class, June 2026):**
+- 5 min/video is a sound planning figure for optical-flow + MediaPipe + OCR + light segmentation over a ~90s 1080×1920 clip on a single GPU.
+- Extraction is **embarrassingly parallel** — each video is fully independent, no shared state, no ordering.
+- At 25-GPU parallelism: **100 videos ≈ 20 min wall-clock.**
+- Cost: **~$0.03–$0.07/video spot, ~$0.07–$0.13/video on-demand.** Full 100-video corpus: **~$3 spot, ~$7–15 on-demand.** A full re-extract of the entire corpus weekly costs less than a coffee.
+
+**Therefore: GPU cost is NOT the IRL bottleneck.** The recurring misframing (inherited from the same source that misdiagnosed the Linux/WebGL crash) treats an easy-to-count quantity as the gate. It is not.
+
+**The actual binding constraint is feature engineering and extraction validation** — a human-judgment cost, not a compute cost:
+- Bad extraction → garbage features → garbage reward. No amount of data fixes bad features.
+- Spotting extraction errors takes eyes: "did it correctly detect Joseph's PiP layer? did OCR catch the right text? is the camera vector estimate sane?"
+- Feature definitions change over time; a schema change requires re-extracting the entire corpus or the solver trains on inconsistent features. Version the feature schema.
+
+**Feature target (~60–80 low-correlation features):** For ~200–600 curated trajectories, the sweet spot is roughly 60–80 well-chosen, low-correlation features across the families already listed under "Feature Families" of Program 11. NOT 15 (too coarse, misses tacit craft) and NOT 300 (overfits, increases extraction cost linearly, destabilizes weights). The discipline within each family is to pick the features that are least correlated and most craft-relevant, and to resist adding correlated variants. Program 20 (Feature Audit) governs this set.
+
+**Curation-by-quality, not curation-by-quantity.** Curate down to the ceiling, not the average. For a creator like Joseph with ~600 public videos, ~200 that represent his best work will outperform all 600 mixed. Train only on a creator's curated recent work, never their weak period or experimental misses — those teach the learner that the mistakes were intentional.
+
+**YouTube is a research source, not a production corpus.** YouTube recompression destroys the fine features that matter most (micro-timing, edge sharpness, motion vector precision); resolution caps (often 720p served) degrade OCR and PiP detection; the long tail is overwhelmingly average content that teaches the average, not the elite; provenance and ToS make it a legal risk for a shipped commercial product. **Use YouTube to bootstrap and prove the pipeline.** Do not build the moat on it. The production corpus requires source-quality, properly-licensed, curated references (licensing arrangements with the editors, or a creator-uploads-their-own-references flow that doubles as the brand-ingestion moat — see Program 17).
+
+**Duration and pacing discipline.** IRL learns a reward over editing decisions, not over total output length — a reward trained on 20-minute videos applies to 30-second shorts with no duration mismatch. The real bias is **pacing regime**: long-form carries low-density stretches; shorts carry high density per second. If the product makes shorts, the training corpus should be dominated by short-form material so the reward learns short-form pacing, not long-form economics.
+
+**Three operations, not one.** Do not conflate them:
+- Trajectory extraction (per video, GPU-bound, seconds-to-minutes) — the heavy step.
+- IRL/preference solver (training, CPU, minutes-to-hours, occasional) — cheap.
+- Live inference (~ms, free) — already fast; this is never the bottleneck.
 
 ## Program 2: Graph Planner And Multi-Modal Sync Matrix
 
@@ -897,6 +989,45 @@ It should inform:
 
 This is not creator taste memory. It is the general human-editing reward prior.
 
+### Added 2026-06-27: the demonstrator cap, the hybrid reward, and the pairwise/absolute split
+
+Three corrections to how MaxEnt IRL is commonly understood inside this codebase. They change the architecture, not just the tuning.
+
+**1. The demonstrator cap (a theorem-shaped fact).** IRL recovers the reward that the demonstrator appears to optimize. Therefore the *best possible* learned reward reproduces the demonstrator's editing decisions; it does not exceed them. Feeding 10,000 Joseph videos yields a reward that mimics Joseph, not one that beats him. More data approaches his ceiling; it does not raise it. "Better than Joseph" can only come from a source outside Joseph — the preference-confirmation loop in Program 12. This is not a hedge; it is the definition of inverse learning. Plan the moat accordingly: IRL alone caps at the demonstrator; the exceed-demonstrator loop is structurally separate.
+
+**2. The pairwise/absolute reconciliation (a real roadmap flaw being corrected).** Two distinct data sources feed learning, and they require two different algorithms:
+
+- **Reference edits (Joseph's videos) → absolute demonstrations.** These train **MaxEnt IRL** — recover the reward that best explains why the expert took the trajectories they took.
+- **Studio winner/loser ledger → pairwise preferences.** These train a **preference-based reward model** (RLHF-style) — recover the reward that best explains why the human preferred A over B.
+
+The two produce two reward signals that must be **fused**, not chosen between. The honest architecture is a **hybrid reward**:
+
+```
+final_reward(state, action) =
+    w_hand   · R_handcoded_features        (the invariants — Program 10 floor)
+  + w_abs    · R_maxent_absolute_weights   (Joseph's craft prior)
+  + w_pref   · R_preference_weights         (human taste refinement)
+  + w_explore· exploration_bonus(state)     (Program 12)
+```
+
+The hand-coded floor (`w_hand`) is never learned and never replaced — it is the inspectability moat and stays explicit forever. The MaxEnt term imports the demonstrator's craft. The preference term refines it from the studio ledger. The exploration term prevents collapse to the argmax (see Program 12). `w_abs` and `w_pref` are scalar mixing weights, tuned so neither signal dominates.
+
+**3. Per-style weight vectors, not one unconditional reward.** A single reward trained on a mixed multi-creator corpus produces a mongrel mean that waters down each style. The architecture is **style-conditioned reward** (Program 17): one weight vector per style (`w_joseph`, `w_iman`, `w_hormozi`, `w_brandX`), never mixed. The reward function takes a style label as input and applies that style's weights. Small corpora seed from larger ones via transfer/fine-tune (initialize `w_cody` from `w_joseph`, then fine-tune) — this is the disciplined way to make a 50-video supplementary corpus useful without polluting the 600-video foundation.
+
+**Sample-size curve (for discretized, hand-engineered features — NOT pixel/deep reward):**
+
+| Trajectories | Status |
+|---|---|
+| ~30–50 | Noisy; mean may beat hand-code; individual videos swing it heavily. Exploratory only. |
+| ~100–200 | Usable signal; mean reliably beats hand-coding; per-video influence still visible. Minimum viable. |
+| **~300–600 (≈ Joseph's curated corpus)** | **Stable, reproducible reward; variance low. The sweet spot.** |
+| ~1,000–2,000 | Diminishing returns; only helps if features are noisy/continuous. |
+| ~5,000–10,000 | Overkill for discrete features; justified only for deep/neural or pixel reward. |
+
+**600 curated trajectories is genuinely sufficient.** If the learned reward is poor at 600, the problem is NOT sample count — it is feature quality or extraction correctness. Past ~600, throwing more videos at a bad IRL result is a waste; the bottleneck has moved to features (Program 20). Duplicates add zero information and cause overfitting; the lever is diverse curated videos, never more copies of the same ones.
+
+**Inference is free; extraction is the cost.** Applying learned weights inside `scoreGenome()` is sub-millisecond and requires no GPU. The deployed solver output is a compact weight vector (~KB), not a multi-GB model. The expensive parts live upstream in Program 1 (extraction) and downstream in Program 12 (exploration). This program itself is cheap at runtime.
+
 ## Program 12: Historical Exploration Bias And Creator Taste Memory
 
 ### Why This Exists
@@ -947,6 +1078,47 @@ Candidate selection should combine:
 ### Independence Rule
 
 This is not MaxEnt IRL. It is the exploration and memory system that prevents reward collapse.
+
+### Added 2026-06-27: this program IS where creativity lives
+
+This is the most important framing correction in the entire roadmap. **Creativity does not emerge from learning. It is plugged in here.** A learned reward applied greedily (always picking the argmax) collapses the reward landscape to a single peak and produces templates — the same input yields the same output every time. That is the default failure mode of "AI editing" products, and this program exists specifically to prevent it.
+
+**The creativity stack is three layers, none creative alone:**
+
+```
+Layer 3 — EXPLORATION ENGINE (this program)        ← creativity enters here
+   │  QD search forces behaviorally-distinct solutions
+   │  surprise budget rewards expectation-violation
+   ▼
+Layer 2 — LEARNED REWARD (Program 11)              ← taste gradient
+   │  scores how good an edit is; has many peaks
+   ▼
+Layer 1 — HAND-CODED FLOOR (Program 10)            ← safety / invariants
+      what can never be violated
+```
+
+A reward landscape has many peaks (multiple distinct edits can all score high). A template engine maps input → one fixed output. The exploration engine maps input → **a search over the reward landscape under a diversity constraint with a surprise budget**, so the output is discovered at runtime, not fixed at design time. That is the formal difference between creativity and templating.
+
+**Four mechanisms, in increasing power:**
+
+- **A. Top-K sampling.** Instead of always picking the argmax, sample from the top-K high-scoring edits. Breaks pure templating because multiple valid edits exist; bounded because all stay within the reward's landscape.
+- **B. Quality-Diversity search (the QD archive).** Explicitly rewards behavioral diversity: maintains an archive of behaviorally-distinct solutions and penalizes new candidates too similar to existing ones. If the archive already has "glass-card-at-emphasis" and "typography-pop-on-beat," the next candidate is pushed to find a third, distinct high-quality edit. This is where novelty the demonstrator never showed can emerge, because the search is constrained to the reward landscape, which is broader than any single demonstrator's path through it.
+- **C. Surprise / expectation-violation budget.** A deliberate allocation of "how much should this edit violate expectations," tracked against a running memory. The reward gets a bonus term for behaviors that violate the expectation model, up to the budget, so it doesn't become chaos. This is the layer that produces the "he just did something insane and it worked" moments at a controlled rate.
+- **D. Style interpolation.** Moving in style space (Program 17) to produce combinations no single creator made. Deferred until B and C are proven; the riskiest for mongrelization.
+
+**The exceed-demonstrator loop (the only path to "better than Joseph"):**
+
+IRL alone is capped at the demonstrator (Program 11). The loop that climbs above the demonstrator is:
+1. IRL gives the taste gradient (Joseph's craft).
+2. Exploration finds regions of that gradient Joseph did not visit.
+3. The Review Surface (Program 0) confirms which of those novel regions are genuinely good.
+4. Those confirmed novel wins get folded back as new demonstrations that refine the reward.
+
+Every novel edit marked "preferred" that Joseph would not have made is a vote that pushes the learned reward beyond its source. **The Review Surface is not just test data — it is the engine of exceeding the demonstrator.** This is why "test first" is structurally mandatory, not a sequencing preference: the studio is the upstream of both the preference model (Program 11) and the exceed-demonstrator loop (here).
+
+**The measurable creativity health signal:** behavioral diversity across runs of the same input. If the QD archive is working, repeated runs of the same source yield behaviorally-distinct high-quality edits. If it is not working, the archive fills with minor variants of one solution, and the system has collapsed to a template engine. That diversity metric is the canary for whether this program is actually wired.
+
+**Sequencing note:** the exploration engine (B and C) turns on AFTER the seam (Program 16) and the floor (Program 10) are solid, not before. Creative exploration without a reliable floor and a faithful render path produces confident garbage at scale. Build the safety net before the tightrope act. The deferral is about sequencing, not abandonment — these engines ARE the vision, but they are downstream of the keystone.
 
 ## Program 13: Governed Asset Retrieval And GOD Escalation
 
