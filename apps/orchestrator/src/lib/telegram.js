@@ -3266,7 +3266,15 @@ async function runPromptFromTelegram(chatId, prompt, label, operator = null) {
   try {
     await startDiffStream(chatId, label, operator);
     await startThinkingStream(chatId, label, operator);
-    const result = await runCodexPrompt(prompt, { label, model, source: 'telegram', operator });
+    const result = await runCodexPrompt(prompt, {
+      label,
+      model,
+      source: 'telegram',
+      operator,
+      onServiceOutageRetry: async (details) => {
+        await sendCodexOuterRetryAlert(chatId, { ...details, label });
+      }
+    });
     stopDiffStream(buildDiffStreamText({
       chatId,
       label,
@@ -3307,13 +3315,14 @@ async function runPromptFromTelegram(chatId, prompt, label, operator = null) {
       return;
     }
     if (isServiceOutageError(error)) {
+      const retryAttempts = error.outerRetryAttempts || 3;
       await sendTrackedMessage(chatId,
-        `⏸️ *Codex service temporarily unavailable (503)*\n` +
+        `❌ *Codex failed after ${retryAttempts} immediate retry attempts*\n` +
         `━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `OpenAI's Codex API is experiencing an outage. This is *NOT* an API key issue.\n\n` +
+        `The proxy is overloaded on the Codex streaming endpoint. This is *NOT* an API key or balance issue.\n\n` +
         `Task: ${escapeMarkdown(label)}\n` +
         `Cloudflare ray: \`${escapeMarkdown(error.cfRayId || 'not reported')}\`\n\n` +
-        `Try again later. No key rotation is needed.`,
+        `Retries were exhausted. No key rotation is needed.`,
         { parse_mode: 'Markdown', reply_markup: controlPanelKeyboard() }
       );
       await notifyWaitingUsersCodexFree({
@@ -4411,6 +4420,31 @@ async function sendKeyExhaustedAlert(chatId, issueNumber, title, details = {}) {
   await sendTrackedMessage(chatId, message, { parse_mode: 'Markdown', reply_markup: settingsPanelKeyboard() });
 }
 
+async function sendCodexOuterRetryAlert(chatId, details = {}) {
+  const retryAttempt = Number(details.retryAttempt || 1);
+  const maxRetries = Number(details.maxRetries || 3);
+  const delaySeconds = Math.max(1, Math.round(Number(details.delayMs || 0) / 1000));
+  const delayText = formatDuration(delaySeconds);
+  const taskLine = details.label ? `Task: ${escapeMarkdown(details.label)}\n` : '';
+  const rayLine = details.cfRayId
+    ? `Cloudflare ray: \`${escapeMarkdown(details.cfRayId)}\`\n`
+    : '';
+  const reason = details.reason === 'proxy_health_failed'
+    ? 'Proxy health probe failed.'
+    : 'The proxy returned 503 from the Codex streaming endpoint.';
+
+  const message =
+    `⏸️ *Codex service temporarily unavailable (503)*\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `${reason} Retrying automatically...\n` +
+    `${taskLine}` +
+    `Retry attempt: ${retryAttempt}/${maxRetries} in ${escapeMarkdown(delayText)}\n` +
+    `${rayLine}\n` +
+    `This is *NOT* an API key issue. The proxy is overloaded.`;
+
+  await sendTrackedMessage(chatId, message, { parse_mode: 'Markdown' });
+}
+
 async function sendServiceOutageAlert(chatId, issueNumber, title, details = {}) {
   const nextRetry = details.nextRetryAt ? new Date(details.nextRetryAt) : null;
   const retryMinutes = details.retryDelayMinutes || (nextRetry
@@ -4419,19 +4453,21 @@ async function sendServiceOutageAlert(chatId, issueNumber, title, details = {}) 
   const cfRay = details.cfRayId || 'not reported';
   const retryCount = details.retryCount || 1;
   const maxRetries = details.maxRetries || 3;
+  const outerRetriesExhausted = Boolean(details.outerRetriesExhausted);
+  const outerRetryAttempts = details.outerRetryAttempts || maxRetries;
   const nextRetryText = nextRetry && Number.isFinite(nextRetry.getTime())
     ? nextRetry.toISOString()
     : 'not scheduled';
 
   const message =
-    `⏸️ *Codex service temporarily unavailable (503)*\n` +
+    `${outerRetriesExhausted ? `❌ *Codex failed after ${outerRetryAttempts} immediate retry attempts*` : '⏸️ *Codex service temporarily unavailable (503)*'}\n` +
     `━━━━━━━━━━━━━━━━━━━━━━\n` +
-    `OpenAI's Codex API is experiencing an outage. This is *NOT* an API key issue.\n\n` +
+    `The proxy (codex-everywhere.com) is overloaded on the Codex /responses endpoint. This is *NOT* an API key or balance issue.\n\n` +
     `Issue: #${issueNumber} — ${escapeMarkdown(title || 'Unknown')}\n` +
-    `Retry: ${retryCount}/${maxRetries}\n` +
+    `Pipeline retry: ${retryCount}/${maxRetries}\n` +
     `Next retry: ${escapeMarkdown(nextRetryText)} (in ${escapeMarkdown(String(retryMinutes))} minutes)\n` +
     `Cloudflare ray: \`${escapeMarkdown(cfRay)}\`\n\n` +
-    `The pipeline will auto-retry. No action needed.`;
+    `The pipeline will auto-retry after the proxy has time to recover. No key rotation is needed.`;
 
   await sendTrackedMessage(chatId, message, {
     parse_mode: 'Markdown',
@@ -4442,22 +4478,24 @@ async function sendServiceOutageAlert(chatId, issueNumber, title, details = {}) 
 async function sendServiceOutageFailedAlert(chatId, issueNumber, title, details = {}) {
   const retryCount = details.retryCount || 3;
   const message =
-    `❌ *Codex service outage exceeded max retries*\n` +
+    `❌ *Codex failed after ${retryCount} retry attempts*\n` +
     `━━━━━━━━━━━━━━━━━━━━━━\n` +
-    `Issue #${issueNumber} failed after ${retryCount} service outage retries.\n` +
-    `OpenAI's Codex API may still be down.`;
+    `Issue #${issueNumber}: ${escapeMarkdown(title || 'Unknown')}\n\n` +
+    `The proxy (codex-everywhere.com) is consistently returning 503.\n` +
+    `Your API key and balance are fine. The proxy's /responses endpoint is overloaded.`;
 
   await sendTrackedMessage(chatId, message, {
     parse_mode: 'Markdown',
     reply_markup: {
       inline_keyboard: [
         [
-          { text: '🔄 Retry Issue', callback_data: `panel:service_outage:retry_now:${issueNumber}` },
-          { text: '🗑️ Discard', callback_data: `panel:service_outage:discard:${issueNumber}` }
+          { text: '🔄 Retry Now', callback_data: `panel:service_outage:retry_now:${issueNumber}` },
+          { text: '⏸️ Pause Pipeline', callback_data: `panel:service_outage:pause:${issueNumber}` }
         ],
         [
+          { text: '🗑️ Discard', callback_data: `panel:service_outage:discard:${issueNumber}` },
           { text: '📊 Status', callback_data: 'panel:status' }
-        ]
+        ],
       ]
     }
   });
@@ -4532,6 +4570,7 @@ module.exports = {
   sendDeliveryReviewPanel,
   sendDirtyWorktreePrompt,
   sendKeyExhaustedAlert,
+  sendCodexOuterRetryAlert,
   sendServiceOutageAlert,
   sendServiceOutageFailedAlert,
   sendSurpriseAlert,

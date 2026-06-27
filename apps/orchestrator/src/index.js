@@ -51,6 +51,7 @@ const {
   sendDeliveryReviewPanel,
   sendDirtyWorktreePrompt,
   sendKeyExhaustedAlert,
+  sendCodexOuterRetryAlert,
   sendServiceOutageAlert,
   sendServiceOutageFailedAlert,
   sendSurpriseAlert,
@@ -417,7 +418,14 @@ async function pollLoop() {
         await startDiffStreamsForAdmins(`Issue #${issue.number}: ${issue.title}`, getPipelineOperator());
         await startThinkingStreamsForAdmins(`Issue #${issue.number}`, getPipelineOperator());
       }
-      result = await runCodex(issue.number, issue.title, issue.body, model);
+      result = await runCodex(issue.number, issue.title, issue.body, model, {
+        onServiceOutageRetry: async (details) => {
+          await sendCodexOuterRetryAlertsForAdmins({
+            ...details,
+            label: `Issue #${issue.number}: ${issue.title}`
+          });
+        }
+      });
       stopDiffStream();
       stopThinkingStream('✅ Wrapping up...');
     } catch (error) {
@@ -597,7 +605,9 @@ async function handleServiceOutage(issue, error) {
       nextRetryAt,
       retryDelayMinutes: nextRetryMinutes,
       cfRayId: error?.cfRayId,
-      requestId: error?.requestId
+      requestId: error?.requestId,
+      outerRetriesExhausted: error?.outerRetriesExhausted,
+      outerRetryAttempts: error?.outerRetryAttempts
     });
   }
 }
@@ -868,6 +878,16 @@ async function sendServiceOutageAlertsForAdmins(issueNumber, title, details = {}
       await sendServiceOutageAlert(chatId, issueNumber, title, details);
     } catch (error) {
       console.warn(`[service-outage] Failed to send outage alert to chat ${chatId}:`, formatError(error));
+    }
+  }
+}
+
+async function sendCodexOuterRetryAlertsForAdmins(details = {}) {
+  for (const chatId of ADMIN_CHAT_IDS) {
+    try {
+      await sendCodexOuterRetryAlert(chatId, details);
+    } catch (error) {
+      console.warn(`[service-outage] Failed to send retry alert to chat ${chatId}:`, formatError(error));
     }
   }
 }

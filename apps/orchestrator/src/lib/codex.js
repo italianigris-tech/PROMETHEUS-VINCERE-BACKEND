@@ -53,16 +53,51 @@ const GIT_TIMEOUT_MS = 120000;
 const GIT_COMMITTER_NAME = process.env.GIT_COMMITTER_NAME || 'Prometheus Orchestrator';
 const GIT_COMMITTER_EMAIL = process.env.GIT_COMMITTER_EMAIL || 'prometheus-orchestrator@localhost';
 const SERVICE_OUTAGE_RETRY_DELAYS_MS = [5 * 60 * 1000, 10 * 60 * 1000, 20 * 60 * 1000];
+const PROXY_HEALTH_URL = normalizeOptionalUrl(process.env.PROXY_HEALTH_URL, 'https://codex-everywhere.com/health');
+const PROXY_HEALTH_TIMEOUT_MS = parsePositiveNumber(process.env.PROXY_HEALTH_TIMEOUT_MS, 3000);
+const MAX_HEALTH_RETRIES = parsePositiveInteger(process.env.MAX_HEALTH_RETRIES, 3);
+const CODEX_OUTER_RETRIES = parsePositiveInteger(process.env.CODEX_OUTER_RETRIES, 3);
+const CODEX_OUTER_RETRY_DELAYS_MS = parsePositiveNumberList(
+  process.env.CODEX_OUTER_RETRY_DELAYS,
+  [5000, 15000, 30000]
+);
+const COOLDOWN_AFTER_503_MS = parsePositiveNumber(process.env.COOLDOWN_AFTER_503_MS, 10000);
 
 let activeRun = null;
 let lastRun = null;
 let runCounter = 0;
 let codexEventLog = [];
 let stoppedRunIds = new Map();
+let last503Timestamp = 0;
 
 function parsePositiveNumber(value, fallback) {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function parsePositiveInteger(value, fallback) {
+  return Math.max(1, Math.floor(parsePositiveNumber(value, fallback)));
+}
+
+function parsePositiveNumberList(value, fallback) {
+  const values = String(value || '')
+    .split(',')
+    .map(item => Number(item.trim()))
+    .filter(item => Number.isFinite(item) && item > 0);
+  return values.length > 0 ? values : fallback;
+}
+
+function normalizeOptionalUrl(value, fallback = '') {
+  const raw = value === undefined || value === null ? fallback : value;
+  const normalized = String(raw || '').trim();
+  if (['0', 'false', 'off', 'none', 'disabled'].includes(normalized.toLowerCase())) {
+    return '';
+  }
+  return normalized;
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 function writePromptTempFile(prompt) {
@@ -164,6 +199,19 @@ function clearActiveRun(runId, status = 'idle') {
   clearCodexProcessState(status);
 }
 
+function getCodexBusyError() {
+  const persistedPid = getStoredCodexPid();
+  if (!activeRun && (!persistedPid || !isLikelyCodexProcess(persistedPid))) {
+    return null;
+  }
+
+  const label = activeRun?.label || `Codex process PID ${persistedPid}`;
+  const startedAt = activeRun?.startedAt || 'before this orchestrator process started';
+  const lock = activeRun?.lock || getCodexLock();
+  const owner = formatOperator(lock?.operator || activeRun?.operator);
+  return new Error(`CODEX_BUSY: ${label} has been running since ${startedAt}${owner ? ` by ${owner}` : ''}`);
+}
+
 function getApiKeys() {
   return getApiKeyState().keys;
 }
@@ -172,7 +220,7 @@ function getApiKeyState() {
   const primary = normalizeApiKey(safeGetState('codex_primary_api_key') || process.env.CODEX_API_KEY);
   const fallbackKeys = parseFallbackKeys(process.env.CODEX_FALLBACK_KEYS);
   const keys = [primary, ...fallbackKeys].filter(Boolean);
-  const index = normalizeApiKeyIndex(getState('api_key_index'), keys.length);
+  const index = normalizeApiKeyIndex(safeGetState('api_key_index'), keys.length);
   return {
     primary,
     fallbackKeys,
@@ -697,6 +745,137 @@ function isServiceOutageError(error) {
   );
 }
 
+function remember503() {
+  last503Timestamp = Date.now();
+}
+
+function check503Cooldown() {
+  if (!last503Timestamp || !COOLDOWN_AFTER_503_MS) {
+    return { onCooldown: false };
+  }
+
+  const elapsed = Date.now() - last503Timestamp;
+  if (elapsed < COOLDOWN_AFTER_503_MS) {
+    return {
+      onCooldown: true,
+      remainingMs: COOLDOWN_AFTER_503_MS - elapsed
+    };
+  }
+  return { onCooldown: false };
+}
+
+async function waitFor503Cooldown(label = 'Codex run') {
+  const cooldown = check503Cooldown();
+  if (!cooldown.onCooldown) return cooldown;
+
+  console.log(`[Codex] 503 cooldown active, waiting ${cooldown.remainingMs}ms before ${label}`);
+  logCodexEvent('retry', `503 cooldown active before ${label}`, {
+    remainingMs: cooldown.remainingMs,
+    label
+  });
+  await sleep(cooldown.remainingMs);
+  return cooldown;
+}
+
+function createServiceUnavailableError(message, details = {}) {
+  const error = new Error(message);
+  Object.assign(error, {
+    code: 'SERVICE_UNAVAILABLE',
+    serviceOutage: true,
+    isRetryable: true,
+    maxRetries: SERVICE_OUTAGE_RETRY_DELAYS_MS.length,
+    retryDelays: SERVICE_OUTAGE_RETRY_DELAYS_MS,
+    ...details
+  });
+  return error;
+}
+
+async function probeProxyHealth() {
+  if (!PROXY_HEALTH_URL) {
+    return { healthy: true, skipped: true, reason: 'PROXY_HEALTH_URL not configured' };
+  }
+  if (typeof fetch !== 'function') {
+    return { healthy: true, skipped: true, reason: 'fetch unavailable in this Node runtime' };
+  }
+
+  const apiKey = getCurrentApiKey();
+  const headers = apiKey ? { Authorization: `Bearer ${apiKey}` } : {};
+
+  let lastStatus = null;
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= MAX_HEALTH_RETRIES; attempt += 1) {
+    let timeout = null;
+    try {
+      const controller = new AbortController();
+      timeout = setTimeout(() => controller.abort(), PROXY_HEALTH_TIMEOUT_MS);
+      const response = await fetch(PROXY_HEALTH_URL, {
+        method: 'GET',
+        headers,
+        signal: controller.signal
+      });
+
+      lastStatus = response.status;
+
+      if (response.status === 200) {
+        return { healthy: true, status: response.status, attempt };
+      }
+
+      if (response.status === 503) {
+        remember503();
+        lastError = 'Proxy health probe returned 503';
+        if (attempt < MAX_HEALTH_RETRIES) {
+          await sleep(Math.pow(2, attempt) * 1000);
+          continue;
+        }
+        break;
+      }
+
+      return { healthy: true, status: response.status, attempt };
+    } catch (error) {
+      lastError = error?.name === 'AbortError'
+        ? `Proxy health probe timed out after ${PROXY_HEALTH_TIMEOUT_MS}ms`
+        : (error?.message || 'Proxy health probe failed');
+      if (attempt >= MAX_HEALTH_RETRIES) {
+        return { healthy: false, error: lastError, attempt };
+      }
+      await sleep(Math.pow(2, attempt) * 1000);
+    } finally {
+      if (timeout) clearTimeout(timeout);
+    }
+  }
+
+  return {
+    healthy: false,
+    status: lastStatus,
+    error: lastStatus === 503 ? 'Max health probe retries exceeded' : (lastError || 'Max health probe retries exceeded')
+  };
+}
+
+function createHealthProbeUnavailableError(health) {
+  return createServiceUnavailableError(
+    `SERVICE_UNAVAILABLE: Proxy health probe failed: ${health?.error || 'unhealthy proxy'}`,
+    {
+      proxyHealthFailed: true,
+      healthStatus: health?.status || null,
+      healthError: health?.error || null
+    }
+  );
+}
+
+async function notifyCodexOuterRetry(options, details) {
+  if (typeof options?.onServiceOutageRetry !== 'function') return;
+  try {
+    await options.onServiceOutageRetry(details);
+  } catch (error) {
+    logCodexEvent('error', `Failed to send Codex outer retry notification: ${error.message}`, {
+      label: options.label,
+      retryAttempt: details.retryAttempt,
+      maxRetries: details.maxRetries
+    });
+  }
+}
+
 function preferApiKeyFailureType(current, next) {
   if (!next) return current;
   if (current === 'exhausted') return current;
@@ -735,14 +914,15 @@ function collectCodexFailureOutput(output = []) {
   return lines.join('\n');
 }
 
-function runCodex(issueNumber, issueTitle, issueBody, model) {
+function runCodex(issueNumber, issueTitle, issueBody, model, options = {}) {
   const prompt = buildPrompt(issueNumber, issueTitle, issueBody);
   return runCodexWithFallback(prompt, {
     label: `Issue #${issueNumber}: ${issueTitle}`,
     model,
     source: 'pipeline',
     metadata: { issueNumber, issueTitle },
-    operator: getPipelineOperator()
+    operator: getPipelineOperator(),
+    onServiceOutageRetry: options.onServiceOutageRetry
   });
 }
 
@@ -753,13 +933,14 @@ function runCodexPrompt(prompt, options = {}) {
     source: options.source || 'telegram',
     metadata: options.metadata || {},
     operator: options.operator || null,
-    noOutputTimeoutMinutes: options.noOutputTimeoutMinutes || MANUAL_NO_OUTPUT_TIMEOUT_MINUTES
+    noOutputTimeoutMinutes: options.noOutputTimeoutMinutes || MANUAL_NO_OUTPUT_TIMEOUT_MINUTES,
+    onServiceOutageRetry: options.onServiceOutageRetry
   });
 }
 
 async function runCodexWithFallback(prompt, options) {
   try {
-    return await runCodexCommand(prompt, options);
+    return await spawnCodexWithRetry(prompt, options);
   } catch (error) {
     if (isServiceOutageError(error)) {
       throw error;
@@ -782,8 +963,98 @@ async function runCodexWithFallback(prompt, options) {
       newSuffix: rotation.newSuffix,
       label: options.label
     });
-    return runCodexCommand(prompt, retryOptions);
+    return spawnCodexWithRetry(prompt, retryOptions);
   }
+}
+
+async function spawnCodexWithRetry(prompt, options = {}) {
+  const busyError = getCodexBusyError();
+  if (busyError) {
+    throw busyError;
+  }
+
+  let lastError = null;
+
+  for (let attempt = 0; attempt <= CODEX_OUTER_RETRIES; attempt += 1) {
+    await waitFor503Cooldown(options.label || 'Codex run');
+
+    const health = await probeProxyHealth();
+    if (!health.healthy) {
+      remember503();
+      lastError = createHealthProbeUnavailableError(health);
+      if (attempt < CODEX_OUTER_RETRIES) {
+        const delayMs = CODEX_OUTER_RETRY_DELAYS_MS[attempt] || CODEX_OUTER_RETRY_DELAYS_MS[CODEX_OUTER_RETRY_DELAYS_MS.length - 1] || 30000;
+        const retryAttempt = attempt + 1;
+        console.log(`[Codex] Outer retry ${retryAttempt}/${CODEX_OUTER_RETRIES} after ${delayMs}ms due to proxy health failure`);
+        logCodexEvent('retry', 'Codex outer retry scheduled after proxy health failure', {
+          label: options.label,
+          retryAttempt,
+          maxRetries: CODEX_OUTER_RETRIES,
+          delayMs,
+          healthStatus: health.status || null,
+          healthError: health.error || null
+        });
+        await notifyCodexOuterRetry(options, {
+          label: options.label,
+          retryAttempt,
+          maxRetries: CODEX_OUTER_RETRIES,
+          nextAttempt: retryAttempt + 1,
+          delayMs,
+          reason: 'proxy_health_failed',
+          message: lastError.message,
+          healthStatus: health.status || null,
+          healthError: health.error || null
+        });
+        await sleep(delayMs);
+        continue;
+      }
+      lastError.outerRetriesExhausted = true;
+      lastError.outerRetryAttempts = CODEX_OUTER_RETRIES;
+      throw lastError;
+    }
+
+    try {
+      return await spawnCodexInner(prompt, options);
+    } catch (error) {
+      lastError = error;
+
+      if (isServiceOutageError(error)) {
+        remember503();
+        if (attempt < CODEX_OUTER_RETRIES) {
+          const delayMs = CODEX_OUTER_RETRY_DELAYS_MS[attempt] || CODEX_OUTER_RETRY_DELAYS_MS[CODEX_OUTER_RETRY_DELAYS_MS.length - 1] || 30000;
+          const retryAttempt = attempt + 1;
+          console.log(`[Codex] Outer retry ${retryAttempt}/${CODEX_OUTER_RETRIES} after ${delayMs}ms due to 503`);
+          logCodexEvent('retry', 'Codex outer retry scheduled after 503', {
+            label: options.label,
+            retryAttempt,
+            maxRetries: CODEX_OUTER_RETRIES,
+            delayMs,
+            cfRayId: error.cfRayId || null,
+            requestId: error.requestId || null
+          });
+          await notifyCodexOuterRetry(options, {
+            label: options.label,
+            retryAttempt,
+            maxRetries: CODEX_OUTER_RETRIES,
+            nextAttempt: retryAttempt + 1,
+            delayMs,
+            reason: 'codex_503',
+            message: redactSecrets(error.message || 'SERVICE_UNAVAILABLE'),
+            cfRayId: error.cfRayId || null,
+            requestId: error.requestId || null
+          });
+          await sleep(delayMs);
+          continue;
+        }
+        error.outerRetriesExhausted = true;
+        error.outerRetryAttempts = CODEX_OUTER_RETRIES;
+      }
+
+      throw error;
+    }
+  }
+
+  throw lastError || createServiceUnavailableError('SERVICE_UNAVAILABLE: Codex failed after outer retries.');
 }
 
 function runGit(args, options = {}) {
@@ -1077,17 +1348,14 @@ async function deliverCodexChanges(options = {}) {
   }
 }
 
-function runCodexCommand(prompt, options) {
+function spawnCodexInner(prompt, options) {
   return new Promise((resolve, reject) => {
-    const persistedPid = getStoredCodexPid();
-    if (activeRun || (persistedPid && isLikelyCodexProcess(persistedPid))) {
-      const label = activeRun?.label || `Codex process PID ${persistedPid}`;
-      const startedAt = activeRun?.startedAt || 'before this orchestrator process started';
-      const lock = activeRun?.lock || getCodexLock();
-      const owner = formatOperator(lock?.operator || activeRun?.operator);
-      reject(new Error(`CODEX_BUSY: ${label} has been running since ${startedAt}${owner ? ` by ${owner}` : ''}`));
+    const busyError = getCodexBusyError();
+    if (busyError) {
+      reject(busyError);
       return;
     }
+    const persistedPid = getStoredCodexPid();
     if (persistedPid) {
       clearCodexRunState('idle', 'stale_persisted_pid_before_start');
     }
@@ -1342,6 +1610,7 @@ function runCodexCommand(prompt, options) {
       });
       if (code !== 0 && isServiceOutageError(classifiedError)) {
         const error = classifiedError;
+        remember503();
         const cfRay = error.cfRayId || 'not reported';
         const requestId = error.requestId || 'not reported';
         error.message = `SERVICE_UNAVAILABLE: Codex service temporarily unavailable (503). Cloudflare ray: ${cfRay}. Request ID: ${requestId}.`;
@@ -2029,6 +2298,8 @@ function escapeMarkdown(text) {
 module.exports = {
   runCodex,
   runCodexPrompt,
+  spawnCodexWithRetry,
+  probeProxyHealth,
   stopCodex,
   getCodexWorkdir,
   deliverCodexChanges,
