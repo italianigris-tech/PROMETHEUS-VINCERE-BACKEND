@@ -1,5 +1,4 @@
 import {
-  seededRandom,
   type CameraMove,
   type CutEvent,
   type SFXEvent,
@@ -18,6 +17,7 @@ import type {VariationKey} from "./variation-key";
 import {evaluateManifestMicroAnimationQuality} from "./micro-animation-primitives";
 import {evaluateManifestTypographyQuality} from "./joseph-typography-intelligence";
 import {evaluateJosephSequenceDiscipline, type SequenceDisciplineEvaluation} from "./joseph-sequence-discipline";
+import {rankJosephSequenceObjective, type JosephSequenceObjectiveRanking} from "./joseph-sequence-objective";
 
 export interface CandidateScore {
   manifest: UnifiedRenderManifest;
@@ -32,6 +32,7 @@ export interface JudgmentResult {
   selected: UnifiedRenderManifest;
   rejected: UnifiedRenderManifest[];
   scores: CandidateScore[];
+  sequenceObjective: JosephSequenceObjectiveRanking;
   verdict: JudgmentVerdict;
 }
 
@@ -546,8 +547,11 @@ export class JudgmentLayer {
       throw new Error("No novel candidates passed judgment - all too similar to Replay Ledger");
     }
 
-    const rng = seededRandom(variationKey.retryIndex);
-    const selectedEvaluation = qualified[Math.floor(rng() * qualified.length)];
+    const sequenceObjective = rankJosephSequenceObjective({
+      scores: qualified.map((evaluation) => evaluation.score),
+    });
+    const selectedEvaluation = qualified.find((evaluation) =>
+      evaluation.score.manifest.jobId === sequenceObjective.selectedCandidateId) ?? qualified[0];
     if (!selectedEvaluation) {
       throw new Error("No candidates passed judgment");
     }
@@ -575,6 +579,7 @@ export class JudgmentLayer {
       selected,
       rejected,
       scores,
+      sequenceObjective,
       verdict,
     };
   }

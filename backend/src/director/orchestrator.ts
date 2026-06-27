@@ -22,6 +22,7 @@ import {
   type DirectorInput,
 } from "./joseph-director";
 import {compileJosephManifest, type JosephManifestCompilerAudit} from "./joseph-manifest-compiler";
+import type {JosephSequenceObjectiveRanking} from "./joseph-sequence-objective";
 import {PromptRegistry, type GovernedPrompt} from "./prompt-governance";
 import {
   canUseEffect,
@@ -54,6 +55,7 @@ export interface CandidateScoreSummary {
   governedPrompt: GovernedPrompt;
   candidateScores: CandidateScore[];
   expectedCuts: number[];
+  sequenceObjective: JosephSequenceObjectiveRanking;
   manifestCompilerAudit: JosephManifestCompilerAudit;
   sequenceDiscipline: SequenceDisciplineSummary[];
   sequenceMemory: SequenceMemorySummary[];
@@ -373,6 +375,7 @@ const buildCandidateScoreSummary = (
   governedPrompt: GovernedPrompt,
   candidateScores: CandidateScore[],
   expectedCuts: number[],
+  sequenceObjective: JosephSequenceObjectiveRanking,
   manifestCompilerAudit: JosephManifestCompilerAudit,
   candidates: CandidateWithSequenceMemory[],
 ): CandidateScoreSummary => ({
@@ -380,6 +383,7 @@ const buildCandidateScoreSummary = (
   governedPrompt,
   candidateScores,
   expectedCuts,
+  sequenceObjective,
   manifestCompilerAudit,
   sequenceDiscipline: candidateScores.map((score) => ({
     enabled: score.sequenceDiscipline.enabled,
@@ -439,7 +443,7 @@ export async function orchestrateRender(
   });
   const selected = compiledSelected.manifest;
   const rejected = judgment.rejected.map((candidate) => canonicalizeManifestForResult(candidate, variationKey));
-  const candidateScoreSummary = buildCandidateScoreSummary(env, governedPrompt, judgment.scores, expectedCuts, compiledSelected.audit, candidates);
+  const candidateScoreSummary = buildCandidateScoreSummary(env, governedPrompt, judgment.scores, expectedCuts, judgment.sequenceObjective, compiledSelected.audit, candidates);
   const evidence: EvidencePackage = {
     jobId: variationKey.uploadInstanceId,
     variationKey,
