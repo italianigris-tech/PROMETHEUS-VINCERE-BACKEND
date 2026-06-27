@@ -1244,6 +1244,220 @@ Bad issue shapes:
 - No issue hides multiple unrelated flagship systems.
 - Every issue has a visible artifact or testable behavior.
 
+## Program 16: Stack Consolidation And The Manifest Compiler
+
+### Why This Exists
+
+This is the keystone. Without it, every other intelligence program in this roadmap stays decorative.
+
+The audit found two disconnected planning stacks (see Root-Cause Correction). Stack A holds the rich planner; Stack B holds the live render path. Between them is a translation layer that was never built. Enriching either side before the seam exists is wasted effort — the planner's decisions never reach pixels, and the renderer cannot honor decisions it never receives.
+
+### Build
+
+- single surviving spine (Stack B: orchestrator, evidence, ledger, worker, render vocabulary)
+- ported algorithms from Stack A as pure libraries, not apparatus: sequence objective, negative grammar, pairwise taste critic, QD archive concept, sequence-memory metrics
+- excised Stack A apparatus: moment/proposal/adapter orchestration, agent proposal generators, orphan governance/deviation engines (re-evaluated post-seam, not grafted blind)
+- unified `PlannerAudit` type (the rich shape), shared-types home, single producer
+- renamed backend `PlannerAudit` → `CandidateScoreSummary` (it is really a candidate-score record, not a planner audit)
+- the Manifest Compiler: the single translation boundary between planner decision and render data
+- expanded `UnifiedRenderManifest` schema (new fields optional, defaults filled for legacy manifests)
+- contract tests pinning the seam
+
+### Manifest Compiler Contract
+
+The compiler consumes the richer planner decision (treatment family, emphasis targets, depth assignments, selected genome, sequence metrics) and emits an expanded `UnifiedRenderManifest` that carries what the renderer must honor:
+
+- `textOverlays[i].microAnimation` becomes authoritative — `{ primitiveId, parameters: {intensity, durationMs, delayMs, anchor, direction} }` — and the renderer branches on `primitiveId`, not a fallback string
+- `josephPiP` gains a real layer list with per-layer `{ depth, matteFlag, zOrder, populated }` instead of one flat frame
+- `cameraMoves[i]` gains `entryVelocity` / `exitVelocity` so momentum can carry across cuts
+- one rich `PlannerAudit` attached, produced by the survivor planner
+
+### Phased Rollout (each phase ships and reverts cleanly)
+
+- **Phase 0 — Audit and freeze.** Contract test pinning CURRENT manifest→render behavior as baseline. Rename backend `PlannerAudit` → `CandidateScoreSummary`. No logic change. Gate: green tests, identical renders.
+- **Phase 1 — Unify the middle.** Port sequence-memory metrics and negative-grammar predicates into Stack B as libraries. Stack B `JudgmentLayer` calls them. Stack A duplicate engines still exist but become unreferenced. Gate: judgment verdicts improve; renders unchanged.
+- **Phase 2 — Build the Manifest Compiler and expand the schema.** Compiler produces the expanded manifest; renderer still reads only old fields, so output is identical (passthrough). Gate: manifest carries new fields; renders identical.
+- **Phase 3 — Graft the sequence objective and QD archive.** Replace `pickDoctrineBySeed` with the ported objective ranking candidate genomes. Gate: candidate selection changes measurably; determinism scripts still pass; better winners in the Review Surface.
+- **Phase 4 — Wire the renderer to the new fields.** Closes the sub-seams: implement missing micro-animation render branches, PiP depth/matte honoring, camera momentum. Each independently mergeable. Gate: the primitive-coverage contract test goes green one primitive at a time.
+- **Phase 5 — Excise Stack A.** Delete the orphaned apparatus once nothing references it. Gate: build green; bundle smaller; no orphan imports.
+
+### The Sub-Seams Closed By This Program
+
+- **Micro-animation collapse (16 → 5).** Today the renderer reads `overlay.animation` (one of 5 fallback strings) and ignores `overlay.microAnimation`. 16 curated primitives render as 5 generic behaviors. The renderer must branch on `primitiveId`.
+- **PiP depth collapse (10-layer plan → 1 flat plane).** Today `VideoPlane` renders a flat mesh at z=0.24 and ignores `frame.depth`. The matte pipeline exists (`runpod-video-worker` runs RobustVideoMatting) but is not wired to the render path. This is a wiring job, not a build-from-scratch.
+- **Camera momentum reset.** Today `CameraRig` resets `position.set(0,0,5)` every frame then re-applies the active move. No carried velocity across cuts. Needs entry/exit velocity on camera moves.
+- **Typography math (absent).** No negative tracking for hero / positive tracking for support. Flat `fontSize` for everything. The `font-role-taxonomy.json` (204KB) exists but nothing reads it.
+
+### Acceptance Proof
+
+- One `PlannerAudit` type in shared-types; grep finds zero unrelated definitions.
+- No file in `creative-orchestration/` is imported by the render path — Stack A is gone or reduced to pure libraries with no apparatus.
+- The 16-primitive contract test is green — every planned primitive renders distinctly.
+- Determinism and variation suites pass unchanged in intent.
+- A single input produces measurably different candidates than before Phase 3 — proving the grafted objective is actually voting, not decorative.
+
+### Independence Rule
+
+This is not the planner, not the renderer, not the evaluator. It is the seam between them. It owns the contract, not the intelligence. Build it before enriching any of the three it connects.
+
+## Program 17: Style Architecture — Conditioned Reward, Prompt Inference, Brand Ingestion
+
+### Why This Exists
+
+The 1B-person vision spans multiple creators (Joseph, Iman, Hormozi, Cody Sanchez, magazine/editorial styles) and per-brand customization. A single unconditional reward mongrelizes; a flat prompt cannot route to a style that has no learned weights; a brand with 3 videos cannot be "learned." This program defines the style-aware architecture that makes multi-style work without corruption.
+
+### Build
+
+- **Style-conditioned reward.** The reward function takes a style label as input and applies that style's weights. One weight vector per style (`w_joseph`, `w_iman`, `w_hormozi`, `w_brandX`). Never train one unconditional reward on a mixed corpus — that is the mongrel generator.
+- **Transfer / fine-tune.** Small corpora seed from larger ones via initialization prior (initialize `w_cody` from `w_joseph`, then fine-tune on Cody's curated recent work). This is the disciplined way to make a 50-video supplement useful without polluting the 600-video foundation. Works best between styles that share a vehicle; train fresh for a new vehicle.
+- **Style catalog.** A registry: `{joseph: {weights, description}, iman: {...}, ...}` — each entry is a trained weight vector plus a text description of the style.
+- **Prompt → style classifier.** A lightweight layer that resolves a user prompt ("make it Joseph style," "magazine edit," "like Alex Hormozi") to a style key. This is text-understanding, not video — cheap, no GPU, LLMs handle it well. Maps unknown styles to the nearest neighbor or falls back to the default/hand-coded reward.
+- **Two-tier brand ingestion.**
+  - Tier 1 (few videos, 1–10): **retrieval/matching**, not learning. Treat the brand's videos as reference anchors; match editing decisions to "what's most consistent with these references" via style-embedding distance. Works from few videos because it is matching, not distribution estimation.
+  - Tier 2 (many videos, 30+): **learned per-creator reward.** Train `w_brand`, optionally initialized from the nearest stock style via transfer.
+- **Style embedding (deferred, Phase 2+).** Map each reference to a point in continuous style space for interpolation ("70% Joseph, 30% Iman"). Overkill until 3+ well-trained styles exist.
+
+### Rules
+
+- Do not train one unconditional reward on a mixed corpus. Per-style weights only.
+- Do not train on a creator's weak period or failures. Curate recent, high-quality work only.
+- Do not promise "learned style" from 1–5 videos. Use retrieval/matching below ~30; reserve learning for 30+.
+- Do not transfer a prior across vehicles (talking-head → drone). Transfer works only within a shared editing grammar.
+- Do not ship the prompt→style classifier until at least 2 trained styles exist — there is nothing to infer until the catalog has entries.
+
+### Acceptance Proof
+
+- Two distinct creators each have trained weight vectors; neither corrupts the other.
+- A prompt naming a trained style routes to that style's weights.
+- A brand with 3 videos gets a stable, sensible match (Tier 1); a brand with 30+ gets a learned refinement (Tier 2).
+- Same source footage under two different style labels yields visibly distinct, both-valid edits.
+
+### Independence Rule
+
+This is not Program 11 (the reward learner). It is the style-routing and brand-ingestion layer that selects WHICH reward weights apply and HOW brand-specific weights enter the catalog.
+
+## Program 18: Multi-Vehicle Scene-Type Router
+
+### Why This Exists
+
+Today the system is strictly talking-head. The entire manifest model (transcript → phrases → text overlays → PiP speaker-dock) assumes a single human speaker on camera. That model breaks for property walkthroughs, drone reels, product demos, and document-centric scenes.
+
+Broadening is not a config change — it is a scene-type router. Each vertical is a different scene model with different footage assumptions, not a "profile." This is the single biggest hidden cost in the 1B-person vision, and it is gated on having enough vehicles to justify the abstraction.
+
+### Build
+
+- **scene-type detection** (talking-head vs property vs drone vs product vs document-exhibit)
+- **per-vehicle scene model** — each declares its own footage assumptions, primitive set, PiP behavior, pacing regime, and camera grammar
+- **vehicle router** that selects the scene model based on detection + user intent
+- **vehicle-specific macro-rigs** (Program 8: finance dashboards, property galleries, legal exhibits, product pedestals)
+- **per-vehicle extraction adaptors** (a property walkthrough needs room-boundary detection, not face tracking; a drone reel needs motion-vector-dominated features)
+
+### Vehicle Examples
+
+- talking-head (the current vehicle) — transcript-driven, PiP speaker-dock, dense text
+- real-estate / property walkthrough — room-by-room, motion-driven rhythm, no speaker required
+- drone reel — motion-driven, audio-cued, minimal text
+- product demo — object-centric, exhibit cards
+- legal / medical explainer — document-centric, exhibit overlays
+
+### Rules
+
+- Do not force every vehicle through the talking-head manifest model. Each vehicle has its own scene model.
+- Do not train across vehicles naively. A drone reward learned on talking-head demonstrations is meaningless. Train fresh per vehicle; transfer within a vehicle only.
+- Do not build a vehicle before its scene model and extraction adaptor are specified.
+
+### Acceptance Proof
+
+- The router correctly detects vehicle from source footage.
+- A property walkthrough produces a valid edit under the property scene model, not a degraded talking-head edit.
+- The system can clearly state which vehicle an edit belongs to and why.
+
+### Independence Rule
+
+This is not the planner and not the macro-rig library. It is the router that selects the scene model and extraction adaptor per input.
+
+## Program 19: Render Infrastructure — GPU-First With Software Fallback
+
+### Why This Exists
+
+The current render path is hardcoded to `gl: 'swangle'` and `hardwareAcceleration: 'disable'` in `apps/worker/src/index.ts`, with the same swangle fallback in the retry path. This is a scar from a misdiagnosed headless-GPU/WebGL crash on Linux. The conclusion drawn ("hence Windows") was only half-right: software WebGL (swangle) is OS-agnostic and runs identically on Linux for ~half the cost, and GPU-on-Linux is solvable with proper configuration.
+
+The current state: renders work on Windows software-rasterized WebGL, but slowly and at unit economics that don't scale to 1B. The 10MB-source-to-2GB-temp bloat is a temp-file-hygiene issue in the production path, unrelated to OS or GPU.
+
+### Build
+
+- **GPU-first render path** with **swangle software fallback**, per-render telemetry on which path won
+- **Linux GPU configuration**: Chrome with `--use-gl=angle --use-angle=gl --enable-features=Vulkan` (or EGL surfaceless), NVIDIA driver + container with GPU passthrough
+- **crash → auto-degrade**: GPU render crashes automatically retry on swangle; the failure tag records which path won
+- **temp-file hygiene**: explicit cleanup of intermediate frame caches (not just the final silent+audio files) to resolve the 2GB bloat
+- **texture disposal discipline** during batch rendering (`THREE.VideoTexture` decoded frames held in memory need explicit disposal)
+- **render-path telemetry field** (`render_path: "gpu" | "swangle"`) plumbed into the existing failure-intelligence and execution-telemetry surfaces
+
+### The Three Honest Paths
+
+- **Path 1 — swangle on Linux CPU.** Same software rasterizer, OS-agnostic, ~40–60% cheaper than Windows. Immediate win, zero risk. Same code, swap the VM.
+- **Path 2 — Linux GPU properly configured.** Best ROI. GPU-first with swangle fallback. 1–3 week infra project, testable in isolation on one RunPod instance. Makes renders 5–20× faster; unit economics work at scale.
+- **Path 3 — Windows as gold-standard box.** Optional hybrid: a small Windows render node for hard/4K jobs where D3D software rasterization is most forgiving; Linux CPU/GPU farm for volume.
+
+### Rules
+
+- Do not let the software-rasterization workaround become permanent architecture.
+- Do not make GPU the primary without a swangle fallback. The reason GPU was abandoned was no fallback existed; the right architecture is GPU-first with fallback and telemetry.
+- Do not conflate the production render path (`renderMedia` + swangle, slow, MP4 to disk) with the comparison path (live `<Player>`, real GPU, real-time). The studio uses the latter; the bloat and slowness live in the former.
+- Do not run one render with `hardwareAcceleration: 'disable'` removed without measuring. The single test that settles the GPU question is: run one render GPU-enabled on Windows; if faster and stable, GPU works and the question is Linux-portability; if it crashes, you have reproduced the scar and know why swangle was hardcoded.
+
+### Acceptance Proof
+
+- A render that crashes on GPU automatically degrades to swangle and succeeds, with a failure tag recording the path.
+- Temp-dir disk usage during a batch render stays bounded (no 2GB bloat on a 10MB source).
+- Linux CPU swangle render produces byte-identical output to Windows swangle render (validates OS-agnosticism).
+- GPU-enabled render on Linux is 5–20× faster than swangle for the same manifest.
+
+### Independence Rule
+
+This is not the renderer composition logic. It is the infrastructure and fallback discipline that makes the renderer runnable at scale and at cost.
+
+## Program 20: Feature Audit And Feature-Space Discipline
+
+### Why This Exists
+
+Feature engineering is the binding constraint on the entire IRL program (Programs 1 and 11). Past ~600 trajectories, a poor learned reward is almost always a feature problem, not a data problem. No amount of data fixes bad or missing features. This program governs the feature set so the learner has something real to learn from.
+
+### Build
+
+- **feature audit process**: take 3–5 reference edits, list every editing decision visible, map each to a candidate feature, check which features the codebase already emits vs. does not
+- **pruning discipline**: cut the candidate list to the ~60–80 low-correlation, high-craft-relevance set. The audit's value is as much in what is NOT extracted as what is.
+- **feature versioning**: schema versioning so a feature-definition change triggers re-extraction of the corpus (or explicit versioning of inconsistent features)
+- **feature coverage validation**: before scaling extraction to the full corpus, manually verify the features distinguish a reference edit from a generic edit. If they do not, fix features — do not collect more data.
+- **parallel audio-extraction track**: separate pipeline (beat/onset detection, SFX classification, music-vs-voice separation, ducking envelope), merged into the trajectory on a common timeline so the solver can learn audio-visual sync ("SFX triggers 2 frames before the text lands")
+
+### Feature Families (target ~8–10 features each, ~60–80 total)
+
+- **camera** — movement, momentum, vectors, focal behavior
+- **typography** — font class (script/sans), weight, placement, tracking
+- **motion graphics** — glass cards, micro-text animation, shaders
+- **composition** — asset/PiP depth, B-roll usage, negative space
+- **transitions** — type, timing, momentum handoff
+- **audio** — SFX triggers, music ducking, sync
+- **temporal** — pacing density, beat alignment, climax windows
+
+### Rules
+
+- Do not extract 300 features. The target is ~60–80 low-correlation features. More overfits, increases extraction cost linearly, and destabilizes weights.
+- Do not extract correlated variants of the same underlying signal. Pick the more cleanly extractable one.
+- Do not scale extraction to the full corpus before validating that the features distinguish elite from generic. Bad features at 600 videos are still bad features.
+- Do not change a feature definition mid-corpus without re-extracting or versioning.
+
+### Acceptance Proof
+
+- A documented feature list of ~60–80 features across the families, each mapped to an extractor and a manual-verification note.
+- On 5 reference edits, the feature vectors visibly distinguish elite editing from generic editing.
+- A schema-version field on `trajectory.json` that increments on feature-definition change.
+
+### Independence Rule
+
+This is not Program 1 (extraction execution) and not Program 11 (the learner). It is the discipline that governs the feature space both programs operate over.
+
 ## Dependency Map
 
 ### Immediate Foundations
