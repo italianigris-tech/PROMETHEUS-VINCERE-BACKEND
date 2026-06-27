@@ -44,6 +44,17 @@ describe("generateJosephManifest", () => {
     expect(ctaMoves.length).toBeGreaterThanOrEqual(1);
   });
 
+  it("records governed camera velocity hints for renderer continuity", () => {
+    const manifest = generateJosephManifest(MOCK_INPUT);
+
+    expect(manifest.cameraMoves.length).toBeGreaterThan(0);
+    for (const move of manifest.cameraMoves) {
+      expect(move.entryVelocity).toBeGreaterThanOrEqual(0);
+      expect(move.entryVelocity).toBeLessThanOrEqual(1);
+      expect(move.exitVelocity).toBeGreaterThanOrEqual(0);
+      expect(move.exitVelocity).toBeLessThanOrEqual(1);
+    }
+  });
   it("aggressive has more cuts than minimal", () => {
     const aggressive = generateJosephManifest({...MOCK_INPUT, profile: "joseph_aggressive", seed: 999});
     const minimal = generateJosephManifest({...MOCK_INPUT, profile: "joseph_minimal", seed: 999});

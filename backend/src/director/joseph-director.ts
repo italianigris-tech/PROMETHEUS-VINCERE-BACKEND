@@ -600,6 +600,21 @@ const buildCuts = (
   });
   return cuts.sort((a, b) => a.atMs - b.atMs);
 };
+const cameraVelocityHints = (type: CameraMove["type"]): Pick<CameraMove, "entryVelocity" | "exitVelocity"> => {
+  if (type === "push_in") {
+    return { entryVelocity: 0.32, exitVelocity: 0.72 };
+  }
+  if (type === "dutch") {
+    return { entryVelocity: 0.54, exitVelocity: 0.38 };
+  }
+  return { entryVelocity: 0.88, exitVelocity: 0.3 };
+};
+const cameraMoveWithVelocity = (
+  move: Pick<CameraMove, "type" | "startFrame" | "endFrame">,
+): CameraMove => ({
+  ...move,
+  ...cameraVelocityHints(move.type),
+});
 const buildCameraMoves = (
   input: DirectorInput,
   phrases: Phrase[],
@@ -622,11 +637,11 @@ const buildCameraMoves = (
         startFrame + 30,
         durationFrames,
       );
-      moves.push({
+      moves.push(cameraMoveWithVelocity({
         type: "push_in",
         startFrame: range.startFrame,
         endFrame: range.endFrame,
-      });
+      }));
       lastCameraMs = phrase.startMs;
     }
     const beatDrop = input.beats.find(
@@ -645,11 +660,11 @@ const buildCameraMoves = (
         msToFrame(beatDrop) + duration,
         durationFrames,
       );
-      moves.push({
+      moves.push(cameraMoveWithVelocity({
         type,
         startFrame: range.startFrame,
         endFrame: range.endFrame,
-      });
+      }));
     }
   });
   const ctaStartFrame = msToFrame(ctaStartMs);
@@ -663,11 +678,11 @@ const buildCameraMoves = (
       ctaStartFrame + 30,
       durationFrames,
     );
-    moves.push({
-      type: "push_in",
-      startFrame: range.startFrame,
-      endFrame: range.endFrame,
-    });
+    moves.push(cameraMoveWithVelocity({
+        type: "push_in",
+        startFrame: range.startFrame,
+        endFrame: range.endFrame,
+      }));
   }
   return moves.sort((a, b) => a.startFrame - b.startFrame);
 };

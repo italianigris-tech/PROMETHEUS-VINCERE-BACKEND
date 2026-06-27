@@ -8,6 +8,9 @@ type VideoPlaneProps = {
   track: VideoTrack | undefined;
   manifest: UnifiedRenderManifest;
   frameRect?: JosephPiPFrame;
+  opacity?: number;
+  z?: number;
+  renderOrder?: number;
 };
 
 const isLocalFileUrl = (value: string) => /^file:\/\//i.test(value);
@@ -115,7 +118,7 @@ const createVideoElement = (src: string): HTMLVideoElement => {
   return element;
 };
 
-export const VideoPlane: React.FC<VideoPlaneProps> = ({track, manifest, frameRect}) => {
+export const VideoPlane: React.FC<VideoPlaneProps> = ({track, manifest, frameRect, opacity = 1, z, renderOrder = 18}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const {viewport} = useThree();
@@ -193,9 +196,9 @@ export const VideoPlane: React.FC<VideoPlaneProps> = ({track, manifest, frameRec
   }
 
   return (
-    <mesh ref={meshRef} position={[viewportRect.x, viewportRect.y, frameRect ? 0.24 : 0]}>
+    <mesh ref={meshRef} position={[viewportRect.x, viewportRect.y, z ?? (frameRect ? 0.24 : 0)]} renderOrder={renderOrder}>
       <planeGeometry args={[viewportRect.width, viewportRect.height]} />
-      <meshBasicMaterial map={texture} toneMapped={false} />
+      <meshBasicMaterial map={texture} toneMapped={false} transparent={opacity < 1} opacity={opacity} depthWrite={false} />
     </mesh>
   );
 };

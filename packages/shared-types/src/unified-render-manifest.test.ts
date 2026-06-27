@@ -74,6 +74,33 @@ describe("UnifiedRenderManifestSchema", () => {
     expect(manifest.transitions).toEqual([]);
   });
 
+  it("accepts governed camera velocity hints for render continuity", () => {
+    const manifest = UnifiedRenderManifestSchema.parse({
+      ...baseManifest,
+      cameraMoves: [{
+        type: "push_in",
+        startFrame: 24,
+        endFrame: 54,
+        entryVelocity: 0.25,
+        exitVelocity: 0.8,
+      }],
+    });
+
+    expect(manifest.cameraMoves[0]?.entryVelocity).toBe(0.25);
+    expect(manifest.cameraMoves[0]?.exitVelocity).toBe(0.8);
+
+    const invalid = UnifiedRenderManifestSchema.safeParse({
+      ...baseManifest,
+      cameraMoves: [{
+        type: "push_in",
+        startFrame: 24,
+        endFrame: 54,
+        entryVelocity: -0.1,
+        exitVelocity: 1.2,
+      }],
+    });
+    expect(invalid.success).toBe(false);
+  });
   it("rejects incomplete text overlays at the root seam", () => {
     const result = UnifiedRenderManifestSchema.safeParse({
       ...baseManifest,

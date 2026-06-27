@@ -70,7 +70,8 @@ describe('JosephEdit Composition', () => {
   it('renders Joseph PiP from the manifest without DOM overlays', () => {
     expect(content).toContain('manifest.josephPiP');
     expect(content).toContain('PiPFrameChrome');
-    expect(content).toContain('activeMotion');
+    expect(content).toContain('resolvePiPRenderContract');
+    expect(content).toContain('JosephBackgroundRig');
     expect(videoPlaneContent).toContain('frameRect');
     expect(videoPlaneContent).toContain('percentRectToViewport');
   });

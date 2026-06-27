@@ -491,6 +491,8 @@ export const CameraMoveSchema = z.object({
   type: z.enum(["push_in", "dutch", "shake"]),
   startFrame: z.number().int().nonnegative(),
   endFrame: z.number().int().nonnegative(),
+  entryVelocity: z.number().min(0).max(1).optional(),
+  exitVelocity: z.number().min(0).max(1).optional(),
 });
 
 export const TextOverlaySchema = z.object({
