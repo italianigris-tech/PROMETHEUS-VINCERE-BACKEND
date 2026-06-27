@@ -59,6 +59,19 @@ describeIfPresent("Evidence Preservation contract", () => {
     expect(JSON.parse(fs.readFileSync(paths.selectedPath, "utf8"))).toMatchObject({jobId: "chosen"});
     expect(JSON.parse(fs.readFileSync(paths.verdictPath, "utf8"))).toMatchObject({passedFloor: true});
     expect(JSON.parse(fs.readFileSync(paths.auditPath, "utf8"))).toMatchObject({jobId: "job-1"});
+    expect(JSON.parse(fs.readFileSync(paths.reviewArtifactPath, "utf8"))).toMatchObject({
+      version: "joseph-oversight-review-v1",
+      jobId: "job-1",
+      completionEvidence: {
+        candidateManifestCount: 2,
+        rejectedManifestCount: 1,
+        hasReviewNotes: true,
+      },
+    });
+    expect(fs.readFileSync(paths.reviewLedgerPath, "utf8").trim().split("\n")).toHaveLength(1);
+    expect(JSON.parse(fs.readFileSync(paths.regressionGalleryPath, "utf8"))).toMatchObject({
+      version: "joseph-oversight-review-v1",
+    });
     expect(fs.readFileSync(paths.logPath, "utf8").trim().split("\n")).toHaveLength(1);
     expect(fs.readdirSync(paths.jobDir).some((file) => file.endsWith(".tmp"))).toBe(false);
   });

@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import {preserveJosephOversightReview} from "./joseph-oversight-review";
 
 export interface VariationKey {
   key?: string;
@@ -46,6 +47,9 @@ export interface EvidenceArtifactPaths {
   selectedPath: string;
   verdictPath: string;
   auditPath: string;
+  reviewArtifactPath: string;
+  reviewLedgerPath: string;
+  regressionGalleryPath: string;
   logPath: string;
 }
 
@@ -117,6 +121,9 @@ const preserveEvidencePackage = (
     selectedPath: path.join(jobDir, "selected.json"),
     verdictPath: path.join(jobDir, "verdict.json"),
     auditPath: path.join(jobDir, "audit.json"),
+    reviewArtifactPath: path.join(jobDir, "review-artifact.json"),
+    reviewLedgerPath: path.join(baseDir, "review-ledger.ndjson"),
+    regressionGalleryPath: path.join(baseDir, "regression-gallery.json"),
     logPath: path.join(baseDir, "evidence.log"),
   };
 
@@ -125,9 +132,18 @@ const preserveEvidencePackage = (
   writeJsonAtomic(paths.selectedPath, pkg.selected);
   writeJsonAtomic(paths.verdictPath, pkg.verdict);
   writeJsonAtomic(paths.auditPath, buildAuditPayload(pkg));
+  const oversightPaths = preserveJosephOversightReview({
+    pkg,
+    baseDir,
+    jobDir,
+    candidatesPath: paths.candidatesPath,
+    selectedPath: paths.selectedPath,
+    verdictPath: paths.verdictPath,
+    auditPath: paths.auditPath,
+  });
   appendEvidenceLog(paths.logPath, pkg);
 
-  return paths;
+  return {...paths, ...oversightPaths};
 };
 
 const preserveLegacyEvidence = (ledger: LegacyLedger, pkg: LegacyEvidencePackage): unknown => {

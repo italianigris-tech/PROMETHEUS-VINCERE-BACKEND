@@ -73,6 +73,18 @@ describe("Director Orchestrator", () => {
     expect(fs.existsSync(result.evidencePaths.jobDir)).toBe(true);
     expect(JSON.parse(fs.readFileSync(result.evidencePaths.selectedPath, "utf8")).jobId).toBe(result.manifest.jobId);
     expect(JSON.parse(fs.readFileSync(result.evidencePaths.verdictPath, "utf8")).passedFloor).toBe(true);
+
+    const reviewArtifact = JSON.parse(fs.readFileSync(result.evidencePaths.reviewArtifactPath, "utf8"));
+    expect(reviewArtifact).toMatchObject({
+      version: "joseph-oversight-review-v1",
+      jobId: result.evidence.jobId,
+      selectedJobId: result.manifest.jobId,
+    });
+    expect(reviewArtifact.candidateJobIds).toHaveLength(result.candidateCount);
+    expect(reviewArtifact.rejectedJobIds).toHaveLength(result.rejectedCount);
+    expect(reviewArtifact.reviewVerdict.notes.length).toBeGreaterThan(0);
+    expect(fs.readFileSync(result.evidencePaths.reviewLedgerPath, "utf8")).toContain(result.evidence.jobId);
+    expect(JSON.parse(fs.readFileSync(result.evidencePaths.regressionGalleryPath, "utf8")).version).toBe("joseph-oversight-review-v1");
   });
 
   it("determinism: same key = same manifest", async () => {
