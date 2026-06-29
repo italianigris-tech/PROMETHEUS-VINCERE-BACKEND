@@ -4,6 +4,10 @@ const path = require('path');
 const os = require('os');
 const { execFile } = require('child_process');
 const {
+  AWAITING_INPUT_TIMEOUT_MS,
+  createTelegramSessionStore
+} = require('./telegram-session');
+const {
   getState,
   setState,
   getCurrentIssue,
@@ -88,6 +92,7 @@ const DIFF_STREAM_WORKDIR = process.env.CODEX_WORKDIR || process.cwd();
 const WATCHDOG_THRESHOLD = parseInt(process.env.WATCHDOG_THRESHOLD_PERCENT, 10) || 80;
 const WATCHDOG_PATH = process.env.WATCHDOG_DISK_PATH || DIFF_STREAM_WORKDIR;
 const SESSION_RESERVATION_TTL_MS = 10 * 60 * 1000;
+const AWAITING_INPUT_SWEEP_INTERVAL_MS = 30 * 1000;
 const PREFLIGHT_DEFAULT_ENABLED = process.env.PREFLIGHT_ENABLED === 'true';
 const SETTINGS_MODEL_CHOICES = ['gpt-5.4', 'gpt-5.5', 'gpt-5.5-high', 'gpt-5.5-xhigh'];
 const SETTING_ENV_OVERRIDES = {
@@ -113,9 +118,11 @@ const SETTINGS_LABELS = {
 let bot;
 let messageCallbacks = new Map();
 let pendingInputs = new Map();
+let chatSessions = createTelegramSessionStore();
 let trackedBotMessages = new Map();
 let pollingRetryTimer = null;
 let pollingRetryDelay = 5000;
+let awaitingInputTimeoutTimer = null;
 let diffStreams = new Map();
 let thinkingStreams = new Map();
 let sessionReservation = null;
@@ -133,6 +140,7 @@ function initBot() {
     console.error('[telegram] Initial polling start failed; retrying instead of shutting down:', formatError(error));
     schedulePollingRetry(bot, 'initial_start_failed');
   });
+  startAwaitingInputTimeoutSweep();
   console.log('Telegram bot started (polling mode)');
 
   bot.onText(/\/start/, async (msg) => {
@@ -159,7 +167,7 @@ function initBot() {
       await sendTrackedMessage(chatId, `Unauthorized chat. Your chat ID is \`${chatId}\`.`, { parse_mode: 'Markdown' });
       return;
     }
-    await sendQueuePanel(chatId);
+    await sendQueuePanel(chatId, createMenuMessage(chatId));
   });
 
   bot.onText(/\/stats(?:@\w+)?(?:\s|$)/, async (msg) => {
@@ -168,7 +176,7 @@ function initBot() {
       await sendTrackedMessage(chatId, `Unauthorized chat. Your chat ID is \`${chatId}\`.`, { parse_mode: 'Markdown' });
       return;
     }
-    await sendStatsPanel(chatId);
+    await sendStatsPanel(chatId, createMenuMessage(chatId));
   });
 
   bot.onText(/\/analytics(?:@\w+)?(?:\s|$)/, async (msg) => {
@@ -177,7 +185,7 @@ function initBot() {
       await sendTrackedMessage(chatId, `Unauthorized chat. Your chat ID is \`${chatId}\`.`, { parse_mode: 'Markdown' });
       return;
     }
-    await sendAnalyticsPanel(chatId);
+    await sendAnalyticsPanel(chatId, createMenuMessage(chatId));
   });
 
   bot.onText(/\/autosurprise(?:@\w+)?(?:\s+(on|off))?/i, async (msg, match) => {
@@ -254,19 +262,27 @@ function initBot() {
 }
 
 async function sendControlPanel(chatId, name = 'there') {
-  await sendTrackedMessage(chatId, buildControlPanelText(name), {
+  const sent = await sendTrackedMessage(chatId, buildControlPanelText(name), {
     parse_mode: 'Markdown',
     reply_markup: controlPanelKeyboard()
   });
+  rememberMenuMessage(chatId, sent.message_id, 'root');
+  return sent;
 }
 
 async function refreshControlPanel(message) {
-  await safeEditMessageText(buildControlPanelText('there'), {
-    chat_id: message.chat.id,
-    message_id: message.message_id,
-    parse_mode: 'Markdown',
-    reply_markup: controlPanelKeyboard()
-  });
+  try {
+    await safeEditMessageText(buildControlPanelText('there'), {
+      chat_id: message.chat.id,
+      message_id: message.message_id,
+      parse_mode: 'Markdown',
+      reply_markup: controlPanelKeyboard()
+    });
+    rememberMenuMessage(message.chat.id, message.message_id, 'root');
+  } catch (error) {
+    console.warn('[telegram] Unable to edit control panel; sending fallback:', formatError(error));
+    await sendControlPanel(message.chat.id);
+  }
 }
 
 function buildControlPanelText(name) {
@@ -287,6 +303,104 @@ function buildControlPanelText(name) {
     `Current issue: ${currentLine}\n` +
     `Settings: ${formatSettingsStatusLine()}\n`
   );
+}
+
+function getSessionKey(chatId) {
+  return String(chatId);
+}
+
+function getChatSession(chatId) {
+  return chatSessions.get(getSessionKey(chatId));
+}
+
+function rememberMenuMessage(chatId, messageId, menu = 'root', parentMenu = null) {
+  if (!messageId) return getChatSession(chatId);
+  if (parentMenu && parentMenu !== menu) {
+    chatSessions.setMenu(getSessionKey(chatId), menu, {
+      messageId,
+      parentMenu
+    });
+    return getChatSession(chatId);
+  }
+  const state = chatSessions.goToMenu(getSessionKey(chatId), menu);
+  return chatSessions.setMenu(getSessionKey(chatId), state.current_menu, {
+    messageId,
+    parentMenu: state.context_data.parent_menu || 'root'
+  });
+}
+
+function getMenuMessageId(chatId) {
+  return getChatSession(chatId).context_data.message_id || null;
+}
+
+async function sendMenuMessage(chatId, menu, text, options = {}) {
+  const sent = await sendTrackedMessage(chatId, text, {
+    parse_mode: options.parse_mode,
+    reply_markup: options.reply_markup
+  });
+  rememberMenuMessage(chatId, sent.message_id, menu, options.parentMenu);
+  return sent;
+}
+
+function createMenuMessage(chatId, messageId = null) {
+  return {
+    chat: { id: chatId },
+    message_id: messageId || getMenuMessageId(chatId)
+  };
+}
+
+async function sendOrEditMenuMessage(chatId, menu, text, options = {}, message = null) {
+  if (!message?.message_id) {
+    return sendMenuMessage(chatId, menu, text, options);
+  }
+
+  try {
+    await safeEditMessageText(text, {
+      chat_id: message.chat?.id || chatId,
+      message_id: message.message_id,
+      parse_mode: options.parse_mode,
+      reply_markup: options.reply_markup
+    });
+    rememberMenuMessage(chatId, message.message_id, menu, options.parentMenu);
+    return message;
+  } catch (error) {
+    console.warn('[telegram] Unable to edit menu message; sending fallback:', formatError(error));
+    return sendMenuMessage(chatId, menu, text, options);
+  }
+}
+
+async function navigateBack(query) {
+  const chatId = query.message.chat.id;
+  const targetMenu = chatSessions.back(getSessionKey(chatId));
+  await renderMenuByName(chatId, targetMenu, query.message);
+}
+
+async function renderMenuByName(chatId, menu, message = null) {
+  if (menu === 'settings') return sendSettingsPanel(chatId, message);
+  if (menu === 'settings_model') return refreshSettingsModelPicker(message || createMenuMessage(chatId));
+  if (menu === 'model') return sendModelPicker(chatId, message);
+  if (menu === 'rotate_keys') return sendRotateKeysPanel(chatId, null, message);
+  if (menu === 'queue') return sendQueuePanel(chatId, message);
+  if (menu === 'priority_picker') return sendPriorityPicker(chatId, message);
+  if (menu === 'batch_picker') return sendBatchPicker(chatId, message);
+  if (menu === 'stats') return sendStatsPanel(chatId, message);
+  if (menu === 'analytics') return sendAnalyticsPanel(chatId, message);
+  if (menu === 'history') return sendHistory(chatId, message);
+  if (menu === 'doctor') return sendDoctorPanel(chatId, message);
+  if (menu === 'health') return sendHealth(chatId, message);
+  if (menu === 'watchdog') return sendWatchdog(chatId, message);
+  if (menu === 'logs') return sendLogsPanel(chatId, message);
+  if (menu === 'system_logs_simple') return sendLogs(chatId, 'simple', message);
+  if (menu === 'system_logs_technical') return sendLogs(chatId, 'technical', message);
+  if (menu === 'codex_activity_simple') return sendCodexActivity(chatId, 'simple', message);
+  if (menu === 'codex_activity_technical') return sendCodexActivity(chatId, 'technical', message);
+  if (menu === 'codex_status') return sendCodexStatus(chatId, message);
+  if (menu === 'help') return sendHelpPanel(chatId, message);
+
+  if (message?.message_id) {
+    return refreshControlPanel(message);
+  }
+  return sendControlPanel(chatId);
 }
 
 function getSettingBoolean(key, fallback = DEFAULT_SETTINGS[key] === 'true') {
@@ -530,25 +644,25 @@ async function handlePanelAction(query) {
 
   if (data === 'panel:status') {
     await bot.answerCallbackQuery(query.id, { text: 'Status' });
-    await sendStatus(chatId);
+    await sendStatus(chatId, query.message);
     return;
   }
 
   if (data === 'panel:queue') {
     await bot.answerCallbackQuery(query.id, { text: 'Queue' });
-    await sendQueuePanel(chatId);
+    await sendQueuePanel(chatId, query.message);
     return;
   }
 
   if (data === 'panel:stats') {
     await bot.answerCallbackQuery(query.id, { text: 'Stats' });
-    await sendStatsPanel(chatId);
+    await sendStatsPanel(chatId, query.message);
     return;
   }
 
   if (data === 'panel:analytics') {
     await bot.answerCallbackQuery(query.id, { text: 'Analytics' });
-    await sendAnalyticsPanel(chatId);
+    await sendAnalyticsPanel(chatId, query.message);
     return;
   }
 
@@ -560,45 +674,45 @@ async function handlePanelAction(query) {
 
   if (data === 'panel:settings') {
     await bot.answerCallbackQuery(query.id, { text: 'Settings' });
-    await sendSettingsPanel(chatId);
+    await sendSettingsPanel(chatId, query.message);
     return;
   }
 
   if (data === 'panel:help') {
     await bot.answerCallbackQuery(query.id, { text: 'Help' });
-    await sendHelpPanel(chatId);
+    await sendHelpPanel(chatId, query.message);
     return;
   }
 
   if (data === 'panel:codex_status') {
     await bot.answerCallbackQuery(query.id, { text: 'Codex status' });
-    await sendCodexStatus(chatId);
+    await sendCodexStatus(chatId, query.message);
     return;
   }
 
   if (data === 'panel:logs') {
     await bot.answerCallbackQuery(query.id, { text: 'Logs' });
-    await sendLogsPanel(chatId);
+    await sendLogsPanel(chatId, query.message);
     return;
   }
 
   if (data === 'panel:logs:simple' || data === 'panel:logs:technical') {
     await bot.answerCallbackQuery(query.id, { text: 'Opening logs' });
-    await sendLogs(chatId, data.endsWith(':technical') ? 'technical' : 'simple');
+    await sendLogs(chatId, data.endsWith(':technical') ? 'technical' : 'simple', query.message);
     return;
   }
 
   if (data === 'panel:codex_logs') {
     await bot.answerCallbackQuery(query.id, { text: 'Opening Codex activity' });
     await maybeWarnCodexLiveDuringRun(chatId);
-    await sendCodexActivity(chatId, 'simple');
+    await sendCodexActivity(chatId, 'simple', query.message);
     return;
   }
 
   if (data === 'panel:codex_logs:simple' || data === 'panel:codex_logs:technical') {
     await bot.answerCallbackQuery(query.id, { text: 'Opening Codex activity' });
     await maybeWarnCodexLiveDuringRun(chatId);
-    await sendCodexActivity(chatId, data.endsWith(':technical') ? 'technical' : 'simple');
+    await sendCodexActivity(chatId, data.endsWith(':technical') ? 'technical' : 'simple', query.message);
     return;
   }
 
@@ -620,13 +734,13 @@ async function handlePanelAction(query) {
 
   if (data === 'panel:doctor') {
     await bot.answerCallbackQuery(query.id, { text: 'Doctor' });
-    await sendDoctorPanel(chatId);
+    await sendDoctorPanel(chatId, query.message);
     return;
   }
 
   if (data === 'panel:watchdog') {
     await bot.answerCallbackQuery(query.id, { text: 'Watchdog' });
-    await sendWatchdog(chatId);
+    await sendWatchdog(chatId, query.message);
     return;
   }
 
@@ -646,14 +760,18 @@ async function handlePanelAction(query) {
     await askForInput(
       chatId,
       'api_key',
-      '🔑 *API Key Update*\nSend the new Codex/OpenAI API key in your next message.\n\nUse the Cancel button below to abort.'
+      '🔑 *API Key Update*\nSend the new Codex/OpenAI API key in your next message.\n\nUse the Cancel button below to abort.',
+      {
+        message: query.message,
+        parentMenu: getChatSession(chatId).current_menu === 'rotate_keys' ? 'rotate_keys' : 'settings'
+      }
     );
     return;
   }
 
   if (data === 'panel:rotate_keys') {
     await bot.answerCallbackQuery(query.id, { text: 'Key rotation' });
-    await sendRotateKeysPanel(chatId);
+    await sendRotateKeysPanel(chatId, null, query.message);
     return;
   }
 
@@ -692,6 +810,7 @@ async function handlePanelAction(query) {
   if (data === 'panel:settings:change_model') {
     await bot.answerCallbackQuery(query.id, { text: 'Choose model' });
     await refreshSettingsModelPicker(query.message);
+    rememberMenuMessage(chatId, query.message.message_id, 'settings_model', 'settings');
     return;
   }
 
@@ -700,7 +819,11 @@ async function handlePanelAction(query) {
     await askForInput(
       chatId,
       'fallback_key',
-      '🔄 *Add Fallback Key*\nSend the fallback Codex/OpenAI API key in your next message.\n\nUse the Cancel button below to abort.'
+      '🔄 *Add Fallback Key*\nSend the fallback Codex/OpenAI API key in your next message.\n\nUse the Cancel button below to abort.',
+      {
+        message: query.message,
+        parentMenu: 'rotate_keys'
+      }
     );
     return;
   }
@@ -716,37 +839,37 @@ async function handlePanelAction(query) {
       reason: 'Telegram fallback remove'
     });
     await bot.answerCallbackQuery(query.id, { text: result.removed ? 'Fallback removed' : 'Fallback not found' });
-    await sendRotateKeysPanel(chatId, result.removed ? 'Fallback key removed.' : 'Fallback key was not found.');
+    await sendRotateKeysPanel(chatId, result.removed ? 'Fallback key removed.' : 'Fallback key was not found.', query.message);
     return;
   }
 
   if (data === 'panel:cancel') {
     await bot.answerCallbackQuery(query.id, { text: 'Cancelling' });
-    await cancelCurrentOperation(chatId);
+    await cancelPendingInputFromButton(query);
     return;
   }
 
   if (data === 'panel:back') {
     await bot.answerCallbackQuery(query.id, { text: 'Main panel' });
-    await sendControlPanel(chatId);
+    await navigateBack(query);
     return;
   }
 
   if (data === 'panel:queue:priority') {
     await bot.answerCallbackQuery(query.id, { text: 'Priority picker' });
-    await sendPriorityPicker(chatId);
+    await sendPriorityPicker(chatId, query.message);
     return;
   }
 
   if (data === 'panel:queue:batch') {
     await bot.answerCallbackQuery(query.id, { text: 'Batch picker' });
-    await sendBatchPicker(chatId);
+    await sendBatchPicker(chatId, query.message);
     return;
   }
 
   if (data.startsWith('panel:priority:')) {
     const issueNumber = parseInt(data.replace('panel:priority:', ''), 10);
-    await prioritizeIssueFromPanel(chatId, issueNumber);
+    await prioritizeIssueFromPanel(chatId, issueNumber, query.message);
     await bot.answerCallbackQuery(query.id, { text: `Priority #${issueNumber}` });
     return;
   }
@@ -765,13 +888,13 @@ async function handlePanelAction(query) {
 
   if (data === 'panel:stats:history') {
     await bot.answerCallbackQuery(query.id, { text: 'History' });
-    await sendHistory(chatId);
+    await sendHistory(chatId, query.message);
     return;
   }
 
   if (data === 'panel:doctor:health') {
     await bot.answerCallbackQuery(query.id, { text: 'Health' });
-    await sendHealth(chatId);
+    await sendHealth(chatId, query.message);
     return;
   }
 
@@ -783,14 +906,14 @@ async function handlePanelAction(query) {
 
   if (data.startsWith('panel:model:')) {
     const model = data.replace('panel:model:', '');
-    await setModel(chatId, model);
+    await setModel(chatId, model, query.message);
     await bot.answerCallbackQuery(query.id, { text: `Model set to ${model}` });
     return;
   }
 
   if (data === 'panel:model') {
     await bot.answerCallbackQuery(query.id, { text: 'Choose model' });
-    await sendModelPicker(chatId);
+    await sendModelPicker(chatId, query.message);
     return;
   }
 
@@ -1473,16 +1596,121 @@ async function clearTrackedMessages(chatId) {
   trackMessage(chatId, sent.message_id);
 }
 
-async function askForInput(chatId, type, prompt) {
+async function askForInput(chatId, type, prompt, options = {}) {
+  const parentMenu = options.parentMenu || getChatSession(chatId).current_menu || 'root';
+  const message = options.message || createMenuMessage(chatId);
+  const messageId = message?.message_id || getMenuMessageId(chatId);
+
   pendingInputs.set(chatId, {
     type,
-    createdAt: Date.now()
+    createdAt: Date.now(),
+    parentMenu,
+    messageId
+  });
+  chatSessions.awaitInput(getSessionKey(chatId), type, {
+    parentMenu,
+    messageId
   });
 
-  await sendTrackedMessage(chatId, prompt, {
+  const inputText = normalizeInputPrompt(prompt, type);
+  if (message?.message_id) {
+    try {
+      await safeEditMessageText(inputText, {
+        chat_id: chatId,
+        message_id: message.message_id,
+        parse_mode: 'Markdown',
+        reply_markup: inputCancelKeyboard()
+      });
+      return message;
+    } catch (error) {
+      console.warn('[telegram] Unable to edit input prompt; sending fallback:', formatError(error));
+    }
+  }
+
+  const sent = await sendTrackedMessage(chatId, inputText, {
     parse_mode: 'Markdown',
     reply_markup: inputCancelKeyboard()
   });
+  pendingInputs.set(chatId, {
+    type,
+    createdAt: Date.now(),
+    parentMenu,
+    messageId: sent.message_id
+  });
+  chatSessions.awaitInput(getSessionKey(chatId), type, {
+    parentMenu,
+    messageId: sent.message_id
+  });
+  return sent;
+}
+
+function normalizeInputPrompt(prompt, type) {
+  if (String(prompt || '').trim()) return prompt;
+  const label = {
+    api_key: 'API key',
+    fallback_key: 'fallback API key',
+    codex_prompt: 'Codex prompt'
+  }[type] || 'value';
+  return `OK. Send me the new ${label}.`;
+}
+
+async function cancelPendingInputFromButton(query) {
+  const chatId = query.message.chat.id;
+  const pending = pendingInputs.get(chatId);
+  if (!pending) {
+    await sendTrackedMessage(chatId, 'Nothing is waiting for input.', {
+      reply_markup: controlPanelKeyboard()
+    });
+    await refreshControlPanel(query.message);
+    return;
+  }
+
+  pendingInputs.delete(chatId);
+  const targetMenu = chatSessions.cancelInput(getSessionKey(chatId));
+  if (pending.type === 'codex_prompt') {
+    clearSessionReservation({ chatId });
+    await notifyWaitingUsersCodexFree({
+      operator: operatorFromQuery(query),
+      label: 'Codex prompt cancelled',
+      status: 'cancelled'
+    });
+  }
+
+  await sendTrackedMessage(chatId, 'Cancelled.');
+  await renderMenuByName(chatId, targetMenu, query.message);
+}
+
+function startAwaitingInputTimeoutSweep() {
+  if (awaitingInputTimeoutTimer) return;
+  awaitingInputTimeoutTimer = setInterval(() => {
+    expireIdleAwaitingInputs().catch(error => {
+      console.warn('[telegram] Awaiting-input timeout sweep failed:', formatError(error));
+    });
+  }, AWAITING_INPUT_SWEEP_INTERVAL_MS);
+}
+
+async function expireIdleAwaitingInputs() {
+  const expiredSessions = chatSessions.expireIdleInputs();
+  for (const expired of expiredSessions) {
+    const chatId = expired.sessionKey;
+    const pending = pendingInputs.get(Number(chatId)) || pendingInputs.get(chatId);
+    pendingInputs.delete(Number(chatId));
+    pendingInputs.delete(chatId);
+
+    if (pending?.type === 'codex_prompt') {
+      clearSessionReservation({ chatId });
+      await notifyWaitingUsersCodexFree({
+        operator: { chatId },
+        label: 'Codex prompt timed out',
+        status: 'timeout'
+      });
+    }
+
+    const sent = await sendTrackedMessage(chatId, 'Session timed out. Returning to main menu.', {
+      reply_markup: controlPanelKeyboard()
+    });
+    rememberMenuMessage(chatId, sent.message_id, 'root');
+  }
 }
 
 async function handlePromptRequest(query) {
@@ -1496,16 +1724,20 @@ async function handlePromptRequest(query) {
 
   await bot.answerCallbackQuery(query.id, { text: 'Waiting for prompt' });
   await claimWaitingSession(operator);
-  await openCodexPromptInput(chatId, operator);
+  await openCodexPromptInput(chatId, operator, query.message);
 }
 
-async function openCodexPromptInput(chatId, operator = null) {
+async function openCodexPromptInput(chatId, operator = null, message = null) {
   setSessionReservation(operator || { chatId }, chatId);
 
   await askForInput(
     chatId,
     'codex_prompt',
-    '💬 *Send Prompt to Codex*\nSend the prompt in your next message.\n\nUse the Cancel button below to abort.'
+    '💬 *Send Prompt to Codex*\nSend the prompt in your next message.\n\nUse the Cancel button below to abort.',
+    {
+      message,
+      parentMenu: 'root'
+    }
   );
 }
 
@@ -1549,7 +1781,7 @@ async function handleWaiterStartRequest(query) {
   }
   setSessionReservation(operator, chatId);
   await bot.answerCallbackQuery(query.id, { text: 'Your turn. Send prompt.' });
-  await openCodexPromptInput(chatId, operator);
+  await openCodexPromptInput(chatId, operator, query.message);
   await notifyRemainingWaitersQueuePositions(operator);
 }
 
@@ -1747,9 +1979,9 @@ async function handlePendingInputMessage(msg) {
   const pending = pendingInputs.get(msg.chat.id);
   if (!pending) return;
 
-  pendingInputs.delete(msg.chat.id);
-
-  if (Date.now() - pending.createdAt > 10 * 60 * 1000) {
+  if (Date.now() - pending.createdAt > AWAITING_INPUT_TIMEOUT_MS) {
+    pendingInputs.delete(msg.chat.id);
+    chatSessions.reset(getSessionKey(msg.chat.id));
     if (pending.type === 'codex_prompt') {
       clearSessionReservation({ chatId: msg.chat.id });
       await notifyWaitingUsersCodexFree({
@@ -1758,17 +1990,28 @@ async function handlePendingInputMessage(msg) {
         status: 'available'
       });
     }
-    await sendTrackedMessage(msg.chat.id, 'That input request expired. Press the panel button again.');
+    await sendTrackedMessage(msg.chat.id, 'Session timed out. Returning to main menu.', {
+      reply_markup: controlPanelKeyboard()
+    });
     return;
   }
 
+  if (!isExpectedInput(pending.type, msg.text)) {
+    await sendTrackedMessage(msg.chat.id, `I was expecting ${expectedInputDescription(pending.type)}. Please try again or press Cancel.`);
+    return;
+  }
+
+  pendingInputs.delete(msg.chat.id);
+  const parentMenu = pending.parentMenu || getPendingInputParent(msg.chat.id, 'root');
+  chatSessions.goToMenu(getSessionKey(msg.chat.id), parentMenu);
+
   if (pending.type === 'api_key') {
-    await updateApiKeyFromMessage(msg.chat.id, msg.message_id, msg.text, operatorFromMessage(msg));
+    await updateApiKeyFromMessage(msg.chat.id, msg.message_id, msg.text, operatorFromMessage(msg), parentMenu);
     return;
   }
 
   if (pending.type === 'fallback_key') {
-    await addFallbackKeyFromMessage(msg.chat.id, msg.message_id, msg.text, operatorFromMessage(msg));
+    await addFallbackKeyFromMessage(msg.chat.id, msg.message_id, msg.text, operatorFromMessage(msg), parentMenu);
     return;
   }
 
@@ -1776,6 +2019,25 @@ async function handlePendingInputMessage(msg) {
     await maybeRunPromptWithPreflight(msg.chat.id, msg.text.trim(), 'Manual Telegram prompt', operatorFromMessage(msg));
     return;
   }
+}
+
+function isExpectedInput(type, text) {
+  const value = String(text || '').trim();
+  if (!value) return false;
+  if (type === 'api_key' || type === 'fallback_key') {
+    return value.length >= 10 && !/\s/.test(value);
+  }
+  if (type === 'codex_prompt') {
+    return value.length > 0;
+  }
+  return true;
+}
+
+function expectedInputDescription(type) {
+  if (type === 'api_key') return 'an API key';
+  if (type === 'fallback_key') return 'a fallback API key';
+  if (type === 'codex_prompt') return 'a Codex prompt';
+  return 'input';
 }
 
 async function maybeRunPromptWithPreflight(chatId, prompt, label, operator = null) {
@@ -1856,7 +2118,10 @@ async function handlePreflightAction(query) {
   if (action === 'edit') {
     pendingInputs.delete(id);
     await bot.answerCallbackQuery(query.id, { text: 'Edit prompt' });
-    await askForInput(chatId, 'codex_prompt', '✏️ Send the revised Codex prompt.');
+    await askForInput(chatId, 'codex_prompt', '✏️ Send the revised Codex prompt.', {
+      message: query.message,
+      parentMenu: 'root'
+    });
     return;
   }
   if (action === 'proceed') {
@@ -2090,7 +2355,8 @@ async function handleLiveAction(query) {
   await bot.answerCallbackQuery(query.id, { text: 'Live control is not available yet' });
 }
 
-async function updateApiKeyFromMessage(chatId, messageId, rawKey, operator = null) {
+async function updateApiKeyFromMessage(chatId, messageId, rawKey, operator = null, parentMenu = null) {
+  parentMenu = parentMenu || getPendingInputParent(chatId, 'settings');
   try {
     await deleteSensitiveMessage(chatId, messageId);
     const result = await updateApiKeyEverywhere(rawKey, {
@@ -2105,15 +2371,21 @@ async function updateApiKeyFromMessage(chatId, messageId, rawKey, operator = nul
       `Active key: \`${escapeMarkdown(result.key)}\`\n` +
       `Fallback keys: ${result.fallbackCount}\n` +
       `Updated targets: ${formatPropagationSummary(result.propagation)}`,
-      { parse_mode: 'Markdown', reply_markup: controlPanelKeyboard() }
+      { parse_mode: 'Markdown' }
     );
+    await renderMenuByName(chatId, parentMenu, createMenuMessage(chatId));
   } catch (error) {
     await deleteSensitiveMessage(chatId, messageId);
-    await sendTrackedMessage(chatId, `Invalid API key: ${escapeMarkdown(error.message)}`, { parse_mode: 'Markdown' });
+    await sendTrackedMessage(chatId, `Invalid API key: ${escapeMarkdown(error.message)}`, {
+      parse_mode: 'Markdown',
+      reply_markup: settingsPanelKeyboard()
+    });
+    await renderMenuByName(chatId, parentMenu, createMenuMessage(chatId));
   }
 }
 
-async function addFallbackKeyFromMessage(chatId, messageId, rawKey, operator = null) {
+async function addFallbackKeyFromMessage(chatId, messageId, rawKey, operator = null, parentMenu = null) {
+  parentMenu = parentMenu || getPendingInputParent(chatId, 'rotate_keys');
   try {
     await deleteSensitiveMessage(chatId, messageId);
     const result = await addFallbackApiKey(rawKey, {
@@ -2128,12 +2400,21 @@ async function addFallbackKeyFromMessage(chatId, messageId, rawKey, operator = n
       `Fallback key: \`${escapeMarkdown(result.key)}\`\n` +
       `Fallback keys: ${result.fallbackCount}\n` +
       `Updated targets: ${formatPropagationSummary(result.propagation)}`,
-      { parse_mode: 'Markdown', reply_markup: rotateKeysKeyboard(result.summary) }
+      { parse_mode: 'Markdown' }
     );
+    await renderMenuByName(chatId, parentMenu, createMenuMessage(chatId));
   } catch (error) {
     await deleteSensitiveMessage(chatId, messageId);
-    await sendTrackedMessage(chatId, `Invalid fallback key: ${escapeMarkdown(error.message)}`, { parse_mode: 'Markdown' });
+    await sendTrackedMessage(chatId, `Invalid fallback key: ${escapeMarkdown(error.message)}`, {
+      parse_mode: 'Markdown',
+      reply_markup: rotateKeysKeyboard()
+    });
+    await renderMenuByName(chatId, parentMenu, createMenuMessage(chatId));
   }
+}
+
+function getPendingInputParent(chatId, fallback = 'root') {
+  return getChatSession(chatId).context_data.parent_menu || fallback;
 }
 
 function formatPropagationSummary(targets = []) {
@@ -2191,7 +2472,7 @@ async function setPipelineAction(chatId, action, operator = null) {
   return { unknown: true };
 }
 
-async function setModel(chatId, model) {
+async function setModel(chatId, model, message = null) {
   const validModels = SETTINGS_MODEL_CHOICES;
   if (!validModels.includes(model)) {
     await sendTrackedMessage(chatId, `Invalid model. Use: ${validModels.join(', ')}`);
@@ -2200,6 +2481,7 @@ async function setModel(chatId, model) {
   setState('current_model', model);
   setSetting('default_model', model);
   await sendTrackedMessage(chatId, `✅ Model set to \`${model}\``, { parse_mode: 'Markdown' });
+  await renderMenuByName(chatId, 'settings', message || createMenuMessage(chatId));
 }
 
 function describeRunningCodex(codex) {
@@ -3044,8 +3326,8 @@ async function sendDirtyWorktreePrompt(chatId, statusShort) {
   });
 }
 
-async function sendModelPicker(chatId) {
-  await sendTrackedMessage(chatId, '🤖 *Choose Codex model*', {
+async function sendModelPicker(chatId, message = null) {
+  await sendOrEditMenuMessage(chatId, 'model', '🤖 *Choose Codex model*', {
     parse_mode: 'Markdown',
     reply_markup: {
       inline_keyboard: [
@@ -3065,14 +3347,14 @@ async function sendModelPicker(chatId) {
         ]
       ]
     }
-  });
+  }, message);
 }
 
-async function sendSettingsPanel(chatId) {
-  await sendTrackedMessage(chatId, buildSettingsPanelText(), {
+async function sendSettingsPanel(chatId, message = null) {
+  await sendOrEditMenuMessage(chatId, 'settings', buildSettingsPanelText(), {
     parse_mode: 'Markdown',
     reply_markup: settingsPanelKeyboard()
-  });
+  }, message);
 }
 
 async function refreshSettingsPanel(message) {
@@ -3082,6 +3364,7 @@ async function refreshSettingsPanel(message) {
     parse_mode: 'Markdown',
     reply_markup: settingsPanelKeyboard()
   });
+  rememberMenuMessage(message.chat.id, message.message_id, 'settings', 'root');
 }
 
 async function refreshSettingsModelPicker(message) {
@@ -3091,14 +3374,15 @@ async function refreshSettingsModelPicker(message) {
     parse_mode: 'Markdown',
     reply_markup: settingsModelPickerKeyboard()
   });
+  rememberMenuMessage(message.chat.id, message.message_id, 'settings_model', 'settings');
 }
 
-async function sendRotateKeysPanel(chatId, notice = null) {
+async function sendRotateKeysPanel(chatId, notice = null, message = null) {
   const summary = getApiKeySummary();
-  await sendTrackedMessage(chatId, buildRotateKeysText(summary, notice), {
+  await sendOrEditMenuMessage(chatId, 'rotate_keys', buildRotateKeysText(summary, notice), {
     parse_mode: 'Markdown',
     reply_markup: rotateKeysKeyboard(summary)
-  });
+  }, message);
 }
 
 function buildRotateKeysText(summary = getApiKeySummary(), notice = null) {
@@ -3142,10 +3426,10 @@ function rotateKeysKeyboard(summary = getApiKeySummary()) {
   return { inline_keyboard: rows };
 }
 
-async function sendHelpPanel(chatId) {
-  await sendTrackedMessage(chatId, buildHelpIndexText(), {
+async function sendHelpPanel(chatId, message = null) {
+  await sendOrEditMenuMessage(chatId, 'help', buildHelpIndexText(), {
     reply_markup: helpPanelKeyboard()
-  });
+  }, message);
 }
 
 function helpPanelKeyboard() {
@@ -3420,7 +3704,7 @@ function getAuthorizedChatIds() {
   return [...AUTHORIZED_CHATS];
 }
 
-async function sendStatus(chatId) {
+async function sendStatus(chatId, message = null) {
   const status = getState('pipeline_status') || 'idle';
   const current = getCurrentIssue();
   const lastDelivery = getLastDeliveryIssue();
@@ -3454,10 +3738,10 @@ async function sendStatus(chatId) {
     text += `\n⏳ No issue currently in progress.`;
   }
   
-  await sendTrackedMessage(chatId, text, { parse_mode: 'Markdown', reply_markup: controlPanelKeyboard() });
+  await sendOrEditMenuMessage(chatId, 'status', text, { parse_mode: 'Markdown', reply_markup: controlPanelKeyboard() }, message);
 }
 
-async function sendQueue(chatId) {
+async function sendQueue(chatId, message = null) {
   const { getOpenIssues } = require('./github');
   const issues = await getOpenIssues();
   const priorityQueue = prunePriorityQueue(issues.map(issue => issue.number));
@@ -3484,11 +3768,11 @@ async function sendQueue(chatId) {
     }
   }
 
-  await sendTrackedMessage(chatId, text, { parse_mode: 'Markdown', reply_markup: queuePanelKeyboard() });
+  await sendOrEditMenuMessage(chatId, 'queue', text, { parse_mode: 'Markdown', reply_markup: queuePanelKeyboard() }, message);
 }
 
-async function sendQueuePanel(chatId) {
-  await sendQueue(chatId);
+async function sendQueuePanel(chatId, message = null) {
+  await sendQueue(chatId, message);
 }
 
 function queuePanelKeyboard() {
@@ -3508,7 +3792,7 @@ function queuePanelKeyboard() {
   };
 }
 
-async function sendPriorityPicker(chatId) {
+async function sendPriorityPicker(chatId, message = null) {
   const { getOpenIssues } = require('./github');
   const issues = await getOpenIssues();
   const priorityQueue = prunePriorityQueue(issues.map(issue => issue.number));
@@ -3526,10 +3810,10 @@ async function sendPriorityPicker(chatId) {
     text += `Choose an issue to move to the front.`;
   }
 
-  await sendTrackedMessage(chatId, text, {
+  await sendOrEditMenuMessage(chatId, 'priority_picker', text, {
     parse_mode: 'Markdown',
     reply_markup: priorityPickerKeyboard(ordered)
-  });
+  }, message);
 }
 
 function priorityPickerKeyboard(issues) {
@@ -3549,7 +3833,7 @@ function priorityPickerKeyboard(issues) {
   return { inline_keyboard: rows };
 }
 
-async function prioritizeIssueFromPanel(chatId, issueNumber) {
+async function prioritizeIssueFromPanel(chatId, issueNumber, message = null) {
   const { getOpenIssues } = require('./github');
   const issues = await getOpenIssues();
   const exists = issues.some(issue => issue.number === issueNumber);
@@ -3564,11 +3848,13 @@ async function prioritizeIssueFromPanel(chatId, issueNumber) {
   await sendTrackedMessage(chatId, `⬆️ Issue #${issueNumber} moved to the front.`, {
     reply_markup: queuePanelKeyboard()
   });
-  await sendQueue(chatId);
+  await sendQueue(chatId, message || createMenuMessage(chatId));
 }
 
-async function sendBatchPicker(chatId) {
-  await sendTrackedMessage(chatId,
+async function sendBatchPicker(chatId, message = null) {
+  await sendOrEditMenuMessage(
+    chatId,
+    'batch_picker',
     `🔢 *BATCH MODE*\n` +
     `━━━━━━━━━━━━━━━━━━━━━━\n` +
     `Current batch remaining: ${getBatchRemaining()}\n\n` +
@@ -3576,7 +3862,8 @@ async function sendBatchPicker(chatId) {
     {
       parse_mode: 'Markdown',
       reply_markup: batchPickerKeyboard()
-    }
+    },
+    message
   );
 }
 
@@ -3601,7 +3888,7 @@ function batchPickerKeyboard() {
   };
 }
 
-async function sendStats(chatId) {
+async function sendStats(chatId, message = null) {
   const stats = getStats();
   const counts = stats.issueCounts;
   let text =
@@ -3634,14 +3921,14 @@ async function sendStats(chatId) {
       `Status: ${escapeMarkdown(stats.lastRun.status || 'unknown')} | Model: \`${escapeMarkdown(stats.lastRun.model || 'n/a')}\`\n`;
   }
 
-  await sendTrackedMessage(chatId, text.slice(0, 3900), { parse_mode: 'Markdown', reply_markup: statsPanelKeyboard() });
+  await sendOrEditMenuMessage(chatId, 'stats', text.slice(0, 3900), { parse_mode: 'Markdown', reply_markup: statsPanelKeyboard() }, message);
 }
 
-async function sendStatsPanel(chatId) {
-  await sendStats(chatId);
+async function sendStatsPanel(chatId, message = null) {
+  await sendStats(chatId, message);
 }
 
-async function sendAnalyticsPanel(chatId) {
+async function sendAnalyticsPanel(chatId, message = null) {
   const summary = summarizeAnalytics(getRunAnalytics(500));
   const byModel = formatAnalyticsGroup(summary.byModel);
   const byTask = formatAnalyticsGroup(summary.byTaskType);
@@ -3655,10 +3942,10 @@ async function sendAnalyticsPanel(chatId) {
     `*By Model:*\n${byModel}\n\n` +
     `*By Task Type:*\n${byTask}\n\n` +
     `💡 ${escapeMarkdown(summary.insight)}`;
-  await sendTrackedMessage(chatId, text.slice(0, 3900), {
+  await sendOrEditMenuMessage(chatId, 'analytics', text.slice(0, 3900), {
     parse_mode: 'Markdown',
     reply_markup: statsPanelKeyboard()
-  });
+  }, message);
 }
 
 function formatAnalyticsGroup(rows = []) {
@@ -3685,7 +3972,7 @@ function statsPanelKeyboard() {
   };
 }
 
-async function sendHistory(chatId) {
+async function sendHistory(chatId, message = null) {
   const { getIssueHistory } = require('./database');
   const history = getIssueHistory();
 
@@ -3699,7 +3986,7 @@ async function sendHistory(chatId) {
     }
   }
 
-  await sendTrackedMessage(chatId, text, { parse_mode: 'Markdown', reply_markup: statsPanelKeyboard() });
+  await sendOrEditMenuMessage(chatId, 'history', text, { parse_mode: 'Markdown', reply_markup: statsPanelKeyboard() }, message);
 }
 
 function reconcileQueueOrder(issues, priorityQueue = null) {
@@ -3737,7 +4024,7 @@ function formatDuration(seconds) {
   return `${secs}s`;
 }
 
-async function sendHealth(chatId) {
+async function sendHealth(chatId, message = null) {
   const inspection = inspectActiveIssueState();
   const codex = getCodexRuntimeStatus();
   const current = inspection.currentIssue;
@@ -3771,10 +4058,10 @@ async function sendHealth(chatId) {
     text += `\nNo active state mismatch detected.`;
   }
 
-  await sendTrackedMessage(chatId, text.slice(0, 3900), { parse_mode: 'Markdown', reply_markup: doctorPanelKeyboard() });
+  await sendOrEditMenuMessage(chatId, 'health', text.slice(0, 3900), { parse_mode: 'Markdown', reply_markup: doctorPanelKeyboard() }, message);
 }
 
-async function sendWatchdog(chatId) {
+async function sendWatchdog(chatId, message = null) {
   const watchdog = await getWatchdogSnapshot();
   let text =
     `🧯 *EC2 WATCHDOG*\n` +
@@ -3792,10 +4079,10 @@ async function sendWatchdog(chatId) {
     text += `\nNo watchdog warnings at the current threshold.`;
   }
 
-  await sendTrackedMessage(chatId, text, { parse_mode: 'Markdown', reply_markup: doctorPanelKeyboard() });
+  await sendOrEditMenuMessage(chatId, 'watchdog', text, { parse_mode: 'Markdown', reply_markup: doctorPanelKeyboard() }, message);
 }
 
-async function sendDoctorPanel(chatId) {
+async function sendDoctorPanel(chatId, message = null) {
   const inspection = inspectActiveIssueState();
   const codex = getCodexRuntimeStatus();
   const text =
@@ -3805,10 +4092,10 @@ async function sendDoctorPanel(chatId) {
     `Codex: *${escapeMarkdown(formatCodexStatusSummary(codex))}*\n\n` +
     `Run quick checks or start a guarded Codex doctor run.`;
 
-  await sendTrackedMessage(chatId, text, {
+  await sendOrEditMenuMessage(chatId, 'doctor', text, {
     parse_mode: 'Markdown',
     reply_markup: doctorPanelKeyboard()
-  });
+  }, message);
 }
 
 function doctorPanelKeyboard() {
@@ -3885,12 +4172,12 @@ function formatBytes(bytes) {
   return `${(Number(bytes || 0) / 1024 / 1024 / 1024).toFixed(1)} GiB`;
 }
 
-async function sendCodexStatus(chatId) {
+async function sendCodexStatus(chatId, message = null) {
   const status = getCodexRuntimeStatus();
-  await sendTrackedMessage(chatId, buildCodexStatusText(status), {
+  await sendOrEditMenuMessage(chatId, 'codex_status', buildCodexStatusText(status), {
     parse_mode: 'Markdown',
     reply_markup: controlPanelKeyboard()
-  });
+  }, message);
 }
 
 function buildCodexStatusText(status) {
@@ -3937,22 +4224,25 @@ function buildCodexStatusText(status) {
   return text;
 }
 
-async function sendCodexActivity(chatId, mode = 'simple') {
-  await sendTrackedMessage(chatId, buildCodexActivityText(mode), {
+async function sendCodexActivity(chatId, mode = 'simple', message = null) {
+  await sendOrEditMenuMessage(chatId, mode === 'technical' ? 'codex_activity_technical' : 'codex_activity_simple', buildCodexActivityText(mode), {
     parse_mode: 'Markdown',
     reply_markup: codexActivityKeyboard(mode)
-  });
+  }, message);
 }
 
-async function sendLogsPanel(chatId) {
-  await sendTrackedMessage(chatId,
+async function sendLogsPanel(chatId, message = null) {
+  await sendOrEditMenuMessage(
+    chatId,
+    'logs',
     `📜 *LOGS PANEL*\n` +
     `━━━━━━━━━━━━━━━━━━━━━━\n` +
     `Open system logs or live Codex activity.`,
     {
       parse_mode: 'Markdown',
       reply_markup: logsPanelKeyboard()
-    }
+    },
+    message
   );
 }
 
@@ -3979,6 +4269,12 @@ async function refreshCodexActivity(message, mode = 'simple') {
     parse_mode: 'Markdown',
     reply_markup: codexActivityKeyboard(mode)
   });
+  rememberMenuMessage(
+    message.chat.id,
+    message.message_id,
+    mode === 'technical' ? 'codex_activity_technical' : 'codex_activity_simple',
+    'logs'
+  );
 }
 
 function codexActivityKeyboard(mode = 'simple') {
@@ -4067,12 +4363,12 @@ function buildSimpleCodexActivityText() {
   return text.slice(0, 3900);
 }
 
-async function sendLogs(chatId, mode = 'simple') {
+async function sendLogs(chatId, mode = 'simple', message = null) {
   const text = buildLogsMessage(mode);
-  await sendTrackedMessage(chatId, text, {
+  await sendOrEditMenuMessage(chatId, mode === 'technical' ? 'system_logs_technical' : 'system_logs_simple', text, {
     parse_mode: 'Markdown',
     reply_markup: logsKeyboard(mode)
-  });
+  }, message);
 }
 
 async function refreshLogsMessage(message, mode = 'simple') {
@@ -4083,6 +4379,12 @@ async function refreshLogsMessage(message, mode = 'simple') {
     parse_mode: 'Markdown',
     reply_markup: logsKeyboard(mode)
   });
+  rememberMenuMessage(
+    message.chat.id,
+    message.message_id,
+    mode === 'technical' ? 'system_logs_technical' : 'system_logs_simple',
+    'logs'
+  );
 }
 
 function logsKeyboard(mode = 'simple') {
@@ -4564,6 +4866,25 @@ function formatError(error) {
   return error;
 }
 
+function resetTelegramInteractionStateForTest(options = {}) {
+  if (awaitingInputTimeoutTimer) {
+    clearInterval(awaitingInputTimeoutTimer);
+    awaitingInputTimeoutTimer = null;
+  }
+  bot = options.bot || null;
+  messageCallbacks = new Map();
+  pendingInputs = new Map();
+  chatSessions = createTelegramSessionStore({ now: options.now });
+  trackedBotMessages = new Map();
+  diffStreams = new Map();
+  thinkingStreams = new Map();
+  sessionReservation = null;
+  if (sessionReservationTimer) {
+    clearTimeout(sessionReservationTimer);
+    sessionReservationTimer = null;
+  }
+}
+
 module.exports = {
   initBot,
   sendCompletionPrompt,
@@ -4587,5 +4908,13 @@ module.exports = {
   stopThinkingStream,
   notifyWaitingUsersCodexFree,
   isAuthorized,
-  getAuthorizedChatIds
+  getAuthorizedChatIds,
+  _test: {
+    resetTelegramInteractionStateForTest,
+    handlePanelAction,
+    handlePendingInputMessage,
+    expireIdleAwaitingInputs,
+    askForInput,
+    getChatSession
+  }
 };

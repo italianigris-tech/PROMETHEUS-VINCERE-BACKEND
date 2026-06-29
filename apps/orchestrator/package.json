@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
-    "setup": "node src/setup.js"
+    "setup": "node src/setup.js",
+    "test": "node --test test/*.test.js"
   },
   "dependencies": {
     "node-telegram-bot-api": "^0.66.0",
