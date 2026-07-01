@@ -110,6 +110,7 @@ describe("Judgment Layer Joseph typography quality", () => {
             hierarchyLevel: 1,
           },
         ],
+        roleStyles: [],
         qualityAudit: {
           score: 0.52,
           failures: ["typography_cheap_emphasis", "typography_broken_line_rhythm"],

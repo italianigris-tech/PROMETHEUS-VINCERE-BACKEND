@@ -55,6 +55,22 @@ describe("generateJosephManifest", () => {
       expect(move.exitVelocity).toBeLessThanOrEqual(1);
     }
   });
+
+  it("carries RVM matte browser and FFmpeg references into the Joseph manifest", () => {
+    const manifest = generateJosephManifest({
+      ...MOCK_INPUT,
+      matteUrl: "/uploads/job-1/rvm-matte.webm",
+      matteFilePath: "C:/prometheus/jobs/job-1/rvm-matte.webm",
+    });
+
+    expect(manifest.source.matteUrl).toBe("/uploads/job-1/rvm-matte.webm");
+    expect(manifest.matte).toMatchObject({
+      filePath: "C:/prometheus/jobs/job-1/rvm-matte.webm",
+      fps: manifest.fps,
+      durationInFrames: manifest.durationFrames,
+      premultipliedAlpha: true,
+    });
+  });
   it("aggressive has more cuts than minimal", () => {
     const aggressive = generateJosephManifest({...MOCK_INPUT, profile: "joseph_aggressive", seed: 999});
     const minimal = generateJosephManifest({...MOCK_INPUT, profile: "joseph_minimal", seed: 999});

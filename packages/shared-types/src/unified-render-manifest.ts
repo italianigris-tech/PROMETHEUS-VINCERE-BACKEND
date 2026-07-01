@@ -76,6 +76,33 @@ export const JosephTypographyLineSchema = z.object({
   hierarchyLevel: z.number().int().min(1).max(4),
 });
 
+export const JosephTypographyFontRoleSchema = z.enum(["hero", "support", "cta"]);
+export const JosephTypographyFontSourceSchema = z.enum(["custom_ingested", "system", "fallback"]);
+
+export const JosephTypographyFontSelectionSchema = z.object({
+  fontId: z.string().trim().min(1),
+  family: z.string().trim().min(1),
+  source: JosephTypographyFontSourceSchema,
+  role: JosephTypographyFontRoleSchema,
+});
+
+export const JosephTypographyFontPairingSchema = z.object({
+  primary: JosephTypographyFontSelectionSchema,
+  secondary: JosephTypographyFontSelectionSchema.optional(),
+  graphUsed: z.boolean(),
+  pairingScore: z.number().min(0).max(1).optional(),
+  reason: z.string().trim().min(1),
+});
+
+export const JosephTypographyRoleStyleSchema = z.object({
+  role: z.enum(["support", "hero", "cta"]),
+  fontRole: JosephTypographyFontRoleSchema,
+  trackingEm: z.number().min(-0.12).max(0.22),
+  weight: z.number().int().min(300).max(950),
+  hierarchyLevel: z.number().int().min(1).max(4),
+  hierarchyScale: z.number().min(0.75).max(2.25),
+  lineHeight: z.number().min(0.8).max(1.4),
+});
 export const JosephTypographyQualityAuditSchema = z.object({
   score: z.number().min(0).max(1),
   failures: z.array(z.string().trim().min(1)).default([]),
@@ -88,6 +115,8 @@ export const JosephTypographyIntelligencePlanSchema = z.object({
   lexicalWeights: z.array(JosephTypographyWordWeightSchema).default([]),
   compositionRules: JosephTypographyCompositionRulesSchema,
   lines: z.array(JosephTypographyLineSchema).default([]),
+  fontPairing: JosephTypographyFontPairingSchema.optional(),
+  roleStyles: z.array(JosephTypographyRoleStyleSchema).default([]),
   qualityAudit: JosephTypographyQualityAuditSchema,
 });
 export const MusicReferenceSchema = z.object({
@@ -472,6 +501,32 @@ export const JosephChoreographyPlanSchema = z.object({
   timingPlan: JosephChoreographyTimingPlanSchema,
   qualityAudit: JosephChoreographyQualityAuditSchema,
 });
+export const JosephPlannerHandoffFallbackSchema = z.object({
+  field: z.string().trim().min(1),
+  tag: z.string().trim().min(1),
+  reason: z.string().trim().min(1),
+});
+
+export const JosephPlannerHandoffSchema = z.object({
+  version: z.literal("joseph-planner-handoff-v1"),
+  compilerVersion: z.string().trim().min(1),
+  deterministic: z.literal(true),
+  plannerPathId: z.string().trim().min(1),
+  selectedCandidateId: z.string().trim().min(1),
+  genomeIds: z.array(z.string().trim().min(1)).default([]),
+  doctrineBranchIds: z.array(z.string().trim().min(1)).default([]),
+  archiveCellKeys: z.array(z.string().trim().min(1)).default([]),
+  targetManifestFields: z.array(z.string().trim().min(1)).default([]),
+  treatmentFamily: z.string().trim().min(1).optional(),
+  finalTreatment: z.string().trim().min(1).optional(),
+  retrievalIntent: z.string().trim().min(1).optional(),
+  godEscalationIntent: z.string().trim().min(1).optional(),
+  variationKey: z.string().trim().min(1),
+  fallbacks: z.array(JosephPlannerHandoffFallbackSchema).default([]),
+  warnings: z.array(z.string().trim().min(1)).default([]),
+  inputManifestHash: z.string().regex(/^[a-f0-9]{64}$/),
+  compiledManifestHash: z.string().regex(/^[a-f0-9]{64}$/),
+});
 export const TimelineEventSchema = z.union([
   CutEventSchema,
   TextEventSchema,
@@ -529,16 +584,31 @@ export const UnifiedRenderManifestSchema = z.object({
   josephBackground: JosephBackgroundPlanSchema.optional(),
   josephTypography: JosephTypographyIntelligencePlanSchema.optional(),
   josephChoreography: JosephChoreographyPlanSchema.optional(),
+  plannerHandoff: JosephPlannerHandoffSchema.optional(),
 
   source: z.object({
     videoUrl: z.string().min(1),
     audioUrl: z.string().min(1).optional(),
+    matteUrl: z.string().min(1).refine(isBrowserSafeMediaUrl, {
+      message: "matteUrl must be browser-safe: HTTP(S) or root-relative, not file:// or a local filesystem path",
+    }).optional(),
     transcript: z.array(WordSchema).default([]),
     durationMs: z.number().positive(),
     width: z.number().int().positive().default(1920),
     height: z.number().int().positive().default(1080),
     fps: z.number().int().positive().default(30),
   }),
+
+  matte: z.object({
+    filePath: z.string().trim().min(1).refine(isAbsoluteMediaFilePath, {
+      message: "matte.filePath must be absolute for FFmpeg and final render",
+    }).optional(),
+    fps: z.number().positive().optional(),
+    durationInFrames: z.number().int().positive().optional(),
+    planeZ: z.number().default(0),
+    planeHeight: z.number().positive().default(9),
+    premultipliedAlpha: z.boolean().default(true),
+  }).optional(),
 
   audio: z.object({
     beats: z.array(z.number()).default([]),
@@ -582,6 +652,11 @@ export type JosephTypographyWordRole = z.infer<typeof JosephTypographyWordRoleSc
 export type JosephTypographyWordWeight = z.infer<typeof JosephTypographyWordWeightSchema>;
 export type JosephTypographyCompositionRules = z.infer<typeof JosephTypographyCompositionRulesSchema>;
 export type JosephTypographyLine = z.infer<typeof JosephTypographyLineSchema>;
+export type JosephTypographyFontRole = z.infer<typeof JosephTypographyFontRoleSchema>;
+export type JosephTypographyFontSource = z.infer<typeof JosephTypographyFontSourceSchema>;
+export type JosephTypographyFontSelection = z.infer<typeof JosephTypographyFontSelectionSchema>;
+export type JosephTypographyFontPairing = z.infer<typeof JosephTypographyFontPairingSchema>;
+export type JosephTypographyRoleStyle = z.infer<typeof JosephTypographyRoleStyleSchema>;
 export type JosephTypographyQualityAudit = z.infer<typeof JosephTypographyQualityAuditSchema>;
 export type JosephTypographyIntelligencePlan = z.infer<typeof JosephTypographyIntelligencePlanSchema>;
 export type MusicReference = z.infer<typeof MusicReferenceSchema>;
@@ -625,6 +700,8 @@ export type JosephChoreographyTimingWindow = z.infer<typeof JosephChoreographyTi
 export type JosephChoreographyTimingPlan = z.infer<typeof JosephChoreographyTimingPlanSchema>;
 export type JosephChoreographyQualityAudit = z.infer<typeof JosephChoreographyQualityAuditSchema>;
 export type JosephChoreographyPlan = z.infer<typeof JosephChoreographyPlanSchema>;
+export type JosephPlannerHandoffFallback = z.infer<typeof JosephPlannerHandoffFallbackSchema>;
+export type JosephPlannerHandoff = z.infer<typeof JosephPlannerHandoffSchema>;
 export type VideoTrack = z.infer<typeof VideoTrackSchema>;
 export type CameraMove = z.infer<typeof CameraMoveSchema>;
 export type TextOverlay = z.infer<typeof TextOverlaySchema>;

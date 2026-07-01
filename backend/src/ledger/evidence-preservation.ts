@@ -1,3 +1,4 @@
+import {createHash} from "node:crypto";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -28,6 +29,13 @@ export interface JudgmentVerdict {
   failureTags: string[];
 }
 
+export interface RejectedCandidateEvidence {
+  jobId?: string;
+  compilerWarnings: string[];
+  failureTags: string[];
+  compilerArtifactHash?: string;
+}
+
 export interface EvidencePackage {
   jobId: string;
   variationKey: VariationKey;
@@ -37,7 +45,10 @@ export interface EvidencePackage {
   verdict: JudgmentVerdict;
   timestamp: string;
   candidateScoreSummary?: unknown;
+  compilerArtifact?: unknown;
   plannerAudit?: unknown;
+  plannerAuditArtifact?: unknown;
+  rejectedCandidateEvidence?: RejectedCandidateEvidence[];
   audit?: unknown;
 }
 
@@ -47,10 +58,28 @@ export interface EvidenceArtifactPaths {
   selectedPath: string;
   verdictPath: string;
   auditPath: string;
+  candidateScoreSummaryPath: string;
+  compilerArtifactPath: string;
+  plannerAuditPath: string;
+  evidenceRecordPath: string;
   reviewArtifactPath: string;
   reviewLedgerPath: string;
   regressionGalleryPath: string;
   logPath: string;
+}
+
+export interface EvidenceRecord {
+  version: "prometheus-evidence-record-v1";
+  jobId: string;
+  createdAt: string;
+  selectedJobId: string | null;
+  candidateCount: number;
+  rejectedCount: number;
+  compilerArtifactHash: string | null;
+  compilerArtifactPointer: string | null;
+  plannerAuditPointer: string | null;
+  candidateScoreSummaryPointer: string | null;
+  rejectedCandidates: RejectedCandidateEvidence[];
 }
 
 type LegacyLedger = {
@@ -58,6 +87,7 @@ type LegacyLedger = {
 };
 
 type LegacyEvidencePackage = Partial<EvidencePackage> & {
+  plannerAudit?: unknown;
   variationKey: VariationKey;
   selected: UnifiedRenderManifest;
   rejected?: UnifiedRenderManifest[];
@@ -76,6 +106,24 @@ const safeSegment = (value: string): string => {
   return cleaned.length > 0 ? cleaned : "unknown-job";
 };
 
+const stableJson = (value: unknown): string => {
+  if (Array.isArray(value)) {
+    return `[${value.map(stableJson).join(",")}]`;
+  }
+
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    return `{${Object.keys(record)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${stableJson(record[key])}`)
+      .join(",")}}`;
+  }
+
+  return JSON.stringify(value) ?? "undefined";
+};
+
+const sha256Json = (value: unknown): string => createHash("sha256").update(stableJson(value)).digest("hex");
+
 const writeJsonAtomic = (targetPath: string, value: unknown): void => {
   fs.mkdirSync(path.dirname(targetPath), {recursive: true});
   atomicCounter += 1;
@@ -87,8 +135,48 @@ const writeJsonAtomic = (targetPath: string, value: unknown): void => {
 const selectedJobId = (manifest: UnifiedRenderManifest): string | undefined =>
   typeof manifest.jobId === "string" ? manifest.jobId : undefined;
 
+const pointerFor = (jobDir: string, targetPath: string, present: boolean): string | null =>
+  present ? path.relative(jobDir, targetPath).replace(/\\/g, "/") : null;
+
+const objectRecord = (value: unknown): Record<string, unknown> | undefined =>
+  value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : undefined;
+
+const stringArray = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+
+const compilerArtifactHashOf = (artifact: unknown): string | null => {
+  if (artifact === undefined) {
+    return null;
+  }
+
+  const artifactRecord = objectRecord(artifact);
+  return typeof artifactRecord?.artifactHash === "string" ? artifactRecord.artifactHash : sha256Json(artifact);
+};
+
+const compilerDiagnosticsFor = (manifest: UnifiedRenderManifest): Pick<RejectedCandidateEvidence, "compilerWarnings" | "failureTags"> => {
+  const handoff = objectRecord(manifest.plannerHandoff);
+  const fallbacks = Array.isArray(handoff?.fallbacks) ? handoff.fallbacks : [];
+  const fallbackTags = fallbacks
+    .map((fallback) => objectRecord(fallback)?.tag)
+    .filter((tag): tag is string => typeof tag === "string");
+
+  return {
+    compilerWarnings: stringArray(handoff?.warnings),
+    failureTags: [...new Set(fallbackTags)],
+  };
+};
+
+const rejectedCandidateEvidenceFor = (pkg: EvidencePackage): RejectedCandidateEvidence[] =>
+  pkg.rejectedCandidateEvidence ?? pkg.rejected.map((candidate) => ({
+    jobId: selectedJobId(candidate),
+    ...compilerDiagnosticsFor(candidate),
+  }));
+
+const plannerAuditPayloadOf = (pkg: EvidencePackage): unknown =>
+  pkg.plannerAuditArtifact ?? pkg.plannerAudit;
+
 const buildAuditPayload = (pkg: EvidencePackage): unknown =>
-  pkg.candidateScoreSummary ?? pkg.plannerAudit ?? pkg.audit ?? {
+  pkg.candidateScoreSummary ?? pkg.audit ?? {
     jobId: pkg.jobId,
     variationKey: pkg.variationKey,
     timestamp: pkg.timestamp,
@@ -96,6 +184,26 @@ const buildAuditPayload = (pkg: EvidencePackage): unknown =>
     selectedJobId: selectedJobId(pkg.selected),
     rejectedJobIds: pkg.rejected.map(selectedJobId).filter((id): id is string => Boolean(id)),
   };
+
+const buildEvidenceRecord = (pkg: EvidencePackage, paths: EvidenceArtifactPaths): EvidenceRecord => {
+  const hasCandidateScoreSummary = pkg.candidateScoreSummary !== undefined;
+  const hasCompilerArtifact = pkg.compilerArtifact !== undefined;
+  const hasPlannerAudit = plannerAuditPayloadOf(pkg) !== undefined;
+
+  return {
+    version: "prometheus-evidence-record-v1",
+    jobId: pkg.jobId,
+    createdAt: pkg.timestamp,
+    selectedJobId: selectedJobId(pkg.selected) ?? null,
+    candidateCount: pkg.candidates.length,
+    rejectedCount: pkg.rejected.length,
+    compilerArtifactHash: compilerArtifactHashOf(pkg.compilerArtifact),
+    compilerArtifactPointer: pointerFor(paths.jobDir, paths.compilerArtifactPath, hasCompilerArtifact),
+    plannerAuditPointer: pointerFor(paths.jobDir, paths.plannerAuditPath, hasPlannerAudit),
+    candidateScoreSummaryPointer: pointerFor(paths.jobDir, paths.candidateScoreSummaryPath, hasCandidateScoreSummary),
+    rejectedCandidates: rejectedCandidateEvidenceFor(pkg),
+  };
+};
 
 const appendEvidenceLog = (logPath: string, pkg: EvidencePackage): void => {
   fs.mkdirSync(path.dirname(logPath), {recursive: true});
@@ -121,6 +229,10 @@ const preserveEvidencePackage = (
     selectedPath: path.join(jobDir, "selected.json"),
     verdictPath: path.join(jobDir, "verdict.json"),
     auditPath: path.join(jobDir, "audit.json"),
+    candidateScoreSummaryPath: path.join(jobDir, "candidate-score-summary.json"),
+    compilerArtifactPath: path.join(jobDir, "compiler-artifact.json"),
+    plannerAuditPath: path.join(jobDir, "planner-audit.json"),
+    evidenceRecordPath: path.join(jobDir, "evidence-record.json"),
     reviewArtifactPath: path.join(jobDir, "review-artifact.json"),
     reviewLedgerPath: path.join(baseDir, "review-ledger.ndjson"),
     regressionGalleryPath: path.join(baseDir, "regression-gallery.json"),
@@ -132,6 +244,17 @@ const preserveEvidencePackage = (
   writeJsonAtomic(paths.selectedPath, pkg.selected);
   writeJsonAtomic(paths.verdictPath, pkg.verdict);
   writeJsonAtomic(paths.auditPath, buildAuditPayload(pkg));
+  if (pkg.candidateScoreSummary !== undefined) {
+    writeJsonAtomic(paths.candidateScoreSummaryPath, pkg.candidateScoreSummary);
+  }
+  if (pkg.compilerArtifact !== undefined) {
+    writeJsonAtomic(paths.compilerArtifactPath, pkg.compilerArtifact);
+  }
+  const plannerAuditPayload = plannerAuditPayloadOf(pkg);
+  if (plannerAuditPayload !== undefined) {
+    writeJsonAtomic(paths.plannerAuditPath, plannerAuditPayload);
+  }
+  writeJsonAtomic(paths.evidenceRecordPath, buildEvidenceRecord(pkg, paths));
   const oversightPaths = preserveJosephOversightReview({
     pkg,
     baseDir,
@@ -155,6 +278,7 @@ const preserveLegacyEvidence = (ledger: LegacyLedger, pkg: LegacyEvidencePackage
     rejected: pkg.rejected ?? [],
     verdict: pkg.verdict,
     timestamp: pkg.timestamp ?? DEFAULT_TIMESTAMP,
+    candidateScoreSummary: pkg.candidateScoreSummary ?? pkg.plannerAudit,
   };
 
   return typeof ledger.insert === "function" ? ledger.insert(entry) : entry;

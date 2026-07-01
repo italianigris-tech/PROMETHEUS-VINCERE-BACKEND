@@ -22,7 +22,7 @@ describeIfPresent("Replay Ledger contract", () => {
     profile: "joseph_aggressive",
     chosenGenome: "{}",
     rejectedGenomes: "[]",
-    plannerAudit: "",
+    candidateScoreSummary: "{\"candidateScores\":[]}",
     similarityHash: "similarity-a",
     qualityScore: 0.9,
     failureTags: "",
@@ -34,7 +34,9 @@ describeIfPresent("Replay Ledger contract", () => {
 
     ledger.insert(entry);
 
-    expect(ledger.getBySource("source-a")).toMatchObject([entry]);
+    const [stored] = ledger.getBySource("source-a");
+    expect(stored).toMatchObject(entry);
+    expect(stored).not.toHaveProperty("plannerAudit");
   });
 
   it("retrieves entries by upload instance", () => {
@@ -42,7 +44,9 @@ describeIfPresent("Replay Ledger contract", () => {
 
     ledger.insert(entry);
 
-    expect(ledger.getByUploadInstance("upload-1")).toMatchObject(entry);
+    const stored = ledger.getByUploadInstance("upload-1");
+    expect(stored).toMatchObject(entry);
+    expect(stored).not.toHaveProperty("plannerAudit");
   });
 
   it("persists JSONL entries across ledger instances", () => {
@@ -52,7 +56,29 @@ describeIfPresent("Replay Ledger contract", () => {
     new ReplayLedger(ledgerPath).insert(entry);
     const reloaded = new ReplayLedger(ledgerPath);
 
-    expect(reloaded.getBySource("source-a")).toMatchObject([entry]);
+    const [stored] = reloaded.getBySource("source-a");
+    expect(stored).toMatchObject(entry);
+    expect(stored).not.toHaveProperty("plannerAudit");
     expect(reloaded.getSimilarityHash("source-a")).toBe("similarity-a");
+  });
+
+  it("normalizes legacy plannerAudit rows to Candidate Score Summary", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "tmp-replay-ledger-legacy-"));
+    const ledgerPath = path.join(dir, "replay-ledger.jsonl");
+    const legacyEntry = {
+      ...entry,
+      candidateScoreSummary: undefined,
+      plannerAudit: "{\"legacy\":true}",
+    };
+    fs.writeFileSync(ledgerPath, `${JSON.stringify(legacyEntry)}\n`, "utf8");
+
+    const reloaded = new ReplayLedger(ledgerPath);
+    const [stored] = reloaded.getBySource("source-a");
+
+    expect(stored).toMatchObject({
+      ...entry,
+      candidateScoreSummary: "{\"legacy\":true}",
+    });
+    expect(stored).not.toHaveProperty("plannerAudit");
   });
 });

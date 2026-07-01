@@ -3,6 +3,7 @@ import {staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
 import {useThree} from '@react-three/fiber';
 import * as THREE from 'three';
 import type {JosephPiPFrame, UnifiedRenderManifest, VideoTrack} from '@prometheus/shared-types';
+import {resolveMatteRenderContract} from './matte-render-contract';
 
 type VideoPlaneProps = {
   track: VideoTrack | undefined;
@@ -93,20 +94,23 @@ export const calculateCoverTextureTransform = ({
   };
 };
 
-const resolveVideoSrc = (track: VideoTrack | undefined, fallbackUrl: string): string | null => {
-  const candidate = track?.sourcePath ?? fallbackUrl;
-  if (candidate && (isLocalFileUrl(candidate) || isLocalAbsolutePath(candidate))) {
-    throw new Error(`VideoPlane cannot render local file video sources: ${candidate}. Use MediaReference.browserUrl.`);
-  }
-
+const resolveBrowserMediaSrc = (candidate: string | null | undefined, label: string): string | null => {
   if (!candidate) {
     return null;
   }
+
+  if (isLocalFileUrl(candidate) || isLocalAbsolutePath(candidate)) {
+    throw new Error(`VideoPlane cannot render local file ${label} sources: ${candidate}. Use a browser-safe URL.`);
+  }
+
   if (/^https?:\/\//i.test(candidate)) {
     return candidate;
   }
   return staticFile(candidate.replace(/^\/+/, ''));
 };
+
+const resolveVideoSrc = (track: VideoTrack | undefined, fallbackUrl: string): string | null =>
+  resolveBrowserMediaSrc(track?.sourcePath ?? fallbackUrl, 'video');
 
 const createVideoElement = (src: string): HTMLVideoElement => {
   const element = document.createElement('video');
@@ -128,8 +132,14 @@ export const VideoPlane: React.FC<VideoPlaneProps> = ({track, manifest, frameRec
     () => resolveVideoSrc(track, manifest.source.videoUrl),
     [track, manifest.source.videoUrl]
   );
+  const matteContract = useMemo(() => resolveMatteRenderContract(manifest), [manifest]);
+  const matteSrc = useMemo(
+    () => resolveBrowserMediaSrc(matteContract.matteUrl, 'matte'),
+    [matteContract.matteUrl]
+  );
 
   const videoElement = useMemo(() => (src ? createVideoElement(src) : null), [src]);
+  const matteVideoElement = useMemo(() => (matteSrc ? createVideoElement(matteSrc) : null), [matteSrc]);
 
   const texture = useMemo(() => {
     if (!videoElement) return null;
@@ -141,6 +151,17 @@ export const VideoPlane: React.FC<VideoPlaneProps> = ({track, manifest, frameRec
     t.wrapT = THREE.ClampToEdgeWrapping;
     return t;
   }, [videoElement]);
+
+  const alphaTexture = useMemo(() => {
+    if (!matteVideoElement) return null;
+    const t = new THREE.VideoTexture(matteVideoElement);
+    t.minFilter = THREE.LinearFilter;
+    t.magFilter = THREE.LinearFilter;
+    t.colorSpace = THREE.LinearSRGBColorSpace;
+    t.wrapS = THREE.ClampToEdgeWrapping;
+    t.wrapT = THREE.ClampToEdgeWrapping;
+    return t;
+  }, [matteVideoElement]);
 
   const viewportRect = useMemo(() => percentRectToViewport({
     frameRect,
@@ -166,12 +187,40 @@ export const VideoPlane: React.FC<VideoPlaneProps> = ({track, manifest, frameRec
   }, [videoElement]);
 
   useEffect(() => {
+    if (!matteVideoElement) return;
+    const playPromise = matteVideoElement.play();
+    if (playPromise && typeof playPromise.catch === 'function') {
+      playPromise.catch(() => {
+        // Headless render can reject autoplay; frame seeking below still drives the texture.
+      });
+    }
+  }, [matteVideoElement]);
+
+  useEffect(() => {
+    if (!matteContract.available) {
+      console.warn('[VideoPlane] Missing matte URL - rendering will proceed with flat PiP fallback', {
+        tag: 'compiler_matte_unavailable',
+        jobId: manifest.jobId,
+        downgrade: 'flat-pip',
+      });
+    }
+  }, [manifest.jobId, matteContract.available]);
+
+  useEffect(() => {
     if (!videoElement) return;
     const targetTimeSec = frame / fps;
     if (Math.abs(videoElement.currentTime - targetTimeSec) > 1 / fps) {
       videoElement.currentTime = targetTimeSec;
     }
   }, [frame, fps, videoElement]);
+
+  useEffect(() => {
+    if (!matteVideoElement) return;
+    const targetTimeSec = frame / matteContract.fps;
+    if (Math.abs(matteVideoElement.currentTime - targetTimeSec) > 1 / matteContract.fps) {
+      matteVideoElement.currentTime = targetTimeSec;
+    }
+  }, [frame, matteContract.fps, matteVideoElement]);
 
   useEffect(() => {
     if (!texture) return;
@@ -181,15 +230,28 @@ export const VideoPlane: React.FC<VideoPlaneProps> = ({track, manifest, frameRec
   }, [coverTransform, texture]);
 
   useEffect(() => {
+    if (!alphaTexture) return;
+    alphaTexture.repeat.set(coverTransform.repeatX, coverTransform.repeatY);
+    alphaTexture.offset.set(coverTransform.offsetX, coverTransform.offsetY);
+    alphaTexture.needsUpdate = true;
+  }, [alphaTexture, coverTransform]);
+
+  useEffect(() => {
     return () => {
       texture?.dispose();
+      alphaTexture?.dispose();
       if (videoElement) {
         videoElement.pause();
         videoElement.removeAttribute('src');
         videoElement.load();
       }
+      if (matteVideoElement) {
+        matteVideoElement.pause();
+        matteVideoElement.removeAttribute('src');
+        matteVideoElement.load();
+      }
     };
-  }, [texture, videoElement]);
+  }, [alphaTexture, texture, matteVideoElement, videoElement]);
 
   if (!texture) {
     return null;
@@ -198,7 +260,15 @@ export const VideoPlane: React.FC<VideoPlaneProps> = ({track, manifest, frameRec
   return (
     <mesh ref={meshRef} position={[viewportRect.x, viewportRect.y, z ?? (frameRect ? 0.24 : 0)]} renderOrder={renderOrder}>
       <planeGeometry args={[viewportRect.width, viewportRect.height]} />
-      <meshBasicMaterial map={texture} toneMapped={false} transparent={opacity < 1} opacity={opacity} depthWrite={false} />
+      <meshBasicMaterial
+        map={texture}
+        alphaMap={alphaTexture ?? undefined}
+        toneMapped={false}
+        transparent={opacity < 1 || Boolean(alphaTexture)}
+        opacity={opacity}
+        alphaTest={alphaTexture ? 0.001 : 0}
+        depthWrite={false}
+      />
     </mesh>
   );
 };

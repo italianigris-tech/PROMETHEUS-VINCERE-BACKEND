@@ -1,5 +1,6 @@
 import type {CameraMove, CutEvent, TextEvent, TimelineEvent, UnifiedRenderManifest} from "@prometheus/shared-types";
 import type {CandidateScore} from "./judgment-layer";
+import type {VariationKey} from "./variation-key";
 
 export const JOSEPH_SEQUENCE_OBJECTIVE_VERSION = "joseph-sequence-objective-v1" as const;
 
@@ -41,12 +42,20 @@ export type JosephSequenceObjectiveCandidate = {
   reasons: string[];
 };
 
+export type JosephSequenceObjectiveSelection = {
+  mode: "objective-argmax" | "variation-key-qd-surprise";
+  candidatePoolIds: string[];
+  selectedPoolIndex: number;
+  variationKeyFingerprint?: string;
+};
+
 export type JosephSequenceObjectiveRanking = {
   version: typeof JOSEPH_SEQUENCE_OBJECTIVE_VERSION;
   selectedCandidateId: string | null;
   selectedDoctrineBranchId: string | null;
   candidates: JosephSequenceObjectiveCandidate[];
   archiveEntries: JosephDiversityCellEntry[];
+  selection: JosephSequenceObjectiveSelection;
   selectedPath: {
     candidateIds: string[];
     doctrineBranchIds: string[];
@@ -261,10 +270,94 @@ const reasonsFor = (breakdown: JosephSequenceObjectiveBreakdown, score: Candidat
     : "Backend diversity cells did not select this candidate as its cell elite.",
 ];
 
+const variationKeyFingerprint = (variationKey: VariationKey): string => [
+  variationKey.key,
+  variationKey.sourceFingerprint,
+  variationKey.promptFingerprint,
+  variationKey.uploadInstanceId,
+  variationKey.retryIndex,
+].filter((part) => part !== undefined).join(":");
+
+const qdSurprisePoolFor = (candidates: JosephSequenceObjectiveCandidate[]): JosephSequenceObjectiveCandidate[] => {
+  const argmax = candidates[0];
+  if (!argmax) {
+    return [];
+  }
+
+  const topScore = argmax.scoreBreakdown.finalScore;
+  return candidates.filter((candidate) => {
+    const scoreGap = topScore - candidate.scoreBreakdown.finalScore;
+    const isCloseToTop = scoreGap <= 0.035;
+    const hasUsefulExplorationSignal =
+      candidate.scoreBreakdown.qdDiversityPressure > 0 &&
+      candidate.scoreBreakdown.surprisePreservation >= 0.58 &&
+      scoreGap <= 0.08;
+    return isCloseToTop || hasUsefulExplorationSignal;
+  }).slice(0, 3);
+};
+
+const selectionFor = ({
+  candidates,
+  variationKey,
+}: {
+  candidates: JosephSequenceObjectiveCandidate[];
+  variationKey?: VariationKey;
+}): {selected: JosephSequenceObjectiveCandidate | null; selection: JosephSequenceObjectiveSelection} => {
+  const argmax = candidates[0] ?? null;
+  if (!argmax) {
+    return {
+      selected: null,
+      selection: {
+        mode: "objective-argmax",
+        candidatePoolIds: [],
+        selectedPoolIndex: 0,
+      },
+    };
+  }
+
+  if (!variationKey) {
+    return {
+      selected: argmax,
+      selection: {
+        mode: "objective-argmax",
+        candidatePoolIds: [argmax.candidateId],
+        selectedPoolIndex: 0,
+      },
+    };
+  }
+
+  const candidatePool = qdSurprisePoolFor(candidates);
+  if (candidatePool.length < 2) {
+    return {
+      selected: argmax,
+      selection: {
+        mode: "objective-argmax",
+        candidatePoolIds: [argmax.candidateId],
+        selectedPoolIndex: 0,
+        variationKeyFingerprint: variationKeyFingerprint(variationKey),
+      },
+    };
+  }
+
+  const selectedPoolIndex = Math.abs(variationKey.retryIndex) % candidatePool.length;
+  const selected = candidatePool[selectedPoolIndex] ?? argmax;
+  return {
+    selected,
+    selection: {
+      mode: "variation-key-qd-surprise",
+      candidatePoolIds: candidatePool.map((candidate) => candidate.candidateId),
+      selectedPoolIndex,
+      variationKeyFingerprint: variationKeyFingerprint(variationKey),
+    },
+  };
+};
+
 export const rankJosephSequenceObjective = ({
   scores,
+  variationKey,
 }: {
   scores: CandidateScore[];
+  variationKey?: VariationKey;
 }): JosephSequenceObjectiveRanking => {
   const archiveEntries = buildArchiveEntries(scores);
   const candidates = scores
@@ -286,7 +379,7 @@ export const rankJosephSequenceObjective = ({
         left.candidateId.localeCompare(right.candidateId),
     );
 
-  const selected = candidates[0] ?? null;
+  const {selected, selection} = selectionFor({candidates, variationKey});
   const markedCandidates = candidates.map((candidate) => ({
     ...candidate,
     selected: selected?.candidateId === candidate.candidateId,
@@ -298,6 +391,7 @@ export const rankJosephSequenceObjective = ({
     selectedDoctrineBranchId: selected?.doctrineBranchId ?? null,
     candidates: markedCandidates,
     archiveEntries,
+    selection,
     selectedPath: {
       candidateIds: selected ? [selected.candidateId] : [],
       doctrineBranchIds: selected ? [selected.doctrineBranchId] : [],

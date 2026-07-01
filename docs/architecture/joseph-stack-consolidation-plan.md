@@ -48,7 +48,7 @@ Responsibilities:
 
 ### Candidate Score Summary
 
-Candidate Score Summary replaces the backend's current flat `PlannerAudit` name. It should describe candidate scoring and expected cuts, but it should not pretend to be the full planner trace.
+Candidate Score Summary is the backend scoring artifact that replaced the old flat `PlannerAudit` name. It should describe candidate scoring and expected cuts, but it should not pretend to be the full planner trace.
 
 ### Render Contract Tests
 
@@ -70,7 +70,7 @@ Render contract tests prove that planner-selected manifest fields reach renderer
 Pin current behavior before changing architecture.
 
 - Add baseline contract tests for manifest-to-render behavior.
-- Rename backend flat `PlannerAudit` to Candidate Score Summary.
+- Keep backend flat scoring under Candidate Score Summary.
 - Keep generated manifests and renders identical.
 - Record the architecture decision and PRD in the issue tracker.
 

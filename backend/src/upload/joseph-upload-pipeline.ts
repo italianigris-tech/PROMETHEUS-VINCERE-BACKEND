@@ -22,6 +22,8 @@ export type JosephUploadPipelineInput = {
   sourceWidth?: number | null;
   sourceHeight?: number | null;
   sourceFps?: number | null;
+  matteUrl?: string | null;
+  matteFilePath?: string | null;
   profile: JosephProfile;
   promptText?: string;
   retryIndex?: number;
@@ -209,6 +211,8 @@ export const createJosephUploadPipeline = ({
         transcriptPath,
         audioPath: sourceReference.filePath,
         musicPath: selectedMusic?.localFilePath,
+        ...(input.matteUrl ? {matteUrl: input.matteUrl} : {}),
+        ...(input.matteFilePath ? {matteFilePath: input.matteFilePath} : {}),
         promptText,
         profile: input.profile,
         uploadInstanceId,

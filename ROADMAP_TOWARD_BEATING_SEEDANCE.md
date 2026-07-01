@@ -117,6 +117,11 @@ The repo already has useful pieces:
 - GOD as governed on-demand asset generation
 - an initial `FAILURE_TAXONOMY.md`
 - a long-horizon `JOSEPH_STYLE_MASTER_PLAN.md`
+- **16-primitive micro-animation catalog with combination rules** (`backend/src/director/micro-animation-primitives.ts`) — currently collapsed to 5 fallback strings at render (Program 16)
+- **2.5D PiP composition plan** (`backend/src/director/joseph-pip-composition.ts`) — currently rendered as one flat plane (Program 16)
+- **RobustVideoMatting (RVM) on GPU** (`runpod-video-worker/handler.py`) — dormant, not wired to the render path (Program 16)
+- **short-form clip selection from long footage** (`backend/src/short-form-intelligence.ts`, `correlated_signal_stacking_v1`) — semantic segmentation, intent classification (hook/insight/payoff/story), platform-aware clip ranking. The "select from a 1-hour video" capability is partially built.
+- **a live-Player comparison studio** (`remotion-app/src/web-preview/JosephStudyStudio.tsx`) — ~55% of Program 0 already exists, using real GPU via `<Player>`, NOT the slow render path
 
 The repo does not yet have the architecture needed to beat Seedance:
 
@@ -130,6 +135,66 @@ The repo does not yet have the architecture needed to beat Seedance:
 - no semantic macro-rig routing
 - no motion-graphic camera vector system
 - no unified sync matrix for semantic, audio, and spatial facts
+- **no planner-to-renderer seam** (Program 16 — the keystone, added 2026-06-27)
+- **no style-conditioned reward or brand ingestion** (Program 17, added 2026-06-27)
+- **no multi-vehicle scene-type router** (Program 18, added 2026-06-27)
+- **no GPU-first render path with fallback** (Program 19, added 2026-06-27)
+- **no governed feature-audit discipline** (Program 20, added 2026-06-27)
+
+### Calibrated capability snapshot (added 2026-06-27)
+
+Current state toward *indistinguishable-from-Joseph premium short-form, single vehicle (talking-head)*, weighted toward what is visible (matte, typography, render vocabulary, camera dominate perceived quality):
+
+| Axis | Today |
+|---|---|
+| Render vocabulary (primitives) | ~15% |
+| Subject matte + depth (Joseph signature) | ~10% |
+| Typography (tracking/kerning/pairing) | ~10% |
+| Camera (momentum, 3D, push) | ~20% |
+| Planning intelligence (pacing/restraint/climax) | ~10% (decorative — not on render path) |
+| Music + SFX | ~55% |
+| Macro-rigs / 3D worlds | ~0% |
+| Learned taste / brand replication | ~0% |
+
+**Weighted position today: ~18% to Joseph-level on the one real vehicle (talking-head); ~8% to the 1B multi-vertical vision.** The backend pipeline (worker, orchestrator, determinism, evidence, ledger) is genuinely ~60–70% production-grade — ahead of most startups. The output quality, not the infra, is the gate.
+
+Projected:
+- After executing the consolidation seam + renderer upgrade + matte wiring + typography math: **~55–60%.**
+- Ceiling without learned taste (macro-rigs + long primitive tail): **~75%.**
+- With IRL/Golden-100 + brand ingestion: **~85%.**
+- Last 15%: irreducible human-taste long tail.
+
+## Defensibility And Moat (added 2026-06-27)
+
+"Beat Seedance" is the technical goal. "Stay ahead of a funded clone" is the strategic goal, and the roadmap serves both. The moat argument must be stated because it drives sequencing.
+
+**What is NOT a moat:** clever deterministic code, the judgment taxonomy, the micro-animation catalog, the planner architecture. All copyable by a funded team in months by reading this repo and the roadmap. Code is the most commoditizable thing in technology.
+
+**What IS a moat (ranked by durability):**
+
+| Moat | Durable? | Built today? |
+|---|---|---|
+| "Clever deterministic planner" | No — reimplementable in months | Yes |
+| Judgment layer + 34-node failure taxonomy | Medium — copyable in ~6 months | Yes |
+| **Learned reward on a proprietary Golden corpus (IRL)** | **Yes — needs the data + pipeline; can't be cloned by reading code** | No |
+| **Creator taste memory at scale (10K→1B preference signals)** | **Yes — compounding network/data effect** | No |
+| **Brand-style ingestion + replication ("train Iman's style into us")** | **Yes — creator lock-in; they've tuned their brand into you** | No |
+| Trajectory extraction from elite editors | Yes — proprietary data pipeline | No |
+
+**Strategic conclusion:** the only moats that survive commoditization are data + learned models + network effects. The current advantage is entirely in the copyable rows. The thing that makes Prometheus un-clonable — learned taste at scale — is exactly the capability the project has historically backpedaled on (IRL, Golden 100). That backpedaling was rational for MVP, but it is backpedaling on the moat itself.
+
+**Sequencing implication:** ship the MVP to prove visual quality, then build the learning loop *before* a competitor does, because whoever owns the taste-data flywheel first wins the category regardless of whose pixels are prettier.
+
+## Platform And Engagement Surface (added 2026-06-27)
+
+A category error recurs in product discussions: "does it have direct API integration with platform algorithms / can it estimate engagement from the algorithm?" **No platform (YouTube, Instagram, TikTok) exposes its recommendation ranking algorithm via API to anyone.** That gap cannot be closed by anyone — it does not exist as a buildable thing.
+
+**The achievable surface is:**
+- **Auto-publish** to platforms via their upload APIs (these exist).
+- **Post-hoc analytics feedback** into reward learning: once a published edit accumulates retention/engagement data, feed that back as a (noisy, lagged) preference signal. This is the only legitimate "talk to the algorithm" path, and it is observational, not predictive.
+- **Heuristic engagement estimation** from internal signals (hook strength, pacing density, retention-curve priors) — a proxy, not ground truth, and never a claim of knowing the algorithm.
+
+**Rule:** never market or architect "direct algorithm integration." Build auto-publish + analytics feedback. The honest framing is: "we learn from how published edits perform," not "we talk to the algorithm."
 
 ## Correct Architecture Stack
 
@@ -1460,26 +1525,26 @@ This is not Program 1 (extraction execution) and not Program 11 (the learner). I
 
 ## Dependency Map
 
-### Immediate Foundations
+> Updated 2026-06-27. The 2026-06-24 dependency map assumed the planner already reached the renderer. It does not. **Program 16 (the seam) is now the keystone** and reorders everything: no intelligence program pays off until the seam exists, because the seam is the only path from planner decision to pixel.
 
-These can start first:
+### The Keystone (must exist before intelligence pays off)
 
-- Program 0: Fast Feedback And Evidence Studio
-- Program 1: Data Surfaces And Golden 100 Extraction
-- Program 3: Primitive Combination Grammar design
-- Program 10: Explainable Negative Ontology design
+- **Program 16: Stack Consolidation And The Manifest Compiler.** Gates Programs 0 (deep diagnostics), 11 (the reward must be applied on a faithful manifest), 12 (exploration can't surface without the seam), and the visual fidelity of 4/5/6. Every other intelligence program is decorative until this exists.
+
+### Immediate Foundations (can start in parallel with the seam)
+
+- Program 0: Fast Feedback And Evidence Studio (player + review capture already ~55% built)
+- Program 1: Data Surfaces And Golden 100 Extraction (extraction pipeline, not the corpus)
+- Program 20: Feature Audit And Feature-Space Discipline (governs Program 1's feature set)
 - Program 15: Issue Tracker Rebuild
+- Program 19: Render Infrastructure — GPU-first with fallback (parallelizable infra work, unblocks unit economics at scale)
 
-### Planning Core
-
-These depend on early contracts but should not wait for every primitive:
+### Planning Core (depends on the seam)
 
 - Program 2: Graph Planner And Multi-Modal Sync Matrix
-- Program 14: Unified Planner-To-Renderer Contract
+- Program 14: Unified Planner-To-Renderer Contract (now a sub-contract of Program 16)
 
-### Visual System Programs
-
-These are independent flagship systems:
+### Visual System Programs (independent flagship systems; each gains meaning only once the seam carries its decisions)
 
 - Program 4: Text Entry, Emphasis, And Typography Primitives
 - Program 5: Robust Picture-In-Picture And 2.5D Depth Compositor
@@ -1488,12 +1553,12 @@ These are independent flagship systems:
 - Program 8: Semantic Macro-Rigs And Contextual Worlds
 - Program 9: Data Surfaces And Visual Primitive Worlds
 
-### Learning And Memory
+### Learning And Memory (requires the seam + the studio data + the feature audit)
 
-These require data and review evidence:
-
-- Program 11: MaxEnt IRL Reward Model
-- Program 12: Historical Exploration Bias And Creator Taste Memory
+- Program 11: MaxEnt IRL Reward Model (absolute demos + pairwise fusion)
+- Program 12: Historical Exploration Bias And Creator Taste Memory (the creativity engine; turns on after the seam + floor are solid)
+- Program 17: Style Architecture (per-style weights, prompt inference, brand ingestion; needs ≥2 trained styles to be meaningful)
+- Program 18: Multi-Vehicle Scene-Type Router (the 1B-person unlock; gated on having enough vehicles to justify the abstraction)
 
 ### Asset Supply
 
@@ -1503,18 +1568,53 @@ This grows alongside the visual programs:
 
 ## Corrected Execution Order
 
-1. Rebuild the issue tracker around this roadmap.
-2. Build Fast Feedback and Evidence Studio enough to inspect artifacts.
-3. Start Golden 100 extraction and trajectory surfaces.
-4. Design Primitive Combination Grammar and Explainable Negative Ontology.
-5. Build Graph Planner and Sync Matrix v1.
-6. Build Text Primitive v1 and PiP Compositor v1 as separate programs.
-7. Build Camera Flow v1 and Synthetic Pacing v1.
-8. Build Semantic Macro-Rigs and Data Surfaces.
-9. Wire planner output through the unified render contract.
-10. Train first low-compute MaxEnt IRL reward model.
-11. Add historical exploration bias and creator taste memory.
-12. Expand GOD escalation and asset supply around real planner needs.
+> Updated 2026-06-27 to insert the seam as step 0 and the moat-defensive learning loop before breadth. Two time tracks follow: **Normal** (small team, ~2–3 people, sustainable pace) and **100X** (elite tiny team, ruthless cuts, defer everything non-essential). The 100X path exists by *what it refuses to build*, not by faster typing.
+
+### Phase A — Premium MVP, single vehicle (talking-head)
+
+1. **Rebuild the issue tracker around this roadmap.** (Program 15)
+2. **Build the seam: Program 16 Phases 0–3** (consolidation + manifest compiler + grafted objective). Without this, nothing else matters.
+3. **Move the render path to Linux CPU swangle (Program 19 Path 1).** Free cost cut, zero risk, identical output.
+4. **Wire the dormant matte (RVM → render path).** Biggest visual-impact-per-effort; the Joseph signature.
+5. **Typography math** (negative tracking hero / positive tracking support, font-pairing-by-role). Cheap, high perceived quality.
+6. **Top ~6 motion primitives** — sweep highlight, weight escalation, capsule, clipped mask reveal, bracket lock, semantic glow. The ones that read "premium" not "templated."
+7. **Complete the studio's deep diagnostics + generator→lanes wiring** (Program 0). Begins producing the Review Surface data.
+
+**Normal: ~3–5 months.** The renderer fidelity (matte + typography + 6 primitives) is the long pole; sequential creative engineering, cannot be fully parallelized.
+**100X: ~4–8 weeks.** Cut multi-vertical, IRL, platform publishing, brand ingestion, reward learning, macro-rigs, 6DoF — all of it. Build only: seam + matte + typography + ~4 primitives + one music bed. Discipline to cut is the constraint, not capacity.
+
+### Phase B — The moat (build before competitors reach visual parity)
+
+8. **Trajectory extraction on a Joseph corpus** (Program 1 + Program 20). YouTube is fine for this research phase; ~200 curated beats the full 600 mixed.
+9. **Feature audit → ~60–80 low-correlation features** (Program 20). Manual-verify that features distinguish elite from generic BEFORE scaling.
+10. **Train `w_joseph` (MaxEnt) and the preference model (pairwise).** Fuse as the hybrid reward inside `scoreGenome`.
+11. **Turn on QD exploration + surprise budget** (Program 12, Mechanisms B + C). This is where creative output activates and the exceed-demonstrator loop starts. **This is the strategic inflection point** — the thing that makes Prometheus un-clonable.
+
+**Normal: +4–8 months.** Research-flavored, higher variance.
+**100X: not compressible below ~6–10 weeks** — extraction + feature audit + training are sequential and data-gated.
+
+### Phase C — Breadth (multi-style, multi-vehicle)
+
+12. **Second creator style via transfer** (Program 17). `w_iman` seeded from `w_joseph`, fine-tuned on Iman's curated recent work.
+13. **Prompt → style classifier** (Program 17). Only now is there a catalog of ≥2 styles to infer between.
+14. **Brand ingestion** (Program 17), Tier 1 retrieval/matching first, Tier 2 learned reward for brands with 30+ videos.
+15. **First new vehicle** (Program 18): real-estate or product, with its own scene model + extraction adaptor + fresh-trained reward.
+16. **Auto-publish + analytics feedback** into reward learning (the achievable platform surface — NOT "direct algorithm integration").
+
+**Normal: +6–12 months per vehicle; full 1B vision 18–36 months and a real team.**
+**100X: breadth is the first casualty of 100X. It is explicitly out of scope until Phase B's moat is proven.**
+
+### Phase D — Premium polish (consciously backpedaled, revisit post-moat)
+
+17. **6DoF / RecamMaster novel-angle synthesis.** Genuinely moat-relevant — "premium nobody else can do." Revisit once Phase B holds.
+18. **IRL inverse rendering, the 7 high-resolution reference images, style interpolation in continuous style space.** Defer to last; the highest variance.
+
+### Sequencing summary (the one-line version)
+
+- **Seam first** — everything else is decorative without it.
+- **Moat before breadth** — whoever owns the taste-data flywheel first wins, regardless of pixel prettiness.
+- **Feature audit before corpus scaling** — bad features at 600 videos are still bad features.
+- **IRL proposes, judgment vetoes, exploration discovers, preference exceeds** — these stack; they do not substitute.
 
 ## Final Architectural Verdict
 
@@ -1522,15 +1622,21 @@ The corrected path to beating Seedance is not a standard refactor.
 
 It is a new editorial intelligence architecture:
 
-- extract elite edit trajectories
-- learn compact reward priors
-- plan on a graph
-- align semantic/audio/spatial facts through a sync matrix
-- compose with governed primitives
-- maintain camera flow and PiP depth
-- evaluate with continuous negative evidence
-- reroll with precise fix intent
-- explore with historical freshness pressure
-- render deterministically with full auditability
+- **consolidate the two stacks behind one seam** (Program 16 — the keystone)
+- extract elite edit trajectories into compact features (Programs 1, 20)
+- learn a **hybrid reward** — hand-coded floor + MaxEnt absolute prior + pairwise preference refinement — never greedy, always under the judgment layer's veto (Programs 10, 11, 12)
+- hold **per-style weight vectors**, never one mongrel reward (Program 17)
+- plan on a graph, aligned through a sync matrix (Program 2)
+- compose with governed primitives, camera flow, and PiP depth (Programs 3–9)
+- explore with QD diversity + surprise budget — **creativity is plugged in, not emergent** (Program 12)
+- exceed the demonstrator through the preference-confirmation loop (Programs 0 → 11 → 12)
+- route across vehicles, each with its own scene model (Program 18)
+- render deterministically on GPU-first infrastructure with software fallback, with full auditability (Programs 16, 19)
 
-Prometheus beats Seedance by becoming more inspectable, more exact, more explainable, and more editorially disciplined than a black-box latent video model.
+**Three honest truths that anchor the whole roadmap:**
+
+1. **Today Prometheus is ~18% to Joseph-level on its one real vehicle, ~8% to the 1B multi-vertical vision, and its moat is narrative, not structural.** The visual-quality gate is the bottleneck, not the (already ~60–70% production-grade) infra.
+2. **IRL mimics; it does not exceed.** "Better than Joseph" requires the exploration + preference loop, which is structurally downstream of the seam and the studio. Inference is free; extraction is the cost; feature engineering is the binding constraint; ~600 curated trajectories is sufficient.
+3. **The defensible moat is learned taste at scale — the very capability that has historically been backpedaled.** Ship the MVP to prove visual quality, then build the learning loop *before* competitors reach parity, because whoever owns the taste-data flywheel first wins the category.
+
+Prometheus beats Seedance not by cloning its pixels but by becoming more inspectable, more exact, more explainable, and more editorially disciplined than a black-box latent video model — and beats funded clones by owning the taste-data flywheel they cannot read out of this repo.

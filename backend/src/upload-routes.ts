@@ -35,6 +35,8 @@ const processRequestSchema = z.object({
   josephProfile: z.enum(["joseph_aggressive", "joseph_cinematic", "joseph_minimal"]).optional(),
   promptText: z.string().trim().optional(),
   retryIndex: z.number().int().nonnegative().optional(),
+  matteUrl: z.string().trim().optional(),
+  matteFilePath: z.string().trim().optional(),
   captionProfileId: editTypographyStyleIdSchema.optional(),
   motionTier: z.string().trim().optional(),
   metadata: z.record(z.string(), z.unknown()).default({}),
@@ -204,6 +206,8 @@ export const registerUploadRoutes = async (
                   profile: input.josephProfile,
                   promptText: input.promptText,
                   retryIndex: input.retryIndex,
+                  matteUrl: input.matteUrl,
+                  matteFilePath: input.matteFilePath,
                 });
 
                 await editSessions.mergeSessionMetadata(session.id, {

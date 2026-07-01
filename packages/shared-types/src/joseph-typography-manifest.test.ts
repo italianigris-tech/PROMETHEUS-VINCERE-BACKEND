@@ -91,7 +91,43 @@ describe("Joseph typography intelligence manifest contract", () => {
             hierarchyLevel: 1,
           },
         ],
-        qualityAudit: {
+        fontPairing: {
+          primary: {
+            fontId: "hero-satoshi-bold",
+            family: "Satoshi",
+            source: "custom_ingested",
+            role: "hero",
+          },
+          secondary: {
+            fontId: "support-canela-regular",
+            family: "Canela",
+            source: "custom_ingested",
+            role: "support",
+          },
+          graphUsed: true,
+          pairingScore: 0.91,
+          reason: "Resolved role-based hero/support pairing through the font graph.",
+        },
+        roleStyles: [
+          {
+            role: "hero",
+            fontRole: "hero",
+            trackingEm: -0.045,
+            weight: 820,
+            hierarchyLevel: 1,
+            hierarchyScale: 1.36,
+            lineHeight: 0.94,
+          },
+          {
+            role: "support",
+            fontRole: "support",
+            trackingEm: 0.08,
+            weight: 520,
+            hierarchyLevel: 2,
+            hierarchyScale: 1,
+            lineHeight: 1.08,
+          },
+        ],        qualityAudit: {
           score: 0.94,
           failures: [],
           warnings: ["filler_suppressed"],
@@ -104,6 +140,9 @@ describe("Joseph typography intelligence manifest contract", () => {
       expect.arrayContaining(["filler", "hero"]),
     );
     expect(manifest.josephTypography?.compositionRules.fillerTreatment).toBe("suppress");
-    expect(manifest.josephTypography?.qualityAudit.score).toBeGreaterThan(0.9);
+    expect(manifest.josephTypography?.fontPairing.primary.role).toBe("hero");
+    expect(manifest.josephTypography?.fontPairing.secondary?.role).toBe("support");
+    expect(manifest.josephTypography?.roleStyles.find((style) => style.role === "hero")?.trackingEm).toBeLessThan(0);
+    expect(manifest.josephTypography?.roleStyles.find((style) => style.role === "support")?.trackingEm).toBeGreaterThan(0);    expect(manifest.josephTypography?.qualityAudit.score).toBeGreaterThan(0.9);
   });
 });

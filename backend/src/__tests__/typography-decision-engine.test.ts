@@ -47,4 +47,33 @@ describe("TypographyDecisionEngine", () => {
     expect(decision.coreWords.length).toBeGreaterThan(0);
     expect(decision.linePlan.lines.length).toBeLessThanOrEqual(2);
   });
+  it("computes role-based pairing and premium tracking math", () => {
+    const decision = generateTypographyDecision({
+      text: "Stop wasting the best moment with flat captions",
+      rhetoricalIntent: "authority",
+      availableFonts: [
+        {family: "Satoshi", source: "custom_ingested"},
+        {family: "Canela", source: "custom_ingested"},
+      ],
+      renderConfig,
+      pairingThreshold: 0.75,
+    });
+
+    expect(decision.fontPairing.primary).toMatchObject({
+      family: "Satoshi",
+      role: "hero",
+    });
+    expect(decision.fontPairing.secondary).toMatchObject({
+      family: "Canela",
+      role: "support",
+    });
+    expect(decision.fontPairing.pairingScore).toBeGreaterThanOrEqual(0.75);
+    expect(decision.roleStyles.find((style) => style.role === "hero")).toMatchObject({
+      fontRole: "hero",
+      hierarchyLevel: 1,
+      weight: expect.any(Number),
+    });
+    expect(decision.roleStyles.find((style) => style.role === "hero")?.trackingEm).toBeLessThan(0);
+    expect(decision.roleStyles.find((style) => style.role === "support")?.trackingEm).toBeGreaterThan(0);
+  });
 });

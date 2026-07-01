@@ -12,37 +12,11 @@ import {
   resolveCameraRenderContract,
   resolveMicroAnimationRenderContract,
   resolvePiPRenderContract,
+  resolveTypographyRenderContract,
 } from './joseph-render-contract';
 
-const DEFAULT_JOSEPH_TYPOGRAPHY = {
-  fontId: 'hero-berylium-regular',
-  fontFamily: 'PrometheusHeroBerylium',
-  fontAssetUrl: '/fonts/hero/berylium-rg-67d7e31492fa.otf',
-  fallbackFamily: 'Arial, sans-serif',
-};
-
-const isLocalFileUrl = (value: string) => /^file:\/\//i.test(value);
-const isLocalAbsolutePath = (value: string) => /^[a-zA-Z]:[\\/]/.test(value) || /^\\\\/.test(value);
-
-const resolveJosephTypography = (manifest: UnifiedRenderManifest) => {
-  const typography = manifest.typography ?? DEFAULT_JOSEPH_TYPOGRAPHY;
-  const fontAssetUrl = typography.fontAssetUrl || DEFAULT_JOSEPH_TYPOGRAPHY.fontAssetUrl;
-  const fallbackFamily = typography.fallbackFamily || DEFAULT_JOSEPH_TYPOGRAPHY.fallbackFamily;
-
-  if (isLocalFileUrl(fontAssetUrl) || isLocalAbsolutePath(fontAssetUrl)) {
-    return {
-      ...DEFAULT_JOSEPH_TYPOGRAPHY,
-      fallbackFamily,
-      fontAssetUrl: staticFile(DEFAULT_JOSEPH_TYPOGRAPHY.fontAssetUrl.replace(/^\//, '')),
-    };
-  }
-
-  return {
-    ...typography,
-    fallbackFamily,
-    fontAssetUrl: fontAssetUrl.startsWith('/') ? staticFile(fontAssetUrl.replace(/^\//, '')) : fontAssetUrl,
-  };
-};
+const toRemotionFontAssetUrl = (fontAssetUrl: string) =>
+  fontAssetUrl.startsWith('/') ? staticFile(fontAssetUrl.replace(/^\//, '')) : fontAssetUrl;
 
 const findActiveOverlays = (items: readonly TextOverlay[], frame: number): TextOverlay[] =>
   items.filter((item) => frame >= item.startFrame && frame <= item.endFrame);
@@ -112,7 +86,8 @@ const CameraRig: React.FC<{cameraMoves: readonly CameraMove[]; seed: number}> = 
 
 const KineticText: React.FC<{overlays: readonly TextOverlay[]; manifest: UnifiedRenderManifest}> = ({overlays, manifest}) => {
   const frame = useCurrentFrame();
-  const typography = resolveJosephTypography(manifest);
+  const typography = resolveTypographyRenderContract(manifest.typography);
+  const fontAssetUrl = toRemotionFontAssetUrl(typography.fontAssetUrl);
 
   return (
     <group position={[0, 0, 0.6]}>
@@ -131,7 +106,7 @@ const KineticText: React.FC<{overlays: readonly TextOverlay[]; manifest: Unified
           return (
             <React.Fragment key={`${overlayIndex}-${wordIndex}-${overlay.startFrame}`}>
               <Text
-                font={typography.fontAssetUrl}
+                font={fontAssetUrl}
                 fontSize={0.58 * contract.observable.fontSizeScale}
                 color={overlay.color}
                 fontStyle="normal"
@@ -298,7 +273,9 @@ const JosephScene: React.FC<{manifest: UnifiedRenderManifest}> = ({manifest}) =>
   const activeOverlays = findActiveOverlays(manifest.textOverlays, frame);
   const activeTransition = findActiveTransition(manifest.transitions, frame);
   const backgroundContract = resolveBackgroundRenderContract(manifest.josephBackground);
-  const pipContract = manifest.josephPiP ? resolvePiPRenderContract({plan: manifest.josephPiP, frame}) : null;
+  const pipContract = manifest.josephPiP
+    ? resolvePiPRenderContract({plan: manifest.josephPiP, frame, cameraMoves: manifest.cameraMoves})
+    : null;
 
   return (
     <>

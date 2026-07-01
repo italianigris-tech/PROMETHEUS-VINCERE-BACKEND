@@ -1,8 +1,10 @@
 import type {
   JosephTypographyCompositionRules,
+  JosephTypographyFontPairing,
   JosephTypographyIntelligencePlan,
   JosephTypographyLine,
   JosephTypographyQualityAudit,
+  JosephTypographyRoleStyle,
   JosephTypographyStylebookId,
   JosephTypographyWordWeight,
   Word,
@@ -240,6 +242,63 @@ const selectStylebook = (input: JosephTypographyPlanInput): JosephTypographyStyl
   );
 };
 
+
+const FONT_PAIRINGS_BY_STYLEBOOK: Record<JosephTypographyStylebookId, JosephTypographyFontPairing> = {
+  aggressive_authority: {
+    primary: {fontId: "hero-satoshi-bold", family: "Satoshi", source: "custom_ingested", role: "hero"},
+    secondary: {fontId: "support-canela-regular", family: "Canela", source: "custom_ingested", role: "support"},
+    graphUsed: true,
+    pairingScore: 0.91,
+    reason: "Resolved aggressive authority hero/support pairing through typography policy.",
+  },
+  premium_cinematic: {
+    primary: {fontId: "hero-berylium-regular", family: "Prometheus Hero Berylium", source: "custom_ingested", role: "hero"},
+    secondary: {fontId: "support-fraunces-regular", family: "Fraunces", source: "custom_ingested", role: "support"},
+    graphUsed: true,
+    pairingScore: 0.88,
+    reason: "Resolved premium cinematic hero/support pairing through typography policy.",
+  },
+  sleek_product: {
+    primary: {fontId: "hero-sleek-product", family: "Prometheus Sleek Sans", source: "custom_ingested", role: "hero"},
+    secondary: {fontId: "support-product-readable", family: "Prometheus Product Text", source: "custom_ingested", role: "support"},
+    graphUsed: true,
+    pairingScore: 0.86,
+    reason: "Resolved product hierarchy pairing through typography policy.",
+  },
+  restrained_editorial: {
+    primary: {fontId: "hero-editorial-serif", family: "Prometheus Editorial Serif", source: "custom_ingested", role: "hero"},
+    secondary: {fontId: "support-editorial-sans", family: "Prometheus Editorial Sans", source: "custom_ingested", role: "support"},
+    graphUsed: true,
+    pairingScore: 0.84,
+    reason: "Resolved restrained editorial pairing through typography policy.",
+  },
+};
+
+const ROLE_STYLES_BY_STYLEBOOK: Record<JosephTypographyStylebookId, JosephTypographyRoleStyle[]> = {
+  aggressive_authority: [
+    {role: "hero", fontRole: "hero", trackingEm: -0.045, weight: 820, hierarchyLevel: 1, hierarchyScale: 1.36, lineHeight: 0.94},
+    {role: "support", fontRole: "support", trackingEm: 0.08, weight: 520, hierarchyLevel: 2, hierarchyScale: 1, lineHeight: 1.08},
+    {role: "cta", fontRole: "cta", trackingEm: 0.04, weight: 740, hierarchyLevel: 1, hierarchyScale: 1.24, lineHeight: 0.98},
+  ],
+  premium_cinematic: [
+    {role: "hero", fontRole: "hero", trackingEm: -0.032, weight: 760, hierarchyLevel: 1, hierarchyScale: 1.24, lineHeight: 0.96},
+    {role: "support", fontRole: "support", trackingEm: 0.07, weight: 500, hierarchyLevel: 2, hierarchyScale: 1, lineHeight: 1.1},
+    {role: "cta", fontRole: "cta", trackingEm: 0.035, weight: 700, hierarchyLevel: 1, hierarchyScale: 1.16, lineHeight: 1},
+  ],
+  sleek_product: [
+    {role: "hero", fontRole: "hero", trackingEm: -0.024, weight: 740, hierarchyLevel: 1, hierarchyScale: 1.2, lineHeight: 0.98},
+    {role: "support", fontRole: "support", trackingEm: 0.06, weight: 500, hierarchyLevel: 2, hierarchyScale: 1, lineHeight: 1.08},
+    {role: "cta", fontRole: "cta", trackingEm: 0.045, weight: 720, hierarchyLevel: 1, hierarchyScale: 1.12, lineHeight: 1},
+  ],
+  restrained_editorial: [
+    {role: "hero", fontRole: "hero", trackingEm: -0.018, weight: 680, hierarchyLevel: 1, hierarchyScale: 1.16, lineHeight: 1},
+    {role: "support", fontRole: "support", trackingEm: 0.045, weight: 480, hierarchyLevel: 2, hierarchyScale: 1, lineHeight: 1.12},
+    {role: "cta", fontRole: "cta", trackingEm: 0.03, weight: 660, hierarchyLevel: 1, hierarchyScale: 1.1, lineHeight: 1.02},
+  ],
+};
+
+const fontPairingFor = (stylebookId: JosephTypographyStylebookId): JosephTypographyFontPairing => FONT_PAIRINGS_BY_STYLEBOOK[stylebookId];
+const roleStylesFor = (stylebookId: JosephTypographyStylebookId): JosephTypographyRoleStyle[] => ROLE_STYLES_BY_STYLEBOOK[stylebookId];
 const titleCase = (value: string): string =>
   value.toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
 
@@ -379,6 +438,8 @@ export const buildJosephTypographyIntelligencePlan = (
     lexicalWeights,
     compositionRules: stylebook.compositionRules,
     lines,
+    fontPairing: fontPairingFor(stylebook.id),
+    roleStyles: roleStylesFor(stylebook.id),
     qualityAudit: {score: 1, failures: [], warnings: []},
   };
 

@@ -14,10 +14,10 @@ import type {JudgmentVerdict} from "../ledger/evidence-preservation";
 import type {GovernedPrompt} from "./prompt-governance";
 import {fingerprintString} from "./prompt-governance";
 import type {VariationKey} from "./variation-key";
-import {evaluateManifestMicroAnimationQuality} from "./micro-animation-primitives";
 import {evaluateManifestTypographyQuality} from "./joseph-typography-intelligence";
 import {evaluateJosephSequenceDiscipline, type SequenceDisciplineEvaluation} from "./joseph-sequence-discipline";
 import {rankJosephSequenceObjective, type JosephSequenceObjectiveRanking} from "./joseph-sequence-objective";
+import {evaluateJosephNegativeGrammar} from "./joseph-negative-grammar";
 
 export interface CandidateScore {
   manifest: UnifiedRenderManifest;
@@ -325,20 +325,19 @@ export const meetsQualityFloor = (
     failures.push("sfx_animation_desync");
   }
 
-  const microAnimationQuality = evaluateManifestMicroAnimationQuality(manifest);
-  failures.push(...microAnimationQuality.failures);
+  const negativeGrammar = evaluateJosephNegativeGrammar(manifest);
+  failures.push(...negativeGrammar.failures);
   const typographyQuality = evaluateManifestTypographyQuality(manifest);
   failures.push(...typographyQuality.failures);
 
   const sequenceDiscipline = evaluateJosephSequenceDiscipline(manifest, {enabled: options.sequenceDisciplineEnabled});
   const densityPenalty = densityPenaltyOf(manifest, cuts, texts, sfx, durationMs);
-  const microAnimationPenalty = 1 - microAnimationQuality.score;
   const typographyPenalty = 1 - typographyQuality.score;
   const qualityScore = clamp01(
     1 -
       failures.length * 0.1 -
       densityPenalty * 0.05 -
-      microAnimationPenalty * 0.15 -
+      negativeGrammar.penalty * 0.15 -
       typographyPenalty * 0.12 -
       sequenceDiscipline.penalty * 0.2,
   );
@@ -549,6 +548,7 @@ export class JudgmentLayer {
 
     const sequenceObjective = rankJosephSequenceObjective({
       scores: qualified.map((evaluation) => evaluation.score),
+      variationKey,
     });
     const selectedEvaluation = qualified.find((evaluation) =>
       evaluation.score.manifest.jobId === sequenceObjective.selectedCandidateId) ?? qualified[0];

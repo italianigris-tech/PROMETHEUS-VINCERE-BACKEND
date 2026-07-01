@@ -40,12 +40,12 @@ Stack B should remain the spine because it owns the worker path, the renderable 
 
 ### Planner Audit Name Collision
 
-There are two unrelated artifacts currently called `PlannerAudit`:
+There was a historical collision where two unrelated artifacts were both called `PlannerAudit`:
 
 - The rich planner trace from Stack A, containing observation snapshots, planning snapshots, doctrine branches, genome candidates, archive hits, beam expansions, selected path, and shortlist handoff.
 - The backend orchestration summary in Stack B, containing cognitive decision, governed prompt, candidate scores, expected cuts, and sequence memory.
 
-The backend summary should be renamed to Candidate Score Summary, leaving Planner Audit for the full planner trace.
+The backend summary is named Candidate Score Summary, leaving Planner Audit for the full planner trace.
 
 ### Micro-Animation Collapse
 
@@ -81,7 +81,7 @@ Keep Stack B as the production spine. Graft Stack A algorithms into Stack B as p
 The first implementation slice should be Phase 0 only:
 
 - Pin the current render seam with baseline contract tests.
-- Rename the backend `PlannerAudit` artifact to Candidate Score Summary without behavior changes.
+- Keep the backend scoring artifact named Candidate Score Summary without behavior changes.
 - Add issue-tracker and documentation references so #10 and #11 do not build on the old ambiguous middle.
 - Keep renders identical.
 

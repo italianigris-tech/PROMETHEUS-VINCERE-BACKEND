@@ -86,6 +86,7 @@ describe("Joseph typography intelligence", () => {
           hierarchyLevel: 1,
         },
       ],
+      roleStyles: [],
       qualityAudit: {score: 1, failures: [], warnings: []},
     });
 

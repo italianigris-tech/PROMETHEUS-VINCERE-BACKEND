@@ -55,6 +55,15 @@ jobs:
       - name: Same-key determinism proof
         run: npx tsx scripts/verify-determinism.ts
 
+      - name: Determinism Guardian audit
+        run: node scripts/determinism-guardian.mjs
+
+      - name: Upload Determinism Guardian report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: determinism-guardian-report
+          path: artifacts/determinism-guardian/determinism-guardian-report.json
       - name: Different-key variation proof
         run: npx tsx scripts/verify-variation.ts
 

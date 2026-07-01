@@ -29,6 +29,9 @@ import {buildJosephAudioVisualChoreographyPlan} from "./joseph-audio-visual-chor
 export interface DirectorInput {
   videoUrl: string;
   musicTrackUrl?: string;
+  matteUrl?: string;
+  matteFilePath?: string;
+  mattePremultipliedAlpha?: boolean;
   transcript: Word[];
   beats: number[];
   onsets: number[];
@@ -1072,6 +1075,16 @@ const buildManifestFromPlan = (
       endFrame: plan.durationFrames - 1,
     },
   ];
+  const matte = input.matteUrl || input.matteFilePath
+    ? {
+      ...(input.matteFilePath ? {filePath: input.matteFilePath} : {}),
+      fps: FPS,
+      durationInFrames: plan.durationFrames,
+      planeZ: 0,
+      planeHeight: 9,
+      premultipliedAlpha: input.mattePremultipliedAlpha ?? true,
+    }
+    : undefined;
   const timeline: Array<CutEvent | TextEvent | TransitionEvent> = [
     ...plan.cuts,
     ...plan.textOverlays.map(
@@ -1117,12 +1130,14 @@ const buildManifestFromPlan = (
     source: {
       videoUrl: input.videoUrl,
       audioUrl: input.musicTrackUrl,
+      ...(input.matteUrl ? {matteUrl: input.matteUrl} : {}),
       transcript: input.transcript,
       durationMs: (plan.durationFrames / FPS) * 1000,
       width: WIDTH,
       height: HEIGHT,
       fps: FPS,
     },
+    ...(matte ? {matte} : {}),
     audio: {
       beats: input.beats,
       onsets: input.onsets,

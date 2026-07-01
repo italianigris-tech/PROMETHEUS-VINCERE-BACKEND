@@ -183,6 +183,28 @@ describe("JudgmentLayer active contract", () => {
     expect(score.floorFailures).toContain("micro_animation_visual_chaos");
   });
 
+  it("applies backend Negative Grammar climax-budget failures inside the Judgment Layer", () => {
+    const manifest = validManifest("bad-climax-budget", {
+      audio: {
+        ...validManifest("bad-climax-budget-audio").audio,
+        energyCurve: [0.94, 0.93, 0.91, 0.9, 0.88, 0.86],
+      },
+    }) as UnifiedRenderManifest & {
+      _sequenceMemory: {
+        highEnergy20sWindows: number;
+        breatheFrames: number[];
+      };
+    };
+    manifest._sequenceMemory = {
+      highEnergy20sWindows: 2,
+      breatheFrames: [],
+    };
+
+    const score = meetsQualityFloor(manifest);
+
+    expect(score.passedFloor).toBe(false);
+    expect(score.floorFailures).toContain("climax-overspend");
+  });
   it("vetoes candidate too similar to replay ledger", async () => {
     const repeated = validManifest("repeat");
     const novel = validManifest("novel", {
@@ -204,7 +226,7 @@ describe("JudgmentLayer active contract", () => {
       profile: "joseph_aggressive",
       chosenGenome: JSON.stringify(repeated),
       rejectedGenomes: "[]",
-      plannerAudit: "{}",
+      candidateScoreSummary: "{}",
       similarityHash: computeSimilarityHash(repeated),
       qualityScore: 0.95,
       failureTags: "",
@@ -244,7 +266,7 @@ describe("JudgmentLayer active contract", () => {
       profile: "joseph_aggressive",
       chosenGenome: "{}",
       rejectedGenomes: "[]",
-      plannerAudit: "{}",
+      candidateScoreSummary: "{}",
       similarityHash: nearbyHash(computeSimilarityHash(candidate)),
       qualityScore: 0.95,
       failureTags: "",

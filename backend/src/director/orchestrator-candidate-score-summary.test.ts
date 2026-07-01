@@ -26,7 +26,8 @@ const baseInput = (): OrchestratorInput => ({
 
 describe("Director Orchestrator Candidate Score Summary", () => {
   it("exposes the flat backend scoring record without using the PlannerAudit surface", async () => {
-    const result = await orchestrateRender(baseInput(), new ReplayLedger(":memory:"), registry());
+    const ledger = new ReplayLedger(":memory:");
+    const result = await orchestrateRender(baseInput(), ledger, registry());
 
     expect(result.candidateScoreSummary).toMatchObject({
       candidateScores: expect.any(Array),
@@ -42,5 +43,40 @@ describe("Director Orchestrator Candidate Score Summary", () => {
       expectedCuts: result.candidateScoreSummary.expectedCuts,
       sequenceMemory: result.candidateScoreSummary.sequenceMemory,
     });
+
+    const evidenceRecord = JSON.parse(fs.readFileSync(result.evidencePaths.evidenceRecordPath, "utf8"));
+    expect(evidenceRecord).toMatchObject({
+      version: "prometheus-evidence-record-v1",
+      compilerArtifactHash: expect.any(String),
+      compilerArtifactPointer: "compiler-artifact.json",
+      plannerAuditPointer: "planner-audit.json",
+      candidateScoreSummaryPointer: "candidate-score-summary.json",
+      rejectedCandidates: expect.any(Array),
+    });
+    expect(evidenceRecord.compilerArtifactHash).toMatch(/^[a-f0-9]{64}$/);
+
+    const compilerArtifact = JSON.parse(fs.readFileSync(result.evidencePaths.compilerArtifactPath, "utf8"));
+    expect(compilerArtifact).toMatchObject({
+      artifactHash: evidenceRecord.compilerArtifactHash,
+      mode: "phase0_read_only",
+    });
+    const plannerAuditArtifact = JSON.parse(fs.readFileSync(result.evidencePaths.plannerAuditPath, "utf8"));
+    expect(plannerAuditArtifact).toMatchObject({
+      version: "planner-audit-pointer-v1",
+      source: "candidate-score-summary.sequenceObjective",
+      sequenceObjective: result.candidateScoreSummary.sequenceObjective,
+    });
+    const candidateScoreSummaryArtifact = JSON.parse(fs.readFileSync(result.evidencePaths.candidateScoreSummaryPath, "utf8"));
+    expect(candidateScoreSummaryArtifact).toMatchObject({
+      sequenceObjective: result.candidateScoreSummary.sequenceObjective,
+      manifestCompilerAudit: result.candidateScoreSummary.manifestCompilerAudit,
+    });
+    expect(evidenceRecord.rejectedCandidates.length).toBe(result.rejectedCount);
+    for (const rejected of evidenceRecord.rejectedCandidates) {
+      expect(rejected).toMatchObject({
+        compilerWarnings: expect.any(Array),
+        failureTags: expect.any(Array),
+      });
+    }
   });
 });

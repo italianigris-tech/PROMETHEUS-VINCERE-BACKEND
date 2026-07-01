@@ -74,6 +74,51 @@ describe("UnifiedRenderManifestSchema", () => {
     expect(manifest.transitions).toEqual([]);
   });
 
+
+  it("accepts render-safe matte references for browser playback and FFmpeg", () => {
+    const manifest = UnifiedRenderManifestSchema.parse({
+      ...baseManifest,
+      source: {
+        ...baseManifest.source,
+        matteUrl: "/uploads/job-1/rvm-matte.webm",
+      },
+      matte: {
+        filePath: "C:/prometheus/jobs/job-1/rvm-matte.webm",
+        fps: 30,
+        durationInFrames: 300,
+        planeZ: 0,
+        planeHeight: 9,
+        premultipliedAlpha: true,
+      },
+    });
+
+    expect(manifest.source.matteUrl).toBe("/uploads/job-1/rvm-matte.webm");
+    expect(manifest.matte?.filePath).toBe("C:/prometheus/jobs/job-1/rvm-matte.webm");
+  });
+
+  it("rejects matte references that are not browser-safe or FFmpeg-safe", () => {
+    const localBrowserUrl = UnifiedRenderManifestSchema.safeParse({
+      ...baseManifest,
+      source: {
+        ...baseManifest.source,
+        matteUrl: "file:///tmp/job-1/rvm-matte.webm",
+      },
+    });
+    const relativeFfmpegPath = UnifiedRenderManifestSchema.safeParse({
+      ...baseManifest,
+      source: {
+        ...baseManifest.source,
+        matteUrl: "/uploads/job-1/rvm-matte.webm",
+      },
+      matte: {
+        filePath: "relative/job-1/rvm-matte.webm",
+      },
+    });
+
+    expect(localBrowserUrl.success).toBe(false);
+    expect(relativeFfmpegPath.success).toBe(false);
+  });
+
   it("accepts governed camera velocity hints for render continuity", () => {
     const manifest = UnifiedRenderManifestSchema.parse({
       ...baseManifest,

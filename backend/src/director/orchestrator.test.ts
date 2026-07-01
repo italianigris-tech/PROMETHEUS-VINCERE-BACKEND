@@ -43,6 +43,23 @@ describe("Director Orchestrator", () => {
     expect(fs.existsSync(result.evidencePaths.selectedPath)).toBe(true);
   });
 
+
+  it("preserves matte references through the production orchestrator path", async () => {
+    const result = await orchestrateRender(
+      baseInput("joseph_aggressive", {
+        matteUrl: "/uploads/job-1/rvm-matte.webm",
+        matteFilePath: "C:/prometheus/jobs/job-1/rvm-matte.webm",
+      }),
+      new ReplayLedger(":memory:"),
+      registry(),
+    );
+
+    const evidenceSelected = result.evidence.selected as typeof result.manifest;
+
+    expect(result.manifest.source.matteUrl).toBe("/uploads/job-1/rvm-matte.webm");
+    expect(result.manifest.matte?.filePath).toBe("C:/prometheus/jobs/job-1/rvm-matte.webm");
+    expect(evidenceSelected.source.matteUrl).toBe(result.manifest.source.matteUrl);
+  });
   it("orchestrates cinematic profile end-to-end", async () => {
     const result = await orchestrateRender(baseInput("joseph_cinematic"), new ReplayLedger(":memory:"), registry());
 

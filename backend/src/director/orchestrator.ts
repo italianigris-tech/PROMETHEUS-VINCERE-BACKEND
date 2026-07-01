@@ -21,7 +21,7 @@ import {
   generateJosephManifest,
   type DirectorInput,
 } from "./joseph-director";
-import {compileJosephManifest, type JosephManifestCompilerAudit} from "./joseph-manifest-compiler";
+import {compileJosephManifest, type JosephManifestCompilerAudit, type JosephSelectedPlannerCandidate} from "./joseph-manifest-compiler";
 import type {JosephSequenceObjectiveRanking} from "./joseph-sequence-objective";
 import {PromptRegistry, type GovernedPrompt} from "./prompt-governance";
 import {
@@ -39,6 +39,9 @@ export type JosephProfile = "joseph_aggressive" | "joseph_cinematic" | "joseph_m
 export interface OrchestratorInput {
   sourceVideoPath: string;
   sourceFingerprintPath?: string;
+  matteUrl?: string;
+  matteFilePath?: string;
+  mattePremultipliedAlpha?: boolean;
   transcriptPath: string;
   audioPath: string;
   musicPath?: string;
@@ -215,6 +218,9 @@ const buildDirectorInput = (
 ): DirectorInput => ({
   videoUrl: input.sourceVideoPath,
   musicTrackUrl: input.musicPath ?? input.audioPath,
+  ...(input.matteUrl ? {matteUrl: input.matteUrl} : {}),
+  ...(input.matteFilePath ? {matteFilePath: input.matteFilePath} : {}),
+  ...(input.mattePremultipliedAlpha === undefined ? {} : {mattePremultipliedAlpha: input.mattePremultipliedAlpha}),
   transcript: wordsFromPayload(payload),
   beats: payload.beats ?? [],
   onsets: payload.onsets ?? [],
@@ -394,6 +400,99 @@ const buildCandidateScoreSummary = (
   sequenceMemory: candidates.map((candidate) => candidate._sequenceMemory).filter((summary): summary is SequenceMemorySummary => Boolean(summary)),
 });
 
+const selectedSequenceCandidateFor = (
+  sequenceObjective: JosephSequenceObjectiveRanking,
+  selected: UnifiedRenderManifest,
+): JosephSequenceObjectiveRanking["candidates"][number] | undefined => {
+  const selectedJobId = typeof selected.jobId === "string" ? selected.jobId : undefined;
+  return sequenceObjective.candidates.find((candidate) => candidate.selected) ??
+    sequenceObjective.candidates.find((candidate) => candidate.candidateId === selectedJobId) ??
+    sequenceObjective.candidates[0];
+};
+
+const buildSelectedPlannerCandidate = (
+  sequenceObjective: JosephSequenceObjectiveRanking,
+  selected: UnifiedRenderManifest,
+): JosephSelectedPlannerCandidate => {
+  const selectedSequenceCandidate = selectedSequenceCandidateFor(sequenceObjective, selected);
+  const selectedJobId = typeof selected.jobId === "string"
+    ? selected.jobId
+    : sequenceObjective.selectedCandidateId ?? "unknown-selected-candidate";
+  const doctrineBranchId = selectedSequenceCandidate?.doctrineBranchId ??
+    sequenceObjective.selectedDoctrineBranchId ??
+    selected.creativeProfile.name;
+  const archiveCellKeys = selectedSequenceCandidate
+    ? [selectedSequenceCandidate.archiveCell.key]
+    : sequenceObjective.archiveEntries
+      .filter((entry) => entry.candidateId === selectedJobId)
+      .map((entry) => entry.archiveCell.key);
+
+  return {
+    plannerPathId: `${sequenceObjective.version}:${sequenceObjective.selectedPath.candidateIds.join(">") || selectedJobId}`,
+    selectedCandidateId: selectedJobId,
+    genomeIds: sequenceObjective.selectedPath.candidateIds.length > 0
+      ? sequenceObjective.selectedPath.candidateIds
+      : [selectedJobId],
+    doctrineBranchIds: sequenceObjective.selectedPath.doctrineBranchIds.length > 0
+      ? sequenceObjective.selectedPath.doctrineBranchIds
+      : [doctrineBranchId],
+    archiveCellKeys: archiveCellKeys.length > 0 ? archiveCellKeys : ["unclassified"],
+    treatmentFamily: selectedSequenceCandidate
+      ? `${selectedSequenceCandidate.archiveCell.intensity}-${selectedSequenceCandidate.archiveCell.visualDensity}-${selectedSequenceCandidate.archiveCell.motionEnergy}-${selectedSequenceCandidate.archiveCell.editorialRole}`
+      : undefined,
+    finalTreatment: doctrineBranchId,
+    retrievalIntent: "reuse-existing",
+    godEscalationIntent: "forbidden",
+  };
+};
+
+const buildPlannerPointerArtifact = ({
+  sequenceObjective,
+  compilerArtifactHash,
+}: {
+  sequenceObjective: JosephSequenceObjectiveRanking;
+  compilerArtifactHash: string | null;
+}) => ({
+  version: "planner-audit-pointer-v1" as const,
+  source: "candidate-score-summary.sequenceObjective" as const,
+  selectedCandidateId: sequenceObjective.selectedCandidateId,
+  selectedDoctrineBranchId: sequenceObjective.selectedDoctrineBranchId,
+  selectedPath: sequenceObjective.selectedPath,
+  compilerArtifactHash,
+  sequenceObjective,
+});
+
+const objectRecord = (value: unknown): Record<string, unknown> | undefined =>
+  value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : undefined;
+
+const stringArray = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+
+const compilerDiagnosticsForRejected = (manifest: UnifiedRenderManifest): Pick<NonNullable<EvidencePackage["rejectedCandidateEvidence"]>[number], "compilerWarnings" | "failureTags"> => {
+  const handoff = objectRecord(manifest.plannerHandoff);
+  const fallbackTags = (Array.isArray(handoff?.fallbacks) ? handoff.fallbacks : [])
+    .map((fallback) => objectRecord(fallback)?.tag)
+    .filter((tag): tag is string => typeof tag === "string");
+
+  return {
+    compilerWarnings: stringArray(handoff?.warnings),
+    failureTags: [...new Set(fallbackTags)],
+  };
+};
+
+const buildRejectedCandidateEvidence = (
+  rejected: UnifiedRenderManifest[],
+  scores: CandidateScore[],
+): NonNullable<EvidencePackage["rejectedCandidateEvidence"]> => rejected.map((candidate) => {
+  const score = scores.find((candidateScore) => candidateScore.manifest.jobId === candidate.jobId);
+  const diagnostics = compilerDiagnosticsForRejected(candidate);
+  return {
+    jobId: typeof candidate.jobId === "string" ? candidate.jobId : undefined,
+    compilerWarnings: diagnostics.compilerWarnings,
+    failureTags: [...new Set([...(score?.floorFailures ?? []), ...diagnostics.failureTags])],
+  };
+});
+
 export async function orchestrateRender(
   input: OrchestratorInput,
   ledger: ReplayLedger,
@@ -433,10 +532,15 @@ export async function orchestrateRender(
 
   const judgment = await judgmentLayer.judgeCandidates(candidates, variationKey, governedPrompt);
   const selectedCandidate = canonicalizeManifestForResult(judgment.selected, variationKey);
+  const selectedPlannerCandidate = buildSelectedPlannerCandidate(judgment.sequenceObjective, selectedCandidate);
   const compiledSelected = compileJosephManifest({
     manifest: selectedCandidate,
+    selectedPlannerCandidate,
     auditReferences: {
       candidateScoreSummary: true,
+      candidateScoreSummaryRef: "candidate-score-summary.json",
+      compilerArtifactRef: "compiler-artifact.json",
+      plannerAuditRef: "planner-audit.json",
       candidateScoreCount: judgment.scores.length,
       expectedCutCount: expectedCuts.length,
     },
@@ -453,6 +557,12 @@ export async function orchestrateRender(
     verdict: judgment.verdict,
     timestamp: new Date().toISOString(),
     candidateScoreSummary,
+    compilerArtifact: compiledSelected.artifact,
+    plannerAuditArtifact: buildPlannerPointerArtifact({
+      sequenceObjective: judgment.sequenceObjective,
+      compilerArtifactHash: compiledSelected.artifact?.artifactHash ?? null,
+    }),
+    rejectedCandidateEvidence: buildRejectedCandidateEvidence(rejected, judgment.scores),
   };
   const evidencePaths = preserveEvidence(evidence, input.evidenceDir ?? path.join(os.homedir(), ".prometheus", "evidence"));
 
@@ -465,7 +575,7 @@ export async function orchestrateRender(
     profile: input.profile,
     chosenGenome: JSON.stringify(selected),
     rejectedGenomes: JSON.stringify(rejected),
-    plannerAudit: JSON.stringify(candidateScoreSummary),
+    candidateScoreSummary: JSON.stringify(candidateScoreSummary),
     similarityHash: computeSimilarityHash(selected),
     qualityScore: judgment.verdict.qualityScore,
     failureTags: judgment.verdict.failureTags.join(","),

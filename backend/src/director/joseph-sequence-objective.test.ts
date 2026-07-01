@@ -2,6 +2,7 @@ import {describe, expect, it} from "vitest";
 import type {CutEvent, SFXEvent, TextEvent, TimelineEvent, UnifiedRenderManifest} from "@prometheus/shared-types";
 import type {CandidateScore} from "./judgment-layer";
 import {rankJosephSequenceObjective} from "./joseph-sequence-objective";
+import type {VariationKey} from "./variation-key";
 
 type CandidateManifest = UnifiedRenderManifest & {
   _doctrineBranch?: string;
@@ -122,6 +123,17 @@ const scoreFor = (
   },
 });
 
+const variationKey = (retryIndex: number): VariationKey => ({
+  key: `source:prompt:upload:${retryIndex}`,
+  sourceFingerprint: "source-sequence-objective",
+  promptFingerprint: "prompt-sequence-objective",
+  uploadInstanceId: "upload-sequence-objective",
+  retryIndex,
+  source_fingerprint: "source-sequence-objective",
+  prompt_fingerprint: "prompt-sequence-objective",
+  upload_instance_id: "upload-sequence-objective",
+  retry_index: retryIndex,
+});
 describe("Joseph Sequence Objective", () => {
   it("ranks live candidate genomes by sequence objective instead of seed-only choice", () => {
     const noisyKinetic = scoreFor(
@@ -192,5 +204,31 @@ describe("Joseph Sequence Objective", () => {
       ranking.candidates.find((candidate) => candidate.candidateId === "kinetic-strong")
         ?.scoreBreakdown.qdDiversityPressure,
     ).toBeGreaterThan(0);
+  });
+  it("uses the variation key to choose deterministic QD/surprise alternatives instead of always argmax", () => {
+    const kinetic = scoreFor(baseManifest("kinetic", "kinetic-pulse"), 0.93, 0.02);
+    const spotlight = scoreFor(
+      baseManifest("spotlight", "spotlight-swap", {
+        creativeProfile: {name: "joseph_cinematic", cutDensity: 0.45, textDensity: 0.35, sfxDensity: 0.5, cameraAggression: 0.6, colorIntensity: 0.7},
+        cameraMoves: [{type: "dutch", startFrame: 120, endFrame: 150}],
+      }),
+      0.92,
+      0.02,
+    );
+
+    const argmax = rankJosephSequenceObjective({scores: [kinetic, spotlight]});
+    const retryZero = rankJosephSequenceObjective({scores: [kinetic, spotlight], variationKey: variationKey(0)});
+    const retryOne = rankJosephSequenceObjective({scores: [kinetic, spotlight], variationKey: variationKey(1)});
+    const retryOneAgain = rankJosephSequenceObjective({scores: [kinetic, spotlight], variationKey: variationKey(1)});
+
+    expect(argmax.selection.mode).toBe("objective-argmax");
+    expect(retryOne.selection.mode).toBe("variation-key-qd-surprise");
+    expect(retryOne.selection.candidatePoolIds).toEqual(
+      expect.arrayContaining([argmax.candidates[0]?.candidateId, argmax.candidates[1]?.candidateId]),
+    );
+    expect(retryOne.selectedCandidateId).toBe(retryOne.selection.candidatePoolIds[1]);
+    expect(retryOne.selectedCandidateId).not.toBe(argmax.candidates[0]?.candidateId);
+    expect(retryOneAgain.selectedCandidateId).toBe(retryOne.selectedCandidateId);
+    expect(retryZero.selectedCandidateId).not.toBe(retryOne.selectedCandidateId);
   });
 });

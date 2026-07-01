@@ -33,6 +33,7 @@ describeIfPresent("Evidence Preservation contract", () => {
 
   it("writes inspectable artifacts and an append-only evidence log", () => {
     const baseDir = fs.mkdtempSync(path.join(os.tmpdir(), "prometheus-evidence-"));
+    const compilerArtifactHash = "a".repeat(64);
     const pkg = {
       jobId: "job-1",
       variationKey: {
@@ -51,6 +52,38 @@ describeIfPresent("Evidence Preservation contract", () => {
         failureTags: [],
       },
       timestamp: "2026-06-20T00:00:00.000Z",
+      candidateScoreSummary: {
+        version: "candidate-score-summary-v1",
+        expectedCuts: [12],
+        sequenceMemory: [],
+      },
+      compilerArtifact: {
+        version: "joseph-manifest-compiler-v1",
+        mode: "phase0_read_only",
+        deterministic: true,
+        artifactHash: compilerArtifactHash,
+        manifestHash: "b".repeat(64),
+        warnings: ["Phase 0 compiler artifact only; manifest output was not mutated."],
+        fallbacks: [
+          {
+            field: "josephBackground",
+            tag: "compiler_background_missing",
+            reason: "Planner-selected background intent had no Joseph background plan.",
+          },
+        ],
+      },
+      plannerAudit: {
+        version: "planner-audit-v1",
+        plannerPathId: "path-hook-payoff",
+        selectedCandidateId: "chosen",
+      },
+      rejectedCandidateEvidence: [
+        {
+          jobId: "rejected",
+          compilerWarnings: ["Compiled manifest contains governed fallbacks; renderer must not invent omitted planner intent."],
+          failureTags: ["compiler_background_missing"],
+        },
+      ],
     };
 
     const paths = preserveEvidence(pkg, baseDir);
@@ -58,7 +91,33 @@ describeIfPresent("Evidence Preservation contract", () => {
     expect(JSON.parse(fs.readFileSync(paths.candidatesPath, "utf8"))).toHaveLength(2);
     expect(JSON.parse(fs.readFileSync(paths.selectedPath, "utf8"))).toMatchObject({jobId: "chosen"});
     expect(JSON.parse(fs.readFileSync(paths.verdictPath, "utf8"))).toMatchObject({passedFloor: true});
-    expect(JSON.parse(fs.readFileSync(paths.auditPath, "utf8"))).toMatchObject({jobId: "job-1"});
+    expect(JSON.parse(fs.readFileSync(paths.auditPath, "utf8"))).toMatchObject({version: "candidate-score-summary-v1"});
+    expect(JSON.parse(fs.readFileSync(paths.candidateScoreSummaryPath, "utf8"))).toMatchObject({
+      version: "candidate-score-summary-v1",
+      expectedCuts: [12],
+    });
+    expect(JSON.parse(fs.readFileSync(paths.compilerArtifactPath, "utf8"))).toMatchObject({
+      artifactHash: compilerArtifactHash,
+      warnings: ["Phase 0 compiler artifact only; manifest output was not mutated."],
+    });
+    expect(JSON.parse(fs.readFileSync(paths.plannerAuditPath, "utf8"))).toMatchObject({
+      plannerPathId: "path-hook-payoff",
+      selectedCandidateId: "chosen",
+    });
+    expect(JSON.parse(fs.readFileSync(paths.evidenceRecordPath, "utf8"))).toMatchObject({
+      version: "prometheus-evidence-record-v1",
+      jobId: "job-1",
+      compilerArtifactHash,
+      plannerAuditPointer: "planner-audit.json",
+      candidateScoreSummaryPointer: "candidate-score-summary.json",
+      rejectedCandidates: [
+        {
+          jobId: "rejected",
+          compilerWarnings: ["Compiled manifest contains governed fallbacks; renderer must not invent omitted planner intent."],
+          failureTags: ["compiler_background_missing"],
+        },
+      ],
+    });
     expect(JSON.parse(fs.readFileSync(paths.reviewArtifactPath, "utf8"))).toMatchObject({
       version: "joseph-oversight-review-v1",
       jobId: "job-1",

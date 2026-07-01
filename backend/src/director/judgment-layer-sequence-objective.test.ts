@@ -44,17 +44,19 @@ const sfx = (id: string, cue: SFXEvent["cue"], triggerMs: number): SFXEvent => (
   duckMusicDb: -6,
 });
 
-const variationKey = (): VariationKey => ({
-  key: "key-5",
+const variationKeyForRetry = (retryIndex: number): VariationKey => ({
+  key: `key-${retryIndex}`,
   sourceFingerprint: "source-sequence-objective",
   promptFingerprint: "prompt-sequence-objective",
   uploadInstanceId: "upload-sequence-objective",
-  retryIndex: 5,
+  retryIndex,
   source_fingerprint: "source-sequence-objective",
   prompt_fingerprint: "prompt-sequence-objective",
   upload_instance_id: "upload-sequence-objective",
-  retry_index: 5,
+  retry_index: retryIndex,
 });
+
+const variationKey = (): VariationKey => variationKeyForRetry(5);
 
 const governedPrompt = (): GovernedPrompt => ({
   id: "prompt-1",
@@ -184,5 +186,29 @@ describe("Judgment Layer Sequence Objective ranking", () => {
       candidateId: "restrained",
       selected: true,
     });
+  });
+  it("uses the variation key for deterministic QD/surprise selection after judgment vetoes", async () => {
+    const kinetic = manifest("kinetic", "kinetic-pulse", {
+      creativeProfile: {name: "joseph_aggressive", cutDensity: 1, textDensity: 0.8, sfxDensity: 1, cameraAggression: 0.9, colorIntensity: 0.8},
+    });
+    const spotlight = manifest("spotlight", "spotlight-swap", {
+      creativeProfile: {name: "joseph_cinematic", cutDensity: 0.45, textDensity: 0.35, sfxDensity: 0.5, cameraAggression: 0.6, colorIntensity: 0.7},
+      cameraMoves: [{type: "dutch", startFrame: 120, endFrame: 150}],
+    });
+    const vetoed = manifest("vetoed", "kinetic-pulse", {
+      timeline: [cut(500)],
+    });
+
+    const judgment = new JudgmentLayer(new ReplayLedger(":memory:"));
+    const retryZero = await judgment.judgeCandidates([kinetic, spotlight, vetoed], variationKeyForRetry(0), governedPrompt());
+    const retryOne = await judgment.judgeCandidates([kinetic, spotlight, vetoed], variationKeyForRetry(1), governedPrompt());
+    const retryOneAgain = await judgment.judgeCandidates([kinetic, spotlight, vetoed], variationKeyForRetry(1), governedPrompt());
+
+    expect(retryOne.sequenceObjective.selection.mode).toBe("variation-key-qd-surprise");
+    expect(retryOne.selected.jobId).toBe(retryOne.sequenceObjective.selection.candidatePoolIds[1]);
+    expect(retryOneAgain.selected.jobId).toBe(retryOne.selected.jobId);
+    expect(retryZero.selected.jobId).not.toBe(retryOne.selected.jobId);
+    expect(retryOne.sequenceObjective.selection.candidatePoolIds).not.toContain("vetoed");
+    expect(retryOne.rejected.map((candidate) => candidate.jobId)).toContain("vetoed");
   });
 });

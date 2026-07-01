@@ -12,7 +12,7 @@ export interface ReplayLedgerEntry {
   profile: string;
   chosenGenome: string;
   rejectedGenomes: string;
-  plannerAudit?: string;
+  candidateScoreSummary: string;
   similarityHash: string;
   qualityScore: number;
   failureTags: string;
@@ -48,13 +48,28 @@ type ReplayLedgerRow = {
   created_at: string;
 };
 
+type ReplayLedgerEntryInput = Omit<ReplayLedgerEntry, "candidateScoreSummary"> & {
+  candidateScoreSummary?: string;
+  plannerAudit?: string;
+};
+
 const require = createRequire(import.meta.url);
 const DEFAULT_SQLITE_PATH = path.join(os.homedir(), ".prometheus", "replay-ledger.sqlite");
 
-const normalizeEntry = (entry: ReplayLedgerEntry): ReplayLedgerEntry => ({
-  ...entry,
+const normalizeEntry = (entry: ReplayLedgerEntryInput): ReplayLedgerEntry => ({
+  id: entry.id,
+  sourceFingerprint: entry.sourceFingerprint,
+  promptFingerprint: entry.promptFingerprint,
+  uploadInstanceId: entry.uploadInstanceId,
   retryIndex: Number(entry.retryIndex),
+  profile: entry.profile,
+  chosenGenome: entry.chosenGenome,
+  rejectedGenomes: entry.rejectedGenomes,
+  candidateScoreSummary: entry.candidateScoreSummary ?? entry.plannerAudit ?? "",
+  similarityHash: entry.similarityHash,
   qualityScore: Number(entry.qualityScore),
+  failureTags: entry.failureTags,
+  createdAt: entry.createdAt,
 });
 
 const toRow = (entry: ReplayLedgerEntry): ReplayLedgerRow => ({
@@ -66,7 +81,7 @@ const toRow = (entry: ReplayLedgerEntry): ReplayLedgerRow => ({
   profile: entry.profile,
   chosen_genome: entry.chosenGenome,
   rejected_genomes: entry.rejectedGenomes,
-  planner_audit: entry.plannerAudit ?? null,
+  planner_audit: entry.candidateScoreSummary || null,
   similarity_hash: entry.similarityHash,
   quality_score: entry.qualityScore,
   failure_tags: entry.failureTags,
@@ -82,7 +97,7 @@ const fromRow = (row: ReplayLedgerRow): ReplayLedgerEntry => ({
   profile: row.profile,
   chosenGenome: row.chosen_genome,
   rejectedGenomes: row.rejected_genomes,
-  plannerAudit: row.planner_audit ?? "",
+  candidateScoreSummary: row.planner_audit ?? "",
   similarityHash: row.similarity_hash,
   qualityScore: Number(row.quality_score),
   failureTags: row.failure_tags,
@@ -124,7 +139,7 @@ export class ReplayLedger {
     this.entries = this.readEntriesFromDisk();
   }
 
-  insert(entry: ReplayLedgerEntry): ReplayLedgerEntry {
+  insert(entry: ReplayLedgerEntryInput): ReplayLedgerEntry {
     const normalized = normalizeEntry(entry);
 
     if (this.db) {
@@ -244,7 +259,7 @@ export class ReplayLedger {
       .filter(Boolean)
       .map((line) => {
         try {
-          return normalizeEntry(JSON.parse(line) as ReplayLedgerEntry);
+          return normalizeEntry(JSON.parse(line) as ReplayLedgerEntryInput);
         } catch {
           return null;
         }

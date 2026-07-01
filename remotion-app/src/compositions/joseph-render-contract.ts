@@ -5,12 +5,141 @@ import type {
   JosephPiPBackgroundLayer,
   JosephPiPFrame,
   JosephPiPPlan,
+  JosephTypography,
+  JosephTypographyIntelligencePlan,
+  JosephTypographyRoleStyle,
   MicroAnimationRenderFallback,
   TextOverlay,
 } from '@prometheus/shared-types';
 import {hashSeed, seededRandom} from '@prometheus/shared-types';
 
 export type RenderVector3 = [number, number, number];
+export type JosephTypographyFallbackReason =
+  | 'manifest_typography_missing'
+  | 'local_font_asset_not_browser_safe'
+  | 'font_asset_not_browser_safe';
+
+export type JosephTypographyRoleStyleObservable = {
+  fontFamily: string;
+  fontWeight: number;
+  letterSpacing: string;
+  lineHeight: number;
+  hierarchyLevel: number;
+  hierarchyScale: number;
+  renderOrder: number;
+};
+
+export type JosephTypographyRenderContract = JosephTypography & {
+  fallbackUsed: boolean;
+  fallbackReason: JosephTypographyFallbackReason | null;
+  governedFallback: JosephTypography;
+  observable: {
+    textFontFamily: string;
+    fallbackFamily: string;
+    fontAssetUrl: string;
+    renderOrder: number;
+    roleStyles: Partial<Record<JosephTypographyRoleStyle['role'], JosephTypographyRoleStyleObservable>>;
+  };
+};
+
+export const DEFAULT_JOSEPH_TYPOGRAPHY: JosephTypography = {
+  fontId: 'hero-berylium-regular',
+  fontFamily: 'PrometheusHeroBerylium',
+  fontAssetUrl: '/fonts/hero/berylium-rg-67d7e31492fa.otf',
+  fallbackFamily: 'Arial, sans-serif',
+};
+
+const isLocalFileUrl = (value: string): boolean => /^file:\/\//i.test(value);
+const isLocalAbsolutePath = (value: string): boolean => /^[a-zA-Z]:[\\/]/.test(value) || /^\\\\/.test(value);
+const isBrowserSafeTypographyAsset = (value: string): boolean => /^https?:\/\//i.test(value) || value.startsWith('/');
+
+const resolveTypographyFallbackReason = (typography: JosephTypography | undefined): JosephTypographyFallbackReason | null => {
+  if (!typography) {
+    return 'manifest_typography_missing';
+  }
+
+  if (isLocalFileUrl(typography.fontAssetUrl) || isLocalAbsolutePath(typography.fontAssetUrl)) {
+    return 'local_font_asset_not_browser_safe';
+  }
+
+  if (!isBrowserSafeTypographyAsset(typography.fontAssetUrl)) {
+    return 'font_asset_not_browser_safe';
+  }
+
+  return null;
+};
+
+const formatTracking = (trackingEm: number): string => `${trackingEm.toFixed(3)}em`;
+
+const typographyRenderOrderFor = (role: JosephTypographyRoleStyle['role']): number => {
+  if (role === 'hero') return 42;
+  if (role === 'cta') return 41;
+  return 40;
+};
+
+const fontFamilyForRoleStyle = (
+  style: JosephTypographyRoleStyle,
+  typography: JosephTypography,
+  plan?: JosephTypographyIntelligencePlan,
+): string => {
+  if (style.fontRole === 'support') {
+    return plan?.fontPairing?.secondary?.family ?? typography.fontFamily;
+  }
+  return plan?.fontPairing?.primary.family ?? typography.fontFamily;
+};
+
+const resolveTypographyRoleStyleObservables = (
+  typography: JosephTypography,
+  plan?: JosephTypographyIntelligencePlan,
+): Partial<Record<JosephTypographyRoleStyle['role'], JosephTypographyRoleStyleObservable>> => {
+  const roleStyles = plan?.roleStyles ?? [];
+  return roleStyles.reduce<Partial<Record<JosephTypographyRoleStyle['role'], JosephTypographyRoleStyleObservable>>>((resolved, style) => {
+    resolved[style.role] = {
+      fontFamily: fontFamilyForRoleStyle(style, typography, plan),
+      fontWeight: style.weight,
+      letterSpacing: formatTracking(style.trackingEm),
+      lineHeight: style.lineHeight,
+      hierarchyLevel: style.hierarchyLevel,
+      hierarchyScale: style.hierarchyScale,
+      renderOrder: typographyRenderOrderFor(style.role),
+    };
+    return resolved;
+  }, {});
+};
+export const resolveTypographyRenderContract = (
+  typography?: JosephTypography,
+  typographyPlan?: JosephTypographyIntelligencePlan,
+): JosephTypographyRenderContract => {
+  const fallbackReason = resolveTypographyFallbackReason(typography);
+  const selected: JosephTypography = fallbackReason || !typography
+    ? DEFAULT_JOSEPH_TYPOGRAPHY
+    : {
+        ...DEFAULT_JOSEPH_TYPOGRAPHY,
+        ...typography,
+        fallbackFamily: typography.fallbackFamily || DEFAULT_JOSEPH_TYPOGRAPHY.fallbackFamily,
+      };
+
+  return {
+    ...selected,
+    fallbackUsed: fallbackReason !== null,
+    fallbackReason,
+    governedFallback: DEFAULT_JOSEPH_TYPOGRAPHY,
+    observable: {
+      textFontFamily: selected.fontFamily,
+      fallbackFamily: selected.fallbackFamily,
+      fontAssetUrl: selected.fontAssetUrl,
+      renderOrder: 40,
+      roleStyles: resolveTypographyRoleStyleObservables(selected, typographyPlan),
+    },
+  };
+};
+
+export type PercentRect = {
+  leftPercent: number;
+  topPercent: number;
+  widthPercent: number;
+  heightPercent: number;
+};
 
 export type JosephTextTransform = {
   position: RenderVector3;
@@ -84,6 +213,21 @@ export type JosephPiPRenderContract = {
   };
   layers: JosephPiPBackgroundLayerRenderContract[];
   coexistence: JosephPiPPlan['coexistenceRules'];
+  clearance: {
+    protectedSubjectRect: PercentRect;
+    typographyZones: Array<JosephPiPPlan['typographyZones'][number] & {
+      protectedClearancePercent: number;
+      intersectsProtectedSubject: boolean;
+      failureTags: string[];
+    }>;
+    camera: {
+      activeMoveType: CameraMove['type'] | null;
+      currentVelocity: number;
+      subjectFocusRisk: boolean;
+      failureTags: string[];
+    };
+    failureTags: string[];
+  };
 };
 
 export type JosephBackgroundLayerRenderContract = JosephBackgroundPrimitiveSelection & {
@@ -160,6 +304,7 @@ const MICRO_ANIMATION_RENDER_BRANCHES: Record<string, JosephMicroAnimationRender
 };
 
 const clamp01 = (value: number): number => Math.max(0, Math.min(1, value));
+const clampPercent = (value: number): number => Math.max(0, Math.min(100, value));
 const lerp = (from: number, to: number, progress: number): number => from + (to - from) * clamp01(progress);
 const easeOutCubic = (value: number): number => 1 - Math.pow(1 - clamp01(value), 3);
 const easeInOutCubic = (value: number): number => {
@@ -463,6 +608,96 @@ const frameFromLayer = (layer: JosephPiPBackgroundLayer): JosephPiPFrame => ({
   depth: 'background',
 });
 
+const expandPercentRect = (rect: PercentRect, paddingPercent: number): PercentRect => {
+  const left = clampPercent(rect.leftPercent - paddingPercent);
+  const top = clampPercent(rect.topPercent - paddingPercent);
+  const right = clampPercent(rect.leftPercent + rect.widthPercent + paddingPercent);
+  const bottom = clampPercent(rect.topPercent + rect.heightPercent + paddingPercent);
+
+  return {
+    leftPercent: left,
+    topPercent: top,
+    widthPercent: Math.max(0, right - left),
+    heightPercent: Math.max(0, bottom - top),
+  };
+};
+
+const rectsIntersect = (leftRect: PercentRect, rightRect: PercentRect): boolean => {
+  const leftRight = leftRect.leftPercent + leftRect.widthPercent;
+  const leftBottom = leftRect.topPercent + leftRect.heightPercent;
+  const rightRight = rightRect.leftPercent + rightRect.widthPercent;
+  const rightBottom = rightRect.topPercent + rightRect.heightPercent;
+
+  return (
+    leftRect.leftPercent < rightRight &&
+    leftRight > rightRect.leftPercent &&
+    leftRect.topPercent < rightBottom &&
+    leftBottom > rightRect.topPercent
+  );
+};
+
+const uniqueStrings = (items: string[]): string[] => [...new Set(items)];
+
+const resolvePiPClearanceContract = ({
+  plan,
+  frame,
+  cameraMoves = [],
+}: {
+  plan: JosephPiPPlan;
+  frame: number;
+  cameraMoves?: readonly CameraMoveWithVelocity[];
+}): JosephPiPRenderContract['clearance'] => {
+  const protectedClearancePercent = Math.max(
+    plan.frame.safeMarginPercent,
+    plan.coexistenceRules.textClearancePercent,
+    ...plan.typographyZones.map((zone) => zone.minClearancePercent),
+  );
+  const protectedSubjectRect = expandPercentRect(plan.frame, protectedClearancePercent);
+  const typographyZones = plan.typographyZones.map((zone) => {
+    const intersectsProtectedSubject = rectsIntersect(zone, protectedSubjectRect);
+    const failureTags = plan.coexistenceRules.protectTypography && intersectsProtectedSubject
+      ? ['pip_typography_subject_occlusion']
+      : [];
+
+    return {
+      ...zone,
+      protectedClearancePercent,
+      intersectsProtectedSubject,
+      failureTags,
+    };
+  });
+
+  const activeMove = cameraMoves.find((move) => frame >= move.startFrame && frame <= move.endFrame) ?? null;
+  const currentVelocity = activeMove
+    ? lerp(activeMove.entryVelocity ?? 0.55, activeMove.exitVelocity ?? 0.55, frameProgress(activeMove, frame))
+    : 0;
+  const subjectFocusRisk = Boolean(
+    plan.coexistenceRules.preserveSubjectFocus &&
+      activeMove &&
+      (
+        (activeMove.type === 'shake' && currentVelocity >= 0.85) ||
+        (activeMove.type === 'push_in' && currentVelocity >= 0.95)
+      ),
+  );
+  const cameraFailureTags = subjectFocusRisk ? ['pip_camera_subject_focus_risk'] : [];
+  const failureTags = uniqueStrings([
+    ...typographyZones.flatMap((zone) => zone.failureTags),
+    ...cameraFailureTags,
+  ]);
+
+  return {
+    protectedSubjectRect,
+    typographyZones,
+    camera: {
+      activeMoveType: activeMove?.type ?? null,
+      currentVelocity,
+      subjectFocusRisk,
+      failureTags: cameraFailureTags,
+    },
+    failureTags,
+  };
+};
+
 const pipDepthZ: Record<JosephPiPFrame['depth'], {sourceZ: number; chromeZ: number; matteZ: number; renderOrder: number}> = {
   background: {sourceZ: 0.1, chromeZ: 0.18, matteZ: 0.02, renderOrder: 12},
   subject: {sourceZ: 0.28, chromeZ: 0.4, matteZ: 0.18, renderOrder: 24},
@@ -500,7 +735,15 @@ const motionProgress = (plan: JosephPiPPlan, frame: number) => {
   return {behavior: activeMotion.behavior, progress, scale};
 };
 
-export const resolvePiPRenderContract = ({plan, frame}: {plan: JosephPiPPlan; frame: number}): JosephPiPRenderContract => {
+export const resolvePiPRenderContract = ({
+  plan,
+  frame,
+  cameraMoves,
+}: {
+  plan: JosephPiPPlan;
+  frame: number;
+  cameraMoves?: readonly CameraMoveWithVelocity[];
+}): JosephPiPRenderContract => {
   const z = pipDepthZ[plan.frame.depth];
   const motion = motionProgress(plan, frame);
   const matteOpacity = clamp01(
@@ -535,6 +778,7 @@ export const resolvePiPRenderContract = ({plan, frame}: {plan: JosephPiPPlan; fr
       renderOrder: z.renderOrder - 3 + roleOrder[layer.role],
     })),
     coexistence: plan.coexistenceRules,
+    clearance: resolvePiPClearanceContract({plan, frame, cameraMoves}),
   };
 };
 
