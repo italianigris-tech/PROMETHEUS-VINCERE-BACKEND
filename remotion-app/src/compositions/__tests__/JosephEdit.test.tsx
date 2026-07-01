@@ -50,7 +50,7 @@ describe('JosephEdit Composition', () => {
   });
 
   it('loads Joseph text font from manifest typography instead of only hard-coding Antenna', () => {
-    expect(content).toContain('resolveJosephTypography');
+    expect(content).toContain('resolveTypographyRenderContract');
     expect(content).toContain('manifest.typography');
     expect(content).toContain('fontAssetUrl');
     expect(content).toContain('fallbackFamily');
@@ -74,6 +74,14 @@ describe('JosephEdit Composition', () => {
     expect(content).toContain('JosephBackgroundRig');
     expect(videoPlaneContent).toContain('frameRect');
     expect(videoPlaneContent).toContain('percentRectToViewport');
+  });
+
+  it('wires the 2.5D PiP compositor to matte and camera-risk signals', () => {
+    expect(content).toContain('resolveMatteRenderContract(manifest)');
+    expect(content).toContain('cameraMoves={manifest.cameraMoves}');
+    expect(content).toContain('matteContract={matteContract}');
+    expect(content).toContain('PiPFailureTagMarkers');
+    expect(content).toContain('contract.clearance.failureTags');
   });
   it('has a Joseph-only Remotion entry that registers no unrelated compositions', () => {
     const entryContent = fs.readFileSync(josephEntryPath, 'utf-8');

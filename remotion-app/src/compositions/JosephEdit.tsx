@@ -14,6 +14,7 @@ import {
   resolvePiPRenderContract,
   resolveTypographyRenderContract,
 } from './joseph-render-contract';
+import {type MatteRenderContract, resolveMatteRenderContract} from './matte-render-contract';
 
 const toRemotionFontAssetUrl = (fontAssetUrl: string) =>
   fontAssetUrl.startsWith('/') ? staticFile(fontAssetUrl.replace(/^\//, '')) : fontAssetUrl;
@@ -87,7 +88,7 @@ const CameraRig: React.FC<{cameraMoves: readonly CameraMove[]; seed: number}> = 
 const KineticText: React.FC<{overlays: readonly TextOverlay[]; manifest: UnifiedRenderManifest}> = ({overlays, manifest}) => {
   const frame = useCurrentFrame();
   const typography = resolveTypographyRenderContract(manifest.typography);
-  const fontAssetUrl = toRemotionFontAssetUrl(typography.fontAssetUrl);
+  const fontAssetUrl = toRemotionFontAssetUrl(typography.fontAssetUrl || typography.fallbackFamily);
 
   return (
     <group position={[0, 0, 0.6]}>
@@ -222,13 +223,54 @@ const PiPBackgroundLayer: React.FC<{layer: JosephPiPBackgroundLayerRenderContrac
   );
 };
 
-const JosephPiPRig: React.FC<{plan: JosephPiPPlan | undefined}> = ({plan}) => {
+const PiPFailureTagMarkers: React.FC<{contract: JosephPiPRenderContract}> = ({contract}) => {
+  const {viewport} = useThree();
+  const failureTags = contract.clearance.failureTags;
+  if (failureTags.length === 0) {
+    return null;
+  }
+
+  const protectedFrame: JosephPiPFrame = {
+    ...contract.clearance.protectedSubjectRect,
+    borderRadiusPx: 0,
+    safeMarginPercent: 0,
+    depth: contract.frame.depth,
+  };
+  const rect = percentRectToViewport({
+    frameRect: protectedFrame,
+    viewportWidth: viewport.width,
+    viewportHeight: viewport.height,
+  });
+  const labelWidth = Math.max(1.4, Math.min(rect.width, failureTags.join(' / ').length * 0.045));
+  const markerZ = contract.frame.chromeZ + 0.12;
+
+  return (
+    <group position={[rect.x, rect.y + rect.height / 2 + 0.13, markerZ]}>
+      <mesh renderOrder={contract.frame.renderOrder + 5}>
+        <planeGeometry args={[labelWidth, 0.16]} />
+        <meshBasicMaterial color="#FF0040" transparent opacity={0.82} depthWrite={false} />
+      </mesh>
+      <Text
+        fontSize={0.062}
+        color="#FFFFFF"
+        anchorX="center"
+        anchorY="middle"
+        position={[0, 0, 0.01]}
+        renderOrder={contract.frame.renderOrder + 6}
+      >
+        {failureTags.join(' / ')}
+      </Text>
+    </group>
+  );
+};
+
+const JosephPiPRig: React.FC<{plan: JosephPiPPlan | undefined; cameraMoves: readonly CameraMove[]; matteContract: MatteRenderContract}> = ({plan, cameraMoves, matteContract}) => {
   const frame = useCurrentFrame();
   if (!plan) {
     return null;
   }
 
-  const contract = resolvePiPRenderContract({plan, frame});
+  const contract = resolvePiPRenderContract({plan, frame, cameraMoves, matte: matteContract});
 
   return (
     <group scale={[contract.motion.scale, contract.motion.scale, 1]}>
@@ -236,6 +278,7 @@ const JosephPiPRig: React.FC<{plan: JosephPiPPlan | undefined}> = ({plan}) => {
         <PiPBackgroundLayer key={`${layer.role}-${index}`} layer={layer} />
       ))}
       <PiPFrameChrome contract={contract} />
+      <PiPFailureTagMarkers contract={contract} />
     </group>
   );
 };
@@ -273,8 +316,9 @@ const JosephScene: React.FC<{manifest: UnifiedRenderManifest}> = ({manifest}) =>
   const activeOverlays = findActiveOverlays(manifest.textOverlays, frame);
   const activeTransition = findActiveTransition(manifest.transitions, frame);
   const backgroundContract = resolveBackgroundRenderContract(manifest.josephBackground);
+  const matteContract = resolveMatteRenderContract(manifest);
   const pipContract = manifest.josephPiP
-    ? resolvePiPRenderContract({plan: manifest.josephPiP, frame, cameraMoves: manifest.cameraMoves})
+    ? resolvePiPRenderContract({plan: manifest.josephPiP, frame, cameraMoves: manifest.cameraMoves, matte: matteContract})
     : null;
 
   return (
@@ -283,7 +327,7 @@ const JosephScene: React.FC<{manifest: UnifiedRenderManifest}> = ({manifest}) =>
       <ambientLight intensity={0.9} />
       <directionalLight position={[0, 0, 4]} intensity={1.2} />
       <JosephBackgroundRig contract={backgroundContract} />
-      <JosephPiPRig plan={manifest.josephPiP} />
+      <JosephPiPRig plan={manifest.josephPiP} cameraMoves={manifest.cameraMoves} matteContract={matteContract} />
       <VideoPlane
         track={manifest.videoTracks[0]}
         manifest={manifest}

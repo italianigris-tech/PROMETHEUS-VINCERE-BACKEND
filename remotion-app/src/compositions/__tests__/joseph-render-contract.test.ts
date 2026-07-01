@@ -296,7 +296,11 @@ describe('Joseph renderer manifest contract', () => {
   });
 
   it('turns PiP depth, matte, z-order, and populated layers into observable scene values', () => {
-    const contract = resolvePiPRenderContract({plan: pipPlan, frame: 10});
+    const contract = resolvePiPRenderContract({
+      plan: pipPlan,
+      frame: 10,
+      matte: {available: true, planeZ: 0.46, fallbackTags: []},
+    });
 
     expect(contract.frame.depth).toBe('foreground');
     expect(contract.frame.sourceZ).toBeGreaterThan(0.5);
@@ -307,6 +311,53 @@ describe('Joseph renderer manifest contract', () => {
     expect(contract.layers.map((layer) => layer.role)).toEqual(['backplate', 'asset_board', 'focus_field']);
     expect(contract.layers[2]?.z).toBeGreaterThan(contract.layers[0]?.z ?? 0);
     expect(contract.motion.scale).toBeGreaterThan(0.96);
+    expect(contract.compositor.subjectMatte).toMatchObject({
+      available: true,
+      alphaSource: 'rvm_matte',
+      planeZ: 0.46,
+      renderOrder: contract.frame.renderOrder,
+    });
+    expect(contract.compositor.visibleLayerOrder.map((layer) => layer.role)).toEqual([
+      'backplate',
+      'asset_board',
+      'focus_field',
+      'subject',
+      'frame_chrome',
+    ]);
+    expect(contract.compositor.visibleLayerOrder.at(-1)).toMatchObject({
+      role: 'frame_chrome',
+      renderOrder: contract.frame.renderOrder + 1,
+    });
+  });
+
+  it('proves 2.5D PiP compositor visibility changes with depth and matte choices', () => {
+    const flatBackground = resolvePiPRenderContract({
+      plan: {
+        ...pipPlan,
+        frame: {...pipPlan.frame, depth: 'background'},
+      },
+      frame: 18,
+      matte: {available: false, fallbackTags: ['compiler_matte_unavailable']},
+    });
+    const matteForeground = resolvePiPRenderContract({
+      plan: {
+        ...pipPlan,
+        frame: {...pipPlan.frame, depth: 'foreground'},
+      },
+      frame: 18,
+      matte: {available: true, planeZ: 0.46, fallbackTags: []},
+    });
+
+    const flatSubject = flatBackground.compositor.visibleLayerOrder.find((layer) => layer.role === 'subject');
+    const matteSubject = matteForeground.compositor.visibleLayerOrder.find((layer) => layer.role === 'subject');
+
+    expect(matteForeground.frame.renderOrder).toBeGreaterThan(flatBackground.frame.renderOrder);
+    expect(matteSubject?.z).toBeGreaterThan(flatSubject?.z ?? 0);
+    expect(matteSubject?.respectsSubjectMatte).toBe(true);
+    expect(flatSubject?.respectsSubjectMatte).toBe(false);
+    expect(flatBackground.compositor.subjectMatte.alphaSource).toBe('flat_subject');
+    expect(flatBackground.compositor.subjectMatte.fallbackTags).toContain('compiler_matte_unavailable');
+    expect(matteForeground.compositor.depthSignature).not.toBe(flatBackground.compositor.depthSignature);
   });
 
   it('emits a governed matte fallback tag when the manifest has no matte asset', () => {
@@ -400,6 +451,8 @@ describe('Joseph renderer manifest contract', () => {
         'pip_camera_subject_focus_risk',
       ]),
     );
+    expect(contract.compositor.failureTags).toEqual(contract.clearance.failureTags);
+    expect(contract.compositor.depthSignature).toContain('subject');
   });
   it('applies camera entry and exit velocity hints across the active move', () => {
     const move: CameraMove = {
