@@ -122,3 +122,42 @@ test('idle awaiting input times out after five minutes and returns to root', asy
     call.text === 'Session timed out. Returning to main menu.'
   ));
 });
+
+test('Codex outer retry alerts reuse one edited message per task', async () => {
+  const fakeBot = createFakeBot();
+  telegram._test.resetTelegramInteractionStateForTest({ bot: fakeBot, now: () => 1000 });
+
+  await telegram.sendCodexOuterRetryAlert(123, {
+    label: 'Manual Telegram prompt',
+    retryMessageKey: 'run-1',
+    retryAttempt: 1,
+    maxRetries: 3,
+    delayMs: 30000,
+    cfRayId: 'ray-1'
+  });
+  await telegram.sendCodexOuterRetryAlert(123, {
+    label: 'Manual Telegram prompt',
+    retryMessageKey: 'run-1',
+    retryAttempt: 2,
+    maxRetries: 3,
+    delayMs: 120000,
+    cfRayId: 'ray-2'
+  });
+  await telegram.sendCodexOuterRetryAlert(123, {
+    label: 'Manual Telegram prompt',
+    retryMessageKey: 'run-1',
+    retryAttempt: 3,
+    maxRetries: 3,
+    delayMs: 300000,
+    cfRayId: 'ray-3'
+  });
+
+  const sends = fakeBot.calls.filter(call => call.method === 'sendMessage');
+  const edits = fakeBot.calls.filter(call => call.method === 'editMessageText');
+  assert.equal(sends.length, 1);
+  assert.equal(edits.length, 2);
+  assert.equal(edits[0].options.chat_id, 123);
+  assert.equal(edits[0].options.message_id, sends[0].message_id);
+  assert.match(edits[0].text, /Retry attempt: 2\/3 in 2m 0s/);
+  assert.match(edits[1].text, /Retry attempt: 3\/3 in 5m 0s/);
+});

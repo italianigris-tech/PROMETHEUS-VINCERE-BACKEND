@@ -120,6 +120,8 @@ let messageCallbacks = new Map();
 let pendingInputs = new Map();
 let chatSessions = createTelegramSessionStore();
 let trackedBotMessages = new Map();
+let codexOuterRetryMessages = new Map();
+let codexOuterRetrySequence = 0;
 let pollingRetryTimer = null;
 let pollingRetryDelay = 5000;
 let awaitingInputTimeoutTimer = null;
@@ -1575,6 +1577,15 @@ function trackMessage(chatId, messageId) {
   const messages = trackedBotMessages.get(key) || [];
   messages.push(messageId);
   trackedBotMessages.set(key, messages.slice(-MAX_TRACKED_MESSAGES_PER_CHAT));
+}
+
+function createCodexOuterRetryMessageKey(chatId, label = 'Codex run') {
+  codexOuterRetrySequence += 1;
+  return `${chatId}:${Date.now()}:${codexOuterRetrySequence}:${label}`;
+}
+
+function getCodexOuterRetryMessageKey(chatId, details = {}) {
+  return details.retryMessageKey || `${chatId}:${details.label || 'Codex run'}`;
 }
 
 async function clearTrackedMessages(chatId) {
@@ -3550,13 +3561,14 @@ async function runPromptFromTelegram(chatId, prompt, label, operator = null) {
   try {
     await startDiffStream(chatId, label, operator);
     await startThinkingStream(chatId, label, operator);
+    const retryMessageKey = createCodexOuterRetryMessageKey(chatId, label);
     const result = await runCodexPrompt(prompt, {
       label,
       model,
       source: 'telegram',
       operator,
       onServiceOutageRetry: async (details) => {
-        await sendCodexOuterRetryAlert(chatId, { ...details, label });
+        await sendCodexOuterRetryAlert(chatId, { ...details, label, retryMessageKey });
       }
     });
     stopDiffStream(buildDiffStreamText({
@@ -4744,7 +4756,28 @@ async function sendCodexOuterRetryAlert(chatId, details = {}) {
     `${rayLine}\n` +
     `This is *NOT* an API key issue. The proxy is overloaded.`;
 
-  await sendTrackedMessage(chatId, message, { parse_mode: 'Markdown' });
+  const retryMessageKey = getCodexOuterRetryMessageKey(chatId, details);
+  if (retryAttempt <= 1) {
+    codexOuterRetryMessages.delete(retryMessageKey);
+  }
+
+  const existingMessageId = codexOuterRetryMessages.get(retryMessageKey);
+  if (existingMessageId) {
+    try {
+      await safeEditMessageText(message, {
+        chat_id: chatId,
+        message_id: existingMessageId,
+        parse_mode: 'Markdown'
+      });
+      return;
+    } catch (error) {
+      console.warn('[telegram] Unable to edit Codex retry alert; sending replacement:', formatError(error));
+      codexOuterRetryMessages.delete(retryMessageKey);
+    }
+  }
+
+  const sent = await sendTrackedMessage(chatId, message, { parse_mode: 'Markdown' });
+  codexOuterRetryMessages.set(retryMessageKey, sent.message_id);
 }
 
 async function sendServiceOutageAlert(chatId, issueNumber, title, details = {}) {
@@ -4876,6 +4909,8 @@ function resetTelegramInteractionStateForTest(options = {}) {
   pendingInputs = new Map();
   chatSessions = createTelegramSessionStore({ now: options.now });
   trackedBotMessages = new Map();
+  codexOuterRetryMessages = new Map();
+  codexOuterRetrySequence = 0;
   diffStreams = new Map();
   thinkingStreams = new Map();
   sessionReservation = null;
