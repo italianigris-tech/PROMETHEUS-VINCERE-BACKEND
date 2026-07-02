@@ -3,7 +3,7 @@ import {Player} from "@remotion/player";
 import type {PlayerRef} from "@remotion/player";
 import type {UnifiedRenderManifest} from "@prometheus/shared-types";
 
-import {buildJosephStudyOverlaySections} from "./joseph-study-overlays";
+import {buildJosephStudyFrameDiagnostics, type JosephStudyCompilerArtifact} from "./joseph-study-overlays";
 import {
   JOSEPH_STUDY_FAILURE_TAGS,
   captureJosephStudyReview,
@@ -40,6 +40,8 @@ type JosephStudyComparisonLane = {
   evidencePointer?: string | null;
   errorMessage?: string;
   failureTags?: string[];
+  compilerArtifact?: JosephStudyCompilerArtifact | null;
+  plannerAuditPointer?: string | null;
 };
 
 type JosephStudyComparisonState = {
@@ -242,7 +244,6 @@ export const syncJosephStudyPlayers = (
   });
 };
 
-const buildComparisonOverlaySections = (manifest: UnifiedRenderManifest) => buildJosephStudyOverlaySections(manifest);
 
 const isReadyLane = (lane: JosephStudyComparisonLane): lane is JosephStudyComparisonLane & {manifest: UnifiedRenderManifest} =>
   lane.status !== "failed" && Boolean(lane.manifest);
@@ -330,8 +331,8 @@ export const JosephStudyStudioView: React.FC<JosephStudyStudioViewProps> = ({
     : state.mode === "candidate" || state.mode === "generation"
       ? DEFAULT_JOSEPH_MANIFEST
       : state.manifest ?? DEFAULT_JOSEPH_MANIFEST;
-  const diagnosticsSections = diagnosticsVisible ? buildComparisonOverlaySections(manifest) : [];
   const readyLanes = state.mode === "comparison" ? state.lanes.filter(isReadyLane) : [];
+  const diagnosticLane = state.mode === "comparison" ? state.lanes.find(isReadyLane) ?? null : null;
   const playerRefs = useRef<Record<string, JosephStudyPlayerHandle>>({});
   const [transportFrame, setTransportFrame] = useState(0);
   const [transportPlaying, setTransportPlaying] = useState(false);
@@ -341,6 +342,16 @@ export const JosephStudyStudioView: React.FC<JosephStudyStudioViewProps> = ({
   );
   const comparisonFinalFrame = Math.max(0, comparisonDurationInFrames - 1);
   const comparisonFps = readyLanes[0]?.manifest.fps ?? JOSEPH_RENDER_FPS;
+  const diagnosticsFrame = state.mode === "comparison" ? transportFrame : 0;
+  const frameDiagnostics = diagnosticsVisible
+    ? buildJosephStudyFrameDiagnostics({
+      manifest,
+      frame: diagnosticsFrame,
+      compilerArtifact: diagnosticLane?.compilerArtifact ?? null,
+      plannerAuditPointer: diagnosticLane?.plannerAuditPointer ?? null,
+    })
+    : null;
+  const diagnosticsSections = frameDiagnostics?.sections ?? [];
 
   useEffect(() => {
     setTransportFrame((frame) => clampJosephStudyFrame(frame, comparisonDurationInFrames));
@@ -515,7 +526,7 @@ export const JosephStudyStudioView: React.FC<JosephStudyStudioViewProps> = ({
       ) : null}
 
       {diagnosticsVisible ? (
-        <section data-joseph-study-overlays="true" aria-label="Diagnostic overlays">
+        <section data-joseph-study-overlays="true" data-joseph-study-diagnostics-frame={frameDiagnostics?.frame ?? diagnosticsFrame} aria-label="Diagnostic overlays">
           {diagnosticsSections.map((section) => (
             <article key={section.id}>
               <h2>{section.title}</h2>
