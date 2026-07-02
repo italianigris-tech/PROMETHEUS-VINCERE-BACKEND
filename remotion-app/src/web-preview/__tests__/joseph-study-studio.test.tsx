@@ -5,6 +5,7 @@ import {describe, expect, it, vi} from "vitest";
 import {
   buildJosephStudyPlayerConfig,
   buildJosephStudyGeneratedComparisonState,
+  formatJosephStudyTimecode,
   JosephStudyStudio,
   JosephStudyStudioView,
   parseJosephStudyCandidateManifest,
@@ -311,6 +312,64 @@ describe("JosephStudyStudio", () => {
     ]);
   });
 
+  it("synchronizes frame stepping at the first and final frame boundaries", () => {
+    const calls: string[] = [];
+    const firstPlayer = {
+      play: () => calls.push("first:play"),
+      pause: () => calls.push("first:pause"),
+      seekTo: (frame: number) => calls.push(`first:seek:${frame}`)
+    };
+    const secondPlayer = {
+      play: () => calls.push("second:play"),
+      pause: () => calls.push("second:pause"),
+      seekTo: (frame: number) => calls.push(`second:seek:${frame}`)
+    };
+    const lanes = [
+      {id: "first", player: firstPlayer, durationInFrames: 180},
+      {id: "second", player: secondPlayer, durationInFrames: 90}
+    ];
+
+    expect(syncJosephStudyPlayers(lanes, {type: "step", currentFrame: 0, deltaFrames: -1})).toEqual([
+      {id: "first", frame: 0},
+      {id: "second", frame: 0}
+    ]);
+    expect(syncJosephStudyPlayers(lanes, {type: "step", currentFrame: 179, deltaFrames: 1})).toEqual([
+      {id: "first", frame: 179},
+      {id: "second", frame: 89}
+    ]);
+    expect(formatJosephStudyTimecode(179, 30)).toBe("00:05:29");
+
+    expect(calls).toEqual([
+      "first:seek:0",
+      "second:seek:0",
+      "first:seek:179",
+      "second:seek:89"
+    ]);
+  });
+
+  it("renders shared synchronized transport controls with a stable frame timecode", () => {
+    const markup = renderToStaticMarkup(
+      <JosephStudyStudioView
+        state={{
+          mode: "comparison",
+          status: "ready",
+          manifestUrls: ["/joseph-study/candidate-manifest.json", "/joseph-study/candidate-b-manifest.json"],
+          lanes: [
+            {id: "candidate-a", label: "Candidate A", manifestUrl: "/joseph-study/candidate-manifest.json", manifest: candidateManifest},
+            {id: "candidate-b", label: "Candidate B", manifestUrl: "/joseph-study/candidate-b-manifest.json", manifest: candidateBManifest}
+          ]
+        } as any}
+      />
+    );
+
+    expect(markup).toContain("data-joseph-study-sync-controls=\"true\"");
+    expect(markup).toContain("aria-label=\"Play all comparison lanes\"");
+    expect(markup).toContain("aria-label=\"Step all lanes backward one frame\"");
+    expect(markup).toContain("aria-label=\"Scrub all comparison lanes\"");
+    expect(markup).toContain("data-joseph-study-current-frame=\"0\"");
+    expect(markup).toContain("00:00:00");
+    expect(markup).toContain("max=\"209\"");
+  });
   it("renders a visible candidate validation error instead of mounting a broken player", () => {
     const markup = renderToStaticMarkup(
       <JosephStudyStudioView

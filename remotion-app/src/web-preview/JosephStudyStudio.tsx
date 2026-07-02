@@ -1,5 +1,6 @@
-import React, {useEffect, useMemo, useState} from "react";
+import React, {useEffect, useMemo, useRef, useState} from "react";
 import {Player} from "@remotion/player";
+import type {PlayerRef} from "@remotion/player";
 import type {UnifiedRenderManifest} from "@prometheus/shared-types";
 
 import {buildJosephStudyOverlaySections} from "./joseph-study-overlays";
@@ -14,6 +15,8 @@ import {
 } from "./joseph-study-review-ledger";
 import {DEFAULT_JOSEPH_MANIFEST, JOSEPH_RENDER_FPS, JOSEPH_RENDER_HEIGHT, JOSEPH_RENDER_WIDTH} from "../compositions/joseph-default-manifest";
 import {JosephEdit} from "../compositions/JosephEdit";
+
+type JosephStudyPlayerHandle = Pick<PlayerRef, "play" | "pause" | "seekTo">;
 
 type JosephStudyPlayerConfig = {
   durationInFrames: number;
@@ -200,9 +203,26 @@ export const buildJosephStudyPlayerConfig = (manifest: UnifiedRenderManifest = D
   };
 };
 
+const clampJosephStudyFrame = (frame: number, durationInFrames: number): number => {
+  const finalFrame = Math.max(0, durationInFrames - 1);
+  return Math.max(0, Math.min(Math.round(frame), finalFrame));
+};
+
+export const formatJosephStudyTimecode = (frame: number, fps: number): string => {
+  const safeFps = Math.max(1, Math.round(fps));
+  const safeFrame = Math.max(0, Math.round(frame));
+  const totalSeconds = Math.floor(safeFrame / safeFps);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  const frames = safeFrame % safeFps;
+  const pad = (value: number) => value.toString().padStart(2, "0");
+
+  return `${pad(minutes)}:${pad(seconds)}:${pad(frames)}`;
+};
+
 export const syncJosephStudyPlayers = (
-  lanes: Array<{id: string; player: {play: () => void; pause: () => void; seekTo: (frame: number) => void}; durationInFrames: number}>,
-  command: {type: "play"} | {type: "pause"} | {type: "seek"; frame: number}
+  lanes: Array<{id: string; player: JosephStudyPlayerHandle; durationInFrames: number}>,
+  command: {type: "play"} | {type: "pause"} | {type: "seek"; frame: number} | {type: "step"; currentFrame: number; deltaFrames: number}
 ): Array<{id: string; frame: number}> => {
   if (command.type === "play") {
     lanes.forEach((lane) => lane.player.play());
@@ -214,8 +234,9 @@ export const syncJosephStudyPlayers = (
     return [];
   }
 
+  const requestedFrame = command.type === "step" ? command.currentFrame + command.deltaFrames : command.frame;
   return lanes.map((lane) => {
-    const frame = Math.max(0, Math.min(command.frame, lane.durationInFrames - 1));
+    const frame = clampJosephStudyFrame(requestedFrame, lane.durationInFrames);
     lane.player.seekTo(frame);
     return {id: lane.id, frame};
   });
@@ -311,7 +332,43 @@ export const JosephStudyStudioView: React.FC<JosephStudyStudioViewProps> = ({
       : state.manifest ?? DEFAULT_JOSEPH_MANIFEST;
   const diagnosticsSections = diagnosticsVisible ? buildComparisonOverlaySections(manifest) : [];
   const readyLanes = state.mode === "comparison" ? state.lanes.filter(isReadyLane) : [];
+  const playerRefs = useRef<Record<string, JosephStudyPlayerHandle>>({});
+  const [transportFrame, setTransportFrame] = useState(0);
+  const [transportPlaying, setTransportPlaying] = useState(false);
+  const comparisonDurationInFrames = readyLanes.reduce(
+    (maxFrame, lane) => Math.max(maxFrame, buildJosephStudyPlayerConfig(lane.manifest).durationInFrames),
+    0
+  );
+  const comparisonFinalFrame = Math.max(0, comparisonDurationInFrames - 1);
+  const comparisonFps = readyLanes[0]?.manifest.fps ?? JOSEPH_RENDER_FPS;
 
+  useEffect(() => {
+    setTransportFrame((frame) => clampJosephStudyFrame(frame, comparisonDurationInFrames));
+  }, [comparisonDurationInFrames]);
+
+  const buildSyncableLanes = (): Array<{id: string; player: JosephStudyPlayerHandle; durationInFrames: number}> => readyLanes.flatMap((lane) => {
+    const player = playerRefs.current[lane.id];
+    return player
+      ? [{id: lane.id, player, durationInFrames: buildJosephStudyPlayerConfig(lane.manifest).durationInFrames}]
+      : [];
+  });
+
+  const applyTransportCommand = (command: Parameters<typeof syncJosephStudyPlayers>[1]): void => {
+    syncJosephStudyPlayers(buildSyncableLanes(), command);
+
+    if (command.type === "play") {
+      setTransportPlaying(true);
+      return;
+    }
+
+    if (command.type === "pause") {
+      setTransportPlaying(false);
+      return;
+    }
+
+    const requestedFrame = command.type === "step" ? command.currentFrame + command.deltaFrames : command.frame;
+    setTransportFrame(clampJosephStudyFrame(requestedFrame, comparisonDurationInFrames));
+  };
   if (state.mode === "candidate" && state.status === "error") {
     return (
       <div data-joseph-study-route="true" data-joseph-study-mode={state.mode}>
@@ -375,39 +432,68 @@ export const JosephStudyStudioView: React.FC<JosephStudyStudioViewProps> = ({
 
       {state.mode === "comparison" ? (
         <section data-joseph-comparison-lanes={state.lanes.length} className="joseph-study-comparison">
-          {state.lanes.map((lane) => (
-            <article key={lane.id} className="joseph-study-comparison-lane" role={lane.status === "failed" ? "alert" : undefined}>
-              <header>
-                <strong>{lane.label}</strong>
-                <span>{lane.candidateId ?? lane.manifest?.jobId ?? "Generation failed"}</span>
-              </header>
-              <dl className="joseph-study-lane-metadata">
-                <div><dt>Doctrine</dt><dd>{lane.doctrineBranch ?? "unresolved"}</dd></div>
-                <div><dt>Manifest hash</dt><dd>{lane.manifestHash ?? "unavailable"}</dd></div>
-                <div><dt>Evidence</dt><dd>{lane.evidencePointer ?? lane.manifestUrl ?? "unavailable"}</dd></div>
-              </dl>
-              {isReadyLane(lane) ? (
-                <div className="joseph-study-comparison-player">
-                  <Player
-                    component={JosephEdit}
-                    durationInFrames={buildJosephStudyPlayerConfig(lane.manifest).durationInFrames}
-                    fps={lane.manifest.fps}
-                    compositionWidth={lane.manifest.output?.width ?? JOSEPH_RENDER_WIDTH}
-                    compositionHeight={lane.manifest.output?.height ?? JOSEPH_RENDER_HEIGHT}
-                    inputProps={{manifest: lane.manifest}}
-                    controls
-                    clickToPlay
-                  />
-                </div>
-              ) : (
-                <div className="joseph-study-error">
-                  <strong>Lane generation failed</strong>
-                  <span>{lane.errorMessage ?? "Candidate lane could not be generated."}</span>
-                  <small>{lane.failureTags?.join(", ") ?? "candidate_generation_failed"}</small>
-                </div>
-              )}
-            </article>
-          ))}
+          {readyLanes.length > 0 ? (
+            <div className="joseph-study-comparison-controls" data-joseph-study-sync-controls="true">
+              <button type="button" aria-label="Play all comparison lanes" aria-pressed={transportPlaying} onClick={() => applyTransportCommand({type: "play"})}>Play</button>
+              <button type="button" aria-label="Pause all comparison lanes" aria-pressed={!transportPlaying} onClick={() => applyTransportCommand({type: "pause"})}>Pause</button>
+              <button type="button" aria-label="Step all lanes backward one frame" onClick={() => applyTransportCommand({type: "step", currentFrame: transportFrame, deltaFrames: -1})}>-1 frame</button>
+              <button type="button" aria-label="Step all lanes forward one frame" onClick={() => applyTransportCommand({type: "step", currentFrame: transportFrame, deltaFrames: 1})}>+1 frame</button>
+              <label>
+                <span>Scrub</span>
+                <input
+                  type="range"
+                  aria-label="Scrub all comparison lanes"
+                  min={0}
+                  max={comparisonFinalFrame}
+                  value={transportFrame}
+                  onChange={(event) => applyTransportCommand({type: "seek", frame: Number(event.currentTarget.value)})}
+                />
+              </label>
+              <output data-joseph-study-current-frame={transportFrame}>Frame {transportFrame} / {formatJosephStudyTimecode(transportFrame, comparisonFps)}</output>
+            </div>
+          ) : null}
+          <div className="joseph-study-comparison-grid">
+            {state.lanes.map((lane) => (
+              <article key={lane.id} className="joseph-study-comparison-lane" role={lane.status === "failed" ? "alert" : undefined}>
+                <header>
+                  <strong>{lane.label}</strong>
+                  <span>{lane.candidateId ?? lane.manifest?.jobId ?? "Generation failed"}</span>
+                </header>
+                <dl className="joseph-study-lane-metadata">
+                  <div><dt>Doctrine</dt><dd>{lane.doctrineBranch ?? "unresolved"}</dd></div>
+                  <div><dt>Manifest hash</dt><dd>{lane.manifestHash ?? "unavailable"}</dd></div>
+                  <div><dt>Evidence</dt><dd>{lane.evidencePointer ?? lane.manifestUrl ?? "unavailable"}</dd></div>
+                </dl>
+                {isReadyLane(lane) ? (
+                  <div className="joseph-study-comparison-player">
+                    <Player
+                      ref={(player) => {
+                        if (player) {
+                          playerRefs.current[lane.id] = player;
+                        } else {
+                          delete playerRefs.current[lane.id];
+                        }
+                      }}
+                      component={JosephEdit}
+                      durationInFrames={buildJosephStudyPlayerConfig(lane.manifest).durationInFrames}
+                      fps={lane.manifest.fps}
+                      compositionWidth={lane.manifest.output?.width ?? JOSEPH_RENDER_WIDTH}
+                      compositionHeight={lane.manifest.output?.height ?? JOSEPH_RENDER_HEIGHT}
+                      inputProps={{manifest: lane.manifest}}
+                      controls={false}
+                      clickToPlay={false}
+                    />
+                  </div>
+                ) : (
+                  <div className="joseph-study-error">
+                    <strong>Lane generation failed</strong>
+                    <span>{lane.errorMessage ?? "Candidate lane could not be generated."}</span>
+                    <small>{lane.failureTags?.join(", ") ?? "candidate_generation_failed"}</small>
+                  </div>
+                )}
+              </article>
+            ))}
+          </div>
         </section>
       ) : (
         <section className="joseph-study-stage">
