@@ -2,11 +2,13 @@ import type {
   CameraMove,
   JosephBackgroundPlan,
   JosephBackgroundPrimitiveSelection,
+  JosephMacroRigPlan,
   JosephPiPBackgroundLayer,
   JosephPiPFrame,
   JosephPiPPlan,
   JosephTypography,
   JosephTypographyIntelligencePlan,
+  JosephTypographyLine,
   JosephTypographyRoleStyle,
   MicroAnimationRenderFallback,
   TextOverlay,
@@ -14,6 +16,13 @@ import type {
 import {hashSeed, seededRandom} from '@prometheus/shared-types';
 
 export type RenderVector3 = [number, number, number];
+export type PercentRect = {
+  leftPercent: number;
+  topPercent: number;
+  widthPercent: number;
+  heightPercent: number;
+};
+
 export type JosephTypographyFallbackReason =
   | 'manifest_typography_missing'
   | 'local_font_asset_not_browser_safe'
@@ -21,12 +30,22 @@ export type JosephTypographyFallbackReason =
 
 export type JosephTypographyRoleStyleObservable = {
   fontFamily: string;
+  fontAssetUrl: string;
   fontWeight: number;
   letterSpacing: string;
+  trackingEm: number;
   lineHeight: number;
   hierarchyLevel: number;
   hierarchyScale: number;
   renderOrder: number;
+};
+
+export type JosephTypographyLineRenderContract = JosephTypographyLine & JosephTypographyRoleStyleObservable & {
+  safeRect: PercentRect;
+  estimatedWidthPercent: number;
+  textClipped: boolean;
+  intersectsProtectedSubject: boolean;
+  failureTags: string[];
 };
 
 export type JosephTypographyRenderContract = JosephTypography & {
@@ -39,6 +58,11 @@ export type JosephTypographyRenderContract = JosephTypography & {
     fontAssetUrl: string;
     renderOrder: number;
     roleStyles: Partial<Record<JosephTypographyRoleStyle['role'], JosephTypographyRoleStyleObservable>>;
+    lines: JosephTypographyLineRenderContract[];
+    readability: {
+      failureTags: string[];
+    };
+    pixelProofSignature: string;
   };
 };
 
@@ -77,16 +101,27 @@ const typographyRenderOrderFor = (role: JosephTypographyRoleStyle['role']): numb
   return 40;
 };
 
+const fontSelectionForRoleStyle = (
+  style: JosephTypographyRoleStyle,
+  plan?: JosephTypographyIntelligencePlan,
+) => {
+  if (style.fontRole === 'support') {
+    return plan?.fontPairing?.secondary ?? plan?.fontPairing?.primary;
+  }
+  return plan?.fontPairing?.primary;
+};
+
 const fontFamilyForRoleStyle = (
   style: JosephTypographyRoleStyle,
   typography: JosephTypography,
   plan?: JosephTypographyIntelligencePlan,
-): string => {
-  if (style.fontRole === 'support') {
-    return plan?.fontPairing?.secondary?.family ?? typography.fontFamily;
-  }
-  return plan?.fontPairing?.primary.family ?? typography.fontFamily;
-};
+): string => fontSelectionForRoleStyle(style, plan)?.family ?? typography.fontFamily;
+
+const fontAssetUrlForRoleStyle = (
+  style: JosephTypographyRoleStyle,
+  typography: JosephTypography,
+  plan?: JosephTypographyIntelligencePlan,
+): string => fontSelectionForRoleStyle(style, plan)?.fontAssetUrl ?? typography.fontAssetUrl;
 
 const resolveTypographyRoleStyleObservables = (
   typography: JosephTypography,
@@ -96,8 +131,10 @@ const resolveTypographyRoleStyleObservables = (
   return roleStyles.reduce<Partial<Record<JosephTypographyRoleStyle['role'], JosephTypographyRoleStyleObservable>>>((resolved, style) => {
     resolved[style.role] = {
       fontFamily: fontFamilyForRoleStyle(style, typography, plan),
+      fontAssetUrl: fontAssetUrlForRoleStyle(style, typography, plan),
       fontWeight: style.weight,
       letterSpacing: formatTracking(style.trackingEm),
+      trackingEm: style.trackingEm,
       lineHeight: style.lineHeight,
       hierarchyLevel: style.hierarchyLevel,
       hierarchyScale: style.hierarchyScale,
@@ -106,9 +143,125 @@ const resolveTypographyRoleStyleObservables = (
     return resolved;
   }, {});
 };
+
+const defaultTypographySafeRectFor = (line: JosephTypographyLine, index: number): PercentRect => ({
+  leftPercent: line.role === 'support' ? 9 : 7,
+  topPercent: 14 + index * 18,
+  widthPercent: line.role === 'support' ? 52 : 46,
+  heightPercent: line.role === 'support' ? 14 : 18,
+});
+
+const typographyZoneForLine = (
+  line: JosephTypographyLine,
+  index: number,
+  pipPlan?: JosephPiPPlan,
+): PercentRect => {
+  const zone = pipPlan?.typographyZones.find((candidate) => (
+    candidate.role === line.role || (candidate.role === 'caption' && line.role === 'support')
+  ));
+  if (!zone) {
+    return defaultTypographySafeRectFor(line, index);
+  }
+  return {
+    leftPercent: zone.leftPercent,
+    topPercent: zone.topPercent,
+    widthPercent: zone.widthPercent,
+    heightPercent: zone.heightPercent,
+  };
+};
+
+const fallbackRoleStyleForLine = (
+  line: JosephTypographyLine,
+  typography: JosephTypography,
+): JosephTypographyRoleStyleObservable => ({
+  fontFamily: typography.fontFamily,
+  fontAssetUrl: typography.fontAssetUrl,
+  fontWeight: line.role === 'support' ? 500 : 760,
+  letterSpacing: formatTracking(line.role === 'support' ? 0.04 : -0.02),
+  trackingEm: line.role === 'support' ? 0.04 : -0.02,
+  lineHeight: line.role === 'support' ? 1.08 : 0.96,
+  hierarchyLevel: line.hierarchyLevel,
+  hierarchyScale: line.role === 'support' ? 1 : 1.18,
+  renderOrder: typographyRenderOrderFor(line.role),
+});
+
+const estimateTypographyLineWidthPercent = (
+  line: JosephTypographyLine,
+  style: JosephTypographyRoleStyleObservable,
+): number => {
+  const glyphWidth = line.role === 'support' ? 1.18 : 1.72;
+  const trackingWidth = Math.abs(style.trackingEm) * 95;
+  return Number((line.text.length * glyphWidth * style.hierarchyScale + trackingWidth).toFixed(3));
+};
+
+const resolveTypographyLineContracts = ({
+  typography,
+  plan,
+  pipPlan,
+  roleStyles,
+}: {
+  typography: JosephTypography;
+  plan?: JosephTypographyIntelligencePlan;
+  pipPlan?: JosephPiPPlan;
+  roleStyles: Partial<Record<JosephTypographyRoleStyle['role'], JosephTypographyRoleStyleObservable>>;
+}): JosephTypographyLineRenderContract[] => {
+  const protectedSubjectRect = pipPlan
+    ? expandPercentRect(
+        pipPlan.frame,
+        Math.max(
+          pipPlan.frame.safeMarginPercent,
+          pipPlan.coexistenceRules.textClearancePercent,
+          ...pipPlan.typographyZones.map((zone) => zone.minClearancePercent),
+        ),
+      )
+    : null;
+
+  return (plan?.lines ?? []).map((line, index) => {
+    const style = roleStyles[line.role] ?? fallbackRoleStyleForLine(line, typography);
+    const safeRect = typographyZoneForLine(line, index, pipPlan);
+    const estimatedWidthPercent = estimateTypographyLineWidthPercent(line, style);
+    const textClipped = line.text.length > line.maxCharacters || estimatedWidthPercent > safeRect.widthPercent;
+    const intersectsProtectedSubject = Boolean(
+      pipPlan?.coexistenceRules.protectTypography &&
+      protectedSubjectRect &&
+      rectsIntersect(safeRect, protectedSubjectRect),
+    );
+    const failureTags = [
+      ...(textClipped ? ['typography_line_clipping'] : []),
+      ...(intersectsProtectedSubject ? ['typography_pip_overlap'] : []),
+    ];
+
+    return {
+      ...line,
+      ...style,
+      safeRect,
+      estimatedWidthPercent,
+      textClipped,
+      intersectsProtectedSubject,
+      failureTags,
+    };
+  });
+};
+
+const typographyPixelProofSignatureFor = (lines: readonly JosephTypographyLineRenderContract[]): string =>
+  lines.map((line) => [
+    line.role,
+    line.text,
+    line.fontFamily,
+    line.fontAssetUrl,
+    line.fontWeight,
+    line.trackingEm.toFixed(3),
+    line.hierarchyScale.toFixed(2),
+    line.safeRect.leftPercent,
+    line.safeRect.topPercent,
+    line.safeRect.widthPercent,
+    line.safeRect.heightPercent,
+  ].join(':')).join('|');
+
 export const resolveTypographyRenderContract = (
   typography?: JosephTypography,
   typographyPlan?: JosephTypographyIntelligencePlan,
+  pipPlan?: JosephPiPPlan,
 ): JosephTypographyRenderContract => {
   const fallbackReason = resolveTypographyFallbackReason(typography);
   const selected: JosephTypography = fallbackReason || !typography
@@ -118,6 +271,9 @@ export const resolveTypographyRenderContract = (
         ...typography,
         fallbackFamily: typography.fallbackFamily || DEFAULT_JOSEPH_TYPOGRAPHY.fallbackFamily,
       };
+  const roleStyles = resolveTypographyRoleStyleObservables(selected, typographyPlan);
+  const lines = resolveTypographyLineContracts({typography: selected, plan: typographyPlan, pipPlan, roleStyles});
+  const failureTags = uniqueStrings(lines.flatMap((line) => line.failureTags));
 
   return {
     ...selected,
@@ -129,16 +285,14 @@ export const resolveTypographyRenderContract = (
       fallbackFamily: selected.fallbackFamily,
       fontAssetUrl: selected.fontAssetUrl,
       renderOrder: 40,
-      roleStyles: resolveTypographyRoleStyleObservables(selected, typographyPlan),
+      roleStyles,
+      lines,
+      readability: {
+        failureTags,
+      },
+      pixelProofSignature: typographyPixelProofSignatureFor(lines),
     },
   };
-};
-
-export type PercentRect = {
-  leftPercent: number;
-  topPercent: number;
-  widthPercent: number;
-  heightPercent: number;
 };
 
 export type JosephTextTransform = {
@@ -230,6 +384,23 @@ export type JosephPiPRenderContract = {
   };
 };
 
+export type JosephMacroRigRenderLayer = {
+  role: 'speaker_pip' | JosephMacroRigPlan['renderFields']['typographySlots'][number]['role'] | JosephMacroRigPlan['renderFields']['assetPlacements'][number]['role'];
+  frameRect: PercentRect;
+  z: number;
+  renderOrder: number;
+  label: string;
+};
+
+export type JosephMacroRigRenderContract = {
+  active: boolean;
+  rigId: JosephMacroRigPlan['rigId'] | null;
+  triggerSignals: string[];
+  pip: JosephPiPRenderContract | null;
+  layers: JosephMacroRigRenderLayer[];
+  fallbackTags: string[];
+  pixelProofSignature: string;
+};
 export type JosephBackgroundLayerRenderContract = JosephBackgroundPrimitiveSelection & {
   z: number;
   color: string;
@@ -782,6 +953,87 @@ export const resolvePiPRenderContract = ({
   };
 };
 
+const inactiveMacroRigContract = (fallbackTags: string[] = ['macro_rig_semantic_trigger_missing']): JosephMacroRigRenderContract => ({
+  active: false,
+  rigId: null,
+  triggerSignals: [],
+  pip: null,
+  layers: [],
+  fallbackTags,
+  pixelProofSignature: 'macro-rig:inactive',
+});
+
+const macroRigPixelProofSignatureFor = (
+  macroRig: JosephMacroRigPlan,
+  layers: readonly JosephMacroRigRenderLayer[],
+): string => [
+  macroRig.rigId,
+  macroRig.semanticTrigger.matchedSignals.join(','),
+  layers.map((layer) => `${layer.role}:${layer.frameRect.leftPercent}:${layer.frameRect.topPercent}:${layer.frameRect.widthPercent}:${layer.frameRect.heightPercent}:${layer.renderOrder}`).join('|'),
+].join(':');
+
+export const resolveMacroRigRenderContract = ({
+  macroRig,
+  frame,
+  cameraMoves,
+}: {
+  macroRig?: JosephMacroRigPlan | null;
+  frame: number;
+  cameraMoves?: readonly CameraMoveWithVelocity[];
+}): JosephMacroRigRenderContract => {
+  if (!macroRig || !macroRig.semanticTrigger.valid) {
+    return inactiveMacroRigContract();
+  }
+
+  const pip = resolvePiPRenderContract({plan: macroRig.renderFields.pipPlan, frame, cameraMoves});
+  const layers: JosephMacroRigRenderLayer[] = [
+    {
+      role: 'speaker_pip',
+      frameRect: macroRig.renderFields.pipPlan.frame,
+      z: pip.frame.sourceZ,
+      renderOrder: pip.frame.renderOrder,
+      label: macroRig.inputs.sourceTrackId,
+    },
+    ...macroRig.renderFields.assetPlacements.map((placement) => ({
+      role: placement.role,
+      frameRect: {
+        leftPercent: placement.leftPercent,
+        topPercent: placement.topPercent,
+        widthPercent: placement.widthPercent,
+        heightPercent: placement.heightPercent,
+      },
+      z: 0.24 + placement.zIndex / 100,
+      renderOrder: placement.zIndex,
+      label: placement.role,
+    })),
+    ...macroRig.renderFields.typographySlots.map((slot) => ({
+      role: slot.role,
+      frameRect: {
+        leftPercent: slot.leftPercent,
+        topPercent: slot.topPercent,
+        widthPercent: slot.widthPercent,
+        heightPercent: slot.heightPercent,
+      },
+      z: 0.34 + slot.zIndex / 100,
+      renderOrder: slot.zIndex,
+      label: slot.text,
+    })),
+  ];
+  const fallbackTags = uniqueStrings([
+    ...macroRig.failureFallbacks.map((fallback) => fallback.tag),
+    ...pip.clearance.failureTags,
+  ]);
+
+  return {
+    active: true,
+    rigId: macroRig.rigId,
+    triggerSignals: macroRig.semanticTrigger.matchedSignals,
+    pip,
+    layers,
+    fallbackTags,
+    pixelProofSignature: macroRigPixelProofSignatureFor(macroRig, layers),
+  };
+};
 const backgroundLayerZ: Record<JosephBackgroundPrimitiveSelection['layer'], number> = {
   foundation: -0.42,
   atmosphere: -0.34,

@@ -27,6 +27,38 @@ export interface JudgmentVerdict {
   passedFloor: boolean;
   vetoReason?: string;
   failureTags: string[];
+  negativeEvaluator?: {
+    failures: string[];
+    warnings: string[];
+  };
+  fixIntents?: string[];
+}
+
+export interface RenderFrameProof {
+  compositionId: "JosephEdit";
+  frame: number;
+  manifestHash: string;
+  signature: string;
+  fallbackTags: string[];
+}
+
+export interface RenderProof {
+  version: "joseph-render-proof-v1";
+  renderer: {
+    compositionId: "JosephEdit";
+    entryPoint: string;
+    contentType: "video/mp4";
+    width: number;
+    height: number;
+    fps: number;
+    durationFrames: number;
+    outputFileName: string;
+  };
+  selectedCandidateId: string | null;
+  manifestHash: string;
+  visibleBehaviorSignature: string;
+  frameProofs: RenderFrameProof[];
+  fallbackTags: string[];
 }
 
 export interface RejectedCandidateEvidence {
@@ -49,6 +81,7 @@ export interface EvidencePackage {
   plannerAudit?: unknown;
   plannerAuditArtifact?: unknown;
   rejectedCandidateEvidence?: RejectedCandidateEvidence[];
+  renderProof?: RenderProof;
   audit?: unknown;
 }
 
@@ -62,6 +95,7 @@ export interface EvidenceArtifactPaths {
   compilerArtifactPath: string;
   plannerAuditPath: string;
   evidenceRecordPath: string;
+  renderProofPath: string;
   reviewArtifactPath: string;
   reviewLedgerPath: string;
   regressionGalleryPath: string;
@@ -80,6 +114,9 @@ export interface EvidenceRecord {
   plannerAuditPointer: string | null;
   candidateScoreSummaryPointer: string | null;
   rejectedCandidates: RejectedCandidateEvidence[];
+  renderProofPointer: string | null;
+  frameProofCount: number;
+  fallbackTags: string[];
 }
 
 type LegacyLedger = {
@@ -189,6 +226,7 @@ const buildEvidenceRecord = (pkg: EvidencePackage, paths: EvidenceArtifactPaths)
   const hasCandidateScoreSummary = pkg.candidateScoreSummary !== undefined;
   const hasCompilerArtifact = pkg.compilerArtifact !== undefined;
   const hasPlannerAudit = plannerAuditPayloadOf(pkg) !== undefined;
+  const hasRenderProof = pkg.renderProof !== undefined;
 
   return {
     version: "prometheus-evidence-record-v1",
@@ -202,6 +240,9 @@ const buildEvidenceRecord = (pkg: EvidencePackage, paths: EvidenceArtifactPaths)
     plannerAuditPointer: pointerFor(paths.jobDir, paths.plannerAuditPath, hasPlannerAudit),
     candidateScoreSummaryPointer: pointerFor(paths.jobDir, paths.candidateScoreSummaryPath, hasCandidateScoreSummary),
     rejectedCandidates: rejectedCandidateEvidenceFor(pkg),
+    renderProofPointer: pointerFor(paths.jobDir, paths.renderProofPath, hasRenderProof),
+    frameProofCount: pkg.renderProof?.frameProofs.length ?? 0,
+    fallbackTags: pkg.renderProof?.fallbackTags ?? [],
   };
 };
 
@@ -233,6 +274,7 @@ const preserveEvidencePackage = (
     compilerArtifactPath: path.join(jobDir, "compiler-artifact.json"),
     plannerAuditPath: path.join(jobDir, "planner-audit.json"),
     evidenceRecordPath: path.join(jobDir, "evidence-record.json"),
+    renderProofPath: path.join(jobDir, "render-proof.json"),
     reviewArtifactPath: path.join(jobDir, "review-artifact.json"),
     reviewLedgerPath: path.join(baseDir, "review-ledger.ndjson"),
     regressionGalleryPath: path.join(baseDir, "regression-gallery.json"),
@@ -253,6 +295,9 @@ const preserveEvidencePackage = (
   const plannerAuditPayload = plannerAuditPayloadOf(pkg);
   if (plannerAuditPayload !== undefined) {
     writeJsonAtomic(paths.plannerAuditPath, plannerAuditPayload);
+  }
+  if (pkg.renderProof !== undefined) {
+    writeJsonAtomic(paths.renderProofPath, pkg.renderProof);
   }
   writeJsonAtomic(paths.evidenceRecordPath, buildEvidenceRecord(pkg, paths));
   const oversightPaths = preserveJosephOversightReview({

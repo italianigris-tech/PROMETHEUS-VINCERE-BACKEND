@@ -16,6 +16,7 @@ export const JOSEPH_MANIFEST_COMPILER_PRESERVED_FIELD_PATHS = [
   "textOverlays.microAnimation",
   "microAnimationAudit",
   "josephPiP",
+  "josephMacroRig",
   "josephBackground",
   "josephTypography",
   "josephChoreography",
@@ -29,6 +30,7 @@ export const JOSEPH_MANIFEST_COMPILER_PRESERVED_FIELD_PATHS = [
 const JOSEPH_MANIFEST_COMPILER_COMPILED_TARGET_FIELD_PATHS = [
   "textOverlays.microAnimation",
   "josephPiP",
+  "josephMacroRig",
   "cameraMoves",
   "josephTypography",
   "josephBackground",
@@ -141,6 +143,7 @@ const targetManifestFieldsFor = (manifest: UnifiedRenderManifest): string[] => u
   ...(manifest.textOverlays.some((overlay) => Boolean(overlay.microAnimation)) ? ["textOverlays.microAnimation"] : []),
   ...(manifest.microAnimationAudit ? ["microAnimationAudit"] : []),
   ...(manifest.josephPiP ? ["josephPiP"] : []),
+  ...(manifest.josephMacroRig ? ["josephMacroRig"] : []),
   ...(manifest.josephBackground ? ["josephBackground"] : []),
   ...(manifest.josephTypography ? ["josephTypography"] : []),
   ...(manifest.josephChoreography ? ["josephChoreography"] : []),

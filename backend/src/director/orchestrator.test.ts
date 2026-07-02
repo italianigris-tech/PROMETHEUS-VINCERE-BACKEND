@@ -104,6 +104,54 @@ describe("Director Orchestrator", () => {
     expect(JSON.parse(fs.readFileSync(result.evidencePaths.regressionGalleryPath, "utf8")).version).toBe("joseph-oversight-review-v1");
   });
 
+  it("preserves a JosephEdit render proof for the selected planner seam", async () => {
+    const ledger = new ReplayLedger(":memory:");
+    const first = await orchestrateRender(
+      baseInput("joseph_aggressive", {uploadInstanceId: "render-proof-a", retryIndex: 0}),
+      ledger,
+      registry(),
+    );
+    const second = await orchestrateRender(
+      baseInput("joseph_aggressive", {uploadInstanceId: "render-proof-b", retryIndex: 0}),
+      new ReplayLedger(":memory:"),
+      registry(),
+    );
+
+    expect(fs.existsSync(first.evidencePaths.renderProofPath)).toBe(true);
+
+    const proof = JSON.parse(fs.readFileSync(first.evidencePaths.renderProofPath, "utf8"));
+    const secondProof = JSON.parse(fs.readFileSync(second.evidencePaths.renderProofPath, "utf8"));
+    const evidenceRecord = JSON.parse(fs.readFileSync(first.evidencePaths.evidenceRecordPath, "utf8"));
+    const ledgerEntries = ledger.getBySource(first.variationKey.sourceFingerprint);
+
+    expect(proof).toMatchObject({
+      version: "joseph-render-proof-v1",
+      renderer: {
+        compositionId: "JosephEdit",
+        contentType: "video/mp4",
+        width: 1080,
+        height: 1920,
+      },
+      selectedCandidateId: first.manifest.jobId,
+      manifestHash: expect.stringMatching(/^[a-f0-9]{64}$/),
+      visibleBehaviorSignature: expect.stringMatching(/^[a-f0-9]{64}$/),
+      frameProofs: expect.any(Array),
+      fallbackTags: expect.any(Array),
+    });
+    expect(proof.frameProofs.length).toBeGreaterThanOrEqual(3);
+    expect(proof.frameProofs[0]).toMatchObject({
+      compositionId: "JosephEdit",
+      manifestHash: proof.manifestHash,
+      frame: expect.any(Number),
+      signature: expect.stringMatching(/^[a-f0-9]{64}$/),
+    });
+    expect(evidenceRecord).toMatchObject({
+      renderProofPointer: "render-proof.json",
+      frameProofCount: proof.frameProofs.length,
+    });
+    expect(ledgerEntries[0]?.chosenGenome).toContain(first.manifest.jobId);
+    expect(secondProof.visibleBehaviorSignature).not.toBe(proof.visibleBehaviorSignature);
+  });
   it("determinism: same key = same manifest", async () => {
     const first = await orchestrateRender(
       baseInput("joseph_aggressive", {uploadInstanceId: "upload-stable", retryIndex: 2}),

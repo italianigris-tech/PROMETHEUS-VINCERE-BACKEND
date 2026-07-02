@@ -205,6 +205,83 @@ describe("JudgmentLayer active contract", () => {
     expect(score.passedFloor).toBe(false);
     expect(score.floorFailures).toContain("climax-overspend");
   });
+  it("vetoes negative evaluator failures and includes fix intent in the verdict", async () => {
+    const safe = validManifest("safe-candidate");
+    const overspent = validManifest("overspent-candidate", {
+      audio: {
+        ...validManifest("overspent-audio").audio,
+        energyCurve: [0.94, 0.93, 0.91, 0.9, 0.88, 0.86],
+      },
+    }) as UnifiedRenderManifest & {
+      _sequenceMemory: {
+        highEnergy20sWindows: number;
+        breatheFrames: number[];
+      };
+    };
+    overspent._sequenceMemory = {
+      highEnergy20sWindows: 2,
+      breatheFrames: [],
+    };
+
+    const judgment = await new JudgmentLayer(new ReplayLedger(":memory:")).judgeCandidates(
+      [safe, overspent],
+      variationKey(),
+      governedPrompt(),
+    );
+
+    expect(judgment.selected.jobId).toBe("safe-candidate");
+    expect(judgment.sequenceObjective.selection.candidatePoolIds).not.toContain("overspent-candidate");
+    expect(judgment.verdict.failureTags).toContain("climax-overspend");
+    expect(judgment.verdict.negativeEvaluator?.failures).toContain("climax-overspend");
+    expect(judgment.verdict.fixIntents).toContain(
+      "Reserve peak energy for the strongest beat or CTA by reducing earlier high-intensity treatments.",
+    );
+  });
+
+  it("keeps negative evaluator warnings visible without removing candidates from deterministic selection", async () => {
+    const warningOnly = validManifest("warning-only", {
+      timeline: [
+        ...baseTimeline(),
+        cut(2400),
+        cut(2800),
+        text(2100, 2400),
+        text(2600, 2900),
+        text(5400, 5700),
+        text(7000, 7300),
+      ],
+      audio: {
+        ...validManifest("warning-audio").audio,
+        sfx: [
+          ...baseSfx(),
+          sfx("dense-cut-0", "whoosh_fast", 2400),
+          sfx("dense-cut-1", "whoosh_fast", 2800),
+          sfx("dense-0", "pop_text", 2100),
+          sfx("dense-1", "pop_text", 2600),
+          sfx("dense-2", "pop_text", 5400),
+          sfx("dense-3", "pop_text", 7000),
+        ],
+      },
+    });
+    const clean = validManifest("clean-candidate", {seed: 222});
+
+    const left = await new JudgmentLayer(new ReplayLedger(":memory:")).judgeCandidates(
+      [warningOnly, clean],
+      variationKey(3),
+      governedPrompt(),
+    );
+    const right = await new JudgmentLayer(new ReplayLedger(":memory:")).judgeCandidates(
+      [warningOnly, clean],
+      variationKey(3),
+      governedPrompt(),
+    );
+
+    expect(left.selected.jobId).toBe(right.selected.jobId);
+    const warningScore = left.scores.find((score) => score.manifest.jobId === "warning-only");
+    expect(warningScore?.passedFloor).toBe(true);
+    expect(left.rejected.map((candidate) => candidate.jobId)).toContain("warning-only");
+    expect(warningScore?.negativeEvaluator.warnings).toContain("visual-density-overload");
+    expect(left.verdict.negativeEvaluator?.warnings).toContain("visual-density-overload");
+  });
   it("vetoes candidate too similar to replay ledger", async () => {
     const repeated = validManifest("repeat");
     const novel = validManifest("novel", {

@@ -2,6 +2,7 @@ import {describe, expect, it} from 'vitest';
 import type {
   CameraMove,
   JosephBackgroundPlan,
+  JosephMacroRigPlan,
   JosephPiPPlan,
   JosephTypography,
   JosephTypographyIntelligencePlan,
@@ -12,6 +13,7 @@ import {
   KNOWN_JOSEPH_MICRO_ANIMATION_IDS,
   resolveBackgroundRenderContract,
   resolveCameraRenderContract,
+  resolveMacroRigRenderContract,
   resolveMicroAnimationRenderContract,
   resolvePiPRenderContract,
   resolveTypographyRenderContract,
@@ -89,6 +91,24 @@ const pipPlan: JosephPiPPlan = {
       align: 'left',
       minClearancePercent: 6,
     },
+    {
+      role: 'support',
+      leftPercent: 8,
+      topPercent: 45,
+      widthPercent: 38,
+      heightPercent: 18,
+      align: 'left',
+      minClearancePercent: 5,
+    },
+    {
+      role: 'caption',
+      leftPercent: 8,
+      topPercent: 82,
+      widthPercent: 42,
+      heightPercent: 10,
+      align: 'left',
+      minClearancePercent: 4,
+    },
   ],
   backgroundLayers: [
     {role: 'backplate', leftPercent: 54, topPercent: 8, widthPercent: 42, heightPercent: 46, intensity: 0.42},
@@ -103,6 +123,63 @@ const pipPlan: JosephPiPPlan = {
   },
 };
 
+const macroRigPlan: JosephMacroRigPlan = {
+  version: 'joseph-macro-rig-v1',
+  rigId: 'talking-head-proof-data-exhibit',
+  semanticTrigger: {
+    valid: true,
+    triggerKind: 'proof_data_exhibit',
+    matchedSignals: ['proof', 'data', 'exhibit'],
+    confidence: 0.91,
+  },
+  inputs: {
+    sourceTrackId: 'primary',
+    requiredSceneRoles: ['talking_head', 'proof', 'data_exhibit'],
+    semanticSignals: ['proof', 'data', 'exhibit'],
+  },
+  sceneFacts: {
+    momentKind: 'proof_data_exhibit',
+    talkingHeadPresent: true,
+    exhibitAnchors: ['proof', 'data', 'exhibit'],
+    proofText: 'Proof data exhibit',
+  },
+  assetRequirements: [
+    {
+      role: 'speaker_source',
+      required: true,
+      acceptableFallback: 'omit_macro_rig',
+      semanticNeed: 'Talking-head source track must be available.',
+    },
+    {
+      role: 'exhibit_board',
+      required: false,
+      acceptableFallback: 'typography_only_exhibit',
+      semanticNeed: 'Proof/data evidence needs a visible exhibit surface.',
+    },
+  ],
+  renderFields: {
+    pipPlan,
+    typographySlots: [
+      {role: 'proof_headline', text: 'PROOF', leftPercent: 7, topPercent: 14, widthPercent: 43, heightPercent: 12, zIndex: 42},
+      {role: 'data_label', text: 'DATA', leftPercent: 8, topPercent: 45, widthPercent: 38, heightPercent: 10, zIndex: 41},
+    ],
+    assetPlacements: [
+      {role: 'exhibit_board', leftPercent: 7, topPercent: 65, widthPercent: 39, heightPercent: 18, zIndex: 24},
+    ],
+  },
+  failureFallbacks: [
+    {
+      tag: 'macro_rig_exhibit_asset_unavailable',
+      reason: 'Use typography if no exhibit asset is resolved.',
+      action: 'use_typography_only_exhibit',
+    },
+    {
+      tag: 'macro_rig_semantic_trigger_missing',
+      reason: 'Do not render the rig unless proof/data/exhibit semantics are present.',
+      action: 'omit_macro_rig',
+    },
+  ],
+};
 const backgroundPlan: JosephBackgroundPlan = {
   version: 'joseph-background-v1',
   catalogVersion: '2026.06',
@@ -221,12 +298,14 @@ const typographyPlan: JosephTypographyIntelligencePlan = {
     primary: {
       fontId: 'hero-berylium-regular',
       family: 'Prometheus Hero Berylium',
+      fontAssetUrl: '/fonts/hero/berylium-rg-67d7e31492fa.otf',
       source: 'custom_ingested',
       role: 'hero',
     },
     secondary: {
       fontId: 'support-fraunces-regular',
       family: 'Fraunces',
+      fontAssetUrl: '/fonts/hero/goudybookletter1911-29a7765f69d5.otf',
       source: 'custom_ingested',
       role: 'support',
     },
@@ -309,6 +388,34 @@ describe('Joseph renderer manifest contract', () => {
     expect(contract.motion.scale).toBeGreaterThan(0.96);
   });
 
+  it('activates the macro-rig render contract only for a valid semantic trigger', () => {
+    const active = resolveMacroRigRenderContract({macroRig: macroRigPlan, frame: 10});
+    const inactive = resolveMacroRigRenderContract({
+      macroRig: {
+        ...macroRigPlan,
+        semanticTrigger: {
+          valid: false,
+          triggerKind: 'proof_data_exhibit',
+          matchedSignals: [],
+          confidence: 0,
+        },
+      },
+      frame: 10,
+    });
+
+    expect(active.active).toBe(true);
+    expect(active.rigId).toBe('talking-head-proof-data-exhibit');
+    expect(active.layers.map((layer) => layer.role)).toEqual(
+      expect.arrayContaining(['speaker_pip', 'exhibit_board', 'proof_headline', 'data_label']),
+    );
+    expect(active.fallbackTags).toEqual(
+      expect.arrayContaining(['macro_rig_exhibit_asset_unavailable', 'macro_rig_semantic_trigger_missing']),
+    );
+    expect(active.pixelProofSignature).toContain('talking-head-proof-data-exhibit:proof,data,exhibit');
+    expect(inactive.active).toBe(false);
+    expect(inactive.layers).toEqual([]);
+    expect(inactive.fallbackTags).toContain('macro_rig_semantic_trigger_missing');
+  });
   it('emits a governed matte fallback tag when the manifest has no matte asset', () => {
     const contract = resolveMatteRenderContract({
       jobId: 'job-missing-matte',
@@ -451,6 +558,7 @@ describe('Joseph renderer manifest contract', () => {
 
     expect(contract.observable.roleStyles.hero).toMatchObject({
       fontFamily: 'Prometheus Hero Berylium',
+      fontAssetUrl: '/fonts/hero/berylium-rg-67d7e31492fa.otf',
       fontWeight: 820,
       letterSpacing: '-0.045em',
       lineHeight: 0.94,
@@ -459,12 +567,79 @@ describe('Joseph renderer manifest contract', () => {
     });
     expect(contract.observable.roleStyles.support).toMatchObject({
       fontFamily: 'Fraunces',
+      fontAssetUrl: '/fonts/hero/goudybookletter1911-29a7765f69d5.otf',
       fontWeight: 520,
       letterSpacing: '0.080em',
       lineHeight: 1.08,
       hierarchyScale: 1,
       renderOrder: 40,
     });
+  });
+
+  it('proves role typography changes rendered pixels through line-level render signatures', () => {
+    const contract = resolveTypographyRenderContract(manifestTypography, typographyPlan, pipPlan);
+    const heroLine = contract.observable.lines.find((line) => line.role === 'hero');
+    const supportLine = contract.observable.lines.find((line) => line.role === 'support');
+
+    expect(heroLine).toMatchObject({
+      text: 'WIN NOW',
+      fontFamily: 'Prometheus Hero Berylium',
+      fontAssetUrl: '/fonts/hero/berylium-rg-67d7e31492fa.otf',
+      fontWeight: 820,
+      trackingEm: -0.045,
+      letterSpacing: '-0.045em',
+      renderOrder: 42,
+      textClipped: false,
+      intersectsProtectedSubject: false,
+    });
+    expect(supportLine).toMatchObject({
+      text: 'with sharper rhythm',
+      fontFamily: 'Fraunces',
+      fontAssetUrl: '/fonts/hero/goudybookletter1911-29a7765f69d5.otf',
+      fontWeight: 520,
+      trackingEm: 0.08,
+      letterSpacing: '0.080em',
+      renderOrder: 40,
+      textClipped: false,
+      intersectsProtectedSubject: false,
+    });
+    expect(contract.observable.pixelProofSignature).toContain('hero:WIN NOW:Prometheus Hero Berylium:/fonts/hero/berylium-rg-67d7e31492fa.otf:820:-0.045');
+    expect(contract.observable.pixelProofSignature).toContain('support:with sharper rhythm:Fraunces:/fonts/hero/goudybookletter1911-29a7765f69d5.otf:520:0.080');
+    expect(contract.observable.readability.failureTags).toEqual([]);
+  });
+
+  it('catches typography clipping and PiP overlap through readability failure tags', () => {
+    const unsafePlan: JosephTypographyIntelligencePlan = {
+      ...typographyPlan,
+      lines: [
+        {
+          ...typographyPlan.lines[0]!,
+          text: 'WIN NOW WITH AN ABSURDLY LONG HERO LINE THAT CANNOT FIT',
+          maxCharacters: 12,
+        },
+      ],
+    };
+    const unsafePipPlan: JosephPiPPlan = {
+      ...pipPlan,
+      typographyZones: [
+        {
+          ...pipPlan.typographyZones[0]!,
+          leftPercent: 44,
+          topPercent: 18,
+          widthPercent: 34,
+          heightPercent: 24,
+          minClearancePercent: 8,
+        },
+      ],
+    };
+
+    const contract = resolveTypographyRenderContract(manifestTypography, unsafePlan, unsafePipPlan);
+
+    expect(contract.observable.lines[0]?.textClipped).toBe(true);
+    expect(contract.observable.lines[0]?.intersectsProtectedSubject).toBe(true);
+    expect(contract.observable.readability.failureTags).toEqual(
+      expect.arrayContaining(['typography_line_clipping', 'typography_pip_overlap']),
+    );
   });
 
   it('turns background primitive layering rules into bounded render layers', () => {

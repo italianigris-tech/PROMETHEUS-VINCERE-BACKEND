@@ -29,6 +29,11 @@ import {registerVideoContextRoutes} from "./video-context/routes";
 import {GodService, registerGodRoutes} from "./god";
 import {registerThumbnailRoutes} from "./thumbnail";
 import {registerRenderJobRoutes} from "./render-jobs/routes";
+import {
+  createJosephStudyCandidateGenerator,
+  registerJosephStudyCandidateRoutes,
+  type JosephStudyCandidateGenerator,
+} from "./director/joseph-study-candidates";
 import {AssetRetrievalService} from "./assets/service";
 import {registerAssetRoutes} from "./assets/routes";
 import {VectorRetrievalService} from "./assets/vector-service";
@@ -73,6 +78,7 @@ export type BackendAppContext = {
 export type BackendDependencies = PipelineDependencies & EditSessionDependencies & {
   r2Service?: R2TransferService;
   josephUploadPipeline?: JosephUploadPipeline;
+  josephStudyCandidateGenerator?: JosephStudyCandidateGenerator;
   extractAudioPreviewFile?: LocalPreviewRunnerDependencies["extractAudioPreviewFile"];
   musicPreviewUrlSigner?: MusicPreviewUrlSigner;
   videoContext?: ConstructorParameters<typeof VideoContextService>[4];
@@ -268,6 +274,9 @@ export const createBackendApp = async ({
   const vectorRetrieval = env.ASSET_MILVUS_ENABLED ? new VectorRetrievalService(env) : undefined;
   const r2Service = deps?.r2Service ?? createR2TransferService(env);
   const josephUploadPipeline = deps?.josephUploadPipeline ?? createJosephUploadPipeline({
+    storageDir: env.STORAGE_DIR
+  });
+  const josephStudyCandidateGenerator = deps?.josephStudyCandidateGenerator ?? createJosephStudyCandidateGenerator({
     storageDir: env.STORAGE_DIR
   });
   const musicPreviewUrlSigner = deps?.musicPreviewUrlSigner ?? createSignedMusicPreviewUrl;
@@ -835,6 +844,7 @@ export const createBackendApp = async ({
     r2Service,
     josephUploadPipeline
   });
+  registerJosephStudyCandidateRoutes(app, josephStudyCandidateGenerator);
   await registerVideoContextRoutes(app, videoContexts);
   await registerRenderJobRoutes(app);
 

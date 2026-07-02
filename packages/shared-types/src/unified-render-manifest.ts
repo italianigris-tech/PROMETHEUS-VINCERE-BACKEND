@@ -82,6 +82,9 @@ export const JosephTypographyFontSourceSchema = z.enum(["custom_ingested", "syst
 export const JosephTypographyFontSelectionSchema = z.object({
   fontId: z.string().trim().min(1),
   family: z.string().trim().min(1),
+  fontAssetUrl: z.string().trim().min(1).refine(isBrowserSafeMediaUrl, {
+    message: "fontAssetUrl must be browser-safe: HTTP(S) or root-relative, not file:// or a local filesystem path",
+  }).optional(),
   source: JosephTypographyFontSourceSchema,
   role: JosephTypographyFontRoleSchema,
 });
@@ -325,6 +328,87 @@ export const JosephPiPPlanSchema = z.object({
   coexistenceRules: JosephPiPCoexistenceRulesSchema,
 });
 
+export const JosephMacroRigIdSchema = z.enum([
+  "talking-head-proof-data-exhibit",
+]);
+
+export const JosephMacroRigSemanticTriggerSchema = z.object({
+  valid: z.boolean(),
+  triggerKind: z.literal("proof_data_exhibit"),
+  matchedSignals: z.array(z.string().trim().min(1)).default([]),
+  confidence: z.number().min(0).max(1),
+});
+
+export const JosephMacroRigSceneRoleSchema = z.enum([
+  "talking_head",
+  "proof",
+  "data_exhibit",
+  "typography",
+]);
+
+export const JosephMacroRigInputsSchema = z.object({
+  sourceTrackId: z.string().trim().min(1),
+  requiredSceneRoles: z.array(JosephMacroRigSceneRoleSchema).min(1),
+  semanticSignals: z.array(z.string().trim().min(1)).default([]),
+});
+
+export const JosephMacroRigSceneFactsSchema = z.object({
+  momentKind: z.literal("proof_data_exhibit"),
+  talkingHeadPresent: z.boolean(),
+  exhibitAnchors: z.array(z.string().trim().min(1)).default([]),
+  proofText: z.string().trim().min(1).optional(),
+});
+
+export const JosephMacroRigAssetRequirementSchema = z.object({
+  role: z.enum(["speaker_source", "exhibit_board", "proof_typography", "background_context"]),
+  required: z.boolean(),
+  acceptableFallback: z.enum(["omit_macro_rig", "typography_only_exhibit", "use_pip_safe_zone"]),
+  semanticNeed: z.string().trim().min(1),
+});
+
+const JosephMacroRigRectSchema = z.object({
+  leftPercent: z.number().min(0).max(100),
+  topPercent: z.number().min(0).max(100),
+  widthPercent: z.number().min(1).max(100),
+  heightPercent: z.number().min(1).max(100),
+  zIndex: z.number().int(),
+});
+
+export const JosephMacroRigTypographySlotSchema = JosephMacroRigRectSchema.extend({
+  role: z.enum(["proof_headline", "data_label", "exhibit_caption"]),
+  text: z.string().trim().min(1),
+});
+
+export const JosephMacroRigAssetPlacementSchema = JosephMacroRigRectSchema.extend({
+  role: z.enum(["exhibit_board", "background_context"]),
+});
+
+export const JosephMacroRigRenderFieldsSchema = z.object({
+  pipPlan: JosephPiPPlanSchema,
+  typographySlots: z.array(JosephMacroRigTypographySlotSchema).min(1),
+  assetPlacements: z.array(JosephMacroRigAssetPlacementSchema).default([]),
+});
+
+export const JosephMacroRigFailureFallbackSchema = z.object({
+  tag: z.enum([
+    "macro_rig_exhibit_asset_unavailable",
+    "macro_rig_semantic_trigger_missing",
+    "macro_rig_typography_collision",
+  ]),
+  reason: z.string().trim().min(1),
+  action: z.enum(["omit_macro_rig", "use_typography_only_exhibit", "use_pip_safe_zone"]),
+});
+
+export const JosephMacroRigPlanSchema = z.object({
+  version: z.literal("joseph-macro-rig-v1"),
+  rigId: JosephMacroRigIdSchema,
+  semanticTrigger: JosephMacroRigSemanticTriggerSchema,
+  inputs: JosephMacroRigInputsSchema,
+  sceneFacts: JosephMacroRigSceneFactsSchema,
+  assetRequirements: z.array(JosephMacroRigAssetRequirementSchema).min(1),
+  renderFields: JosephMacroRigRenderFieldsSchema,
+  failureFallbacks: z.array(JosephMacroRigFailureFallbackSchema).default([]),
+});
 export const JosephBackgroundPrimitiveFamilySchema = z.enum([
   "shader_background",
   "abstract_light_field",
@@ -581,6 +665,7 @@ export const UnifiedRenderManifestSchema = z.object({
   typography: JosephTypographySchema.optional(),
   microAnimationAudit: MicroAnimationAuditSchema.optional(),
   josephPiP: JosephPiPPlanSchema.optional(),
+  josephMacroRig: JosephMacroRigPlanSchema.optional(),
   josephBackground: JosephBackgroundPlanSchema.optional(),
   josephTypography: JosephTypographyIntelligencePlanSchema.optional(),
   josephChoreography: JosephChoreographyPlanSchema.optional(),
@@ -681,6 +766,17 @@ export type JosephPiPTypographyZone = z.infer<typeof JosephPiPTypographyZoneSche
 export type JosephPiPBackgroundLayer = z.infer<typeof JosephPiPBackgroundLayerSchema>;
 export type JosephPiPCoexistenceRules = z.infer<typeof JosephPiPCoexistenceRulesSchema>;
 export type JosephPiPPlan = z.infer<typeof JosephPiPPlanSchema>;
+export type JosephMacroRigId = z.infer<typeof JosephMacroRigIdSchema>;
+export type JosephMacroRigSemanticTrigger = z.infer<typeof JosephMacroRigSemanticTriggerSchema>;
+export type JosephMacroRigSceneRole = z.infer<typeof JosephMacroRigSceneRoleSchema>;
+export type JosephMacroRigInputs = z.infer<typeof JosephMacroRigInputsSchema>;
+export type JosephMacroRigSceneFacts = z.infer<typeof JosephMacroRigSceneFactsSchema>;
+export type JosephMacroRigAssetRequirement = z.infer<typeof JosephMacroRigAssetRequirementSchema>;
+export type JosephMacroRigTypographySlot = z.infer<typeof JosephMacroRigTypographySlotSchema>;
+export type JosephMacroRigAssetPlacement = z.infer<typeof JosephMacroRigAssetPlacementSchema>;
+export type JosephMacroRigRenderFields = z.infer<typeof JosephMacroRigRenderFieldsSchema>;
+export type JosephMacroRigFailureFallback = z.infer<typeof JosephMacroRigFailureFallbackSchema>;
+export type JosephMacroRigPlan = z.infer<typeof JosephMacroRigPlanSchema>;
 export type JosephBackgroundPrimitiveFamily = z.infer<typeof JosephBackgroundPrimitiveFamilySchema>;
 export type JosephBackgroundPrimitiveLayer = z.infer<typeof JosephBackgroundPrimitiveLayerSchema>;
 export type JosephBackgroundPrimitiveParameters = z.infer<typeof JosephBackgroundPrimitiveParametersSchema>;

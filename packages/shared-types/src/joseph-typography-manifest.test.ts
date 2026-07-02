@@ -95,12 +95,14 @@ describe("Joseph typography intelligence manifest contract", () => {
           primary: {
             fontId: "hero-satoshi-bold",
             family: "Satoshi",
+            fontAssetUrl: "/fonts/retrieved/Satoshi-Bold.otf",
             source: "custom_ingested",
             role: "hero",
           },
           secondary: {
             fontId: "support-canela-regular",
             family: "Canela",
+            fontAssetUrl: "/fonts/retrieved/Canela-Regular.ttf",
             source: "custom_ingested",
             role: "support",
           },
@@ -141,7 +143,9 @@ describe("Joseph typography intelligence manifest contract", () => {
     );
     expect(manifest.josephTypography?.compositionRules.fillerTreatment).toBe("suppress");
     expect(manifest.josephTypography?.fontPairing.primary.role).toBe("hero");
+    expect(manifest.josephTypography?.fontPairing.primary.fontAssetUrl).toBe("/fonts/retrieved/Satoshi-Bold.otf");
     expect(manifest.josephTypography?.fontPairing.secondary?.role).toBe("support");
+    expect(manifest.josephTypography?.fontPairing.secondary?.fontAssetUrl).toBe("/fonts/retrieved/Canela-Regular.ttf");
     expect(manifest.josephTypography?.roleStyles.find((style) => style.role === "hero")?.trackingEm).toBeLessThan(0);
     expect(manifest.josephTypography?.roleStyles.find((style) => style.role === "support")?.trackingEm).toBeGreaterThan(0);    expect(manifest.josephTypography?.qualityAudit.score).toBeGreaterThan(0.9);
   });

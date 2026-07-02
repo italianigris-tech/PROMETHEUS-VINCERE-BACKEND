@@ -8,65 +8,97 @@ export const JOSEPH_FAILURE_TAXONOMY = [
     id: "boring-under-editing",
     label: "Boring Under Editing",
     description: "The candidate does not spend enough editorial energy to carry the hook, body, or CTA.",
+    severity: "editorial",
+    affectedArtifacts: ["manifest", "candidate-score-summary", "review-surface"],
+    fixIntent: "Increase purposeful cuts, emphasis, or motion in the under-served hook, body, or CTA window.",
     indicators: ["hook_cuts", "cta_cuts", "body_cut_density_low", "under_animation", "flat_pacing"],
   },
   {
     id: "chaotic-over-editing",
     label: "Chaotic Over Editing",
     description: "The candidate stacks too many cuts, text hits, SFX, or motion accents for the moment.",
+    severity: "editorial",
+    affectedArtifacts: ["manifest", "render-preview", "review-surface"],
+    fixIntent: "Reduce competing cuts, text hits, SFX, or motion accents until the moment has readable hierarchy.",
     indicators: ["overcutting", "text_overlap", "text_spacing", "sfx_density", "too_dense"],
   },
   {
     id: "cheap-template-motion",
     label: "Cheap Template Motion",
     description: "The candidate leans on obvious canned motion, cheap emphasis, or low-specificity animation.",
+    severity: "editorial",
+    affectedArtifacts: ["manifest", "pattern-memory", "review-surface"],
+    fixIntent: "Replace generic motion with a treatment-specific primitive or mark the pattern for downgrade pressure.",
     indicators: ["cheap", "template", "cheap_emphasis", "semantic_mismatch", "generic_motion"],
   },
   {
     id: "premium-restraint",
     label: "Premium Restraint",
     description: "The candidate fails to preserve breath, hierarchy, or climax budget when restraint is needed.",
+    severity: "editorial",
+    affectedArtifacts: ["manifest", "candidate-score-summary", "review-surface"],
+    fixIntent: "Add breathe space or lower intensity where the doctrine calls for premium restraint.",
     indicators: ["missing_breathe_beat", "climax_overspend", "overuse", "no_restraint", "overspend"],
   },
   {
     id: "repetition-fatigue",
     label: "Repetition Fatigue",
     description: "The candidate repeats a pattern, structure, or prior ledger result until it stops feeling fresh.",
+    severity: "editorial",
+    affectedArtifacts: ["replay-ledger", "pattern-memory", "review-surface"],
+    fixIntent: "Select a fresher approved primitive, layout, or pacing signature and preserve the fatigue reason in replay evidence.",
     indicators: ["repetition", "monotony", "fatigue", "replay_similarity_veto", "same_pattern"],
   },
   {
     id: "climax-overspend",
     label: "Climax Overspend",
     description: "The candidate spends peak intensity too early or too often before the decisive beat.",
+    severity: "editorial",
+    affectedArtifacts: ["manifest", "candidate-score-summary", "planner-audit"],
+    fixIntent: "Reserve peak energy for the strongest beat or CTA by reducing earlier high-intensity treatments.",
     indicators: ["climax_overspend", "early_peak", "detonation_overuse"],
   },
   {
     id: "weak-concept-reduction",
     label: "Weak Concept Reduction",
     description: "The candidate does not reduce the source idea into a clear visual thesis or hero concept.",
+    severity: "editorial",
+    affectedArtifacts: ["planner-audit", "manifest", "review-surface"],
+    fixIntent: "Rebuild the treatment around a clearer visual thesis, hero line, or doctrine branch rationale.",
     indicators: ["weak_concept", "weak_hierarchy", "typography_no_hero_line", "semantic_mismatch", "no_hero"],
   },
   {
     id: "asset-treatment-mismatch",
     label: "Asset Treatment Mismatch",
     description: "The candidate pairs source footage, PiP, background, SFX, or assets in a way that fights the treatment.",
+    severity: "editorial",
+    affectedArtifacts: ["manifest", "asset-catalog", "review-surface"],
+    fixIntent: "Change the asset, PiP, background, or SFX choice so it supports the selected treatment rather than fighting it.",
     indicators: ["asset", "pip", "background", "sfx_animation_desync", "mismatch", "coexistence"],
   },
   {
     id: "sequence-rhythm-collapse",
     label: "Sequence Rhythm Collapse",
     description: "The candidate loses temporal continuity, music logic, or sequence discipline.",
+    severity: "editorial",
+    affectedArtifacts: ["manifest", "candidate-score-summary", "review-surface"],
+    fixIntent: "Rebalance timing, recovery, and transition choices so locally valid moments read as one sequence.",
     indicators: ["sequence", "rhythm", "dead_zone", "non_musical_emphasis", "shake_zoom_blur_collision"],
   },
   {
     id: "readability-sacrifice",
     label: "Readability Sacrifice",
     description: "The candidate sacrifices text comprehension, safe-zone discipline, or typographic clarity.",
+    severity: "editorial",
+    affectedArtifacts: ["manifest", "render-preview", "review-surface"],
+    fixIntent: "Move, simplify, or restyle text so the candidate remains readable without fighting subject focus.",
     indicators: ["readability", "text_below_safe_zone", "typography_clutter", "broken_line", "insufficient_contrast"],
   },
 ] as const;
 
 export type JosephFailureClassId = (typeof JOSEPH_FAILURE_TAXONOMY)[number]["id"];
+export type JosephFailureSeverity = (typeof JOSEPH_FAILURE_TAXONOMY)[number]["severity"];
+export type JosephAffectedArtifact = (typeof JOSEPH_FAILURE_TAXONOMY)[number]["affectedArtifacts"][number];
 export type JosephReviewClassification = "strong-example" | "weak-example" | "corrected-example" | "needs-review";
 
 export type JosephReviewManifest = Record<string, unknown> & {
@@ -105,6 +137,9 @@ export type JosephReviewEvidencePackage = {
 export type JosephFailureTaxonomyMatch = {
   failureClass: JosephFailureClassId;
   label: string;
+  severity: JosephFailureSeverity;
+  affectedArtifacts: JosephAffectedArtifact[];
+  fixIntent: string;
   sourceTags: string[];
 };
 
@@ -123,6 +158,7 @@ export type JosephReviewArtifact = {
     passedFloor: boolean;
     failureTags: string[];
     failureTaxonomy: JosephFailureTaxonomyMatch[];
+    fixIntents: string[];
     notes: string[];
   };
   artifactRefs: {
@@ -195,7 +231,7 @@ const selectedJobId = (manifest: JosephReviewManifest): string | null =>
 const unique = <T>(values: readonly T[]): T[] => [...new Set(values)];
 
 const normalizedTag = (tag: string): string =>
-  tag.trim().toLowerCase().replace(/\s+/g, "_");
+  tag.trim().toLowerCase().replace(/[\s-]+/g, "_");
 
 const auditFailuresOf = (manifest: JosephReviewManifest): string[] => [
   ...(manifest.microAnimationAudit?.failures ?? []),
@@ -223,6 +259,9 @@ export const matchJosephFailureTaxonomy = (failureTags: readonly string[]): Jose
     matches.push({
       failureClass: entry.id,
       label: entry.label,
+      severity: entry.severity,
+      affectedArtifacts: [...entry.affectedArtifacts],
+      fixIntent: entry.fixIntent,
       sourceTags: unique(sourceTags).sort(),
     });
   }
@@ -231,6 +270,9 @@ export const matchJosephFailureTaxonomy = (failureTags: readonly string[]): Jose
     return [{
       failureClass: "weak-concept-reduction",
       label: "Weak Concept Reduction",
+      severity: "editorial",
+      affectedArtifacts: ["planner-audit", "manifest", "review-surface"],
+      fixIntent: "Rebuild the treatment around a clearer visual thesis, hero line, or doctrine branch rationale.",
       sourceTags: unique(normalizedTags).sort(),
     }];
   }
@@ -285,6 +327,7 @@ export const buildJosephReviewArtifact = (
   const failureTags = collectJosephFailureTags(pkg);
   const failureTaxonomy = matchJosephFailureTaxonomy(failureTags);
   const classification = classifyReview(pkg, failureTags);
+  const fixIntents = unique(failureTaxonomy.map((match) => match.fixIntent)).sort();
   const notes = reviewNotesFor(classification, failureTaxonomy);
 
   return {
@@ -302,6 +345,7 @@ export const buildJosephReviewArtifact = (
       passedFloor: pkg.verdict.passedFloor,
       failureTags,
       failureTaxonomy,
+      fixIntents,
       notes,
     },
     artifactRefs: refs,

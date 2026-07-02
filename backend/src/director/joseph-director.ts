@@ -9,6 +9,7 @@ import {
   type UnifiedRenderManifest,
   type JosephBackgroundPlan,
   type JosephChoreographyPlan,
+  type JosephMacroRigPlan,
   type JosephPiPPlan,
   type JosephTypographyIntelligencePlan,
   type Word,
@@ -24,6 +25,7 @@ import {
 } from "./micro-animation-primitives";
 import {buildJosephBackgroundPrimitivePlan} from "./joseph-background-primitives";
 import {buildJosephPiPCompositionPlan} from "./joseph-pip-composition";
+import {buildJosephTalkingHeadMacroRig} from "./joseph-macro-rig";
 import {buildJosephTypographyIntelligencePlan, JOSEPH_TYPOGRAPHY_STYLEBOOKS} from "./joseph-typography-intelligence";
 import {buildJosephAudioVisualChoreographyPlan} from "./joseph-audio-visual-choreography";
 export interface DirectorInput {
@@ -1001,6 +1003,11 @@ const buildCandidatePlan = (
     attentionAnchors: visualPlan.attentionAnchors,
     doctrineId: doctrine?.id,
   });
+  const josephMacroRig: JosephMacroRigPlan | null = buildJosephTalkingHeadMacroRig({
+    semanticSummary,
+    transcript: input.transcript,
+    pipPlan: josephPiP,
+  });
   const josephBackground: JosephBackgroundPlan = buildJosephBackgroundPrimitivePlan({
     seed: input.seed,
     profile: input.profile,
@@ -1046,6 +1053,7 @@ const buildCandidatePlan = (
     observationSnapshot,
     microAnimationAudit,
     josephPiP,
+    josephMacroRig,
     josephBackground,
     josephTypography,
     josephChoreography,
@@ -1124,6 +1132,7 @@ const buildManifestFromPlan = (
     transitions: plan.transitions,
     microAnimationAudit: plan.microAnimationAudit,
     josephPiP: plan.josephPiP,
+    ...(plan.josephMacroRig ? {josephMacroRig: plan.josephMacroRig} : {}),
     josephBackground: plan.josephBackground,
     josephTypography: plan.josephTypography,
     josephChoreography: plan.josephChoreography,

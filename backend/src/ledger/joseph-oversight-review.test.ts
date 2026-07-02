@@ -72,6 +72,11 @@ describe("Joseph oversight review", () => {
         "sequence-rhythm-collapse",
       ]),
     );
+    expect(matches.find((match) => match.failureClass === "readability-sacrifice")).toMatchObject({
+      severity: "editorial",
+      affectedArtifacts: ["manifest", "render-preview", "review-surface"],
+      fixIntent: "Move, simplify, or restyle text so the candidate remains readable without fighting subject focus.",
+    });
   });
 
   it("builds review artifacts with revisitable manifests, verdicts, tags, and notes", () => {
@@ -88,6 +93,12 @@ describe("Joseph oversight review", () => {
     expect(artifact.reviewVerdict.classification).toBe("weak-example");
     expect(artifact.reviewVerdict.failureTaxonomy.map((match) => match.failureClass)).toEqual(
       expect.arrayContaining(["readability-sacrifice", "climax-overspend", "sequence-rhythm-collapse"]),
+    );
+    expect(artifact.reviewVerdict.fixIntents).toEqual(
+      expect.arrayContaining([
+        "Move, simplify, or restyle text so the candidate remains readable without fighting subject focus.",
+        "Reserve peak energy for the strongest beat or CTA by reducing earlier high-intensity treatments.",
+      ]),
     );
     expect(artifact.completionEvidence).toMatchObject({
       candidateManifestCount: 2,

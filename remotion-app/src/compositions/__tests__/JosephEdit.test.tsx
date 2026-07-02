@@ -38,8 +38,8 @@ describe('JosephEdit Composition', () => {
   });
 
   it('rejects local file video sources instead of allowing black renders', () => {
-    expect(videoPlaneContent).toContain('cannot render local file video sources');
-    expect(videoPlaneContent).toContain('Use MediaReference.browserUrl');
+    expect(videoPlaneContent).toContain('VideoPlane cannot render local file');
+    expect(videoPlaneContent).toContain('Use a browser-safe URL.');
     expect(videoPlaneContent).not.toContain("candidate.startsWith('file:///')");
   });
 
@@ -50,11 +50,16 @@ describe('JosephEdit Composition', () => {
   });
 
   it('loads Joseph text font from manifest typography instead of only hard-coding Antenna', () => {
-    expect(content).toContain('resolveJosephTypography');
+    expect(content).toContain('resolveTypographyRenderContract');
     expect(content).toContain('manifest.typography');
     expect(content).toContain('fontAssetUrl');
-    expect(content).toContain('fallbackFamily');
     expect(content).not.toContain('const FONT_URL =');
+  });
+
+
+  it('uses role-specific Joseph typography font assets for rendered text', () => {
+    expect(content).toContain('roleStyle?.fontAssetUrl ?? typography.fontAssetUrl');
+    expect(content).toContain('font={roleFontAssetUrl}');
   });
 
   it('keeps source video cover-cropped for vertical output instead of stretched', () => {

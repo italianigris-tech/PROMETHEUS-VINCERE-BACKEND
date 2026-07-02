@@ -4,9 +4,11 @@ import {describe, expect, it, vi} from "vitest";
 
 import {
   buildJosephStudyPlayerConfig,
+  buildJosephStudyGeneratedComparisonState,
   JosephStudyStudio,
   JosephStudyStudioView,
   parseJosephStudyCandidateManifest,
+  requestJosephStudyCandidates,
   resolveJosephStudyInitialSource,
   syncJosephStudyPlayers
 } from "../JosephStudyStudio";
@@ -148,6 +150,18 @@ describe("JosephStudyStudio", () => {
     });
   });
 
+
+  it("resolves a bounded candidate generation query into generate mode", () => {
+    expect(resolveJosephStudyInitialSource("?candidates=4")).toEqual({
+      mode: "generate",
+      candidateCount: 4
+    });
+
+    expect(resolveJosephStudyInitialSource("?candidateCount=7")).toEqual({
+      mode: "fixture",
+      rejectionReason: "Candidate count must be between 2 and 6."
+    });
+  });
   it("validates an external candidate manifest before building the player config", () => {
     const parsed = parseJosephStudyCandidateManifest(candidateManifest);
     const config = buildJosephStudyPlayerConfig(parsed);
@@ -180,6 +194,83 @@ describe("JosephStudyStudio", () => {
     expect(markup).toContain("423e4567-e89b-42d3-a456-426614174444");
   });
 
+
+  it("renders generated candidate lane metadata and failed lanes", () => {
+    const state = buildJosephStudyGeneratedComparisonState({
+      version: "joseph-study-candidates-v1",
+      requestedCount: 2,
+      lanes: [
+        {
+          id: "candidate-1",
+          label: "Candidate A",
+          status: "ready",
+          candidateId: "candidate-a",
+          doctrineBranch: "punch",
+          manifestHash: "a".repeat(64),
+          evidencePointer: "/evidence/candidate-a",
+          manifest: candidateManifest
+        },
+        {
+          id: "candidate-2",
+          label: "Candidate B",
+          status: "failed",
+          candidateId: null,
+          doctrineBranch: null,
+          manifestHash: null,
+          evidencePointer: "/evidence/candidate-b",
+          errorMessage: "generation failed",
+          failureTags: ["candidate_generation_failed"]
+        }
+      ],
+      failures: []
+    });
+
+    const markup = renderToStaticMarkup(<JosephStudyStudioView state={state} />);
+
+    expect(markup).toContain("data-joseph-comparison-lanes=\"2\"");
+    expect(markup).toContain("candidate-a");
+    expect(markup).toContain("punch");
+    expect(markup).toContain("a".repeat(64));
+    expect(markup).toContain("/evidence/candidate-a");
+    expect(markup).toContain("Lane generation failed");
+    expect(markup).toContain("generation failed");
+    expect(markup).toContain("candidate_generation_failed");
+  });
+
+  it("requests generated candidates from the Studio API", async () => {
+    const fetchImpl = vi.fn(async (_url: RequestInfo | URL, init?: RequestInit) => {
+      expect(init?.method).toBe("POST");
+      expect(init?.body).toBe(JSON.stringify({candidateCount: 3}));
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          version: "joseph-study-candidates-v1",
+          requestedCount: 3,
+          lanes: [{
+            id: "candidate-1",
+            label: "Candidate A",
+            status: "ready",
+            candidateId: "candidate-a",
+            doctrineBranch: "hold",
+            manifestHash: "b".repeat(64),
+            evidencePointer: "/evidence/candidate-a",
+            manifest: candidateManifest
+          }],
+          failures: []
+        })
+      } as Response;
+    });
+
+    const state = await requestJosephStudyCandidates({candidateCount: 3, fetchImpl});
+
+    expect(fetchImpl).toHaveBeenCalledWith("/api/joseph-study/candidates", expect.any(Object));
+    expect(state.lanes[0]).toMatchObject({
+      candidateId: "candidate-a",
+      doctrineBranch: "hold",
+      evidencePointer: "/evidence/candidate-a"
+    });
+  });
   it("synchronizes play pause and scrub commands across comparison player handles", () => {
     const calls: string[] = [];
     const firstPlayer = {

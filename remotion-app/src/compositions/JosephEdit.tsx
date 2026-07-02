@@ -6,10 +6,12 @@ import * as THREE from 'three';
 import type {CameraMove, JosephPiPFrame, JosephPiPPlan, TextOverlay, Transition, UnifiedRenderManifest} from '@prometheus/shared-types';
 import {percentRectToViewport, VideoPlane} from './VideoPlane';
 import {
+  type JosephMacroRigRenderContract,
   type JosephPiPBackgroundLayerRenderContract,
   type JosephPiPRenderContract,
   resolveBackgroundRenderContract,
   resolveCameraRenderContract,
+  resolveMacroRigRenderContract,
   resolveMicroAnimationRenderContract,
   resolvePiPRenderContract,
   resolveTypographyRenderContract,
@@ -34,6 +36,30 @@ const easeOutCubic = (value: number) => 1 - Math.pow(1 - Math.max(0, Math.min(1,
 const splitOverlayWords = (overlay: TextOverlay) => {
   const words = overlay.text.split(/\s+/).filter(Boolean);
   return words.length > 0 ? words : [overlay.text];
+};
+
+const normalizeTypographyText = (value: string): string =>
+  value.replace(/[^a-z0-9]+/gi, ' ').trim().toLowerCase();
+
+const resolveOverlayTypographyRole = (
+  overlay: TextOverlay,
+  manifest: UnifiedRenderManifest,
+): 'hero' | 'support' | 'cta' => {
+  const normalizedOverlay = normalizeTypographyText(overlay.text);
+  const matchingLine = manifest.josephTypography?.lines.find((line) => {
+    const normalizedLine = normalizeTypographyText(line.text);
+    return normalizedLine.length > 0 && (
+      normalizedOverlay.includes(normalizedLine) || normalizedLine.includes(normalizedOverlay)
+    );
+  });
+  if (matchingLine) {
+    return matchingLine.role;
+  }
+  return overlay.microAnimation?.semanticRole === 'cta'
+    ? 'cta'
+    : overlay.microAnimation?.semanticRole === 'support'
+      ? 'support'
+      : 'hero';
 };
 
 const textAccentSize = (word: string, kind: string): [number, number] => {
@@ -86,8 +112,7 @@ const CameraRig: React.FC<{cameraMoves: readonly CameraMove[]; seed: number}> = 
 
 const KineticText: React.FC<{overlays: readonly TextOverlay[]; manifest: UnifiedRenderManifest}> = ({overlays, manifest}) => {
   const frame = useCurrentFrame();
-  const typography = resolveTypographyRenderContract(manifest.typography);
-  const fontAssetUrl = toRemotionFontAssetUrl(typography.fontAssetUrl);
+  const typography = resolveTypographyRenderContract(manifest.typography, manifest.josephTypography, manifest.josephPiP);
 
   return (
     <group position={[0, 0, 0.6]}>
@@ -102,20 +127,28 @@ const KineticText: React.FC<{overlays: readonly TextOverlay[]; manifest: Unified
           });
           const transform = contract.transform;
           const visibleWord = transform.reveal ? word.slice(0, transform.reveal) : word;
+          const typographyRole = resolveOverlayTypographyRole(overlay, manifest);
+          const roleStyle = typography.observable.roleStyles[typographyRole];
+          const fontSizeScale = contract.observable.fontSizeScale * (roleStyle?.hierarchyScale ?? 1);
+          const textRenderOrder = roleStyle?.renderOrder ?? contract.observable.renderOrder;
+          const roleFontAssetUrl = toRemotionFontAssetUrl(roleStyle?.fontAssetUrl ?? typography.fontAssetUrl);
 
           return (
             <React.Fragment key={`${overlayIndex}-${wordIndex}-${overlay.startFrame}`}>
               <Text
-                font={fontAssetUrl}
-                fontSize={0.58 * contract.observable.fontSizeScale}
+                font={roleFontAssetUrl}
+                fontSize={0.58 * fontSizeScale}
                 color={overlay.color}
                 fontStyle="normal"
+                fontWeight={roleStyle?.fontWeight}
+                letterSpacing={roleStyle?.trackingEm}
+                lineHeight={roleStyle?.lineHeight}
                 anchorX="center"
                 anchorY="middle"
                 position={transform.position}
                 scale={transform.scale}
                 rotation={transform.rotation}
-                renderOrder={contract.observable.renderOrder}
+                renderOrder={textRenderOrder}
                 fillOpacity={contract.observable.opacity}
                 outlineWidth={0.015}
                 outlineColor="#000000"
@@ -240,6 +273,43 @@ const JosephPiPRig: React.FC<{plan: JosephPiPPlan | undefined}> = ({plan}) => {
   );
 };
 
+const macroRigLayerColor = (role: JosephMacroRigRenderContract['layers'][number]['role']): string => {
+  if (role === 'speaker_pip') return '#FFFFFF';
+  if (role === 'exhibit_board') return '#F6C85F';
+  if (role === 'data_label') return '#2F6BFF';
+  return '#FF0040';
+};
+
+const JosephMacroRig: React.FC<{contract: JosephMacroRigRenderContract}> = ({contract}) => {
+  const {viewport} = useThree();
+  if (!contract.active) {
+    return null;
+  }
+
+  return (
+    <group>
+      {contract.layers
+        .filter((layer) => layer.role !== 'speaker_pip')
+        .map((layer, index) => {
+          const rect = percentRectToViewport({
+            frameRect: layer.frameRect,
+            viewportWidth: viewport.width,
+            viewportHeight: viewport.height,
+          });
+          return (
+            <mesh
+              key={`${layer.role}-${index}`}
+              position={[rect.x, rect.y, layer.z]}
+              renderOrder={layer.renderOrder}
+            >
+              <planeGeometry args={[rect.width, rect.height]} />
+              <meshBasicMaterial color={macroRigLayerColor(layer.role)} transparent opacity={layer.role === 'exhibit_board' ? 0.16 : 0.1} depthWrite={false} />
+            </mesh>
+          );
+        })}
+    </group>
+  );
+};
 const JosephBackgroundRig: React.FC<{contract: ReturnType<typeof resolveBackgroundRenderContract>}> = ({contract}) => {
   if (contract.layers.length === 0) {
     return null;
@@ -276,6 +346,7 @@ const JosephScene: React.FC<{manifest: UnifiedRenderManifest}> = ({manifest}) =>
   const pipContract = manifest.josephPiP
     ? resolvePiPRenderContract({plan: manifest.josephPiP, frame, cameraMoves: manifest.cameraMoves})
     : null;
+  const macroRigContract = resolveMacroRigRenderContract({macroRig: manifest.josephMacroRig, frame, cameraMoves: manifest.cameraMoves});
 
   return (
     <>
@@ -283,6 +354,7 @@ const JosephScene: React.FC<{manifest: UnifiedRenderManifest}> = ({manifest}) =>
       <ambientLight intensity={0.9} />
       <directionalLight position={[0, 0, 4]} intensity={1.2} />
       <JosephBackgroundRig contract={backgroundContract} />
+      <JosephMacroRig contract={macroRigContract} />
       <JosephPiPRig plan={manifest.josephPiP} />
       <VideoPlane
         track={manifest.videoTracks[0]}

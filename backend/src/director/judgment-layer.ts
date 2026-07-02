@@ -11,13 +11,14 @@ import {
 } from "@prometheus/shared-types";
 import type {ReplayLedger, ReplayLedgerEntry} from "../ledger/replay-ledger";
 import type {JudgmentVerdict} from "../ledger/evidence-preservation";
+import {matchJosephFailureTaxonomy} from "../ledger/joseph-oversight-review";
 import type {GovernedPrompt} from "./prompt-governance";
 import {fingerprintString} from "./prompt-governance";
 import type {VariationKey} from "./variation-key";
 import {evaluateManifestTypographyQuality} from "./joseph-typography-intelligence";
 import {evaluateJosephSequenceDiscipline, type SequenceDisciplineEvaluation} from "./joseph-sequence-discipline";
 import {rankJosephSequenceObjective, type JosephSequenceObjectiveRanking} from "./joseph-sequence-objective";
-import {evaluateJosephNegativeGrammar} from "./joseph-negative-grammar";
+import {evaluateJosephNegativeGrammar, type JosephNegativeGrammarEvaluation} from "./joseph-negative-grammar";
 
 export interface CandidateScore {
   manifest: UnifiedRenderManifest;
@@ -26,6 +27,7 @@ export interface CandidateScore {
   passedFloor: boolean;
   floorFailures: string[];
   sequenceDiscipline: SequenceDisciplineEvaluation;
+  negativeEvaluator: Pick<JosephNegativeGrammarEvaluation, "failures" | "warnings" | "penalty">;
 }
 
 export interface JudgmentResult {
@@ -347,8 +349,13 @@ export const meetsQualityFloor = (
     qualityScore,
     similarityScore: 0,
     passedFloor: failures.length === 0,
-    floorFailures: failures,
+    floorFailures: [...new Set(failures)].sort(),
     sequenceDiscipline,
+    negativeEvaluator: {
+      failures: negativeGrammar.failures,
+      warnings: negativeGrammar.warnings,
+      penalty: negativeGrammar.penalty,
+    },
   };
 };
 
@@ -495,7 +502,19 @@ const uniqueFailureTags = (scores: CandidateScore[], rejected: UnifiedRenderMani
   const rejectedSet = new Set(rejected);
   return [...new Set(scores
     .filter((score) => rejectedSet.has(score.manifest))
-    .flatMap((score) => score.floorFailures))];
+    .flatMap((score) => score.floorFailures))].sort();
+};
+
+const negativeEvaluatorSummary = (scores: readonly CandidateScore[]) => {
+  const failures = [...new Set(scores.flatMap((score) => score.negativeEvaluator.failures))].sort();
+  const warnings = [...new Set(scores.flatMap((score) => score.negativeEvaluator.warnings))].sort();
+  const matches = matchJosephFailureTaxonomy([...failures, ...warnings]);
+
+  return {
+    failures,
+    warnings,
+    fixIntents: [...new Set(matches.map((match) => match.fixIntent))].sort(),
+  };
 };
 
 export class JudgmentLayer {
@@ -568,11 +587,18 @@ export class JudgmentLayer {
       evaluation.score.manifest !== selected
     );
 
+    const negativeEvaluator = negativeEvaluatorSummary(scores);
+    const verdictFailureTags = similarityVetoed ? [...rejectedTags, "replay_similarity_veto"] : rejectedTags;
     const verdict: JudgmentVerdict = {
       qualityScore: selectedEvaluation.score.qualityScore,
       similarityScore: selectedEvaluation.score.similarityScore,
       passedFloor: true,
-      failureTags: similarityVetoed ? [...rejectedTags, "replay_similarity_veto"] : rejectedTags,
+      failureTags: [...new Set(verdictFailureTags)].sort(),
+      negativeEvaluator: {
+        failures: negativeEvaluator.failures,
+        warnings: negativeEvaluator.warnings,
+      },
+      fixIntents: negativeEvaluator.fixIntents,
     };
 
     return {

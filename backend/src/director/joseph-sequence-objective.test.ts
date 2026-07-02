@@ -100,6 +100,11 @@ const scoreFor = (
   similarityScore: 0,
   passedFloor: true,
   floorFailures: [],
+  negativeEvaluator: {
+    failures: [],
+    warnings: [],
+    penalty: 0,
+  },
   sequenceDiscipline: {
     enabled: true,
     penalty: sequencePenalty,

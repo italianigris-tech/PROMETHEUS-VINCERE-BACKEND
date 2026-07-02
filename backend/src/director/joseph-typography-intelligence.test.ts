@@ -119,4 +119,49 @@ describe("Joseph typography intelligence", () => {
     expect(manifest.josephTypography?.compositionRules.fillerTreatment).toBe("suppress");
     expect(manifest.josephTypography?.qualityAudit.failures).toEqual([]);
   });
+
+  it("carries role, tracking, weight, hierarchy, and pairing decisions on generated manifests", () => {
+    const manifest = generateJosephManifest({
+      videoUrl: "file:///video.mp4",
+      musicTrackUrl: "file:///music.mp3",
+      transcript: WORDS,
+      beats: [240, 560, 900, 1180],
+      onsets: [140, 540, 880],
+      energyCurve: [0.22, 0.48, 0.92, 0.86],
+      durationMs: 2200,
+      seed: 12345,
+      profile: "joseph_aggressive",
+    });
+
+    const plan = manifest.josephTypography;
+    const heroStyle = plan?.roleStyles.find((style) => style.role === "hero");
+    const supportStyle = plan?.roleStyles.find((style) => style.role === "support");
+
+    expect(plan?.fontPairing?.primary).toMatchObject({
+      fontId: "hero-echelon-regular",
+      family: "Echelon",
+      role: "hero",
+      source: "custom_ingested",
+      fontAssetUrl: "/fonts/hero/echelon-rg-e550ec4e2f9a.otf",
+    });
+    expect(plan?.fontPairing?.secondary).toMatchObject({
+      fontId: "hero-goudy-bookletter",
+      family: "Goudy Bookletter 1911",
+      role: "support",
+      source: "custom_ingested",
+      fontAssetUrl: "/fonts/hero/goudybookletter1911-29a7765f69d5.otf",
+    });
+    expect(heroStyle).toMatchObject({
+      fontRole: "hero",
+      hierarchyLevel: 1,
+    });
+    expect(supportStyle).toMatchObject({
+      fontRole: "support",
+      hierarchyLevel: 2,
+    });
+    expect(heroStyle?.trackingEm).toBeLessThan(0);
+    expect(supportStyle?.trackingEm).toBeGreaterThan(0);
+    expect(heroStyle?.weight).toBeGreaterThan(supportStyle?.weight ?? 0);
+    expect(plan?.lines.every((line) => line.hierarchyLevel >= 1 && line.maxCharacters > 0)).toBe(true);
+  });
 });

@@ -12,9 +12,9 @@ import {
 } from "@prometheus/shared-types";
 import {loadEnv, type BackendEnv} from "../config";
 import {decideCognitiveStage} from "../cognitive-governor";
-import {preserveEvidence, type EvidenceArtifactPaths, type EvidencePackage} from "../ledger/evidence-preservation";
+import {preserveEvidence, type EvidenceArtifactPaths, type EvidencePackage, type RenderProof} from "../ledger/evidence-preservation";
 import {ReplayLedger} from "../ledger/replay-ledger";
-import {findCutPoints, type Phrase as BoundaryPhrase} from "./dynamic-boundaries";
+import type {Phrase as BoundaryPhrase} from "./dynamic-boundaries";
 import {computeSimilarityHash, JudgmentLayer, type CandidateScore} from "./judgment-layer";
 import {
   generateCandidateGenomes,
@@ -23,6 +23,7 @@ import {
 } from "./joseph-director";
 import {compileJosephManifest, type JosephManifestCompilerAudit, type JosephSelectedPlannerCandidate} from "./joseph-manifest-compiler";
 import type {JosephSequenceObjectiveRanking} from "./joseph-sequence-objective";
+import {buildJosephSyntheticPacingPlan, type JosephSyntheticPacingPlan} from "./joseph-synthetic-pacing";
 import {PromptRegistry, type GovernedPrompt} from "./prompt-governance";
 import {
   canUseEffect,
@@ -58,6 +59,7 @@ export interface CandidateScoreSummary {
   governedPrompt: GovernedPrompt;
   candidateScores: CandidateScore[];
   expectedCuts: number[];
+  syntheticPacing: JosephSyntheticPacingPlan;
   sequenceObjective: JosephSequenceObjectiveRanking;
   manifestCompilerAudit: JosephManifestCompilerAudit;
   sequenceDiscipline: SequenceDisciplineSummary[];
@@ -381,6 +383,7 @@ const buildCandidateScoreSummary = (
   governedPrompt: GovernedPrompt,
   candidateScores: CandidateScore[],
   expectedCuts: number[],
+  syntheticPacing: JosephSyntheticPacingPlan,
   sequenceObjective: JosephSequenceObjectiveRanking,
   manifestCompilerAudit: JosephManifestCompilerAudit,
   candidates: CandidateWithSequenceMemory[],
@@ -389,6 +392,7 @@ const buildCandidateScoreSummary = (
   governedPrompt,
   candidateScores,
   expectedCuts,
+  syntheticPacing,
   sequenceObjective,
   manifestCompilerAudit,
   sequenceDiscipline: candidateScores.map((score) => ({
@@ -448,9 +452,11 @@ const buildSelectedPlannerCandidate = (
 
 const buildPlannerPointerArtifact = ({
   sequenceObjective,
+  syntheticPacing,
   compilerArtifactHash,
 }: {
   sequenceObjective: JosephSequenceObjectiveRanking;
+  syntheticPacing: JosephSyntheticPacingPlan;
   compilerArtifactHash: string | null;
 }) => ({
   version: "planner-audit-pointer-v1" as const,
@@ -460,10 +466,84 @@ const buildPlannerPointerArtifact = ({
   selectedPath: sequenceObjective.selectedPath,
   compilerArtifactHash,
   sequenceObjective,
+  syntheticPacing,
 });
 
 const objectRecord = (value: unknown): Record<string, unknown> | undefined =>
   value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : undefined;
+const collectFallbackTags = (manifest: UnifiedRenderManifest): string[] => {
+  const handoff = objectRecord(manifest.plannerHandoff);
+  const handoffFallbacks = Array.isArray(handoff?.fallbacks) ? handoff.fallbacks : [];
+  const handoffTags = handoffFallbacks
+    .map((fallback) => objectRecord(fallback)?.tag)
+    .filter((tag): tag is string => typeof tag === "string");
+  const macroRigFallbackTags = manifest.josephMacroRig?.failureFallbacks.map((fallback) => fallback.tag) ?? [];
+
+  return [...new Set([
+    ...handoffTags,
+    ...macroRigFallbackTags,
+    ...(manifest.microAnimationAudit?.failures ?? []),
+    ...(manifest.josephTypography?.qualityAudit?.failures ?? []),
+    ...(manifest.josephChoreography?.qualityAudit.failures ?? []),
+  ])].sort();
+};
+
+const visibleBehaviorPayload = (manifest: UnifiedRenderManifest): unknown => ({
+  compositionId: "JosephEdit",
+  dimensions: {width: manifest.width, height: manifest.height, fps: manifest.fps, durationFrames: manifest.durationFrames},
+  selectedCandidateId: manifest.jobId,
+  timeline: manifest.timeline.map((event) => ({...event})),
+  textOverlays: manifest.textOverlays.map((overlay) => ({
+    text: overlay.text,
+    startFrame: overlay.startFrame,
+    endFrame: overlay.endFrame,
+    animation: overlay.animation,
+    microAnimation: overlay.microAnimation?.primitiveId,
+  })),
+  cameraMoves: manifest.cameraMoves,
+  creativeProfile: manifest.creativeProfile,
+  josephTypography: manifest.josephTypography,
+  josephPiP: manifest.josephPiP,
+  josephBackground: manifest.josephBackground,
+  josephMacroRig: manifest.josephMacroRig,
+});
+
+const sampleProofFrames = (manifest: UnifiedRenderManifest): number[] => [
+  0,
+  Math.max(0, Math.floor(manifest.durationFrames / 2)),
+  Math.max(0, manifest.durationFrames - 1),
+].filter((frame, index, frames) => frames.indexOf(frame) === index);
+
+const buildJosephEditRenderProof = (manifest: UnifiedRenderManifest): RenderProof => {
+  const fallbackTags = collectFallbackTags(manifest);
+  const manifestHash = stableHash(JSON.stringify(manifest));
+  const behaviorSignature = stableHash(JSON.stringify(visibleBehaviorPayload(manifest)));
+
+  return {
+    version: "joseph-render-proof-v1",
+    renderer: {
+      compositionId: "JosephEdit",
+      entryPoint: "remotion-app/src/compositions/JosephEdit.tsx",
+      contentType: "video/mp4",
+      width: manifest.width,
+      height: manifest.height,
+      fps: manifest.fps,
+      durationFrames: manifest.durationFrames,
+      outputFileName: `${manifest.jobId ?? "joseph-edit"}.mp4`,
+    },
+    selectedCandidateId: typeof manifest.jobId === "string" ? manifest.jobId : null,
+    manifestHash,
+    visibleBehaviorSignature: behaviorSignature,
+    frameProofs: sampleProofFrames(manifest).map((frame) => ({
+      compositionId: "JosephEdit",
+      frame,
+      manifestHash,
+      signature: stableHash(JSON.stringify({behaviorSignature, frame, fallbackTags})),
+      fallbackTags,
+    })),
+    fallbackTags,
+  };
+};
 
 const stringArray = (value: unknown): string[] =>
   Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
@@ -511,13 +591,16 @@ export async function orchestrateRender(
   );
   const transcript = readTranscriptPayload(input);
   const directorInput = buildDirectorInput(input, variationKey, transcript);
-  const expectedCuts = findCutPoints(
-    phrasesFromPayload(transcript),
-    directorInput.beats,
-    directorInput.onsets,
-    directorInput.durationMs,
-    input.profile,
-  );
+  const boundaryPhrases = phrasesFromPayload(transcript);
+  const syntheticPacing = buildJosephSyntheticPacingPlan({
+    phrases: boundaryPhrases,
+    beats: directorInput.beats,
+    onsets: directorInput.onsets,
+    energyCurve: directorInput.energyCurve,
+    durationMs: directorInput.durationMs,
+    profile: input.profile,
+  });
+  const expectedCuts = syntheticPacing.proposals.map((proposal) => proposal.atMs);
   const candidates = generateCandidateGenomes(directorInput, PROFILE_CONFIG[input.profile].count)
     .map((candidate) => ensureQualityScaffold(candidate, expectedCuts, input.profile))
     .map(annotateSequenceMemory)
@@ -547,7 +630,7 @@ export async function orchestrateRender(
   });
   const selected = compiledSelected.manifest;
   const rejected = judgment.rejected.map((candidate) => canonicalizeManifestForResult(candidate, variationKey));
-  const candidateScoreSummary = buildCandidateScoreSummary(env, governedPrompt, judgment.scores, expectedCuts, judgment.sequenceObjective, compiledSelected.audit, candidates);
+  const candidateScoreSummary = buildCandidateScoreSummary(env, governedPrompt, judgment.scores, expectedCuts, syntheticPacing, judgment.sequenceObjective, compiledSelected.audit, candidates);
   const evidence: EvidencePackage = {
     jobId: variationKey.uploadInstanceId,
     variationKey,
@@ -560,9 +643,11 @@ export async function orchestrateRender(
     compilerArtifact: compiledSelected.artifact,
     plannerAuditArtifact: buildPlannerPointerArtifact({
       sequenceObjective: judgment.sequenceObjective,
+      syntheticPacing,
       compilerArtifactHash: compiledSelected.artifact?.artifactHash ?? null,
     }),
     rejectedCandidateEvidence: buildRejectedCandidateEvidence(rejected, judgment.scores),
+    renderProof: buildJosephEditRenderProof(selected),
   };
   const evidencePaths = preserveEvidence(evidence, input.evidenceDir ?? path.join(os.homedir(), ".prometheus", "evidence"));
 

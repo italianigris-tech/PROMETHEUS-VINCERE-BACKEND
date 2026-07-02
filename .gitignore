@@ -12,6 +12,8 @@ Thumbs.db
 # Dependencies
 node_modules/
 **/node_modules/
+__pycache__/
+*.py[cod]
 
 # Build, cache, and test output
 dist/

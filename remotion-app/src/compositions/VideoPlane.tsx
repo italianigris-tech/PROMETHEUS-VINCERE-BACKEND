@@ -31,12 +31,14 @@ export type ViewportRect = {
   height: number;
 };
 
+type PercentFrameRect = Pick<JosephPiPFrame, 'leftPercent' | 'topPercent' | 'widthPercent' | 'heightPercent'>;
+
 export const percentRectToViewport = ({
   frameRect,
   viewportWidth,
   viewportHeight,
 }: {
-  frameRect: JosephPiPFrame | undefined;
+  frameRect: PercentFrameRect | undefined;
   viewportWidth: number;
   viewportHeight: number;
 }): ViewportRect => {

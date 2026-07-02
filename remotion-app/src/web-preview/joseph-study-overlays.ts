@@ -6,7 +6,7 @@ export type JosephStudyOverlayEntry = {
 };
 
 export type JosephStudyOverlaySection = {
-  id: "cuts" | "text" | "camera" | "transitions" | "sfx";
+  id: "cuts" | "text" | "camera" | "transitions" | "sfx" | "macro-rig";
   title: string;
   entries: JosephStudyOverlayEntry[];
 };
@@ -39,11 +39,33 @@ export const buildJosephStudyOverlaySections = (manifest: UnifiedRenderManifest)
     range: formatRange(Math.max(0, Math.round(event.triggerMs / 1000)), Math.max(0, Math.round((event.triggerMs + event.durationMs) / 1000)))
   }));
 
+  const macroRig = manifest.josephMacroRig?.semanticTrigger.valid
+    ? [{
+      id: "macro-rig" as const,
+      title: "Macro Rig",
+      entries: [
+        {
+          label: manifest.josephMacroRig.rigId,
+          range: manifest.josephMacroRig.sceneFacts.momentKind,
+        },
+        {
+          label: manifest.josephMacroRig.semanticTrigger.matchedSignals.join(","),
+          range: `${Math.round(manifest.josephMacroRig.semanticTrigger.confidence * 100)}%`,
+        },
+        ...manifest.josephMacroRig.renderFields.typographySlots.map((slot) => ({
+          label: slot.role,
+          range: formatRange(slot.zIndex, slot.zIndex),
+        })),
+      ],
+    }]
+    : [];
+
   return [
     {id: "cuts", title: "Cuts", entries: cuts},
     {id: "text", title: "Text", entries: text},
     {id: "camera", title: "Camera", entries: camera},
     {id: "transitions", title: "Transitions", entries: transitions},
-    {id: "sfx", title: "SFX", entries: sfx}
+    {id: "sfx", title: "SFX", entries: sfx},
+    ...macroRig,
   ];
 };

@@ -1,4 +1,4 @@
-import React, {useMemo, useState} from "react";
+import React, {useEffect, useMemo, useState} from "react";
 import {Player} from "@remotion/player";
 import type {UnifiedRenderManifest} from "@prometheus/shared-types";
 
@@ -28,8 +28,15 @@ type JosephStudyPlayerConfig = {
 type JosephStudyComparisonLane = {
   id: string;
   label: string;
-  manifestUrl: string;
-  manifest: UnifiedRenderManifest;
+  status?: "ready" | "failed";
+  manifestUrl?: string;
+  manifest?: UnifiedRenderManifest;
+  candidateId?: string | null;
+  doctrineBranch?: string | null;
+  manifestHash?: string | null;
+  evidencePointer?: string | null;
+  errorMessage?: string;
+  failureTags?: string[];
 };
 
 type JosephStudyComparisonState = {
@@ -52,7 +59,21 @@ type JosephStudyCandidateState = {
   errorMessage?: string;
 };
 
-type JosephStudyStudioState = JosephStudyComparisonState | JosephStudyFixtureState | JosephStudyCandidateState;
+type JosephStudyGenerationState = {
+  mode: "generation";
+  status: "loading" | "error";
+  candidateCount: number;
+  errorMessage?: string;
+};
+
+type JosephStudyStudioState = JosephStudyComparisonState | JosephStudyFixtureState | JosephStudyCandidateState | JosephStudyGenerationState;
+
+type JosephStudyGeneratedCandidateResponse = {
+  version: "joseph-study-candidates-v1";
+  requestedCount: number;
+  lanes: JosephStudyComparisonLane[];
+  failures: JosephStudyComparisonLane[];
+};
 
 type JosephStudyStudioViewProps = {
   state: JosephStudyStudioState;
@@ -94,13 +115,27 @@ export const parseJosephStudyCandidateManifest = (manifest: UnifiedRenderManifes
 };
 
 export const resolveJosephStudyInitialSource = (search: string): {
-  mode: "fixture" | "candidate";
+  mode: "fixture" | "candidate" | "generate";
   manifestUrl?: string;
+  candidateCount?: number;
   rejectedManifestUrl?: string;
   rejectionReason?: string;
 } => {
   const params = new URLSearchParams(search);
   const manifestUrl = params.get("manifest")?.trim() ?? "";
+  const candidateCountText = params.get("candidates")?.trim() ?? params.get("candidateCount")?.trim() ?? "";
+
+  if (candidateCountText) {
+    const candidateCount = Number(candidateCountText);
+    if (Number.isInteger(candidateCount) && candidateCount >= 2 && candidateCount <= 6) {
+      return {mode: "generate", candidateCount};
+    }
+
+    return {
+      mode: "fixture",
+      rejectionReason: "Candidate count must be between 2 and 6."
+    };
+  }
 
   if (!manifestUrl) {
     return {mode: "fixture"};
@@ -118,6 +153,38 @@ export const resolveJosephStudyInitialSource = (search: string): {
     mode: "candidate",
     manifestUrl
   };
+};
+
+export const buildJosephStudyGeneratedComparisonState = (
+  response: JosephStudyGeneratedCandidateResponse
+): JosephStudyComparisonState => ({
+  mode: "comparison",
+  status: "ready",
+  manifestUrls: response.lanes.map((lane) => lane.manifestUrl ?? lane.evidencePointer ?? lane.id),
+  lanes: response.lanes.map((lane) => ({
+    ...lane,
+    status: lane.status ?? "ready"
+  }))
+});
+
+export const requestJosephStudyCandidates = async ({
+  candidateCount,
+  fetchImpl = fetch
+}: {
+  candidateCount: number;
+  fetchImpl?: typeof fetch;
+}): Promise<JosephStudyComparisonState> => {
+  const response = await fetchImpl("/api/joseph-study/candidates", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({candidateCount})
+  });
+
+  if (!response.ok) {
+    throw new Error(`Joseph candidate generation failed with HTTP ${response.status}.`);
+  }
+
+  return buildJosephStudyGeneratedComparisonState(await response.json() as JosephStudyGeneratedCandidateResponse);
 };
 
 export const buildJosephStudyPlayerConfig = (manifest: UnifiedRenderManifest = DEFAULT_JOSEPH_MANIFEST): JosephStudyPlayerConfig => {
@@ -156,7 +223,11 @@ export const syncJosephStudyPlayers = (
 
 const buildComparisonOverlaySections = (manifest: UnifiedRenderManifest) => buildJosephStudyOverlaySections(manifest);
 
-const candidateLabelFromLane = (lane: JosephStudyComparisonLane): string => `${lane.label} (${lane.manifest.jobId})`;
+const isReadyLane = (lane: JosephStudyComparisonLane): lane is JosephStudyComparisonLane & {manifest: UnifiedRenderManifest} =>
+  lane.status !== "failed" && Boolean(lane.manifest);
+
+const candidateLabelFromLane = (lane: JosephStudyComparisonLane): string =>
+  `${lane.label} (${lane.candidateId ?? lane.manifest?.jobId ?? "unresolved"})`;
 
 const JosephStudyReviewPanel: React.FC<JosephStudyReviewPanelProps> = ({lanes}) => {
   const [activeCandidateId, setActiveCandidateId] = useState(() => lanes[0]?.id ?? "");
@@ -234,11 +305,12 @@ export const JosephStudyStudioView: React.FC<JosephStudyStudioViewProps> = ({
   onToggleDiagnostics
 }) => {
   const manifest = state.mode === "comparison"
-    ? state.lanes[0]?.manifest ?? DEFAULT_JOSEPH_MANIFEST
-    : state.mode === "candidate"
+    ? state.lanes.find(isReadyLane)?.manifest ?? DEFAULT_JOSEPH_MANIFEST
+    : state.mode === "candidate" || state.mode === "generation"
       ? DEFAULT_JOSEPH_MANIFEST
       : state.manifest ?? DEFAULT_JOSEPH_MANIFEST;
   const diagnosticsSections = diagnosticsVisible ? buildComparisonOverlaySections(manifest) : [];
+  const readyLanes = state.mode === "comparison" ? state.lanes.filter(isReadyLane) : [];
 
   if (state.mode === "candidate" && state.status === "error") {
     return (
@@ -261,6 +333,33 @@ export const JosephStudyStudioView: React.FC<JosephStudyStudioViewProps> = ({
     );
   }
 
+  if (state.mode === "generation") {
+    return (
+      <div data-joseph-study-route="true" data-joseph-study-mode={state.mode}>
+        <header className="joseph-study-header">
+          <h1>Joseph Study Studio</h1>
+          <button
+            type="button"
+            aria-pressed={diagnosticsVisible}
+            onClick={() => onToggleDiagnostics?.()}
+          >
+            {diagnosticsVisible ? "Diagnostics off" : "Diagnostics on"}
+          </button>
+        </header>
+        {state.status === "loading" ? (
+          <div role="status" data-joseph-study-generation-status="loading">
+            Generating {state.candidateCount} candidate lanes
+          </div>
+        ) : (
+          <div role="alert" className="joseph-study-error">
+            <strong>Candidate generation failed</strong>
+            <span>{state.errorMessage ?? "Joseph candidate generation failed."}</span>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div data-joseph-study-route="true" data-joseph-study-mode={state.mode}>
       <header className="joseph-study-header">
@@ -277,23 +376,36 @@ export const JosephStudyStudioView: React.FC<JosephStudyStudioViewProps> = ({
       {state.mode === "comparison" ? (
         <section data-joseph-comparison-lanes={state.lanes.length} className="joseph-study-comparison">
           {state.lanes.map((lane) => (
-            <article key={lane.id} className="joseph-study-comparison-lane">
+            <article key={lane.id} className="joseph-study-comparison-lane" role={lane.status === "failed" ? "alert" : undefined}>
               <header>
                 <strong>{lane.label}</strong>
-                <span>{lane.manifest.jobId}</span>
+                <span>{lane.candidateId ?? lane.manifest?.jobId ?? "Generation failed"}</span>
               </header>
-              <div className="joseph-study-comparison-player">
-                <Player
-                  component={JosephEdit}
-                  durationInFrames={buildJosephStudyPlayerConfig(lane.manifest).durationInFrames}
-                  fps={lane.manifest.fps}
-                  compositionWidth={lane.manifest.output?.width ?? JOSEPH_RENDER_WIDTH}
-                  compositionHeight={lane.manifest.output?.height ?? JOSEPH_RENDER_HEIGHT}
-                  inputProps={{manifest: lane.manifest}}
-                  controls
-                  clickToPlay
-                />
-              </div>
+              <dl className="joseph-study-lane-metadata">
+                <div><dt>Doctrine</dt><dd>{lane.doctrineBranch ?? "unresolved"}</dd></div>
+                <div><dt>Manifest hash</dt><dd>{lane.manifestHash ?? "unavailable"}</dd></div>
+                <div><dt>Evidence</dt><dd>{lane.evidencePointer ?? lane.manifestUrl ?? "unavailable"}</dd></div>
+              </dl>
+              {isReadyLane(lane) ? (
+                <div className="joseph-study-comparison-player">
+                  <Player
+                    component={JosephEdit}
+                    durationInFrames={buildJosephStudyPlayerConfig(lane.manifest).durationInFrames}
+                    fps={lane.manifest.fps}
+                    compositionWidth={lane.manifest.output?.width ?? JOSEPH_RENDER_WIDTH}
+                    compositionHeight={lane.manifest.output?.height ?? JOSEPH_RENDER_HEIGHT}
+                    inputProps={{manifest: lane.manifest}}
+                    controls
+                    clickToPlay
+                  />
+                </div>
+              ) : (
+                <div className="joseph-study-error">
+                  <strong>Lane generation failed</strong>
+                  <span>{lane.errorMessage ?? "Candidate lane could not be generated."}</span>
+                  <small>{lane.failureTags?.join(", ") ?? "candidate_generation_failed"}</small>
+                </div>
+              )}
             </article>
           ))}
         </section>
@@ -312,8 +424,8 @@ export const JosephStudyStudioView: React.FC<JosephStudyStudioViewProps> = ({
         </section>
       )}
 
-      {state.mode === "comparison" && state.lanes.length > 0 ? (
-        <JosephStudyReviewPanel lanes={state.lanes} />
+      {readyLanes.length > 0 ? (
+        <JosephStudyReviewPanel lanes={readyLanes} />
       ) : null}
 
       {diagnosticsVisible ? (
@@ -346,17 +458,51 @@ export const JosephStudyStudio: React.FC = () => {
     return resolveJosephStudyInitialSource(window.location.search);
   }, []);
 
-  const state: JosephStudyStudioState = initialSource.mode === "candidate"
+  const [state, setState] = useState<JosephStudyStudioState>(() => initialSource.mode === "candidate"
     ? {
         mode: "candidate",
         status: "ready",
         manifestUrl: initialSource.manifestUrl ?? "/joseph-study/candidate-manifest.json"
       }
-    : {
-        mode: "fixture",
-        status: "ready",
-        manifest: DEFAULT_JOSEPH_MANIFEST
-      };
+    : initialSource.mode === "generate"
+      ? {
+          mode: "generation",
+          status: "loading",
+          candidateCount: initialSource.candidateCount ?? 4
+        }
+      : {
+          mode: "fixture",
+          status: "ready",
+          manifest: DEFAULT_JOSEPH_MANIFEST
+        });
+
+  useEffect(() => {
+    if (initialSource.mode !== "generate") {
+      return;
+    }
+
+    let cancelled = false;
+    requestJosephStudyCandidates({candidateCount: initialSource.candidateCount ?? 4})
+      .then((nextState) => {
+        if (!cancelled) {
+          setState(nextState);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setState({
+            mode: "generation",
+            status: "error",
+            candidateCount: initialSource.candidateCount ?? 4,
+            errorMessage: error instanceof Error ? error.message : String(error)
+          });
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [initialSource]);
 
   return (
     <JosephStudyStudioView
