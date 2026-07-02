@@ -1,5 +1,5 @@
 # ============================================================================
-# PROMETHEUS TRAJECTORY EXTRACTOR — Kaggle single-cell edition
+# PROMETHEUS TRAJECTORY EXTRACTOR — Kaggle single-cell edition (revamped)
 # ============================================================================
 # Paste this entire block into ONE Kaggle notebook cell (GPU accelerator ON).
 # It produces schema-valid trajectory.json files, one per video.
@@ -11,19 +11,61 @@
 # This code emits the 74-feature schema committed in
 # packages/trajectory-extractor/trajectory_extractor/schema.py
 # (Pydantic v2, Program 20 target 60-80 features, finals_only mode).
+#
+# REVAMP NOTES (what changed vs the previous version, and why):
+#   1. FACE-BOX CRASH FIXED. face_boxes() returns a flat list of (x,y,w,h)
+#      tuples, so fb[0] is ONE box. Three extractors were indexing it as
+#      face_b[0][0] (treating it as a list-of-boxes) -> TypeError at window 1
+#      of any speaker video, silently killing the whole trajectory via the
+#      per-video try/except. All indexing now treats the primary box as a
+#      single (x,y,w,h) tuple.
+#   2. derive_genre() precedence fixed. The old `A and B if cond else C` line
+#      made the screen-recording/tutorial branch dead code, so tutorials were
+#      never filtered out (they'd pollute training). Now explicit.
+#   3. EnergyBucket fallback fixed (was `...if hasattr(EnergyBucket,'none')`
+#      which is always False). Removed the latent footgun.
+#   4. Heavy deps (librosa/mediapipe/scenedetect/easyocr) are now OPTIONAL:
+#      a missing import degrades that feature family to safe defaults instead
+#      of raising ImportError and bricking the whole cell.
+#   5. PER-WINDOW RESILIENCE: a single bad window is skipped with a warning
+#      instead of aborting the entire video trajectory.
+#   6. Numerical guards: spectral_centroid / onset_env can emit nan or warn on
+#      silent/short segments — guarded and coerced to 0.0.
 # ============================================================================
 
-import cv2, librosa, json, os, re, hashlib, subprocess
-import numpy as np
-import mediapipe as mp
+import json, os, hashlib
 from pathlib import Path
 from enum import Enum
 from datetime import datetime, timezone
 from typing import Optional
-from dataclasses import dataclass
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
-# Optional imports (each degrades gracefully if missing)
+# ---- required baseline (hard errors if these are missing) ----
+import numpy as np
+import cv2
+
+# ---- optional: degrade gracefully if a Kaggle install hiccupped ----
+try:
+    import librosa
+    HAS_LIBROSA = True
+except Exception:
+    HAS_LIBROSA = False
+    print("WARN: librosa not available — audio features will be zeroed.")
+
+try:
+    import mediapipe as mp
+    HAS_MEDIAPIPE = True
+except Exception:
+    HAS_MEDIAPIPE = False
+    print("WARN: mediapipe not available — face features will be absent.")
+
+try:
+    from scenedetect import detect, ContentDetector
+    HAS_SCENEDETECT = True
+except Exception:
+    HAS_SCENEDETECT = False
+    print("WARN: scenedetect not available — transition features will default to 'cut'.")
+
 try:
     import easyocr
     _READER = None  # lazy-init on first use (GPU)
@@ -37,11 +79,11 @@ except Exception:
     HAS_OCR = False
     print("WARN: easyocr not available — typography fields will be heuristic-only.")
 
-from scenedetect import detect, ContentDetector
-
 
 # ============================================================================
 # SCHEMA (inlined so the cell is self-contained on Kaggle)
+# Kept byte-for-byte in sync with trajectory_extractor/schema.py (74 features).
+# DO NOT edit one without the other.
 # ============================================================================
 
 class Intensity(str, Enum):
@@ -171,23 +213,49 @@ class TimelineWindow(BaseModel):
     temporal: TemporalFeatures
     speaker_vocal: SpeakerVocalFeatures
 
+    @model_validator(mode="after")
+    def validate_span(self) -> "TimelineWindow":
+        if self.end_seconds <= self.start_seconds:
+            raise ValueError("window end_seconds must be greater than start_seconds")
+        return self
+
 class TrajectoryMetadata(BaseModel):
     extraction_mode: ExtractionMode
+    source_hash: str
+    corpus_id: str
     source_video_id: Optional[str] = None
     edited_video_id: str
-    editor_label: str = "joseph"
+    vehicle: str
+    style_label: str
+    featureVersion: str
     extracted_at_utc: str
-    extractor_version: str = "0.1.0"
+    extractor_version: str = "0.2.0"
     duration_seconds: float
     fps: float
+    frame_count: int
     resolution: str
     windowing_mode: str
     notes: Optional[str] = None
 
 class Trajectory(BaseModel):
-    schema_version: str = "0.1.0"
+    schema_version: str = "0.2.0"
     metadata: TrajectoryMetadata
     windows: list[TimelineWindow]
+
+    @model_validator(mode="after")
+    def validate_timeline_contract(self) -> "Trajectory":
+        expected_duration = self.metadata.frame_count / self.metadata.fps
+        tolerance = max(1.0 / self.metadata.fps, 0.05)
+        if abs(expected_duration - self.metadata.duration_seconds) > tolerance:
+            raise ValueError("metadata duration_seconds must match frame_count / fps within one frame")
+        previous_end = 0.0
+        for window in self.windows:
+            if window.start_seconds + tolerance < previous_end:
+                raise ValueError("timeline windows must be ordered and non-overlapping")
+            if window.end_seconds > self.metadata.duration_seconds + tolerance:
+                raise ValueError("timeline window extends beyond metadata duration_seconds")
+            previous_end = window.end_seconds
+        return self
 
 WINDOW_SECONDS = 1.0  # fixed-1s windowing — chosen for cross-video comparability
 
@@ -199,6 +267,11 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 # ============================================================================
 # LOW-LEVEL HELPERS (video I/O, audio, OCR, faces, flow)
 # ============================================================================
+
+# A primary face box is a single (x, y, w, h) tuple in pixels — NOT a list.
+# face_boxes() returns list[FaceBox]; we pass fb[0] (one box, or None) to the
+# per-family extractors. Indexing a box is single-level: box[0]=x, [1]=y, ...
+FaceBox = tuple  # (x: int, y: int, w: int, h: int)
 
 def file_hash(path: str) -> str:
     h = hashlib.sha256()
@@ -217,13 +290,19 @@ def get_video_meta(path: str):
     cap.release()
     return {"fps": fps, "frames": n, "w": w, "h": h, "duration": dur}
 
-def extract_audio(path: str, sr: int = 22050):
-    """librosa load; returns (y, sr, duration)."""
+def load_audio(path: str, sr: int = 22050):
+    """librosa load for a whole video; returns (y, sr, duration).
+    Named load_audio (NOT extract_audio) to avoid colliding with the
+    per-window audio feature extractor of the same name — that collision
+    silently shadowed this loader and crashed run_batch on video 1.
+    Caller must check HAS_LIBROSA before calling."""
     y, sr = librosa.load(path, sr=sr, mono=True)
     return y, sr, len(y) / sr
 
 def detect_scenes(path: str):
     """Returns list of (start_sec, end_sec) scene boundaries via PySceneDetect."""
+    if not HAS_SCENEDETECT:
+        return []
     try:
         scene_list = detect(path, ContentDetector(threshold=27.0))
         return [(s.get_seconds(), e.get_seconds()) for s, e in scene_list]
@@ -255,7 +334,10 @@ def optical_flow_mag(frames):
     return float(np.mean(mags)) if mags else 0.0
 
 def face_boxes(frames):
-    """Return list of (x,y,w,h) face boxes across frames using MediaPipe."""
+    """Return list of (x,y,w,h) face boxes across frames using MediaPipe.
+    Each ELEMENT is one box; boxes[0] is the primary (first-detected) box."""
+    if not HAS_MEDIAPIPE:
+        return []
     boxes = []
     with mp.solutions.face_detection.FaceDetection(model_selection=1, min_detection_confidence=0.5) as fd:
         for f in frames:
@@ -311,20 +393,23 @@ def color_variance(frame):
 # PER-FAMILY EXTRACTORS  (each returns its Pydantic model)
 # ============================================================================
 
-def extract_camera(frames, flow_mag, face_b, prev_face_b):
+def extract_camera(frames, flow_mag, face_box: Optional[FaceBox], prev_face_box: Optional[FaceBox]):
+    """face_box / prev_face_box are SINGLE boxes (x,y,w,h) or None — NOT lists."""
     mag = _b(flow_mag, 0, 8)
     movement_class = ("static" if flow_mag < 1.0 else "handheld_shake"
                       if 1.0 <= flow_mag < 3.0 else "slow_zoom_in" if flow_mag < 6.0 else "pan")
-    # face box velocity
-    if face_b and prev_face_b:
-        dx = abs(face_b[0][0] - prev_face_b[0][0]); dy = abs(face_b[0][1] - prev_face_b[0][1])
+    # face-box velocity: single-box arithmetic. box=(x,y,w,h).
+    if face_box is not None and prev_face_box is not None:
+        dx = abs(face_box[0] - prev_face_box[0])   # x delta
+        dy = abs(face_box[1] - prev_face_box[1])   # y delta
         fbv = _b(dx + dy, 0, 60)
     else:
-        fbv = EnergyBucket.none if hasattr(EnergyBucket,'none') else EnergyBucket.low
-    # crop tightness from face size
-    if frames and face_b:
+        fbv = EnergyBucket.low  # no detectable face motion
+    # crop tightness from face size relative to frame
+    if frames and face_box is not None:
         fh, fw = frames[0].shape[:2]
-        ratio = (face_b[0][2] * face_b[0][3]) / (fw * fh)
+        fx, fy, bw, bh = face_box
+        ratio = (bw * bh) / (fw * fh)
         tight = "tight_head" if ratio > 0.18 else "medium" if ratio > 0.06 else "wide"
     else:
         tight = "full_body"
@@ -372,15 +457,17 @@ def extract_motion_graphics(frames):
         overlay_layer_count=min(layers, 4),
     )
 
-def extract_composition(frames, face_b):
+def extract_composition(frames, face_box: Optional[FaceBox]):
+    """face_box is a SINGLE box (x,y,w,h) or None."""
     if not frames: return CompositionFeatures(
         speaker_position="absent", negative_space_ratio=EnergyBucket.low,
         background_type="real_scene", depth_of_field="deep", subject_scale="medium")
     f = frames[0]; h, w = f.shape[:2]
-    if face_b:
-        cx = face_b[0][0] + face_b[0][2]/2
+    if face_box is not None:
+        fx, fy, bw, bh = face_box
+        cx = fx + bw / 2
         pos = "left" if cx < w*0.4 else "right" if cx > w*0.6 else "center"
-        scale = "large" if face_b[0][2] > w*0.4 else "medium" if face_b[0][2] > w*0.2 else "small"
+        scale = "large" if bw > w*0.4 else "medium" if bw > w*0.2 else "small"
     else:
         pos = "absent"; scale = "medium"
     # negative space: fraction of low-edge area
@@ -390,7 +477,7 @@ def extract_composition(frames, face_b):
         speaker_position=pos, negative_space_ratio=_b(nsr, 0, 0.6),
         background_type="screenshot" if edge_density(f) > 35 and color_variance(f) < 40
                         else "real_scene",
-        depth_of_field="shallow" if face_b else "deep", subject_scale=scale,
+        depth_of_field="shallow" if face_box is not None else "deep", subject_scale=scale,
     )
 
 def extract_transitions(scene_starts, window_start, window_end, beat_times):
@@ -408,19 +495,31 @@ def extract_transitions(scene_starts, window_start, window_end, beat_times):
         synced, offset = False, "on"
     return TransitionFeatures(has_audio_synced_cut=synced, timing_offset_bucket=offset)
 
+def _default_audio():
+    return AudioFeatures(music_energy=EnergyBucket.low, vocal_energy=EnergyBucket.low,
+                         spectral_brightness=EnergyBucket.low, transient_density=EnergyBucket.low)
+
 def extract_audio(y, sr, start, end, beat_times, onset_env):
+    if y is None or not HAS_LIBROSA:
+        return _default_audio()
     a0 = int(start*sr); a1 = int(end*sr)
     seg = y[a0:a1] if a1 <= len(y) else y[a0:]
     if len(seg) < 2:
-        return AudioFeatures(music_energy=EnergyBucket.low, vocal_energy=EnergyBucket.low,
-                             spectral_brightness=EnergyBucket.low, transient_density=EnergyBucket.low)
+        return _default_audio()
     rms = float(np.sqrt(np.mean(seg**2)))
-    spec = float(np.mean(librosa.feature.spectral_centroid(y=seg, sr=sr)))
+    # spectral centroid can warn/return nan on near-silent segments — guard it
+    try:
+        spec = float(np.mean(librosa.feature.spectral_centroid(y=seg, sr=sr)))
+        if not np.isfinite(spec): spec = 0.0
+    except Exception:
+        spec = 0.0
     # transient density: onsets in window
     if onset_env is not None and len(onset_env):
         fps_onset = len(onset_env) / (len(y)/sr)
         i0 = int(start*fps_onset); i1 = int(end*fps_onset)
-        td = float(np.mean(onset_env[i0:i1])) if i1 <= len(onset_env) else 0.0
+        sl = onset_env[i0:i1]
+        td = float(np.mean(sl)) if len(sl) else 0.0
+        if not np.isfinite(td): td = 0.0
     else:
         td = 0.0
     # beat proximity of window midpoint
@@ -458,7 +557,8 @@ def extract_temporal(window_idx, total_windows, cut_density_per_window, energy_c
         surprise_budget_state=EnergyBucket.mid,
     )
 
-def extract_speaker(face_b, frames, rms):
+def extract_speaker(face_box, frames, rms):
+    """face_box/frames reserved for future face-emotion + gaze hooks; rms drives vocal state today."""
     speaking = rms > 0.01
     conf = Confidence.assertive if rms > 0.06 else Confidence.neutral if rms > 0.02 else Confidence.uncertain
     return SpeakerVocalFeatures(
@@ -471,11 +571,17 @@ def extract_speaker(face_b, frames, rms):
 # GENRE + GENOME DIMENSION DERIVATION
 # ============================================================================
 
-def derive_genre(comp, mg, speaker) -> SegmentGenre:
-    """Tutorial filter: screen-recording UI + no speaker = tutorial_walkthrough."""
-    if mg.has_screen_recording and speaker.speaker_position if hasattr(speaker,'speaker_position') else comp.speaker_position == "absent":
+def derive_genre(comp, mg) -> SegmentGenre:
+    """Classify the window's genre so tutorials can be FILTERED before training.
+
+    Tutorial walkthrough = screen-recording UI with NO speaker (pure app demo).
+    A screen-recording WITH a speaker (facecam over a tutorial) is still Joseph's
+    editorial craft, so it is NOT filtered out. Only speaker-absent UI segments
+    are treated as non-editorial noise.
+    """
+    if mg.has_screen_recording and comp.speaker_position == "absent":
         return SegmentGenre.tutorial_walkthrough
-    if comp.speaker_position == "absent" and comp.background_type == "real_scene":
+    if comp.speaker_position == "absent":
         return SegmentGenre.broll_only
     return SegmentGenre.editorial
 
@@ -509,66 +615,97 @@ def extract_trajectory(path: str, video_id: str = None) -> Trajectory:
     res = f"{meta['w']}x{meta['h']}"
     vid = video_id or file_hash(path)
 
-    # audio
-    y, sr, _ = extract_audio(path)
-    tempo, beats = librosa.beat.beat_track(y=y, sr=sr)
-    beat_times = librosa.frames_to_time(beats, sr=sr)
-    onset_env = librosa.onset.onset_strength(y=y, sr=sr)
-    energy_curve = librosa.feature.rms(y=y)[0]
-    # normalize energy curve to 0-1 for trend math
-    ec_norm = energy_curve / (energy_curve.max() + 1e-9)
+    # audio (optional family)
+    if HAS_LIBROSA:
+        y, sr, _ = load_audio(path)
+        tempo, beats = librosa.beat.beat_track(y=y, sr=sr)
+        beat_times = librosa.frames_to_time(beats, sr=sr)
+        onset_env = librosa.onset.onset_strength(y=y, sr=sr)
+        energy_curve = librosa.feature.rms(y=y)[0]
+        ec_norm = energy_curve / (energy_curve.max() + 1e-9)
+    else:
+        y, sr = None, 22050
+        beat_times, onset_env, ec_norm = np.array([]), None, np.array([])
 
-    # scenes
+    # scenes (optional family)
     scenes = detect_scenes(path)
     scene_starts = [s for s, _ in scenes]
 
     total_windows = max(1, int(dur / WINDOW_SECONDS))
     windows = []
-    prev_face = None
+    prev_face: Optional[FaceBox] = None
+    failed_windows = 0
 
     print(f"  extracting {total_windows} windows...", end=" ", flush=True)
     for wi in range(total_windows):
-        s, e = wi * WINDOW_SECONDS, (wi + 1) * WINDOW_SECONDS
-        frames = sample_window_frames(path, s, e, fps, n=4)
-        if not frames:
+        try:
+            s, e = wi * WINDOW_SECONDS, (wi + 1) * WINDOW_SECONDS
+            frames = sample_window_frames(path, s, e, fps, n=4)
+            if not frames:
+                # nothing to decode for this window — skip rather than abort the video
+                failed_windows += 1
+                continue
+            flow = optical_flow_mag(frames)
+            fb = face_boxes(frames)
+            primary: Optional[FaceBox] = fb[0] if fb else None
+            # OCR (cached once per window)
+            texts, zones = ocr_text(frames)
+
+            cam = extract_camera(frames, flow, primary, prev_face)
+            typo = extract_typography(frames, wi, {wi: (texts, zones)})
+            mg = extract_motion_graphics(frames)
+            comp = extract_composition(frames, primary)
+            trans = extract_transitions(scene_starts, s, e, beat_times)
+            aud = extract_audio(y, sr, s, e, beat_times, onset_env)
+            cd_pw = len([c for c in scene_starts if s <= c < e])
+            tmp = extract_temporal(wi, total_windows, cd_pw, ec_norm)
+            if y is not None and int(e*sr) <= len(y):
+                seg = y[int(s*sr):int(e*sr)]
+                rms_w = float(np.sqrt(np.mean(seg**2))) if len(seg) else 0.0
+            else:
+                rms_w = 0.0
+            spk = extract_speaker(primary, frames, rms_w)
+
+            genre = derive_genre(comp, mg)
+            intensity, vd, me, role = derive_genome(cam, typo, mg, comp, aud, tmp)
+
+            windows.append(TimelineWindow(
+                index=wi, start_seconds=s, end_seconds=e,
+                segment_genre=genre, intensity=intensity, visual_density=vd,
+                motion_energy=me, editorial_role=role,
+                camera=cam, typography=typo, motion_graphics=mg, composition=comp,
+                transitions=trans, audio=aud, temporal=tmp, speaker_vocal=spk,
+            ))
+            prev_face = primary
+        except Exception as ex:
+            failed_windows += 1
+            print(f"\n  WARN: window {wi} failed ({type(ex).__name__}: {ex}); skipped.",
+                  end=" ", flush=True)
             continue
-        flow = optical_flow_mag(frames)
-        fb = face_boxes(frames)
-        # OCR (cached once per window)
-        texts, zones = ocr_text(frames)
-
-        cam = extract_camera(frames, flow, (fb[0] if fb else None), prev_face)
-        typo = extract_typography(frames, wi, {wi: (texts, zones)})
-        mg = extract_motion_graphics(frames)
-        comp = extract_composition(frames, (fb[0] if fb else None))
-        trans = extract_transitions(scene_starts, s, e, beat_times)
-        aud = extract_audio(y, sr, s, e, beat_times, onset_env)
-        cd_pw = len([c for c in scene_starts if s <= c < e])
-        tmp = extract_temporal(wi, total_windows, cd_pw, ec_norm)
-        spk = extract_speaker((fb[0] if fb else None), frames,
-                              float(np.sqrt(np.mean(y[int(s*sr):int(e*sr)]**2))) if int(e*sr) <= len(y) else 0.0)
-
-        genre = derive_genre(comp, mg, spk)
-        intensity, vd, me, role = derive_genome(cam, typo, mg, comp, aud, tmp)
-
-        windows.append(TimelineWindow(
-            index=wi, start_seconds=s, end_seconds=e,
-            segment_genre=genre, intensity=intensity, visual_density=vd,
-            motion_energy=me, editorial_role=role,
-            camera=cam, typography=typo, motion_graphics=mg, composition=comp,
-            transitions=trans, audio=aud, temporal=tmp, speaker_vocal=spk,
-        ))
-        prev_face = (fb[0] if fb else None)
     print("done.")
+
+    if not windows:
+        raise ValueError(f"no windows could be extracted from {path} (duration={dur:.1f}s)")
+
+    notes = None
+    if failed_windows:
+        notes = (f"{failed_windows}/{total_windows} windows skipped during extraction "
+                 f"(decoded={len(windows)}).")
 
     return Trajectory(
         metadata=TrajectoryMetadata(
             extraction_mode=ExtractionMode.finals_only,
+            source_hash=file_hash(path),
+            corpus_id=os.environ.get("PROMETHEUS_CORPUS_ID", "golden-20-local"),
             edited_video_id=vid,
-            editor_label="joseph",
+            vehicle=os.environ.get("PROMETHEUS_VEHICLE", "talking_head"),
+            style_label=os.environ.get("PROMETHEUS_STYLE_LABEL", "joseph"),
+            featureVersion="trajectory-features-v1",
             extracted_at_utc=datetime.now(timezone.utc).isoformat(),
-            duration_seconds=dur, fps=fps, resolution=res,
+            extractor_version="0.2.0",
+            duration_seconds=dur, fps=fps, frame_count=meta["frames"], resolution=res,
             windowing_mode="fixed_1s",
+            notes=notes,
         ),
         windows=windows,
     )

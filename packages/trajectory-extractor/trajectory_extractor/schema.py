@@ -39,7 +39,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 # ============================================================================
@@ -185,7 +185,7 @@ class TypographyFeatures(BaseModel):
         description="none | flash (<1s) | short (1-2s) | standard (2-4s) | held (>4s)",
     )
     occupancy_bucket: EnergyBucket = Field(
-        "low",
+        EnergyBucket.low,
         description="How much of the frame the text occupies. Bucketed.",
     )
 
@@ -403,6 +403,12 @@ class TimelineWindow(BaseModel):
     temporal: TemporalFeatures
     speaker_vocal: SpeakerVocalFeatures
 
+    @model_validator(mode="after")
+    def validate_span(self) -> "TimelineWindow":
+        if self.end_seconds <= self.start_seconds:
+            raise ValueError("window end_seconds must be greater than start_seconds")
+        return self
+
     @property
     def feature_count(self) -> int:
         """Total discrete feature fields across all families.
@@ -411,7 +417,7 @@ class TimelineWindow(BaseModel):
             self.camera, self.typography, self.motion_graphics, self.composition,
             self.transitions, self.audio, self.temporal, self.speaker_vocal,
         ]
-        return sum(len(family.model_fields) for family in families)
+        return sum(len(type(family).model_fields) for family in families)
 
 
 # ============================================================================
@@ -444,16 +450,37 @@ class TrajectoryMetadata(BaseModel):
         ...,
         description="paired (raw+edited diffed) or finals_only (detected in-place). MUST be consistent per corpus.",
     )
+    source_hash: str = Field(
+        ...,
+        min_length=1,
+        description="Stable content hash for the media reference used to produce this trajectory.",
+    )
+    corpus_id: str = Field(
+        ...,
+        min_length=1,
+        description="Stable registry/corpus identifier, e.g. golden-20-local.",
+    )
     source_video_id: Optional[str] = Field(
         None,
         description="Stable hash of the source footage. Null for finals_only extraction.",
     )
     edited_video_id: str = Field(..., description="Stable hash of the edited/final cut.")
-    editor_label: str = Field("joseph", description="Whose craft this trajectory captures.")
+    vehicle: str = Field(
+        ...,
+        min_length=1,
+        description="Scene vehicle grammar, e.g. talking_head, property, product, drone, or document_exhibit.",
+    )
+    style_label: str = Field(..., min_length=1, description="Whose craft/style this trajectory captures.")
+    featureVersion: str = Field(
+        ...,
+        min_length=1,
+        description="Version of the discrete feature extractor, required for re-extraction compatibility.",
+    )
     extracted_at_utc: str
-    extractor_version: str = Field(..., description="Schema/extractor version, e.g. '0.1.0'.")
+    extractor_version: str = Field(..., description="Schema/extractor version, e.g. '0.2.0'.")
     duration_seconds: float = Field(..., gt=0)
     fps: float = Field(..., gt=0)
+    frame_count: int = Field(..., gt=0, description="Decoded frame count used to validate duration/fps consistency.")
     resolution: str = Field(..., description="e.g. '1080x1920'")
     windowing_mode: str = Field(
         ...,
@@ -476,13 +503,31 @@ class Trajectory(BaseModel):
     trajectories, and do not merge multiple videos into one.
     """
 
-    schema_version: str = Field("0.1.0", description="Bump if the schema changes shape.")
+    schema_version: str = Field("0.2.0", description="Bump if the schema changes shape.")
     metadata: TrajectoryMetadata
     windows: list[TimelineWindow] = Field(
         ...,
         min_length=1,
         description="Ordered list of windows from video start to end.",
     )
+
+    @model_validator(mode="after")
+    def validate_timeline_contract(self) -> "Trajectory":
+        expected_duration = self.metadata.frame_count / self.metadata.fps
+        tolerance = max(1.0 / self.metadata.fps, 0.05)
+        if abs(expected_duration - self.metadata.duration_seconds) > tolerance:
+            raise ValueError(
+                "metadata duration_seconds must match frame_count / fps within one frame"
+            )
+
+        previous_end = 0.0
+        for window in self.windows:
+            if window.start_seconds + tolerance < previous_end:
+                raise ValueError("timeline windows must be ordered and non-overlapping")
+            if window.end_seconds > self.metadata.duration_seconds + tolerance:
+                raise ValueError("timeline window extends beyond metadata duration_seconds")
+            previous_end = window.end_seconds
+        return self
 
     @property
     def total_feature_slots(self) -> int:
