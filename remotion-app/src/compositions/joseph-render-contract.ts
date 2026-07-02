@@ -338,6 +338,8 @@ export type JosephMicroAnimationRenderContract = {
   primitiveId: string;
   renderBranch: JosephMicroAnimationRenderBranch;
   fallbackUsed: boolean;
+  failureTags: string[];
+  evidencePointer: string;
   governedFallback: MicroAnimationRenderFallback;
   transform: JosephTextTransform;
   observable: JosephMicroAnimationObservable;
@@ -635,6 +637,8 @@ export const resolveMicroAnimationRenderContract = ({
       primitiveId,
       renderBranch: 'governed-fallback',
       fallbackUsed: true,
+      failureTags: ['micro_animation_unsupported_variant'],
+      evidencePointer: `render-contract://micro-animation/${primitiveId}/fallback/${governedFallback}`,
       governedFallback,
       transform: base,
       observable,
@@ -791,6 +795,8 @@ export const resolveMicroAnimationRenderContract = ({
     primitiveId,
     renderBranch,
     fallbackUsed: false,
+    failureTags: [],
+    evidencePointer: `render-contract://micro-animation/${primitiveId}/${renderBranch}`,
     governedFallback,
     transform,
     observable,

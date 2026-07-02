@@ -372,6 +372,57 @@ describe('Joseph renderer manifest contract', () => {
     expect(fallback.fallbackUsed).toBe(true);
     expect(fallback.renderBranch).toBe('governed-fallback');
     expect(fallback.governedFallback).toBe('glitch');
+    expect(fallback.failureTags).toEqual(['micro_animation_unsupported_variant']);
+    expect(fallback.evidencePointer).toBe('render-contract://micro-animation/text-entry.unknown-future-primitive/fallback/glitch');
+  });
+
+  it('renders the top six premium primitives with individual observable contracts', () => {
+    const topSix = [
+      {primitiveId: 'text-emphasis.sweep-highlight', branch: 'sweep-highlight', accentKind: 'sweep'},
+      {primitiveId: 'text-mutation.weight-escalation', branch: 'weight-escalation', accentKind: 'none'},
+      {primitiveId: 'text-emphasis.capsule-highlight', branch: 'capsule-highlight', accentKind: 'capsule'},
+      {primitiveId: 'text-entry.clipped-mask-reveal', branch: 'clipped-mask-reveal', accentKind: 'none'},
+      {primitiveId: 'accent-motion.bracket-lock', branch: 'bracket-lock', accentKind: 'bracket'},
+      {primitiveId: 'text-emphasis.semantic-glow', branch: 'semantic-glow', accentKind: 'glow'},
+    ] as const;
+
+    for (const fixture of topSix) {
+      const first = resolveMicroAnimationRenderContract({
+        overlay: overlayFor(fixture.primitiveId),
+        frame: 24,
+        wordIndex: 0,
+        wordCount: 2,
+      });
+      const second = resolveMicroAnimationRenderContract({
+        overlay: overlayFor(fixture.primitiveId),
+        frame: 24,
+        wordIndex: 0,
+        wordCount: 2,
+      });
+
+      expect(first).toEqual(second);
+      expect(first).toMatchObject({
+        primitiveId: fixture.primitiveId,
+        renderBranch: fixture.branch,
+        fallbackUsed: false,
+        failureTags: [],
+        evidencePointer: `render-contract://micro-animation/${fixture.primitiveId}/${fixture.branch}`,
+      });
+      expect(first.observable.accentKind).toBe(fixture.accentKind);
+      expect(first.transform.position[2]).toBeGreaterThanOrEqual(0.35);
+
+      if (fixture.branch === 'weight-escalation') {
+        expect(first.observable.fontSizeScale).toBeGreaterThan(1);
+        expect(first.observable.renderOrder).toBe(42);
+      } else if (fixture.branch === 'clipped-mask-reveal') {
+        expect(first.observable.clipProgress).toBeGreaterThan(0);
+        expect(first.transform.reveal).toBeGreaterThan(0);
+      } else if (fixture.branch === 'semantic-glow') {
+        expect(first.observable.glowOpacity).toBeGreaterThan(0);
+      } else {
+        expect(first.observable.accentOpacity).toBeGreaterThan(0);
+      }
+    }
   });
 
   it('turns PiP depth, matte, z-order, and populated layers into observable scene values', () => {
