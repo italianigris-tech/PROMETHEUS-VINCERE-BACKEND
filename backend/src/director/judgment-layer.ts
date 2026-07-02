@@ -19,6 +19,7 @@ import {evaluateManifestTypographyQuality} from "./joseph-typography-intelligenc
 import {evaluateJosephSequenceDiscipline, type SequenceDisciplineEvaluation} from "./joseph-sequence-discipline";
 import {rankJosephSequenceObjective, type JosephSequenceObjectiveRanking} from "./joseph-sequence-objective";
 import {evaluateJosephNegativeGrammar, type JosephNegativeGrammarEvaluation} from "./joseph-negative-grammar";
+import {evaluateManifestMicroAnimationQuality, type MicroAnimationQuality} from "./micro-animation-primitives";
 
 export interface CandidateScore {
   manifest: UnifiedRenderManifest;
@@ -28,6 +29,7 @@ export interface CandidateScore {
   floorFailures: string[];
   sequenceDiscipline: SequenceDisciplineEvaluation;
   negativeEvaluator: Pick<JosephNegativeGrammarEvaluation, "failures" | "warnings" | "penalty">;
+  microAnimationQuality: MicroAnimationQuality;
 }
 
 export interface JudgmentResult {
@@ -329,18 +331,22 @@ export const meetsQualityFloor = (
 
   const negativeGrammar = evaluateJosephNegativeGrammar(manifest);
   failures.push(...negativeGrammar.failures);
+  const microAnimationQuality = evaluateManifestMicroAnimationQuality(manifest);
+  failures.push(...microAnimationQuality.failures);
   const typographyQuality = evaluateManifestTypographyQuality(manifest);
   failures.push(...typographyQuality.failures);
 
   const sequenceDiscipline = evaluateJosephSequenceDiscipline(manifest, {enabled: options.sequenceDisciplineEnabled});
   const densityPenalty = densityPenaltyOf(manifest, cuts, texts, sfx, durationMs);
   const typographyPenalty = 1 - typographyQuality.score;
+  const microAnimationPenalty = 1 - microAnimationQuality.score;
   const qualityScore = clamp01(
     1 -
       failures.length * 0.1 -
       densityPenalty * 0.05 -
       negativeGrammar.penalty * 0.15 -
       typographyPenalty * 0.12 -
+      microAnimationPenalty * 0.16 -
       sequenceDiscipline.penalty * 0.2,
   );
 
@@ -356,6 +362,7 @@ export const meetsQualityFloor = (
       warnings: negativeGrammar.warnings,
       penalty: negativeGrammar.penalty,
     },
+    microAnimationQuality,
   };
 };
 
@@ -598,7 +605,7 @@ export class JudgmentLayer {
         failures: negativeEvaluator.failures,
         warnings: negativeEvaluator.warnings,
       },
-      fixIntents: negativeEvaluator.fixIntents,
+      fixIntents: [...new Set([...negativeEvaluator.fixIntents, ...scores.flatMap((score) => score.microAnimationQuality.fixIntents)])].sort(),
     };
 
     return {

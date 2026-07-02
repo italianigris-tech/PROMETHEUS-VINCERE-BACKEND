@@ -108,6 +108,12 @@ describe("Joseph micro-animation primitive library", () => {
 
     expect(quality.failures).toContain("micro_emphasis_collision");
     expect(quality.failures).toContain("micro_animation_visual_chaos");
+    expect(quality.fixIntents).toEqual(
+      expect.arrayContaining([
+        "Choose one emphasis mark per target word and remove competing highlight or accent primitives.",
+        "Lower primitive concurrency or intensity until the stack has a clear visual hierarchy.",
+      ]),
+    );
     expect(quality.score).toBeLessThan(0.8);
   });
 

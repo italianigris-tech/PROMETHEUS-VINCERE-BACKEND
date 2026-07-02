@@ -105,6 +105,12 @@ const scoreFor = (
     warnings: [],
     penalty: 0,
   },
+  microAnimationQuality: {
+    score: 1,
+    failures: [],
+    warnings: [],
+    fixIntents: [],
+  },
   sequenceDiscipline: {
     enabled: true,
     penalty: sequencePenalty,

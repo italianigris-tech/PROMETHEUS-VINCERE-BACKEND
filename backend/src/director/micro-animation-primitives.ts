@@ -45,6 +45,7 @@ export type MicroAnimationQuality = {
   score: number;
   failures: string[];
   warnings: string[];
+  fixIntents: string[];
 };
 
 export type MicroAnimationSelectionInput = {
@@ -441,6 +442,21 @@ export const JOSEPH_MICRO_ANIMATION_COMBINATION_RULES = [
   },
 ] as const;
 
+export const MICRO_ANIMATION_FIX_INTENTS: Record<string, string> = {
+  micro_entry_collision: "Use one entry primitive per word or stagger entry ownership before the next readable beat.",
+  micro_entry_overlap: "Stagger entry primitives so overlapping words keep readable ownership.",
+  micro_emphasis_collision: "Choose one emphasis mark per target word and remove competing highlight or accent primitives.",
+  micro_mutation_collision: "Delay mutation primitives until the word is readable and avoid overlapping semantic mutation windows.",
+  micro_animation_visual_chaos: "Lower primitive concurrency or intensity until the stack has a clear visual hierarchy.",
+  micro_animation_semantic_mismatch: "Move high-intensity emphasis or mutation to hero/CTA words, or reduce support-word intensity.",
+  micro_animation_unknown_primitive: "Replace unsupported primitive IDs with curated Joseph micro-animation primitives or governed fallbacks.",
+  micro_animation_monotony: "Vary approved primitive families across adjacent beats to avoid repetition fatigue.",
+  micro_animation_family_overuse: "Vary primitive families across the sequence instead of leaning on one visual habit.",
+  micro_animation_intensity_budget_hot: "Reduce high-intensity primitive count before the moment loses readable hierarchy.",
+};
+
+export const microAnimationFixIntentsFor = (tags: readonly string[]): string[] =>
+  [...new Set(tags.map((tag) => MICRO_ANIMATION_FIX_INTENTS[tag]).filter((intent): intent is string => Boolean(intent)))].sort();
 const CATALOG_BY_ID = new Map(JOSEPH_MICRO_ANIMATION_CATALOG.map((primitive) => [primitive.id, primitive]));
 
 const pick = <T>(rng: () => number, items: readonly T[]): T => {
@@ -534,7 +550,7 @@ export const evaluateMicroAnimationSelections = (
   selections: readonly TimedMicroAnimationSelection[],
 ): MicroAnimationQuality => {
   if (selections.length === 0) {
-    return { score: 1, failures: [], warnings: [] };
+    return { score: 1, failures: [], warnings: [], fixIntents: [] };
   }
 
   const failures = new Set<string>();
@@ -616,10 +632,14 @@ export const evaluateMicroAnimationSelections = (
     warnings.add("micro_animation_intensity_budget_hot");
   }
 
+  const sortedFailures = [...failures].sort();
+  const sortedWarnings = [...warnings].sort();
+
   return {
     score: clamp01(1 - failures.size * 0.18 - warnings.size * 0.04),
-    failures: [...failures].sort(),
-    warnings: [...warnings].sort(),
+    failures: sortedFailures,
+    warnings: sortedWarnings,
+    fixIntents: microAnimationFixIntentsFor([...sortedFailures, ...sortedWarnings]),
   };
 };
 
@@ -647,6 +667,7 @@ export const buildMicroAnimationAudit = (
     score: quality.score,
     failures: quality.failures,
     warnings: quality.warnings,
+    fixIntents: quality.fixIntents,
   };
 };
 
@@ -656,6 +677,7 @@ export const evaluateManifestMicroAnimationQuality = (
   const overlayQuality = evaluateMicroAnimationSelections(timedSelectionsFromOverlays(manifest.textOverlays));
   const auditFailures = manifest.microAnimationAudit?.failures ?? [];
   const auditWarnings = manifest.microAnimationAudit?.warnings ?? [];
+  const auditFixIntents = manifest.microAnimationAudit?.fixIntents ?? [];
   const failures = [...new Set([...overlayQuality.failures, ...auditFailures])].sort();
   const warnings = [...new Set([...overlayQuality.warnings, ...auditWarnings])].sort();
 
@@ -663,5 +685,6 @@ export const evaluateManifestMicroAnimationQuality = (
     score: Math.min(overlayQuality.score, manifest.microAnimationAudit?.score ?? 1),
     failures,
     warnings,
+    fixIntents: [...new Set([...overlayQuality.fixIntents, ...auditFixIntents, ...microAnimationFixIntentsFor([...failures, ...warnings])])].sort(),
   };
 };

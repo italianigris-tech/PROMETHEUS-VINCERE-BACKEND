@@ -1,5 +1,5 @@
 import {describe, expect, it} from "vitest";
-import type {CutEvent, SFXEvent, TextEvent, TimelineEvent, UnifiedRenderManifest} from "@prometheus/shared-types";
+import type {CutEvent, MicroAnimationSelection, SFXEvent, TextEvent, TextOverlay, TimelineEvent, UnifiedRenderManifest} from "@prometheus/shared-types";
 import {ReplayLedger} from "../ledger/replay-ledger";
 import {computeSimilarityHash, JudgmentLayer, meetsQualityFloor} from "./judgment-layer";
 import type {VariationKey} from "./variation-key";
@@ -33,6 +33,58 @@ const sfx = (id: string, cue: SFXEvent["cue"], triggerMs: number): SFXEvent => (
   durationMs: 250,
   volumeDb: -12,
   duckMusicDb: -6,
+});
+
+const microSelection = (
+  primitiveId: string,
+  overrides: Partial<MicroAnimationSelection> = {},
+): MicroAnimationSelection => ({
+  primitiveId,
+  family: primitiveId.startsWith("text-entry.")
+    ? "text_entry"
+    : primitiveId.startsWith("text-mutation.")
+      ? "text_mutation"
+      : primitiveId.startsWith("accent-motion.")
+        ? "accent_motion"
+        : "text_emphasis",
+  role: primitiveId.startsWith("text-entry.")
+    ? "entry"
+    : primitiveId.startsWith("text-mutation.")
+      ? "mutation"
+      : primitiveId.startsWith("accent-motion.")
+        ? "accent"
+        : "emphasis",
+  renderFallback: "pop",
+  combinationGroup: primitiveId.startsWith("text-entry.")
+    ? "entry"
+    : primitiveId.startsWith("text-mutation.")
+      ? "semantic-mutation"
+      : primitiveId.startsWith("accent-motion.")
+        ? "accent-guide"
+        : "emphasis-mark",
+  semanticRole: "hero",
+  parameters: {
+    intensity: 0.82,
+    durationMs: 300,
+    delayMs: 0,
+    anchor: "word",
+    direction: "right",
+  },
+  ...overrides,
+});
+
+const microOverlay = (
+  primitiveId: string,
+  startFrame = 30,
+  endFrame = 60,
+  overrides: Partial<MicroAnimationSelection> = {},
+): TextOverlay => ({
+  text: "WIN",
+  startFrame,
+  endFrame,
+  animation: "pop",
+  color: "#FF0040",
+  microAnimation: microSelection(primitiveId, overrides),
 });
 
 const governedPrompt = (): GovernedPrompt => ({
@@ -174,6 +226,7 @@ describe("JudgmentLayer active contract", () => {
         score: 0.62,
         failures: ["micro_animation_visual_chaos"],
         warnings: [],
+        fixIntents: ["Lower primitive concurrency or intensity until the stack has a clear visual hierarchy."],
       },
     });
 
@@ -204,6 +257,60 @@ describe("JudgmentLayer active contract", () => {
 
     expect(score.passedFloor).toBe(false);
     expect(score.floorFailures).toContain("climax-overspend");
+  });
+  it("vetoes invalid primitive stacks from overlays and includes grammar fix intent", async () => {
+    const safe = validManifest("safe-micro-stack");
+    const invalid = validManifest("invalid-micro-stack", {
+      textOverlays: [
+        microOverlay("text-entry.word-riser"),
+        microOverlay("text-entry.letter-riser"),
+        microOverlay("text-emphasis.sweep-highlight", 30, 60, {
+          semanticRole: "support",
+          parameters: {
+            intensity: 0.9,
+            durationMs: 300,
+            delayMs: 0,
+            anchor: "word",
+            direction: "right",
+          },
+        }),
+        microOverlay("text-emphasis.capsule-highlight"),
+        microOverlay("text-mutation.weight-escalation"),
+        microOverlay("text-mutation.emphasis-handoff"),
+      ],
+    });
+
+    const floorScore = meetsQualityFloor(invalid);
+    expect(floorScore.passedFloor).toBe(false);
+    expect(floorScore.floorFailures).toEqual(
+      expect.arrayContaining([
+        "micro_entry_collision",
+        "micro_emphasis_collision",
+        "micro_mutation_collision",
+        "micro_animation_visual_chaos",
+        "micro_animation_semantic_mismatch",
+      ]),
+    );
+    expect(floorScore.microAnimationQuality.fixIntents).toContain(
+      "Use one entry primitive per word or stagger entry ownership before the next readable beat.",
+    );
+
+    const judgment = await new JudgmentLayer(new ReplayLedger(":memory:")).judgeCandidates(
+      [safe, invalid],
+      variationKey(),
+      governedPrompt(),
+    );
+
+    expect(judgment.selected.jobId).toBe("safe-micro-stack");
+    expect(judgment.sequenceObjective.selection.candidatePoolIds).not.toContain("invalid-micro-stack");
+    expect(judgment.verdict.failureTags).toContain("micro_entry_collision");
+    expect(judgment.verdict.fixIntents).toEqual(
+      expect.arrayContaining([
+        "Use one entry primitive per word or stagger entry ownership before the next readable beat.",
+        "Choose one emphasis mark per target word and remove competing highlight or accent primitives.",
+        "Lower primitive concurrency or intensity until the stack has a clear visual hierarchy.",
+      ]),
+    );
   });
   it("vetoes negative evaluator failures and includes fix intent in the verdict", async () => {
     const safe = validManifest("safe-candidate");

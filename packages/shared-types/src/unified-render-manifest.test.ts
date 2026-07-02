@@ -186,11 +186,13 @@ describe("UnifiedRenderManifestSchema", () => {
         score: 0.94,
         failures: [],
         warnings: ["entry-only support lane"],
+        fixIntents: ["Stagger entry primitives so overlapping words keep readable ownership."],
       },
     });
 
     expect(manifest.textOverlays[0]?.microAnimation?.primitiveId).toBe("text-entry.word-riser");
     expect(manifest.microAnimationAudit?.taxonomyVersion).toBe("joseph-micro-animation-v1");
+    expect(manifest.microAnimationAudit?.fixIntents).toContain("Stagger entry primitives so overlapping words keep readable ownership.");
   });
 
   it("accepts an inspectable Joseph picture-in-picture composition plan", () => {

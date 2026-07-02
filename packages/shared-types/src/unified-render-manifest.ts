@@ -241,6 +241,7 @@ export const MicroAnimationAuditSchema = z.object({
   score: z.number().min(0).max(1),
   failures: z.array(z.string().trim().min(1)).default([]),
   warnings: z.array(z.string().trim().min(1)).default([]),
+  fixIntents: z.array(z.string().trim().min(1)).default([]),
 });
 
 export const JosephPiPLayoutSchema = z.enum([
