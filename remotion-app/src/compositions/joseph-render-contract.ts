@@ -350,6 +350,21 @@ export type JosephPiPBackgroundLayerRenderContract = JosephPiPBackgroundLayer & 
   color: string;
   renderOrder: number;
 };
+export type JosephPiPMatteCompositorInput = {
+  available: boolean;
+  planeZ?: number;
+  fallbackTags?: readonly string[];
+};
+
+export type JosephPiPVisibleLayerRole = JosephPiPBackgroundLayer['role'] | 'subject' | 'frame_chrome';
+
+export type JosephPiPVisibleLayer = {
+  role: JosephPiPVisibleLayerRole;
+  z: number;
+  renderOrder: number;
+  opacity: number;
+  respectsSubjectMatte: boolean;
+};
 
 export type JosephPiPRenderContract = {
   frame: JosephPiPFrame & {
@@ -381,6 +396,19 @@ export type JosephPiPRenderContract = {
       failureTags: string[];
     };
     failureTags: string[];
+  };
+  compositor: {
+    depthMode: '2.5d-pip';
+    subjectMatte: {
+      available: boolean;
+      alphaSource: 'rvm_matte' | 'flat_subject';
+      planeZ: number;
+      renderOrder: number;
+      fallbackTags: string[];
+    };
+    visibleLayerOrder: JosephPiPVisibleLayer[];
+    failureTags: string[];
+    depthSignature: string;
   };
 };
 
@@ -910,10 +938,12 @@ export const resolvePiPRenderContract = ({
   plan,
   frame,
   cameraMoves,
+  matte,
 }: {
   plan: JosephPiPPlan;
   frame: number;
   cameraMoves?: readonly CameraMoveWithVelocity[];
+  matte?: JosephPiPMatteCompositorInput;
 }): JosephPiPRenderContract => {
   const z = pipDepthZ[plan.frame.depth];
   const motion = motionProgress(plan, frame);
@@ -929,6 +959,42 @@ export const resolvePiPRenderContract = ({
     focus_field: 2,
   };
 
+  const layers = plan.backgroundLayers.map((layer, index) => ({
+    ...layer,
+    frameRect: frameFromLayer(layer),
+    z: z.matteZ - 0.14 + roleOrder[layer.role] * 0.055 + index * 0.006,
+    opacity: clamp01(0.1 + layer.intensity * 0.24),
+    color: pipLayerColor(layer.role),
+    renderOrder: z.renderOrder - 3 + roleOrder[layer.role],
+  }));
+  const clearance = resolvePiPClearanceContract({plan, frame, cameraMoves});
+  const matteFallbackTags = matte?.fallbackTags && matte.fallbackTags.length > 0
+    ? [...matte.fallbackTags]
+    : ['compiler_matte_unavailable'];
+  const alphaSource: JosephPiPRenderContract['compositor']['subjectMatte']['alphaSource'] = matte?.available ? 'rvm_matte' : 'flat_subject';
+  const subjectMatte: JosephPiPRenderContract['compositor']['subjectMatte'] = {
+    available: matte?.available ?? false,
+    alphaSource,
+    planeZ: matte?.planeZ ?? z.matteZ,
+    renderOrder: z.renderOrder,
+    fallbackTags: matte?.available ? [] : matteFallbackTags,
+  };
+  const visibleLayers: JosephPiPVisibleLayer[] = [
+    ...layers.map((layer): JosephPiPVisibleLayer => ({
+      role: layer.role as JosephPiPVisibleLayerRole,
+      z: layer.z,
+      renderOrder: layer.renderOrder,
+      opacity: layer.opacity,
+      respectsSubjectMatte: false,
+    })),
+    {role: 'subject' as const, z: z.sourceZ, renderOrder: z.renderOrder, opacity: 1, respectsSubjectMatte: subjectMatte.available},
+    {role: 'frame_chrome' as const, z: z.chromeZ, renderOrder: z.renderOrder + 1, opacity: 0.2 + motion.progress * 0.12, respectsSubjectMatte: false},
+  ];
+  const visibleLayerOrder = [...visibleLayers].sort((left, right) => left.renderOrder - right.renderOrder || left.z - right.z);
+  const depthSignature = visibleLayerOrder
+    .map((layer) => `${layer.role}:${layer.renderOrder}:${layer.z.toFixed(3)}:${layer.opacity.toFixed(3)}:${layer.respectsSubjectMatte ? 'matte' : 'flat'}`)
+    .join('|');
+
   return {
     frame: {
       ...plan.frame,
@@ -940,16 +1006,16 @@ export const resolvePiPRenderContract = ({
       renderOrder: z.renderOrder,
     },
     motion,
-    layers: plan.backgroundLayers.map((layer, index) => ({
-      ...layer,
-      frameRect: frameFromLayer(layer),
-      z: z.matteZ - 0.14 + roleOrder[layer.role] * 0.055 + index * 0.006,
-      opacity: clamp01(0.1 + layer.intensity * 0.24),
-      color: pipLayerColor(layer.role),
-      renderOrder: z.renderOrder - 3 + roleOrder[layer.role],
-    })),
+    layers,
     coexistence: plan.coexistenceRules,
-    clearance: resolvePiPClearanceContract({plan, frame, cameraMoves}),
+    clearance,
+    compositor: {
+      depthMode: '2.5d-pip',
+      subjectMatte,
+      visibleLayerOrder,
+      failureTags: clearance.failureTags,
+      depthSignature,
+    },
   };
 };
 

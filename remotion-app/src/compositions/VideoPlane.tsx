@@ -102,7 +102,10 @@ const resolveBrowserMediaSrc = (candidate: string | null | undefined, label: str
   }
 
   if (isLocalFileUrl(candidate) || isLocalAbsolutePath(candidate)) {
-    throw new Error(`VideoPlane cannot render local file ${label} sources: ${candidate}. Use a browser-safe URL.`);
+    const message = label === 'video'
+      ? `VideoPlane cannot render local file video sources: ${candidate}. Use MediaReference.browserUrl. Use a browser-safe URL.`
+      : `VideoPlane cannot render local file matte sources: ${candidate}. Use source.matteUrl.`;
+    throw new Error(message);
   }
 
   if (/^https?:\/\//i.test(candidate)) {
