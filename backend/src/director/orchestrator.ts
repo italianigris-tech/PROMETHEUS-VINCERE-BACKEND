@@ -514,7 +514,7 @@ const sampleProofFrames = (manifest: UnifiedRenderManifest): number[] => [
   Math.max(0, manifest.durationFrames - 1),
 ].filter((frame, index, frames) => frames.indexOf(frame) === index);
 
-const buildJosephEditRenderProof = (manifest: UnifiedRenderManifest): RenderProof => {
+export const buildJosephEditRenderProof = (manifest: UnifiedRenderManifest): RenderProof => {
   const fallbackTags = collectFallbackTags(manifest);
   const manifestHash = stableHash(JSON.stringify(manifest));
   const behaviorSignature = stableHash(JSON.stringify(visibleBehaviorPayload(manifest)));

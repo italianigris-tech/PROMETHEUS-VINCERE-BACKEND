@@ -49,6 +49,9 @@ jobs:
       - name: Backend tests
         run: npm run test --workspace=backend
 
+      - name: Compiler and render determinism proof
+        run: npm run test --workspace=backend -- src/director/determinism-guardian.test.ts
+
       - name: Shared determinism tests
         run: npm run test --workspace=packages/shared-types -- test/determinism.test.ts
 
