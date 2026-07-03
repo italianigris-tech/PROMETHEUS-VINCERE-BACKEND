@@ -591,8 +591,69 @@ export const doctrineBranchSchema = z.object({
 
 export type DoctrineBranch = z.infer<typeof doctrineBranchSchema>;
 
+const deepFreeze = <T>(value: T): T => {
+  if (!value || typeof value !== "object" || Object.isFrozen(value)) {
+    return value;
+  }
+
+  Object.freeze(value);
+  Object.values(value as Record<string, unknown>).forEach((child) => deepFreeze(child));
+  return value;
+};
+
+export const observationSnapshotFactsSchema = z.object({
+  scene: z.object({
+    segmentId: z.string(),
+    momentId: z.string(),
+    startMs: z.number().nonnegative(),
+    endMs: z.number().nonnegative(),
+    durationMs: z.number().nonnegative(),
+    momentType: z.string()
+  }),
+  transcript: z.object({
+    text: z.string(),
+    wordCount: z.number().int().nonnegative(),
+    firstWordMs: z.number().nonnegative().nullable(),
+    lastWordMs: z.number().nonnegative().nullable()
+  }),
+  audio: z.object({
+    energy: z.number().min(0).max(1),
+    importance: z.number().min(0).max(1),
+    density: z.number().nonnegative()
+  }),
+  visual: z.object({
+    sceneDensity: z.number().min(0).max(1).nullable(),
+    motionDensity: z.number().min(0).max(1).nullable(),
+    backgroundComplexity: z.number().min(0).max(1).nullable(),
+    safeZones: z.array(frameRegionSchema),
+    busyRegions: z.array(frameRegionSchema),
+    subjectRegion: frameRegionSchema.nullable(),
+    matteConfidence: z.number().min(0).max(1).nullable()
+  }),
+  production: z.object({
+    assetFingerprintCount: z.number().int().nonnegative(),
+    retrievalResultCount: z.number().int().nonnegative()
+  }),
+  constraints: z.object({
+    safeZones: z.array(frameRegionSchema),
+    riskyZones: z.array(frameRegionSchema),
+    speakerBlockedZones: z.array(frameRegionSchema),
+    behindSubjectTextLegal: z.boolean(),
+    denseTextAllowed: z.boolean(),
+    frameNeedsRestraint: z.boolean(),
+    busyFrame: z.boolean(),
+    occlusionRisk: z.number().min(0).max(1),
+    mobileReadabilityRisk: z.number().min(0).max(1)
+  })
+});
+
+export type ObservationSnapshotFacts = z.infer<typeof observationSnapshotFactsSchema>;
+
 export const observationSnapshotSchema = z.object({
+  version: z.literal("observation-snapshot-v1"),
   id: z.string(),
+  fingerprint: z.string(),
+  facts: observationSnapshotFactsSchema,
   segmentId: z.string(),
   moment: judgmentMomentSchema,
   speakerMetadata: speakerMetadataSchema.optional(),
@@ -605,7 +666,7 @@ export const observationSnapshotSchema = z.object({
   recentSequenceMetrics: z.lazy(() => sequenceMetricsSchema),
   assetFingerprintCount: z.number().int().nonnegative().default(0),
   retrievalResultCount: z.number().int().nonnegative().default(0)
-});
+}).transform((snapshot) => deepFreeze(snapshot));
 
 export type ObservationSnapshot = z.infer<typeof observationSnapshotSchema>;
 

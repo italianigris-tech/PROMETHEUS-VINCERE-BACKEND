@@ -42,6 +42,33 @@ describe("buildJosephOrchestrationPlan", () => {
   it("exposes a planning snapshot between semantics and the manifest", () => {
     const plan = buildJosephOrchestrationPlan(INPUT);
     expect(plan.semanticSummary.intent).toContain("hook");
+    expect(plan.observationSnapshot.version).toBe("observation-snapshot-v1");
+    expect(plan.observationSnapshot.facts.scene).toMatchObject({
+      durationMs: 4000,
+      profile: "joseph_aggressive"
+    });
+    expect(plan.observationSnapshot.facts.transcript).toMatchObject({
+      wordCount: 6,
+      hookPhrase: "Listen",
+      ctaPhrase: "win"
+    });
+    expect(plan.observationSnapshot.facts.audio).toMatchObject({
+      beatCount: 8,
+      onsetCount: 2
+    });
+    expect(plan.observationSnapshot.facts.production).toMatchObject({
+      seed: 12345,
+      outputWidth: 1080,
+      outputHeight: 1920
+    });
+    expect(plan.observationSnapshot.facts.constraints).toMatchObject({
+      maxDurationMs: 90000,
+      hookWindowMs: 3000,
+      ctaWindowMs: 3000
+    });
+    expect(Object.isFrozen(plan.observationSnapshot)).toBe(true);
+    expect(Object.isFrozen(plan.observationSnapshot.facts.scene)).toBe(true);
+    expect(buildJosephOrchestrationPlan(INPUT).observationSnapshot.fingerprint).toBe(plan.observationSnapshot.fingerprint);
     expect(plan.visualPlan.emotionalArc.length).toBeGreaterThan(0);
     expect(plan.visualPlan.primitiveComposition.length).toBeGreaterThan(0);
     expect(plan.visualPlan.microAnimationTaxonomy).toEqual(

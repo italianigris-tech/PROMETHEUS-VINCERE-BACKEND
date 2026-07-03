@@ -17,6 +17,34 @@ describe("stepping-stone planner", () => {
     }));
 
     expect(plan.plannerAudit).toBeTruthy();
+    expect(plan.plannerAudit?.observationSnapshot.version).toBe("observation-snapshot-v1");
+    expect(plan.plannerAudit?.observationSnapshot.facts.scene).toMatchObject({
+      segmentId: "segment-1",
+      momentId: "segment-1",
+      durationMs: 1800,
+      momentType: "hook"
+    });
+    expect(plan.plannerAudit?.observationSnapshot.facts.transcript).toMatchObject({
+      text: "This changes everything for the brand",
+      wordCount: 6
+    });
+    expect(plan.plannerAudit?.observationSnapshot.facts.audio.energy).toBe(0.9);
+    expect(plan.plannerAudit?.observationSnapshot.facts.visual.safeZones).toEqual(["center", "top-safe", "bottom-safe"]);
+    expect(plan.plannerAudit?.observationSnapshot.facts.production.assetFingerprintCount).toBe(0);
+    expect(plan.plannerAudit?.observationSnapshot.facts.constraints.behindSubjectTextLegal).toBe(true);
+    expect(Object.isFrozen(plan.plannerAudit?.observationSnapshot)).toBe(true);
+    expect(Object.isFrozen(plan.plannerAudit?.observationSnapshot.facts.scene)).toBe(true);
+
+    const replay = await engine.plan(buildJudgmentInput({
+      transcriptSegment: "This changes everything for the brand",
+      moment: {
+        transcriptText: "This changes everything for the brand",
+        momentType: "hook",
+        importance: 0.97,
+        energy: 0.9
+      }
+    }));
+    expect(replay.plannerAudit?.observationSnapshot.fingerprint).toBe(plan.plannerAudit?.observationSnapshot.fingerprint);
     expect(plan.plannerAudit?.planningSnapshot.doctrineBranches.length).toBeGreaterThan(0);
     expect(plan.plannerAudit?.planningSnapshot.doctrineBranches.length).toBeLessThanOrEqual(3);
     expect(plan.plannerAudit?.shortlist.length).toBeGreaterThan(0);

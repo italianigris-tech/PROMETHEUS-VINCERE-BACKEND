@@ -17,7 +17,7 @@ import {
   seededPick,
   seededRandom,
 } from "@prometheus/shared-types";
-import { randomUUID } from "crypto";
+import { createHash, randomUUID } from "crypto";
 import {
   buildMicroAnimationAudit,
   JOSEPH_MICRO_ANIMATION_TAXONOMY,
@@ -97,8 +97,51 @@ export type JosephOrchestrationPlan = {
   doctrineBranch: DoctrineBranch;
   observationSnapshot: JosephObservationSnapshot;
 };
+export type CanonicalObservationSnapshotFacts = {
+  scene: {
+    durationMs: number;
+    profile: DirectorInput["profile"];
+    sourceVideoUrl: string;
+    sourceTrackCount: number;
+  };
+  transcript: {
+    wordCount: number;
+    hookPhrase: string;
+    ctaPhrase: string;
+    firstWordMs: number | null;
+    lastWordMs: number | null;
+  };
+  audio: {
+    beatCount: number;
+    onsetCount: number;
+    peakEnergyMs: number;
+    energySampleCount: number;
+  };
+  visual: {
+    width: number;
+    height: number;
+    fps: number;
+    matteProvided: boolean;
+  };
+  production: {
+    seed: number;
+    profile: DirectorInput["profile"];
+    outputWidth: number;
+    outputHeight: number;
+    outputFps: number;
+  };
+  constraints: {
+    maxDurationMs: number;
+    hookWindowMs: number;
+    ctaWindowMs: number;
+  };
+};
+
 /** Deterministic facts about the source the planner is not allowed to rewrite. */
 export type JosephObservationSnapshot = {
+  version: "observation-snapshot-v1";
+  fingerprint: string;
+  facts: CanonicalObservationSnapshotFacts;
   durationMs: number;
   transcriptWordCount: number;
   hookPhrase: string;
@@ -803,6 +846,21 @@ const buildSfx = (
     });
   return sfx.sort((a, b) => a.triggerMs - b.triggerMs);
 };
+const deepFreeze = <T>(value: T): T => {
+  if (!value || typeof value !== "object" || Object.isFrozen(value)) {
+    return value;
+  }
+
+  Object.freeze(value);
+  Object.values(value as Record<string, unknown>).forEach((child) => deepFreeze(child));
+  return value;
+};
+
+const hashObservationFacts = (facts: CanonicalObservationSnapshotFacts): string =>
+  `observation-facts-${createHash("sha256").update(JSON.stringify(facts)).digest("hex").slice(0, 16)}`;
+
+const cleanPhraseText = (value: string): string => value.replace(/[.!?]$/, "");
+
 const buildObservationSnapshot = (
   input: DirectorInput,
   phrases: Phrase[],
@@ -823,23 +881,69 @@ const buildObservationSnapshot = (
       : Math.round(
           (peakEnergyIndex / input.energyCurve.length) * input.durationMs,
         );
-  return {
-    durationMs: input.durationMs,
-    transcriptWordCount: input.transcript.length,
-    hookPhrase: (
-      hookPhrase?.thesisWords[0]?.text ??
+  const hookText = cleanPhraseText(
+    hookPhrase?.thesisWords[0]?.text ??
       hookPhrase?.words[0]?.text ??
       "hook"
-    ).replace(/[.!?]$/, ""),
-    ctaPhrase: (
-      ctaPhrase?.thesisWords[0]?.text ??
-      ctaPhrase?.words[0]?.text ??
+  );
+  const ctaText = cleanPhraseText(
+    ctaPhrase?.highEnergyWords.at(-1)?.text ??
+      ctaPhrase?.words.at(-1)?.text ??
+      ctaPhrase?.thesisWords.at(-1)?.text ??
       "cta"
-    ).replace(/[.!?]$/, ""),
+  );
+  const facts: CanonicalObservationSnapshotFacts = {
+    scene: {
+      durationMs: input.durationMs,
+      profile: input.profile,
+      sourceVideoUrl: input.videoUrl,
+      sourceTrackCount: 1,
+    },
+    transcript: {
+      wordCount: input.transcript.length,
+      hookPhrase: hookText,
+      ctaPhrase: ctaText,
+      firstWordMs: input.transcript[0]?.startMs ?? null,
+      lastWordMs: input.transcript.at(-1)?.endMs ?? null,
+    },
+    audio: {
+      beatCount: input.beats.length,
+      onsetCount: input.onsets.length,
+      peakEnergyMs,
+      energySampleCount: input.energyCurve.length,
+    },
+    visual: {
+      width: WIDTH,
+      height: HEIGHT,
+      fps: FPS,
+      matteProvided: Boolean(input.matteUrl || input.matteFilePath),
+    },
+    production: {
+      seed: input.seed,
+      profile: input.profile,
+      outputWidth: WIDTH,
+      outputHeight: HEIGHT,
+      outputFps: FPS,
+    },
+    constraints: {
+      maxDurationMs: MAX_DURATION_MS,
+      hookWindowMs: HOOK_MAX_MS,
+      ctaWindowMs: CTA_WINDOW_MS,
+    },
+  };
+
+  return deepFreeze({
+    version: "observation-snapshot-v1",
+    fingerprint: hashObservationFacts(facts),
+    facts,
+    durationMs: input.durationMs,
+    transcriptWordCount: input.transcript.length,
+    hookPhrase: hookText,
+    ctaPhrase: ctaText,
     peakEnergyMs,
     beatCount: input.beats.length,
     onsetCount: input.onsets.length,
-  };
+  });
 };
 const summarizeSemantics = (
   input: DirectorInput,
