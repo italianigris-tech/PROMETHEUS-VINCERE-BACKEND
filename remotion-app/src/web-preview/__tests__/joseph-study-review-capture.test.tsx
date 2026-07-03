@@ -2,7 +2,11 @@ import React from "react";
 import {renderToStaticMarkup} from "react-dom/server";
 import {afterEach, describe, expect, it} from "vitest";
 
-import {captureJosephStudyReview, loadJosephStudyReviewLedger} from "../joseph-study-review-ledger";
+import {
+  JOSEPH_STUDY_FAILURE_TAXONOMY_VERSION,
+  captureJosephStudyReview,
+  loadJosephStudyReviewLedger
+} from "../joseph-study-review-ledger";
 import {JosephStudyStudioView} from "../JosephStudyStudio";
 
 const storage = (() => {
@@ -33,7 +37,8 @@ describe("Joseph study review capture", () => {
       candidateId: "candidate-b",
       candidateLabel: "Candidate B",
       verdict: "failed",
-      failureTags: ["typography", "pacing"]
+      failureTaxonomyVersion: JOSEPH_STUDY_FAILURE_TAXONOMY_VERSION,
+      failureTags: ["boring-under-editing", "readability-sacrifice"]
     });
 
     expect(first).toHaveLength(1);
@@ -42,7 +47,8 @@ describe("Joseph study review capture", () => {
     expect(second[1]).toMatchObject({
       candidateId: "candidate-b",
       verdict: "failed",
-      failureTags: ["typography", "pacing"]
+      failureTaxonomyVersion: JOSEPH_STUDY_FAILURE_TAXONOMY_VERSION,
+      failureTags: ["boring-under-editing", "readability-sacrifice"]
     });
   });
 
@@ -64,7 +70,9 @@ describe("Joseph study review capture", () => {
     expect(markup).toContain('data-joseph-study-review-ledger="true"');
     expect(markup).toContain("Mark preferred");
     expect(markup).toContain("Mark failed");
-    expect(markup).toContain("Typography");
-    expect(markup).toContain("Pacing");
+    expect(markup).toContain("Boring Under Editing");
+    expect(markup).toContain("Chaotic Over Editing");
+    expect(markup).toContain("Cheap Template Motion");
+    expect(markup).toContain("Readability Sacrifice");
   });
 });

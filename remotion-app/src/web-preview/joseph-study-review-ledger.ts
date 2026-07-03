@@ -1,11 +1,67 @@
 export type JosephStudyReviewVerdict = "preferred" | "failed";
 
-export type JosephStudyFailureTag = "typography" | "pacing" | "source-visibility" | "sfx-mismatch" | "clutter";
+export const JOSEPH_STUDY_FAILURE_TAXONOMY_VERSION = "joseph-failure-taxonomy-v1" as const;
+
+export const JOSEPH_STUDY_FAILURE_TAGS = [
+  {
+    id: "boring-under-editing",
+    label: "Boring Under Editing",
+    description: "The candidate does not spend enough editorial energy to carry the hook, body, or CTA."
+  },
+  {
+    id: "chaotic-over-editing",
+    label: "Chaotic Over Editing",
+    description: "The candidate stacks too many cuts, text hits, SFX, or motion accents for the moment."
+  },
+  {
+    id: "cheap-template-motion",
+    label: "Cheap Template Motion",
+    description: "The candidate leans on obvious canned motion, cheap emphasis, or low-specificity animation."
+  },
+  {
+    id: "premium-restraint",
+    label: "Premium Restraint",
+    description: "The candidate fails to preserve breath, hierarchy, or climax budget when restraint is needed."
+  },
+  {
+    id: "repetition-fatigue",
+    label: "Repetition Fatigue",
+    description: "The candidate repeats a pattern, structure, or prior ledger result until it stops feeling fresh."
+  },
+  {
+    id: "climax-overspend",
+    label: "Climax Overspend",
+    description: "The candidate spends peak intensity too early or too often before the decisive beat."
+  },
+  {
+    id: "weak-concept-reduction",
+    label: "Weak Concept Reduction",
+    description: "The candidate does not reduce the source idea into a clear visual thesis or hero concept."
+  },
+  {
+    id: "asset-treatment-mismatch",
+    label: "Asset Treatment Mismatch",
+    description: "The candidate pairs source footage, PiP, background, SFX, or assets in a way that fights the treatment."
+  },
+  {
+    id: "sequence-rhythm-collapse",
+    label: "Sequence Rhythm Collapse",
+    description: "The candidate loses temporal continuity, music logic, or sequence discipline."
+  },
+  {
+    id: "readability-sacrifice",
+    label: "Readability Sacrifice",
+    description: "The candidate sacrifices text comprehension, safe-zone discipline, or typographic clarity."
+  }
+] as const;
+
+export type JosephStudyFailureTag = (typeof JOSEPH_STUDY_FAILURE_TAGS)[number]["id"];
 
 export type JosephStudyReviewRecord = {
   candidateId: string;
   candidateLabel: string;
   verdict: JosephStudyReviewVerdict;
+  failureTaxonomyVersion: typeof JOSEPH_STUDY_FAILURE_TAXONOMY_VERSION;
   failureTags: JosephStudyFailureTag[];
   capturedAt: string;
 };
@@ -16,14 +72,7 @@ export type JosephStudyReviewStorage = {
 };
 
 const REVIEW_STORAGE_KEY = "joseph-study.review-ledger.v1";
-
-export const JOSEPH_STUDY_FAILURE_TAGS: Array<{id: JosephStudyFailureTag; label: string}> = [
-  {id: "typography", label: "Typography"},
-  {id: "pacing", label: "Pacing"},
-  {id: "source-visibility", label: "Source visibility"},
-  {id: "sfx-mismatch", label: "SFX mismatch"},
-  {id: "clutter", label: "Clutter"}
-];
+const VALID_FAILURE_TAGS = new Set<string>(JOSEPH_STUDY_FAILURE_TAGS.map((tag) => tag.id));
 
 const getJosephStudyReviewStorage = (): JosephStudyReviewStorage | null => {
   if (typeof window === "undefined") {
@@ -37,6 +86,27 @@ const getJosephStudyReviewStorage = (): JosephStudyReviewStorage | null => {
   }
 };
 
+const isReviewRecordShape = (entry: unknown): entry is Omit<JosephStudyReviewRecord, "failureTaxonomyVersion" | "failureTags"> & {
+  failureTaxonomyVersion?: string;
+  failureTags: unknown[];
+} => {
+  return Boolean(
+    entry &&
+      typeof entry === "object" &&
+      typeof (entry as JosephStudyReviewRecord).candidateId === "string" &&
+      typeof (entry as JosephStudyReviewRecord).candidateLabel === "string" &&
+      ((entry as JosephStudyReviewRecord).verdict === "preferred" ||
+        (entry as JosephStudyReviewRecord).verdict === "failed") &&
+      Array.isArray((entry as JosephStudyReviewRecord).failureTags) &&
+      typeof (entry as JosephStudyReviewRecord).capturedAt === "string"
+  );
+};
+
+const normalizeFailureTags = (failureTags: readonly unknown[]): JosephStudyFailureTag[] => {
+  return [...new Set(failureTags)]
+    .filter((tag): tag is JosephStudyFailureTag => typeof tag === "string" && VALID_FAILURE_TAGS.has(tag));
+};
+
 const parseLedger = (raw: string | null): JosephStudyReviewRecord[] => {
   if (!raw) {
     return [];
@@ -48,17 +118,19 @@ const parseLedger = (raw: string | null): JosephStudyReviewRecord[] => {
       return [];
     }
 
-    return parsed.filter((entry): entry is JosephStudyReviewRecord => {
-      return Boolean(
-        entry &&
-          typeof entry === "object" &&
-          typeof (entry as JosephStudyReviewRecord).candidateId === "string" &&
-          typeof (entry as JosephStudyReviewRecord).candidateLabel === "string" &&
-          ((entry as JosephStudyReviewRecord).verdict === "preferred" ||
-            (entry as JosephStudyReviewRecord).verdict === "failed") &&
-          Array.isArray((entry as JosephStudyReviewRecord).failureTags) &&
-          typeof (entry as JosephStudyReviewRecord).capturedAt === "string"
-      );
+    return parsed.flatMap((entry): JosephStudyReviewRecord[] => {
+      if (!isReviewRecordShape(entry)) {
+        return [];
+      }
+
+      return [{
+        candidateId: entry.candidateId,
+        candidateLabel: entry.candidateLabel,
+        verdict: entry.verdict,
+        failureTaxonomyVersion: JOSEPH_STUDY_FAILURE_TAXONOMY_VERSION,
+        failureTags: normalizeFailureTags(entry.failureTags),
+        capturedAt: entry.capturedAt
+      }];
     });
   } catch {
     return [];
@@ -84,14 +156,18 @@ export const loadJosephStudyReviewLedger = (storage: JosephStudyReviewStorage | 
 
 export const captureJosephStudyReview = (
   storage: JosephStudyReviewStorage | null,
-  review: Omit<JosephStudyReviewRecord, "capturedAt"> & {capturedAt?: string}
+  review: Omit<JosephStudyReviewRecord, "capturedAt" | "failureTaxonomyVersion"> & {
+    capturedAt?: string;
+    failureTaxonomyVersion?: typeof JOSEPH_STUDY_FAILURE_TAXONOMY_VERSION;
+  }
 ): JosephStudyReviewRecord[] => {
   const currentLedger = loadJosephStudyReviewLedger(storage);
   const nextLedger: JosephStudyReviewRecord[] = [
     ...currentLedger,
     {
       ...review,
-      failureTags: [...review.failureTags],
+      failureTaxonomyVersion: review.failureTaxonomyVersion ?? JOSEPH_STUDY_FAILURE_TAXONOMY_VERSION,
+      failureTags: normalizeFailureTags(review.failureTags),
       capturedAt: review.capturedAt ?? new Date().toISOString()
     }
   ];
