@@ -84,6 +84,32 @@ describeIfPresent("Evidence Preservation contract", () => {
           failureTags: ["compiler_background_missing"],
         },
       ],
+      renderProof: {
+        version: "joseph-render-proof-v1",
+        renderer: {
+          compositionId: "JosephEdit",
+          entryPoint: "remotion-app/src/compositions/JosephEdit.tsx",
+          contentType: "video/mp4",
+          width: 1080,
+          height: 1920,
+          fps: 30,
+          durationFrames: 300,
+          outputFileName: "chosen.mp4",
+        },
+        selectedCandidateId: "chosen",
+        manifestHash: "c".repeat(64),
+        visibleBehaviorSignature: "d".repeat(64),
+        frameProofs: [
+          {
+            compositionId: "JosephEdit",
+            frame: 0,
+            manifestHash: "c".repeat(64),
+            signature: "e".repeat(64),
+            fallbackTags: ["compiler_background_missing"],
+          },
+        ],
+        fallbackTags: ["compiler_background_missing"],
+      },
     };
 
     const paths = preserveEvidence(pkg, baseDir);
@@ -107,7 +133,10 @@ describeIfPresent("Evidence Preservation contract", () => {
     expect(JSON.parse(fs.readFileSync(paths.evidenceRecordPath, "utf8"))).toMatchObject({
       version: "prometheus-evidence-record-v1",
       jobId: "job-1",
+      selectedCandidatePointer: "selected.json",
+      evaluatorVerdictPointer: "verdict.json",
       compilerArtifactHash,
+      compilerArtifactPointer: "compiler-artifact.json",
       plannerAuditPointer: "planner-audit.json",
       candidateScoreSummaryPointer: "candidate-score-summary.json",
       rejectedCandidates: [
@@ -117,6 +146,17 @@ describeIfPresent("Evidence Preservation contract", () => {
           failureTags: ["compiler_background_missing"],
         },
       ],
+      rejectedCandidateCount: 1,
+      renderProofPointer: "render-proof.json",
+      frameProofCount: 1,
+      frameProofs: [
+        {
+          compositionId: "JosephEdit",
+          frame: 0,
+          fallbackTags: ["compiler_background_missing"],
+        },
+      ],
+      fallbackTags: ["compiler_background_missing"],
     });
     expect(JSON.parse(fs.readFileSync(paths.reviewArtifactPath, "utf8"))).toMatchObject({
       version: "joseph-oversight-review-v1",
@@ -130,8 +170,42 @@ describeIfPresent("Evidence Preservation contract", () => {
     expect(fs.readFileSync(paths.reviewLedgerPath, "utf8").trim().split("\n")).toHaveLength(1);
     expect(JSON.parse(fs.readFileSync(paths.regressionGalleryPath, "utf8"))).toMatchObject({
       version: "joseph-oversight-review-v1",
+      strongExamples: [
+        expect.objectContaining({
+          jobId: "job-1",
+          reviewArtifactPath: paths.reviewArtifactPath,
+          evidenceRecordPath: paths.evidenceRecordPath,
+          renderProofPath: paths.renderProofPath,
+        }),
+      ],
     });
     expect(fs.readFileSync(paths.logPath, "utf8").trim().split("\n")).toHaveLength(1);
     expect(fs.readdirSync(paths.jobDir).some((file) => file.endsWith(".tmp"))).toBe(false);
+  });
+  it("fails modern evidence preservation when required review evidence is missing", () => {
+    const baseDir = fs.mkdtempSync(path.join(os.tmpdir(), "prometheus-evidence-missing-"));
+    const incompletePkg = {
+      jobId: "job-missing",
+      variationKey: {
+        sourceFingerprint: "source-a",
+        promptFingerprint: "prompt-a",
+        uploadInstanceId: "upload-1",
+        retryIndex: 0,
+      },
+      candidates: [{jobId: "chosen"}],
+      selected: {jobId: "chosen"},
+      rejected: [],
+      verdict: {
+        qualityScore: 0.9,
+        similarityScore: 0.1,
+        passedFloor: true,
+        failureTags: [],
+      },
+      timestamp: "2026-06-20T00:00:00.000Z",
+    };
+
+    expect(() => preserveEvidence(incompletePkg, baseDir)).toThrow(
+      /Missing required evidence: candidateScoreSummary, compilerArtifact, rejectedCandidateEvidence, renderProof/,
+    );
   });
 });

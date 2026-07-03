@@ -186,6 +186,8 @@ export type JosephReviewLedgerEntry = {
   failureTags: string[];
   qualityScore: number;
   reviewArtifactPath: string;
+  evidenceRecordPath: string | null;
+  renderProofPath: string | null;
 };
 
 export type JosephRegressionGalleryExample = {
@@ -195,6 +197,8 @@ export type JosephRegressionGalleryExample = {
   qualityScore: number;
   failureClasses: JosephFailureClassId[];
   reviewArtifactPath: string;
+  evidenceRecordPath: string | null;
+  renderProofPath: string | null;
   note: string;
 };
 
@@ -223,6 +227,8 @@ type PreserveJosephOversightInput = {
   selectedPath: string;
   verdictPath: string;
   auditPath: string;
+  evidenceRecordPath?: string;
+  renderProofPath?: string;
 };
 
 const selectedJobId = (manifest: JosephReviewManifest): string | null =>
@@ -362,6 +368,8 @@ export const buildJosephReviewArtifact = (
 const buildLedgerEntry = (
   artifact: JosephReviewArtifact,
   reviewArtifactPath: string,
+  evidenceRecordPath?: string,
+  renderProofPath?: string,
 ): JosephReviewLedgerEntry => ({
   version: JOSEPH_OVERSIGHT_VERSION,
   jobId: artifact.jobId,
@@ -372,6 +380,8 @@ const buildLedgerEntry = (
   failureTags: artifact.reviewVerdict.failureTags,
   qualityScore: artifact.reviewVerdict.qualityScore,
   reviewArtifactPath,
+  evidenceRecordPath: evidenceRecordPath ?? null,
+  renderProofPath: renderProofPath ?? null,
 });
 
 const emptyGallery = (generatedAt: string): JosephRegressionGallery => ({
@@ -417,6 +427,8 @@ const upsertGalleryExample = (
     qualityScore: entry.qualityScore,
     failureClasses: entry.failureClasses,
     reviewArtifactPath: entry.reviewArtifactPath,
+    evidenceRecordPath: entry.evidenceRecordPath,
+    renderProofPath: entry.renderProofPath,
     note:
       entry.classification === "strong-example"
         ? "Strong reference preserved for future comparison."
@@ -469,6 +481,8 @@ export const preserveJosephOversightReview = ({
   selectedPath,
   verdictPath,
   auditPath,
+  evidenceRecordPath,
+  renderProofPath,
 }: PreserveJosephOversightInput): JosephOversightArtifactPaths => {
   const reviewArtifactPath = path.join(jobDir, "review-artifact.json");
   const reviewLedgerPath = path.join(baseDir, "review-ledger.ndjson");
@@ -479,7 +493,7 @@ export const preserveJosephOversightReview = ({
     verdictPath,
     auditPath,
   });
-  const ledgerEntry = buildLedgerEntry(artifact, reviewArtifactPath);
+  const ledgerEntry = buildLedgerEntry(artifact, reviewArtifactPath, evidenceRecordPath, renderProofPath);
   const gallery = upsertGalleryExample(
     readJosephRegressionGallery(regressionGalleryPath, pkg.timestamp),
     ledgerEntry,

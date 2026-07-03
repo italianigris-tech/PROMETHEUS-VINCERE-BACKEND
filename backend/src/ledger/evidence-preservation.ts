@@ -107,6 +107,8 @@ export interface EvidenceRecord {
   jobId: string;
   createdAt: string;
   selectedJobId: string | null;
+  selectedCandidatePointer: string | null;
+  evaluatorVerdictPointer: string | null;
   candidateCount: number;
   rejectedCount: number;
   compilerArtifactHash: string | null;
@@ -114,11 +116,12 @@ export interface EvidenceRecord {
   plannerAuditPointer: string | null;
   candidateScoreSummaryPointer: string | null;
   rejectedCandidates: RejectedCandidateEvidence[];
+  rejectedCandidateCount: number;
   renderProofPointer: string | null;
   frameProofCount: number;
+  frameProofs: RenderFrameProof[];
   fallbackTags: string[];
 }
-
 type LegacyLedger = {
   insert?: (entry: unknown) => unknown;
 };
@@ -227,25 +230,53 @@ const buildEvidenceRecord = (pkg: EvidencePackage, paths: EvidenceArtifactPaths)
   const hasCompilerArtifact = pkg.compilerArtifact !== undefined;
   const hasPlannerAudit = plannerAuditPayloadOf(pkg) !== undefined;
   const hasRenderProof = pkg.renderProof !== undefined;
+  const rejectedCandidates = rejectedCandidateEvidenceFor(pkg);
+  const frameProofs = pkg.renderProof?.frameProofs ?? [];
 
   return {
     version: "prometheus-evidence-record-v1",
     jobId: pkg.jobId,
     createdAt: pkg.timestamp,
     selectedJobId: selectedJobId(pkg.selected) ?? null,
+    selectedCandidatePointer: pointerFor(paths.jobDir, paths.selectedPath, true),
+    evaluatorVerdictPointer: pointerFor(paths.jobDir, paths.verdictPath, true),
     candidateCount: pkg.candidates.length,
     rejectedCount: pkg.rejected.length,
     compilerArtifactHash: compilerArtifactHashOf(pkg.compilerArtifact),
     compilerArtifactPointer: pointerFor(paths.jobDir, paths.compilerArtifactPath, hasCompilerArtifact),
     plannerAuditPointer: pointerFor(paths.jobDir, paths.plannerAuditPath, hasPlannerAudit),
     candidateScoreSummaryPointer: pointerFor(paths.jobDir, paths.candidateScoreSummaryPath, hasCandidateScoreSummary),
-    rejectedCandidates: rejectedCandidateEvidenceFor(pkg),
+    rejectedCandidates,
+    rejectedCandidateCount: rejectedCandidates.length,
     renderProofPointer: pointerFor(paths.jobDir, paths.renderProofPath, hasRenderProof),
-    frameProofCount: pkg.renderProof?.frameProofs.length ?? 0,
+    frameProofCount: frameProofs.length,
+    frameProofs,
     fallbackTags: pkg.renderProof?.fallbackTags ?? [],
   };
 };
 
+const validateModernEvidencePackage = (pkg: EvidencePackage): void => {
+  const missing: string[] = [];
+
+  if (pkg.candidateScoreSummary === undefined) {
+    missing.push("candidateScoreSummary");
+  }
+  if (pkg.compilerArtifact === undefined) {
+    missing.push("compilerArtifact");
+  }
+  if (pkg.rejectedCandidateEvidence === undefined) {
+    missing.push("rejectedCandidateEvidence");
+  }
+  if (pkg.renderProof === undefined) {
+    missing.push("renderProof");
+  } else if (pkg.renderProof.frameProofs.length === 0) {
+    missing.push("renderProof.frameProofs");
+  }
+
+  if (missing.length > 0) {
+    throw new Error(`Missing required evidence: ${missing.join(", ")}`);
+  }
+};
 const appendEvidenceLog = (logPath: string, pkg: EvidencePackage): void => {
   fs.mkdirSync(path.dirname(logPath), {recursive: true});
   fs.appendFileSync(logPath, `${JSON.stringify(pkg)}\n`, "utf8");
@@ -262,6 +293,8 @@ const preserveEvidencePackage = (
   if (!pkg.timestamp.trim()) {
     throw new Error("EvidencePackage.timestamp is required");
   }
+
+  validateModernEvidencePackage(pkg);
 
   const jobDir = path.join(baseDir, safeSegment(pkg.jobId));
   const paths: EvidenceArtifactPaths = {
@@ -308,6 +341,8 @@ const preserveEvidencePackage = (
     selectedPath: paths.selectedPath,
     verdictPath: paths.verdictPath,
     auditPath: paths.auditPath,
+    evidenceRecordPath: paths.evidenceRecordPath,
+    renderProofPath: pkg.renderProof === undefined ? undefined : paths.renderProofPath,
   });
   appendEvidenceLog(paths.logPath, pkg);
 
