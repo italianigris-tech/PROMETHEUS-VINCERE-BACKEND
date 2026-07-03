@@ -3,6 +3,31 @@ import * as os from "node:os";
 import * as path from "node:path";
 import {createRequire} from "node:module";
 
+export interface ReplayLedgerSimilarityQuery {
+  sourceFingerprint?: string;
+  similarityHash: string;
+  threshold?: number;
+}
+
+export interface ReplayLedgerSimilarityMatch {
+  entry: ReplayLedgerEntry;
+  similarityScore: number;
+}
+
+export interface ReplayLedgerFatigueQuery {
+  sourceFingerprint?: string;
+  primitiveFamily?: string;
+  layoutSignature?: string;
+  failureTag?: string;
+}
+
+export interface ReplayLedgerFatigueSignals {
+  totalMatches: number;
+  primitiveFamilyCount: number;
+  layoutSignatureCount: number;
+  failureTagCounts: Record<string, number>;
+  latestEntryId: string | null;
+}
 export interface ReplayLedgerEntry {
   id: string;
   sourceFingerprint: string;
@@ -114,6 +139,103 @@ const loadBetterSqlite = (): BetterSqliteConstructor | null => {
 
 const isSqlitePath = (filePath: string): boolean => /\.(sqlite|sqlite3|db)$/i.test(filePath);
 const fallbackJsonlPath = (filePath: string): string => filePath.replace(/\.(sqlite|sqlite3|db)$/i, ".jsonl");
+const parseJsonRecord = (value: string): Record<string, unknown> | null => {
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed as Record<string, unknown> : null;
+  } catch {
+    return null;
+  }
+};
+
+const normalizeToken = (value: string): string => value.trim().toLowerCase().replace(/[\s-]+/g, "_");
+
+const failureTagsOf = (entry: ReplayLedgerEntry): string[] => {
+  const raw = entry.failureTags.trim();
+  if (!raw) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (Array.isArray(parsed)) {
+      return [...new Set(parsed.filter((tag): tag is string => typeof tag === "string").map(normalizeToken).filter(Boolean))].sort();
+    }
+  } catch {
+    // Fall back to comma/space-separated legacy tags.
+  }
+
+  return [...new Set(raw.split(/[ ,]+/).map(normalizeToken).filter(Boolean))].sort();
+};
+
+const stringValue = (record: Record<string, unknown>, keys: readonly string[]): string | null => {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+  return null;
+};
+
+const collectManifestFacts = (value: unknown, facts: {primitiveFamilies: Set<string>; layoutSignatures: Set<string>}): void => {
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      collectManifestFacts(item, facts);
+    }
+    return;
+  }
+
+  if (!value || typeof value !== "object") {
+    return;
+  }
+
+  const record = value as Record<string, unknown>;
+  const primitiveFamily = stringValue(record, ["primitiveFamily", "primitive_family", "family"]);
+  if (primitiveFamily) {
+    facts.primitiveFamilies.add(primitiveFamily);
+  }
+
+  const primitiveId = stringValue(record, ["primitiveId", "primitive_id"]);
+  const derivedFamily = primitiveId?.split(/[.:/]/)[0];
+  if (derivedFamily) {
+    facts.primitiveFamilies.add(derivedFamily);
+  }
+
+  const layoutSignature = stringValue(record, ["layoutSignature", "layout_signature", "layoutId", "layout_id"]);
+  if (layoutSignature) {
+    facts.layoutSignatures.add(layoutSignature);
+  }
+
+  for (const child of Object.values(record)) {
+    collectManifestFacts(child, facts);
+  }
+};
+
+const manifestFactsOf = (entry: ReplayLedgerEntry): {primitiveFamilies: string[]; layoutSignatures: string[]} => {
+  const facts = {primitiveFamilies: new Set<string>(), layoutSignatures: new Set<string>()};
+  collectManifestFacts(parseJsonRecord(entry.chosenGenome), facts);
+  collectManifestFacts(parseJsonRecord(entry.candidateScoreSummary), facts);
+  return {
+    primitiveFamilies: [...facts.primitiveFamilies].sort(),
+    layoutSignatures: [...facts.layoutSignatures].sort(),
+  };
+};
+
+const hashSimilarity = (left: string, right: string): number => {
+  if (!left || !right) {
+    return 0;
+  }
+
+  const length = Math.max(left.length, right.length);
+  let matches = 0;
+  for (let index = 0; index < length; index += 1) {
+    if (left[index] && left[index] === right[index]) {
+      matches += 1;
+    }
+  }
+  return matches / length;
+};
 
 export class ReplayLedger {
   private readonly fallbackPath: string | null;
@@ -220,6 +342,85 @@ export class ReplayLedger {
 
   getSimilarityHash(sourceFingerprint: string): string | null {
     return this.getBySource(sourceFingerprint).at(-1)?.similarityHash ?? null;
+  }
+  getByPrimitiveFamily(primitiveFamily: string): ReplayLedgerEntry[] {
+    const expected = primitiveFamily.trim();
+    return this.allEntries().filter((entry) => manifestFactsOf(entry).primitiveFamilies.includes(expected));
+  }
+
+  getByLayoutSignature(layoutSignature: string): ReplayLedgerEntry[] {
+    const expected = layoutSignature.trim();
+    return this.allEntries().filter((entry) => manifestFactsOf(entry).layoutSignatures.includes(expected));
+  }
+
+  getByFailureTag(failureTag: string): ReplayLedgerEntry[] {
+    const expected = normalizeToken(failureTag);
+    return this.allEntries().filter((entry) => failureTagsOf(entry).includes(expected));
+  }
+
+  querySimilarity(query: ReplayLedgerSimilarityQuery): ReplayLedgerSimilarityMatch[] {
+    const threshold = query.threshold ?? 0;
+    return this.allEntries()
+      .filter((entry) => query.sourceFingerprint === undefined || entry.sourceFingerprint === query.sourceFingerprint)
+      .map((entry) => ({entry, similarityScore: hashSimilarity(query.similarityHash, entry.similarityHash)}))
+      .filter((match) => match.similarityScore >= threshold)
+      .sort((left, right) =>
+        right.similarityScore - left.similarityScore ||
+        right.entry.createdAt.localeCompare(left.entry.createdAt) ||
+        left.entry.id.localeCompare(right.entry.id),
+      );
+  }
+
+  getFatigueSignals(query: ReplayLedgerFatigueQuery = {}): ReplayLedgerFatigueSignals {
+    const primitiveFamily = query.primitiveFamily?.trim();
+    const layoutSignature = query.layoutSignature?.trim();
+    const failureTag = query.failureTag ? normalizeToken(query.failureTag) : undefined;
+    const matches = this.allEntries().filter((entry) => {
+      const facts = manifestFactsOf(entry);
+      const tags = failureTagsOf(entry);
+      return (query.sourceFingerprint === undefined || entry.sourceFingerprint === query.sourceFingerprint) &&
+        (primitiveFamily === undefined || facts.primitiveFamilies.includes(primitiveFamily)) &&
+        (layoutSignature === undefined || facts.layoutSignatures.includes(layoutSignature)) &&
+        (failureTag === undefined || tags.includes(failureTag));
+    });
+    const failureTagCounts: Record<string, number> = {};
+    let primitiveFamilyCount = 0;
+    let layoutSignatureCount = 0;
+
+    for (const entry of matches) {
+      const facts = manifestFactsOf(entry);
+      const tags = failureTagsOf(entry);
+      if (primitiveFamily && facts.primitiveFamilies.includes(primitiveFamily)) {
+        primitiveFamilyCount += 1;
+      }
+      if (layoutSignature && facts.layoutSignatures.includes(layoutSignature)) {
+        layoutSignatureCount += 1;
+      }
+      for (const tag of tags) {
+        failureTagCounts[tag] = (failureTagCounts[tag] ?? 0) + 1;
+      }
+    }
+
+    const latest = [...matches].sort((left, right) => right.createdAt.localeCompare(left.createdAt) || left.id.localeCompare(right.id))[0];
+    return {
+      totalMatches: matches.length,
+      primitiveFamilyCount,
+      layoutSignatureCount,
+      failureTagCounts,
+      latestEntryId: latest?.id ?? null,
+    };
+  }
+
+
+  private allEntries(): ReplayLedgerEntry[] {
+    if (this.db) {
+      return this.db.prepare(`
+        SELECT * FROM replay_ledger
+        ORDER BY created_at ASC, id ASC
+      `).all().map((row) => fromRow(row as ReplayLedgerRow));
+    }
+
+    return [...this.entries].sort((left, right) => left.createdAt.localeCompare(right.createdAt) || left.id.localeCompare(right.id));
   }
 
   private initializeSqlite(): void {

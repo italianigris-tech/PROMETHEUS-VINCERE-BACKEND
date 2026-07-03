@@ -23,7 +23,7 @@ This audit checks whether each job path preserves enough evidence for determinis
 
 ## Oversight Object Boundaries
 
-Replay Ledger is the anti-repetition and deterministic replay memory for rendered candidate choices. Today it stores source/prompt fingerprints, upload instance, retry, profile, chosen genome, rejected genomes, planner audit, similarity hash, quality score, failure tags, and creation time. It is not the same thing as SSE event replay, which is operational transport history.
+Replay Ledger is the anti-repetition and deterministic replay memory for rendered candidate choices. It stores source/prompt fingerprints, upload instance, retry, profile, chosen genome, rejected genomes, candidate score summary, similarity hash, quality score, failure tags, and creation time. It can answer job-level queries by source fingerprint, upload instance, primitive family, layout signature, failure tag, deterministic similarity hash, and combined fatigue signals. It is not the same thing as SSE event replay, which is operational transport history.
 
 Pattern Memory is a reusable pattern outcome store. It records pattern IDs, context, outcomes, recommendations, constraints, human approval, and before/after fingerprints. It should influence recommendations, but a job that uses Pattern Memory still needs its own per-job evidence package.
 
@@ -39,7 +39,7 @@ QD Archive currently exists in two forms: Joseph Sequence Objective diversity ce
 | Compiler artifacts and Manifest Compiler audits must be preserved with selected/rejected candidates once #43 introduces the end-to-end seam. | #79 |
 | Preview and local-preview artifacts need the same inspectable proof schema if they are used as learning/review examples. | #79 |
 | Main pipeline candidate segments need explicit rejected-candidate reasons when used for learning or regression galleries. | #79 |
-| Replay Ledger needs query surfaces for primitive family, layout signature, failure tags, and fatigue beyond source/upload lookup. | #80 |
+| Replay Ledger query surfaces for primitive family, layout signature, failure tags, deterministic similarity, and fatigue signals. | Done in #80 |
 | SSE event replay should not be counted as Replay Ledger coverage; make it durable evidence only if a future issue treats operational trace as learning data. | #79 if promoted |
 
 ## Current Risk
