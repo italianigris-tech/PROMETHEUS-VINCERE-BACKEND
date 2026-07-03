@@ -4,6 +4,7 @@ import {afterEach, describe, expect, it} from "vitest";
 
 import {
   JOSEPH_STUDY_FAILURE_TAXONOMY_VERSION,
+  buildJosephStudyReviewExport,
   captureJosephStudyFrameProof,
   captureJosephStudyReview,
   loadJosephStudyReviewLedger
@@ -82,6 +83,61 @@ describe("Joseph study review capture", () => {
     expect(ledger[0].frameProofs).toEqual([proof]);
     expect(loadJosephStudyReviewLedger(storage)[0].frameProofs).toEqual([proof]);
   });
+  it("exports a deterministic regression gallery without reading browser localStorage", () => {
+    const proof = captureJosephStudyFrameProof({
+      candidateId: "candidate-b",
+      frameNumber: 42,
+      manifestHash: "hash-b",
+      activeDiagnosticIds: ["text"],
+      failureTags: ["readability-sacrifice"],
+      screenshotDataUrl: "data:image/png;base64,proof",
+      capturedAt: "2026-01-02T00:00:00.000Z"
+    });
+    const records = [
+      {
+        candidateId: "candidate-b",
+        candidateLabel: "Candidate B",
+        verdict: "failed" as const,
+        failureTaxonomyVersion: JOSEPH_STUDY_FAILURE_TAXONOMY_VERSION,
+        failureTags: ["readability-sacrifice"] as const,
+        frameProofs: [proof],
+        capturedAt: "2026-01-02T00:00:00.000Z"
+      },
+      {
+        candidateId: "candidate-a",
+        candidateLabel: "Candidate A",
+        verdict: "preferred" as const,
+        failureTaxonomyVersion: JOSEPH_STUDY_FAILURE_TAXONOMY_VERSION,
+        failureTags: [],
+        frameProofs: [],
+        capturedAt: "2026-01-01T00:00:00.000Z"
+      }
+    ];
+
+    const exported = buildJosephStudyReviewExport({
+      records,
+      source: {
+        sourceId: "source-1",
+        manifestUrls: ["/candidate-a.json", "/candidate-b.json"]
+      },
+      generatedAt: "2026-01-03T00:00:00.000Z"
+    });
+
+    expect(exported.version).toBe("joseph-study-review-export-v1");
+    expect(exported.ledger.map((entry) => entry.candidateId)).toEqual(["candidate-a", "candidate-b"]);
+    expect(exported.gallery.source.sourceId).toBe("source-1");
+    expect(exported.gallery.candidates).toEqual([
+      expect.objectContaining({candidateId: "candidate-a", verdict: "winner", failureTags: [], frameProofIds: []}),
+      expect.objectContaining({candidateId: "candidate-b", verdict: "loser", failureTags: ["readability-sacrifice"], frameProofIds: [proof.proofId]})
+    ]);
+    expect(exported.gallery.pairwisePreferences).toEqual([{
+      winnerCandidateId: "candidate-a",
+      loserCandidateId: "candidate-b",
+      failureTags: ["readability-sacrifice"],
+      frameProofIds: [proof.proofId],
+      capturedAt: "2026-01-02T00:00:00.000Z"
+    }]);
+  });
 
   it("renders review capture controls and the stored ledger in the study surface", () => {
     const markup = renderToStaticMarkup(
@@ -102,6 +158,7 @@ describe("Joseph study review capture", () => {
     expect(markup).toContain("Mark preferred");
     expect(markup).toContain("Mark failed");
     expect(markup).toContain("Capture frame proof");
+    expect(markup).toContain("Export review ledger");
     expect(markup).toContain("Boring Under Editing");
     expect(markup).toContain("Chaotic Over Editing");
     expect(markup).toContain("Cheap Template Motion");

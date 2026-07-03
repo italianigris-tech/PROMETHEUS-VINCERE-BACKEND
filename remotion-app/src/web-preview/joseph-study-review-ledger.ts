@@ -2,6 +2,7 @@ export type JosephStudyReviewVerdict = "preferred" | "failed";
 
 export const JOSEPH_STUDY_FAILURE_TAXONOMY_VERSION = "joseph-failure-taxonomy-v1" as const;
 export const JOSEPH_STUDY_FRAME_PROOF_VERSION = "joseph-study-frame-proof-v1" as const;
+export const JOSEPH_STUDY_REVIEW_EXPORT_VERSION = "joseph-study-review-export-v1" as const;
 
 export const JOSEPH_STUDY_FAILURE_TAGS = [
   {
@@ -286,5 +287,126 @@ export const captureJosephStudyFrameProof = ({
     failureTags: normalizedFailureTags,
     screenshotDataUrl,
     capturedAt
+  };
+};
+export type JosephStudyReviewExportVerdict = "winner" | "loser";
+
+export type JosephStudyReviewExportSource = {
+  sourceId: string;
+  manifestUrls: string[];
+};
+
+export type JosephStudyReviewExportCandidate = {
+  candidateId: string;
+  candidateLabel: string;
+  verdict: JosephStudyReviewExportVerdict;
+  reviewedAt: string;
+  failureTags: JosephStudyFailureTag[];
+  frameProofIds: string[];
+};
+
+export type JosephStudyPairwisePreference = {
+  winnerCandidateId: string;
+  loserCandidateId: string;
+  failureTags: JosephStudyFailureTag[];
+  frameProofIds: string[];
+  capturedAt: string;
+};
+
+export type JosephStudyRegressionGallery = {
+  source: JosephStudyReviewExportSource;
+  candidates: JosephStudyReviewExportCandidate[];
+  pairwisePreferences: JosephStudyPairwisePreference[];
+};
+
+export type JosephStudyReviewLedgerExport = {
+  version: typeof JOSEPH_STUDY_REVIEW_EXPORT_VERSION;
+  generatedAt: string;
+  schema: {
+    reviewLedgerVersion: "joseph-study.review-ledger.v1";
+    failureTaxonomyVersion: typeof JOSEPH_STUDY_FAILURE_TAXONOMY_VERSION;
+    frameProofVersion: typeof JOSEPH_STUDY_FRAME_PROOF_VERSION;
+  };
+  ledger: JosephStudyReviewRecord[];
+  gallery: JosephStudyRegressionGallery;
+};
+
+type JosephStudyReviewExportRecordInput = Omit<JosephStudyReviewRecord, "failureTags" | "frameProofs"> & {
+  failureTags: readonly unknown[];
+  frameProofs: readonly unknown[];
+};
+
+const sortReviewRecords = (records: readonly JosephStudyReviewRecord[]): JosephStudyReviewRecord[] => {
+  return [...records].sort((left, right) =>
+    left.capturedAt.localeCompare(right.capturedAt) || left.candidateId.localeCompare(right.candidateId)
+  );
+};
+
+const normalizeReviewRecordForExport = (record: JosephStudyReviewExportRecordInput): JosephStudyReviewRecord => ({
+  candidateId: record.candidateId,
+  candidateLabel: record.candidateLabel,
+  verdict: record.verdict,
+  failureTaxonomyVersion: JOSEPH_STUDY_FAILURE_TAXONOMY_VERSION,
+  failureTags: normalizeFailureTags(record.failureTags),
+  frameProofs: normalizeFrameProofs(record.frameProofs),
+  capturedAt: record.capturedAt
+});
+
+const exportVerdictFor = (verdict: JosephStudyReviewVerdict): JosephStudyReviewExportVerdict =>
+  verdict === "preferred" ? "winner" : "loser";
+
+const frameProofIdsFor = (record: JosephStudyReviewRecord): string[] =>
+  record.frameProofs.map((proof) => proof.proofId).sort();
+
+export const buildJosephStudyReviewExport = ({
+  records,
+  source = {sourceId: "joseph-study", manifestUrls: []},
+  generatedAt = "1970-01-01T00:00:00.000Z"
+}: {
+  records: readonly JosephStudyReviewExportRecordInput[];
+  source?: {sourceId?: string; manifestUrls?: readonly string[]};
+  generatedAt?: string;
+}): JosephStudyReviewLedgerExport => {
+  const ledger = sortReviewRecords(records.map(normalizeReviewRecordForExport));
+  const winners = ledger.filter((entry) => entry.verdict === "preferred");
+  const losers = ledger.filter((entry) => entry.verdict === "failed");
+  const pairwisePreferences = winners.flatMap((winner) =>
+    losers.map((loser): JosephStudyPairwisePreference => ({
+      winnerCandidateId: winner.candidateId,
+      loserCandidateId: loser.candidateId,
+      failureTags: loser.failureTags,
+      frameProofIds: frameProofIdsFor(loser),
+      capturedAt: loser.capturedAt
+    }))
+  ).sort((left, right) =>
+    left.capturedAt.localeCompare(right.capturedAt) ||
+    left.winnerCandidateId.localeCompare(right.winnerCandidateId) ||
+    left.loserCandidateId.localeCompare(right.loserCandidateId)
+  );
+
+  return {
+    version: JOSEPH_STUDY_REVIEW_EXPORT_VERSION,
+    generatedAt,
+    schema: {
+      reviewLedgerVersion: REVIEW_STORAGE_KEY,
+      failureTaxonomyVersion: JOSEPH_STUDY_FAILURE_TAXONOMY_VERSION,
+      frameProofVersion: JOSEPH_STUDY_FRAME_PROOF_VERSION
+    },
+    ledger,
+    gallery: {
+      source: {
+        sourceId: source.sourceId ?? "joseph-study",
+        manifestUrls: [...(source.manifestUrls ?? [])].sort()
+      },
+      candidates: ledger.map((record) => ({
+        candidateId: record.candidateId,
+        candidateLabel: record.candidateLabel,
+        verdict: exportVerdictFor(record.verdict),
+        reviewedAt: record.capturedAt,
+        failureTags: record.failureTags,
+        frameProofIds: frameProofIdsFor(record)
+      })),
+      pairwisePreferences
+    }
   };
 };

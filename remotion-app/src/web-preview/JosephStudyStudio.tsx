@@ -6,6 +6,7 @@ import type {UnifiedRenderManifest} from "@prometheus/shared-types";
 import {buildJosephStudyFrameDiagnostics, type JosephStudyCompilerArtifact} from "./joseph-study-overlays";
 import {
   JOSEPH_STUDY_FAILURE_TAGS,
+  buildJosephStudyReviewExport,
   captureJosephStudyFrameProof,
   captureJosephStudyReview,
   loadJosephStudyReviewLedger,
@@ -304,6 +305,7 @@ const JosephStudyReviewPanel: React.FC<JosephStudyReviewPanelProps> = ({lanes, c
   const [failureTags, setFailureTags] = useState<JosephStudyFailureTag[]>([]);
   const [ledger, setLedger] = useState<JosephStudyReviewRecord[]>(() => loadJosephStudyReviewLedger(getReviewStorage()));
   const [frameProofsByCandidate, setFrameProofsByCandidate] = useState<Record<string, JosephStudyFrameProof[]>>({});
+  const [exportJson, setExportJson] = useState("");
 
   const activeCandidate = lanes.find((lane) => lane.id === activeCandidateId) ?? lanes[0] ?? null;
 
@@ -351,6 +353,19 @@ const JosephStudyReviewPanel: React.FC<JosephStudyReviewPanelProps> = ({lanes, c
     }));
   };
 
+  const exportReviewLedger = (): void => {
+    const exported = buildJosephStudyReviewExport({
+      records: ledger,
+      source: {
+        sourceId: "joseph-study-comparison",
+        manifestUrls: lanes.map((lane) => lane.manifestUrl ?? lane.evidencePointer ?? lane.id)
+      },
+      generatedAt: ledger[ledger.length - 1]?.capturedAt ?? "1970-01-01T00:00:00.000Z"
+    });
+
+    setExportJson(JSON.stringify(exported, null, 2));
+  };
+
   return (
     <section aria-label="Candidate review capture" data-joseph-study-review-ledger="true" className="joseph-study-review-panel">
       <h2>Review Capture</h2>
@@ -370,6 +385,7 @@ const JosephStudyReviewPanel: React.FC<JosephStudyReviewPanelProps> = ({lanes, c
         <button type="button" onClick={() => captureReview("preferred")} disabled={!activeCandidate}>Mark preferred</button>
         <button type="button" onClick={() => captureReview("failed")} disabled={!activeCandidate}>Mark failed</button>
         <button type="button" onClick={captureFrameProof} disabled={!activeCandidate}>Capture frame proof</button>
+        <button type="button" onClick={exportReviewLedger} disabled={ledger.length === 0}>Export review ledger</button>
       </div>
       <div className="joseph-study-review-tags">
         {JOSEPH_STUDY_FAILURE_TAGS.map((tag) => {
@@ -387,6 +403,7 @@ const JosephStudyReviewPanel: React.FC<JosephStudyReviewPanelProps> = ({lanes, c
         })}
       </div>
       <p>Selected tags: {failureTags.length > 0 ? failureTags.join(", ") : "None"}</p>
+      {exportJson ? <textarea readOnly aria-label="Exported review ledger" value={exportJson} /> : null}
       <div className="joseph-study-review-ledger">
         {ledger.length > 0 ? ledger.map((entry) => (
           <article key={`${entry.candidateId}-${entry.capturedAt}`}>
