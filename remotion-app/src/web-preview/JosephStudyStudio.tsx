@@ -6,10 +6,12 @@ import type {UnifiedRenderManifest} from "@prometheus/shared-types";
 import {buildJosephStudyFrameDiagnostics, type JosephStudyCompilerArtifact} from "./joseph-study-overlays";
 import {
   JOSEPH_STUDY_FAILURE_TAGS,
+  captureJosephStudyFrameProof,
   captureJosephStudyReview,
   loadJosephStudyReviewLedger,
   toggleJosephStudyFailureTag,
   type JosephStudyFailureTag,
+  type JosephStudyFrameProof,
   type JosephStudyReviewRecord,
   type JosephStudyReviewStorage
 } from "./joseph-study-review-ledger";
@@ -88,6 +90,8 @@ type JosephStudyStudioViewProps = {
 
 type JosephStudyReviewPanelProps = {
   lanes: JosephStudyComparisonLane[];
+  currentFrame: number;
+  activeDiagnosticIds: string[];
 };
 
 const getReviewStorage = (): JosephStudyReviewStorage | null => {
@@ -251,10 +255,55 @@ const isReadyLane = (lane: JosephStudyComparisonLane): lane is JosephStudyCompar
 const candidateLabelFromLane = (lane: JosephStudyComparisonLane): string =>
   `${lane.label} (${lane.candidateId ?? lane.manifest?.jobId ?? "unresolved"})`;
 
-const JosephStudyReviewPanel: React.FC<JosephStudyReviewPanelProps> = ({lanes}) => {
+const resolveLaneManifestHash = (lane: JosephStudyComparisonLane): string =>
+  lane.manifestHash ?? lane.manifest?.jobId ?? lane.manifestUrl ?? lane.id;
+
+const escapeFrameProofText = (value: string): string => value.replace(/[&<>"']/g, (character) => {
+  switch (character) {
+    case "&":
+      return "&amp;";
+    case "<":
+      return "&lt;";
+    case ">":
+      return "&gt;";
+    case '"':
+      return "&quot;";
+    default:
+      return "&#39;";
+  }
+});
+
+const buildJosephStudyFrameProofDataUrl = ({
+  candidateLabel,
+  frameNumber,
+  activeDiagnosticIds,
+  failureTags
+}: {
+  candidateLabel: string;
+  frameNumber: number;
+  activeDiagnosticIds: readonly string[];
+  failureTags: readonly JosephStudyFailureTag[];
+}): string => {
+  const diagnosticSummary = activeDiagnosticIds.length > 0 ? activeDiagnosticIds.join(", ") : "none";
+  const failureSummary = failureTags.length > 0 ? failureTags.join(", ") : "none";
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920">
+    <rect width="1080" height="1920" fill="#101318"/>
+    <rect x="72" y="96" width="936" height="1296" fill="#1b2028" stroke="#f5c542" stroke-width="6"/>
+    <text x="96" y="180" fill="#f7f3e8" font-family="Arial, sans-serif" font-size="54" font-weight="700">Joseph frame proof</text>
+    <text x="96" y="278" fill="#f7f3e8" font-family="Arial, sans-serif" font-size="40">${escapeFrameProofText(candidateLabel)}</text>
+    <text x="96" y="354" fill="#d2d7df" font-family="Arial, sans-serif" font-size="34">Frame ${frameNumber}</text>
+    <text x="96" y="1458" fill="#f5c542" font-family="Arial, sans-serif" font-size="32">Diagnostics: ${escapeFrameProofText(diagnosticSummary)}</text>
+    <text x="96" y="1518" fill="#ff8f8f" font-family="Arial, sans-serif" font-size="32">Failure tags: ${escapeFrameProofText(failureSummary)}</text>
+  </svg>`;
+
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+};
+
+const JosephStudyReviewPanel: React.FC<JosephStudyReviewPanelProps> = ({lanes, currentFrame, activeDiagnosticIds}) => {
   const [activeCandidateId, setActiveCandidateId] = useState(() => lanes[0]?.id ?? "");
   const [failureTags, setFailureTags] = useState<JosephStudyFailureTag[]>([]);
   const [ledger, setLedger] = useState<JosephStudyReviewRecord[]>(() => loadJosephStudyReviewLedger(getReviewStorage()));
+  const [frameProofsByCandidate, setFrameProofsByCandidate] = useState<Record<string, JosephStudyFrameProof[]>>({});
 
   const activeCandidate = lanes.find((lane) => lane.id === activeCandidateId) ?? lanes[0] ?? null;
 
@@ -263,14 +312,43 @@ const JosephStudyReviewPanel: React.FC<JosephStudyReviewPanelProps> = ({lanes}) 
       return;
     }
 
+    const candidateFrameProofs = frameProofsByCandidate[activeCandidate.id] ?? [];
+
     const nextLedger = captureJosephStudyReview(getReviewStorage(), {
       candidateId: activeCandidate.id,
       candidateLabel: candidateLabelFromLane(activeCandidate),
       verdict,
-      failureTags: verdict === "failed" ? failureTags : []
+      failureTags: verdict === "failed" ? failureTags : [],
+      frameProofs: candidateFrameProofs
     });
 
     setLedger(nextLedger);
+  };
+
+  const captureFrameProof = (): void => {
+    if (!activeCandidate) {
+      return;
+    }
+
+    const candidateLabel = candidateLabelFromLane(activeCandidate);
+    const proof = captureJosephStudyFrameProof({
+      candidateId: activeCandidate.id,
+      frameNumber: currentFrame,
+      manifestHash: resolveLaneManifestHash(activeCandidate),
+      activeDiagnosticIds,
+      failureTags,
+      screenshotDataUrl: buildJosephStudyFrameProofDataUrl({
+        candidateLabel,
+        frameNumber: currentFrame,
+        activeDiagnosticIds,
+        failureTags
+      })
+    });
+
+    setFrameProofsByCandidate((current) => ({
+      ...current,
+      [activeCandidate.id]: [...(current[activeCandidate.id] ?? []), proof]
+    }));
   };
 
   return (
@@ -291,6 +369,7 @@ const JosephStudyReviewPanel: React.FC<JosephStudyReviewPanelProps> = ({lanes}) 
       <div className="joseph-study-review-controls">
         <button type="button" onClick={() => captureReview("preferred")} disabled={!activeCandidate}>Mark preferred</button>
         <button type="button" onClick={() => captureReview("failed")} disabled={!activeCandidate}>Mark failed</button>
+        <button type="button" onClick={captureFrameProof} disabled={!activeCandidate}>Capture frame proof</button>
       </div>
       <div className="joseph-study-review-tags">
         {JOSEPH_STUDY_FAILURE_TAGS.map((tag) => {
@@ -314,6 +393,7 @@ const JosephStudyReviewPanel: React.FC<JosephStudyReviewPanelProps> = ({lanes}) 
             <strong>{entry.candidateLabel}</strong>
             <span>{entry.verdict}</span>
             <small>{entry.failureTags.length > 0 ? entry.failureTags.join(", ") : "No failure tags"}</small>
+            <small>{entry.frameProofs.length} frame proof{entry.frameProofs.length === 1 ? "" : "s"}</small>
           </article>
         )) : <p>No reviews captured yet.</p>}
       </div>
@@ -522,7 +602,7 @@ export const JosephStudyStudioView: React.FC<JosephStudyStudioViewProps> = ({
       )}
 
       {readyLanes.length > 0 ? (
-        <JosephStudyReviewPanel lanes={readyLanes} />
+        <JosephStudyReviewPanel lanes={readyLanes} currentFrame={transportFrame} activeDiagnosticIds={diagnosticsSections.map((section) => section.id)} />
       ) : null}
 
       {diagnosticsVisible ? (

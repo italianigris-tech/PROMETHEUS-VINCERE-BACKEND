@@ -1,6 +1,7 @@
 export type JosephStudyReviewVerdict = "preferred" | "failed";
 
 export const JOSEPH_STUDY_FAILURE_TAXONOMY_VERSION = "joseph-failure-taxonomy-v1" as const;
+export const JOSEPH_STUDY_FRAME_PROOF_VERSION = "joseph-study-frame-proof-v1" as const;
 
 export const JOSEPH_STUDY_FAILURE_TAGS = [
   {
@@ -57,12 +58,25 @@ export const JOSEPH_STUDY_FAILURE_TAGS = [
 
 export type JosephStudyFailureTag = (typeof JOSEPH_STUDY_FAILURE_TAGS)[number]["id"];
 
+export type JosephStudyFrameProof = {
+  version: typeof JOSEPH_STUDY_FRAME_PROOF_VERSION;
+  proofId: string;
+  candidateId: string;
+  frameNumber: number;
+  manifestHash: string;
+  activeDiagnosticIds: string[];
+  failureTags: JosephStudyFailureTag[];
+  screenshotDataUrl: string;
+  capturedAt: string;
+};
+
 export type JosephStudyReviewRecord = {
   candidateId: string;
   candidateLabel: string;
   verdict: JosephStudyReviewVerdict;
   failureTaxonomyVersion: typeof JOSEPH_STUDY_FAILURE_TAXONOMY_VERSION;
   failureTags: JosephStudyFailureTag[];
+  frameProofs: JosephStudyFrameProof[];
   capturedAt: string;
 };
 
@@ -86,9 +100,10 @@ const getJosephStudyReviewStorage = (): JosephStudyReviewStorage | null => {
   }
 };
 
-const isReviewRecordShape = (entry: unknown): entry is Omit<JosephStudyReviewRecord, "failureTaxonomyVersion" | "failureTags"> & {
+const isReviewRecordShape = (entry: unknown): entry is Omit<JosephStudyReviewRecord, "failureTaxonomyVersion" | "failureTags" | "frameProofs"> & {
   failureTaxonomyVersion?: string;
   failureTags: unknown[];
+  frameProofs?: unknown[];
 } => {
   return Boolean(
     entry &&
@@ -105,6 +120,51 @@ const isReviewRecordShape = (entry: unknown): entry is Omit<JosephStudyReviewRec
 const normalizeFailureTags = (failureTags: readonly unknown[]): JosephStudyFailureTag[] => {
   return [...new Set(failureTags)]
     .filter((tag): tag is JosephStudyFailureTag => typeof tag === "string" && VALID_FAILURE_TAGS.has(tag));
+};
+
+const normalizeDiagnosticIds = (diagnosticIds: readonly unknown[]): string[] => {
+  return [...new Set(diagnosticIds)]
+    .filter((diagnosticId): diagnosticId is string => typeof diagnosticId === "string" && diagnosticId.trim().length > 0);
+};
+
+const isFrameProofShape = (entry: unknown): entry is Omit<JosephStudyFrameProof, "version" | "failureTags" | "activeDiagnosticIds"> & {
+  version?: string;
+  activeDiagnosticIds: unknown[];
+  failureTags: unknown[];
+} => {
+  return Boolean(
+    entry &&
+      typeof entry === "object" &&
+      typeof (entry as JosephStudyFrameProof).candidateId === "string" &&
+      typeof (entry as JosephStudyFrameProof).proofId === "string" &&
+      typeof (entry as JosephStudyFrameProof).frameNumber === "number" &&
+      Number.isFinite((entry as JosephStudyFrameProof).frameNumber) &&
+      typeof (entry as JosephStudyFrameProof).manifestHash === "string" &&
+      Array.isArray((entry as JosephStudyFrameProof).activeDiagnosticIds) &&
+      Array.isArray((entry as JosephStudyFrameProof).failureTags) &&
+      typeof (entry as JosephStudyFrameProof).screenshotDataUrl === "string" &&
+      typeof (entry as JosephStudyFrameProof).capturedAt === "string"
+  );
+};
+
+const normalizeFrameProofs = (frameProofs: readonly unknown[]): JosephStudyFrameProof[] => {
+  return frameProofs.flatMap((frameProof): JosephStudyFrameProof[] => {
+    if (!isFrameProofShape(frameProof)) {
+      return [];
+    }
+
+    return [{
+      version: JOSEPH_STUDY_FRAME_PROOF_VERSION,
+      proofId: frameProof.proofId,
+      candidateId: frameProof.candidateId,
+      frameNumber: Math.max(0, Math.round(frameProof.frameNumber)),
+      manifestHash: frameProof.manifestHash,
+      activeDiagnosticIds: normalizeDiagnosticIds(frameProof.activeDiagnosticIds),
+      failureTags: normalizeFailureTags(frameProof.failureTags),
+      screenshotDataUrl: frameProof.screenshotDataUrl,
+      capturedAt: frameProof.capturedAt
+    }];
+  });
 };
 
 const parseLedger = (raw: string | null): JosephStudyReviewRecord[] => {
@@ -129,6 +189,7 @@ const parseLedger = (raw: string | null): JosephStudyReviewRecord[] => {
         verdict: entry.verdict,
         failureTaxonomyVersion: JOSEPH_STUDY_FAILURE_TAXONOMY_VERSION,
         failureTags: normalizeFailureTags(entry.failureTags),
+        frameProofs: normalizeFrameProofs(entry.frameProofs ?? []),
         capturedAt: entry.capturedAt
       }];
     });
@@ -156,9 +217,10 @@ export const loadJosephStudyReviewLedger = (storage: JosephStudyReviewStorage | 
 
 export const captureJosephStudyReview = (
   storage: JosephStudyReviewStorage | null,
-  review: Omit<JosephStudyReviewRecord, "capturedAt" | "failureTaxonomyVersion"> & {
+  review: Omit<JosephStudyReviewRecord, "capturedAt" | "failureTaxonomyVersion" | "frameProofs"> & {
     capturedAt?: string;
     failureTaxonomyVersion?: typeof JOSEPH_STUDY_FAILURE_TAXONOMY_VERSION;
+    frameProofs?: JosephStudyFrameProof[];
   }
 ): JosephStudyReviewRecord[] => {
   const currentLedger = loadJosephStudyReviewLedger(storage);
@@ -168,6 +230,7 @@ export const captureJosephStudyReview = (
       ...review,
       failureTaxonomyVersion: review.failureTaxonomyVersion ?? JOSEPH_STUDY_FAILURE_TAXONOMY_VERSION,
       failureTags: normalizeFailureTags(review.failureTags),
+      frameProofs: normalizeFrameProofs(review.frameProofs ?? []),
       capturedAt: review.capturedAt ?? new Date().toISOString()
     }
   ];
@@ -182,4 +245,46 @@ export const toggleJosephStudyFailureTag = (
   return currentTags.includes(tag)
     ? currentTags.filter((currentTag) => currentTag !== tag)
     : [...currentTags, tag];
+};
+
+export const captureJosephStudyFrameProof = ({
+  candidateId,
+  frameNumber,
+  manifestHash,
+  activeDiagnosticIds,
+  failureTags,
+  screenshotDataUrl,
+  capturedAt = new Date().toISOString()
+}: {
+  candidateId: string;
+  frameNumber: number;
+  manifestHash: string;
+  activeDiagnosticIds: readonly unknown[];
+  failureTags: readonly unknown[];
+  screenshotDataUrl: string;
+  capturedAt?: string;
+}): JosephStudyFrameProof => {
+  const normalizedFrame = Math.max(0, Math.round(frameNumber));
+  const normalizedDiagnosticIds = normalizeDiagnosticIds(activeDiagnosticIds);
+  const normalizedFailureTags = normalizeFailureTags(failureTags);
+  const proofKey = [
+    candidateId,
+    normalizedFrame,
+    manifestHash,
+    normalizedDiagnosticIds.join(".") || "no-diagnostics",
+    normalizedFailureTags.join(".") || "no-failure-tags",
+    capturedAt
+  ].join(":");
+
+  return {
+    version: JOSEPH_STUDY_FRAME_PROOF_VERSION,
+    proofId: proofKey,
+    candidateId,
+    frameNumber: normalizedFrame,
+    manifestHash,
+    activeDiagnosticIds: normalizedDiagnosticIds,
+    failureTags: normalizedFailureTags,
+    screenshotDataUrl,
+    capturedAt
+  };
 };

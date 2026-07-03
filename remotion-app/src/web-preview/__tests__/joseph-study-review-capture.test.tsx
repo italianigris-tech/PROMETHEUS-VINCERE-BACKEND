@@ -4,6 +4,7 @@ import {afterEach, describe, expect, it} from "vitest";
 
 import {
   JOSEPH_STUDY_FAILURE_TAXONOMY_VERSION,
+  captureJosephStudyFrameProof,
   captureJosephStudyReview,
   loadJosephStudyReviewLedger
 } from "../joseph-study-review-ledger";
@@ -51,6 +52,36 @@ describe("Joseph study review capture", () => {
       failureTags: ["boring-under-editing", "readability-sacrifice"]
     });
   });
+  it("captures frame proof metadata and attaches it to review entries", () => {
+    const proof = captureJosephStudyFrameProof({
+      candidateId: "candidate-b",
+      frameNumber: 42,
+      manifestHash: "abc123",
+      activeDiagnosticIds: ["text", "evaluator"],
+      failureTags: ["readability-sacrifice"],
+      screenshotDataUrl: "data:image/png;base64,proof"
+    });
+
+    const ledger = captureJosephStudyReview(storage, {
+      candidateId: "candidate-b",
+      candidateLabel: "Candidate B",
+      verdict: "failed",
+      failureTags: ["readability-sacrifice"],
+      frameProofs: [proof]
+    });
+
+    expect(proof).toMatchObject({
+      version: "joseph-study-frame-proof-v1",
+      candidateId: "candidate-b",
+      frameNumber: 42,
+      manifestHash: "abc123",
+      activeDiagnosticIds: ["text", "evaluator"],
+      failureTags: ["readability-sacrifice"],
+      screenshotDataUrl: "data:image/png;base64,proof"
+    });
+    expect(ledger[0].frameProofs).toEqual([proof]);
+    expect(loadJosephStudyReviewLedger(storage)[0].frameProofs).toEqual([proof]);
+  });
 
   it("renders review capture controls and the stored ledger in the study surface", () => {
     const markup = renderToStaticMarkup(
@@ -70,6 +101,7 @@ describe("Joseph study review capture", () => {
     expect(markup).toContain('data-joseph-study-review-ledger="true"');
     expect(markup).toContain("Mark preferred");
     expect(markup).toContain("Mark failed");
+    expect(markup).toContain("Capture frame proof");
     expect(markup).toContain("Boring Under Editing");
     expect(markup).toContain("Chaotic Over Editing");
     expect(markup).toContain("Cheap Template Motion");
