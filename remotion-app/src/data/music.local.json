@@ -1,386 +1,178 @@
 [
   {
-    "id": "music-aplmate-com-antipathy-irokz",
-    "label": "Aplmate Com Antipathy Irokz",
-    "src": "audio/music/aplmate-com-antipathy-irokz.mp3",
-    "sourceFileName": "APLMate.com - antipathy - Irokz.mp3",
+    "id": "music-preview-cinematic-trailer-epic-intense-trailer",
+    "label": "Intense Trailer",
+    "src": "audio/music/cinematic-trailer-epic--intense-trailer.mp3",
+    "sourceFileName": "Intense Trailer.mp3",
     "librarySection": "music",
-    "durationSeconds": 212.035918,
+    "durationSeconds": 79.000104,
     "tags": [
-      "antipathy",
-      "irokz",
-      "music",
-      "song"
-    ],
-    "intensity": "soft"
-  },
-  {
-    "id": "music-aplmate-com-archangel-2-dj-anemia",
-    "label": "Aplmate Com Archangel 2 Dj Anemia",
-    "src": "audio/music/aplmate-com-archangel-2-dj-anemia.mp3",
-    "sourceFileName": "APLMate.com - archangel 2 - DJ ANEMIA.mp3",
-    "librarySection": "music",
-    "durationSeconds": 148.035918,
-    "tags": [
-      "archangel",
-      "dj",
-      "anemia",
       "music",
       "song",
-      "uplift"
+      "cinematic",
+      "trailer",
+      "epic",
+      "intense",
+      "tension",
+      "tech"
     ],
     "intensity": "hard"
   },
   {
-    "id": "music-aplmate-com-base-de-trap-romantico-diamante-beats",
-    "label": "Aplmate Com Base De Trap Romantico Diamante Beats",
-    "src": "audio/music/aplmate-com-base-de-trap-romantico-diamante-beats.mp3",
-    "sourceFileName": "APLMate.com - Base De Trap Romantico - Diamante Beats.mp3",
+    "id": "music-preview-classical-orchestral-prestige-vivaldi-the-four-seasons-summer-violin-concerto-in-g-minor-op-8-2-rv-315-iii-presto",
+    "label": "Vivaldi： The Four Seasons, Summer, Violin Concerto in G Minor, Op. 8⧸2, RV 315： III. Presto",
+    "src": "audio/music/classical-orchestral-prestige--vivaldi-the-four-seasons-summer-violin-concerto-in-g-minor-op-8-2-rv-315-iii-presto.mp3",
+    "sourceFileName": "Vivaldi： The Four Seasons, Summer, Violin Concerto in G Minor, Op. 8⧸2, RV 315： III. Presto.mp3",
     "librarySection": "music",
-    "durationSeconds": 204,
+    "durationSeconds": 163.468481,
     "tags": [
-      "base",
-      "de",
+      "music",
+      "song",
+      "classical",
+      "orchestral",
+      "prestige",
+      "vivaldi",
+      "the",
+      "four",
+      "seasons",
+      "summer",
+      "violin",
+      "concerto",
+      "minor",
+      "315",
+      "iii",
+      "presto"
+    ],
+    "intensity": "soft"
+  },
+  {
+    "id": "music-preview-classical-passacaglia-handel-halvorsen-relaxing-piano-music",
+    "label": "Passacaglia - Handel⧸ Halvorsen (Relaxing Piano Music)",
+    "src": "audio/music/classical--passacaglia-handel-halvorsen-relaxing-piano-music.mp3",
+    "sourceFileName": "Passacaglia - Handel⧸ Halvorsen (Relaxing Piano Music).mp3",
+    "librarySection": "music",
+    "durationSeconds": 169.761104,
+    "tags": [
+      "music",
+      "song",
+      "classical",
+      "passacaglia",
+      "handel",
+      "halvorsen",
+      "relaxing",
+      "piano",
+      "calm"
+    ],
+    "intensity": "soft"
+  },
+  {
+    "id": "music-preview-hip-hop-trap-urban-energy-beats-that",
+    "label": "Beats That",
+    "src": "audio/music/hip-hop-trap-urban-energy--beats-that.mp3",
+    "sourceFileName": "Beats That.mp3",
+    "librarySection": "music",
+    "durationSeconds": 168,
+    "tags": [
+      "music",
+      "song",
+      "hip",
+      "hop",
       "trap",
-      "romantico",
-      "diamante",
+      "urban",
+      "energy",
       "beats",
-      "music",
-      "song",
+      "that",
       "drive"
     ],
     "intensity": "hard"
   },
   {
-    "id": "music-aplmate-com-breathe-olly-alexander",
-    "label": "Aplmate Com Breathe Olly Alexander",
-    "src": "audio/music/aplmate-com-breathe-olly-alexander.mp3",
-    "sourceFileName": "APLMate.com - Breathe - Olly Alexander.mp3",
+    "id": "music-preview-lo-fi-chill-soft-focus-the-way-instrumental",
+    "label": "The Way (Instrumental)",
+    "src": "audio/music/lo-fi-chill-soft-focus--the-way-instrumental.mp3",
+    "sourceFileName": "The Way (Instrumental).mp3",
     "librarySection": "music",
-    "durationSeconds": 233.228118,
+    "durationSeconds": 424.848979,
     "tags": [
-      "breathe",
-      "olly",
-      "alexander",
       "music",
       "song",
-      "calm"
+      "lo",
+      "fi",
+      "chill",
+      "soft",
+      "focus",
+      "the",
+      "way",
+      "instrumental",
+      "calm",
+      "speech-friendly"
     ],
     "intensity": "soft"
   },
   {
-    "id": "music-aplmate-com-checklist-damma-beatz",
-    "label": "Aplmate Com Checklist Damma Beatz",
-    "src": "audio/music/aplmate-com-checklist-damma-beatz.mp3",
-    "sourceFileName": "APLMate.com - Checklist - Damma Beatz.mp3",
+    "id": "music-preview-motivational-uplift-triumph",
+    "label": "Triumph",
+    "src": "audio/music/motivational-uplift--triumph.mp3",
+    "sourceFileName": "Triumph.mp3",
     "librarySection": "music",
-    "durationSeconds": 177.226576,
+    "durationSeconds": 188.8,
     "tags": [
-      "checklist",
-      "damma",
-      "beatz",
       "music",
       "song",
-      "drive"
-    ],
-    "intensity": "hard"
-  },
-  {
-    "id": "music-aplmate-com-close-your-eyes-forester-petit-biscuit-emilia-ali",
-    "label": "Aplmate Com Close Your Eyes Forester Petit Biscuit Emilia Ali",
-    "src": "audio/music/aplmate-com-close-your-eyes-forester-petit-biscuit-emilia-ali.mp3",
-    "sourceFileName": "APLMate.com - Close Your Eyes - Forester_ Petit Biscuit_ Emilia Ali.mp3",
-    "librarySection": "music",
-    "durationSeconds": 156.186122,
-    "tags": [
-      "close",
-      "your",
-      "eyes",
-      "forester",
-      "petit",
-      "biscuit",
-      "emilia",
-      "ali",
-      "music",
-      "song",
-      "calm"
-    ],
-    "intensity": "soft"
-  },
-  {
-    "id": "music-aplmate-com-firestone-feat-conrad-sewell-kygo",
-    "label": "Aplmate Com Firestone Feat Conrad Sewell Kygo",
-    "src": "audio/music/aplmate-com-firestone-feat-conrad-sewell-kygo.mp3",
-    "sourceFileName": "APLMate.com - Firestone _feat. Conrad Sewell_ - Kygo.mp3",
-    "librarySection": "music",
-    "durationSeconds": 271.648798,
-    "tags": [
-      "firestone",
-      "conrad",
-      "sewell",
-      "kygo",
-      "music",
-      "song",
-      "uplift"
-    ],
-    "intensity": "soft"
-  },
-  {
-    "id": "music-aplmate-com-french-quarter-damma-beatz",
-    "label": "Aplmate Com French Quarter Damma Beatz",
-    "src": "audio/music/aplmate-com-french-quarter-damma-beatz.mp3",
-    "sourceFileName": "APLMate.com - French Quarter - Damma Beatz.mp3",
-    "librarySection": "music",
-    "durationSeconds": 196.963265,
-    "tags": [
-      "french",
-      "quarter",
-      "damma",
-      "beatz",
-      "music",
-      "song"
-    ],
-    "intensity": "soft"
-  },
-  {
-    "id": "music-aplmate-com-head-down-lost-frequencies-suark-deluxe-mix-mixed-lost-frequencies-suark-bastille",
-    "label": "Aplmate Com Head Down Lost Frequencies Suark Deluxe Mix Mixed Lost Frequencies Suark Bastille",
-    "src": "audio/music/aplmate-com-head-down-lost-frequencies-suark-deluxe-mix-mixed-lost-frequencies-suark-bastille.mp3",
-    "sourceFileName": "APLMate.com - Head Down _Lost Frequencies _ SUARK Deluxe Mix_ _Mixed_ - Lost Frequencies_ Suark_ Bastille.mp3",
-    "librarySection": "music",
-    "durationSeconds": 242.857506,
-    "tags": [
-      "head",
-      "down",
-      "lost",
-      "frequencies",
-      "suark",
-      "deluxe",
-      "bastille",
-      "music",
-      "song"
-    ],
-    "intensity": "soft"
-  },
-  {
-    "id": "music-aplmate-com-kittycore-slowed-verge-winter",
-    "label": "Aplmate Com Kittycore Slowed Verge Winter",
-    "src": "audio/music/aplmate-com-kittycore-slowed-verge-winter.mp3",
-    "sourceFileName": "APLMate.com - kittycore _slowed_ - VERGE__ winter.mp3",
-    "librarySection": "music",
-    "durationSeconds": 171.389388,
-    "tags": [
-      "kittycore",
-      "verge",
-      "winter",
-      "music",
-      "song"
+      "motivational",
+      "uplift",
+      "triumph"
     ],
     "intensity": "medium"
   },
   {
-    "id": "music-aplmate-com-lioness-dayfox",
-    "label": "Aplmate Com Lioness Dayfox",
-    "src": "audio/music/aplmate-com-lioness-dayfox.mp3",
-    "sourceFileName": "APLMate.com - Lioness - DayFox.mp3",
+    "id": "music-preview-other-work-for-it",
+    "label": "Work for It",
+    "src": "audio/music/other--work-for-it.mp3",
+    "sourceFileName": "Work for It.mp3",
     "librarySection": "music",
-    "durationSeconds": 185.132698,
+    "durationSeconds": 25.591901,
     "tags": [
-      "lioness",
-      "dayfox",
       "music",
       "song",
-      "uplift"
-    ],
-    "intensity": "soft"
-  },
-  {
-    "id": "music-aplmate-com-marked-up-damma-beatz",
-    "label": "Aplmate Com Marked Up Damma Beatz",
-    "src": "audio/music/aplmate-com-marked-up-damma-beatz.mp3",
-    "sourceFileName": "APLMate.com - Marked Up - Damma Beatz.mp3",
-    "librarySection": "music",
-    "durationSeconds": 156.446372,
-    "tags": [
-      "marked",
-      "up",
-      "damma",
-      "beatz",
-      "music",
-      "song",
-      "drive"
-    ],
-    "intensity": "hard"
-  },
-  {
-    "id": "music-aplmate-com-owa-owa-lil-tecca",
-    "label": "Aplmate Com Owa Owa Lil Tecca",
-    "src": "audio/music/aplmate-com-owa-owa-lil-tecca.mp3",
-    "sourceFileName": "APLMate.com - OWA OWA - Lil Tecca.mp3",
-    "librarySection": "music",
-    "durationSeconds": 132.400181,
-    "tags": [
-      "owa",
-      "lil",
-      "tecca",
-      "music",
-      "song"
+      "other",
+      "work",
+      "for"
     ],
     "intensity": "medium"
   },
   {
-    "id": "music-aplmate-com-remind-me-to-forget-kygo-miguel",
-    "label": "Aplmate Com Remind Me To Forget Kygo Miguel",
-    "src": "audio/music/aplmate-com-remind-me-to-forget-kygo-miguel.mp3",
-    "sourceFileName": "APLMate.com - Remind Me to Forget - Kygo _ Miguel.mp3",
+    "id": "music-preview-pop-indie-lifestyle-pop-up",
+    "label": "Pop Up",
+    "src": "audio/music/pop-indie-lifestyle--pop-up.mp3",
+    "sourceFileName": "Pop Up.mp3",
     "librarySection": "music",
-    "durationSeconds": 267.97424,
+    "durationSeconds": 154.654188,
     "tags": [
-      "remind",
-      "me",
-      "to",
-      "forget",
-      "kygo",
-      "miguel",
-      "music",
-      "song"
-    ],
-    "intensity": "soft"
-  },
-  {
-    "id": "music-aplmate-com-rollin-on-damma-beatz",
-    "label": "Aplmate Com Rollin On Damma Beatz",
-    "src": "audio/music/aplmate-com-rollin-on-damma-beatz.mp3",
-    "sourceFileName": "APLMate.com - Rollin_ On - Damma Beatz.mp3",
-    "librarySection": "music",
-    "durationSeconds": 215.131429,
-    "tags": [
-      "rollin",
-      "on",
-      "damma",
-      "beatz",
       "music",
       "song",
-      "drive"
-    ],
-    "intensity": "hard"
-  },
-  {
-    "id": "music-aplmate-com-stacy-dj-anemia-crier",
-    "label": "Aplmate Com Stacy Dj Anemia Crier",
-    "src": "audio/music/aplmate-com-stacy-dj-anemia-crier.mp3",
-    "sourceFileName": "APLMate.com - stacy - DJ ANEMIA_ Crier.mp3",
-    "librarySection": "music",
-    "durationSeconds": 179.539592,
-    "tags": [
-      "stacy",
-      "dj",
-      "anemia",
-      "crier",
-      "music",
-      "song"
+      "pop",
+      "indie",
+      "lifestyle"
     ],
     "intensity": "medium"
   },
   {
-    "id": "music-aplmate-com-starly-slowed-lonown-riserayss",
-    "label": "Aplmate Com Starly Slowed Lonown Riserayss",
-    "src": "audio/music/aplmate-com-starly-slowed-lonown-riserayss.mp3",
-    "sourceFileName": "APLMate.com - starly _Slowed_ - LONOWN_ riserayss.mp3",
+    "id": "music-preview-tech-futuristic-ai-ain-t-ready",
+    "label": "Ain't Ready",
+    "src": "audio/music/tech-futuristic-ai--ain-t-ready.mp3",
+    "sourceFileName": "Ain't Ready.mp3",
     "librarySection": "music",
-    "durationSeconds": 172.987211,
+    "durationSeconds": 138.271396,
     "tags": [
-      "starly",
-      "lonown",
-      "riserayss",
       "music",
-      "song"
+      "song",
+      "tech",
+      "futuristic",
+      "ai",
+      "ain",
+      "ready"
     ],
     "intensity": "medium"
-  },
-  {
-    "id": "music-aplmate-com-stocked-damma-beatz",
-    "label": "Aplmate Com Stocked Damma Beatz",
-    "src": "audio/music/aplmate-com-stocked-damma-beatz.mp3",
-    "sourceFileName": "APLMate.com - Stocked - Damma Beatz.mp3",
-    "librarySection": "music",
-    "durationSeconds": 172.097937,
-    "tags": [
-      "stocked",
-      "damma",
-      "beatz",
-      "music",
-      "song",
-      "drive"
-    ],
-    "intensity": "hard"
-  },
-  {
-    "id": "music-aplmate-com-sub-zero-damma-beatz",
-    "label": "Aplmate Com Sub Zero Damma Beatz",
-    "src": "audio/music/aplmate-com-sub-zero-damma-beatz.mp3",
-    "sourceFileName": "APLMate.com - Sub Zero - Damma Beatz.mp3",
-    "librarySection": "music",
-    "durationSeconds": 123.702857,
-    "tags": [
-      "sub",
-      "zero",
-      "damma",
-      "beatz",
-      "music",
-      "song",
-      "drive"
-    ],
-    "intensity": "hard"
-  },
-  {
-    "id": "music-brutal-wishes",
-    "label": "Brutal Wishes",
-    "src": "audio/music/brutal-wishes.mp3",
-    "sourceFileName": "Brutal Wishes.mp3",
-    "librarySection": "music",
-    "durationSeconds": 160.031927,
-    "tags": [
-      "brutal",
-      "wishes",
-      "music",
-      "song",
-      "uplift"
-    ],
-    "intensity": "medium"
-  },
-  {
-    "id": "music-see-me-there",
-    "label": "See Me There",
-    "src": "audio/music/see-me-there.mp3",
-    "sourceFileName": "See Me There.mp3",
-    "librarySection": "music",
-    "durationSeconds": 214.505941,
-    "tags": [
-      "see",
-      "me",
-      "there",
-      "music",
-      "song",
-      "calm"
-    ],
-    "intensity": "soft"
-  },
-  {
-    "id": "music-win-it-back",
-    "label": "Win It Back",
-    "src": "audio/music/win-it-back.mp3",
-    "sourceFileName": "Win It Back.mp3",
-    "librarySection": "music",
-    "durationSeconds": 192.772063,
-    "tags": [
-      "win",
-      "it",
-      "back",
-      "music",
-      "song",
-      "uplift"
-    ],
-    "intensity": "soft"
   }
 ]

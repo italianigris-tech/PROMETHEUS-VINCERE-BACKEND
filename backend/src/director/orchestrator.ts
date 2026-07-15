@@ -4,8 +4,6 @@ import * as path from "node:path";
 import {createHash} from "node:crypto";
 import {
   type CutEvent,
-  type SFXEvent,
-  type TextEvent,
   type TimelineEvent,
   type UnifiedRenderManifest,
   type Word,
@@ -36,6 +34,14 @@ import {
 import {generateVariationKey, type VariationKey} from "./variation-key";
 
 export type JosephProfile = "joseph_aggressive" | "joseph_cinematic" | "joseph_minimal";
+
+export type QualityScaffoldDiagnostics = {
+  forcedCuts: number;
+  forcedSfx: number;
+  preservedDirectorCuts: number;
+  preservedDirectorSfx: number;
+  mode: "speech_legal_merge" | "density_inject_disabled";
+};
 
 export interface OrchestratorInput {
   sourceVideoPath: string;
@@ -75,6 +81,7 @@ export interface OrchestratorResult {
   rejectedCount: number;
   qualityScore: number;
   candidateScoreSummary: CandidateScoreSummary;
+  scaffoldDiagnostics: QualityScaffoldDiagnostics;
   renderPath?: string;
 }
 
@@ -246,80 +253,76 @@ const cutEvent = (atMs: number, style: CutEvent["style"] = "hard"): CutEvent => 
   intensity: 1,
 });
 
-const sfxEvent = (id: string, cue: SFXEvent["cue"], triggerMs: number): SFXEvent => ({
-  id,
-  cue,
-  triggerMs,
-  durationMs: 250,
-  volumeDb: -12,
-  duckMusicDb: -6,
-});
+const ctaCutCandidateFor = (expectedCuts: number[], durationMs: number): number | null => {
+  const ctaStartMs = Math.max(0, durationMs - 3000);
+  return expectedCuts.find((point) => point >= ctaStartMs && point <= durationMs) ?? null;
+};
 
+/**
+ * Speech-legal merge only. Does NOT spam whooshes/cuts to pass a density floor.
+ * Joseph craft rewards intentional restraint; density injection is antithetical to IRL.
+ */
 const ensureQualityScaffold = (
   candidate: UnifiedRenderManifest,
   expectedCuts: number[],
   profile: JosephProfile,
-): UnifiedRenderManifest => {
+): {manifest: UnifiedRenderManifest; diagnostics: QualityScaffoldDiagnostics} => {
   const config = PROFILE_CONFIG[profile];
   const durationMs = candidate.source.durationMs;
   const existingCuts = candidate.timeline.filter((event): event is CutEvent => event.type === "cut");
   const cutByMs = new Map(existingCuts.map((cut) => [Math.round(cut.atMs), cut]));
+  const preservedDirectorCuts = existingCuts.length;
 
-  for (const point of expectedCuts) {
-    if (!cutByMs.has(Math.round(point))) {
-      cutByMs.set(Math.round(point), cutEvent(point));
-    }
+  // Only merge a legal CTA punctuation point. Do not add hook/body density.
+  let forcedCuts = 0;
+
+  const hasCtaCut = [...cutByMs.values()].some(
+    (cut) => cut.atMs >= Math.max(0, durationMs - 3000) && cut.atMs <= durationMs,
+  );
+  const ctaCut = profile === "joseph_minimal" || hasCtaCut ? null : ctaCutCandidateFor(expectedCuts, durationMs);
+  if (ctaCut !== null && !cutByMs.has(Math.round(ctaCut))) {
+    cutByMs.set(Math.round(ctaCut), cutEvent(ctaCut, "hard"));
+    forcedCuts += 1;
   }
 
   const cuts = [...cutByMs.values()].sort((left, right) => left.atMs - right.atMs);
   const timelineWithoutCuts = candidate.timeline.filter((event) => event.type !== "cut");
-  const sfx = profile === "joseph_minimal"
-    ? []
-    : [...candidate.audio.sfx];
-  const existingSfx = new Set(sfx.map((event) => `${event.cue}:${Math.round(event.triggerMs)}`));
-
-  if (config.sfxDensity > 0) {
-    for (const [index, cut] of cuts.entries()) {
-      if (cut.style === "hard" && !existingSfx.has(`whoosh_fast:${Math.round(cut.atMs)}`)) {
-        sfx.push(sfxEvent(`orchestrator-cut-${index}`, "whoosh_fast", cut.atMs));
-      }
-    }
-
-    const textEvents = timelineWithoutCuts.filter((event): event is TextEvent => event.type === "text");
-    for (const [index, text] of textEvents.entries()) {
-      if (text.style === "glitch" && !existingSfx.has(`glitch_digital:${Math.round(text.startMs)}`)) {
-        sfx.push(sfxEvent(`orchestrator-glitch-${index}`, "glitch_digital", text.startMs));
-      }
-      if (text.style === "pop" && !existingSfx.has(`pop_text:${Math.round(text.startMs)}`)) {
-        sfx.push(sfxEvent(`orchestrator-pop-${index}`, "pop_text", text.startMs));
-      }
-    }
-  }
+  // Preserve director-authored SFX only. Never auto-whoosh every hard cut.
+  const sfx = profile === "joseph_minimal" ? [] : [...candidate.audio.sfx];
 
   return {
-    ...candidate,
-    source: {
-      ...candidate.source,
-      durationMs,
+    manifest: {
+      ...candidate,
+      source: {
+        ...candidate.source,
+        durationMs,
+        width: 1080,
+        height: 1920,
+      },
       width: 1080,
       height: 1920,
+      output: {
+        ...candidate.output,
+        width: 1080,
+        height: 1920,
+      },
+      timeline: sortedTimeline([...timelineWithoutCuts, ...cuts]),
+      audio: {
+        ...candidate.audio,
+        sfx: sfx.sort((left, right) => left.triggerMs - right.triggerMs),
+      },
+      creativeProfile: {
+        ...candidate.creativeProfile,
+        textDensity: config.textCoverage,
+        sfxDensity: config.sfxDensity,
+      },
     },
-    width: 1080,
-    height: 1920,
-    output: {
-      ...candidate.output,
-      width: 1080,
-      height: 1920,
-    },
-    timeline: sortedTimeline([...timelineWithoutCuts, ...cuts]),
-    audio: {
-      ...candidate.audio,
-      sfx: sfx.sort((left, right) => left.triggerMs - right.triggerMs),
-    },
-    creativeProfile: {
-      ...candidate.creativeProfile,
-      textDensity: config.textCoverage,
-      sfxDensity: config.sfxDensity,
+    diagnostics: {
+      forcedCuts,
+      forcedSfx: 0,
+      preservedDirectorCuts,
+      preservedDirectorSfx: sfx.length,
+      mode: "speech_legal_merge",
     },
   };
 };
@@ -601,9 +604,23 @@ export async function orchestrateRender(
     profile: input.profile,
   });
   const expectedCuts = syntheticPacing.proposals.map((proposal) => proposal.atMs);
-  const candidates = generateCandidateGenomes(directorInput, PROFILE_CONFIG[input.profile].count)
-    .map((candidate) => ensureQualityScaffold(candidate, expectedCuts, input.profile))
-    .map(annotateSequenceMemory)
+  const scaffolded = generateCandidateGenomes(directorInput, PROFILE_CONFIG[input.profile].count)
+    .map((candidate) => ensureQualityScaffold(candidate, expectedCuts, input.profile));
+  const scaffoldDiagnostics = scaffolded.reduce<QualityScaffoldDiagnostics>((acc, item) => ({
+    forcedCuts: acc.forcedCuts + item.diagnostics.forcedCuts,
+    forcedSfx: acc.forcedSfx + item.diagnostics.forcedSfx,
+    preservedDirectorCuts: acc.preservedDirectorCuts + item.diagnostics.preservedDirectorCuts,
+    preservedDirectorSfx: acc.preservedDirectorSfx + item.diagnostics.preservedDirectorSfx,
+    mode: "speech_legal_merge",
+  }), {
+    forcedCuts: 0,
+    forcedSfx: 0,
+    preservedDirectorCuts: 0,
+    preservedDirectorSfx: 0,
+    mode: "speech_legal_merge",
+  });
+  const candidates = scaffolded
+    .map((item) => annotateSequenceMemory(item.manifest))
     .map((candidate) => ({
       ...canonicalizeManifestForResult(candidate, variationKey),
       _sequenceMemory: candidate._sequenceMemory,
@@ -618,7 +635,9 @@ export async function orchestrateRender(
   const selectedPlannerCandidate = buildSelectedPlannerCandidate(judgment.sequenceObjective, selectedCandidate);
   const compiledSelected = compileJosephManifest({
     manifest: selectedCandidate,
+    mode: "compile_manifest",
     selectedPlannerCandidate,
+    variationKey: variationKey.key,
     auditReferences: {
       candidateScoreSummary: true,
       candidateScoreSummaryRef: "candidate-score-summary.json",
@@ -676,5 +695,6 @@ export async function orchestrateRender(
     rejectedCount: rejected.length,
     qualityScore: judgment.verdict.qualityScore,
     candidateScoreSummary,
+    scaffoldDiagnostics,
   };
 }

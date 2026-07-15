@@ -1,13 +1,16 @@
 import {createWriteStream} from "node:fs";
-import {mkdir} from "node:fs/promises";
+import {mkdir, readFile, writeFile} from "node:fs/promises";
 import path from "node:path";
 import {pipeline as streamPipeline} from "node:stream/promises";
 import {createReadStream} from "node:fs";
 
+import {UnifiedRenderManifestSchema} from "@prometheus/shared-types";
 import type {FastifyInstance, FastifyReply, FastifyRequest} from "fastify";
 
 import type {EditSessionEvent, EditSessionManager} from "./service";
 import type {EditSessionStore} from "./store";
+import type {JosephProfile} from "../director/orchestrator";
+import type {JosephUploadPipeline} from "../upload/joseph-upload-pipeline";
 
 const writeSseEvent = (reply: FastifyReply, event: EditSessionEvent): void => {
   reply.raw.write(`event: ${event.type}\n`);
@@ -22,7 +25,8 @@ export const resolveSseAccessControlOrigin = (originHeader?: string | null): str
 export const registerEditSessionRoutes = async (
   app: FastifyInstance,
   manager: EditSessionManager,
-  store: EditSessionStore
+  store: EditSessionStore,
+  josephUploadPipeline?: JosephUploadPipeline
 ): Promise<void> => {
   const livePreviewUploadCacheDir = path.join(store.sessionsRootDir(), "_live-preview-upload-cache");
   const sanitizeFileName = (value: string): string => value.replace(/[^a-zA-Z0-9._-]/g, "-");
@@ -33,6 +37,12 @@ export const registerEditSessionRoutes = async (
 
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : undefined;
+  };
+  const parseJosephProfile = (value: string | undefined): JosephProfile | null => {
+    if (value === "joseph_aggressive" || value === "joseph_cinematic" || value === "joseph_minimal") {
+      return value;
+    }
+    return null;
   };
   const resolveRequestOrigin = (req: FastifyRequest): string | null => {
     const hostHeader = typeof req.headers.host === "string" ? req.headers.host.trim() : "";
@@ -103,7 +113,7 @@ export const registerEditSessionRoutes = async (
         }
       });
 
-      await manager.completeUpload(session.id, {
+      const completed = await manager.completeUpload(session.id, {
         sourcePath,
         sourceFilename,
         metadata: {
@@ -120,12 +130,55 @@ export const registerEditSessionRoutes = async (
         previewSeconds: parseOptionalNumber(fields.previewSeconds)
       });
 
+      const josephProfile = parseJosephProfile(fields.josephProfile);
+      let resolvedSession = started;
+      if (josephProfile) {
+        if (!josephUploadPipeline) {
+          throw new Error("Joseph upload pipeline is unavailable for this backend instance.");
+        }
+
+        const josephResult = await josephUploadPipeline.createRenderJob({
+          sessionId: session.id,
+          sourcePath,
+          sourceFilename,
+          sourceDurationMs: completed.sourceDurationMs,
+          sourceWidth: completed.sourceWidth,
+          sourceHeight: completed.sourceHeight,
+          sourceFps: completed.sourceFps,
+          profile: josephProfile,
+          promptText: fields.promptText,
+          retryIndex: parseOptionalNumber(fields.retryIndex),
+          matteUrl: fields.matteUrl,
+          matteFilePath: fields.matteFilePath,
+        });
+        const josephSessionDir = path.join(store.sessionDir(session.id), "joseph");
+        const josephManifestPath = path.join(josephSessionDir, "unified-render-manifest.json");
+        await mkdir(josephSessionDir, {recursive: true});
+        await writeFile(josephManifestPath, `${JSON.stringify(josephResult.manifest, null, 2)}\n`, "utf8");
+        resolvedSession = await manager.mergeSessionMetadata(session.id, {
+          josephProfile,
+          josephRenderJobId: josephResult.renderJobId,
+          josephReplayLedgerEntryId: josephResult.replayLedgerEntryId,
+          josephEvidencePath: josephResult.evidencePath,
+          josephVariationKey: josephResult.variationKey,
+          josephManifestPath,
+          josephStudioManifestPath: josephResult.studioManifestPath ?? null,
+          josephStudioManifestUrl: josephResult.studioManifestUrl ?? null,
+        }, {
+          status: "render_pending",
+          renderStatus: "render_pending",
+          renderProgress: 0,
+        });
+      }
+
       reply.code(202);
       return {
-        ...started,
+        ...resolvedSession,
         urls: {
           status: `/api/edit-sessions/${session.id}/status`,
           previewManifest: `/api/edit-sessions/${session.id}/preview-manifest`,
+          josephManifest: `/api/edit-sessions/${session.id}/joseph-manifest`,
+          josephRenderJob: `/api/edit-sessions/${session.id}/joseph-render-job`,
           previewArtifact: `/api/edit-sessions/${session.id}/preview-artifact`,
           preview: `/api/edit-sessions/${session.id}/preview`,
           render: `/api/edit-sessions/${session.id}/render`,
@@ -209,6 +262,62 @@ export const registerEditSessionRoutes = async (
       return await manager.getPreviewManifest(params.id, {
         fontBaseUrl: resolveRequestOrigin(req)
       });
+    } catch (error) {
+      reply.code(404);
+      return {
+        error: error instanceof Error ? error.message : String(error)
+      };
+    }
+  });
+
+  app.get("/api/edit-sessions/:id/joseph-manifest", async (req, reply) => {
+    try {
+      const params = req.params as {id: string};
+      const session = await manager.getSession(params.id);
+      const manifestPath = typeof session.metadata.josephManifestPath === "string"
+        ? session.metadata.josephManifestPath.trim()
+        : "";
+      if (!manifestPath) {
+        throw new Error("Joseph manifest is not ready for this session.");
+      }
+
+      const manifest = UnifiedRenderManifestSchema.parse(JSON.parse(await readFile(manifestPath, "utf8")));
+      const sourceRoute = `/api/edit-sessions/${params.id}/source`;
+      const requestOrigin = resolveRequestOrigin(req);
+      const browserSourceUrl = requestOrigin ? `${requestOrigin}${sourceRoute}` : sourceRoute;
+      const previewManifest = UnifiedRenderManifestSchema.parse({
+        ...manifest,
+        videoTracks: manifest.videoTracks.map((track, index) => index === 0
+          ? {...track, sourcePath: browserSourceUrl}
+          : track),
+        source: {
+          ...manifest.source,
+          videoUrl: browserSourceUrl,
+          audioUrl: browserSourceUrl,
+        },
+      });
+
+      reply.header("Cache-Control", "no-store");
+      return previewManifest;
+    } catch (error) {
+      reply.code(404);
+      return {
+        error: error instanceof Error ? error.message : String(error)
+      };
+    }
+  });
+
+  app.get("/api/edit-sessions/:id/joseph-render-job", async (req, reply) => {
+    try {
+      const params = req.params as {id: string};
+      const session = await manager.getSession(params.id);
+      const renderJobId = typeof session.metadata.josephRenderJobId === "string"
+        ? session.metadata.josephRenderJobId.trim()
+        : "";
+      if (!renderJobId) {
+        throw new Error("Joseph render job is not ready for this session.");
+      }
+      return reply.redirect(`/api/v1/render/jobs/${encodeURIComponent(renderJobId)}`);
     } catch (error) {
       reply.code(404);
       return {

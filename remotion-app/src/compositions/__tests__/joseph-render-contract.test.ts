@@ -13,9 +13,11 @@ import {
   KNOWN_JOSEPH_MICRO_ANIMATION_IDS,
   resolveBackgroundRenderContract,
   resolveCameraRenderContract,
+  resolveKineticTextLayout,
   resolveMacroRigRenderContract,
   resolveMicroAnimationRenderContract,
   resolvePiPRenderContract,
+  resolveSourcePresentationContract,
   resolveTypographyRenderContract,
 } from '../joseph-render-contract';
 import {applyMatteAlphaToRgba, resolveMatteRenderContract} from '../matte-render-contract';
@@ -759,6 +761,43 @@ describe('Joseph renderer manifest contract', () => {
     expect(contract.rules.contrastScrimOpacity).toBeGreaterThan(0);
     expect(contract.rules.reservePiPSafeZone).toBe(true);
     expect(contract.rules.accentRenderOrder).toBeLessThan(contract.rules.textRenderOrder);
+  });
+
+  it('promotes a PiP plan to full-bleed source footage when no matte is available', () => {
+    const contract = resolveSourcePresentationContract({
+      pipPlan,
+      matteAvailable: false,
+      sourceVideoOpacity: 0.92,
+    });
+
+    expect(contract).toEqual({
+      mode: 'full_bleed',
+      frameRect: undefined,
+      opacity: 1,
+      showPiPScaffolding: false,
+      fallbackTags: ['compiler_matte_unavailable', 'flat_pip_promoted_to_full_bleed'],
+    });
+  });
+
+  it('fits animated hero text inside the visible portrait safe area', () => {
+    const layout = resolveKineticTextLayout({
+      text: 'Animations',
+      viewportWidth: 2.33,
+      viewportHeight: 4.14,
+      preferredFontSize: 0.58,
+      textScale: 1.4,
+      trackingEm: 0,
+      normalizedPosition: {x: 0.5, y: 0.15},
+      motionPosition: [0, 0.9, 0.4],
+    });
+    const halfWidth = layout.renderedWidth / 2;
+    const halfHeight = layout.renderedHeight / 2;
+
+    expect(layout.renderedWidth).toBeLessThanOrEqual(layout.maxWidth);
+    expect(layout.position[0] - halfWidth).toBeGreaterThanOrEqual(-2.33 / 2 + layout.safeMarginX);
+    expect(layout.position[0] + halfWidth).toBeLessThanOrEqual(2.33 / 2 - layout.safeMarginX);
+    expect(layout.position[1] - halfHeight).toBeGreaterThanOrEqual(-4.14 / 2 + layout.safeMarginY);
+    expect(layout.position[1] + halfHeight).toBeLessThanOrEqual(4.14 / 2 - layout.safeMarginY);
   });
 
   it('is deterministic for identical manifest fields', () => {

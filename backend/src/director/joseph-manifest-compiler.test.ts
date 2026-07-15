@@ -107,8 +107,8 @@ describe("Joseph Manifest Compiler", () => {
       godEscalationIntent: "preferred-for-precision",
     };
 
-    const left = compileJosephManifest({manifest, selectedPlannerCandidate});
-    const right = compileJosephManifest({manifest, selectedPlannerCandidate});
+    const left = compileJosephManifest({manifest, mode: "pass_through", selectedPlannerCandidate});
+    const right = compileJosephManifest({manifest, mode: "pass_through", selectedPlannerCandidate});
 
     expect(left.manifest).toEqual(original);
     expect(manifest).toEqual(original);

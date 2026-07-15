@@ -92,12 +92,14 @@ describe("pollOnce", () => {
     const result = await pollOnce({apiBase: "http://backend.test"});
 
     expect(result).toBe("rendered");
-    expect(renderFromManifest).toHaveBeenCalledWith(validManifest);
+    expect(renderFromManifest).toHaveBeenCalledWith(validManifest, {
+      tempDir: expect.stringMatching(/[\\/]data[\\/]media$/),
+    });
     expect(fetchMock).toHaveBeenLastCalledWith(
       "http://backend.test/api/v1/render/jobs/123e4567-e89b-12d3-a456-426614174200/complete",
       expect.objectContaining({
         method: "POST",
-        body: JSON.stringify({outputUrl: "C:/tmp/final.mp4"}),
+        body: JSON.stringify({outputUrl: "http://backend.test/media/final.mp4"}),
       }),
     );
   });

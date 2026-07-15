@@ -1,456 +1,668 @@
 [
   {
-    "id": "clock-dragon-studio-clock-ticking-down-376897",
-    "label": "Dragon Studio Clock Ticking Down 376897",
-    "src": "audio/sfx/clock/dragon-studio-clock-ticking-down-376897.mp3",
-    "sourceFileName": "dragon-studio-clock-ticking-down-376897.mp3",
-    "librarySection": "clock",
-    "durationSeconds": 8.986094,
-    "tags": [
-      "clock",
-      "ticking",
-      "down",
-      "time",
-      "tick"
-    ],
-    "intensity": "soft"
-  },
-  {
-    "id": "clock-dragon-studio-clock-ticking-sfx-467486",
-    "label": "Dragon Studio Clock Ticking Sfx 467486",
-    "src": "audio/sfx/clock/dragon-studio-clock-ticking-sfx-467486.mp3",
-    "sourceFileName": "dragon-studio-clock-ticking-sfx-467486.mp3",
-    "librarySection": "clock",
-    "durationSeconds": 7.704,
-    "tags": [
-      "clock",
-      "ticking",
-      "sfx",
-      "time",
-      "tick"
-    ],
-    "intensity": "soft"
-  },
-  {
-    "id": "clock-u-mx4xkr2bzy-slow-cinematic-clock-ticking-tension-2-323078",
-    "label": "U Mx4xkr2bzy Slow Cinematic Clock Ticking Tension 2 323078",
-    "src": "audio/sfx/clock/u-mx4xkr2bzy-slow-cinematic-clock-ticking-tension-2-323078.mp3",
-    "sourceFileName": "u_mx4xkr2bzy-slow-cinematic-clock-ticking-tension-2-323078.mp3",
-    "librarySection": "clock",
-    "durationSeconds": 8.097938,
-    "tags": [
-      "mx4xkr2bzy",
-      "slow",
-      "clock",
-      "ticking",
-      "tension",
-      "time",
-      "tick"
-    ],
-    "intensity": "soft"
-  },
-  {
-    "id": "drone-dragon-studio-deep-haunting-drone-482880",
-    "label": "Dragon Studio Deep Haunting Drone 482880",
-    "src": "audio/sfx/drone/dragon-studio-deep-haunting-drone-482880.mp3",
-    "sourceFileName": "dragon-studio-deep-haunting-drone-482880.mp3",
-    "librarySection": "drone",
-    "durationSeconds": 6.816,
-    "tags": [
-      "haunting",
-      "drone",
-      "tension",
-      "ambience"
-    ],
-    "intensity": "medium"
-  },
-  {
-    "id": "drone-idoberg-dark-drone-pad-467271",
-    "label": "Idoberg Dark Drone Pad 467271",
-    "src": "audio/sfx/drone/idoberg-dark-drone-pad-467271.mp3",
-    "sourceFileName": "idoberg-dark-drone-pad-467271.mp3",
-    "librarySection": "drone",
-    "durationSeconds": 12.956719,
-    "tags": [
-      "idoberg",
-      "drone",
-      "pad",
-      "tension",
-      "ambience"
-    ],
-    "intensity": "medium"
-  },
-  {
-    "id": "drone-samuelfjohanns-weird-drones-12540",
-    "label": "Samuelfjohanns Weird Drones 12540",
-    "src": "audio/sfx/drone/samuelfjohanns-weird-drones-12540.mp3",
-    "sourceFileName": "samuelfjohanns-weird-drones-12540.mp3",
-    "librarySection": "drone",
-    "durationSeconds": 25.730594,
-    "tags": [
-      "samuelfjohanns",
-      "weird",
-      "drones",
-      "tension",
-      "ambience"
-    ],
-    "intensity": "medium"
-  },
-  {
-    "id": "impact-hit-lucadialessandro-cinematic-impact-464937",
-    "label": "Lucadialessandro Cinematic Impact 464937",
-    "src": "audio/sfx/impact-hit/lucadialessandro-cinematic-impact-464937.mp3",
-    "sourceFileName": "lucadialessandro-cinematic-impact-464937.mp3",
+    "id": "impact-hit-impact-deep",
+    "label": "Impact Deep",
+    "src": "audio/sfx/impact-hit/impact-deep.mp3",
+    "sourceFileName": "impact_deep.mp3",
     "librarySection": "impact-hit",
-    "durationSeconds": 4.832625,
+    "durationSeconds": 1,
     "tags": [
-      "lucadialessandro",
       "impact",
+      "deep",
+      "impact-hit",
       "hit",
       "accent"
     ],
     "intensity": "hard"
   },
   {
-    "id": "impact-hit-universfield-cinematic-impact-hit-352702",
-    "label": "Universfield Cinematic Impact Hit 352702",
-    "src": "audio/sfx/impact-hit/universfield-cinematic-impact-hit-352702.mp3",
-    "sourceFileName": "universfield-cinematic-impact-hit-352702.mp3",
+    "id": "impact-hit-impact-deep-1",
+    "label": "Impact Deep 1",
+    "src": "audio/sfx/impact-hit/impact-deep-1.mp3",
+    "sourceFileName": "impact_deep_1.mp3",
     "librarySection": "impact-hit",
-    "durationSeconds": 3.048,
+    "durationSeconds": 0.42,
     "tags": [
-      "universfield",
       "impact",
+      "deep",
+      "impact-hit",
       "hit",
       "accent"
     ],
     "intensity": "hard"
   },
   {
-    "id": "impact-hit-universfield-impact-cinematic-boom-05-352465",
-    "label": "Universfield Impact Cinematic Boom 05 352465",
-    "src": "audio/sfx/impact-hit/universfield-impact-cinematic-boom-05-352465.mp3",
-    "sourceFileName": "universfield-impact-cinematic-boom-05-352465.mp3",
+    "id": "impact-hit-impact-deep-2",
+    "label": "Impact Deep 2",
+    "src": "audio/sfx/impact-hit/impact-deep-2.mp3",
+    "sourceFileName": "impact_deep_2.mp3",
     "librarySection": "impact-hit",
-    "durationSeconds": 2.088,
+    "durationSeconds": 0.42,
     "tags": [
-      "universfield",
       "impact",
-      "boom",
+      "deep",
+      "impact-hit",
       "hit",
       "accent"
     ],
     "intensity": "hard"
   },
   {
-    "id": "riser-creatorshome-long-riser-336262",
-    "label": "Creatorshome Long Riser 336262",
-    "src": "audio/sfx/riser/creatorshome-long-riser-336262.mp3",
-    "sourceFileName": "creatorshome-long-riser-336262.mp3",
-    "librarySection": "riser",
-    "durationSeconds": 2.88,
+    "id": "impact-hit-impact-deep-3",
+    "label": "Impact Deep 3",
+    "src": "audio/sfx/impact-hit/impact-deep-3.mp3",
+    "sourceFileName": "impact_deep_3.mp3",
+    "librarySection": "impact-hit",
+    "durationSeconds": 0.42,
     "tags": [
-      "creatorshome",
-      "riser",
-      "lift",
-      "build"
-    ],
-    "intensity": "hard"
-  },
-  {
-    "id": "riser-lucadialessandro-cinematic-riser-boom-466922",
-    "label": "Lucadialessandro Cinematic Riser Boom 466922",
-    "src": "audio/sfx/riser/lucadialessandro-cinematic-riser-boom-466922.mp3",
-    "sourceFileName": "lucadialessandro-cinematic-riser-boom-466922.mp3",
-    "librarySection": "riser",
-    "durationSeconds": 17.188563,
-    "tags": [
-      "lucadialessandro",
-      "riser",
-      "boom",
-      "lift",
-      "build"
-    ],
-    "intensity": "hard"
-  },
-  {
-    "id": "riser-soundreality-riser-hole-391174",
-    "label": "Soundreality Riser Hole 391174",
-    "src": "audio/sfx/riser/soundreality-riser-hole-391174.mp3",
-    "sourceFileName": "soundreality-riser-hole-391174.mp3",
-    "librarySection": "riser",
-    "durationSeconds": 10.032,
-    "tags": [
-      "soundreality",
-      "riser",
-      "hole",
-      "lift",
-      "build"
-    ],
-    "intensity": "hard"
-  },
-  {
-    "id": "riser-soundreality-riser-somewhere-391176",
-    "label": "Soundreality Riser Somewhere 391176",
-    "src": "audio/sfx/riser/soundreality-riser-somewhere-391176.mp3",
-    "sourceFileName": "soundreality-riser-somewhere-391176.mp3",
-    "librarySection": "riser",
-    "durationSeconds": 14.04,
-    "tags": [
-      "soundreality",
-      "riser",
-      "somewhere",
-      "lift",
-      "build"
-    ],
-    "intensity": "hard"
-  },
-  {
-    "id": "snap-shidenbeatsmusic-sound-effects-finger-snap-with-reverb-113861",
-    "label": "Shidenbeatsmusic Sound Effects Finger Snap With Reverb 113861",
-    "src": "audio/sfx/snap/shidenbeatsmusic-sound-effects-finger-snap-with-reverb-113861.mp3",
-    "sourceFileName": "shidenbeatsmusic-sound-effects-finger-snap-with-reverb-113861.mp3",
-    "librarySection": "snap",
-    "durationSeconds": 2.533875,
-    "tags": [
-      "shidenbeatsmusic",
-      "finger",
-      "snap",
-      "with",
-      "reverb",
-      "click",
+      "impact",
+      "deep",
+      "impact-hit",
+      "hit",
       "accent"
     ],
-    "intensity": "soft"
+    "intensity": "hard"
   },
   {
-    "id": "snap-soundreality-finger-snap-reverb-423222",
-    "label": "Soundreality Finger Snap Reverb 423222",
-    "src": "audio/sfx/snap/soundreality-finger-snap-reverb-423222.mp3",
-    "sourceFileName": "soundreality-finger-snap-reverb-423222.mp3",
-    "librarySection": "snap",
-    "durationSeconds": 8.04,
+    "id": "impact-hit-impact-deep-4",
+    "label": "Impact Deep 4",
+    "src": "audio/sfx/impact-hit/impact-deep-4.mp3",
+    "sourceFileName": "impact_deep_4.mp3",
+    "librarySection": "impact-hit",
+    "durationSeconds": 0.42,
     "tags": [
-      "soundreality",
-      "finger",
-      "snap",
-      "reverb",
-      "click",
+      "impact",
+      "deep",
+      "impact-hit",
+      "hit",
       "accent"
     ],
-    "intensity": "soft"
+    "intensity": "hard"
   },
   {
-    "id": "text-dragon-studio-typing-with-keyboard-435489",
-    "label": "Dragon Studio Typing With Keyboard 435489",
-    "src": "audio/sfx/text/dragon-studio-typing-with-keyboard-435489.mp3",
-    "sourceFileName": "dragon-studio-typing-with-keyboard-435489.mp3",
-    "librarySection": "text",
-    "durationSeconds": 5.424,
+    "id": "impact-hit-impact-deep-5",
+    "label": "Impact Deep 5",
+    "src": "audio/sfx/impact-hit/impact-deep-5.mp3",
+    "sourceFileName": "impact_deep_5.mp3",
+    "librarySection": "impact-hit",
+    "durationSeconds": 0.42,
     "tags": [
-      "typing",
-      "with",
-      "keyboard"
-    ],
-    "intensity": "soft"
-  },
-  {
-    "id": "text-matthewvakaliuk73627-computer-keyboard-typing-290582",
-    "label": "Matthewvakaliuk73627 Computer Keyboard Typing 290582",
-    "src": "audio/sfx/text/matthewvakaliuk73627-computer-keyboard-typing-290582.mp3",
-    "sourceFileName": "matthewvakaliuk73627-computer-keyboard-typing-290582.mp3",
-    "librarySection": "text",
-    "durationSeconds": 10.08325,
-    "tags": [
-      "matthewvakaliuk73627",
-      "computer",
-      "keyboard",
-      "typing"
-    ],
-    "intensity": "soft"
-  },
-  {
-    "id": "text-virtualzero-keyboard-typing-fast-371229",
-    "label": "Virtualzero Keyboard Typing Fast 371229",
-    "src": "audio/sfx/text/virtualzero-keyboard-typing-fast-371229.mp3",
-    "sourceFileName": "virtualzero-keyboard-typing-fast-371229.mp3",
-    "librarySection": "text",
-    "durationSeconds": 8.045688,
-    "tags": [
-      "virtualzero",
-      "keyboard",
-      "typing"
-    ],
-    "intensity": "soft"
-  },
-  {
-    "id": "transition-dragon-studio-cinematic-flashback-transition-463199",
-    "label": "Dragon Studio Cinematic Flashback Transition 463199",
-    "src": "audio/sfx/transition/dragon-studio-cinematic-flashback-transition-463199.mp3",
-    "sourceFileName": "dragon-studio-cinematic-flashback-transition-463199.mp3",
-    "librarySection": "transition",
-    "durationSeconds": 2.04,
-    "tags": [
-      "flashback",
-      "transition",
-      "movement"
-    ],
-    "intensity": "medium"
-  },
-  {
-    "id": "transition-freesound-community-camera-shutter-6305",
-    "label": "Freesound Community Camera Shutter 6305",
-    "src": "audio/sfx/transition/freesound-community-camera-shutter-6305.mp3",
-    "sourceFileName": "freesound_community-camera-shutter-6305.mp3",
-    "librarySection": "transition",
-    "durationSeconds": 0.339594,
-    "tags": [
-      "freesound",
-      "camera",
-      "shutter",
-      "transition",
-      "movement"
-    ],
-    "intensity": "soft"
-  },
-  {
-    "id": "transition-irinairinafomicheva-camera-13695",
-    "label": "Irinairinafomicheva Camera 13695",
-    "src": "audio/sfx/transition/irinairinafomicheva-camera-13695.mp3",
-    "sourceFileName": "irinairinafomicheva-camera-13695.mp3",
-    "librarySection": "transition",
-    "durationSeconds": 0.417938,
-    "tags": [
-      "irinairinafomicheva",
-      "camera",
-      "transition",
-      "movement"
-    ],
-    "intensity": "soft"
-  },
-  {
-    "id": "transition-soulfuljamtracks-glitch-fx-transitions-7-373373",
-    "label": "Soulfuljamtracks Glitch Fx Transitions 7 373373",
-    "src": "audio/sfx/transition/soulfuljamtracks-glitch-fx-transitions-7-373373.mp3",
-    "sourceFileName": "soulfuljamtracks-glitch-fx-transitions-7-373373.mp3",
-    "librarySection": "transition",
-    "durationSeconds": 0.912,
-    "tags": [
-      "soulfuljamtracks",
-      "glitch",
-      "fx",
-      "transitions",
-      "transition",
-      "movement"
-    ],
-    "intensity": "medium"
-  },
-  {
-    "id": "transition-soulfuljamtracks-glitch-fx-transitions-8-373374",
-    "label": "Soulfuljamtracks Glitch Fx Transitions 8 373374",
-    "src": "audio/sfx/transition/soulfuljamtracks-glitch-fx-transitions-8-373374.mp3",
-    "sourceFileName": "soulfuljamtracks-glitch-fx-transitions-8-373374.mp3",
-    "librarySection": "transition",
-    "durationSeconds": 2.4,
-    "tags": [
-      "soulfuljamtracks",
-      "glitch",
-      "fx",
-      "transitions",
-      "transition",
-      "movement"
-    ],
-    "intensity": "medium"
-  },
-  {
-    "id": "transition-soulfuljamtracks-glitch-fx-transitions-9-378582",
-    "label": "Soulfuljamtracks Glitch Fx Transitions 9 378582",
-    "src": "audio/sfx/transition/soulfuljamtracks-glitch-fx-transitions-9-378582.mp3",
-    "sourceFileName": "soulfuljamtracks-glitch-fx-transitions-9-378582.mp3",
-    "librarySection": "transition",
-    "durationSeconds": 1.656,
-    "tags": [
-      "soulfuljamtracks",
-      "glitch",
-      "fx",
-      "transitions",
-      "transition",
-      "movement"
-    ],
-    "intensity": "medium"
-  },
-  {
-    "id": "ui-freesound-community-ui-click-43196",
-    "label": "Freesound Community Ui Click 43196",
-    "src": "audio/sfx/ui/freesound-community-ui-click-43196.mp3",
-    "sourceFileName": "freesound_community-ui-click-43196.mp3",
-    "librarySection": "ui",
-    "durationSeconds": 0.552,
-    "tags": [
-      "freesound",
-      "ui",
-      "click",
+      "impact",
+      "deep",
+      "impact-hit",
+      "hit",
       "accent"
     ],
-    "intensity": "soft"
+    "intensity": "hard"
   },
   {
-    "id": "whoosh-dragon-studio-epic-whoosh-478371",
-    "label": "Dragon Studio Epic Whoosh 478371",
-    "src": "audio/sfx/whoosh/dragon-studio-epic-whoosh-478371.mp3",
-    "sourceFileName": "dragon-studio-epic-whoosh-478371.mp3",
-    "librarySection": "whoosh",
-    "durationSeconds": 2.52,
+    "id": "impact-hit-impact-sharp",
+    "label": "Impact Sharp",
+    "src": "audio/sfx/impact-hit/impact-sharp.mp3",
+    "sourceFileName": "impact_sharp.mp3",
+    "librarySection": "impact-hit",
+    "durationSeconds": 1,
     "tags": [
-      "epic",
-      "whoosh",
-      "transition",
-      "movement"
+      "impact",
+      "sharp",
+      "impact-hit",
+      "hit",
+      "accent"
     ],
-    "intensity": "medium"
+    "intensity": "hard"
   },
   {
-    "id": "whoosh-dragon-studio-simple-whoosh-02-433006",
-    "label": "Dragon Studio Simple Whoosh 02 433006",
-    "src": "audio/sfx/whoosh/dragon-studio-simple-whoosh-02-433006.mp3",
-    "sourceFileName": "dragon-studio-simple-whoosh-02-433006.mp3",
-    "librarySection": "whoosh",
-    "durationSeconds": 4.032,
+    "id": "impact-hit-impact-sharp-1",
+    "label": "Impact Sharp 1",
+    "src": "audio/sfx/impact-hit/impact-sharp-1.mp3",
+    "sourceFileName": "impact_sharp_1.mp3",
+    "librarySection": "impact-hit",
+    "durationSeconds": 0.18,
     "tags": [
-      "whoosh",
-      "transition",
-      "movement"
+      "impact",
+      "sharp",
+      "impact-hit",
+      "hit",
+      "accent"
     ],
-    "intensity": "medium"
+    "intensity": "hard"
   },
   {
-    "id": "whoosh-dragon-studio-simple-whoosh-03-433005",
-    "label": "Dragon Studio Simple Whoosh 03 433005",
-    "src": "audio/sfx/whoosh/dragon-studio-simple-whoosh-03-433005.mp3",
-    "sourceFileName": "dragon-studio-simple-whoosh-03-433005.mp3",
-    "librarySection": "whoosh",
-    "durationSeconds": 4.032,
+    "id": "impact-hit-impact-sharp-2",
+    "label": "Impact Sharp 2",
+    "src": "audio/sfx/impact-hit/impact-sharp-2.mp3",
+    "sourceFileName": "impact_sharp_2.mp3",
+    "librarySection": "impact-hit",
+    "durationSeconds": 0.18,
     "tags": [
-      "whoosh",
-      "transition",
-      "movement"
+      "impact",
+      "sharp",
+      "impact-hit",
+      "hit",
+      "accent"
     ],
-    "intensity": "medium"
+    "intensity": "hard"
   },
   {
-    "id": "whoosh-soundreality-whoosh-large-sub-384631",
-    "label": "Soundreality Whoosh Large Sub 384631",
-    "src": "audio/sfx/whoosh/soundreality-whoosh-large-sub-384631.mp3",
-    "sourceFileName": "soundreality-whoosh-large-sub-384631.mp3",
-    "librarySection": "whoosh",
-    "durationSeconds": 8.04,
+    "id": "impact-hit-impact-sharp-3",
+    "label": "Impact Sharp 3",
+    "src": "audio/sfx/impact-hit/impact-sharp-3.mp3",
+    "sourceFileName": "impact_sharp_3.mp3",
+    "librarySection": "impact-hit",
+    "durationSeconds": 0.18,
     "tags": [
-      "soundreality",
-      "whoosh",
-      "large",
+      "impact",
+      "sharp",
+      "impact-hit",
+      "hit",
+      "accent"
+    ],
+    "intensity": "hard"
+  },
+  {
+    "id": "impact-hit-impact-sharp-4",
+    "label": "Impact Sharp 4",
+    "src": "audio/sfx/impact-hit/impact-sharp-4.mp3",
+    "sourceFileName": "impact_sharp_4.mp3",
+    "librarySection": "impact-hit",
+    "durationSeconds": 0.18,
+    "tags": [
+      "impact",
+      "sharp",
+      "impact-hit",
+      "hit",
+      "accent"
+    ],
+    "intensity": "hard"
+  },
+  {
+    "id": "impact-hit-impact-sharp-5",
+    "label": "Impact Sharp 5",
+    "src": "audio/sfx/impact-hit/impact-sharp-5.mp3",
+    "sourceFileName": "impact_sharp_5.mp3",
+    "librarySection": "impact-hit",
+    "durationSeconds": 0.18,
+    "tags": [
+      "impact",
+      "sharp",
+      "impact-hit",
+      "hit",
+      "accent"
+    ],
+    "intensity": "hard"
+  },
+  {
+    "id": "impact-hit-sub-drop-1",
+    "label": "Sub Drop 1",
+    "src": "audio/sfx/impact-hit/sub-drop-1.mp3",
+    "sourceFileName": "sub_drop_1.mp3",
+    "librarySection": "impact-hit",
+    "durationSeconds": 0.972222,
+    "tags": [
       "sub",
+      "drop",
+      "impact-hit",
+      "impact",
+      "hit",
+      "accent"
+    ],
+    "intensity": "hard"
+  },
+  {
+    "id": "impact-hit-sub-drop-2",
+    "label": "Sub Drop 2",
+    "src": "audio/sfx/impact-hit/sub-drop-2.mp3",
+    "sourceFileName": "sub_drop_2.mp3",
+    "librarySection": "impact-hit",
+    "durationSeconds": 0.972222,
+    "tags": [
+      "sub",
+      "drop",
+      "impact-hit",
+      "impact",
+      "hit",
+      "accent"
+    ],
+    "intensity": "hard"
+  },
+  {
+    "id": "impact-hit-sub-drop-3",
+    "label": "Sub Drop 3",
+    "src": "audio/sfx/impact-hit/sub-drop-3.mp3",
+    "sourceFileName": "sub_drop_3.mp3",
+    "librarySection": "impact-hit",
+    "durationSeconds": 0.972222,
+    "tags": [
+      "sub",
+      "drop",
+      "impact-hit",
+      "impact",
+      "hit",
+      "accent"
+    ],
+    "intensity": "hard"
+  },
+  {
+    "id": "impact-hit-sub-drop-4",
+    "label": "Sub Drop 4",
+    "src": "audio/sfx/impact-hit/sub-drop-4.mp3",
+    "sourceFileName": "sub_drop_4.mp3",
+    "librarySection": "impact-hit",
+    "durationSeconds": 0.972222,
+    "tags": [
+      "sub",
+      "drop",
+      "impact-hit",
+      "impact",
+      "hit",
+      "accent"
+    ],
+    "intensity": "hard"
+  },
+  {
+    "id": "impact-hit-sub-drop-5",
+    "label": "Sub Drop 5",
+    "src": "audio/sfx/impact-hit/sub-drop-5.mp3",
+    "sourceFileName": "sub_drop_5.mp3",
+    "librarySection": "impact-hit",
+    "durationSeconds": 0.972222,
+    "tags": [
+      "sub",
+      "drop",
+      "impact-hit",
+      "impact",
+      "hit",
+      "accent"
+    ],
+    "intensity": "hard"
+  },
+  {
+    "id": "riser-riser-short",
+    "label": "Riser Short",
+    "src": "audio/sfx/riser/riser-short.mp3",
+    "sourceFileName": "riser_short.mp3",
+    "librarySection": "riser",
+    "durationSeconds": 1,
+    "tags": [
+      "riser",
+      "short",
+      "lift",
+      "build"
+    ],
+    "intensity": "hard"
+  },
+  {
+    "id": "riser-riser-short-1",
+    "label": "Riser Short 1",
+    "src": "audio/sfx/riser/riser-short-1.mp3",
+    "sourceFileName": "riser_short_1.mp3",
+    "librarySection": "riser",
+    "durationSeconds": 0.468753,
+    "tags": [
+      "riser",
+      "short",
+      "lift",
+      "build"
+    ],
+    "intensity": "hard"
+  },
+  {
+    "id": "riser-riser-short-2",
+    "label": "Riser Short 2",
+    "src": "audio/sfx/riser/riser-short-2.mp3",
+    "sourceFileName": "riser_short_2.mp3",
+    "librarySection": "riser",
+    "durationSeconds": 0.468753,
+    "tags": [
+      "riser",
+      "short",
+      "lift",
+      "build"
+    ],
+    "intensity": "hard"
+  },
+  {
+    "id": "riser-riser-short-3",
+    "label": "Riser Short 3",
+    "src": "audio/sfx/riser/riser-short-3.mp3",
+    "sourceFileName": "riser_short_3.mp3",
+    "librarySection": "riser",
+    "durationSeconds": 0.468753,
+    "tags": [
+      "riser",
+      "short",
+      "lift",
+      "build"
+    ],
+    "intensity": "hard"
+  },
+  {
+    "id": "riser-riser-short-4",
+    "label": "Riser Short 4",
+    "src": "audio/sfx/riser/riser-short-4.mp3",
+    "sourceFileName": "riser_short_4.mp3",
+    "librarySection": "riser",
+    "durationSeconds": 0.468753,
+    "tags": [
+      "riser",
+      "short",
+      "lift",
+      "build"
+    ],
+    "intensity": "hard"
+  },
+  {
+    "id": "riser-riser-short-5",
+    "label": "Riser Short 5",
+    "src": "audio/sfx/riser/riser-short-5.mp3",
+    "sourceFileName": "riser_short_5.mp3",
+    "librarySection": "riser",
+    "durationSeconds": 0.468753,
+    "tags": [
+      "riser",
+      "short",
+      "lift",
+      "build"
+    ],
+    "intensity": "hard"
+  },
+  {
+    "id": "text-pop-text-1",
+    "label": "Pop Text 1",
+    "src": "audio/sfx/text/pop-text-1.mp3",
+    "sourceFileName": "pop_text_1.mp3",
+    "librarySection": "text",
+    "durationSeconds": 0.16,
+    "tags": [
+      "pop",
+      "text",
+      "typing",
+      "caption"
+    ],
+    "intensity": "soft"
+  },
+  {
+    "id": "text-pop-text-2",
+    "label": "Pop Text 2",
+    "src": "audio/sfx/text/pop-text-2.mp3",
+    "sourceFileName": "pop_text_2.mp3",
+    "librarySection": "text",
+    "durationSeconds": 0.16,
+    "tags": [
+      "pop",
+      "text",
+      "typing",
+      "caption"
+    ],
+    "intensity": "soft"
+  },
+  {
+    "id": "text-pop-text-3",
+    "label": "Pop Text 3",
+    "src": "audio/sfx/text/pop-text-3.mp3",
+    "sourceFileName": "pop_text_3.mp3",
+    "librarySection": "text",
+    "durationSeconds": 0.16,
+    "tags": [
+      "pop",
+      "text",
+      "typing",
+      "caption"
+    ],
+    "intensity": "soft"
+  },
+  {
+    "id": "text-pop-text-4",
+    "label": "Pop Text 4",
+    "src": "audio/sfx/text/pop-text-4.mp3",
+    "sourceFileName": "pop_text_4.mp3",
+    "librarySection": "text",
+    "durationSeconds": 0.16,
+    "tags": [
+      "pop",
+      "text",
+      "typing",
+      "caption"
+    ],
+    "intensity": "soft"
+  },
+  {
+    "id": "text-pop-text-5",
+    "label": "Pop Text 5",
+    "src": "audio/sfx/text/pop-text-5.mp3",
+    "sourceFileName": "pop_text_5.mp3",
+    "librarySection": "text",
+    "durationSeconds": 0.16,
+    "tags": [
+      "pop",
+      "text",
+      "typing",
+      "caption"
+    ],
+    "intensity": "soft"
+  },
+  {
+    "id": "transition-glitch-digital-1",
+    "label": "Glitch Digital 1",
+    "src": "audio/sfx/transition/glitch-digital-1.mp3",
+    "sourceFileName": "glitch_digital_1.mp3",
+    "librarySection": "transition",
+    "durationSeconds": 0.210045,
+    "tags": [
+      "glitch",
+      "digital",
       "transition",
       "movement"
+    ],
+    "intensity": "medium"
+  },
+  {
+    "id": "transition-glitch-digital-2",
+    "label": "Glitch Digital 2",
+    "src": "audio/sfx/transition/glitch-digital-2.mp3",
+    "sourceFileName": "glitch_digital_2.mp3",
+    "librarySection": "transition",
+    "durationSeconds": 0.205215,
+    "tags": [
+      "glitch",
+      "digital",
+      "transition",
+      "movement"
+    ],
+    "intensity": "medium"
+  },
+  {
+    "id": "transition-glitch-digital-3",
+    "label": "Glitch Digital 3",
+    "src": "audio/sfx/transition/glitch-digital-3.mp3",
+    "sourceFileName": "glitch_digital_3.mp3",
+    "librarySection": "transition",
+    "durationSeconds": 0.199229,
+    "tags": [
+      "glitch",
+      "digital",
+      "transition",
+      "movement"
+    ],
+    "intensity": "medium"
+  },
+  {
+    "id": "transition-glitch-digital-4",
+    "label": "Glitch Digital 4",
+    "src": "audio/sfx/transition/glitch-digital-4.mp3",
+    "sourceFileName": "glitch_digital_4.mp3",
+    "librarySection": "transition",
+    "durationSeconds": 0.202834,
+    "tags": [
+      "glitch",
+      "digital",
+      "transition",
+      "movement"
+    ],
+    "intensity": "medium"
+  },
+  {
+    "id": "transition-glitch-digital-5",
+    "label": "Glitch Digital 5",
+    "src": "audio/sfx/transition/glitch-digital-5.mp3",
+    "sourceFileName": "glitch_digital_5.mp3",
+    "librarySection": "transition",
+    "durationSeconds": 0.200272,
+    "tags": [
+      "glitch",
+      "digital",
+      "transition",
+      "movement"
+    ],
+    "intensity": "medium"
+  },
+  {
+    "id": "whoosh-whoosh-fast-1",
+    "label": "Whoosh Fast 1",
+    "src": "audio/sfx/whoosh/whoosh-fast-1.mp3",
+    "sourceFileName": "whoosh_fast_1.mp3",
+    "librarySection": "whoosh",
+    "durationSeconds": 0.32,
+    "tags": [
+      "whoosh",
+      "fast",
+      "movement",
+      "transition"
+    ],
+    "intensity": "medium"
+  },
+  {
+    "id": "whoosh-whoosh-fast-2",
+    "label": "Whoosh Fast 2",
+    "src": "audio/sfx/whoosh/whoosh-fast-2.mp3",
+    "sourceFileName": "whoosh_fast_2.mp3",
+    "librarySection": "whoosh",
+    "durationSeconds": 0.32,
+    "tags": [
+      "whoosh",
+      "fast",
+      "movement",
+      "transition"
+    ],
+    "intensity": "medium"
+  },
+  {
+    "id": "whoosh-whoosh-fast-3",
+    "label": "Whoosh Fast 3",
+    "src": "audio/sfx/whoosh/whoosh-fast-3.mp3",
+    "sourceFileName": "whoosh_fast_3.mp3",
+    "librarySection": "whoosh",
+    "durationSeconds": 0.32,
+    "tags": [
+      "whoosh",
+      "fast",
+      "movement",
+      "transition"
+    ],
+    "intensity": "medium"
+  },
+  {
+    "id": "whoosh-whoosh-fast-4",
+    "label": "Whoosh Fast 4",
+    "src": "audio/sfx/whoosh/whoosh-fast-4.mp3",
+    "sourceFileName": "whoosh_fast_4.mp3",
+    "librarySection": "whoosh",
+    "durationSeconds": 0.32,
+    "tags": [
+      "whoosh",
+      "fast",
+      "movement",
+      "transition"
+    ],
+    "intensity": "medium"
+  },
+  {
+    "id": "whoosh-whoosh-fast-5",
+    "label": "Whoosh Fast 5",
+    "src": "audio/sfx/whoosh/whoosh-fast-5.mp3",
+    "sourceFileName": "whoosh_fast_5.mp3",
+    "librarySection": "whoosh",
+    "durationSeconds": 0.32,
+    "tags": [
+      "whoosh",
+      "fast",
+      "movement",
+      "transition"
+    ],
+    "intensity": "medium"
+  },
+  {
+    "id": "whoosh-whoosh-slow-1",
+    "label": "Whoosh Slow 1",
+    "src": "audio/sfx/whoosh/whoosh-slow-1.mp3",
+    "sourceFileName": "whoosh_slow_1.mp3",
+    "librarySection": "whoosh",
+    "durationSeconds": 0.55,
+    "tags": [
+      "whoosh",
+      "slow",
+      "movement",
+      "transition"
+    ],
+    "intensity": "medium"
+  },
+  {
+    "id": "whoosh-whoosh-slow-2",
+    "label": "Whoosh Slow 2",
+    "src": "audio/sfx/whoosh/whoosh-slow-2.mp3",
+    "sourceFileName": "whoosh_slow_2.mp3",
+    "librarySection": "whoosh",
+    "durationSeconds": 0.55,
+    "tags": [
+      "whoosh",
+      "slow",
+      "movement",
+      "transition"
+    ],
+    "intensity": "medium"
+  },
+  {
+    "id": "whoosh-whoosh-slow-3",
+    "label": "Whoosh Slow 3",
+    "src": "audio/sfx/whoosh/whoosh-slow-3.mp3",
+    "sourceFileName": "whoosh_slow_3.mp3",
+    "librarySection": "whoosh",
+    "durationSeconds": 0.55,
+    "tags": [
+      "whoosh",
+      "slow",
+      "movement",
+      "transition"
+    ],
+    "intensity": "medium"
+  },
+  {
+    "id": "whoosh-whoosh-slow-4",
+    "label": "Whoosh Slow 4",
+    "src": "audio/sfx/whoosh/whoosh-slow-4.mp3",
+    "sourceFileName": "whoosh_slow_4.mp3",
+    "librarySection": "whoosh",
+    "durationSeconds": 0.55,
+    "tags": [
+      "whoosh",
+      "slow",
+      "movement",
+      "transition"
+    ],
+    "intensity": "medium"
+  },
+  {
+    "id": "whoosh-whoosh-slow-5",
+    "label": "Whoosh Slow 5",
+    "src": "audio/sfx/whoosh/whoosh-slow-5.mp3",
+    "sourceFileName": "whoosh_slow_5.mp3",
+    "librarySection": "whoosh",
+    "durationSeconds": 0.55,
+    "tags": [
+      "whoosh",
+      "slow",
+      "movement",
+      "transition"
     ],
     "intensity": "medium"
   }

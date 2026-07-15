@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Red Box Showcase</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background: transparent !important;
+    }
+    body::before, body::after { display: none !important; }
+
+    body {
+      display: grid;
+      place-items: center;
+      font-family: 'Sora', sans-serif;
+    }
+
+    #scene {
+      width: 564px;
+      height: 564px;
+      perspective: 900px;
+    }
+
+    svg {
+      width: 564px;
+      height: 564px;
+      overflow: visible;
+      transform-style: preserve-3d;
+    }
+
+    .text-primary {
+      font-size: 18px;
+      font-weight: 700;
+      fill: #7d0a13;
+    }
+
+    .text-secondary {
+      font-size: 11px;
+      font-weight: 600;
+      fill: #6d1b23;
+    }
+
+    .text-tertiary {
+      font-size: 10px;
+      font-weight: 500;
+      fill: #6f2a31;
+    }
+
+    .text-stray {
+      font-size: 120px;
+      font-weight: 700;
+      fill: #d8d8d8;
+      opacity: 0.35;
+    }
+  </style>
+</head>
+<body>
+  <div id="scene">
+    <svg
+      id="asset"
+      viewBox="0 0 564 564"
+      width="564"
+      height="564"
+      xmlns="http://www.w3.org/2000/svg"
+      data-asset-name="e87c37381d87acd0110ec967176db07f"
+      data-asset-type="showcase-box"
+      data-image-slots="0"
+      data-text-slots="8"
+      data-asset-version="1"
+    >
+      <title>Red Box Showcase</title>
+      <desc>Red presentation box with profile card and date pill.</desc>
+      <metadata id="asset_metadata">
+        {
+          "name": "e87c37381d87acd0110ec967176db07f",
+          "assetId": "e87c37381d87acd0110ec967176db07f",
+          "filename": "e87c37381d87acd0110ec967176db07f.html",
+          "displayName": "Red Box Showcase",
+          "type": "showcase-box",
+          "description": "Red presentation box with floating profile card and date badge.",
+          "macro": "red box profile card",
+          "keywords": [
+            "red",
+            "box",
+            "profile",
+            "card",
+            "showcase",
+            "date"
+          ],
+          "imageSlots": 0,
+          "imageSlotNames": [],
+          "imageSlotRoles": [],
+          "textSlots": 8,
+          "textSlotNames": [
+            "text_primary_1",
+            "text_secondary_1",
+            "text_tertiary_1",
+            "text_tertiary_2",
+            "text_tertiary_3",
+            "text_tertiary_4",
+            "text_stray_1",
+            "text_stray_2"
+          ],
+          "textSlotRoles": [
+            "primary",
+            "secondary",
+            "tertiary",
+            "tertiary",
+            "tertiary",
+            "tertiary",
+            "stray",
+            "stray"
+          ],
+          "textArtifacts": [
+            {
+              "id": "text_primary_1",
+              "role": "primary",
+              "category": "core",
+              "slot": "1",
+              "text": "Vadim Designer",
+              "charCount": 14
+            },
+            {
+              "id": "text_secondary_1",
+              "role": "secondary",
+              "category": "descriptor",
+              "slot": "1",
+              "text": "vadimdesignero",
+              "charCount": 14
+            },
+            {
+              "id": "text_tertiary_1",
+              "role": "tertiary",
+              "category": "descriptor",
+              "slot": "1",
+              "text": "3 подписчика · 36 лайков · 10 тыс просмотров в месяц",
+              "charCount": 52
+            },
+            {
+              "id": "text_tertiary_2",
+              "role": "tertiary",
+              "category": "descriptor",
+              "slot": "2",
+              "text": "Давай знакомиться? Меня зовут Вадим.",
+              "charCount": 36
+            },
+            {
+              "id": "text_tertiary_3",
+              "role": "tertiary",
+              "category": "descriptor",
+              "slot": "3",
+              "text": "Я создаю дизайн, который продает.",
+              "charCount": 33
+            },
+            {
+              "id": "text_tertiary_4",
+              "role": "tertiary",
+              "category": "descriptor",
+              "slot": "4",
+              "text": "14.02.2025",
+              "charCount": 10
+            },
+            {
+              "id": "text_stray_1",
+              "role": "stray",
+              "category": "stray",
+              "slot": "1",
+              "text": "10",
+              "charCount": 2
+            },
+            {
+              "id": "text_stray_2",
+              "role": "stray",
+              "category": "stray",
+              "slot": "2",
+              "text": "100",
+              "charCount": 3
+            }
+          ],
+          "textArtifactCount": 8,
+          "textArtifactCounts": {
+            "core": 1,
+            "descriptor": 5,
+            "stray": 2
+          },
+          "format": "svg+gsap",
+          "version": "1.0.0"
+        }
+      </metadata>
+      <defs>
+        <radialGradient id="bgFade" cx="55%" cy="45%" r="70%">
+          <stop offset="0%" stop-color="#3c0b10" stop-opacity="0.9" />
+          <stop offset="55%" stop-color="#1a0507" stop-opacity="0.7" />
+          <stop offset="100%" stop-color="#1a0507" stop-opacity="0" />
+        </radialGradient>
+        <radialGradient id="fadeMaskGradient" cx="50%" cy="45%" r="70%">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity="1" />
+          <stop offset="70%" stop-color="#ffffff" stop-opacity="0.7" />
+          <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
+        </radialGradient>
+        <linearGradient id="boxGradient" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#7a0d15" />
+          <stop offset="70%" stop-color="#48070c" />
+          <stop offset="100%" stop-color="#2a0407" />
+        </linearGradient>
+        <linearGradient id="lidGradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#b61b28" />
+          <stop offset="100%" stop-color="#6a0d15" />
+        </linearGradient>
+        <linearGradient id="cardGradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#ffe5ea" />
+          <stop offset="100%" stop-color="#f5c7cf" />
+        </linearGradient>
+        <linearGradient id="datePill" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#ff5b6e" />
+          <stop offset="100%" stop-color="#ff2f4f" />
+        </linearGradient>
+        <filter id="boxShadow" x="-30%" y="-30%" width="160%" height="180%">
+          <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#000000" flood-opacity="0.35" />
+        </filter>
+        <filter id="cardShadow" x="-30%" y="-30%" width="160%" height="180%">
+          <feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="#000000" flood-opacity="0.28" />
+        </filter>
+        <filter id="textShadow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="1" stdDeviation="0" flood-color="#ffffff" flood-opacity="0.2" />
+          <feDropShadow dx="0" dy="2" stdDeviation="10" flood-color="#000000" flood-opacity="0.18" />
+        </filter>
+        <mask id="fadeMask">
+          <rect x="0" y="0" width="564" height="564" fill="url(#fadeMaskGradient)" />
+        </mask>
+        <clipPath id="clip-text">
+          <rect id="textClipRect" x="120" y="210" width="320" height="200" />
+        </clipPath>
+      </defs>
+
+      <g id="background_fade" mask="url(#fadeMask)">
+        <rect x="0" y="0" width="564" height="564" fill="url(#bgFade)" />
+        <text id="text_stray_1" data-text-slot="1" data-text-role="stray" class="text-stray" x="40" y="160">10</text>
+        <text id="text_stray_2" data-text-slot="2" data-text-role="stray" class="text-stray" x="260" y="160">100</text>
+      </g>
+
+      <g id="box_group" filter="url(#boxShadow)">
+        <rect x="120" y="310" width="324" height="180" rx="14" fill="url(#boxGradient)" />
+        <rect x="120" y="250" width="324" height="70" rx="12" fill="url(#lidGradient)" />
+      </g>
+
+      <g id="card_group" filter="url(#cardShadow)" transform="translate(150 230) rotate(-6)">
+        <rect width="280" height="130" rx="18" fill="url(#cardGradient)" />
+        <circle cx="30" cy="36" r="16" fill="#f3b6c0" />
+      </g>
+
+      <g id="date_pill" transform="translate(312 360)" filter="url(#cardShadow)">
+        <rect width="120" height="30" rx="15" fill="url(#datePill)" />
+      </g>
+
+      <g id="text_group" clip-path="url(#clip-text)" filter="url(#textShadow)">
+        <g transform="translate(150 230) rotate(-6)">
+          <text id="text_primary_1" data-text-slot="1" data-text-role="primary" class="text-primary" x="58" y="42">Vadim Designer</text>
+          <text id="text_secondary_1" data-text-slot="1" data-text-role="secondary" class="text-secondary" x="58" y="60">vadimdesignero</text>
+          <text id="text_tertiary_1" data-text-slot="1" data-text-role="tertiary" class="text-tertiary" x="20" y="82">3 подписчика · 36 лайков · 10 тыс просмотров в месяц</text>
+          <text id="text_tertiary_2" data-text-slot="2" data-text-role="tertiary" class="text-tertiary" x="20" y="102">Давай знакомиться? Меня зовут Вадим.</text>
+          <text id="text_tertiary_3" data-text-slot="3" data-text-role="tertiary" class="text-tertiary" x="20" y="120">Я создаю дизайн, который продает.</text>
+        </g>
+        <text id="text_tertiary_4" data-text-slot="4" data-text-role="tertiary" class="text-secondary" x="372" y="380" text-anchor="middle" fill="#ffffff">14.02.2025</text>
+      </g>
+    </svg>
+  </div>
+
+  <script src="/motion-assets/vendor/gsap.min.js"></script>
+  <script>
+    const svg = document.getElementById('asset');
+    const backgroundFade = document.getElementById('background_fade');
+    const boxGroup = document.getElementById('box_group');
+    const cardGroup = document.getElementById('card_group');
+    const datePill = document.getElementById('date_pill');
+    const textClipRect = document.getElementById('textClipRect');
+
+    const primaryText = document.getElementById('text_primary_1');
+    const secondaryText = document.getElementById('text_secondary_1');
+
+    const CHAR_ROLES = new Set(['primary', 'secondary', 'tertiary']);
+    const SVG_NS = 'http://www.w3.org/2000/svg';
+    let primaryChars = [];
+    let secondaryChars = [];
+    let tertiaryChars = [];
+    let allChars = [];
+
+    let idleTweens = [];
+    let mainTl = null;
+
+    function splitTextToChars(textEl) {
+      const role = textEl.getAttribute('data-text-role');
+      if (!CHAR_ROLES.has(role)) return null;
+      if (!textEl.id) textEl.id = `text_${Math.random().toString(36).slice(2, 8)}`;
+      const id = textEl.id;
+      const parent = textEl.parentNode;
+      const existing = parent.querySelector(`[data-char-group-for="${id}"]`);
+      if (existing) existing.remove();
+
+      const group = document.createElementNS(SVG_NS, 'g');
+      group.setAttribute('data-char-group-for', id);
+      group.setAttribute('data-text-role', role);
+      const slot = textEl.getAttribute('data-text-slot');
+      if (slot) group.setAttribute('data-text-slot', slot);
+
+      textEl.setAttribute('opacity', '0');
+      textEl.style.pointerEvents = 'none';
+
+      const charCount = textEl.getNumberOfChars();
+      const textValue = textEl.textContent || '';
+      const attrs = ['class', 'fill', 'font-family', 'font-size', 'font-weight', 'text-anchor'];
+      for (let i = 0; i < charCount; i += 1) {
+        const ch = textValue.charAt(i);
+        const pos = textEl.getStartPositionOfChar(i);
+        const charEl = document.createElementNS(SVG_NS, 'text');
+        charEl.textContent = ch;
+        charEl.setAttribute('x', pos.x);
+        charEl.setAttribute('y', pos.y);
+        attrs.forEach((attr) => {
+          const val = textEl.getAttribute(attr);
+          if (val) charEl.setAttribute(attr, val);
+        });
+        charEl.setAttribute('xml:space', 'preserve');
+        charEl.setAttribute('data-char', '1');
+        charEl.setAttribute('data-text-role', role);
+        if (slot) charEl.setAttribute('data-text-slot', slot);
+        group.appendChild(charEl);
+      }
+      parent.appendChild(group);
+      return group;
+    }
+
+    function rebuildCharGroups() {
+      const textNodes = Array.from(svg.querySelectorAll('text[data-text-role]'))
+        .filter((node) => CHAR_ROLES.has(node.getAttribute('data-text-role')));
+      textNodes.forEach(splitTextToChars);
+      primaryChars = Array.from(svg.querySelectorAll('[data-char="1"][data-text-role="primary"]'));
+      secondaryChars = Array.from(svg.querySelectorAll('[data-char="1"][data-text-role="secondary"]'));
+      tertiaryChars = Array.from(svg.querySelectorAll('[data-char="1"][data-text-role="tertiary"]'));
+      allChars = primaryChars.concat(secondaryChars, tertiaryChars);
+    }
+
+    function animateCharsInTimeline(tl, atTime) {
+      if (primaryChars.length) {
+        tl.to(primaryChars, {
+          opacity: 1,
+          y: 0,
+          filter: 'blur(0px)',
+          duration: 0.9,
+          ease: 'power3.out',
+          stagger: { each: 0.018, from: 'center' }
+        }, atTime);
+      }
+      if (secondaryChars.length) {
+        tl.to(secondaryChars, {
+          opacity: 1,
+          y: 0,
+          filter: 'blur(0px)',
+          duration: 0.85,
+          ease: 'power3.out',
+          stagger: { each: 0.012, from: 'start' }
+        }, atTime + 0.03);
+      }
+      if (tertiaryChars.length) {
+        tl.to(tertiaryChars, {
+          opacity: 1,
+          y: 0,
+          filter: 'blur(0px)',
+          duration: 0.8,
+          ease: 'power3.out',
+          stagger: { each: 0.012, from: 'start' }
+        }, atTime + 0.05);
+      }
+    }
+
+    function animateCharsInNow() {
+      if (primaryChars.length) {
+        gsap.to(primaryChars, {
+          opacity: 1,
+          y: 0,
+          filter: 'blur(0px)',
+          duration: 0.9,
+          ease: 'power3.out',
+          stagger: { each: 0.018, from: 'center' }
+        });
+      }
+      if (secondaryChars.length) {
+        gsap.to(secondaryChars, {
+          opacity: 1,
+          y: 0,
+          filter: 'blur(0px)',
+          duration: 0.85,
+          ease: 'power3.out',
+          stagger: { each: 0.012, from: 'start' }
+        });
+      }
+      if (tertiaryChars.length) {
+        gsap.to(tertiaryChars, {
+          opacity: 1,
+          y: 0,
+          filter: 'blur(0px)',
+          duration: 0.8,
+          ease: 'power3.out',
+          stagger: { each: 0.012, from: 'start' }
+        });
+      }
+    }
+
+    function setInitial() {
+      rebuildCharGroups();
+      gsap.set([backgroundFade, boxGroup, cardGroup, datePill], {
+        y: 110,
+        opacity: 0,
+        scale: 0.88,
+        filter: 'blur(16px)',
+        rotationX: 12,
+        transformPerspective: 800,
+        transformOrigin: '50% 50%'
+      });
+      gsap.set(textClipRect, {
+        attr: { y: 500 }
+      });
+      gsap.set(allChars, { opacity: 0, y: 12, filter: 'blur(12px)' });
+    }
+
+    function runScene() {
+      idleTweens.forEach((t) => t.kill());
+      idleTweens = [];
+      if (mainTl) mainTl.kill();
+      gsap.killTweensOf([backgroundFade, boxGroup, cardGroup, datePill, textClipRect, ...allChars]);
+
+      setInitial();
+
+      mainTl = gsap.timeline();
+      mainTl
+        .to([backgroundFade, boxGroup, cardGroup, datePill], {
+          y: 0,
+          opacity: 1,
+          scale: 1,
+          filter: 'blur(0px)',
+          rotationX: 0,
+          duration: 1.15,
+          ease: 'expo.out'
+        }, 0)
+        .to(textClipRect, {
+          attr: { y: 210 },
+          duration: 0.9,
+          ease: 'expo.out'
+        }, 0.75)
+        .add(() => {
+          idleTweens.push(
+            gsap.to([boxGroup, cardGroup], {
+              y: -8,
+              duration: 3.8,
+              ease: 'sine.inOut',
+              yoyo: true,
+              repeat: -1
+            })
+          );
+        }, 1.45);
+
+      animateCharsInTimeline(mainTl, 0.75);
+    }
+
+    function updateAsset(newPrimary, newSecondary) {
+      const tl = gsap.timeline();
+      tl.to(allChars, {
+        opacity: 0,
+        y: 10,
+        filter: 'blur(4px)',
+        duration: 0.28,
+        ease: 'power2.in',
+        stagger: 0.006
+      })
+        .call(() => {
+          if (typeof newPrimary === 'string') primaryText.textContent = newPrimary;
+          if (typeof newSecondary === 'string') secondaryText.textContent = newSecondary;
+          rebuildCharGroups();
+          gsap.set(allChars, { opacity: 0, y: 12, filter: 'blur(12px)' });
+        })
+        .call(() => {
+          animateCharsInNow();
+        });
+    }
+
+    window.runScene = runScene;
+    window.updateAsset = updateAsset;
+
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(runScene);
+    } else {
+      runScene();
+    }
+  </script>
+</body>
+</html>
+

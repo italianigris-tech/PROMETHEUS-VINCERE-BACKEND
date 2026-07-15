@@ -1,5 +1,5 @@
 # ============================================================================
-# PROMETHEUS TRAJECTORY EXTRACTOR — Kaggle single-cell edition (revamped)
+# PROMETHEUS TRAJECTORY EXTRACTOR - Kaggle single-cell edition (revamped)
 # ============================================================================
 # Paste this entire block into ONE Kaggle notebook cell (GPU accelerator ON).
 # It produces schema-valid trajectory.json files, one per video.
@@ -30,7 +30,7 @@
 #   5. PER-WINDOW RESILIENCE: a single bad window is skipped with a warning
 #      instead of aborting the entire video trajectory.
 #   6. Numerical guards: spectral_centroid / onset_env can emit nan or warn on
-#      silent/short segments — guarded and coerced to 0.0.
+#      silent/short segments - guarded and coerced to 0.0.
 # ============================================================================
 
 import json, os, hashlib
@@ -50,21 +50,21 @@ try:
     HAS_LIBROSA = True
 except Exception:
     HAS_LIBROSA = False
-    print("WARN: librosa not available — audio features will be zeroed.")
+    print("WARN: librosa not available - audio features will be zeroed.")
 
 try:
     import mediapipe as mp
     HAS_MEDIAPIPE = True
 except Exception:
     HAS_MEDIAPIPE = False
-    print("WARN: mediapipe not available — face features will be absent.")
+    print("WARN: mediapipe not available - face features will be absent.")
 
 try:
     from scenedetect import detect, ContentDetector
     HAS_SCENEDETECT = True
 except Exception:
     HAS_SCENEDETECT = False
-    print("WARN: scenedetect not available — transition features will default to 'cut'.")
+    print("WARN: scenedetect not available - transition features will default to 'cut'.")
 
 try:
     import easyocr
@@ -77,7 +77,7 @@ try:
     HAS_OCR = True
 except Exception:
     HAS_OCR = False
-    print("WARN: easyocr not available — typography fields will be heuristic-only.")
+    print("WARN: easyocr not available - typography fields will be heuristic-only.")
 
 
 # ============================================================================
@@ -257,7 +257,10 @@ class Trajectory(BaseModel):
             previous_end = window.end_seconds
         return self
 
-WINDOW_SECONDS = 1.0  # fixed-1s windowing — chosen for cross-video comparability
+WINDOW_SECONDS = 1.0  # fixed-1s windowing - chosen for cross-video comparability
+ARTIFACT_CONTRACT_VERSION = "joseph-kaggle-artifacts-v1"
+KAGGLE_EXTRACTOR_VERSION = "kaggle-1.1.0"
+VIDEO_EXTENSIONS = (".mp4", ".mov", ".mkv", ".webm")
 
 INPUT_DIR = "/kaggle/input/joseph-video-edits"
 OUTPUT_DIR = "/kaggle/working/trajectories"
@@ -268,7 +271,7 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 # LOW-LEVEL HELPERS (video I/O, audio, OCR, faces, flow)
 # ============================================================================
 
-# A primary face box is a single (x, y, w, h) tuple in pixels — NOT a list.
+# A primary face box is a single (x, y, w, h) tuple in pixels - NOT a list.
 # face_boxes() returns list[FaceBox]; we pass fb[0] (one box, or None) to the
 # per-family extractors. Indexing a box is single-level: box[0]=x, [1]=y, ...
 FaceBox = tuple  # (x: int, y: int, w: int, h: int)
@@ -293,7 +296,7 @@ def get_video_meta(path: str):
 def load_audio(path: str, sr: int = 22050):
     """librosa load for a whole video; returns (y, sr, duration).
     Named load_audio (NOT extract_audio) to avoid colliding with the
-    per-window audio feature extractor of the same name — that collision
+    per-window audio feature extractor of the same name - that collision
     silently shadowed this loader and crashed run_batch on video 1.
     Caller must check HAS_LIBROSA before calling."""
     y, sr = librosa.load(path, sr=sr, mono=True)
@@ -301,6 +304,8 @@ def load_audio(path: str, sr: int = 22050):
 
 def detect_scenes(path: str):
     """Returns list of (start_sec, end_sec) scene boundaries via PySceneDetect."""
+    if os.environ.get("PROMETHEUS_DISABLE_SCENEDETECT") == "1":
+        return []
     if not HAS_SCENEDETECT:
         return []
     try:
@@ -389,12 +394,361 @@ def color_variance(frame):
     return float(frame.reshape(-1, 3).std(axis=0).mean())
 
 
+def _round_time(value: float) -> float:
+    return round(float(value), 6)
+
+
+def _safe_stem(value: str) -> str:
+    stem = Path(value).stem
+    return "".join(char if char.isalnum() or char in ("-", "_") else "_" for char in stem).strip("_") or "video"
+
+
+def _normalized_key(value: str) -> str:
+    return "".join(char.lower() for char in value if char.isalnum())
+
+
+def _write_json(path: str | Path, payload: dict) -> None:
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(payload, f, indent=2, sort_keys=True)
+        f.write("\n")
+
+
+def _relative_to_output(path: str | Path, output_dir: str | Path) -> str:
+    try:
+        return os.path.relpath(str(path), str(output_dir))
+    except ValueError:
+        return str(path)
+
+
+def discover_video_paths(input_dir: str) -> list[str]:
+    roots = []
+    videos_dir = os.path.join(input_dir, "videos")
+    if os.path.isdir(videos_dir):
+        roots.append(videos_dir)
+    roots.append(input_dir)
+
+    seen = set()
+    videos = []
+    for root in roots:
+        for current_root, _, files in os.walk(root):
+            for name in files:
+                if not name.lower().endswith(VIDEO_EXTENSIONS):
+                    continue
+                full = os.path.abspath(os.path.join(current_root, name))
+                if full in seen:
+                    continue
+                seen.add(full)
+                videos.append(full)
+    return sorted(videos)
+
+
+def load_audit_event_packets(input_dir: str) -> list[dict]:
+    packets = []
+    for current_root, _, files in os.walk(input_dir):
+        for name in files:
+            if not name.endswith(".events.json"):
+                continue
+            full = os.path.join(current_root, name)
+            try:
+                with open(full, "r", encoding="utf-8") as f:
+                    packet = json.load(f)
+                packet["_artifact_source_path"] = full
+                packets.append(packet)
+            except Exception as ex:
+                packets.append({
+                    "schemaVersion": "manual-feature-extraction-v1",
+                    "referenceId": _safe_stem(name),
+                    "events": [],
+                    "candidateFeatures": [],
+                    "_artifact_source_path": full,
+                    "_load_error": f"{type(ex).__name__}: {ex}",
+                })
+    return sorted(packets, key=lambda packet: str(packet.get("referenceId", "")))
+
+
+def events_for_video(audit_packets: list[dict], video_path: str, video_id: str, video_index: int) -> tuple[dict | None, list[dict]]:
+    video_name_key = _normalized_key(os.path.basename(video_path))
+    video_id_key = _normalized_key(video_id)
+    ordinal_token = f"candidate_reference_{video_index}_of_5"
+
+    for packet in audit_packets:
+        reference_key = _normalized_key(str(packet.get("referenceId", "")))
+        if reference_key and reference_key == video_id_key:
+            return packet, list(packet.get("events", []))
+
+        packet_video = packet.get("videoPath")
+        if packet_video and _normalized_key(os.path.basename(packet_video)) == video_name_key:
+            return packet, list(packet.get("events", []))
+
+        status = str(packet.get("status", ""))
+        if not packet_video and "candidate_reference_1_of_5" in status and (
+            "gadzhi" in video_name_key or "firstvideo" in video_name_key
+        ):
+            return packet, list(packet.get("events", []))
+
+        if ordinal_token and ordinal_token in status:
+            return packet, list(packet.get("events", []))
+
+    return None, []
+
+
+def _event_time_span(event: dict) -> tuple[float, float, float]:
+    raw = event.get("timeSeconds", 0.0)
+    if isinstance(raw, list) and raw:
+        start = float(raw[0])
+        end = float(raw[-1]) if len(raw) > 1 else start
+    else:
+        start = float(raw)
+        end = start
+    if end < start:
+        start, end = end, start
+    midpoint = start + ((end - start) / 2.0)
+    return _round_time(start), _round_time(end), _round_time(midpoint)
+
+
+def _limited_events(events: list[dict]) -> list[tuple[int, dict]]:
+    limit = int(os.environ.get("PROMETHEUS_AUDIT_EVENT_LIMIT", "40"))
+    return list(enumerate(events[:limit]))
+
+
+def sample_frame_at_time(path: str, time_seconds: float):
+    cap = cv2.VideoCapture(path)
+    cap.set(cv2.CAP_PROP_POS_MSEC, max(0.0, float(time_seconds)) * 1000)
+    ok, frame = cap.read()
+    cap.release()
+    if not ok:
+        return None
+    return cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+
+def write_frame_evidence(video_path: str, video_id: str, events: list[dict], output_dir: str) -> dict:
+    frames_dir = Path(output_dir) / "frame-evidence" / video_id
+    frames_dir.mkdir(parents=True, exist_ok=True)
+    frames = []
+    failures = []
+    for event_index, event in _limited_events(events):
+        start, end, midpoint = _event_time_span(event)
+        frame = sample_frame_at_time(video_path, midpoint)
+        filename = f"event-{event_index:03d}-{midpoint:.3f}s.jpg"
+        frame_path = frames_dir / filename
+        if frame is None:
+            failures.append({"event_index": event_index, "time_seconds": midpoint, "reason": "frame_decode_failed"})
+            continue
+        cv2.imwrite(str(frame_path), cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
+        frames.append({
+            "event_index": event_index,
+            "start_seconds": start,
+            "end_seconds": end,
+            "sample_seconds": midpoint,
+            "path": _relative_to_output(frame_path, output_dir),
+        })
+    return {
+        "schema_version": "frame-evidence-v1",
+        "video_id": video_id,
+        "source_video_path": video_path,
+        "frame_count": len(frames),
+        "frames": frames,
+        "failures": failures,
+        "warnings": [] if events else ["no_audit_events_matched_video"],
+    }
+
+
+def build_text_evidence(video_path: str, video_id: str, events: list[dict]) -> dict:
+    observations = []
+    warnings = []
+    if not HAS_OCR:
+        warnings.append("ocr_unavailable")
+    for event_index, event in _limited_events(events):
+        start, end, midpoint = _event_time_span(event)
+        frame = sample_frame_at_time(video_path, midpoint)
+        texts, zones = ocr_text([frame]) if frame is not None and HAS_OCR else ([], [])
+        observations.append({
+            "event_index": event_index,
+            "start_seconds": start,
+            "end_seconds": end,
+            "sample_seconds": midpoint,
+            "texts": texts,
+            "zones": zones,
+            "source": "easyocr_gpu" if HAS_OCR else "ocr_unavailable",
+        })
+    if not events:
+        warnings.append("no_audit_events_matched_video")
+    return {
+        "schema_version": "text-evidence-v1",
+        "video_id": video_id,
+        "source_video_path": video_path,
+        "observation_count": len(observations),
+        "observations": observations,
+        "warnings": warnings,
+    }
+
+
+def build_motion_cut_evidence(video_path: str, video_id: str, scenes: list[tuple[float, float]], events: list[dict]) -> dict:
+    scene_entries = [
+        {"start_seconds": _round_time(start), "end_seconds": _round_time(end)}
+        for start, end in scenes
+    ]
+    audit_windows = []
+    scene_starts = [start for start, _ in scenes]
+    for event_index, event in _limited_events(events):
+        start, end, midpoint = _event_time_span(event)
+        audit_windows.append({
+            "event_index": event_index,
+            "start_seconds": start,
+            "end_seconds": end,
+            "sample_seconds": midpoint,
+            "scene_cut_count": len([cut for cut in scene_starts if start <= cut <= end]),
+        })
+    return {
+        "schema_version": "motion-cut-evidence-v1",
+        "video_id": video_id,
+        "source_video_path": video_path,
+        "scene_detector": "pyscenedetect_content_detector" if HAS_SCENEDETECT else "unavailable",
+        "scene_count": len(scene_entries),
+        "scenes": scene_entries,
+        "audit_windows": audit_windows,
+        "warnings": [] if HAS_SCENEDETECT else ["scene_detection_unavailable"],
+    }
+
+
+def build_audio_artifact_for_video(video_path: str, source_hash: str, meta: dict) -> dict:
+    if not HAS_LIBROSA:
+        return build_fallback_kaggle_audio_artifact(source_hash, meta["duration"], "librosa_unavailable")
+    try:
+        y, sr, duration = load_audio(video_path)
+        tempo, beats = librosa.beat.beat_track(y=y, sr=sr)
+        beat_times = librosa.frames_to_time(beats, sr=sr)
+        onset_env = librosa.onset.onset_strength(y=y, sr=sr)
+        onset_times = librosa.onset.onset_detect(y=y, sr=sr, units="time")
+        return build_librosa_audio_artifact(source_hash, y, sr, duration, beat_times, onset_times, onset_env)
+    except Exception as ex:
+        return build_fallback_kaggle_audio_artifact(
+            source_hash,
+            meta["duration"],
+            f"librosa_failed:{type(ex).__name__}",
+        )
+
+
+def build_librosa_audio_artifact(source_hash: str, y, sr: int, duration: float, beat_times, onset_times, onset_env) -> dict:
+    beat_grid = [
+        {
+            "beat_index": index,
+            "time_seconds": _round_time(float(time_seconds)),
+            "downbeat": index % 4 == 0,
+            "source": "librosa_beat_track",
+        }
+        for index, time_seconds in enumerate(beat_times)
+    ]
+    onsets = []
+    onset_strengths = list(onset_env) if onset_env is not None else []
+    for index, time_seconds in enumerate(onset_times):
+        strength = onset_strengths[min(index, len(onset_strengths) - 1)] if onset_strengths else 0.0
+        onsets.append({
+            "time_seconds": _round_time(float(time_seconds)),
+            "strength": _round_time(float(strength)),
+            "source": "librosa_onset_detect",
+        })
+    return {
+        "schema_version": "audio-artifact-v1",
+        "analyzer_version": KAGGLE_EXTRACTOR_VERSION,
+        "source_hash": source_hash,
+        "duration_seconds": _round_time(duration),
+        "analysis_mode": "librosa_mixed_audio",
+        "is_fallback": False,
+        "beat_grid": beat_grid,
+        "downbeats": [beat["time_seconds"] for beat in beat_grid if beat["downbeat"]],
+        "onsets": onsets,
+        "energy": {
+            "source": "librosa_pcm_rms",
+            "window_seconds": WINDOW_SECONDS,
+            "windows": _mixed_audio_energy_windows(y, sr, WINDOW_SECONDS),
+        },
+        "sections": [
+            {
+                "start_seconds": 0.0,
+                "end_seconds": _round_time(duration),
+                "label": "analyzed_mixed_audio",
+                "confidence": 0.5,
+                "source": "librosa",
+            }
+        ],
+        "sfx_events": [],
+        "voice_music_separation": {"source": "unavailable", "voice_stems": [], "music_stems": []},
+        "ducking_envelope": {"source": "unavailable", "points": []},
+        "warnings": [
+            "sfx_detection_unavailable",
+            "voice_music_separation_unavailable",
+            "ducking_unavailable",
+        ],
+    }
+
+
+def build_fallback_kaggle_audio_artifact(source_hash: str, duration: float, reason: str) -> dict:
+    return {
+        "schema_version": "audio-artifact-v1",
+        "analyzer_version": KAGGLE_EXTRACTOR_VERSION,
+        "source_hash": source_hash,
+        "duration_seconds": _round_time(duration),
+        "analysis_mode": "fallback_unanalyzed_audio",
+        "is_fallback": True,
+        "beat_grid": [],
+        "downbeats": [],
+        "onsets": [],
+        "energy": {"source": "fallback_unknown", "window_seconds": WINDOW_SECONDS, "windows": []},
+        "sections": [{"start_seconds": 0.0, "end_seconds": _round_time(duration), "label": "unknown", "confidence": 0.0, "source": "fallback"}],
+        "sfx_events": [],
+        "voice_music_separation": {"source": "unavailable", "voice_stems": [], "music_stems": []},
+        "ducking_envelope": {"source": "unavailable", "points": []},
+        "warnings": [
+            reason,
+            "fallback_audio_artifact",
+            "sfx_detection_unavailable",
+            "voice_music_separation_unavailable",
+            "ducking_unavailable",
+        ],
+    }
+
+
+def _mixed_audio_energy_windows(y, sr: int, window_seconds: float) -> list[dict]:
+    window_size = max(1, round(float(sr) * window_seconds))
+    windows = []
+    for start_index in range(0, len(y), window_size):
+        end_index = min(start_index + window_size, len(y))
+        segment = y[start_index:end_index]
+        rms = float(np.sqrt(np.mean(segment**2))) if len(segment) else 0.0
+        windows.append({
+            "start_seconds": _round_time(start_index / float(sr)),
+            "end_seconds": _round_time(end_index / float(sr)),
+            "rms": _round_time(rms),
+            "music_energy": _round_time(rms),
+            "vocal_energy": _round_time(rms),
+        })
+    return windows
+
+
+def _artifact_energy_curve(audio_artifact: dict):
+    values = [
+        _artifact_number(window.get("rms")) or 0.0
+        for window in audio_artifact.get("energy", {}).get("windows", [])
+    ]
+    if not values:
+        return np.array([])
+    arr = np.array(values, dtype=float)
+    return arr / (arr.max() + 1e-9)
+
+
+def _artifact_window_rms(audio_artifact: dict, start: float, end: float) -> float:
+    return max(_artifact_window_values(audio_artifact, start, end, "rms"), default=0.0)
+
+
 # ============================================================================
 # PER-FAMILY EXTRACTORS  (each returns its Pydantic model)
 # ============================================================================
 
 def extract_camera(frames, flow_mag, face_box: Optional[FaceBox], prev_face_box: Optional[FaceBox]):
-    """face_box / prev_face_box are SINGLE boxes (x,y,w,h) or None — NOT lists."""
+    """face_box / prev_face_box are SINGLE boxes (x,y,w,h) or None - NOT lists."""
     mag = _b(flow_mag, 0, 8)
     movement_class = ("static" if flow_mag < 1.0 else "handheld_shake"
                       if 1.0 <= flow_mag < 3.0 else "slow_zoom_in" if flow_mag < 6.0 else "pan")
@@ -496,10 +850,118 @@ def extract_transitions(scene_starts, window_start, window_end, beat_times):
     return TransitionFeatures(has_audio_synced_cut=synced, timing_offset_bucket=offset)
 
 def _default_audio():
-    return AudioFeatures(music_energy=EnergyBucket.low, vocal_energy=EnergyBucket.low,
-                         spectral_brightness=EnergyBucket.low, transient_density=EnergyBucket.low)
+    return AudioFeatures(
+        music_energy=EnergyBucket.low,
+        vocal_energy=EnergyBucket.low,
+        beat_proximity="off_beat",
+        spectral_brightness=EnergyBucket.low,
+        transient_density=EnergyBucket.low,
+    )
 
-def extract_audio(y, sr, start, end, beat_times, onset_env):
+
+def audio_artifact_beat_times(audio_artifact):
+    """Return analyzed artifact beat times; fallback grids are not training facts."""
+    if not audio_artifact or audio_artifact.get("is_fallback"):
+        return np.array([])
+    times = []
+    for beat in audio_artifact.get("beat_grid", []):
+        value = _artifact_number(beat.get("time_seconds"))
+        if value is not None:
+            times.append(value)
+    return np.array(times, dtype=float)
+
+
+def extract_audio_from_artifact(audio_artifact, start, end):
+    if audio_artifact.get("is_fallback"):
+        return _default_audio()
+
+    span = max(end - start, 1e-9)
+    energy_values = _artifact_window_values(audio_artifact, start, end, "rms")
+    music_values = _artifact_window_values(audio_artifact, start, end, "music_energy")
+    vocal_values = _artifact_window_values(audio_artifact, start, end, "vocal_energy")
+    music_basis = music_values or energy_values
+    max_music = max(music_basis, default=0.0)
+    min_energy = min(energy_values, default=0.0)
+    sfx_events = _artifact_events_in_window(audio_artifact.get("sfx_events", []), start, end)
+    onsets = _artifact_events_in_window(audio_artifact.get("onsets", []), start, end)
+
+    return AudioFeatures(
+        sfx_class=_artifact_sfx_class(sfx_events),
+        sfx_count=min(len(sfx_events), 4),
+        music_presence=max_music > 0.04,
+        music_energy=_b(max_music, 0.01, 0.25),
+        beat_proximity=_artifact_beat_proximity(audio_artifact, start, end),
+        ducking_active=_artifact_ducking_active(audio_artifact, start, end),
+        has_silence_gap=bool(energy_values) and min_energy < 0.005,
+        vocal_energy=_b(max(vocal_values, default=0.0), 0.01, 0.25),
+        spectral_brightness=EnergyBucket.low,
+        transient_density=_b(len(onsets) / span, 0, 3.0),
+    )
+
+
+def _artifact_window_values(audio_artifact, start, end, key):
+    values = []
+    for window in audio_artifact.get("energy", {}).get("windows", []):
+        if not _artifact_spans_overlap(window.get("start_seconds"), window.get("end_seconds"), start, end):
+            continue
+        value = _artifact_number(window.get(key))
+        if value is not None:
+            values.append(value)
+    return values
+
+
+def _artifact_events_in_window(events, start, end):
+    return [
+        event for event in events
+        if start <= float(event.get("time_seconds", -1.0)) < end
+    ]
+
+
+def _artifact_sfx_class(events):
+    for event in events:
+        label = event.get("class") or event.get("label") or event.get("sfx_class")
+        if label:
+            return str(label)
+    return "none"
+
+
+def _artifact_beat_proximity(audio_artifact, start, end):
+    beat_times = audio_artifact_beat_times(audio_artifact)
+    if not len(beat_times):
+        return "off_beat"
+    midpoint = (start + end) / 2
+    return "on_beat" if np.min(np.abs(beat_times - midpoint)) < 0.1 else "off_beat"
+
+
+def _artifact_ducking_active(audio_artifact, start, end):
+    points = audio_artifact.get("ducking_envelope", {}).get("points", [])
+    for point in _artifact_events_in_window(points, start, end):
+        gain_db = _artifact_number(point.get("gain_db"))
+        gain = _artifact_number(point.get("gain"))
+        if gain_db is not None and gain_db < -0.5:
+            return True
+        if gain is not None and gain < 0.95:
+            return True
+    return False
+
+
+def _artifact_spans_overlap(span_start, span_end, window_start, window_end):
+    start = _artifact_number(span_start)
+    end = _artifact_number(span_end)
+    if start is None or end is None:
+        return False
+    return start < window_end and end > window_start
+
+
+def _artifact_number(value):
+    if isinstance(value, (int, float)):
+        return float(value)
+    return None
+
+
+def extract_audio(y, sr, start, end, beat_times, onset_env, audio_artifact=None):
+    if audio_artifact is not None:
+        return extract_audio_from_artifact(audio_artifact, start, end)
     if y is None or not HAS_LIBROSA:
         return _default_audio()
     a0 = int(start*sr); a1 = int(end*sr)
@@ -507,7 +969,7 @@ def extract_audio(y, sr, start, end, beat_times, onset_env):
     if len(seg) < 2:
         return _default_audio()
     rms = float(np.sqrt(np.mean(seg**2)))
-    # spectral centroid can warn/return nan on near-silent segments — guard it
+    # spectral centroid can warn/return nan on near-silent segments - guard it
     try:
         spec = float(np.mean(librosa.feature.spectral_centroid(y=seg, sr=sr)))
         if not np.isfinite(spec): spec = 0.0
@@ -609,14 +1071,24 @@ def derive_genome(cam, typo, mg, comp, aud, tmp) -> tuple[Intensity, VisualDensi
 # MAIN PER-VIDEO PIPELINE
 # ============================================================================
 
-def extract_trajectory(path: str, video_id: str = None) -> Trajectory:
+def extract_trajectory(
+    path: str,
+    video_id: str = None,
+    audio_artifact: Optional[dict] = None,
+    window_indices: Optional[list[int]] = None,
+    scene_starts: Optional[list[float]] = None,
+    frame_sample_count: int = 4,
+) -> Trajectory:
     meta = get_video_meta(path)
     fps, dur = meta["fps"], meta["duration"]
     res = f"{meta['w']}x{meta['h']}"
     vid = video_id or file_hash(path)
 
     # audio (optional family)
-    if HAS_LIBROSA:
+    if audio_artifact is not None:
+        y, sr = None, 22050
+        beat_times, onset_env, ec_norm = audio_artifact_beat_times(audio_artifact), None, _artifact_energy_curve(audio_artifact)
+    elif HAS_LIBROSA:
         y, sr, _ = load_audio(path)
         tempo, beats = librosa.beat.beat_track(y=y, sr=sr)
         beat_times = librosa.frames_to_time(beats, sr=sr)
@@ -626,23 +1098,35 @@ def extract_trajectory(path: str, video_id: str = None) -> Trajectory:
     else:
         y, sr = None, 22050
         beat_times, onset_env, ec_norm = np.array([]), None, np.array([])
-
-    # scenes (optional family)
-    scenes = detect_scenes(path)
-    scene_starts = [s for s, _ in scenes]
-
     total_windows = max(1, int(dur / WINDOW_SECONDS))
+    if scene_starts is None:
+        # scenes (optional family)
+        scenes = detect_scenes(path)
+        scene_starts = [s for s, _ in scenes]
+    else:
+        scene_starts = list(scene_starts)
+
+    if window_indices is None:
+        selected_windows = list(range(total_windows))
+        windowing_mode = "fixed_1s"
+    else:
+        selected_windows = sorted({wi for wi in window_indices if 0 <= wi < total_windows})
+        if not selected_windows:
+            selected_windows = [0]
+        windowing_mode = f"sparse_fixed_1s:{len(selected_windows)}/{total_windows}"
+
     windows = []
     prev_face: Optional[FaceBox] = None
     failed_windows = 0
+    sample_count = max(1, int(frame_sample_count))
 
-    print(f"  extracting {total_windows} windows...", end=" ", flush=True)
-    for wi in range(total_windows):
+    print(f"  extracting {len(selected_windows)}/{total_windows} windows...", end=" ", flush=True)
+    for wi in selected_windows:
         try:
             s, e = wi * WINDOW_SECONDS, (wi + 1) * WINDOW_SECONDS
-            frames = sample_window_frames(path, s, e, fps, n=4)
+            frames = sample_window_frames(path, s, e, fps, n=sample_count)
             if not frames:
-                # nothing to decode for this window — skip rather than abort the video
+                # nothing to decode for this window - skip rather than abort the video
                 failed_windows += 1
                 continue
             flow = optical_flow_mag(frames)
@@ -656,12 +1140,14 @@ def extract_trajectory(path: str, video_id: str = None) -> Trajectory:
             mg = extract_motion_graphics(frames)
             comp = extract_composition(frames, primary)
             trans = extract_transitions(scene_starts, s, e, beat_times)
-            aud = extract_audio(y, sr, s, e, beat_times, onset_env)
+            aud = extract_audio(y, sr, s, e, beat_times, onset_env, audio_artifact=audio_artifact)
             cd_pw = len([c for c in scene_starts if s <= c < e])
             tmp = extract_temporal(wi, total_windows, cd_pw, ec_norm)
             if y is not None and int(e*sr) <= len(y):
                 seg = y[int(s*sr):int(e*sr)]
                 rms_w = float(np.sqrt(np.mean(seg**2))) if len(seg) else 0.0
+            elif audio_artifact is not None:
+                rms_w = _artifact_window_rms(audio_artifact, s, e)
             else:
                 rms_w = 0.0
             spk = extract_speaker(primary, frames, rms_w)
@@ -704,7 +1190,7 @@ def extract_trajectory(path: str, video_id: str = None) -> Trajectory:
             extracted_at_utc=datetime.now(timezone.utc).isoformat(),
             extractor_version="0.2.0",
             duration_seconds=dur, fps=fps, frame_count=meta["frames"], resolution=res,
-            windowing_mode="fixed_1s",
+            windowing_mode=windowing_mode,
             notes=notes,
         ),
         windows=windows,
@@ -715,31 +1201,135 @@ def extract_trajectory(path: str, video_id: str = None) -> Trajectory:
 # BATCH DRIVER + AUDIT
 # ============================================================================
 
-def run_batch():
-    if not os.path.exists(INPUT_DIR):
-        print(f"NO INPUT: upload your Joseph videos to a Kaggle dataset and set INPUT_DIR to its path.")
-        return
-    videos = [f for f in os.listdir(INPUT_DIR) if f.lower().endswith((".mp4", ".mov", ".mkv", ".webm"))]
-    print(f"Found {len(videos)} videos.")
+def run_batch(input_dir: str = None, output_dir: str = None):
+    """Batch-extract videos and emit the Joseph Kaggle artifact contract.
+
+    The returned artifact index is the handoff back to the local repo. IRL must
+    validate this index before any trajectory is allowed into training.
+    """
+    in_dir = input_dir or os.environ.get("PROMETHEUS_INPUT_DIR", INPUT_DIR)
+    out_dir = output_dir or os.environ.get("PROMETHEUS_OUTPUT_DIR", OUTPUT_DIR)
+    if not os.path.exists(in_dir):
+        print(f"NO INPUT: '{in_dir}' not found. Upload Joseph videos to a Kaggle dataset and pass its mount path to run_batch(...).")
+        return None
+    os.makedirs(out_dir, exist_ok=True)
+
+    videos = discover_video_paths(in_dir)
+    audit_packets = load_audit_event_packets(in_dir)
+    print(f"Found {len(videos)} videos in {in_dir}.")
+    print(f"Found {len(audit_packets)} manual audit event packet(s).")
+
+    generated_at = datetime.now(timezone.utc).isoformat()
+    artifact_index = {
+        "schema_version": ARTIFACT_CONTRACT_VERSION,
+        "extractor_version": KAGGLE_EXTRACTOR_VERSION,
+        "feature_version": "trajectory-features-v1",
+        "generated_at_utc": generated_at,
+        "input_dir": in_dir,
+        "output_dir": out_dir,
+        "training_gate": "validate_locally_before_irl_training",
+        "required_artifacts": [
+            "trajectory",
+            "audio_artifact",
+            "text_evidence",
+            "frame_evidence",
+            "motion_cut_evidence",
+        ],
+        "videos": [],
+        "failures": [],
+    }
     editorial_total, tutorial_total = 0, 0
-    for v in sorted(videos):
-        path = os.path.join(INPUT_DIR, v)
-        print(f"\n[{v}]")
+
+    for video_index, path in enumerate(videos, start=1):
+        video_name = os.path.basename(path)
+        video_id = _safe_stem(video_name)
+        print(f"\n[{video_name}]")
         try:
-            traj = extract_trajectory(path, video_id=v.rsplit(".", 1)[0])
-            out = os.path.join(OUTPUT_DIR, v.rsplit(".", 1)[0] + ".trajectory.json")
-            with open(out, "w") as f:
-                f.write(traj.model_dump_json(indent=2))
+            meta = get_video_meta(path)
+            source_hash = file_hash(path)
+            audit_packet, audit_events = events_for_video(audit_packets, path, video_id, video_index)
+            scenes = detect_scenes(path)
+            audio_artifact = build_audio_artifact_for_video(path, source_hash, meta)
+            traj = extract_trajectory(path, video_id=video_id, audio_artifact=audio_artifact)
+
+            trajectory_path = Path(out_dir) / f"{video_id}.trajectory.json"
+            audio_path = Path(out_dir) / "audio-artifacts" / f"{video_id}.audio-artifact.json"
+            text_path = Path(out_dir) / "text-evidence" / f"{video_id}.text-evidence.json"
+            frame_summary_path = Path(out_dir) / "frame-evidence" / video_id / "frame-evidence.json"
+            motion_path = Path(out_dir) / "motion-cut-evidence" / f"{video_id}.motion-cut-evidence.json"
+
+            frame_evidence = write_frame_evidence(path, video_id, audit_events, out_dir)
+            text_evidence = build_text_evidence(path, video_id, audit_events)
+            motion_evidence = build_motion_cut_evidence(path, video_id, scenes, audit_events)
+
+            _write_json(trajectory_path, traj.model_dump())
+            _write_json(audio_path, audio_artifact)
+            _write_json(text_path, text_evidence)
+            _write_json(frame_summary_path, frame_evidence)
+            _write_json(motion_path, motion_evidence)
+
             ed = sum(1 for w in traj.windows if w.segment_genre == SegmentGenre.editorial)
             tu = sum(1 for w in traj.windows if w.segment_genre == SegmentGenre.tutorial_walkthrough)
             editorial_total += ed; tutorial_total += tu
-            print(f"  saved {out} | {len(traj.windows)} windows | editorial={ed} tutorial={tu}")
+
+            warnings = []
+            warnings.extend(audio_artifact.get("warnings", []))
+            warnings.extend(text_evidence.get("warnings", []))
+            warnings.extend(motion_evidence.get("warnings", []))
+            if audit_packet is None:
+                warnings.append("manual_audit_packet_not_matched")
+
+            artifact_index["videos"].append({
+                "video_id": video_id,
+                "source_hash": source_hash,
+                "feature_version": "trajectory-features-v1",
+                "extractor_version": KAGGLE_EXTRACTOR_VERSION,
+                "source_video_path": path,
+                "duration_seconds": _round_time(meta["duration"]),
+                "fps": meta["fps"],
+                "resolution": f"{meta['w']}x{meta['h']}",
+                "audit_reference_id": audit_packet.get("referenceId") if audit_packet else None,
+                "audit_event_count": len(audit_events),
+                "editorial_windows": ed,
+                "tutorial_windows": tu,
+                "artifacts": {
+                    "trajectory": _relative_to_output(trajectory_path, out_dir),
+                    "audio_artifact": _relative_to_output(audio_path, out_dir),
+                    "text_evidence": _relative_to_output(text_path, out_dir),
+                    "frame_evidence": _relative_to_output(frame_summary_path, out_dir),
+                    "motion_cut_evidence": _relative_to_output(motion_path, out_dir),
+                },
+                "warnings": sorted(set(warnings)),
+            })
+            print(f"  saved contract artifacts | windows={len(traj.windows)} editorial={ed} tutorial={tu} events={len(audit_events)}")
         except Exception as ex:
-            print(f"  FAILED: {ex}")
+            failure = {
+                "video_id": video_id,
+                "source_video_path": path,
+                "error": f"{type(ex).__name__}: {ex}",
+            }
+            artifact_index["failures"].append(failure)
+            print(f"  FAILED: {failure['error']}")
+
+    failure_path = Path(out_dir) / "extraction-failures.json"
+    index_path = Path(out_dir) / "artifact-index.json"
+    _write_json(failure_path, {
+        "schema_version": "kaggle-extraction-failures-v1",
+        "generated_at_utc": generated_at,
+        "failure_count": len(artifact_index["failures"]),
+        "failures": artifact_index["failures"],
+    })
+    artifact_index["failure_report"] = _relative_to_output(failure_path, out_dir)
+    _write_json(index_path, artifact_index)
+
     print(f"\n=== BATCH DONE ===")
-    print(f"Total editorial windows: {editorial_total}  (these are what training uses)")
+    print(f"Artifact index: {index_path}")
+    print(f"Total editorial windows: {editorial_total}  (these are what training uses after validation)")
     print(f"Total tutorial windows:  {tutorial_total}  (filtered OUT)")
-    print(f"Ratio editorial: {editorial_total/(editorial_total+tutorial_total+1e-9):.0%}")
+    print(f"Failures: {len(artifact_index['failures'])}")
+    denominator = editorial_total + tutorial_total + 1e-9
+    print(f"Ratio editorial: {editorial_total/denominator:.0%}")
+    return artifact_index
 
 def audit():
     """Program 20 feature-count gate."""

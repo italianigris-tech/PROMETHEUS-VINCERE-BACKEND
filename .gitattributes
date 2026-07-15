@@ -1,0 +1,2 @@
+*.mp4 filter=lfs diff=lfs merge=lfs -text
+artifacts/joseph-local-evidence-smoke2/audio-artifacts/joseph-video-questions-03.audio-artifact.json filter=lfs diff=lfs merge=lfs -text

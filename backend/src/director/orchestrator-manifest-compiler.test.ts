@@ -26,16 +26,21 @@ const baseInput = (): OrchestratorInput => ({
 });
 
 describe("Director Orchestrator Manifest Compiler", () => {
-  it("compiles the selected manifest as a deterministic pass-through before evidence persistence", async () => {
+  it("compiles the selected manifest with compile_manifest authority before evidence persistence", async () => {
     const result = await orchestrateRender(baseInput(), new ReplayLedger(":memory:"), registry());
 
     expect(UnifiedRenderManifestSchema.parse(result.manifest)).toMatchObject({
       version: "2.0",
       createdAt: "1970-01-01T00:00:00.000Z",
     });
+    expect(result.manifest.plannerHandoff).toMatchObject({
+      version: "joseph-planner-handoff-v1",
+      compilerVersion: "joseph-manifest-compiler-v1",
+      deterministic: true,
+    });
     expect(result.candidateScoreSummary.manifestCompilerAudit).toMatchObject({
       version: "joseph-manifest-compiler-v1",
-      mode: "pass_through",
+      mode: "compile_manifest",
       deterministic: true,
       schemaVersion: "2.0",
       auditReferences: {
@@ -55,6 +60,7 @@ describe("Director Orchestrator Manifest Compiler", () => {
         "josephChoreography",
         "cameraMoves",
         "timeline",
+        "plannerHandoff",
       ]),
     );
 

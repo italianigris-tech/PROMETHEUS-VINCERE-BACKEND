@@ -1,4 +1,4 @@
-import {execFile} from 'child_process';
+﻿import {execFile} from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import {fileURLToPath} from 'url';
@@ -8,7 +8,9 @@ import type {MusicReference, UnifiedRenderManifest} from '../packages/shared-typ
 import {renderFromManifest} from '../apps/worker/src/index';
 import {analyzeMusicTrack, type MusicAnalysisResult} from '../backend/src/music/analyzer/music-analysis-adapter';
 import {listLocalMusicCatalog} from '../backend/src/music/catalog/local-music-catalog';
-import {selectMusicForProfile} from '../backend/src/music/rank-music-for-profile';
+import type {AnalyzedMusicReference} from '../backend/src/music/rank-music-for-profile';
+import type {MusicTrack} from '../backend/src/music/schemas/music-track.schema';
+import {buildVideoAwareAudioPlan} from '../backend/src/music/video-aware-planner/build-video-aware-audio-plan';
 import {assertNonblackImage} from './assert-nonblack';
 import {assertSourceVisible} from './assert-source-visible';
 
@@ -23,6 +25,9 @@ const sfxDir = path.join(repoRoot, 'remotion-app/public/sfx');
 const artifactDir = path.join(repoRoot, 'artifacts/full-render');
 const renderedFramePath = path.join(artifactDir, 'rendered-frame.png');
 const sourceFramePath = path.join(artifactDir, 'source-crop-frame.png');
+const renderDurationSeconds = 8;
+const renderDurationMs = renderDurationSeconds * 1000;
+const renderDurationFrames = renderDurationSeconds * 30;
 const frameTimeSeconds = 0.75;
 
 type MediaProbeStream = {
@@ -46,7 +51,7 @@ type Check = {
   detail: string;
 };
 
-type RenderMusic = (MusicReference & {analysis: MusicAnalysisResult}) | null;
+type RenderMusic = AnalyzedMusicReference;
 
 const runJson = async <T>(binary: string, args: string[]): Promise<T> => {
   const {stdout} = await execFileAsync(binary, args, {maxBuffer: 8 * 1024 * 1024});
@@ -138,9 +143,75 @@ const measureIntegratedLoudness = async (videoPath: string): Promise<{lufs: numb
   }
 };
 
-const selectRenderMusic = async (): Promise<RenderMusic> => {
-  const analyzed: Array<MusicReference & {analysis: MusicAnalysisResult}> = [];
-  for (const track of listLocalMusicCatalog().slice(0, 8)) {
+const average = (values: number[]): number =>
+  values.length === 0 ? 0.5 : values.reduce((sum, value) => sum + value, 0) / values.length;
+
+const toMusicTrack = (track: RenderMusic): MusicTrack => {
+  const energy = Math.max(0.05, Math.min(1, average(track.analysis.energyCurve)));
+  return {
+    id: track.trackId,
+    title: track.title,
+    artist: 'local-user-supplied',
+    source: track.sourceKind,
+    sourceUrl: track.browserUrl ?? null,
+    storagePath: track.localFilePath,
+    licenseType: track.licenseStatus,
+    commercialAllowed: track.renderSafe,
+    attributionRequired: false,
+    licenseVerified: track.renderSafe,
+    durationSec: track.durationSeconds,
+    bpm: track.analysis.bpm,
+    musicalKey: null,
+    energy,
+    valence: 0.5,
+    arousal: Math.max(0.1, Math.min(1, energy + 0.08)),
+    tension: Math.max(0.1, Math.min(1, energy * 0.8)),
+    prestige: 0.62,
+    urgency: Math.max(0.1, Math.min(1, energy * 0.9)),
+    clarity: 0.72,
+    speechFriendliness: energy > 0.68 ? 0.58 : 0.78,
+    genreTags: ['local'],
+    moodTags: ['cinematic', 'premium'],
+    instrumentTags: [],
+    useCaseTags: ['hook', 'explanation', 'cta', 'proof', 'reveal'],
+    avoidWhen: [],
+    beatGrid: {
+      bpm: track.analysis.bpm,
+      beatTimesSec: track.analysis.beatTimes,
+      downbeatTimesSec: track.analysis.downbeats,
+      confidence: track.analysis.beatTimes.length > 0 ? 0.7 : 0.35,
+      source: track.analysis.source,
+    },
+    sections: track.analysis.sections.map((section, index) => ({
+      id: `${track.trackId}-section-${String(index + 1).padStart(2, '0')}`,
+      trackId: track.trackId,
+      startSec: section.startSeconds,
+      endSec: section.endSeconds,
+      role: section.label === 'intro' ? 'intro' : section.label === 'main' ? 'chorus' : 'unknown',
+      energy: Math.max(0, Math.min(1, section.energy)),
+      density: Math.max(0, Math.min(1, section.energy)),
+      tension: Math.max(0, Math.min(1, section.energy * 0.8)),
+      bestFor: ['hook', 'explanation', 'cta', 'proof', 'reveal'],
+      avoidWhen: [],
+      transitionInSuitability: 0.72,
+      transitionOutSuitability: 0.72,
+    })),
+    waveformSummary: {
+      windowSec: 1,
+      peakAmplitudes: track.analysis.energyCurve,
+      rmsAmplitudes: track.analysis.energyCurve,
+      source: track.analysis.source,
+    },
+    loudnessLufs: track.analysis.loudnessLUFS,
+    analysisStatus: 'analyzed',
+    createdAt: '1970-01-01T00:00:00.000Z',
+    analyzedAt: '1970-01-01T00:00:00.000Z',
+  };
+};
+
+const analyzeRenderMusic = async (): Promise<RenderMusic[]> => {
+  const analyzed: RenderMusic[] = [];
+  for (const track of listLocalMusicCatalog().filter((candidate) => candidate.renderSafe).slice(0, 8)) {
     try {
       const analysis = await analyzeMusicTrack(track.localFilePath);
       analyzed.push({...track, durationSeconds: analysis.duration, analysis});
@@ -148,30 +219,90 @@ const selectRenderMusic = async (): Promise<RenderMusic> => {
       // Keep the proof deterministic even if one local music asset is unreadable.
     }
   }
-
-  return selectMusicForProfile({
-    profile: 'joseph_cinematic',
-    videoDuration: 1.5,
-    speechDensity: 0.35,
-    energyCurve: [0.42, 0.68, 0.78, 0.55],
-    availableTracks: analyzed,
-    seed: 577577,
-  })?.track ?? null;
+  return analyzed;
 };
-
 const buildManifest = async (): Promise<UnifiedRenderManifest> => {
-  const selectedMusic = await selectRenderMusic();
+  const analyzedTracks = await analyzeRenderMusic();
+  if (analyzedTracks.length === 0) {
+    throw new Error('Full render proof requires at least one render-safe analyzed local music track.');
+  }
+  const trackById = new Map(analyzedTracks.map((track) => [track.trackId, track] as const));
+  const audioPlan = buildVideoAwareAudioPlan({
+    jobId: 'full-render-proof',
+    videoDurationSec: renderDurationSeconds,
+    transcriptWords: [],
+    creativeDirection: {
+      summary: 'Full render proof should exercise Joseph cinematic DJ production audio.',
+      moodTags: ['cinematic', 'premium'],
+      pacing: 'cinematic',
+      constraints: ['production-authority', 'render-safe-local-tracks-only'],
+    },
+    planMode: 'render_ready',
+    candidateTracks: analyzedTracks.map(toMusicTrack),
+    previewStartSec: 0,
+    previewEndSec: renderDurationSeconds,
+    now: () => '1970-01-01T00:00:00.000Z',
+  });
+  const djPlan = {
+    version: 'joseph-dj-plan-v1' as const,
+    source: 'video-aware-audio-plan' as const,
+    planId: audioPlan.id,
+    planMode: audioPlan.planMode,
+    musicEvents: audioPlan.musicEvents.map((event) => {
+      const sourceTrack = trackById.get(event.trackId);
+      if (!sourceTrack) {
+        throw new Error(`DJ plan selected unknown music track: ${event.trackId}`);
+      }
+      return {
+        id: event.id,
+        trackId: event.trackId,
+        localFilePath: sourceTrack.localFilePath,
+        bpm: sourceTrack.analysis.bpm,
+        videoStartSec: event.videoStartSec,
+        videoEndSec: event.videoEndSec,
+        trackStartSec: event.trackStartSec,
+        trackEndSec: event.trackEndSec,
+        volumeDb: event.volumeDb,
+        fadeInSec: event.fadeInSec,
+        fadeOutSec: event.fadeOutSec,
+        duckingEnabled: event.duckingEnabled,
+        purpose: event.purpose,
+        sectionRole: event.sectionRole,
+        beatAligned: event.beatAligned,
+      };
+    }),
+    transitionEvents: audioPlan.transitionEvents.map((event) => ({
+      id: event.id,
+      type: event.type,
+      videoStartSec: event.videoStartSec,
+      videoEndSec: event.videoEndSec,
+      fromTrackId: event.fromTrackId,
+      toTrackId: event.toTrackId,
+      intensity: event.intensity,
+      beatAligned: event.beatAligned,
+      downbeatTargetSec: event.downbeatTargetSec,
+    })),
+    duckingRegions: audioPlan.duckingRegions.map((region) => ({
+      id: region.id,
+      videoStartSec: region.videoStartSec,
+      videoEndSec: region.videoEndSec,
+      targetMusicDb: region.targetMusicDb,
+      reason: region.reason,
+    })),
+    warnings: audioPlan.renderSettings.notes,
+  };
+  const firstDjTrack = trackById.get(djPlan.musicEvents[0]?.trackId ?? '');
 
   return {
     version: '2.0',
     jobId: '123e4567-e89b-12d3-a456-426614174555',
     seed: 577577,
     createdAt: '2026-01-01T00:00:00.000Z',
-    durationFrames: 45,
+    durationFrames: renderDurationFrames,
     fps: 30,
     width: 1080,
     height: 1920,
-    videoTracks: [{sourcePath: fixtureBrowserUrl, startFrame: 0, endFrame: 44}],
+    videoTracks: [{sourcePath: fixtureBrowserUrl, startFrame: 0, endFrame: renderDurationFrames - 1}],
     cameraMoves: [],
     textOverlays: [],
     transitions: [],
@@ -179,27 +310,19 @@ const buildManifest = async (): Promise<UnifiedRenderManifest> => {
       videoUrl: fixtureBrowserUrl,
       audioUrl: fixtureVideoPath,
       transcript: [],
-      durationMs: 1500,
+      durationMs: renderDurationMs,
       width: 1280,
       height: 720,
       fps: 30,
     },
     audio: {
-      beats: selectedMusic ? selectedMusic.analysis.beatTimes.map((seconds) => Math.round(seconds * 1000)).filter((beatMs) => beatMs <= 1500) : [250, 750, 1250],
+      beats: firstDjTrack ? firstDjTrack.analysis.beatTimes.map((seconds) => Math.round(seconds * 1000)).filter((beatMs) => beatMs <= renderDurationMs) : [250, 750, 1250],
       onsets: [250, 750],
-      energyCurve: selectedMusic?.analysis.energyCurve ?? [0.42, 0.68, 0.78, 0.55],
-      musicTrackUrl: selectedMusic?.localFilePath,
-      musicReference: selectedMusic ? {
-        trackId: selectedMusic.trackId,
-        title: selectedMusic.title,
-        sourceKind: selectedMusic.sourceKind,
-        localFilePath: selectedMusic.localFilePath,
-        browserUrl: selectedMusic.browserUrl,
-        durationSeconds: selectedMusic.durationSeconds,
-        renderSafe: selectedMusic.renderSafe,
-        licenseStatus: selectedMusic.licenseStatus,
-      } : undefined,
-      musicBpm: selectedMusic?.analysis.bpm,
+      energyCurve: firstDjTrack?.analysis.energyCurve ?? [0.42, 0.68, 0.78, 0.55],
+      musicTrackUrl: undefined,
+      musicReference: undefined,
+      musicBpm: djPlan.musicEvents[0]?.bpm,
+      djPlan,
       sfx: [
         {
           id: 'sfx-whoosh-1',
@@ -308,9 +431,9 @@ async function main() {
       detail: `${fixtureDuration.toFixed(3)}s`,
     },
     {
-      label: 'ranked local music selected',
-      pass: Boolean(manifest.audio.musicReference?.renderSafe && manifest.audio.musicTrackUrl),
-      detail: manifest.audio.musicReference?.title ?? 'missing',
+      label: 'DJ plan selected render-safe music',
+      pass: Boolean(manifest.audio.djPlan?.musicEvents.length && !manifest.audio.musicReference && !manifest.audio.musicTrackUrl),
+      detail: manifest.audio.djPlan?.musicEvents.map((event) => event.trackId).join(', ') ?? 'missing',
     },
     {
       label: 'final MP4 exists',
@@ -370,3 +493,6 @@ main().catch((error) => {
   console.error(error);
   process.exit(1);
 });
+
+
+

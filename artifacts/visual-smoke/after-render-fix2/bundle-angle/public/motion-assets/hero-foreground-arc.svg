@@ -1,0 +1,11 @@
+<svg width="1080" height="1920" viewBox="0 0 1080 1920" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="arcGlow" x1="540" y1="1120" x2="540" y2="1920" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFE2B4" stop-opacity="0" />
+      <stop offset="0.48" stop-color="#FFE2B4" stop-opacity="0.4" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.16" />
+    </linearGradient>
+  </defs>
+  <path d="M-64 1710C190 1518 402 1434 540 1434C676 1434 894 1518 1144 1710V1970H-64V1710Z" fill="url(#arcGlow)" />
+  <path d="M0 1758C228 1592 408 1520 540 1520C670 1520 850 1592 1080 1758" stroke="#FFF1D5" stroke-opacity="0.24" stroke-width="4"/>
+</svg>

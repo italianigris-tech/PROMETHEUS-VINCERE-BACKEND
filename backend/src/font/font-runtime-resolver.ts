@@ -65,6 +65,7 @@ const repoRoot = path.resolve(currentDir, "../../..");
 const defaultHeroManifestPath = path.join(repoRoot, "remotion-app", "public", "fonts", "hero", "hero-fonts.json");
 const defaultLibraryManifestPath = path.join(repoRoot, "remotion-app", "public", "fonts", "library", "font-manifest-urls.json");
 const renderableExtensions = new Set([".otf", ".ttf", ".woff", ".woff2"]);
+const renderableFontSignatures = new Set(["OTTO", "wOFF", "wOF2", "ttcf", "true", "typ1"]);
 
 const normalizeProfile = (profile: JosephProfile): "aggressive" | "cinematic" | "minimal" => {
   if (profile === "joseph_aggressive") {
@@ -135,6 +136,24 @@ const resolveManifestLocalFilePath = (filePath: string): string => {
   return filePath;
 };
 
+export const isRenderSafeFontFile = (filePath: string): boolean => {
+  if (!existsSync(filePath)) {
+    return false;
+  }
+
+  try {
+    const bytes = readFileSync(filePath);
+    if (bytes.length < 12) {
+      return false;
+    }
+
+    const signature = bytes.subarray(0, 4).toString("latin1");
+    return renderableFontSignatures.has(signature) || bytes.readUInt32BE(0) === 0x00010000;
+  } catch {
+    return false;
+  }
+};
+
 const libraryRecordToHeroRecord = (record: HydratedLibraryFontRecord): HeroFontRecord | null => {
   const fontId = record.fontId?.trim() ?? "";
   const family = record.familyName?.trim() ?? "";
@@ -149,7 +168,7 @@ const libraryRecordToHeroRecord = (record: HydratedLibraryFontRecord): HeroFontR
   if (record.renderable !== true || record.needsManualLicenseReview || hasBlockedLicenseSignal(record)) {
     return null;
   }
-  if (!renderableExtensions.has(extension) || !existsSync(localFilePath)) {
+  if (!renderableExtensions.has(extension) || !isRenderSafeFontFile(localFilePath)) {
     return null;
   }
 
@@ -245,8 +264,19 @@ export const selectHeroFonts = (
   const heroManifestPath = context.heroManifestPath ?? defaultHeroManifestPath;
   const libraryManifestPath = context.libraryManifestPath ?? defaultLibraryManifestPath;
   const heroRecords = loadHeroFonts(heroManifestPath).filter((record) => !record.reviewOnly);
+  const invalidHeroRecords = heroRecords.filter((record) => {
+    const resolvedLocalFilePath = resolveManifestLocalFilePath(record.localFilePath);
+    return !isRenderSafeFontFile(resolvedLocalFilePath);
+  });
+  const validHeroRecords = heroRecords.filter((record) => {
+    const resolvedLocalFilePath = resolveManifestLocalFilePath(record.localFilePath);
+    return isRenderSafeFontFile(resolvedLocalFilePath);
+  }).map((record) => ({
+    ...record,
+    localFilePath: resolveManifestLocalFilePath(record.localFilePath),
+  }));
   const hydratedRecords = context.preferHydratedLibrary ? loadHydratedLibraryFonts(libraryManifestPath) : [];
-  const records = hydratedRecords.length > 0 ? [...hydratedRecords, ...heroRecords] : heroRecords;
+  const records = hydratedRecords.length > 0 ? [...hydratedRecords, ...validHeroRecords] : validHeroRecords;
   if (records.length === 0) {
     throw new Error(`FontRuntimeResolver: no render-safe fonts found in ${heroManifestPath} or ${libraryManifestPath}`);
   }
@@ -258,19 +288,22 @@ export const selectHeroFonts = (
     throw new Error(`FontRuntimeResolver: no readable fallback font found in ${heroManifestPath} or ${libraryManifestPath}`);
   }
 
-  const warnings: string[] = [];
+  const warnings: string[] = invalidHeroRecords.map((record) => {
+    const resolvedLocalFilePath = resolveManifestLocalFilePath(record.localFilePath);
+    return `Font ${record.fontId} has an invalid or unsupported binary at ${resolvedLocalFilePath}; excluded from selection.`;
+  });
   if (context.preferHydratedLibrary && hydratedRecords.length === 0) {
     warnings.push(`Hydrated font library unavailable or empty at ${libraryManifestPath}; using hero MVP fonts.`);
   }
 
   const ensureRenderable = (record: HeroFontRecord, role: "hero" | "support" | "fallback"): HeroFontRecord => {
     const resolvedLocalFilePath = resolveManifestLocalFilePath(record.localFilePath);
-    if (existsSync(resolvedLocalFilePath)) {
+    if (isRenderSafeFontFile(resolvedLocalFilePath)) {
       return {...record, localFilePath: resolvedLocalFilePath};
     }
 
     const fallbackLocalFilePath = resolveManifestLocalFilePath(fallbackRecord.localFilePath);
-    warnings.push(`Selected ${role} font ${record.fontId} missing at ${record.localFilePath}; using ${fallbackRecord.fontId}.`);
+    warnings.push(`Selected ${role} font ${record.fontId} missing or invalid at ${record.localFilePath}; using ${fallbackRecord.fontId}.`);
     return {...fallbackRecord, localFilePath: fallbackLocalFilePath};
   };
 

@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Transform Asset</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background: transparent !important;
+    }
+    body::before, body::after { display: none !important; }
+
+    body {
+      display: grid;
+      place-items: center;
+      font-family: 'Sora', sans-serif;
+    }
+
+    #scene {
+      width: 736px;
+      height: 736px;
+      perspective: 900px;
+    }
+
+    svg {
+      width: 736px;
+      height: 736px;
+      overflow: visible;
+      transform-style: preserve-3d;
+    }
+
+    .layer {
+      transform-box: fill-box;
+      transform-origin: 50% 50%;
+    }
+
+    .text-title {
+      font-size: 56px;
+      font-weight: 700;
+      letter-spacing: -1px;
+      fill: #272727;
+    }
+
+    .text-year {
+      font-size: 18px;
+      font-weight: 400;
+      fill: #9a9a9c;
+    }
+  </style>
+</head>
+<body>
+  <div id="scene">
+    <svg
+      id="asset"
+      viewBox="0 0 736 736"
+      width="736"
+      height="736"
+      xmlns="http://www.w3.org/2000/svg"
+      data-asset-name="animated-3img-folder"
+      data-asset-type="folder-stack"
+      data-image-slots="3"
+      data-text-slots="2"
+      data-asset-version="1"
+    >
+      <title>Animated 3-Image Folder</title>
+      <desc>Animated folder stack with three portrait cards and frosted front panel.</desc>
+      <metadata id="asset_metadata">
+{
+  "name": "animated-3img-folder",
+  "assetId": "animated-3img-folder",
+  "filename": "animated-3img-folder-v1.html",
+  "displayName": "Animated 3-Image Folder",
+  "type": "folder-stack",
+  "description": "Animated folder stack with three portrait cards and frosted front panel.",
+  "macro": "animated folder with 3 image points",
+  "keywords": [
+    "animated",
+    "folder",
+    "stack",
+    "3-image",
+    "portrait-cards",
+    "glassmorphism",
+    "frosted",
+    "gsap",
+    "svg"
+  ],
+  "imageSlots": 3,
+  "imageSlotNames": [
+    "image_slot_1",
+    "image_slot_2",
+    "image_slot_3"
+  ],
+  "imageSlotRoles": [
+    "left",
+    "center",
+    "right"
+  ],
+  "textSlots": 2,
+  "textSlotNames": [
+    "text_primary_1",
+    "text_secondary_1"
+  ],
+  "textSlotRoles": [
+    "primary",
+    "secondary"
+  ],
+  "format": "svg+gsap",
+  "version": "1.0.0",
+  "textArtifacts": [
+    {
+      "id": "text_primary_1",
+      "role": "primary",
+      "category": "core",
+      "slot": "1",
+      "text": "TRANSFORM",
+      "charCount": 9
+    },
+    {
+      "id": "text_secondary_1",
+      "role": "secondary",
+      "category": "descriptor",
+      "slot": "1",
+      "text": "2025",
+      "charCount": 4
+    }
+  ],
+  "textArtifactCount": 2,
+  "textArtifactCounts": {
+    "core": 1,
+    "descriptor": 1,
+    "stray": 0
+  }
+}
+</metadata>
+      <defs>
+        <linearGradient id="folderGradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#e7e7e7" />
+          <stop offset="60%" stop-color="#dddddd" />
+          <stop offset="100%" stop-color="#d2d2d2" />
+        </linearGradient>
+        <linearGradient id="panelGradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#b3b3b3" />
+          <stop offset="50%" stop-color="#9c9a9b" />
+          <stop offset="100%" stop-color="#e9e9e9" />
+        </linearGradient>
+        <radialGradient id="panelSheen" cx="35%" cy="25%" r="65%">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity="0.55" />
+          <stop offset="60%" stop-color="#ffffff" stop-opacity="0" />
+        </radialGradient>
+        <radialGradient id="glowGradient" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#000000" stop-opacity="0.18" />
+          <stop offset="100%" stop-color="#000000" stop-opacity="0" />
+        </radialGradient>
+        <linearGradient id="arrowGradient" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#2f2f2f" />
+          <stop offset="70%" stop-color="#1e1e1e" />
+          <stop offset="100%" stop-color="#c2bfc0" />
+        </linearGradient>
+
+        <filter id="folderShadow" x="-30%" y="-30%" width="160%" height="180%">
+          <feDropShadow dx="0" dy="12" stdDeviation="18" flood-color="#000000" flood-opacity="0.25" />
+        </filter>
+        <filter id="cardShadow" x="-30%" y="-30%" width="160%" height="180%">
+          <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.22" />
+        </filter>
+        <filter id="frostBlur" x="-20%" y="-20%" width="140%" height="160%">
+          <feGaussianBlur stdDeviation="18" />
+        </filter>
+        <filter id="textShadow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="1" stdDeviation="0" flood-color="#ffffff" flood-opacity="0.15" />
+          <feDropShadow dx="0" dy="2" stdDeviation="10" flood-color="#000000" flood-opacity="0.12" />
+        </filter>
+
+        <clipPath id="clip-folder">
+          <rect x="140" y="210" width="456" height="210" rx="32" />
+        </clipPath>
+        <clipPath id="clip-panel">
+          <path id="panelClipPath" d="M190 320 Q368 300 546 320 L556 460 Q556 480 536 480 L200 480 Q180 480 180 460 Z" />
+        </clipPath>
+        <clipPath id="clip-text">
+          <rect id="textClipRect" x="140" y="514" width="452" height="60" rx="0" />
+        </clipPath>
+        <clipPath id="clip-year">
+          <rect id="yearClipRect" x="297" y="593" width="142" height="37" rx="18.5" />
+        </clipPath>
+        <clipPath id="clip-card-left">
+          <rect x="0" y="0" width="188" height="214" rx="18" />
+        </clipPath>
+        <clipPath id="clip-card-center">
+          <rect x="0" y="0" width="204" height="230" rx="18" />
+        </clipPath>
+        <clipPath id="clip-card-right">
+          <rect x="0" y="0" width="188" height="214" rx="18" />
+        </clipPath>
+      </defs>
+
+      <!-- Ground glow -->
+      <g id="ground_glow" class="layer">
+        <ellipse cx="368" cy="468" rx="170" ry="24" fill="url(#glowGradient)" />
+      </g>
+
+      <!-- Back shell -->
+      <g id="back_shell" class="layer">
+        <g id="folder_back" filter="url(#folderShadow)">
+          <rect x="140" y="210" width="456" height="210" rx="32" fill="url(#folderGradient)" />
+        </g>
+        <g id="surface_detail" clip-path="url(#clip-folder)">
+          <ellipse cx="330" cy="245" rx="140" ry="60" fill="#ffffff" fill-opacity="0.18" />
+        </g>
+      </g>
+
+      <!-- Floating cards -->
+      <g id="cards" class="layer">
+        <g id="card_left" class="card layer" transform="translate(168 170) rotate(-12)">
+          <g filter="url(#cardShadow)">
+            <rect x="0" y="0" width="188" height="214" rx="18" fill="#f2f2f2" />
+            <g clip-path="url(#clip-card-left)">
+              <image id="image_slot_1" data-image-slot="1" data-image-role="left" href="assets/portrait-left.jpg" x="0" y="0" width="188" height="214" preserveAspectRatio="xMidYMid slice" />
+            </g>
+            <rect x="0" y="0" width="188" height="214" rx="18" fill="none" stroke="#ffffff" stroke-opacity="0.85" stroke-width="6" />
+          </g>
+        </g>
+
+        <g id="card_center" class="card layer" transform="translate(266 128)">
+          <g filter="url(#cardShadow)">
+            <rect x="0" y="0" width="204" height="230" rx="18" fill="#f2f2f2" />
+            <g clip-path="url(#clip-card-center)">
+              <image id="image_slot_2" data-image-slot="2" data-image-role="center" href="assets/portrait-center.jpg" x="0" y="0" width="204" height="230" preserveAspectRatio="xMidYMid slice" />
+            </g>
+            <rect x="0" y="0" width="204" height="230" rx="18" fill="none" stroke="#ffffff" stroke-opacity="0.9" stroke-width="6" />
+          </g>
+        </g>
+
+        <g id="card_right" class="card layer" transform="translate(408 170) rotate(12)">
+          <g filter="url(#cardShadow)">
+            <rect x="0" y="0" width="188" height="214" rx="18" fill="#f2f2f2" />
+            <g clip-path="url(#clip-card-right)">
+              <image id="image_slot_3" data-image-slot="3" data-image-role="right" href="assets/portrait-right.jpg" x="0" y="0" width="188" height="214" preserveAspectRatio="xMidYMid slice" />
+            </g>
+            <rect x="0" y="0" width="188" height="214" rx="18" fill="none" stroke="#ffffff" stroke-opacity="0.85" stroke-width="6" />
+          </g>
+        </g>
+      </g>
+
+      <!-- Front shell -->
+      <g id="front_shell" class="layer">
+        <g id="panel" clip-path="url(#clip-panel)">
+          <rect x="180" y="300" width="376" height="180" fill="url(#panelGradient)" />
+          <rect x="180" y="300" width="376" height="180" fill="#ffffff" fill-opacity="0.35" filter="url(#frostBlur)" />
+          <rect x="180" y="300" width="376" height="180" fill="url(#panelSheen)" />
+          <path d="M190 320 Q368 300 546 320" fill="none" stroke="#ffffff" stroke-opacity="0.32" stroke-width="1.6" />
+          <rect x="180" y="455" width="376" height="25" fill="#ffffff" fill-opacity="0.25" />
+        </g>
+
+        <g id="utility_mark">
+          <g filter="url(#cardShadow)">
+            <circle cx="526" cy="404" r="30" fill="url(#arrowGradient)" />
+            <path d="M516 416 L540 392 M523 392 H540 V409" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+          </g>
+        </g>
+      </g>
+
+      <!-- Text group -->
+      <g id="text_group" class="layer" clip-path="url(#clip-text)" filter="url(#textShadow)">
+        <text id="text_primary_1" data-text-slot="1" data-text-role="primary" class="text-title" x="368" y="554" text-anchor="middle">TRANSFORM</text>
+      </g>
+      <g id="year_group" class="layer" clip-path="url(#clip-year)">
+        <rect x="297" y="593" width="142" height="37" rx="18.5" fill="#e7e7e7" />
+        <text id="text_secondary_1" data-text-slot="1" data-text-role="secondary" class="text-year" x="368" y="618" text-anchor="middle">2025</text>
+      </g>
+    </svg>
+  </div>
+
+  <script src="/motion-assets/vendor/gsap.min.js"></script>
+  <script>
+    const svg = document.getElementById('asset');
+    const groundGlow = document.getElementById('ground_glow');
+    const backShell = document.getElementById('back_shell');
+    const frontShell = document.getElementById('front_shell');
+    const cards = Array.from(document.querySelectorAll('.card'));
+    const textGroup = document.getElementById('text_group');
+    const yearGroup = document.getElementById('year_group');
+    const utilityMark = document.getElementById('utility_mark');
+    const textClipRect = document.getElementById('textClipRect');
+    const yearClipRect = document.getElementById('yearClipRect');
+    const titleText = document.getElementById('text_primary_1');
+    const yearText = document.getElementById('text_secondary_1');
+    const imageSlots = [
+      document.getElementById('image_slot_1'),
+      document.getElementById('image_slot_2'),
+      document.getElementById('image_slot_3')
+    ];
+
+    const CHAR_ROLES = new Set(['primary', 'secondary', 'tertiary']);
+    const SVG_NS = 'http://www.w3.org/2000/svg';
+    let primaryChars = [];
+    let secondaryChars = [];
+    let tertiaryChars = [];
+    let allChars = [];
+
+    let idleTweens = [];
+    let mainTl = null;
+
+    function splitTextToChars(textEl) {
+      const role = textEl.getAttribute('data-text-role');
+      if (!CHAR_ROLES.has(role)) return null;
+      if (!textEl.id) textEl.id = `text_${Math.random().toString(36).slice(2, 8)}`;
+      const id = textEl.id;
+      const parent = textEl.parentNode;
+      const existing = parent.querySelector(`[data-char-group-for="${id}"]`);
+      if (existing) existing.remove();
+
+      const group = document.createElementNS(SVG_NS, 'g');
+      group.setAttribute('data-char-group-for', id);
+      group.setAttribute('data-text-role', role);
+      const slot = textEl.getAttribute('data-text-slot');
+      if (slot) group.setAttribute('data-text-slot', slot);
+
+      textEl.setAttribute('opacity', '0');
+      textEl.style.pointerEvents = 'none';
+
+      const charCount = textEl.getNumberOfChars();
+      const textValue = textEl.textContent || '';
+      const attrs = ['class', 'fill', 'font-family', 'font-size', 'font-weight', 'text-anchor'];
+      for (let i = 0; i < charCount; i += 1) {
+        const ch = textValue.charAt(i);
+        const pos = textEl.getStartPositionOfChar(i);
+        const charEl = document.createElementNS(SVG_NS, 'text');
+        charEl.textContent = ch;
+        charEl.setAttribute('x', pos.x);
+        charEl.setAttribute('y', pos.y);
+        attrs.forEach((attr) => {
+          const val = textEl.getAttribute(attr);
+          if (val) charEl.setAttribute(attr, val);
+        });
+        charEl.setAttribute('xml:space', 'preserve');
+        charEl.setAttribute('data-char', '1');
+        charEl.setAttribute('data-text-role', role);
+        if (slot) charEl.setAttribute('data-text-slot', slot);
+        group.appendChild(charEl);
+      }
+      parent.appendChild(group);
+      return group;
+    }
+
+    function rebuildCharGroups() {
+      const textNodes = Array.from(svg.querySelectorAll('text[data-text-role]'))
+        .filter((node) => CHAR_ROLES.has(node.getAttribute('data-text-role')));
+      textNodes.forEach(splitTextToChars);
+      primaryChars = Array.from(svg.querySelectorAll('[data-char="1"][data-text-role="primary"]'));
+      secondaryChars = Array.from(svg.querySelectorAll('[data-char="1"][data-text-role="secondary"]'));
+      tertiaryChars = Array.from(svg.querySelectorAll('[data-char="1"][data-text-role="tertiary"]'));
+      allChars = primaryChars.concat(secondaryChars, tertiaryChars);
+    }
+
+    function animateCharsInTimeline(tl, atTime) {
+      if (primaryChars.length) {
+        tl.to(primaryChars, {
+          opacity: 1,
+          y: 0,
+          filter: 'blur(0px)',
+          duration: 0.9,
+          ease: 'power3.out',
+          stagger: { each: 0.018, from: 'center' }
+        }, atTime);
+      }
+      if (secondaryChars.length) {
+        tl.to(secondaryChars, {
+          opacity: 1,
+          y: 0,
+          filter: 'blur(0px)',
+          duration: 0.85,
+          ease: 'power3.out',
+          stagger: { each: 0.012, from: 'start' }
+        }, atTime + 0.03);
+      }
+      if (tertiaryChars.length) {
+        tl.to(tertiaryChars, {
+          opacity: 1,
+          y: 0,
+          filter: 'blur(0px)',
+          duration: 0.8,
+          ease: 'power3.out',
+          stagger: { each: 0.012, from: 'start' }
+        }, atTime + 0.05);
+      }
+    }
+
+    function animateCharsInNow() {
+      if (primaryChars.length) {
+        gsap.to(primaryChars, {
+          opacity: 1,
+          y: 0,
+          filter: 'blur(0px)',
+          duration: 0.9,
+          ease: 'power3.out',
+          stagger: { each: 0.018, from: 'center' }
+        });
+      }
+      if (secondaryChars.length) {
+        gsap.to(secondaryChars, {
+          opacity: 1,
+          y: 0,
+          filter: 'blur(0px)',
+          duration: 0.85,
+          ease: 'power3.out',
+          stagger: { each: 0.012, from: 'start' }
+        });
+      }
+      if (tertiaryChars.length) {
+        gsap.to(tertiaryChars, {
+          opacity: 1,
+          y: 0,
+          filter: 'blur(0px)',
+          duration: 0.8,
+          ease: 'power3.out',
+          stagger: { each: 0.012, from: 'start' }
+        });
+      }
+    }
+
+    function setInitial() {
+      rebuildCharGroups();
+      gsap.set([backShell, frontShell], {
+        y: 110,
+        opacity: 0,
+        scale: 0.88,
+        filter: 'blur(16px)',
+        rotationX: 12,
+        transformPerspective: 800,
+        transformOrigin: '50% 50%'
+      });
+      gsap.set(groundGlow, {
+        scaleX: 0.15,
+        opacity: 0,
+        transformOrigin: '50% 50%'
+      });
+      gsap.set(cards, {
+        y: 140,
+        opacity: 0,
+        filter: 'blur(12px)'
+      });
+      gsap.set(textClipRect, {
+        attr: { y: 572 }
+      });
+      gsap.set(yearClipRect, {
+        attr: { y: 635 }
+      });
+      gsap.set(utilityMark, {
+        scale: 0.4,
+        opacity: 0,
+        filter: 'blur(10px)',
+        transformOrigin: '50% 50%'
+      });
+      gsap.set(allChars, { opacity: 0, y: 12, filter: 'blur(12px)' });
+    }
+
+    function runScene() {
+      idleTweens.forEach((t) => t.kill());
+      idleTweens = [];
+      if (mainTl) mainTl.kill();
+      gsap.killTweensOf([groundGlow, backShell, frontShell, cards, textClipRect, yearClipRect, utilityMark, ...allChars]);
+
+      setInitial();
+
+      mainTl = gsap.timeline();
+      mainTl
+        .to([backShell, frontShell], {
+          y: 0,
+          opacity: 1,
+          scale: 1,
+          filter: 'blur(0px)',
+          rotationX: 0,
+          duration: 1.15,
+          ease: 'expo.out'
+        }, 0)
+        .to(groundGlow, {
+          scaleX: 1,
+          opacity: 1,
+          duration: 1.05,
+          ease: 'expo.out'
+        }, 0.1)
+        .to(cards, {
+          y: 0,
+          opacity: 1,
+          filter: 'blur(0px)',
+          duration: 0.92,
+          ease: 'expo.out',
+          stagger: 0.12
+        }, 0.38)
+        .to(textClipRect, {
+          attr: { y: 514 },
+          duration: 0.9,
+          ease: 'expo.out'
+        }, 0.75)
+        .to(yearClipRect, {
+          attr: { y: 593 },
+          duration: 0.9,
+          ease: 'expo.out'
+        }, 0.75)
+        .to(utilityMark, {
+          scale: 1,
+          opacity: 1,
+          filter: 'blur(0px)',
+          duration: 0.55,
+          ease: 'back.out(1.6)'
+        }, 1.0)
+        .add(() => {
+          idleTweens.push(
+            gsap.to([backShell, frontShell], {
+              y: -10,
+              duration: 3.8,
+              ease: 'sine.inOut',
+              yoyo: true,
+              repeat: -1
+            })
+          );
+          idleTweens.push(
+            gsap.to(cards, {
+              y: -5,
+              duration: 3.2,
+              ease: 'sine.inOut',
+              yoyo: true,
+              repeat: -1,
+              delay: 0.35,
+              stagger: 0.1
+            })
+          );
+          idleTweens.push(
+            gsap.to(groundGlow, {
+              scaleX: 0.65,
+              opacity: 0.55,
+              duration: 3.8,
+              ease: 'sine.inOut',
+              yoyo: true,
+              repeat: -1
+            })
+          );
+        }, 1.45);
+
+      animateCharsInTimeline(mainTl, 0.75);
+    }
+
+    function updateAsset(newTitle, newYear) {
+      const tl = gsap.timeline();
+      tl.to(allChars, {
+        opacity: 0,
+        y: 10,
+        filter: 'blur(4px)',
+        duration: 0.28,
+        ease: 'power2.in',
+        stagger: 0.006
+      })
+        .call(() => {
+          if (typeof newTitle === 'string') titleText.textContent = newTitle;
+          if (typeof newYear === 'string' || typeof newYear === 'number') yearText.textContent = newYear;
+          rebuildCharGroups();
+          gsap.set(allChars, { opacity: 0, y: 12, filter: 'blur(12px)' });
+        })
+        .call(() => {
+          animateCharsInNow();
+        });
+    }
+
+    function updateImageSlot(slotIndex, href) {
+      const idx = Number(slotIndex) - 1;
+      if (!imageSlots[idx] || !href) return;
+      imageSlots[idx].setAttribute('href', href);
+    }
+
+    function updateImages(slotMap) {
+      if (!slotMap || typeof slotMap !== 'object') return;
+      if (slotMap.slot1) updateImageSlot(1, slotMap.slot1);
+      if (slotMap.slot2) updateImageSlot(2, slotMap.slot2);
+      if (slotMap.slot3) updateImageSlot(3, slotMap.slot3);
+    }
+
+    window.runScene = runScene;
+    window.updateAsset = updateAsset;
+    window.updateImageSlot = updateImageSlot;
+    window.updateImages = updateImages;
+
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(runScene);
+    } else {
+      runScene();
+    }
+  </script>
+</body>
+</html>
+

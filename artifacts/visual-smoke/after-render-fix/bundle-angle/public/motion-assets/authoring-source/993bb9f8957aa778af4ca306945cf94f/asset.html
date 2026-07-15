@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stripe Balance Card</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background: transparent !important;
+    }
+    body::before, body::after { display: none !important; }
+
+    body {
+      display: grid;
+      place-items: center;
+      font-family: 'Sora', sans-serif;
+    }
+
+    #scene {
+      width: 564px;
+      height: 538px;
+      perspective: 900px;
+    }
+
+    svg {
+      width: 564px;
+      height: 538px;
+      overflow: visible;
+      transform-style: preserve-3d;
+    }
+
+    .text-primary {
+      font-size: 28px;
+      font-weight: 700;
+      fill: #f5f5f5;
+      letter-spacing: -0.4px;
+    }
+
+    .text-secondary {
+      font-size: 12px;
+      font-weight: 500;
+      fill: #9aa0a6;
+    }
+
+    .text-tertiary {
+      font-size: 12px;
+      font-weight: 600;
+      fill: #eef1ff;
+    }
+  </style>
+</head>
+<body>
+  <div id="scene">
+    <svg
+      id="asset"
+      viewBox="0 0 564 538"
+      width="564"
+      height="538"
+      xmlns="http://www.w3.org/2000/svg"
+      data-asset-name="993bb9f8957aa778af4ca306945cf94f"
+      data-asset-type="finance-card"
+      data-image-slots="0"
+      data-text-slots="4"
+      data-asset-version="1"
+    >
+      <title>Stripe Balance Card</title>
+      <desc>Minimal balance card with Stripe header and PayPal badge.</desc>
+      <metadata id="asset_metadata">
+        {
+          "name": "993bb9f8957aa778af4ca306945cf94f",
+          "assetId": "993bb9f8957aa778af4ca306945cf94f",
+          "filename": "993bb9f8957aa778af4ca306945cf94f.html",
+          "displayName": "Stripe Balance Card",
+          "type": "finance-card",
+          "description": "Minimal balance card with Stripe header, PayPal badge, and total balance.",
+          "macro": "stripe paypal balance card",
+          "keywords": [
+            "stripe",
+            "paypal",
+            "balance",
+            "card",
+            "finance",
+            "black",
+            "blue"
+          ],
+          "imageSlots": 0,
+          "imageSlotNames": [],
+          "imageSlotRoles": [],
+          "textSlots": 4,
+          "textSlotNames": [
+            "text_primary_1",
+            "text_secondary_1",
+            "text_tertiary_1",
+            "text_tertiary_2"
+          ],
+          "textSlotRoles": [
+            "primary",
+            "secondary",
+            "tertiary",
+            "tertiary"
+          ],
+          "textArtifacts": [
+            {
+              "id": "text_primary_1",
+              "role": "primary",
+              "category": "core",
+              "slot": "1",
+              "text": "$120,000",
+              "charCount": 8
+            },
+            {
+              "id": "text_secondary_1",
+              "role": "secondary",
+              "category": "descriptor",
+              "slot": "1",
+              "text": "Total Balance",
+              "charCount": 13
+            },
+            {
+              "id": "text_tertiary_1",
+              "role": "tertiary",
+              "category": "descriptor",
+              "slot": "1",
+              "text": "stripe",
+              "charCount": 6
+            },
+            {
+              "id": "text_tertiary_2",
+              "role": "tertiary",
+              "category": "descriptor",
+              "slot": "2",
+              "text": "PayPal",
+              "charCount": 6
+            }
+          ],
+          "textArtifactCount": 4,
+          "textArtifactCounts": {
+            "core": 1,
+            "descriptor": 3,
+            "stray": 0
+          },
+          "format": "svg+gsap",
+          "version": "1.0.0"
+        }
+      </metadata>
+      <defs>
+        <radialGradient id="bgFade" cx="50%" cy="45%" r="70%">
+          <stop offset="0%" stop-color="#f0e9de" stop-opacity="0.95" />
+          <stop offset="55%" stop-color="#efe7dc" stop-opacity="0.55" />
+          <stop offset="100%" stop-color="#efe7dc" stop-opacity="0" />
+        </radialGradient>
+        <radialGradient id="fadeMaskGradient" cx="50%" cy="45%" r="70%">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity="1" />
+          <stop offset="70%" stop-color="#ffffff" stop-opacity="0.7" />
+          <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
+        </radialGradient>
+
+        <linearGradient id="cardGradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#171717" />
+          <stop offset="100%" stop-color="#0b0b0b" />
+        </linearGradient>
+        <radialGradient id="cardGlow" cx="35%" cy="20%" r="60%">
+          <stop offset="0%" stop-color="#2a2a2a" stop-opacity="0.45" />
+          <stop offset="70%" stop-color="#0b0b0b" stop-opacity="0" />
+        </radialGradient>
+        <linearGradient id="headerGradient" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#4d5bd8" />
+          <stop offset="100%" stop-color="#6f7bff" />
+        </linearGradient>
+        <linearGradient id="edgeGradient" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#3a3a3a" stop-opacity="0.8" />
+          <stop offset="100%" stop-color="#0b0b0b" stop-opacity="0.2" />
+        </linearGradient>
+
+        <filter id="cardShadow" x="-30%" y="-30%" width="160%" height="180%">
+          <feDropShadow dx="0" dy="18" stdDeviation="16" flood-color="#000000" flood-opacity="0.35" />
+        </filter>
+        <filter id="textShadow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="1" stdDeviation="0" flood-color="#ffffff" flood-opacity="0.15" />
+          <feDropShadow dx="0" dy="2" stdDeviation="10" flood-color="#000000" flood-opacity="0.18" />
+        </filter>
+        <mask id="fadeMask">
+          <rect x="0" y="0" width="564" height="538" fill="url(#fadeMaskGradient)" />
+        </mask>
+
+        <clipPath id="clip-card">
+          <rect x="142" y="110" width="280" height="300" rx="28" />
+        </clipPath>
+        <clipPath id="clip-text">
+          <rect id="textClipRect" x="160" y="120" width="260" height="220" />
+        </clipPath>
+      </defs>
+
+      <g id="ground_glow">
+        <ellipse cx="282" cy="396" rx="140" ry="26" fill="url(#bgFade)" />
+      </g>
+
+      <g id="background_fade" mask="url(#fadeMask)">
+        <rect x="0" y="0" width="564" height="538" fill="url(#bgFade)" />
+      </g>
+
+      <g id="card_group" filter="url(#cardShadow)">
+        <rect x="142" y="110" width="280" height="300" rx="28" fill="url(#cardGradient)" />
+        <rect x="142" y="110" width="280" height="300" rx="28" fill="url(#cardGlow)" />
+        <rect x="142" y="110" width="280" height="300" rx="28" fill="none" stroke="url(#edgeGradient)" stroke-width="1.5" />
+      </g>
+
+      <g id="header_group" clip-path="url(#clip-card)">
+        <rect x="156" y="122" width="252" height="52" rx="14" fill="url(#headerGradient)" />
+        <path d="M170 132 H392 V158 Q370 158 360 175 H210 Q190 175 170 165 Z" fill="#f5f5f5" />
+      </g>
+
+      <g id="text_group" clip-path="url(#clip-text)" filter="url(#textShadow)">
+        <text id="text_tertiary_1" data-text-slot="1" data-text-role="tertiary" class="text-tertiary" x="380" y="152" text-anchor="end" fill="#ffffff">stripe</text>
+        <text id="text_tertiary_2" data-text-slot="2" data-text-role="tertiary" class="text-tertiary" x="350" y="168" text-anchor="end" fill="#4a6bd6">PayPal</text>
+        <text id="text_primary_1" data-text-slot="1" data-text-role="primary" class="text-primary" x="182" y="290">$120,000</text>
+        <text id="text_secondary_1" data-text-slot="1" data-text-role="secondary" class="text-secondary" x="184" y="312">Total Balance</text>
+      </g>
+    </svg>
+  </div>
+
+  <script src="/motion-assets/vendor/gsap.min.js"></script>
+  <script>
+    const svg = document.getElementById('asset');
+    const groundGlow = document.getElementById('ground_glow');
+    const backgroundFade = document.getElementById('background_fade');
+    const cardGroup = document.getElementById('card_group');
+    const headerGroup = document.getElementById('header_group');
+    const textClipRect = document.getElementById('textClipRect');
+
+    const primaryText = document.getElementById('text_primary_1');
+    const secondaryText = document.getElementById('text_secondary_1');
+    const tertiaryText1 = document.getElementById('text_tertiary_1');
+    const tertiaryText2 = document.getElementById('text_tertiary_2');
+
+    const CHAR_ROLES = new Set(['primary', 'secondary', 'tertiary']);
+    const SVG_NS = 'http://www.w3.org/2000/svg';
+    let primaryChars = [];
+    let secondaryChars = [];
+    let tertiaryChars = [];
+    let allChars = [];
+
+    let idleTweens = [];
+    let mainTl = null;
+
+    function splitTextToChars(textEl) {
+      const role = textEl.getAttribute('data-text-role');
+      if (!CHAR_ROLES.has(role)) return null;
+      if (!textEl.id) textEl.id = `text_${Math.random().toString(36).slice(2, 8)}`;
+      const id = textEl.id;
+      const parent = textEl.parentNode;
+      const existing = parent.querySelector(`[data-char-group-for="${id}"]`);
+      if (existing) existing.remove();
+
+      const group = document.createElementNS(SVG_NS, 'g');
+      group.setAttribute('data-char-group-for', id);
+      group.setAttribute('data-text-role', role);
+      const slot = textEl.getAttribute('data-text-slot');
+      if (slot) group.setAttribute('data-text-slot', slot);
+
+      textEl.setAttribute('opacity', '0');
+      textEl.style.pointerEvents = 'none';
+
+      const charCount = textEl.getNumberOfChars();
+      const textValue = textEl.textContent || '';
+      const attrs = ['class', 'fill', 'font-family', 'font-size', 'font-weight', 'text-anchor'];
+      for (let i = 0; i < charCount; i += 1) {
+        const ch = textValue.charAt(i);
+        const pos = textEl.getStartPositionOfChar(i);
+        const charEl = document.createElementNS(SVG_NS, 'text');
+        charEl.textContent = ch;
+        charEl.setAttribute('x', pos.x);
+        charEl.setAttribute('y', pos.y);
+        attrs.forEach((attr) => {
+          const val = textEl.getAttribute(attr);
+          if (val) charEl.setAttribute(attr, val);
+        });
+        charEl.setAttribute('xml:space', 'preserve');
+        charEl.setAttribute('data-char', '1');
+        charEl.setAttribute('data-text-role', role);
+        if (slot) charEl.setAttribute('data-text-slot', slot);
+        group.appendChild(charEl);
+      }
+      parent.appendChild(group);
+      return group;
+    }
+
+    function rebuildCharGroups() {
+      const textNodes = Array.from(svg.querySelectorAll('text[data-text-role]'))
+        .filter((node) => CHAR_ROLES.has(node.getAttribute('data-text-role')));
+      textNodes.forEach(splitTextToChars);
+      primaryChars = Array.from(svg.querySelectorAll('[data-char="1"][data-text-role="primary"]'));
+      secondaryChars = Array.from(svg.querySelectorAll('[data-char="1"][data-text-role="secondary"]'));
+      tertiaryChars = Array.from(svg.querySelectorAll('[data-char="1"][data-text-role="tertiary"]'));
+      allChars = primaryChars.concat(secondaryChars, tertiaryChars);
+    }
+
+    function animateCharsInTimeline(tl, atTime) {
+      if (primaryChars.length) {
+        tl.to(primaryChars, {
+          opacity: 1,
+          y: 0,
+          filter: 'blur(0px)',
+          duration: 0.9,
+          ease: 'power3.out',
+          stagger: { each: 0.018, from: 'center' }
+        }, atTime);
+      }
+      if (secondaryChars.length) {
+        tl.to(secondaryChars, {
+          opacity: 1,
+          y: 0,
+          filter: 'blur(0px)',
+          duration: 0.85,
+          ease: 'power3.out',
+          stagger: { each: 0.012, from: 'start' }
+        }, atTime + 0.03);
+      }
+      if (tertiaryChars.length) {
+        tl.to(tertiaryChars, {
+          opacity: 1,
+          y: 0,
+          filter: 'blur(0px)',
+          duration: 0.8,
+          ease: 'power3.out',
+          stagger: { each: 0.012, from: 'start' }
+        }, atTime + 0.05);
+      }
+    }
+
+    function animateCharsInNow() {
+      if (primaryChars.length) {
+        gsap.to(primaryChars, {
+          opacity: 1,
+          y: 0,
+          filter: 'blur(0px)',
+          duration: 0.9,
+          ease: 'power3.out',
+          stagger: { each: 0.018, from: 'center' }
+        });
+      }
+      if (secondaryChars.length) {
+        gsap.to(secondaryChars, {
+          opacity: 1,
+          y: 0,
+          filter: 'blur(0px)',
+          duration: 0.85,
+          ease: 'power3.out',
+          stagger: { each: 0.012, from: 'start' }
+        });
+      }
+      if (tertiaryChars.length) {
+        gsap.to(tertiaryChars, {
+          opacity: 1,
+          y: 0,
+          filter: 'blur(0px)',
+          duration: 0.8,
+          ease: 'power3.out',
+          stagger: { each: 0.012, from: 'start' }
+        });
+      }
+    }
+
+    function setInitial() {
+      rebuildCharGroups();
+      gsap.set([cardGroup, headerGroup, backgroundFade], {
+        y: 110,
+        opacity: 0,
+        scale: 0.88,
+        filter: 'blur(16px)',
+        rotationX: 12,
+        transformPerspective: 800,
+        transformOrigin: '50% 50%'
+      });
+      gsap.set(groundGlow, {
+        scaleX: 0.2,
+        opacity: 0,
+        transformOrigin: '50% 50%'
+      });
+      gsap.set(textClipRect, {
+        attr: { y: 360 }
+      });
+      gsap.set(allChars, { opacity: 0, y: 12, filter: 'blur(12px)' });
+    }
+
+    function runScene() {
+      idleTweens.forEach((t) => t.kill());
+      idleTweens = [];
+      if (mainTl) mainTl.kill();
+      gsap.killTweensOf([cardGroup, headerGroup, backgroundFade, textClipRect, groundGlow, ...allChars]);
+
+      setInitial();
+
+      mainTl = gsap.timeline();
+      mainTl
+        .to([cardGroup, headerGroup, backgroundFade], {
+          y: 0,
+          opacity: 1,
+          scale: 1,
+          filter: 'blur(0px)',
+          rotationX: 0,
+          duration: 1.15,
+          ease: 'expo.out'
+        }, 0)
+        .to(groundGlow, {
+          scaleX: 1,
+          opacity: 1,
+          duration: 1.05,
+          ease: 'expo.out'
+        }, 0.1)
+        .to(textClipRect, {
+          attr: { y: 120 },
+          duration: 0.9,
+          ease: 'expo.out'
+        }, 0.75)
+        .add(() => {
+          idleTweens.push(
+            gsap.to([cardGroup, headerGroup], {
+              y: -8,
+              duration: 3.8,
+              ease: 'sine.inOut',
+              yoyo: true,
+              repeat: -1
+            })
+          );
+          idleTweens.push(
+            gsap.to(groundGlow, {
+              scaleX: 0.7,
+              opacity: 0.55,
+              duration: 3.8,
+              ease: 'sine.inOut',
+              yoyo: true,
+              repeat: -1
+            })
+          );
+        }, 1.45);
+
+      animateCharsInTimeline(mainTl, 0.75);
+    }
+
+    function updateAsset(newPrimary, newSecondary, newTertiary1, newTertiary2) {
+      const tl = gsap.timeline();
+      tl.to(allChars, {
+        opacity: 0,
+        y: 10,
+        filter: 'blur(4px)',
+        duration: 0.28,
+        ease: 'power2.in',
+        stagger: 0.006
+      })
+        .call(() => {
+          if (typeof newPrimary === 'string') primaryText.textContent = newPrimary;
+          if (typeof newSecondary === 'string') secondaryText.textContent = newSecondary;
+          if (typeof newTertiary1 === 'string') tertiaryText1.textContent = newTertiary1;
+          if (typeof newTertiary2 === 'string') tertiaryText2.textContent = newTertiary2;
+          rebuildCharGroups();
+          gsap.set(allChars, { opacity: 0, y: 12, filter: 'blur(12px)' });
+        })
+        .call(() => {
+          animateCharsInNow();
+        });
+    }
+
+    window.runScene = runScene;
+    window.updateAsset = updateAsset;
+
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(runScene);
+    } else {
+      runScene();
+    }
+  </script>
+</body>
+</html>
+

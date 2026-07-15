@@ -817,7 +817,7 @@ export const createBackendApp = async ({
     }
   });
 
-  await registerEditSessionRoutes(app, editSessions, editSessionStore);
+  await registerEditSessionRoutes(app, editSessions, editSessionStore, josephUploadPipeline);
   await registerGodRoutes(app, god);
   await registerMusicCatalogRoutes(app, {
     env,

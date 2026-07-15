@@ -505,88 +505,91 @@ const chooseAnimation = (
   }
   return seededPick(rng, profile.textStylePool);
 };
+type ScheduledTypographyLine = {
+  line: JosephTypographyIntelligencePlan["lines"][number];
+  startFrame: number;
+  endFrame: number;
+};
+
+const MIN_TEXT_VISIBLE_FRAMES = 12;
+const MAX_TEXT_VISIBLE_FRAMES = 72;
+
+const scheduleTypographyLines = (
+  typography: JosephTypographyIntelligencePlan,
+  durationFrames: number,
+): ScheduledTypographyLine[] => {
+  const scheduled: ScheduledTypographyLine[] = [];
+  const ordered = [...typography.lines].sort(
+    (left, right) => left.startFrame - right.startFrame || left.hierarchyLevel - right.hierarchyLevel,
+  );
+
+  for (const line of ordered) {
+    const previous = scheduled.at(-1);
+    const earliestStart = previous ? previous.startFrame + MIN_TEXT_VISIBLE_FRAMES : 0;
+    const startFrame = Math.max(0, line.startFrame, earliestStart);
+    if (startFrame >= durationFrames) {
+      continue;
+    }
+
+    if (previous && previous.endFrame >= startFrame) {
+      previous.endFrame = startFrame - 1;
+    }
+
+    const desiredEnd = Math.max(line.endFrame, startFrame + MIN_TEXT_VISIBLE_FRAMES - 1);
+    const endFrame = Math.min(
+      durationFrames - 1,
+      startFrame + MAX_TEXT_VISIBLE_FRAMES - 1,
+      desiredEnd,
+    );
+    scheduled.push({line, startFrame, endFrame});
+  }
+
+  return scheduled;
+};
+
 const buildTextOverlays = (
   input: DirectorInput,
-  phrases: Phrase[],
-  profile: ProfileTuning,
+  typography: JosephTypographyIntelligencePlan,
   durationFrames: number,
   rng: () => number,
-  ctaStartMs: number,
   doctrine?: DoctrineBranch,
 ) => {
   const overlays: TextOverlay[] = [];
   const textEvents: TextEvent[] = [];
-  phrases.forEach((phrase) => {
-    phrase.words.forEach((word) => {
-      const isThesis = phrase.thesisWords.includes(word);
-      const isHighEnergy = phrase.highEnergyWords.includes(word);
-      if (!isThesis && !seededChance(rng, profile.textCoverage)) {
-        return;
-      }
-      const startFrame = msToFrame(word.startMs);
-      const duration = isHighEnergy ? 18 : 12;
-      const { startFrame: clampedStart, endFrame: clampedEnd } =
-        clampFrameRange(startFrame, startFrame + duration, durationFrames);
-      const microAnimation = selectMicroAnimationPrimitive({
-        rng,
-        doctrineId: doctrine?.id,
-        semanticRole: isHighEnergy ? "hero" : "support",
-        energy: phrase.energy,
-        overlayIndex: overlays.length,
-      });
-      const animation = microAnimation.renderFallback;
-      const color = isHighEnergy ? "#FF0040" : "#FFFFFF";
-      const overlay: TextOverlay = {
-        text: word.text.replace(/[.!?]$/, "").toUpperCase(),
-        startFrame: clampedStart,
-        endFrame: clampedEnd,
-        animation,
-        color,
-        microAnimation,
-      };
-      overlays.push(overlay);
-      textEvents.push({
-        type: "text",
-        word: overlay.text,
-        startMs: frameToMs(clampedStart),
-        endMs: frameToMs(clampedEnd),
-        style: overlay.animation,
-        color: overlay.color,
-        position: { x: 0.5, y: isHighEnergy ? 0.5 : 0.15, z: 0.1 },
-        scale: isHighEnergy ? 1.3 : 1,
-        cameraPush: isHighEnergy ? 0.85 : 0,
-        shake: overlay.animation === "glitch" ? 0.5 : 0,
-      });
+
+  scheduleTypographyLines(typography, durationFrames).forEach(({line, startFrame, endFrame}) => {
+    const semanticRole = line.role === "hero" || line.role === "cta" ? line.role : "support";
+    const energy = energyAtMs(input.energyCurve, input.durationMs, frameToMs(startFrame));
+    const microAnimation = selectMicroAnimationPrimitive({
+      rng,
+      doctrineId: doctrine?.id,
+      semanticRole,
+      energy,
+      overlayIndex: overlays.length,
+    });
+    const overlay: TextOverlay = {
+      text: line.text,
+      startFrame,
+      endFrame,
+      animation: microAnimation.renderFallback,
+      color: line.contrastColor,
+      microAnimation,
+    };
+    overlays.push(overlay);
+    textEvents.push({
+      type: "text",
+      word: overlay.text,
+      startMs: frameToMs(startFrame),
+      endMs: frameToMs(endFrame),
+      style: overlay.animation,
+      color: overlay.color,
+      position: {x: 0.5, y: semanticRole === "hero" ? 0.5 : 0.15, z: 0.1},
+      scale: semanticRole === "hero" ? 1.3 : 1,
+      cameraPush: semanticRole === "hero" ? 0.85 : 0,
+      shake: overlay.animation === "glitch" ? 0.5 : 0,
     });
   });
-  const ctaPhrase = phrases[phrases.length - 1];
-  if (ctaPhrase) {
-    const ctaWords = (
-      ctaPhrase.highEnergyWords.length > 0
-        ? ctaPhrase.highEnergyWords
-        : ctaPhrase.words
-    ).slice(0, 2);
-    ctaWords.forEach((word, index) => {
-      const startFrame = msToFrame(ctaStartMs) + index * 12;
-      const { startFrame: clampedStart, endFrame: clampedEnd } =
-        clampFrameRange(startFrame, startFrame + 18, durationFrames);
-      const microAnimation = selectMicroAnimationPrimitive({
-        rng,
-        doctrineId: doctrine?.id,
-        semanticRole: "cta",
-        energy: 1,
-        overlayIndex: overlays.length + index,
-      });
-      overlays.push({
-        text: word.text.replace(/[.!?]$/, "").toUpperCase(),
-        startFrame: clampedStart,
-        endFrame: clampedEnd,
-        animation: microAnimation.renderFallback,
-        color: "#FF0040",
-        microAnimation,
-      });
-    });
-  }
+
   return { textOverlays: overlays, textEvents };
 };
 const pickEvenly = (items: number[], desiredCount: number) => {
@@ -775,7 +778,9 @@ const buildSfx = (
   }
   const sfx: SFXEvent[] = [];
   cuts.forEach((cut, index) => {
-    if (profile.sfxDensity >= 1 || index % 2 === 0) {
+    const isCtaCut = cut.atMs >= ctaStartMs;
+    const shouldPunctuateCut = cut.style === "zoom_blur" || isCtaCut || (profile.sfxDensity >= 1 && index % 3 === 0);
+    if (shouldPunctuateCut) {
       sfx.push(
         sfxEvent(rng, {
           id: `cut-${index}`,
@@ -791,45 +796,29 @@ const buildSfx = (
   textEvents
     .filter((event) => event.color === "#FF0040")
     .forEach((event, index) => {
+      const cue = event.style === "glitch"
+        ? "glitch_digital"
+        : event.style === "pop"
+          ? "pop_text"
+          : event.startMs >= ctaStartMs
+            ? "impact_sharp"
+            : "impact_deep";
       sfx.push(
         sfxEvent(rng, {
-          id: `red-${index}`,
-          cue: event.startMs >= ctaStartMs ? "impact_sharp" : "impact_deep",
+          id: `text-${index}`,
+          cue,
           triggerMs: event.startMs,
-          durationMs: 300,
-          volumeDb: -10,
-          duckMusicDb: -9,
+          durationMs: cue === "pop_text" ? 180 : 300,
+          volumeDb: cue.startsWith("impact") ? -10 : -12,
+          duckMusicDb: cue.startsWith("impact") ? -9 : -6,
         }),
       );
-      if (event.style === "glitch") {
-        sfx.push(
-          sfxEvent(rng, {
-            id: `glitch-${index}`,
-            cue: "glitch_digital",
-            triggerMs: event.startMs,
-            durationMs: 250,
-            volumeDb: -12,
-            duckMusicDb: -6,
-          }),
-        );
-      }
-      if (event.style === "pop") {
-        sfx.push(
-          sfxEvent(rng, {
-            id: `pop-${index}`,
-            cue: "pop_text",
-            triggerMs: event.startMs,
-            durationMs: 180,
-            volumeDb: -12,
-            duckMusicDb: -6,
-          }),
-        );
-      }
     });
   input.beats
     .filter(
       (beat) => energyAtMs(input.energyCurve, input.durationMs, beat) > 0.85,
     )
+    .slice(0, profile.sfxDensity >= 1 ? 1 : 0)
     .forEach((beat, index) => {
       if (seededChance(rng, profile.sfxDensity)) {
         sfx.push(
@@ -1070,13 +1059,18 @@ const buildCandidatePlan = (
     input.durationMs - CTA_WINDOW_MS,
   );
   const phrases = buildPhrases(input);
+  const josephTypography: JosephTypographyIntelligencePlan = buildJosephTypographyIntelligencePlan({
+    words: input.transcript,
+    energyCurve: input.energyCurve,
+    durationMs: input.durationMs,
+    profile: input.profile,
+    doctrineId: doctrine?.id,
+  });
   const { textOverlays, textEvents } = buildTextOverlays(
     input,
-    phrases,
-    profile,
+    josephTypography,
     durationFrames,
     rng,
-    ctaStartMs,
     doctrine,
   );
   const cuts = buildCuts(input, phrases, profile, hookEndMs);
@@ -1119,13 +1113,6 @@ const buildCandidatePlan = (
     visualDensityPlan: visualPlan.visualDensityPlan,
     hasPiP: true,
     durationFrames,
-  });
-  const josephTypography: JosephTypographyIntelligencePlan = buildJosephTypographyIntelligencePlan({
-    words: input.transcript,
-    energyCurve: input.energyCurve,
-    durationMs: input.durationMs,
-    profile: input.profile,
-    doctrineId: doctrine?.id,
   });
   const josephChoreography: JosephChoreographyPlan = buildJosephAudioVisualChoreographyPlan({
     profile: input.profile,

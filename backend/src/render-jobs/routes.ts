@@ -1,6 +1,7 @@
 import {createReadStream} from "node:fs";
 import {mkdir, stat, writeFile} from "node:fs/promises";
 import path from "node:path";
+import {fileURLToPath} from "node:url";
 
 import type {FastifyInstance} from "fastify";
 import {UnifiedRenderManifestSchema, type UnifiedRenderManifest} from "@prometheus/shared-types";
@@ -109,7 +110,10 @@ const publicBaseUrl = (): string => process.env.API_BASE || `http://localhost:${
 
 const defaultFontUrl = (): string => "fonts/Fraunces-Regular.ttf";
 
-const mediaDir = (): string => process.env.MEDIA_DIR || path.join(process.cwd(), "data", "media");
+const mediaDir = (): string => {
+  const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
+  return path.resolve(process.env.MEDIA_DIR || path.join(repoRoot, "data", "media"));
+};
 
 const defaultEvidenceRoot = (): string => process.env.PROMETHEUS_EVIDENCE_DIR || path.join(process.cwd(), "data", "render-job-evidence");
 

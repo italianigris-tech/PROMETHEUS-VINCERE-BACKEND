@@ -14,6 +14,10 @@ const JOSEPH_WIDTH = 1080;
 const JOSEPH_HEIGHT = 1920;
 const JOSEPH_ENTRY_POINT = path.resolve(__dirname, '../../../remotion-app/src/entries/joseph-entry.tsx');
 const DEFAULT_SFX_DIR = path.resolve(__dirname, '../../../remotion-app/public/sfx');
+const DURABLE_BUNDLE_DIR = path.resolve(
+  process.env.REMOTION_BUNDLE_DIR ?? path.join(__dirname, '../.cache/joseph-remotion-bundle'),
+);
+const RENDER_TIMEOUT_MS = 600000;
 let cachedServeUrlPromise: Promise<string> | null = null;
 
 export class ValidationError extends Error {
@@ -69,7 +73,12 @@ export type RenderFromManifestOptions = {
   sourceVideoPath?: string;
 };
 
-const shouldRetryRender = (error: Error) => /timeout|timed out|chromium|browser/i.test(error.message);
+const shouldRetryRender = (error: Error) => {
+  if (/root component to unsuspend|delayRender\(\)/i.test(error.message)) {
+    return false;
+  }
+  return /timeout|timed out|chromium|browser/i.test(error.message);
+};
 
 const audioFailureTagsForError = (error: unknown): string[] => {
   const message = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
@@ -102,8 +111,13 @@ const logRenderProgress = (progress: {progress: number}) => {
 
 const getServeUrl = () => {
   if (!cachedServeUrlPromise) {
+    console.log(`[Worker] Bundling Joseph renderer to durable path ${DURABLE_BUNDLE_DIR}`);
     cachedServeUrlPromise = bundle({
       entryPoint: JOSEPH_ENTRY_POINT,
+      outDir: DURABLE_BUNDLE_DIR,
+    }).catch((error) => {
+      cachedServeUrlPromise = null;
+      throw error;
     });
   }
 
@@ -151,13 +165,20 @@ const renderSilentVideo = async (options: Record<string, unknown>, manifest: Uni
       throw new RenderError(`Remotion renderMedia failed for job ${manifest.jobId} at ${(lastProgress * 100).toFixed(0)}%: ${error.message}`);
     }
 
+    console.warn(
+      `[Worker] Primary render failed for job ${manifest.jobId}; retrying with software GL using the same durable bundle ${String(options.serveUrl)}.`,
+    );
     return renderMedia({
       ...options,
       onProgress: progressCallback,
       concurrency: 1,
-      timeoutInMilliseconds: 600000,
+      timeoutInMilliseconds: RENDER_TIMEOUT_MS,
       gl: 'swangle',
       hardwareAcceleration: 'disable',
+      chromiumOptions: {
+        gl: 'swangle',
+        headless: true,
+      },
     } as any).catch((retryError: any) => {
       throw new RenderError(`Remotion renderMedia failed for job ${manifest.jobId} at ${(lastProgress * 100).toFixed(0)}%: ${retryError.message}`);
     });
@@ -181,7 +202,7 @@ export async function renderFromManifest(
   const audioPath = path.join(tmpDir, `${validatedManifest.jobId}_audio.m4a`);
   const finalVideoPath = path.join(tmpDir, `${validatedManifest.jobId}_final.mp4`);
   const browserExecutable = resolveBrowserExecutable();
-  const inputProps = {manifest: validatedManifest};
+  const inputProps = {manifest: validatedManifest, audioPreviewEnabled: false};
 
   const cleanupTempFiles = () => {
     removeIfPresent(silentVideoPath);
@@ -202,11 +223,11 @@ export async function renderFromManifest(
       id: 'JosephEdit',
       inputProps,
       browserExecutable,
-      timeoutInMilliseconds: 300000,
-      gl: 'swangle',
+      timeoutInMilliseconds: RENDER_TIMEOUT_MS,
+      gl: 'angle',
       chromeMode: 'chrome-for-testing',
       chromiumOptions: {
-        gl: 'swangle',
+        gl: 'angle',
         headless: true,
       },
     } as any);
@@ -221,14 +242,14 @@ export async function renderFromManifest(
       width: validatedManifest.width,
       height: validatedManifest.height,
       inputProps,
-      gl: 'swangle',
+      gl: 'angle',
       concurrency: 1,
-      timeoutInMilliseconds: 300000,
+      timeoutInMilliseconds: RENDER_TIMEOUT_MS,
       browserExecutable,
-      hardwareAcceleration: 'disable',
+      hardwareAcceleration: 'if-possible',
       chromeMode: 'chrome-for-testing',
       chromiumOptions: {
-        gl: 'swangle',
+        gl: 'angle',
         headless: true,
       },
       muted: true,

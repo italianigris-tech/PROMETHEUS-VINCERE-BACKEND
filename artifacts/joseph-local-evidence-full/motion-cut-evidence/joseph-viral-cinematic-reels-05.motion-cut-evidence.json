@@ -1,0 +1,139 @@
+{
+  "audit_windows": [
+    {
+      "cut_seconds": [
+        5.999988
+      ],
+      "end_seconds": 8.21311,
+      "event_index": 0,
+      "sample_seconds": 4.851355,
+      "scan_end_seconds": 6.851355,
+      "scan_start_seconds": 2.851355,
+      "scene_cut_count": 1,
+      "start_seconds": 1.4896
+    },
+    {
+      "cut_seconds": [],
+      "end_seconds": 20.2237,
+      "event_index": 1,
+      "sample_seconds": 17.4136,
+      "scan_end_seconds": 19.4136,
+      "scan_start_seconds": 15.4136,
+      "scene_cut_count": 0,
+      "start_seconds": 14.6035
+    },
+    {
+      "cut_seconds": [
+        28.066666
+      ],
+      "end_seconds": 31.7414,
+      "event_index": 2,
+      "sample_seconds": 28.76315,
+      "scan_end_seconds": 30.76315,
+      "scan_start_seconds": 26.76315,
+      "scene_cut_count": 1,
+      "start_seconds": 25.7849
+    },
+    {
+      "cut_seconds": [
+        52.700028
+      ],
+      "end_seconds": 63.4488,
+      "event_index": 3,
+      "sample_seconds": 51.24215,
+      "scan_end_seconds": 53.24215,
+      "scan_start_seconds": 49.24215,
+      "scene_cut_count": 1,
+      "start_seconds": 39.0355
+    },
+    {
+      "cut_seconds": [],
+      "end_seconds": 150.94,
+      "event_index": 4,
+      "sample_seconds": 137.692,
+      "scan_end_seconds": 139.692,
+      "scan_start_seconds": 135.692,
+      "scene_cut_count": 0,
+      "start_seconds": 124.444
+    },
+    {
+      "cut_seconds": [],
+      "end_seconds": 380.221,
+      "event_index": 5,
+      "sample_seconds": 343.766,
+      "scan_end_seconds": 345.766,
+      "scan_start_seconds": 341.766,
+      "scene_cut_count": 0,
+      "start_seconds": 307.311
+    },
+    {
+      "cut_seconds": [
+        610.333339
+      ],
+      "end_seconds": 701.809,
+      "event_index": 6,
+      "sample_seconds": 608.428,
+      "scan_end_seconds": 610.428,
+      "scan_start_seconds": 606.428,
+      "scene_cut_count": 1,
+      "start_seconds": 515.047
+    },
+    {
+      "cut_seconds": [],
+      "end_seconds": 712.933,
+      "event_index": 7,
+      "sample_seconds": 708.9545,
+      "scan_end_seconds": 710.9545,
+      "scan_start_seconds": 706.9545,
+      "scene_cut_count": 0,
+      "start_seconds": 704.976
+    },
+    {
+      "cut_seconds": [
+        739.03331
+      ],
+      "end_seconds": 746.989,
+      "event_index": 8,
+      "sample_seconds": 738.8365,
+      "scan_end_seconds": 740.8365,
+      "scan_start_seconds": 736.8365,
+      "scene_cut_count": 1,
+      "start_seconds": 730.684
+    },
+    {
+      "cut_seconds": [],
+      "end_seconds": 784.899,
+      "event_index": 9,
+      "sample_seconds": 784.899,
+      "scan_end_seconds": 785.399,
+      "scan_start_seconds": 784.399,
+      "scene_cut_count": 0,
+      "start_seconds": 784.899
+    }
+  ],
+  "failures": [],
+  "scene_count": 5,
+  "scene_detector": "ffmpeg_scene_select_showinfo_audit_windows",
+  "scene_threshold": 0.35,
+  "scenes": [
+    {
+      "cut_seconds": 5.999988
+    },
+    {
+      "cut_seconds": 28.066666
+    },
+    {
+      "cut_seconds": 52.700028
+    },
+    {
+      "cut_seconds": 610.333339
+    },
+    {
+      "cut_seconds": 739.03331
+    }
+  ],
+  "schema_version": "motion-cut-evidence-v1",
+  "source_video_path": "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\JOSEPH VIDEO PROOF\\How_to_Edit_Viral_Cinematic_Reels    fifth video.mp4",
+  "video_id": "joseph-viral-cinematic-reels-05",
+  "warnings": []
+}

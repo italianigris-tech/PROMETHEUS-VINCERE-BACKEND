@@ -1,5 +1,5 @@
 import React, {useEffect, useMemo} from 'react';
-import {AbsoluteFill, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
+import {AbsoluteFill, Audio, Sequence, interpolate, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
 import {Canvas, useFrame, useThree} from '@react-three/fiber';
 import {Text} from '@react-three/drei';
 import * as THREE from 'three';
@@ -11,15 +11,139 @@ import {
   type JosephPiPRenderContract,
   resolveBackgroundRenderContract,
   resolveCameraRenderContract,
+  resolveKineticTextLayout,
   resolveMacroRigRenderContract,
   resolveMicroAnimationRenderContract,
   resolvePiPRenderContract,
+  resolveSourcePresentationContract,
   resolveTypographyRenderContract,
 } from './joseph-render-contract';
 import {type MatteRenderContract, resolveMatteRenderContract} from './matte-render-contract';
 
 const toRemotionFontAssetUrl = (fontAssetUrl: string) =>
   fontAssetUrl.startsWith('/') ? staticFile(fontAssetUrl.replace(/^\//, '')) : fontAssetUrl;
+
+type TypographyPreloadContract = {
+  characters: string;
+  fontAssetUrls: string[];
+  rootFontAssetUrl: string;
+  typography: ReturnType<typeof resolveTypographyRenderContract>;
+};
+
+const TYPOGRAPHY_DIAGNOSTIC_TEXT =
+  'pip_typography_subject_occlusion / pip_camera_subject_focus_risk';
+
+const resolveTypographyPreloadContract = (manifest: UnifiedRenderManifest): TypographyPreloadContract => {
+  const typography = resolveTypographyRenderContract(
+    manifest.typography,
+    manifest.josephTypography,
+    manifest.josephPiP,
+  );
+  const rootFontAssetUrl = toRemotionFontAssetUrl(typography.fontAssetUrl);
+  const roleFontAssetUrls = Object.values(typography.observable.roleStyles)
+    .flatMap((style) => style ? [toRemotionFontAssetUrl(style.fontAssetUrl)] : []);
+  const fontAssetUrls = [...new Set([rootFontAssetUrl, ...roleFontAssetUrls])].sort();
+  const text = [
+    ...manifest.textOverlays.map((overlay) => overlay.text),
+    ...typography.observable.lines.map((line) => line.text),
+    TYPOGRAPHY_DIAGNOSTIC_TEXT,
+  ].join(' ');
+  const characters = [...new Set(Array.from(text))]
+    .sort((left, right) => (left.codePointAt(0) ?? 0) - (right.codePointAt(0) ?? 0))
+    .join('') || ' ';
+
+  return {characters, fontAssetUrls, rootFontAssetUrl, typography};
+};
+
+const TypographyFontPreloader: React.FC<{contract: TypographyPreloadContract}> = ({contract}) => (
+  <group visible={false}>
+    {contract.fontAssetUrls.map((fontAssetUrl) => (
+      <Text
+        key={fontAssetUrl}
+        font={fontAssetUrl}
+        characters={contract.characters}
+        fontSize={0.01}
+      >
+        {contract.characters}
+      </Text>
+    ))}
+  </group>
+);
+
+const toRemotionMediaUrl = (mediaUrl: string): string =>
+  /^(https?:)?\/\//i.test(mediaUrl) ? mediaUrl : staticFile(mediaUrl.replace(/^\/+/, ''));
+
+const dbToGain = (db: number): number => Math.pow(10, db / 20);
+
+const resolveSfxAssetUrl = (cue: UnifiedRenderManifest['audio']['sfx'][number]): string => {
+  const fileName = `${cue.cue}_${cue.variant ?? 1}.mp3`;
+  return staticFile(`sfx/${fileName}`);
+};
+
+const resolveDjPreviewVolume = ({
+  event,
+  regions,
+  frame,
+  fps
+}: {
+  event: NonNullable<UnifiedRenderManifest['audio']['djPlan']>['musicEvents'][number];
+  regions: NonNullable<UnifiedRenderManifest['audio']['djPlan']>['duckingRegions'];
+  frame: number;
+  fps: number;
+}): number => {
+  const elapsedSec = frame / fps;
+  const globalSec = event.videoStartSec + elapsedSec;
+  const duckingRegion = regions.find((region) => globalSec >= region.videoStartSec && globalSec <= region.videoEndSec);
+  const baseGain = dbToGain(duckingRegion?.targetMusicDb ?? event.volumeDb);
+  const fadeIn = event.fadeInSec > 0
+    ? interpolate(elapsedSec, [0, event.fadeInSec], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'})
+    : 1;
+  const eventDurationSec = Math.max(0.001, event.videoEndSec - event.videoStartSec);
+  const fadeOutStart = Math.max(0, eventDurationSec - event.fadeOutSec);
+  const fadeOut = event.fadeOutSec > 0
+    ? interpolate(elapsedSec, [fadeOutStart, eventDurationSec], [1, 0], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'})
+    : 1;
+  return baseGain * Math.min(fadeIn, fadeOut);
+};
+
+const JosephAudioPreview: React.FC<{manifest: UnifiedRenderManifest}> = ({manifest}) => {
+  const {fps} = useVideoConfig();
+  const djPlan = manifest.audio.djPlan;
+  const sourceAudioUrl = manifest.source.videoUrl;
+
+  return (
+    <>
+      <Audio src={toRemotionMediaUrl(sourceAudioUrl)} volume={dbToGain(manifest.audio.voiceVolumeDb)} />
+      {djPlan?.musicEvents.map((event) => {
+        if (!event.browserUrl) {
+          return null;
+        }
+        const fromFrame = Math.max(0, Math.round(event.videoStartSec * fps));
+        const durationInFrames = Math.max(1, Math.ceil((event.videoEndSec - event.videoStartSec) * fps));
+        return (
+          <Sequence key={event.id} from={fromFrame} durationInFrames={durationInFrames} name={event.id}>
+            <Audio
+              src={toRemotionMediaUrl(event.browserUrl)}
+              trimBefore={Math.max(0, Math.round(event.trackStartSec * fps))}
+              trimAfter={Math.max(1, Math.round(event.trackEndSec * fps))}
+              volume={(frame) => resolveDjPreviewVolume({event, regions: djPlan.duckingRegions, frame, fps})}
+            />
+          </Sequence>
+        );
+      })}
+      {manifest.audio.sfx.map((cue) => (
+        <Sequence
+          key={cue.id}
+          from={Math.max(0, Math.round((cue.triggerMs / 1000) * fps))}
+          durationInFrames={Math.max(1, Math.ceil((cue.durationMs / 1000) * fps))}
+          name={cue.id}
+        >
+          <Audio src={resolveSfxAssetUrl(cue)} volume={dbToGain(cue.volumeDb)} />
+        </Sequence>
+      ))}
+    </>
+  );
+};
 
 const findActiveOverlays = (items: readonly TextOverlay[], frame: number): TextOverlay[] =>
   items.filter((item) => frame >= item.startFrame && frame <= item.endFrame);
@@ -41,6 +165,27 @@ const splitOverlayWords = (overlay: TextOverlay) => {
 
 const normalizeTypographyText = (value: string): string =>
   value.replace(/[^a-z0-9]+/gi, ' ').trim().toLowerCase();
+
+const resolveOverlayTimelinePosition = (
+  overlay: TextOverlay,
+  manifest: UnifiedRenderManifest,
+): {x: number; y: number} => {
+  const overlayStartMs = (overlay.startFrame / manifest.fps) * 1000;
+  const normalizedOverlay = normalizeTypographyText(overlay.text);
+  let best: {distanceMs: number; position: {x: number; y: number}} | null = null;
+
+  for (const event of manifest.timeline) {
+    if (event.type !== 'text' || normalizeTypographyText(event.word) !== normalizedOverlay) {
+      continue;
+    }
+    const distanceMs = Math.abs(event.startMs - overlayStartMs);
+    if (!best || distanceMs < best.distanceMs) {
+      best = {distanceMs, position: {x: event.position.x, y: event.position.y}};
+    }
+  }
+
+  return best?.position ?? {x: 0.5, y: 0.15};
+};
 
 const resolveOverlayTypographyRole = (
   overlay: TextOverlay,
@@ -72,20 +217,23 @@ const textAccentSize = (word: string, kind: string): [number, number] => {
 const TextPrimitiveAccent: React.FC<{
   word: string;
   contract: ReturnType<typeof resolveMicroAnimationRenderContract>;
-}> = ({word, contract}) => {
+  position: [number, number, number];
+  maxWidth: number;
+}> = ({word, contract, position, maxWidth}) => {
   const {observable} = contract;
   if (observable.accentKind === 'none' || observable.accentOpacity <= 0) {
     return null;
   }
 
-  const [width, height] = textAccentSize(word, observable.accentKind);
+  const [preferredWidth, height] = textAccentSize(word, observable.accentKind);
+  const width = Math.min(preferredWidth, maxWidth * 0.92);
 
   return (
     <mesh
       position={[
-        contract.transform.position[0] + observable.accentOffset[0],
-        contract.transform.position[1] + observable.accentOffset[1],
-        contract.transform.position[2] + observable.accentOffset[2],
+        position[0] + observable.accentOffset[0],
+        position[1] + observable.accentOffset[1],
+        position[2] + observable.accentOffset[2],
       ]}
       scale={observable.accentScale}
       renderOrder={observable.renderOrder - 1}
@@ -111,9 +259,15 @@ const CameraRig: React.FC<{cameraMoves: readonly CameraMove[]; seed: number}> = 
   return null;
 };
 
-const KineticText: React.FC<{overlays: readonly TextOverlay[]; manifest: UnifiedRenderManifest}> = ({overlays, manifest}) => {
+const KineticText: React.FC<{
+  overlays: readonly TextOverlay[];
+  manifest: UnifiedRenderManifest;
+  typographyPreload: TypographyPreloadContract;
+}> = ({overlays, manifest, typographyPreload}) => {
   const frame = useCurrentFrame();
-  const typography = resolveTypographyRenderContract(manifest.typography, manifest.josephTypography, manifest.josephPiP);
+  const typography = typographyPreload.typography;
+  const {camera, viewport} = useThree();
+  const currentViewport = viewport.getCurrentViewport(camera, new THREE.Vector3(0, 0, 0));
 
   return (
     <group position={[0, 0, 0.6]}>
@@ -133,12 +287,25 @@ const KineticText: React.FC<{overlays: readonly TextOverlay[]; manifest: Unified
           const fontSizeScale = contract.observable.fontSizeScale * (roleStyle?.hierarchyScale ?? 1);
           const textRenderOrder = roleStyle?.renderOrder ?? contract.observable.renderOrder;
           const roleFontAssetUrl = toRemotionFontAssetUrl(roleStyle?.fontAssetUrl ?? typography.fontAssetUrl);
+          const timelinePosition = resolveOverlayTimelinePosition(overlay, manifest);
+          const layout = resolveKineticTextLayout({
+            text: visibleWord,
+            viewportWidth: currentViewport.width,
+            viewportHeight: currentViewport.height,
+            preferredFontSize: 0.58 * fontSizeScale,
+            textScale: Math.max(Math.abs(transform.scale[0]), Math.abs(transform.scale[1])),
+            trackingEm: roleStyle?.trackingEm ?? 0,
+            normalizedPosition: timelinePosition,
+            motionPosition: transform.position,
+          });
 
           return (
             <React.Fragment key={`${overlayIndex}-${wordIndex}-${overlay.startFrame}`}>
               <Text
                 font={roleFontAssetUrl}
-                fontSize={0.58 * fontSizeScale}
+                characters={typographyPreload.characters}
+                fontSize={layout.fontSize}
+                maxWidth={layout.maxWidth}
                 color={overlay.color}
                 fontStyle="normal"
                 fontWeight={roleStyle?.fontWeight}
@@ -146,19 +313,19 @@ const KineticText: React.FC<{overlays: readonly TextOverlay[]; manifest: Unified
                 lineHeight={roleStyle?.lineHeight}
                 anchorX="center"
                 anchorY="middle"
-                position={transform.position}
+                position={layout.position}
                 scale={transform.scale}
                 rotation={transform.rotation}
                 renderOrder={textRenderOrder}
                 fillOpacity={contract.observable.opacity}
-                outlineWidth={0.015}
+                outlineWidth={layout.fontSize * 0.025}
                 outlineColor="#000000"
-                strokeWidth={0.01}
+                strokeWidth={layout.fontSize * 0.018}
                 strokeColor="#000000"
               >
                 {visibleWord}
               </Text>
-              <TextPrimitiveAccent word={word} contract={contract} />
+              <TextPrimitiveAccent word={word} contract={contract} position={layout.position} maxWidth={layout.maxWidth} />
             </React.Fragment>
           );
         });
@@ -256,7 +423,10 @@ const PiPBackgroundLayer: React.FC<{layer: JosephPiPBackgroundLayerRenderContrac
   );
 };
 
-const PiPFailureTagMarkers: React.FC<{contract: JosephPiPRenderContract}> = ({contract}) => {
+const PiPFailureTagMarkers: React.FC<{
+  contract: JosephPiPRenderContract;
+  typographyPreload: TypographyPreloadContract;
+}> = ({contract, typographyPreload}) => {
   const {viewport} = useThree();
   const failureTags = contract.clearance.failureTags;
   if (failureTags.length === 0) {
@@ -284,6 +454,8 @@ const PiPFailureTagMarkers: React.FC<{contract: JosephPiPRenderContract}> = ({co
         <meshBasicMaterial color="#FF0040" transparent opacity={0.82} depthWrite={false} />
       </mesh>
       <Text
+        font={typographyPreload.rootFontAssetUrl}
+        characters={typographyPreload.characters}
         fontSize={0.062}
         color="#FFFFFF"
         anchorX="center"
@@ -297,7 +469,12 @@ const PiPFailureTagMarkers: React.FC<{contract: JosephPiPRenderContract}> = ({co
   );
 };
 
-const JosephPiPRig: React.FC<{plan: JosephPiPPlan | undefined; cameraMoves: readonly CameraMove[]; matteContract: MatteRenderContract}> = ({plan, cameraMoves, matteContract}) => {
+const JosephPiPRig: React.FC<{
+  plan: JosephPiPPlan | undefined;
+  cameraMoves: readonly CameraMove[];
+  matteContract: MatteRenderContract;
+  typographyPreload: TypographyPreloadContract;
+}> = ({plan, cameraMoves, matteContract, typographyPreload}) => {
   const frame = useCurrentFrame();
   if (!plan) {
     return null;
@@ -311,7 +488,7 @@ const JosephPiPRig: React.FC<{plan: JosephPiPPlan | undefined; cameraMoves: read
         <PiPBackgroundLayer key={`${layer.role}-${index}`} layer={layer} />
       ))}
       <PiPFrameChrome contract={contract} />
-      <PiPFailureTagMarkers contract={contract} />
+      <PiPFailureTagMarkers contract={contract} typographyPreload={typographyPreload} />
     </group>
   );
 };
@@ -353,14 +530,23 @@ const JosephMacroRig: React.FC<{contract: JosephMacroRigRenderContract}> = ({con
     </group>
   );
 };
-const JosephBackgroundRig: React.FC<{contract: ReturnType<typeof resolveBackgroundRenderContract>}> = ({contract}) => {
-  if (contract.layers.length === 0) {
+const JosephBackgroundRig: React.FC<{
+  contract: ReturnType<typeof resolveBackgroundRenderContract>;
+  allowForegroundLayers: boolean;
+}> = ({contract, allowForegroundLayers}) => {
+  if (!allowForegroundLayers) {
+    return null;
+  }
+  const visibleLayers = allowForegroundLayers
+    ? contract.layers
+    : contract.layers.filter((layer) => layer.renderOrder < 18);
+  if (visibleLayers.length === 0 && contract.rules.contrastScrimOpacity <= 0) {
     return null;
   }
 
   return (
     <group>
-      {contract.layers.map((layer, index) => (
+      {visibleLayers.map((layer, index) => (
         <mesh
           key={`${layer.primitiveId}-${index}`}
           position={[0, 0, layer.z]}
@@ -381,12 +567,20 @@ const JosephBackgroundRig: React.FC<{contract: ReturnType<typeof resolveBackgrou
   );
 };
 
-const JosephScene: React.FC<{manifest: UnifiedRenderManifest}> = ({manifest}) => {
+const JosephScene: React.FC<{
+  manifest: UnifiedRenderManifest;
+  typographyPreload: TypographyPreloadContract;
+}> = ({manifest, typographyPreload}) => {
   const frame = useCurrentFrame();
   const activeOverlays = findActiveOverlays(manifest.textOverlays, frame);
   const activeTransition = findActiveTransition(manifest.transitions, frame);
   const backgroundContract = resolveBackgroundRenderContract(manifest.josephBackground);
   const matteContract = resolveMatteRenderContract(manifest);
+  const sourcePresentation = resolveSourcePresentationContract({
+    pipPlan: manifest.josephPiP,
+    matteAvailable: matteContract.available,
+    sourceVideoOpacity: backgroundContract.rules.sourceVideoOpacity,
+  });
   const pipContract = manifest.josephPiP
     ? resolvePiPRenderContract({plan: manifest.josephPiP, frame, cameraMoves: manifest.cameraMoves, matte: matteContract})
     : null;
@@ -397,29 +591,44 @@ const JosephScene: React.FC<{manifest: UnifiedRenderManifest}> = ({manifest}) =>
       <color attach="background" args={["#000000"]} />
       <ambientLight intensity={0.9} />
       <directionalLight position={[0, 0, 4]} intensity={1.2} />
-      <JosephBackgroundRig contract={backgroundContract} />
+      <JosephBackgroundRig contract={backgroundContract} allowForegroundLayers={sourcePresentation.mode === 'pip'} />
       <JosephMacroRig contract={macroRigContract} />
-      <JosephPiPRig plan={manifest.josephPiP} cameraMoves={manifest.cameraMoves} matteContract={matteContract} />
+      <TypographyFontPreloader contract={typographyPreload} />
+      {sourcePresentation.showPiPScaffolding && (
+        <JosephPiPRig
+          plan={manifest.josephPiP}
+          cameraMoves={manifest.cameraMoves}
+          matteContract={matteContract}
+          typographyPreload={typographyPreload}
+        />
+      )}
       <VideoPlane
         track={manifest.videoTracks[0]}
         manifest={manifest}
-        frameRect={manifest.josephPiP?.frame}
-        opacity={backgroundContract.rules.sourceVideoOpacity}
-        z={pipContract?.frame.sourceZ}
-        renderOrder={pipContract?.frame.renderOrder ?? 18}
+        frameRect={sourcePresentation.frameRect}
+        opacity={sourcePresentation.opacity}
+        z={sourcePresentation.mode === 'pip' ? pipContract?.frame.sourceZ : 0}
+        renderOrder={sourcePresentation.mode === 'pip' ? (pipContract?.frame.renderOrder ?? 18) : 18}
       />
       <CameraRig cameraMoves={manifest.cameraMoves} seed={manifest.seed} />
-      <KineticText overlays={activeOverlays} manifest={manifest} />
+      <KineticText overlays={activeOverlays} manifest={manifest} typographyPreload={typographyPreload} />
       <ZoomBlurQuad transition={activeTransition} />
     </>
   );
 };
 
-export const JosephEdit: React.FC<{manifest: UnifiedRenderManifest}> = ({manifest}) => {
+export type JosephEditProps = {
+  manifest: UnifiedRenderManifest;
+  audioPreviewEnabled?: boolean;
+};
+
+export const JosephEdit: React.FC<JosephEditProps> = ({manifest, audioPreviewEnabled = true}) => {
   const {width, height} = useVideoConfig();
+  const typographyPreload = useMemo(() => resolveTypographyPreloadContract(manifest), [manifest]);
 
   return (
     <AbsoluteFill style={{backgroundColor: '#000000'}}>
+      {audioPreviewEnabled && <JosephAudioPreview manifest={manifest} />}
       <Canvas
         gl={{preserveDrawingBuffer: true, antialias: true, alpha: false, powerPreference: 'high-performance'}}
         dpr={1}
@@ -427,7 +636,7 @@ export const JosephEdit: React.FC<{manifest: UnifiedRenderManifest}> = ({manifes
         camera={{position: [0, 0, 5], fov: 45, near: 0.1, far: 100}}
         style={{width, height, display: 'block'}}
       >
-        <JosephScene manifest={manifest} />
+        <JosephScene manifest={manifest} typographyPreload={typographyPreload} />
       </Canvas>
     </AbsoluteFill>
   );

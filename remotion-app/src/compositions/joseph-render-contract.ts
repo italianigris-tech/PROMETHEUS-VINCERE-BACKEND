@@ -451,6 +451,109 @@ export type JosephBackgroundRenderContract = {
   };
 };
 
+export type JosephSourcePresentationContract = {
+  mode: 'full_bleed' | 'pip';
+  frameRect: JosephPiPFrame | undefined;
+  opacity: number;
+  showPiPScaffolding: boolean;
+  fallbackTags: string[];
+};
+
+export const resolveSourcePresentationContract = ({
+  pipPlan,
+  matteAvailable,
+  sourceVideoOpacity,
+}: {
+  pipPlan: JosephPiPPlan | undefined;
+  matteAvailable: boolean;
+  sourceVideoOpacity: number;
+}): JosephSourcePresentationContract => {
+  if (!pipPlan || matteAvailable) {
+    return {
+      mode: pipPlan ? 'pip' : 'full_bleed',
+      frameRect: pipPlan?.frame,
+      opacity: Math.max(0, Math.min(1, pipPlan ? sourceVideoOpacity : 1)),
+      showPiPScaffolding: Boolean(pipPlan),
+      fallbackTags: [],
+    };
+  }
+
+  // A flat PiP without a matte hides most of the speaker behind empty scaffolding.
+  // Full-bleed footage is the useful pre-IRL fallback and keeps the upload watchable.
+  return {
+    mode: 'full_bleed',
+    frameRect: undefined,
+    opacity: 1,
+    showPiPScaffolding: false,
+    fallbackTags: ['compiler_matte_unavailable', 'flat_pip_promoted_to_full_bleed'],
+  };
+};
+
+export type JosephKineticTextLayout = {
+  fontSize: number;
+  position: RenderVector3;
+  maxWidth: number;
+  renderedWidth: number;
+  renderedHeight: number;
+  safeMarginX: number;
+  safeMarginY: number;
+};
+
+const kineticGlyphWidthEm = (character: string): number => {
+  if (/\s/.test(character)) return 0.3;
+  if ('ilIjt'.includes(character)) return 0.32;
+  if ('mwMW'.includes(character)) return 0.86;
+  if (/[A-Z0-9]/.test(character)) return 0.66;
+  return 0.52;
+};
+
+export const resolveKineticTextLayout = ({
+  text,
+  viewportWidth,
+  viewportHeight,
+  preferredFontSize,
+  textScale,
+  trackingEm,
+  normalizedPosition,
+  motionPosition,
+}: {
+  text: string;
+  viewportWidth: number;
+  viewportHeight: number;
+  preferredFontSize: number;
+  textScale: number;
+  trackingEm: number;
+  normalizedPosition: {x: number; y: number};
+  motionPosition: RenderVector3;
+}): JosephKineticTextLayout => {
+  const safeMarginX = viewportWidth * 0.08;
+  const safeMarginY = viewportHeight * 0.08;
+  const maxWidth = Math.max(0.1, viewportWidth - safeMarginX * 2);
+  const characters = Array.from(text || ' ');
+  const glyphWidthEm = characters.reduce((sum, character) => sum + kineticGlyphWidthEm(character), 0);
+  const trackingWidthEm = Math.max(0, characters.length - 1) * Math.max(0, trackingEm);
+  const naturalWidth = Math.max(0.1, (glyphWidthEm + trackingWidthEm) * preferredFontSize * Math.max(0.1, textScale));
+  const fitScale = Math.min(1, maxWidth / naturalWidth);
+  const fontSize = Math.max(0.01, preferredFontSize * fitScale);
+  const renderedWidth = naturalWidth * fitScale;
+  const renderedHeight = fontSize * 1.2 * Math.max(0.1, textScale);
+  const anchorX = (Math.max(0, Math.min(1, normalizedPosition.x)) - 0.5) * viewportWidth;
+  const anchorY = (0.5 - Math.max(0, Math.min(1, normalizedPosition.y))) * viewportHeight;
+  const motionX = motionPosition[0];
+  const motionY = motionPosition[1] - 0.5;
+  const minX = -viewportWidth / 2 + safeMarginX + renderedWidth / 2;
+  const maxX = viewportWidth / 2 - safeMarginX - renderedWidth / 2;
+  const minY = -viewportHeight / 2 + safeMarginY + renderedHeight / 2;
+  const maxY = viewportHeight / 2 - safeMarginY - renderedHeight / 2;
+  const position: RenderVector3 = [
+    Math.max(minX, Math.min(maxX, anchorX + motionX)),
+    Math.max(minY, Math.min(maxY, anchorY + motionY)),
+    motionPosition[2],
+  ];
+
+  return {fontSize, position, maxWidth, renderedWidth, renderedHeight, safeMarginX, safeMarginY};
+};
+
 type CameraMoveWithVelocity = CameraMove & {
   entryVelocity?: number;
   exitVelocity?: number;

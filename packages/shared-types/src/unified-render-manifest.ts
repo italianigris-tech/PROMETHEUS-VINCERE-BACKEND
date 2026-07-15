@@ -137,6 +137,81 @@ export const MusicReferenceSchema = z.object({
   licenseStatus: z.string().trim().min(1),
 });
 
+
+
+export const JosephDjMusicEventSchema = z.object({
+  id: z.string().trim().min(1),
+  trackId: z.string().trim().min(1),
+  bpm: z.number().positive().optional(),
+  browserUrl: z.string().trim().min(1).refine(isBrowserSafeMediaUrl, {
+    message: "Joseph DJ music event browserUrl must be browser-safe when provided",
+  }).optional(),
+  localFilePath: z.string().trim().min(1).refine(isAbsoluteMediaFilePath, {
+    message: "Joseph DJ music event localFilePath must be absolute for FFmpeg and final render",
+  }),
+  videoStartSec: z.number().nonnegative(),
+  videoEndSec: z.number().nonnegative(),
+  trackStartSec: z.number().nonnegative(),
+  trackEndSec: z.number().nonnegative(),
+  volumeDb: z.number(),
+  fadeInSec: z.number().nonnegative(),
+  fadeOutSec: z.number().nonnegative(),
+  duckingEnabled: z.boolean(),
+  purpose: z.string().trim().min(1),
+  sectionRole: z.string().trim().nullable().default(null),
+  beatAligned: z.boolean(),
+}).refine((value) => value.videoEndSec > value.videoStartSec, {
+  message: "Joseph DJ music event videoEndSec must be greater than videoStartSec.",
+}).refine((value) => value.trackEndSec > value.trackStartSec, {
+  message: "Joseph DJ music event trackEndSec must be greater than trackStartSec.",
+});
+
+export const JosephDjTransitionEventSchema = z.object({
+  id: z.string().trim().min(1),
+  type: z.enum([
+    "beat_crossfade",
+    "lowpass_sweep",
+    "highpass_sweep",
+    "riser_into_impact",
+    "drone_bridge",
+    "silence_drop",
+    "hard_cut",
+    "procedural_bridge",
+    "none",
+  ]),
+  videoStartSec: z.number().nonnegative(),
+  videoEndSec: z.number().nonnegative(),
+  fromTrackId: z.string().trim().nullable().default(null),
+  toTrackId: z.string().trim().nullable().default(null),
+  intensity: z.number().min(0).max(1),
+  beatAligned: z.boolean(),
+  downbeatTargetSec: z.number().nonnegative().nullable().default(null),
+}).refine((value) => value.videoEndSec >= value.videoStartSec, {
+  message: "Joseph DJ transition videoEndSec must be greater than or equal to videoStartSec.",
+});
+
+export const JosephDjDuckingRegionSchema = z.object({
+  id: z.string().trim().min(1),
+  videoStartSec: z.number().nonnegative(),
+  videoEndSec: z.number().nonnegative(),
+  targetMusicDb: z.number(),
+  reason: z.string().trim().min(1),
+}).refine((value) => value.videoEndSec > value.videoStartSec, {
+  message: "Joseph DJ ducking region videoEndSec must be greater than videoStartSec.",
+});
+
+export const JosephDjPlanSchema = z.object({
+  version: z.literal("joseph-dj-plan-v1"),
+  source: z.literal("video-aware-audio-plan"),
+  planId: z.string().trim().min(1),
+  planMode: z.enum(["dry_run", "render_ready"]),
+  musicEvents: z.array(JosephDjMusicEventSchema).default([]),
+  transitionEvents: z.array(JosephDjTransitionEventSchema).default([]),
+  duckingRegions: z.array(JosephDjDuckingRegionSchema).default([]),
+  warnings: z.array(z.string().trim().min(1)).default([]),
+}).refine((value) => value.musicEvents.length > 0, {
+  message: "Joseph DJ plan must contain at least one renderable music event.",
+});
 export const TextEventSchema = z.object({
   type: z.literal("text"),
   word: z.string(),
@@ -620,6 +695,27 @@ export const TimelineEventSchema = z.union([
   TransitionEventSchema,
 ]);
 
+export const JosephEditorialSegmentSchema = z.object({
+  role: z.enum(["hook", "benefit", "reversal", "pain", "payoff"]),
+  sourceStartMs: z.number().nonnegative(),
+  sourceEndMs: z.number().positive(),
+  outputStartMs: z.number().nonnegative(),
+  outputEndMs: z.number().positive(),
+});
+
+export const JosephEditorialSourcePlanSchema = z.object({
+  version: z.literal("joseph-editorial-v1"),
+  strategy: z.literal("assemblyai_narrative_arc"),
+  sourcePath: z.string().trim().min(1),
+  sourceSha256: z.string().regex(/^[a-f0-9]{64}$/),
+  derivedPath: z.string().trim().min(1),
+  derivedSha256: z.string().regex(/^[a-f0-9]{64}$/),
+  sourceDurationMs: z.number().positive(),
+  outputDurationMs: z.number().positive(),
+  removedDurationMs: z.number().nonnegative(),
+  segments: z.array(JosephEditorialSegmentSchema).min(1),
+});
+
 export const VideoTrackSchema = z.object({
   id: z.string().optional(),
   sourcePath: z.string().min(1),
@@ -671,6 +767,7 @@ export const UnifiedRenderManifestSchema = z.object({
   josephTypography: JosephTypographyIntelligencePlanSchema.optional(),
   josephChoreography: JosephChoreographyPlanSchema.optional(),
   plannerHandoff: JosephPlannerHandoffSchema.optional(),
+  sourceEdit: JosephEditorialSourcePlanSchema.optional(),
 
   source: z.object({
     videoUrl: z.string().min(1),
@@ -703,6 +800,7 @@ export const UnifiedRenderManifestSchema = z.object({
     musicTrackUrl: z.string().min(1).optional(),
     musicReference: MusicReferenceSchema.optional(),
     musicBpm: z.number().optional(),
+    djPlan: JosephDjPlanSchema.optional(),
     sfx: z.array(SFXEventSchema).default([]),
     voiceVolumeDb: z.number().default(0),
     musicVolumeDb: z.number().default(-18),
@@ -746,6 +844,10 @@ export type JosephTypographyRoleStyle = z.infer<typeof JosephTypographyRoleStyle
 export type JosephTypographyQualityAudit = z.infer<typeof JosephTypographyQualityAuditSchema>;
 export type JosephTypographyIntelligencePlan = z.infer<typeof JosephTypographyIntelligencePlanSchema>;
 export type MusicReference = z.infer<typeof MusicReferenceSchema>;
+export type JosephDjMusicEvent = z.infer<typeof JosephDjMusicEventSchema>;
+export type JosephDjTransitionEvent = z.infer<typeof JosephDjTransitionEventSchema>;
+export type JosephDjDuckingRegion = z.infer<typeof JosephDjDuckingRegionSchema>;
+export type JosephDjPlan = z.infer<typeof JosephDjPlanSchema>;
 export type TextEvent = z.infer<typeof TextEventSchema>;
 export type CutEvent = z.infer<typeof CutEventSchema>;
 export type CameraEvent = z.infer<typeof CameraEventSchema>;
@@ -799,6 +901,8 @@ export type JosephChoreographyQualityAudit = z.infer<typeof JosephChoreographyQu
 export type JosephChoreographyPlan = z.infer<typeof JosephChoreographyPlanSchema>;
 export type JosephPlannerHandoffFallback = z.infer<typeof JosephPlannerHandoffFallbackSchema>;
 export type JosephPlannerHandoff = z.infer<typeof JosephPlannerHandoffSchema>;
+export type JosephEditorialSegment = z.infer<typeof JosephEditorialSegmentSchema>;
+export type JosephEditorialSourcePlan = z.infer<typeof JosephEditorialSourcePlanSchema>;
 export type VideoTrack = z.infer<typeof VideoTrackSchema>;
 export type CameraMove = z.infer<typeof CameraMoveSchema>;
 export type TextOverlay = z.infer<typeof TextOverlaySchema>;

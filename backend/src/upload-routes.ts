@@ -216,6 +216,9 @@ export const registerUploadRoutes = async (
                   josephReplayLedgerEntryId: result.replayLedgerEntryId,
                   josephEvidencePath: result.evidencePath,
                   josephVariationKey: result.variationKey,
+                  josephManifestPath: result.studioManifestPath ?? null,
+                  josephStudioManifestPath: result.studioManifestPath ?? null,
+                  josephStudioManifestUrl: result.studioManifestUrl ?? null,
                 }, {
                   status: "render_pending",
                   renderStatus: "render_pending",

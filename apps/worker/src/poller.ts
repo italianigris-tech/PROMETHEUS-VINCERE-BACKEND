@@ -1,6 +1,7 @@
 ﻿import {UnifiedRenderManifestSchema, type UnifiedRenderManifest} from "@prometheus/shared-types";
 import {fileURLToPath} from "node:url";
 import path from "node:path";
+import {mkdir} from "node:fs/promises";
 import type {z} from "zod";
 
 import {renderFailureTagsForError, renderFromManifest} from "./index.js";
@@ -9,6 +10,8 @@ const API_BASE = process.env.API_BASE_URL || "http://localhost:8000";
 const POLL_INTERVAL_MS = Number.parseInt(process.env.POLL_INTERVAL_MS || "5000", 10);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const REPO_ROOT = path.resolve(__dirname, "../../..");
+const MEDIA_DIR = path.resolve(process.env.MEDIA_DIR || path.join(REPO_ROOT, "data", "media"));
 const SAMPLE_VIDEO_PATH = path.resolve(__dirname, "../../../remotion-app/public/dev-fixtures/test-video.mp4");
 const SAMPLE_VIDEO_BROWSER_URL = "/dev-fixtures/test-video.mp4";
 
@@ -139,14 +142,16 @@ export const pollOnce = async ({apiBase = API_BASE}: PollOnceOptions = {}): Prom
 
   const manifest = parseResult.data;
   try {
-    const outputPath = await renderFromManifest(manifest);
+    await mkdir(MEDIA_DIR, {recursive: true});
+    const outputPath = await renderFromManifest(manifest, {tempDir: MEDIA_DIR});
+    const outputUrl = `${apiBase.replace(/\/+$/, "")}/media/${encodeURIComponent(path.basename(outputPath))}`;
 
     await fetch(`${apiBase}/api/v1/render/jobs/${manifest.jobId}/complete`, {
       method: "POST",
       headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({outputUrl: outputPath}),
+      body: JSON.stringify({outputUrl}),
     });
-    console.log(`[Poller] Job ${manifest.jobId} rendered to ${outputPath}`);
+    console.log(`[Poller] Job ${manifest.jobId} rendered to ${outputUrl}`);
     return "rendered";
   } catch (error) {
     await postJobFailure({

@@ -101,6 +101,28 @@ describe("Joseph typography intelligence", () => {
     expect(quality.score).toBeLessThan(0.7);
   });
 
+  it("caps visible typography lines to the strongest readable set", () => {
+    const plan = buildJosephTypographyIntelligencePlan({
+      words: [
+        {text: "Listen", startMs: 200, endMs: 420, confidence: 0.98},
+        {text: "closely", startMs: 520, endMs: 820, confidence: 0.97},
+        {text: "this", startMs: 1200, endMs: 1400, confidence: 0.96},
+        {text: "changes", startMs: 1500, endMs: 1900, confidence: 0.97},
+        {text: "everything", startMs: 2000, endMs: 2500, confidence: 0.98},
+        {text: "Move", startMs: 3300, endMs: 3600, confidence: 0.97},
+        {text: "again", startMs: 4300, endMs: 4600, confidence: 0.96},
+        {text: "Now", startMs: 8000, endMs: 8300, confidence: 0.98},
+        {text: "act", startMs: 8500, endMs: 8800, confidence: 0.97},
+      ],
+      energyCurve: [0.35, 0.78, 0.86, 0.48, 0.7, 0.82, 0.44, 0.76, 0.9],
+      durationMs: 10_000,
+      profile: "joseph_aggressive",
+      doctrineId: "restrained-cinematic",
+    });
+
+    expect(plan.lines.length).toBeLessThanOrEqual(4);
+    expect(plan.qualityAudit.failures).not.toContain("typography_clutter");
+  });
   it("records typography intelligence on generated Joseph manifests", () => {
     const manifest = generateJosephManifest({
       videoUrl: "file:///video.mp4",

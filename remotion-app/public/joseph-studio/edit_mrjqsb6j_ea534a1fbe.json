@@ -1,0 +1,2758 @@
+{
+  "version": "2.0",
+  "jobId": "33c4e9b5-8250-44fe-b6ae-1342842cac13",
+  "seed": 1411493829,
+  "createdAt": "1970-01-01T00:00:00.000Z",
+  "durationFrames": 570,
+  "fps": 30,
+  "width": 1080,
+  "height": 1920,
+  "videoTracks": [
+    {
+      "id": "primary",
+      "sourcePath": "/uploads/edit_mrjqsb6j_ea534a1fbe/1783978581354-source-first-video-19s.mp4",
+      "startFrame": 0,
+      "endFrame": 569
+    }
+  ],
+  "cameraMoves": [
+    {
+      "type": "push_in",
+      "startFrame": 191,
+      "endFrame": 221,
+      "entryVelocity": 0.32,
+      "exitVelocity": 0.72
+    },
+    {
+      "type": "push_in",
+      "startFrame": 276,
+      "endFrame": 306,
+      "entryVelocity": 0.32,
+      "exitVelocity": 0.72
+    },
+    {
+      "type": "push_in",
+      "startFrame": 470,
+      "endFrame": 500,
+      "entryVelocity": 0.32,
+      "exitVelocity": 0.72
+    },
+    {
+      "type": "push_in",
+      "startFrame": 480,
+      "endFrame": 510,
+      "entryVelocity": 0.32,
+      "exitVelocity": 0.72
+    }
+  ],
+  "textOverlays": [
+    {
+      "text": "Animations",
+      "startFrame": 191,
+      "endFrame": 206,
+      "animation": "pop",
+      "color": "#FF0040",
+      "microAnimation": {
+        "primitiveId": "accent-motion.bracket-lock",
+        "family": "accent_motion",
+        "role": "accent",
+        "renderFallback": "pop",
+        "combinationGroup": "accent-guide",
+        "semanticRole": "hero",
+        "parameters": {
+          "intensity": 0.7304,
+          "durationMs": 300,
+          "delayMs": 20,
+          "anchor": "word",
+          "direction": "center"
+        }
+      }
+    },
+    {
+      "text": "Creative",
+      "startFrame": 227,
+      "endFrame": 241,
+      "animation": "slide_up",
+      "color": "#FF0040",
+      "microAnimation": {
+        "primitiveId": "text-emphasis.underline-reveal",
+        "family": "text_emphasis",
+        "role": "emphasis",
+        "renderFallback": "slide_up",
+        "combinationGroup": "emphasis-mark",
+        "semanticRole": "hero",
+        "parameters": {
+          "intensity": 0.6704,
+          "durationMs": 240,
+          "delayMs": 60,
+          "anchor": "word",
+          "direction": "right"
+        }
+      }
+    },
+    {
+      "text": "Branding",
+      "startFrame": 242,
+      "endFrame": 259,
+      "animation": "elastic_scale",
+      "color": "#FF0040",
+      "microAnimation": {
+        "primitiveId": "text-emphasis.semantic-glow",
+        "family": "text_emphasis",
+        "role": "emphasis",
+        "renderFallback": "elastic_scale",
+        "combinationGroup": "emphasis-mark",
+        "semanticRole": "hero",
+        "parameters": {
+          "intensity": 0.6304,
+          "durationMs": 560,
+          "delayMs": 80,
+          "anchor": "word",
+          "direction": "radial"
+        }
+      }
+    },
+    {
+      "text": "Reason",
+      "startFrame": 276,
+      "endFrame": 287,
+      "animation": "pop",
+      "color": "#FF0040",
+      "microAnimation": {
+        "primitiveId": "accent-motion.bracket-lock",
+        "family": "accent_motion",
+        "role": "accent",
+        "renderFallback": "pop",
+        "combinationGroup": "accent-guide",
+        "semanticRole": "hero",
+        "parameters": {
+          "intensity": 0.7304,
+          "durationMs": 300,
+          "delayMs": 20,
+          "anchor": "word",
+          "direction": "center"
+        }
+      }
+    }
+  ],
+  "transitions": [
+    {
+      "startFrame": 146,
+      "endFrame": 158
+    },
+    {
+      "startFrame": 259,
+      "endFrame": 271
+    },
+    {
+      "startFrame": 460,
+      "endFrame": 472
+    }
+  ],
+  "typography": {
+    "fontFamily": "PrometheusLibraryBlackDelights",
+    "fontAssetUrl": "/fonts/library/black-delights/black-delights-abcea09c8fdd.ttf",
+    "fallbackFamily": "Arial, sans-serif",
+    "fontId": "font_blackdelights_c7eea9b59dab"
+  },
+  "microAnimationAudit": {
+    "taxonomyVersion": "joseph-micro-animation-v1",
+    "primitiveIds": [
+      "accent-motion.bracket-lock",
+      "text-emphasis.underline-reveal",
+      "text-emphasis.semantic-glow"
+    ],
+    "score": 1,
+    "failures": [],
+    "warnings": [],
+    "fixIntents": []
+  },
+  "josephPiP": {
+    "version": "joseph-pip-v1",
+    "layout": "speaker_right_text_left",
+    "sourceTrackId": "primary",
+    "subjectAnchor": {
+      "xPercent": 51,
+      "yPercent": 35,
+      "confidence": 0.78,
+      "source": "heuristic"
+    },
+    "frame": {
+      "leftPercent": 58,
+      "topPercent": 12,
+      "widthPercent": 34,
+      "heightPercent": 38,
+      "borderRadiusPx": 28,
+      "safeMarginPercent": 4,
+      "depth": "subject"
+    },
+    "dockingPosition": "upper_right",
+    "availableMotionBehaviors": [
+      "enter",
+      "dock",
+      "expand",
+      "collapse",
+      "handoff"
+    ],
+    "activeMotion": [
+      {
+        "behavior": "enter",
+        "startFrame": 0,
+        "endFrame": 20,
+        "easing": "ease_out"
+      },
+      {
+        "behavior": "dock",
+        "startFrame": 20,
+        "endFrame": 111,
+        "easing": "ease_in_out"
+      },
+      {
+        "behavior": "handoff",
+        "startFrame": 111,
+        "endFrame": 168,
+        "easing": "ease_out"
+      }
+    ],
+    "typographyZones": [
+      {
+        "role": "hero",
+        "leftPercent": 7,
+        "topPercent": 14,
+        "widthPercent": 43,
+        "heightPercent": 28,
+        "align": "left",
+        "minClearancePercent": 6
+      },
+      {
+        "role": "support",
+        "leftPercent": 8,
+        "topPercent": 45,
+        "widthPercent": 38,
+        "heightPercent": 18,
+        "align": "left",
+        "minClearancePercent": 5
+      },
+      {
+        "role": "caption",
+        "leftPercent": 8,
+        "topPercent": 82,
+        "widthPercent": 42,
+        "heightPercent": 10,
+        "align": "left",
+        "minClearancePercent": 4
+      }
+    ],
+    "backgroundLayers": [
+      {
+        "role": "focus_field",
+        "leftPercent": 54,
+        "topPercent": 8,
+        "widthPercent": 42,
+        "heightPercent": 46,
+        "intensity": 0.64
+      },
+      {
+        "role": "asset_board",
+        "leftPercent": 7,
+        "topPercent": 65,
+        "widthPercent": 39,
+        "heightPercent": 18,
+        "intensity": 0.46
+      }
+    ],
+    "coexistenceRules": {
+      "preserveSubjectFocus": true,
+      "protectTypography": true,
+      "textClearancePercent": 6,
+      "backgroundDefocus": 0.46
+    }
+  },
+  "josephBackground": {
+    "version": "joseph-background-v1",
+    "catalogVersion": "2026.06",
+    "selectedPrimitiveIds": [
+      "shader.depth-vignette",
+      "lightfield.cinematic-bloom",
+      "backplate.editorial-glass",
+      "accent.editorial-rails"
+    ],
+    "primitives": [
+      {
+        "primitiveId": "shader.depth-vignette",
+        "family": "shader_background",
+        "role": "background",
+        "layer": "foundation",
+        "blendMode": "normal",
+        "renderStrategy": "curated_mesh",
+        "parameters": {
+          "colorFamily": "cinematic_cool",
+          "speed": 0.18,
+          "noiseIntensity": 0.22,
+          "bloomIntensity": 0.18,
+          "distortionAmount": 0.08,
+          "contrast": 0.68,
+          "density": 0.42,
+          "opacity": 0.92
+        }
+      },
+      {
+        "primitiveId": "lightfield.cinematic-bloom",
+        "family": "abstract_light_field",
+        "role": "atmosphere",
+        "layer": "atmosphere",
+        "blendMode": "screen",
+        "renderStrategy": "curated_mesh",
+        "parameters": {
+          "colorFamily": "warm_spotlight",
+          "speed": 0.16,
+          "noiseIntensity": 0.18,
+          "bloomIntensity": 0.48,
+          "distortionAmount": 0.04,
+          "contrast": 0.56,
+          "density": 0.34,
+          "opacity": 0.72
+        }
+      },
+      {
+        "primitiveId": "backplate.editorial-glass",
+        "family": "editorial_backplate",
+        "role": "backplate",
+        "layer": "overlay_support",
+        "blendMode": "soft_light",
+        "renderStrategy": "curated_mesh",
+        "parameters": {
+          "colorFamily": "neutral_contrast",
+          "speed": 0.08,
+          "noiseIntensity": 0.18,
+          "bloomIntensity": 0.26,
+          "distortionAmount": 0.04,
+          "contrast": 0.72,
+          "density": 0.44,
+          "opacity": 0.68
+        }
+      },
+      {
+        "primitiveId": "accent.editorial-rails",
+        "family": "accent_geometry",
+        "role": "accent",
+        "layer": "accent",
+        "blendMode": "screen",
+        "renderStrategy": "curated_mesh",
+        "parameters": {
+          "colorFamily": "kinetic_crimson",
+          "speed": 0.38,
+          "noiseIntensity": 0.12,
+          "bloomIntensity": 0.3,
+          "distortionAmount": 0.08,
+          "contrast": 0.7,
+          "density": 0.5,
+          "opacity": 0.56
+        }
+      }
+    ],
+    "layeringRules": {
+      "sourceFootageMode": "pip_protected",
+      "textProtection": "contrast_scrim",
+      "pipProtection": "reserved_safe_zone",
+      "overlayInteraction": "accent_below_text",
+      "maxActivePrimitives": 4
+    },
+    "parameterAudit": {
+      "governed": true,
+      "clampedParameterCount": 0,
+      "warnings": []
+    }
+  },
+  "josephTypography": {
+    "version": "joseph-typography-v1",
+    "stylebookId": "sleek_product",
+    "lexicalWeights": [
+      {
+        "text": "One",
+        "normalized": "one",
+        "startFrame": 5,
+        "endFrame": 7,
+        "role": "support",
+        "score": 0.3,
+        "reasons": [
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "of",
+        "normalized": "of",
+        "startFrame": 7,
+        "endFrame": 11,
+        "role": "filler",
+        "score": 0.08,
+        "reasons": [
+          "common_filler_word",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "the",
+        "normalized": "the",
+        "startFrame": 11,
+        "endFrame": 14,
+        "role": "filler",
+        "score": 0.08,
+        "reasons": [
+          "common_filler_word",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "most",
+        "normalized": "most",
+        "startFrame": 14,
+        "endFrame": 19,
+        "role": "support",
+        "score": 0.3,
+        "reasons": [
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "dominant",
+        "normalized": "dominant",
+        "startFrame": 19,
+        "endFrame": 35,
+        "role": "support",
+        "score": 0.48000000000000004,
+        "reasons": [
+          "semantic_density",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "editing",
+        "normalized": "editing",
+        "startFrame": 35,
+        "endFrame": 44,
+        "role": "support",
+        "score": 0.4,
+        "reasons": [
+          "semantic_density"
+        ]
+      },
+      {
+        "text": "styles",
+        "normalized": "styles",
+        "startFrame": 44,
+        "endFrame": 54,
+        "role": "support",
+        "score": 0.48000000000000004,
+        "reasons": [
+          "semantic_density",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "in",
+        "normalized": "in",
+        "startFrame": 54,
+        "endFrame": 61,
+        "role": "filler",
+        "score": 0,
+        "reasons": [
+          "common_filler_word"
+        ]
+      },
+      {
+        "text": "long",
+        "normalized": "long",
+        "startFrame": 61,
+        "endFrame": 68,
+        "role": "support",
+        "score": 0.3,
+        "reasons": [
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "form",
+        "normalized": "form",
+        "startFrame": 68,
+        "endFrame": 76,
+        "role": "support",
+        "score": 0.22,
+        "reasons": []
+      },
+      {
+        "text": "content",
+        "normalized": "content",
+        "startFrame": 76,
+        "endFrame": 86,
+        "role": "support",
+        "score": 0.48000000000000004,
+        "reasons": [
+          "semantic_density",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "is",
+        "normalized": "is",
+        "startFrame": 86,
+        "endFrame": 94,
+        "role": "filler",
+        "score": 0.08,
+        "reasons": [
+          "common_filler_word",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "the",
+        "normalized": "the",
+        "startFrame": 94,
+        "endFrame": 97,
+        "role": "filler",
+        "score": 0.08,
+        "reasons": [
+          "common_filler_word",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "Iman",
+        "normalized": "iman",
+        "startFrame": 97,
+        "endFrame": 114,
+        "role": "support",
+        "score": 0.36,
+        "reasons": [
+          "medium_energy"
+        ]
+      },
+      {
+        "text": "Gaji",
+        "normalized": "gaji",
+        "startFrame": 114,
+        "endFrame": 128,
+        "role": "support",
+        "score": 0.36,
+        "reasons": [
+          "medium_energy"
+        ]
+      },
+      {
+        "text": "editing",
+        "normalized": "editing",
+        "startFrame": 128,
+        "endFrame": 136,
+        "role": "support",
+        "score": 0.62,
+        "reasons": [
+          "semantic_density",
+          "medium_energy",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "style",
+        "normalized": "style",
+        "startFrame": 136,
+        "endFrame": 146,
+        "role": "support",
+        "score": 0.36,
+        "reasons": [
+          "medium_energy"
+        ]
+      },
+      {
+        "text": "From",
+        "normalized": "from",
+        "startFrame": 146,
+        "endFrame": 152,
+        "role": "filler",
+        "score": 0.22000000000000003,
+        "reasons": [
+          "common_filler_word",
+          "medium_energy",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "the",
+        "normalized": "the",
+        "startFrame": 152,
+        "endFrame": 156,
+        "role": "filler",
+        "score": 0.22000000000000003,
+        "reasons": [
+          "common_filler_word",
+          "medium_energy",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "design",
+        "normalized": "design",
+        "startFrame": 156,
+        "endFrame": 163,
+        "role": "support",
+        "score": 0.62,
+        "reasons": [
+          "semantic_density",
+          "medium_energy",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "to",
+        "normalized": "to",
+        "startFrame": 163,
+        "endFrame": 172,
+        "role": "filler",
+        "score": 0.22000000000000003,
+        "reasons": [
+          "common_filler_word",
+          "medium_energy",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "the",
+        "normalized": "the",
+        "startFrame": 172,
+        "endFrame": 175,
+        "role": "filler",
+        "score": 0.22000000000000003,
+        "reasons": [
+          "common_filler_word",
+          "medium_energy",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "engaging",
+        "normalized": "engaging",
+        "startFrame": 175,
+        "endFrame": 191,
+        "role": "support",
+        "score": 0.54,
+        "reasons": [
+          "semantic_density",
+          "medium_energy"
+        ]
+      },
+      {
+        "text": "animations",
+        "normalized": "animations",
+        "startFrame": 191,
+        "endFrame": 206,
+        "role": "hero",
+        "score": 0.7999999999999999,
+        "reasons": [
+          "semantic_density",
+          "high_energy",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "and",
+        "normalized": "and",
+        "startFrame": 206,
+        "endFrame": 212,
+        "role": "filler",
+        "score": 0.4,
+        "reasons": [
+          "common_filler_word",
+          "high_energy",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "even",
+        "normalized": "even",
+        "startFrame": 212,
+        "endFrame": 220,
+        "role": "support",
+        "score": 0.54,
+        "reasons": [
+          "high_energy"
+        ]
+      },
+      {
+        "text": "the",
+        "normalized": "the",
+        "startFrame": 220,
+        "endFrame": 227,
+        "role": "filler",
+        "score": 0.4,
+        "reasons": [
+          "common_filler_word",
+          "high_energy",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "creative",
+        "normalized": "creative",
+        "startFrame": 227,
+        "endFrame": 242,
+        "role": "hero",
+        "score": 0.7999999999999999,
+        "reasons": [
+          "semantic_density",
+          "high_energy",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "branding",
+        "normalized": "branding",
+        "startFrame": 242,
+        "endFrame": 259,
+        "role": "hero",
+        "score": 0.7999999999999999,
+        "reasons": [
+          "semantic_density",
+          "high_energy",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "That",
+        "normalized": "that",
+        "startFrame": 259,
+        "endFrame": 268,
+        "role": "filler",
+        "score": 0.4,
+        "reasons": [
+          "common_filler_word",
+          "high_energy",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "is",
+        "normalized": "is",
+        "startFrame": 268,
+        "endFrame": 272,
+        "role": "filler",
+        "score": 0.4,
+        "reasons": [
+          "common_filler_word",
+          "high_energy",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "the",
+        "normalized": "the",
+        "startFrame": 272,
+        "endFrame": 276,
+        "role": "filler",
+        "score": 0.4,
+        "reasons": [
+          "common_filler_word",
+          "high_energy",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "reason",
+        "normalized": "reason",
+        "startFrame": 276,
+        "endFrame": 282,
+        "role": "hero",
+        "score": 0.7999999999999999,
+        "reasons": [
+          "semantic_density",
+          "high_energy",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "business",
+        "normalized": "business",
+        "startFrame": 282,
+        "endFrame": 292,
+        "role": "hero",
+        "score": 0.72,
+        "reasons": [
+          "semantic_density",
+          "high_energy"
+        ]
+      },
+      {
+        "text": "owners",
+        "normalized": "owners",
+        "startFrame": 292,
+        "endFrame": 304,
+        "role": "support",
+        "score": 0.4,
+        "reasons": [
+          "semantic_density"
+        ]
+      },
+      {
+        "text": "are",
+        "normalized": "are",
+        "startFrame": 304,
+        "endFrame": 308,
+        "role": "filler",
+        "score": 0.08,
+        "reasons": [
+          "common_filler_word",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "paying",
+        "normalized": "paying",
+        "startFrame": 308,
+        "endFrame": 317,
+        "role": "support",
+        "score": 0.48000000000000004,
+        "reasons": [
+          "semantic_density",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "$2,000",
+        "normalized": "2000",
+        "startFrame": 317,
+        "endFrame": 344,
+        "role": "support",
+        "score": 0.3,
+        "reasons": [
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "plus",
+        "normalized": "plus",
+        "startFrame": 344,
+        "endFrame": 355,
+        "role": "support",
+        "score": 0.3,
+        "reasons": [
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "for",
+        "normalized": "for",
+        "startFrame": 355,
+        "endFrame": 362,
+        "role": "filler",
+        "score": 0.08,
+        "reasons": [
+          "common_filler_word",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "editors",
+        "normalized": "editors",
+        "startFrame": 362,
+        "endFrame": 378,
+        "role": "support",
+        "score": 0.48000000000000004,
+        "reasons": [
+          "semantic_density",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "that",
+        "normalized": "that",
+        "startFrame": 378,
+        "endFrame": 383,
+        "role": "filler",
+        "score": 0.08,
+        "reasons": [
+          "common_filler_word",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "know",
+        "normalized": "know",
+        "startFrame": 383,
+        "endFrame": 388,
+        "role": "support",
+        "score": 0.44,
+        "reasons": [
+          "medium_energy",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "how",
+        "normalized": "how",
+        "startFrame": 388,
+        "endFrame": 392,
+        "role": "support",
+        "score": 0.44,
+        "reasons": [
+          "medium_energy",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "to",
+        "normalized": "to",
+        "startFrame": 392,
+        "endFrame": 396,
+        "role": "filler",
+        "score": 0.22000000000000003,
+        "reasons": [
+          "common_filler_word",
+          "medium_energy",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "edit",
+        "normalized": "edit",
+        "startFrame": 396,
+        "endFrame": 404,
+        "role": "support",
+        "score": 0.36,
+        "reasons": [
+          "medium_energy"
+        ]
+      },
+      {
+        "text": "long",
+        "normalized": "long",
+        "startFrame": 404,
+        "endFrame": 410,
+        "role": "support",
+        "score": 0.44,
+        "reasons": [
+          "medium_energy",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "form",
+        "normalized": "form",
+        "startFrame": 410,
+        "endFrame": 418,
+        "role": "support",
+        "score": 0.36,
+        "reasons": [
+          "medium_energy"
+        ]
+      },
+      {
+        "text": "content",
+        "normalized": "content",
+        "startFrame": 418,
+        "endFrame": 426,
+        "role": "support",
+        "score": 0.62,
+        "reasons": [
+          "semantic_density",
+          "medium_energy",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "like",
+        "normalized": "like",
+        "startFrame": 426,
+        "endFrame": 433,
+        "role": "filler",
+        "score": 0.22000000000000003,
+        "reasons": [
+          "common_filler_word",
+          "medium_energy",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "Iman",
+        "normalized": "iman",
+        "startFrame": 433,
+        "endFrame": 448,
+        "role": "support",
+        "score": 0.36,
+        "reasons": [
+          "medium_energy"
+        ]
+      },
+      {
+        "text": "Gaji",
+        "normalized": "gaji",
+        "startFrame": 448,
+        "endFrame": 460,
+        "role": "support",
+        "score": 0.36,
+        "reasons": [
+          "medium_energy"
+        ]
+      },
+      {
+        "text": "So",
+        "normalized": "so",
+        "startFrame": 460,
+        "endFrame": 463,
+        "role": "filler",
+        "score": 0.22000000000000003,
+        "reasons": [
+          "common_filler_word",
+          "medium_energy",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "in",
+        "normalized": "in",
+        "startFrame": 463,
+        "endFrame": 467,
+        "role": "filler",
+        "score": 0.22000000000000003,
+        "reasons": [
+          "common_filler_word",
+          "medium_energy",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "this",
+        "normalized": "this",
+        "startFrame": 467,
+        "endFrame": 470,
+        "role": "filler",
+        "score": 0.22000000000000003,
+        "reasons": [
+          "common_filler_word",
+          "medium_energy",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "video,",
+        "normalized": "video",
+        "startFrame": 470,
+        "endFrame": 478,
+        "role": "support",
+        "score": 0.44,
+        "reasons": [
+          "medium_energy",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "I'm",
+        "normalized": "i'm",
+        "startFrame": 478,
+        "endFrame": 485,
+        "role": "support",
+        "score": 0.44,
+        "reasons": [
+          "medium_energy",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "going",
+        "normalized": "going",
+        "startFrame": 485,
+        "endFrame": 488,
+        "role": "support",
+        "score": 0.36,
+        "reasons": [
+          "medium_energy"
+        ]
+      },
+      {
+        "text": "to",
+        "normalized": "to",
+        "startFrame": 488,
+        "endFrame": 492,
+        "role": "filler",
+        "score": 0.22000000000000003,
+        "reasons": [
+          "common_filler_word",
+          "medium_energy",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "teach",
+        "normalized": "teach",
+        "startFrame": 492,
+        "endFrame": 497,
+        "role": "support",
+        "score": 0.44,
+        "reasons": [
+          "medium_energy",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "you",
+        "normalized": "you",
+        "startFrame": 497,
+        "endFrame": 499,
+        "role": "filler",
+        "score": 0.22000000000000003,
+        "reasons": [
+          "common_filler_word",
+          "medium_energy",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "how",
+        "normalized": "how",
+        "startFrame": 499,
+        "endFrame": 502,
+        "role": "support",
+        "score": 0.44,
+        "reasons": [
+          "medium_energy",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "to",
+        "normalized": "to",
+        "startFrame": 502,
+        "endFrame": 505,
+        "role": "filler",
+        "score": 0.22000000000000003,
+        "reasons": [
+          "common_filler_word",
+          "medium_energy",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "edit",
+        "normalized": "edit",
+        "startFrame": 505,
+        "endFrame": 512,
+        "role": "support",
+        "score": 0.36,
+        "reasons": [
+          "medium_energy"
+        ]
+      },
+      {
+        "text": "like",
+        "normalized": "like",
+        "startFrame": 512,
+        "endFrame": 517,
+        "role": "filler",
+        "score": 0.22000000000000003,
+        "reasons": [
+          "common_filler_word",
+          "medium_energy",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "Imangaji",
+        "normalized": "imangaji",
+        "startFrame": 517,
+        "endFrame": 540,
+        "role": "support",
+        "score": 0.54,
+        "reasons": [
+          "semantic_density",
+          "medium_energy"
+        ]
+      },
+      {
+        "text": "even",
+        "normalized": "even",
+        "startFrame": 540,
+        "endFrame": 546,
+        "role": "support",
+        "score": 0.44,
+        "reasons": [
+          "medium_energy",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "if",
+        "normalized": "if",
+        "startFrame": 546,
+        "endFrame": 551,
+        "role": "filler",
+        "score": 0.22000000000000003,
+        "reasons": [
+          "common_filler_word",
+          "medium_energy",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "you're",
+        "normalized": "you're",
+        "startFrame": 551,
+        "endFrame": 557,
+        "role": "support",
+        "score": 0.62,
+        "reasons": [
+          "semantic_density",
+          "medium_energy",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "a",
+        "normalized": "a",
+        "startFrame": 557,
+        "endFrame": 559,
+        "role": "filler",
+        "score": 0.22000000000000003,
+        "reasons": [
+          "common_filler_word",
+          "medium_energy",
+          "high_confidence"
+        ]
+      },
+      {
+        "text": "complete",
+        "normalized": "complete",
+        "startFrame": 559,
+        "endFrame": 570,
+        "role": "support",
+        "score": 0.54,
+        "reasons": [
+          "semantic_density",
+          "medium_energy"
+        ]
+      }
+    ],
+    "compositionRules": {
+      "caseStrategy": "title_case",
+      "lineBreakStrategy": "single_anchor",
+      "contrastMode": "hero_crimson_support_white",
+      "hierarchyScale": 1.18,
+      "fillerTreatment": "dim",
+      "maxWordsPerLine": 3
+    },
+    "lines": [
+      {
+        "text": "Animations",
+        "role": "hero",
+        "caseTreatment": "title_case",
+        "startFrame": 191,
+        "endFrame": 206,
+        "maxCharacters": 18,
+        "contrastColor": "#FF0040",
+        "hierarchyLevel": 1
+      },
+      {
+        "text": "Creative",
+        "role": "hero",
+        "caseTreatment": "title_case",
+        "startFrame": 227,
+        "endFrame": 242,
+        "maxCharacters": 18,
+        "contrastColor": "#FF0040",
+        "hierarchyLevel": 1
+      },
+      {
+        "text": "Branding",
+        "role": "hero",
+        "caseTreatment": "title_case",
+        "startFrame": 242,
+        "endFrame": 259,
+        "maxCharacters": 18,
+        "contrastColor": "#FF0040",
+        "hierarchyLevel": 1
+      },
+      {
+        "text": "Reason",
+        "role": "hero",
+        "caseTreatment": "title_case",
+        "startFrame": 276,
+        "endFrame": 282,
+        "maxCharacters": 18,
+        "contrastColor": "#FF0040",
+        "hierarchyLevel": 1
+      }
+    ],
+    "fontPairing": {
+      "primary": {
+        "fontId": "hero-cinzel-bold",
+        "family": "Cinzel Bold",
+        "fontAssetUrl": "/fonts/hero/cinzel-bold-f33b1b30736a.otf",
+        "source": "custom_ingested",
+        "role": "hero"
+      },
+      "secondary": {
+        "fontId": "hero-berylium-regular",
+        "family": "Berylium",
+        "fontAssetUrl": "/fonts/hero/berylium-rg-67d7e31492fa.otf",
+        "source": "custom_ingested",
+        "role": "support"
+      },
+      "graphUsed": true,
+      "pairingScore": 0.86,
+      "reason": "Resolved product hierarchy pairing through typography policy."
+    },
+    "roleStyles": [
+      {
+        "role": "hero",
+        "fontRole": "hero",
+        "trackingEm": -0.024,
+        "weight": 740,
+        "hierarchyLevel": 1,
+        "hierarchyScale": 1.2,
+        "lineHeight": 0.98
+      },
+      {
+        "role": "support",
+        "fontRole": "support",
+        "trackingEm": 0.06,
+        "weight": 500,
+        "hierarchyLevel": 2,
+        "hierarchyScale": 1,
+        "lineHeight": 1.08
+      },
+      {
+        "role": "cta",
+        "fontRole": "cta",
+        "trackingEm": 0.045,
+        "weight": 720,
+        "hierarchyLevel": 1,
+        "hierarchyScale": 1.12,
+        "lineHeight": 1
+      }
+    ],
+    "qualityAudit": {
+      "score": 1,
+      "failures": [],
+      "warnings": []
+    }
+  },
+  "josephChoreography": {
+    "version": "joseph-choreography-v1",
+    "vocabulary": [
+      {
+        "id": "punch",
+        "label": "Punch",
+        "momentumRole": "release",
+        "cutBehavior": "short hard emphasis on strong sync points",
+        "textBehavior": "hero word lands at the accent with minimal pre-roll",
+        "cameraBehavior": "fast push or snap-shake resolves inside the beat",
+        "sfxBehavior": "single impact or whoosh with tight ducking",
+        "backgroundBehavior": "brief contrast kick without stealing focus"
+      },
+      {
+        "id": "hold",
+        "label": "Hold",
+        "momentumRole": "restraint",
+        "cutBehavior": "withhold cuts across a breath window",
+        "textBehavior": "text arrives late and stays calm",
+        "cameraBehavior": "slow or absent camera drift",
+        "sfxBehavior": "no accent unless a phrase needs support",
+        "backgroundBehavior": "low-speed support surface protects readability"
+      },
+      {
+        "id": "bloom",
+        "label": "Bloom",
+        "momentumRole": "carry_through",
+        "cutBehavior": "cut after the idea opens rather than on first contact",
+        "textBehavior": "phrase expands from support to hero emphasis",
+        "cameraBehavior": "ease-out push carries the revelation",
+        "sfxBehavior": "soft riser or rounded impact follows the phrase",
+        "backgroundBehavior": "light or atmosphere opens behind the focal layer"
+      },
+      {
+        "id": "ratchet",
+        "label": "Ratchet",
+        "momentumRole": "escalation",
+        "cutBehavior": "successive cuts shorten spacing as tension rises",
+        "textBehavior": "successive words increase hierarchy and urgency",
+        "cameraBehavior": "push, dutch, or shake stacks with rising intensity",
+        "sfxBehavior": "riser, whoosh, and impact cadence escalates in order",
+        "backgroundBehavior": "motion density increases but remains below text"
+      },
+      {
+        "id": "glide",
+        "label": "Glide",
+        "momentumRole": "carry_through",
+        "cutBehavior": "favor continuity over abrupt resets",
+        "textBehavior": "support copy moves with the camera instead of popping",
+        "cameraBehavior": "long ease-in-out move preserves flow",
+        "sfxBehavior": "soft whoosh supports carry-through only",
+        "backgroundBehavior": "background cycle continues through the release"
+      },
+      {
+        "id": "suspend",
+        "label": "Suspend",
+        "momentumRole": "anticipation",
+        "cutBehavior": "delay the next cut to create tension",
+        "textBehavior": "hold or reduce text before the next accent",
+        "cameraBehavior": "freeze or nearly freeze the frame",
+        "sfxBehavior": "silence, low riser, or sub pressure before release",
+        "backgroundBehavior": "lower movement and pull contrast inward"
+      },
+      {
+        "id": "detonate",
+        "label": "Detonate",
+        "momentumRole": "detonation",
+        "cutBehavior": "spend the strongest cut at the final release",
+        "textBehavior": "CTA or thesis word lands as a decisive hero",
+        "cameraBehavior": "push-in resolves at peak intensity",
+        "sfxBehavior": "impact and sub-drop spend the climax budget",
+        "backgroundBehavior": "background accent peaks then clears for readability"
+      }
+    ],
+    "segments": [
+      {
+        "id": "segment-hook-0",
+        "role": "hook",
+        "doctrineId": "punch",
+        "startMs": 0,
+        "endMs": 3420,
+        "score": 0.7604941176470588,
+        "momentum": 0.7321132470588235,
+        "intensity": 0.6431807058823529,
+        "breathWindowMs": 185,
+        "climaxBudget": 0.24
+      },
+      {
+        "id": "segment-setup-1",
+        "role": "setup",
+        "doctrineId": "hold",
+        "startMs": 3420,
+        "endMs": 6840,
+        "score": 0.699089046653144,
+        "momentum": 0.5039365470588235,
+        "intensity": 0.6598187058823529,
+        "breathWindowMs": 261,
+        "climaxBudget": 0.16
+      },
+      {
+        "id": "segment-revelation-2",
+        "role": "revelation",
+        "doctrineId": "bloom",
+        "startMs": 6840,
+        "endMs": 9880,
+        "score": 0.8683956521739131,
+        "momentum": 0.7221110565217392,
+        "intensity": 0.8003173043478262,
+        "breathWindowMs": 174,
+        "climaxBudget": 0.48
+      },
+      {
+        "id": "segment-escalation-3",
+        "role": "escalation",
+        "doctrineId": "ratchet",
+        "startMs": 9880,
+        "endMs": 13680,
+        "score": 0.8219999999999998,
+        "momentum": 0.8132094782608695,
+        "intensity": 0.7634556521739129,
+        "breathWindowMs": 122,
+        "climaxBudget": 0.72
+      },
+      {
+        "id": "segment-release-4",
+        "role": "release",
+        "doctrineId": "glide",
+        "startMs": 13680,
+        "endMs": 15960,
+        "score": 0.6675337474120082,
+        "momentum": 0.4671079319603355,
+        "intensity": 0.6660226627438159,
+        "breathWindowMs": 183,
+        "climaxBudget": 0.34
+      },
+      {
+        "id": "segment-cta-5",
+        "role": "cta",
+        "doctrineId": "detonate",
+        "startMs": 15960,
+        "endMs": 19000,
+        "score": 0.8315157894736841,
+        "momentum": 0.874651389473684,
+        "intensity": 0.7532896842105261,
+        "breathWindowMs": 122,
+        "climaxBudget": 0.92
+      }
+    ],
+    "timingPlan": {
+      "cutWindows": [
+        {
+          "lane": "cut",
+          "eventId": "cut-0",
+          "segmentId": "segment-hook-0",
+          "segmentRole": "hook",
+          "doctrineId": "punch",
+          "startMs": 0,
+          "endMs": 70,
+          "triggerMs": 0,
+          "intensity": 1,
+          "sync": "beat"
+        },
+        {
+          "lane": "cut",
+          "eventId": "cut-1",
+          "segmentId": "segment-hook-0",
+          "segmentRole": "hook",
+          "doctrineId": "punch",
+          "startMs": 570,
+          "endMs": 710,
+          "triggerMs": 640,
+          "intensity": 1,
+          "sync": "onset"
+        },
+        {
+          "lane": "cut",
+          "eventId": "cut-2",
+          "segmentId": "segment-hook-0",
+          "segmentRole": "hook",
+          "doctrineId": "punch",
+          "startMs": 1930,
+          "endMs": 2070,
+          "triggerMs": 2000,
+          "intensity": 1,
+          "sync": "beat"
+        },
+        {
+          "lane": "cut",
+          "eventId": "cut-3",
+          "segmentId": "segment-hook-0",
+          "segmentRole": "hook",
+          "doctrineId": "punch",
+          "startMs": 2930,
+          "endMs": 3070,
+          "triggerMs": 3000,
+          "intensity": 1,
+          "sync": "beat"
+        },
+        {
+          "lane": "cut",
+          "eventId": "cut-4",
+          "segmentId": "segment-setup-1",
+          "segmentRole": "setup",
+          "doctrineId": "hold",
+          "startMs": 4810,
+          "endMs": 4950,
+          "triggerMs": 4880,
+          "intensity": 0.8,
+          "sync": "onset"
+        },
+        {
+          "lane": "cut",
+          "eventId": "cut-5",
+          "segmentId": "segment-release-4",
+          "segmentRole": "release",
+          "doctrineId": "glide",
+          "startMs": 15250,
+          "endMs": 15390,
+          "triggerMs": 15320,
+          "intensity": 0.8,
+          "sync": "onset"
+        }
+      ],
+      "textWindows": [
+        {
+          "lane": "text",
+          "eventId": "text-0-animations",
+          "segmentId": "segment-setup-1",
+          "segmentRole": "setup",
+          "doctrineId": "hold",
+          "startMs": 6367,
+          "endMs": 6867,
+          "triggerMs": 6367,
+          "intensity": 0.819818705882353,
+          "sync": "onset"
+        },
+        {
+          "lane": "text",
+          "eventId": "text-1-creative",
+          "segmentId": "segment-revelation-2",
+          "segmentRole": "revelation",
+          "doctrineId": "bloom",
+          "startMs": 7567,
+          "endMs": 8033,
+          "triggerMs": 7567,
+          "intensity": 0.9603173043478263,
+          "sync": "onset"
+        },
+        {
+          "lane": "text",
+          "eventId": "text-2-branding",
+          "segmentId": "segment-revelation-2",
+          "segmentRole": "revelation",
+          "doctrineId": "bloom",
+          "startMs": 8067,
+          "endMs": 8633,
+          "triggerMs": 8067,
+          "intensity": 1,
+          "sync": "onset"
+        },
+        {
+          "lane": "text",
+          "eventId": "text-3-reason",
+          "segmentId": "segment-revelation-2",
+          "segmentRole": "revelation",
+          "doctrineId": "bloom",
+          "startMs": 9200,
+          "endMs": 9567,
+          "triggerMs": 9200,
+          "intensity": 0.9603173043478263,
+          "sync": "onset"
+        }
+      ],
+      "cameraWindows": [
+        {
+          "lane": "camera",
+          "eventId": "camera-0-push_in",
+          "segmentId": "segment-setup-1",
+          "segmentRole": "setup",
+          "doctrineId": "hold",
+          "startMs": 6367,
+          "endMs": 7367,
+          "triggerMs": 6367,
+          "intensity": 0.7198187058823529,
+          "sync": "onset"
+        },
+        {
+          "lane": "camera",
+          "eventId": "camera-1-push_in",
+          "segmentId": "segment-revelation-2",
+          "segmentRole": "revelation",
+          "doctrineId": "bloom",
+          "startMs": 9200,
+          "endMs": 10200,
+          "triggerMs": 9200,
+          "intensity": 0.8603173043478263,
+          "sync": "onset"
+        },
+        {
+          "lane": "camera",
+          "eventId": "camera-2-push_in",
+          "segmentId": "segment-release-4",
+          "segmentRole": "release",
+          "doctrineId": "glide",
+          "startMs": 15667,
+          "endMs": 16667,
+          "triggerMs": 15667,
+          "intensity": 0.726022662743816,
+          "sync": "onset"
+        },
+        {
+          "lane": "camera",
+          "eventId": "camera-3-push_in",
+          "segmentId": "segment-cta-5",
+          "segmentRole": "cta",
+          "doctrineId": "detonate",
+          "startMs": 16000,
+          "endMs": 17000,
+          "triggerMs": 16000,
+          "intensity": 0.8132896842105262,
+          "sync": "beat"
+        }
+      ],
+      "sfxWindows": [
+        {
+          "lane": "sfx",
+          "eventId": "sfx-0-whoosh_slow",
+          "segmentId": "segment-hook-0",
+          "segmentRole": "hook",
+          "doctrineId": "punch",
+          "startMs": 640,
+          "endMs": 890,
+          "triggerMs": 640,
+          "intensity": 0.7231807058823528,
+          "sync": "onset"
+        },
+        {
+          "lane": "sfx",
+          "eventId": "sfx-1-whoosh_slow",
+          "segmentId": "segment-hook-0",
+          "segmentRole": "hook",
+          "doctrineId": "punch",
+          "startMs": 3000,
+          "endMs": 3250,
+          "triggerMs": 3000,
+          "intensity": 0.7231807058823528,
+          "sync": "beat"
+        },
+        {
+          "lane": "sfx",
+          "eventId": "sfx-2-whoosh_slow",
+          "segmentId": "segment-setup-1",
+          "segmentRole": "setup",
+          "doctrineId": "hold",
+          "startMs": 4880,
+          "endMs": 5130,
+          "triggerMs": 4880,
+          "intensity": 0.7398187058823529,
+          "sync": "onset"
+        },
+        {
+          "lane": "sfx",
+          "eventId": "sfx-3-pop_text",
+          "segmentId": "segment-setup-1",
+          "segmentRole": "setup",
+          "doctrineId": "hold",
+          "startMs": 6367,
+          "endMs": 6547,
+          "triggerMs": 6367,
+          "intensity": 0.7398187058823529,
+          "sync": "onset"
+        },
+        {
+          "lane": "sfx",
+          "eventId": "sfx-4-impact_deep",
+          "segmentId": "segment-revelation-2",
+          "segmentRole": "revelation",
+          "doctrineId": "bloom",
+          "startMs": 7567,
+          "endMs": 7867,
+          "triggerMs": 7567,
+          "intensity": 0.9803173043478262,
+          "sync": "onset"
+        },
+        {
+          "lane": "sfx",
+          "eventId": "sfx-5-impact_deep",
+          "segmentId": "segment-revelation-2",
+          "segmentRole": "revelation",
+          "doctrineId": "bloom",
+          "startMs": 8067,
+          "endMs": 8367,
+          "triggerMs": 8067,
+          "intensity": 0.9803173043478262,
+          "sync": "onset"
+        },
+        {
+          "lane": "sfx",
+          "eventId": "sfx-6-pop_text",
+          "segmentId": "segment-revelation-2",
+          "segmentRole": "revelation",
+          "doctrineId": "bloom",
+          "startMs": 9200,
+          "endMs": 9380,
+          "triggerMs": 9200,
+          "intensity": 0.8803173043478262,
+          "sync": "onset"
+        },
+        {
+          "lane": "sfx",
+          "eventId": "sfx-7-whoosh_slow",
+          "segmentId": "segment-release-4",
+          "segmentRole": "release",
+          "doctrineId": "glide",
+          "startMs": 15320,
+          "endMs": 15570,
+          "triggerMs": 15320,
+          "intensity": 0.7460226627438159,
+          "sync": "onset"
+        }
+      ],
+      "backgroundWindows": [
+        {
+          "lane": "background",
+          "eventId": "background-0-shader.depth-vignette",
+          "segmentId": "segment-hook-0",
+          "segmentRole": "hook",
+          "doctrineId": "punch",
+          "startMs": 0,
+          "endMs": 3420,
+          "triggerMs": 0,
+          "intensity": 0.5062901082352941,
+          "sync": "background_cycle"
+        },
+        {
+          "lane": "background",
+          "eventId": "background-1-lightfield.cinematic-bloom",
+          "segmentId": "segment-setup-1",
+          "segmentRole": "setup",
+          "doctrineId": "hold",
+          "startMs": 3420,
+          "endMs": 6840,
+          "triggerMs": 3420,
+          "intensity": 0.5038694682352941,
+          "sync": "background_cycle"
+        },
+        {
+          "lane": "background",
+          "eventId": "background-2-backplate.editorial-glass",
+          "segmentId": "segment-revelation-2",
+          "segmentRole": "revelation",
+          "doctrineId": "bloom",
+          "startMs": 6840,
+          "endMs": 9880,
+          "triggerMs": 6840,
+          "intensity": 0.6626284591304349,
+          "sync": "background_cycle"
+        },
+        {
+          "lane": "background",
+          "eventId": "background-3-accent.editorial-rails",
+          "segmentId": "segment-escalation-3",
+          "segmentRole": "escalation",
+          "doctrineId": "ratchet",
+          "startMs": 9880,
+          "endMs": 13680,
+          "triggerMs": 9880,
+          "intensity": 0.6792880695652173,
+          "sync": "background_cycle"
+        },
+        {
+          "lane": "background",
+          "eventId": "background-4-shader.depth-vignette",
+          "segmentId": "segment-release-4",
+          "segmentRole": "release",
+          "doctrineId": "glide",
+          "startMs": 13680,
+          "endMs": 15960,
+          "triggerMs": 13680,
+          "intensity": 0.5407363171755475,
+          "sync": "background_cycle"
+        },
+        {
+          "lane": "background",
+          "eventId": "background-5-lightfield.cinematic-bloom",
+          "segmentId": "segment-cta-5",
+          "segmentRole": "cta",
+          "doctrineId": "detonate",
+          "startMs": 15960,
+          "endMs": 19000,
+          "triggerMs": 15960,
+          "intensity": 0.7079685726315788,
+          "sync": "background_cycle"
+        }
+      ]
+    },
+    "qualityAudit": {
+      "score": 0.55,
+      "failures": [
+        "climax_overspend",
+        "dead_zone",
+        "flat_pacing"
+      ],
+      "warnings": []
+    }
+  },
+  "plannerHandoff": {
+    "version": "joseph-planner-handoff-v1",
+    "compilerVersion": "joseph-manifest-compiler-v1",
+    "deterministic": true,
+    "plannerPathId": "joseph-sequence-objective-v1:33c4e9b5-8250-44fe-b6ae-1342842cac13",
+    "selectedCandidateId": "33c4e9b5-8250-44fe-b6ae-1342842cac13",
+    "genomeIds": [
+      "33c4e9b5-8250-44fe-b6ae-1342842cac13"
+    ],
+    "doctrineBranchIds": [
+      "spotlight-swap"
+    ],
+    "archiveCellKeys": [
+      "balanced|sparse|active|payoff"
+    ],
+    "targetManifestFields": [
+      "audio.sfx",
+      "cameraMoves",
+      "josephBackground",
+      "josephChoreography",
+      "josephMacroRig",
+      "josephPiP",
+      "josephTypography",
+      "microAnimationAudit",
+      "plannerHandoff",
+      "plannerHandoff.compiledManifestHash",
+      "plannerHandoff.fallbacks",
+      "plannerHandoff.godEscalationIntent",
+      "plannerHandoff.inputManifestHash",
+      "plannerHandoff.retrievalIntent",
+      "source",
+      "textOverlays",
+      "textOverlays.microAnimation",
+      "timeline",
+      "videoTracks"
+    ],
+    "treatmentFamily": "balanced-sparse-active-payoff",
+    "finalTreatment": "spotlight-swap",
+    "retrievalIntent": "reuse-existing",
+    "godEscalationIntent": "forbidden",
+    "variationKey": "685fd420a12839046be1580288ae1d5a1eacf2d0c21f3ee84f3b7d7297e0caa5",
+    "fallbacks": [
+      {
+        "field": "treatmentFamily",
+        "tag": "compiler_treatment_family_unmapped",
+        "reason": "Treatment family identity is preserved as compiler evidence until Stack B has a first-class renderer field."
+      },
+      {
+        "field": "finalTreatment",
+        "tag": "compiler_final_treatment_downgraded",
+        "reason": "Final treatment is represented by current manifest fields or preserved as compiler evidence."
+      },
+      {
+        "field": "retrievalIntent",
+        "tag": "asset_reuse_unresolved",
+        "reason": "Existing asset reuse remains evidence-only unless a render-safe manifest reference is already present."
+      },
+      {
+        "field": "godEscalationIntent",
+        "tag": "god_generation_forbidden",
+        "reason": "GOD generation is explicitly forbidden for this selected path."
+      }
+    ],
+    "warnings": [
+      "Compiled manifest contains governed fallbacks; renderer must not invent omitted planner intent."
+    ],
+    "inputManifestHash": "c0de820845330f8f4efcf043c9c1a1e29e3ec18752e41f43a30a435e0de3e165",
+    "compiledManifestHash": "0ba666f5c5820c45c334c485968d17a104b1c3a0deed1c5f8fec8c690ccc6b77"
+  },
+  "source": {
+    "videoUrl": "/uploads/edit_mrjqsb6j_ea534a1fbe/1783978581354-source-first-video-19s.mp4",
+    "audioUrl": "/uploads/edit_mrjqsb6j_ea534a1fbe/1783978581354-source-first-video-19s.mp4",
+    "transcript": [
+      {
+        "text": "One",
+        "startMs": 160,
+        "endMs": 240,
+        "confidence": 1
+      },
+      {
+        "text": "of",
+        "startMs": 240,
+        "endMs": 360,
+        "confidence": 1
+      },
+      {
+        "text": "the",
+        "startMs": 360,
+        "endMs": 480,
+        "confidence": 1
+      },
+      {
+        "text": "most",
+        "startMs": 480,
+        "endMs": 640,
+        "confidence": 1
+      },
+      {
+        "text": "dominant",
+        "startMs": 640,
+        "endMs": 1160,
+        "confidence": 0.9962158
+      },
+      {
+        "text": "editing",
+        "startMs": 1160,
+        "endMs": 1480,
+        "confidence": 0.765625
+      },
+      {
+        "text": "styles",
+        "startMs": 1480,
+        "endMs": 1800,
+        "confidence": 0.99397784
+      },
+      {
+        "text": "in",
+        "startMs": 1800,
+        "endMs": 2040,
+        "confidence": 0.78808594
+      },
+      {
+        "text": "long",
+        "startMs": 2040,
+        "endMs": 2280,
+        "confidence": 1
+      },
+      {
+        "text": "form",
+        "startMs": 2280,
+        "endMs": 2520,
+        "confidence": 0.45654297
+      },
+      {
+        "text": "content",
+        "startMs": 2520,
+        "endMs": 2880,
+        "confidence": 1
+      },
+      {
+        "text": "is",
+        "startMs": 2880,
+        "endMs": 3120,
+        "confidence": 1
+      },
+      {
+        "text": "the",
+        "startMs": 3120,
+        "endMs": 3240,
+        "confidence": 0.9980469
+      },
+      {
+        "text": "Iman",
+        "startMs": 3240,
+        "endMs": 3800,
+        "confidence": 0.6455078
+      },
+      {
+        "text": "Gaji",
+        "startMs": 3800,
+        "endMs": 4280,
+        "confidence": 0.895874
+      },
+      {
+        "text": "editing",
+        "startMs": 4280,
+        "endMs": 4520,
+        "confidence": 1
+      },
+      {
+        "text": "style.",
+        "startMs": 4520,
+        "endMs": 4880,
+        "confidence": 0.86832684
+      },
+      {
+        "text": "From",
+        "startMs": 4880,
+        "endMs": 5080,
+        "confidence": 1
+      },
+      {
+        "text": "the",
+        "startMs": 5080,
+        "endMs": 5200,
+        "confidence": 1
+      },
+      {
+        "text": "design",
+        "startMs": 5200,
+        "endMs": 5440,
+        "confidence": 1
+      },
+      {
+        "text": "to",
+        "startMs": 5440,
+        "endMs": 5720,
+        "confidence": 1
+      },
+      {
+        "text": "the",
+        "startMs": 5720,
+        "endMs": 5840,
+        "confidence": 1
+      },
+      {
+        "text": "engaging",
+        "startMs": 5840,
+        "endMs": 6360,
+        "confidence": 0.86409503
+      },
+      {
+        "text": "animations",
+        "startMs": 6360,
+        "endMs": 6880,
+        "confidence": 1
+      },
+      {
+        "text": "and",
+        "startMs": 6880,
+        "endMs": 7080,
+        "confidence": 0.9980469
+      },
+      {
+        "text": "even",
+        "startMs": 7080,
+        "endMs": 7320,
+        "confidence": 0.8354492
+      },
+      {
+        "text": "the",
+        "startMs": 7320,
+        "endMs": 7560,
+        "confidence": 1
+      },
+      {
+        "text": "creative",
+        "startMs": 7560,
+        "endMs": 8080,
+        "confidence": 1
+      },
+      {
+        "text": "branding.",
+        "startMs": 8080,
+        "endMs": 8640,
+        "confidence": 1
+      },
+      {
+        "text": "That",
+        "startMs": 8640,
+        "endMs": 8920,
+        "confidence": 1
+      },
+      {
+        "text": "is",
+        "startMs": 8920,
+        "endMs": 9080,
+        "confidence": 1
+      },
+      {
+        "text": "the",
+        "startMs": 9080,
+        "endMs": 9200,
+        "confidence": 1
+      },
+      {
+        "text": "reason",
+        "startMs": 9200,
+        "endMs": 9400,
+        "confidence": 1
+      },
+      {
+        "text": "business",
+        "startMs": 9400,
+        "endMs": 9720,
+        "confidence": 0.5463867
+      },
+      {
+        "text": "owners",
+        "startMs": 9720,
+        "endMs": 10120,
+        "confidence": 0.954834
+      },
+      {
+        "text": "are",
+        "startMs": 10120,
+        "endMs": 10280,
+        "confidence": 1
+      },
+      {
+        "text": "paying",
+        "startMs": 10280,
+        "endMs": 10560,
+        "confidence": 1
+      },
+      {
+        "text": "$2,000",
+        "startMs": 10560,
+        "endMs": 11480,
+        "confidence": 0.99984
+      },
+      {
+        "text": "plus",
+        "startMs": 11480,
+        "endMs": 11840,
+        "confidence": 0.9958496
+      },
+      {
+        "text": "for",
+        "startMs": 11840,
+        "endMs": 12080,
+        "confidence": 0.9941406
+      },
+      {
+        "text": "editors",
+        "startMs": 12080,
+        "endMs": 12600,
+        "confidence": 1
+      },
+      {
+        "text": "that",
+        "startMs": 12600,
+        "endMs": 12760,
+        "confidence": 1
+      },
+      {
+        "text": "know",
+        "startMs": 12760,
+        "endMs": 12920,
+        "confidence": 1
+      },
+      {
+        "text": "how",
+        "startMs": 12920,
+        "endMs": 13080,
+        "confidence": 1
+      },
+      {
+        "text": "to",
+        "startMs": 13080,
+        "endMs": 13200,
+        "confidence": 1
+      },
+      {
+        "text": "edit",
+        "startMs": 13200,
+        "endMs": 13480,
+        "confidence": 0.9086914
+      },
+      {
+        "text": "long",
+        "startMs": 13480,
+        "endMs": 13680,
+        "confidence": 1
+      },
+      {
+        "text": "form",
+        "startMs": 13680,
+        "endMs": 13920,
+        "confidence": 0.87402344
+      },
+      {
+        "text": "content",
+        "startMs": 13920,
+        "endMs": 14200,
+        "confidence": 0.9995117
+      },
+      {
+        "text": "like",
+        "startMs": 14200,
+        "endMs": 14440,
+        "confidence": 1
+      },
+      {
+        "text": "Iman",
+        "startMs": 14440,
+        "endMs": 14920,
+        "confidence": 0.8720703
+      },
+      {
+        "text": "Gaji.",
+        "startMs": 14920,
+        "endMs": 15320,
+        "confidence": 0.92285156
+      },
+      {
+        "text": "So",
+        "startMs": 15320,
+        "endMs": 15440,
+        "confidence": 1
+      },
+      {
+        "text": "in",
+        "startMs": 15440,
+        "endMs": 15560,
+        "confidence": 1
+      },
+      {
+        "text": "this",
+        "startMs": 15560,
+        "endMs": 15680,
+        "confidence": 1
+      },
+      {
+        "text": "video,",
+        "startMs": 15680,
+        "endMs": 15919,
+        "confidence": 1
+      },
+      {
+        "text": "I'm",
+        "startMs": 15919,
+        "endMs": 16160,
+        "confidence": 0.9763997
+      },
+      {
+        "text": "going",
+        "startMs": 16160,
+        "endMs": 16279,
+        "confidence": 0.48901367
+      },
+      {
+        "text": "to",
+        "startMs": 16279,
+        "endMs": 16400,
+        "confidence": 1
+      },
+      {
+        "text": "teach",
+        "startMs": 16400,
+        "endMs": 16560,
+        "confidence": 1
+      },
+      {
+        "text": "you",
+        "startMs": 16560,
+        "endMs": 16640,
+        "confidence": 1
+      },
+      {
+        "text": "how",
+        "startMs": 16640,
+        "endMs": 16720,
+        "confidence": 1
+      },
+      {
+        "text": "to",
+        "startMs": 16720,
+        "endMs": 16840,
+        "confidence": 0.99853516
+      },
+      {
+        "text": "edit",
+        "startMs": 16840,
+        "endMs": 17080,
+        "confidence": 0.9523926
+      },
+      {
+        "text": "like",
+        "startMs": 17080,
+        "endMs": 17240,
+        "confidence": 1
+      },
+      {
+        "text": "Imangaji",
+        "startMs": 17240,
+        "endMs": 18000,
+        "confidence": 0.9428711
+      },
+      {
+        "text": "even",
+        "startMs": 18000,
+        "endMs": 18200,
+        "confidence": 1
+      },
+      {
+        "text": "if",
+        "startMs": 18200,
+        "endMs": 18360,
+        "confidence": 1
+      },
+      {
+        "text": "you're",
+        "startMs": 18360,
+        "endMs": 18560,
+        "confidence": 0.99886066
+      },
+      {
+        "text": "a",
+        "startMs": 18560,
+        "endMs": 18640,
+        "confidence": 0.99658203
+      },
+      {
+        "text": "complete.",
+        "startMs": 18640,
+        "endMs": 19000,
+        "confidence": 0.88500977
+      }
+    ],
+    "durationMs": 19000,
+    "width": 640,
+    "height": 360,
+    "fps": 30
+  },
+  "audio": {
+    "beats": [
+      0,
+      500,
+      1000,
+      1500,
+      2000,
+      2500,
+      3000,
+      3500,
+      4000,
+      4500,
+      5000,
+      5500,
+      6000,
+      6500,
+      7000,
+      7500,
+      8000,
+      8500,
+      9000,
+      9500,
+      10000,
+      10500,
+      11000,
+      11500,
+      12000,
+      12500,
+      13000,
+      13500,
+      14000,
+      14500,
+      15000,
+      15500,
+      16000,
+      16500,
+      17000,
+      17500,
+      18000,
+      18500
+    ],
+    "onsets": [
+      160,
+      240,
+      360,
+      480,
+      640,
+      1160,
+      1480,
+      1800,
+      2040,
+      2280,
+      2520,
+      2880,
+      3120,
+      3240,
+      3800,
+      4280,
+      4520,
+      4880,
+      5080,
+      5200,
+      5440,
+      5720,
+      5840,
+      6360,
+      6880,
+      7080,
+      7320,
+      7560,
+      8080,
+      8640,
+      8920,
+      9080,
+      9200,
+      9400,
+      9720,
+      10120,
+      10280,
+      10560,
+      11480,
+      11840,
+      12080,
+      12600,
+      12760,
+      12920,
+      13080,
+      13200,
+      13480,
+      13680,
+      13920,
+      14200,
+      14440,
+      14920,
+      15320,
+      15440,
+      15560,
+      15680,
+      15919,
+      16160,
+      16279,
+      16400,
+      16560,
+      16640,
+      16720,
+      16840,
+      17080,
+      17240,
+      18000,
+      18200,
+      18360,
+      18560,
+      18640
+    ],
+    "energyCurve": [
+      0.42,
+      0.68,
+      0.78,
+      0.55,
+      0.74,
+      0.62
+    ],
+    "musicBpm": 128,
+    "djPlan": {
+      "version": "joseph-dj-plan-v1",
+      "source": "video-aware-audio-plan",
+      "planId": "video-aware-audio-plan-edit_mrjqsb6j_ea534a1fbe",
+      "planMode": "render_ready",
+      "musicEvents": [
+        {
+          "id": "video-aware-audio-plan-edit_mrjqsb6j_ea534a1fbe-music-01",
+          "trackId": "local-aplmate-com-antipathy-irokz",
+          "bpm": 128,
+          "browserUrl": "/joseph-music/local-aplmate-com-antipathy-irokz.mp3",
+          "localFilePath": "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\PROMETHEUS_SONGS\\APLMate.com - antipathy - Irokz.mp3",
+          "videoStartSec": 0,
+          "videoEndSec": 19,
+          "trackStartSec": 0,
+          "trackEndSec": 19,
+          "volumeDb": -24,
+          "fadeInSec": 0.3,
+          "fadeOutSec": 1.2,
+          "duckingEnabled": true,
+          "purpose": "explanation_support_bed",
+          "sectionRole": "intro",
+          "beatAligned": true
+        }
+      ],
+      "transitionEvents": [],
+      "duckingRegions": [
+        {
+          "id": "duck-timeline-segment-01",
+          "videoStartSec": 0,
+          "videoEndSec": 3,
+          "targetMusicDb": -30,
+          "reason": "Dialogue protection for hook."
+        },
+        {
+          "id": "duck-timeline-segment-02",
+          "videoStartSec": 3,
+          "videoEndSec": 9.86,
+          "targetMusicDb": -30,
+          "reason": "Dialogue protection for explanation."
+        },
+        {
+          "id": "duck-timeline-segment-03",
+          "videoStartSec": 9.86,
+          "videoEndSec": 16.72,
+          "targetMusicDb": -30,
+          "reason": "Dialogue protection for explanation."
+        },
+        {
+          "id": "duck-timeline-segment-04",
+          "videoStartSec": 16.72,
+          "videoEndSec": 19,
+          "targetMusicDb": -30,
+          "reason": "Dialogue protection for outro."
+        }
+      ],
+      "warnings": [
+        "Phase 2 dry-run selected a license-safe local candidate track."
+      ]
+    },
+    "sfx": [
+      {
+        "id": "cut-1",
+        "cue": "whoosh_slow",
+        "variant": 5,
+        "triggerMs": 640,
+        "durationMs": 250,
+        "volumeDb": -12,
+        "duckMusicDb": -6
+      },
+      {
+        "id": "cut-3",
+        "cue": "whoosh_slow",
+        "variant": 2,
+        "triggerMs": 3000,
+        "durationMs": 250,
+        "volumeDb": -12,
+        "duckMusicDb": -6
+      },
+      {
+        "id": "cut-4",
+        "cue": "whoosh_slow",
+        "variant": 3,
+        "triggerMs": 4880,
+        "durationMs": 250,
+        "volumeDb": -12,
+        "duckMusicDb": -6
+      },
+      {
+        "id": "text-0",
+        "cue": "pop_text",
+        "variant": 5,
+        "triggerMs": 6367,
+        "durationMs": 180,
+        "volumeDb": -12,
+        "duckMusicDb": -6
+      },
+      {
+        "id": "text-1",
+        "cue": "impact_deep",
+        "variant": 4,
+        "triggerMs": 7567,
+        "durationMs": 300,
+        "volumeDb": -10,
+        "duckMusicDb": -9
+      },
+      {
+        "id": "text-2",
+        "cue": "impact_deep",
+        "variant": 4,
+        "triggerMs": 8067,
+        "durationMs": 300,
+        "volumeDb": -10,
+        "duckMusicDb": -9
+      },
+      {
+        "id": "text-3",
+        "cue": "pop_text",
+        "variant": 5,
+        "triggerMs": 9200,
+        "durationMs": 180,
+        "volumeDb": -12,
+        "duckMusicDb": -6
+      },
+      {
+        "id": "cut-5",
+        "cue": "whoosh_slow",
+        "variant": 3,
+        "triggerMs": 15320,
+        "durationMs": 250,
+        "volumeDb": -12,
+        "duckMusicDb": -6
+      }
+    ],
+    "voiceVolumeDb": 0,
+    "musicVolumeDb": -18,
+    "targetLufs": -14
+  },
+  "timeline": [
+    {
+      "type": "cut",
+      "atMs": 0,
+      "toMs": 0,
+      "style": "hard",
+      "intensity": 1
+    },
+    {
+      "type": "cut",
+      "atMs": 640,
+      "toMs": 640,
+      "style": "zoom_blur",
+      "intensity": 1
+    },
+    {
+      "type": "cut",
+      "atMs": 2000,
+      "toMs": 2000,
+      "style": "hard",
+      "intensity": 1
+    },
+    {
+      "type": "cut",
+      "atMs": 3000,
+      "toMs": 3000,
+      "style": "zoom_blur",
+      "intensity": 1
+    },
+    {
+      "type": "transition",
+      "style": "glitch_flash",
+      "atMs": 4880,
+      "durationMs": 400,
+      "intensity": 0.7
+    },
+    {
+      "type": "cut",
+      "atMs": 4880,
+      "toMs": 4880,
+      "style": "zoom_blur",
+      "intensity": 0.8
+    },
+    {
+      "type": "text",
+      "word": "Animations",
+      "startMs": 6367,
+      "endMs": 6867,
+      "style": "pop",
+      "color": "#FF0040",
+      "position": {
+        "x": 0.5,
+        "y": 0.15,
+        "z": 0.1
+      },
+      "scale": 1,
+      "cameraPush": 0,
+      "shake": 0
+    },
+    {
+      "type": "text",
+      "word": "Creative",
+      "startMs": 7567,
+      "endMs": 8033,
+      "style": "slide_up",
+      "color": "#FF0040",
+      "position": {
+        "x": 0.5,
+        "y": 0.15,
+        "z": 0.1
+      },
+      "scale": 1,
+      "cameraPush": 0,
+      "shake": 0
+    },
+    {
+      "type": "text",
+      "word": "Branding",
+      "startMs": 8067,
+      "endMs": 8633,
+      "style": "elastic_scale",
+      "color": "#FF0040",
+      "position": {
+        "x": 0.5,
+        "y": 0.15,
+        "z": 0.1
+      },
+      "scale": 1,
+      "cameraPush": 0,
+      "shake": 0
+    },
+    {
+      "type": "transition",
+      "style": "zoom_blur",
+      "atMs": 8640,
+      "durationMs": 400,
+      "intensity": 0.9
+    },
+    {
+      "type": "text",
+      "word": "Reason",
+      "startMs": 9200,
+      "endMs": 9567,
+      "style": "pop",
+      "color": "#FF0040",
+      "position": {
+        "x": 0.5,
+        "y": 0.15,
+        "z": 0.1
+      },
+      "scale": 1,
+      "cameraPush": 0,
+      "shake": 0
+    },
+    {
+      "type": "transition",
+      "style": "zoom_blur",
+      "atMs": 15320,
+      "durationMs": 400,
+      "intensity": 0.9
+    },
+    {
+      "type": "cut",
+      "atMs": 15320,
+      "toMs": 15320,
+      "style": "zoom_blur",
+      "intensity": 0.8
+    },
+    {
+      "type": "cut",
+      "atMs": 18000,
+      "toMs": 18000,
+      "style": "hard",
+      "intensity": 1
+    }
+  ],
+  "creativeProfile": {
+    "name": "joseph_cinematic",
+    "cutDensity": 0.6,
+    "textDensity": 0.45,
+    "sfxDensity": 0.5,
+    "cameraAggression": 0.6,
+    "colorIntensity": 0.8
+  },
+  "output": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "codec": "h264",
+    "crf": 18
+  }
+}

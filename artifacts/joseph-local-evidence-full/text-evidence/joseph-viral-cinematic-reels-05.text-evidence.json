@@ -1,0 +1,101 @@
+{
+  "observation_count": 10,
+  "observations": [
+    {
+      "end_seconds": 8.21311,
+      "event_index": 0,
+      "sample_seconds": 4.851355,
+      "source": "ocr_unavailable",
+      "start_seconds": 1.4896,
+      "texts": [],
+      "zones": []
+    },
+    {
+      "end_seconds": 20.2237,
+      "event_index": 1,
+      "sample_seconds": 17.4136,
+      "source": "ocr_unavailable",
+      "start_seconds": 14.6035,
+      "texts": [],
+      "zones": []
+    },
+    {
+      "end_seconds": 31.7414,
+      "event_index": 2,
+      "sample_seconds": 28.76315,
+      "source": "ocr_unavailable",
+      "start_seconds": 25.7849,
+      "texts": [],
+      "zones": []
+    },
+    {
+      "end_seconds": 63.4488,
+      "event_index": 3,
+      "sample_seconds": 51.24215,
+      "source": "ocr_unavailable",
+      "start_seconds": 39.0355,
+      "texts": [],
+      "zones": []
+    },
+    {
+      "end_seconds": 150.94,
+      "event_index": 4,
+      "sample_seconds": 137.692,
+      "source": "ocr_unavailable",
+      "start_seconds": 124.444,
+      "texts": [],
+      "zones": []
+    },
+    {
+      "end_seconds": 380.221,
+      "event_index": 5,
+      "sample_seconds": 343.766,
+      "source": "ocr_unavailable",
+      "start_seconds": 307.311,
+      "texts": [],
+      "zones": []
+    },
+    {
+      "end_seconds": 701.809,
+      "event_index": 6,
+      "sample_seconds": 608.428,
+      "source": "ocr_unavailable",
+      "start_seconds": 515.047,
+      "texts": [],
+      "zones": []
+    },
+    {
+      "end_seconds": 712.933,
+      "event_index": 7,
+      "sample_seconds": 708.9545,
+      "source": "ocr_unavailable",
+      "start_seconds": 704.976,
+      "texts": [],
+      "zones": []
+    },
+    {
+      "end_seconds": 746.989,
+      "event_index": 8,
+      "sample_seconds": 738.8365,
+      "source": "ocr_unavailable",
+      "start_seconds": 730.684,
+      "texts": [],
+      "zones": []
+    },
+    {
+      "end_seconds": 784.899,
+      "event_index": 9,
+      "sample_seconds": 784.899,
+      "source": "ocr_unavailable",
+      "start_seconds": 784.899,
+      "texts": [],
+      "zones": []
+    }
+  ],
+  "schema_version": "text-evidence-v1",
+  "source_video_path": "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\JOSEPH VIDEO PROOF\\How_to_Edit_Viral_Cinematic_Reels    fifth video.mp4",
+  "video_id": "joseph-viral-cinematic-reels-05",
+  "warnings": [
+    "ocr_unavailable"
+  ]
+}

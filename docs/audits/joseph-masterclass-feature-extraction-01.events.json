@@ -1,0 +1,185 @@
+{
+  "schemaVersion": "manual-feature-extraction-v1",
+  "referenceId": "joseph-masterclass-01",
+  "status": "candidate_reference_1_of_5",
+  "title": "The Complete Guide to Editing like Iman Gadzhi in 2026! (Masterclass)",
+  "sourceEvidence": [
+    "Great Joshua raw timestamp transcript",
+    "Kimi synthesis/fine-tune",
+    "THE JOSEPH SOUND EFFECTS (THE ONES THAT I COULD FIND)",
+    "SOUND FX"
+  ],
+  "sfxLibraryStatus": {
+    "suppliedJosephFiles": 27,
+    "alreadyPresentInMainLibrary": 27,
+    "copiedFiles": 0,
+    "note": "No binary copies were made because every supplied Joseph SFX file already exists in SOUND FX."
+  },
+  "coverageEstimate": {
+    "observedKeyDecisions": 46,
+    "explainableByCurrentCatalogApprox": 31,
+    "explainableAfterCandidateDeltasApprox": 42,
+    "trainingSafeNowApprox": 24
+  },
+  "events": [
+    {
+      "timeSeconds": [0.0, 3.211],
+      "observed": "Black/low-visual intro with layered bass, riser, and texture.",
+      "probableIntent": "Capture attention before visual information appears.",
+      "viewerProblemSolved": "Stops passive viewing and primes anticipation.",
+      "currentFeatures": ["audio.music_energy", "audio.transient_density", "temporal.sequence_trend"],
+      "missingFeatures": ["audio.sfx_layer_count", "audio.tension_riser_shape", "audio.visual_withholding_state"],
+      "confidence": {"visual": "medium", "audio": "medium", "intent": "plausible"},
+      "verdict": "good",
+      "trainingSafety": "defer_until_audio_artifact"
+    },
+    {
+      "timeSeconds": [3.211, 6.715],
+      "observed": "Iman/PiP-style asset, glowing name, crown, entry and exit SFX.",
+      "probableIntent": "Anchor the tutorial around the semantic keyword and status claim.",
+      "viewerProblemSolved": "Clarifies subject and makes the style feel dominant/premium.",
+      "currentFeatures": ["typography.has_text", "motion_graphics.has_image_asset", "composition.has_pip"],
+      "missingFeatures": ["typography.semantic_keyword_weight", "asset.lifecycle_sfx_role", "icon.semantic_support_role"],
+      "confidence": {"visual": "medium", "audio": "medium", "intent": "strong"},
+      "verdict": "good",
+      "trainingSafety": "manual_review_then_train"
+    },
+    {
+      "timeSeconds": [9.739, 10.401],
+      "observed": "$2,000 number counter starts before verbal mention and locks on the spoken value.",
+      "probableIntent": "Predictive visual priming and value emphasis.",
+      "viewerProblemSolved": "Makes the value claim easier to feel and remember.",
+      "currentFeatures": ["motion_graphics.has_data_viz", "typography.role", "audio.has_audio_synced_cut"],
+      "missingFeatures": ["asset.predictive_prime_offset_ms", "number_counter.lock_sync", "value_anchor_strength"],
+      "confidence": {"visual": "medium", "audio": "medium", "intent": "strong"},
+      "verdict": "good",
+      "trainingSafety": "train_after_sync_measurement"
+    },
+    {
+      "timeSeconds": [20.476, 28.967],
+      "observed": "Later-in-this-video teaser with numbered items and preview clips.",
+      "probableIntent": "Retention contract: show concrete value if the viewer stays.",
+      "viewerProblemSolved": "Answers why the viewer should keep watching.",
+      "currentFeatures": ["temporal.position_in_video", "motion_graphics.has_screen_recording", "typography.keyword_count"],
+      "missingFeatures": ["narrative.retention_contract", "preview.future_content_teaser", "teaser.desaturation_state"],
+      "confidence": {"visual": "medium", "audio": "medium", "intent": "strong"},
+      "verdict": "good",
+      "trainingSafety": "manual_review_then_train"
+    },
+    {
+      "timeSeconds": [24.964, 24.964],
+      "observed": "Same shutter-like sound repeats for grouped teaser items.",
+      "probableIntent": "Sonic grouping: the listed items belong together.",
+      "viewerProblemSolved": "Makes the list easier to parse.",
+      "currentFeatures": ["audio.sfx_count", "audio.sfx_class"],
+      "missingFeatures": ["audio.grouped_punctuation_sfx", "list.item_sonic_consistency"],
+      "confidence": {"visual": "medium", "audio": "medium", "intent": "plausible"},
+      "verdict": "good",
+      "trainingSafety": "train_after_audio_artifact"
+    },
+    {
+      "timeSeconds": [32.841, 32.841],
+      "observed": "The word finally aligns with riser/release timing.",
+      "probableIntent": "Pair semantic completion with sonic completion.",
+      "viewerProblemSolved": "Gives the viewer closure at the end of a list.",
+      "currentFeatures": ["audio.beat_proximity", "speaker.has_emphasis"],
+      "missingFeatures": ["audio.semantic_sonic_release", "spoken_marker.completion"],
+      "confidence": {"visual": "low", "audio": "medium", "intent": "plausible"},
+      "verdict": "good",
+      "trainingSafety": "defer_until_asr_audio_alignment"
+    },
+    {
+      "timeSeconds": [37.743, 44.322],
+      "observed": "Inactive assets blur/dim while camera pans to the active asset; whoosh follows motion.",
+      "probableIntent": "Choreograph attention across multiple assets.",
+      "viewerProblemSolved": "Prevents multi-item layout confusion.",
+      "currentFeatures": ["composition.visual_density", "camera.movement_class", "motion_graphics.micro_animation_family"],
+      "missingFeatures": ["attention.focus_handoff", "asset.active_inactive_state", "audio.motion_follow_sfx"],
+      "confidence": {"visual": "medium", "audio": "medium", "intent": "strong"},
+      "verdict": "good",
+      "trainingSafety": "manual_review_then_train"
+    },
+    {
+      "timeSeconds": [206.773, 212.244],
+      "observed": "Expected riser payoff is replaced by silence/bell, then sound returns.",
+      "probableIntent": "Break pattern intentionally and refresh attention.",
+      "viewerProblemSolved": "Violates expectation without losing pacing.",
+      "currentFeatures": ["audio.has_silence_gap", "temporal.novelty_level"],
+      "missingFeatures": ["audio.intentional_silence_break", "pattern.expected_payoff_violation", "audio.bpm_continuity_after_silence"],
+      "confidence": {"visual": "low", "audio": "medium", "intent": "plausible"},
+      "verdict": "good",
+      "trainingSafety": "manual_only_until_audio_proof"
+    },
+    {
+      "timeSeconds": [263.499, 263.499],
+      "observed": "Long text uses rolling gear instead of repeated mouse-click sounds.",
+      "probableIntent": "Avoid click spam while keeping text reveal sonically alive.",
+      "viewerProblemSolved": "Reduces fatigue during longer text chunks.",
+      "currentFeatures": ["audio.sfx_class", "typography.keyword_count"],
+      "missingFeatures": ["audio.sound_efficiency_by_text_length", "text.chunk_sfx_strategy"],
+      "confidence": {"visual": "medium", "audio": "medium", "intent": "plausible"},
+      "verdict": "good",
+      "trainingSafety": "manual_review_then_train"
+    },
+    {
+      "timeSeconds": [277.139, 277.139],
+      "observed": "A cut occurs with no SFX after many SFX-heavy transitions.",
+      "probableIntent": "Give auditory relief and prevent fatigue.",
+      "viewerProblemSolved": "Keeps sound design from becoming burdensome.",
+      "currentFeatures": ["audio.has_silence_gap", "transition.type"],
+      "missingFeatures": ["audio.sfx_omission_reason", "sonic_fatigue_relief"],
+      "confidence": {"visual": "medium", "audio": "medium", "intent": "plausible"},
+      "verdict": "good",
+      "trainingSafety": "manual_only_until_audio_proof"
+    },
+    {
+      "timeSeconds": [571.491, 571.491],
+      "observed": "Song changes to a similar but faster-feeling track during the middle section.",
+      "probableIntent": "Refresh a long tutorial without jarring the viewer.",
+      "viewerProblemSolved": "Avoids auditory boredom.",
+      "currentFeatures": ["audio.music_energy", "temporal.sequence_trend"],
+      "missingFeatures": ["music.seamless_song_change", "music.bpm_arc_reason"],
+      "confidence": {"visual": "low", "audio": "low", "intent": "speculative"},
+      "verdict": "good",
+      "trainingSafety": "defer_until_audio_artifact"
+    },
+    {
+      "timeSeconds": [849.098, 849.098],
+      "observed": "Zoom-out transition combines with a thick vignette that fades out.",
+      "probableIntent": "Focus entry, then open the field to communicate abundance/more examples.",
+      "viewerProblemSolved": "Guides attention during reveal.",
+      "currentFeatures": ["composition.vignette", "camera.movement_class"],
+      "missingFeatures": ["vignette.semantic_dynamic", "vignette.fade_direction_role"],
+      "confidence": {"visual": "medium", "audio": "low", "intent": "speculative"},
+      "verdict": "good",
+      "trainingSafety": "manual_only_until_repeated"
+    }
+  ],
+  "candidateFeatures": [
+    "audio.sfx_lifecycle_role",
+    "audio.sfx_timing_relation",
+    "audio.sfx_layer_count",
+    "audio.sonic_substitution_for_visual",
+    "audio.grouped_punctuation_sfx",
+    "audio.sfx_omission_reason",
+    "audio.sonic_variety_index",
+    "audio.sound_efficiency_by_text_length",
+    "audio.bpm_arc_phase",
+    "asset.predictive_prime_offset_ms",
+    "asset.linger_reason",
+    "asset.active_inactive_state",
+    "preview.future_content_teaser",
+    "typography.semantic_keyword_weight",
+    "typography.hierarchy_split_role",
+    "typography.blur_amount",
+    "color.cross_modal_palette_coherence",
+    "transition.return_to_authority",
+    "transition.visual_only_exception",
+    "camera.speaker_micro_motion_phase",
+    "vignette.semantic_dynamic",
+    "education.reverse_reveal_zoom",
+    "narrative.retention_contract",
+    "rhetorical.question_state",
+    "commercial.price_reveal_climax"
+  ]
+}

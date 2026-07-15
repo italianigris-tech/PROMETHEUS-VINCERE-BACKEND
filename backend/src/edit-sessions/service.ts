@@ -630,6 +630,8 @@ const buildPreviewDiagnostics = ({
 const buildSessionRoutes = (sessionId: string, sourceMedia: string | null) => ({
   status: `/api/edit-sessions/${sessionId}/status`,
   previewManifest: `/api/edit-sessions/${sessionId}/preview-manifest`,
+  josephManifest: `/api/edit-sessions/${sessionId}/joseph-manifest`,
+  josephRenderJob: `/api/edit-sessions/${sessionId}/joseph-render-job`,
   previewArtifact: `/api/edit-sessions/${sessionId}/preview-artifact`,
   preview: `/api/edit-sessions/${sessionId}/preview`,
   render: `/api/edit-sessions/${sessionId}/render`,

@@ -49,6 +49,19 @@ describe('JosephEdit Composition', () => {
     expect(videoPlaneContent).toContain("https?:");
   });
 
+  it('previews the same source voice, DJ cue, ducking, fade, and SFX timings carried by the final manifest', () => {
+    expect(content).toContain('const JosephAudioPreview');
+    expect(content).toContain('manifest.source.videoUrl');
+    expect(content).toContain('djPlan?.musicEvents.map');
+    expect(content).toContain('event.browserUrl');
+    expect(content).toContain('djPlan.duckingRegions');
+    expect(content).toContain('event.fadeInSec');
+    expect(content).toContain('event.fadeOutSec');
+    expect(content).toContain('manifest.audio.sfx.map');
+    expect(content).toContain('audioPreviewEnabled');
+    expect(content).toContain('audioPreviewEnabled && <JosephAudioPreview manifest={manifest} />');
+  });
+
   it('loads Joseph text font from manifest typography instead of only hard-coding Antenna', () => {
     expect(content).toContain('resolveTypographyRenderContract');
     expect(content).toContain('manifest.typography');
@@ -60,6 +73,13 @@ describe('JosephEdit Composition', () => {
   it('uses role-specific Joseph typography font assets for rendered text', () => {
     expect(content).toContain('roleStyle?.fontAssetUrl ?? typography.fontAssetUrl');
     expect(content).toContain('font={roleFontAssetUrl}');
+  });
+
+  it('preloads every typography font before conditional overlays can suspend mid-render', () => {
+    expect(content).toContain('const TypographyFontPreloader');
+    expect(content).toContain('<TypographyFontPreloader contract={typographyPreload} />');
+    expect(content).toContain('characters={typographyPreload.characters}');
+    expect(content).toContain('resolveTypographyPreloadContract');
   });
 
   it('keeps source video cover-cropped for vertical output instead of stretched', () => {

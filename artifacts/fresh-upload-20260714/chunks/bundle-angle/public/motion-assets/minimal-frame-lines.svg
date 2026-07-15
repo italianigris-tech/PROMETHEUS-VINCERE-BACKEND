@@ -1,0 +1,20 @@
+<svg width="1080" height="1920" viewBox="0 0 1080 1920" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="frameGlow" x1="0" y1="0" x2="1080" y2="1920" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFD49A" stop-opacity="0.9" />
+      <stop offset="1" stop-color="#8CB8FF" stop-opacity="0.85" />
+    </linearGradient>
+  </defs>
+  <g stroke="url(#frameGlow)" stroke-width="3" stroke-linecap="round" opacity="0.92">
+    <path d="M78 128V62H208" />
+    <path d="M872 62H1002V190" />
+    <path d="M78 1792V1858H214" />
+    <path d="M860 1858H1002V1732" />
+  </g>
+  <g stroke="url(#frameGlow)" stroke-width="1.5" opacity="0.44">
+    <path d="M96 430H232" />
+    <path d="M848 430H984" />
+    <path d="M96 1490H232" />
+    <path d="M848 1490H984" />
+  </g>
+</svg>

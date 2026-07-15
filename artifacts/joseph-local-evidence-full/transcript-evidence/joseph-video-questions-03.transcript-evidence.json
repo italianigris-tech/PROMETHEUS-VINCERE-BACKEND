@@ -1,0 +1,15 @@
+{
+  "schema_version": "transcript-evidence-v1",
+  "segments": [],
+  "source": "assemblyai_not_run",
+  "status": "not_run",
+  "text": "",
+  "title": "Answering Your Top Video Editing Questions in 15minutes!",
+  "trainable": false,
+  "transcript_id": null,
+  "video_id": "joseph-video-questions-03",
+  "warnings": [
+    "assemblyai_not_configured"
+  ],
+  "words": []
+}

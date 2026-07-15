@@ -1,4 +1,4 @@
-import {beforeEach, describe, expect, it, vi} from 'vitest';
+﻿import {beforeEach, describe, expect, it, vi} from 'vitest';
 import {AudioMixError, buildFfmpegArgs, mixAudio, resolveSfxPath, sanitizeForFFmpeg, SFXNotFoundError} from './mix-audio';
 import * as fs from 'fs';
 import * as child_process from 'child_process';
@@ -199,6 +199,87 @@ describe('mixAudio', () => {
     expect(filterComplex).not.toContain('(laughs)');
   });
 
+
+  it('renders DJ plan music events instead of the legacy single-track selector', () => {
+    mockManifest.audio.musicTrackUrl = path.resolve('/mock/media/legacy-single.mp3');
+    mockManifest.audio.djPlan = {
+      version: 'joseph-dj-plan-v1',
+      source: 'video-aware-audio-plan',
+      planId: 'dj-plan-test',
+      planMode: 'render_ready',
+      warnings: [],
+      transitionEvents: [{
+        id: 'transition-1',
+        type: 'beat_crossfade',
+        videoStartSec: 4.2,
+        videoEndSec: 5,
+        fromTrackId: 'track-a',
+        toTrackId: 'track-b',
+        intensity: 0.75,
+        beatAligned: true,
+        downbeatTargetSec: 4.2,
+      }],
+      duckingRegions: [{
+        id: 'duck-hook',
+        videoStartSec: 0.4,
+        videoEndSec: 1.2,
+        targetMusicDb: -26,
+        reason: 'Dialogue protection for hook.',
+      }, {
+        id: 'duck-proof',
+        videoStartSec: 6,
+        videoEndSec: 7.2,
+        targetMusicDb: -28,
+        reason: 'Dialogue protection for proof.',
+      }],
+      musicEvents: [
+        {
+          id: 'music-a',
+          trackId: 'track-a',
+          localFilePath: path.resolve('/mock/media/dj-a.mp3'),
+          videoStartSec: 0,
+          videoEndSec: 5,
+          trackStartSec: 1,
+          trackEndSec: 6,
+          volumeDb: -24,
+          fadeInSec: 0.3,
+          fadeOutSec: 0.8,
+          duckingEnabled: true,
+          purpose: 'video_hook_bed',
+          sectionRole: 'intro',
+          beatAligned: true,
+        },
+        {
+          id: 'music-b',
+          trackId: 'track-b',
+          localFilePath: path.resolve('/mock/media/dj-b.mp3'),
+          videoStartSec: 4.2,
+          videoEndSec: 10,
+          trackStartSec: 0,
+          trackEndSec: 5.8,
+          volumeDb: -23,
+          fadeInSec: 0.8,
+          fadeOutSec: 1.2,
+          duckingEnabled: true,
+          purpose: 'cta_resolve_bed',
+          sectionRole: 'drop',
+          beatAligned: true,
+        },
+      ],
+    };
+
+    const args = buildFfmpegArgs(mockManifest, 'out.m4a', mixOptions);
+    const filterComplex = args[args.indexOf('-filter_complex') + 1];
+
+    expect(args).toContain(path.resolve('/mock/media/dj-a.mp3'));
+    expect(args).toContain(path.resolve('/mock/media/dj-b.mp3'));
+    expect(args).not.toContain(path.resolve('/mock/media/legacy-single.mp3'));
+    expect(filterComplex).toContain('atrim=start=1:end=6');
+    expect(filterComplex).toContain('adelay=4200|4200');
+    expect(filterComplex).toContain('-26dB');
+    expect(filterComplex).toContain('-28dB');
+    expect(filterComplex).not.toContain('-26dB,-24dB)+if');
+  });
   it('throws AudioMixError on FFmpeg failure', async () => {
     const mockChildProcess = {
       stderr: {on: vi.fn((event, cb) => cb('ffmpeg error output'))},

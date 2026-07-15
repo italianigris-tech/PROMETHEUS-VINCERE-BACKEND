@@ -319,7 +319,7 @@ export const orchestrateArrangement = (input: OrchestrateArrangementInput): Vide
         videoStartSec: segment.startSec,
         videoEndSec: segment.endSec,
         reason: `Dialogue protection for ${segment.role}.`,
-        targetMusicDb: -21,
+        targetMusicDb: -30,
         speechPriority: roundToMillis(segment.speechDensity)
       })
     );

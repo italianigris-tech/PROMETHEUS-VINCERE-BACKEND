@@ -335,16 +335,35 @@ const lineColorFor = (
   return role === "hero" || role === "cta" ? "#FF0040" : "#FFFFFF";
 };
 
-const buildLines = (
+const visibleWeightsFor = (
   weights: readonly JosephTypographyWordWeight[],
   rules: JosephTypographyCompositionRules,
-): JosephTypographyLine[] => {
+): JosephTypographyWordWeight[] => {
   const visible = weights.filter((weight) => {
     if (weight.role !== "filler") {
       return true;
     }
     return rules.fillerTreatment !== "suppress";
   });
+  if (visible.length <= 4) {
+    return visible;
+  }
+
+  const roleRank: Record<TypographyRole, number> = {cta: 4, hero: 3, support: 2, filler: 1};
+  return [...visible]
+    .sort((left, right) =>
+      roleRank[right.role] - roleRank[left.role] ||
+      right.score - left.score ||
+      left.startFrame - right.startFrame,
+    )
+    .slice(0, 4)
+    .sort((left, right) => left.startFrame - right.startFrame);
+};
+const buildLines = (
+  weights: readonly JosephTypographyWordWeight[],
+  rules: JosephTypographyCompositionRules,
+): JosephTypographyLine[] => {
+  const visible = visibleWeightsFor(weights, rules);
   const heroes = visible.filter((weight) => weight.role === "hero");
   const support = visible.filter((weight) => weight.role === "support");
   const ordered = [...heroes, ...support];

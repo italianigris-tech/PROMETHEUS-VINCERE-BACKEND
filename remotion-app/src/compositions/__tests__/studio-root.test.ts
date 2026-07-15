@@ -51,6 +51,16 @@ describe("Remotion Studio root", () => {
     );
   });
 
+  it("loads JosephEdit from the latest compiled upload manifest before using the fixture fallback", () => {
+    const source = readFileSync(path.resolve("src/Root.tsx"), "utf8");
+
+    expect(source).toContain('staticFile("joseph-studio/latest.json")');
+    expect(source).toContain("loadJosephStudioManifest");
+    expect(source).toContain("UnifiedRenderManifestSchema.parse(await response.json())");
+    expect(source).toContain("component={JosephStudioComposition}");
+    expect(source).toContain("manifestUrl: JOSEPH_STUDIO_LATEST_MANIFEST_URL");
+  });
+
   it("keeps the active Studio composition implemented directly in ProjectScopedMotionComposition", () => {
     const projectScopedSource = readFileSync(
       path.resolve("src/compositions/ProjectScopedMotionComposition.tsx"),
@@ -208,10 +218,10 @@ describe("Remotion Studio root", () => {
 
   it("keeps sample props explicit and inactive unless a studio sample id is requested", () => {
     const defaultProps = buildProjectScopedStudioDefaultProps("longform_svg_typography_v1");
-    const sampleProps = buildProjectScopedStudioSampleProps("patrick-bet-david-part-01", "longform_svg_typography_v1");
+    const sampleProps = buildProjectScopedStudioSampleProps("raw-landscape-test-video", "longform_svg_typography_v1");
 
     expect(defaultProps.studioSampleId).toBeUndefined();
-    expect(sampleProps.studioSampleId).toBe("patrick-bet-david-part-01");
+    expect(sampleProps.studioSampleId).toBe("raw-landscape-test-video");
     expect(sampleProps.videoSrc).toBeNull();
     expect(sampleProps.captionChunksOverride).toEqual([]);
     expect(sampleProps.motionModelOverride).toBeNull();
@@ -232,7 +242,7 @@ describe("Remotion Studio root", () => {
 
   it("creates visible caption chunks only when the explicit Studio typography sample is requested", () => {
     const sampleProps = buildProjectScopedStudioTypographySampleProps(
-      "male-head-longform-dataset",
+      "raw-landscape-test-video",
       "longform_svg_typography_v1"
     );
     const captionChunks = resolveProjectScopedCaptionChunks({
@@ -257,13 +267,13 @@ describe("Remotion Studio root", () => {
   it("resolves a known studioSampleId to a curated public video asset", () => {
     const resolved = resolveProjectScopedStudioVideoBinding({
       videoSrc: null,
-      studioSampleId: "male-head-longform-dataset"
+      studioSampleId: "raw-landscape-test-video"
     });
 
     expect(resolved.normalizedVideoSrc).toBeNull();
     expect(resolved.invalidStudioSampleId).toBeNull();
-    expect(resolved.resolvedStudioSample?.id).toBe("male-head-longform-dataset");
-    expect(resolved.resolvedVideoSrc).toContain("datasets/male-head-raw-longform/input-video-landscape.mp4");
+    expect(resolved.resolvedStudioSample?.id).toBe("raw-landscape-test-video");
+    expect(resolved.resolvedVideoSrc).toContain("dev-fixtures/test-video.mp4");
   });
 
   it("still derives real caption chunks from explicit live session data when no override is passed", () => {
@@ -302,7 +312,7 @@ describe("Remotion Studio root", () => {
 
   it("keeps captions visible and reports typography diagnostics without ghost house-font warnings", () => {
     const sampleProps = buildProjectScopedStudioTypographySampleProps(
-      "male-head-longform-dataset",
+      "raw-landscape-test-video",
       "longform_svg_typography_v1"
     );
     const captionChunks = resolveProjectScopedCaptionChunks({
@@ -337,7 +347,7 @@ describe("Remotion Studio root", () => {
     expect(
       buildProjectScopedDiagnosticWarnings({
         videoSrc: "/sample.mp4",
-        studioSampleId: "male-head-longform-dataset",
+        studioSampleId: "raw-landscape-test-video",
         invalidStudioSampleId: null,
         videoValidationState: "ready",
         videoValidationMessage: null,
@@ -372,7 +382,7 @@ describe("Remotion Studio root", () => {
   });
 
   it("surfaces a non-fatal invalid-video diagnostic without relying on polluted Studio defaults", () => {
-    const sampleProps = buildProjectScopedStudioSampleProps("patrick-bet-david-part-01", "longform_svg_typography_v1");
+    const sampleProps = buildProjectScopedStudioSampleProps("raw-landscape-test-video", "longform_svg_typography_v1");
 
     expect(
       buildProjectScopedDiagnosticWarnings({

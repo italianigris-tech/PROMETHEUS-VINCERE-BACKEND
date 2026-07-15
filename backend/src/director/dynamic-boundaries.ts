@@ -133,8 +133,24 @@ const addCtaCuts = (
 ): void => {
   const ctaStart = Math.max(0, durationMs - CTA_WINDOW_MS);
   const stride = PROFILE_STRIDE[profile];
-  everyNth(safePoints(pointsWithin(sortedUnique(beats), ctaStart, durationMs), phrases), stride)
-    .forEach((point) => cuts.add(point));
+  const safeBeatCandidates = safePoints(pointsWithin(sortedUnique(beats), ctaStart, durationMs), phrases);
+  const selectedBeatCandidates = everyNth(safeBeatCandidates, stride);
+  selectedBeatCandidates.forEach((point) => cuts.add(point));
+
+  const terminalPhrase = phrases.at(-1);
+  const terminalPoint = terminalPhrase && terminalPhrase.endMs < durationMs
+    ? terminalPhrase.endMs
+    : terminalPhrase?.startMs;
+  const terminalPhraseEndsAtDuration = terminalPhrase?.endMs === durationMs;
+  if (
+    terminalPoint !== undefined
+    && (selectedBeatCandidates.length === 0 || terminalPhraseEndsAtDuration)
+    && terminalPoint >= ctaStart
+    && terminalPoint < durationMs
+    && !isInsideWord(terminalPoint, phrases)
+  ) {
+    cuts.add(terminalPoint);
+  }
 };
 
 export function findCutPoints(

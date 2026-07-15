@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Blue Glass Analytics Card</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background: transparent !important;
+    }
+    body::before, body::after { display: none !important; }
+
+    body {
+      display: grid;
+      place-items: center;
+      font-family: 'Sora', sans-serif;
+    }
+
+    #scene {
+      width: 544px;
+      height: 680px;
+      perspective: 900px;
+    }
+
+    svg {
+      width: 544px;
+      height: 680px;
+      overflow: visible;
+      transform-style: preserve-3d;
+    }
+
+    .text-primary {
+      font-size: 64px;
+      font-weight: 700;
+      fill: #f2f6ff;
+      letter-spacing: -1px;
+    }
+
+    .text-secondary {
+      font-size: 16px;
+      font-weight: 500;
+      fill: #b7c6de;
+    }
+
+    .text-tertiary {
+      font-size: 12px;
+      font-weight: 500;
+      fill: #9fb2c9;
+    }
+  </style>
+</head>
+<body>
+  <div id="scene">
+    <svg
+      id="asset"
+      viewBox="0 0 544 680"
+      width="544"
+      height="680"
+      xmlns="http://www.w3.org/2000/svg"
+      data-asset-name="8bba9b4b4e60e49648ce5b9498de4dd7"
+      data-asset-type="glass-analytics-card"
+      data-image-slots="0"
+      data-text-slots="5"
+      data-asset-version="1"
+    >
+      <title>Blue Glass Analytics Card</title>
+      <desc>Glass analytics card with line chart and 400% metric.</desc>
+      <metadata id="asset_metadata">
+        {
+          "name": "8bba9b4b4e60e49648ce5b9498de4dd7",
+          "assetId": "8bba9b4b4e60e49648ce5b9498de4dd7",
+          "filename": "8bba9b4b4e60e49648ce5b9498de4dd7.html",
+          "displayName": "Blue Glass Analytics Card",
+          "type": "glass-analytics-card",
+          "description": "Glass analytics card with line chart, peak highlight, and 400% conversion rate.",
+          "macro": "blue glass analytics card",
+          "keywords": [
+            "analytics",
+            "conversion",
+            "rate",
+            "400%",
+            "monthly",
+            "data",
+            "chart",
+            "blue",
+            "glassmorphism"
+          ],
+          "imageSlots": 0,
+          "imageSlotNames": [],
+          "imageSlotRoles": [],
+          "textSlots": 5,
+          "textSlotNames": [
+            "text_primary_1",
+            "text_secondary_1",
+            "text_tertiary_1",
+            "text_tertiary_2",
+            "text_tertiary_3"
+          ],
+          "textSlotRoles": [
+            "primary",
+            "secondary",
+            "tertiary",
+            "tertiary",
+            "tertiary"
+          ],
+          "textArtifacts": [
+            {
+              "id": "text_primary_1",
+              "role": "primary",
+              "category": "core",
+              "slot": "1",
+              "text": "400%",
+              "charCount": 4
+            },
+            {
+              "id": "text_secondary_1",
+              "role": "secondary",
+              "category": "descriptor",
+              "slot": "1",
+              "text": "Conversion rate",
+              "charCount": 15
+            },
+            {
+              "id": "text_tertiary_1",
+              "role": "tertiary",
+              "category": "descriptor",
+              "slot": "1",
+              "text": "Data updated 2h ago",
+              "charCount": 21
+            },
+            {
+              "id": "text_tertiary_2",
+              "role": "tertiary",
+              "category": "descriptor",
+              "slot": "2",
+              "text": "Monthly",
+              "charCount": 7
+            },
+            {
+              "id": "text_tertiary_3",
+              "role": "tertiary",
+              "category": "descriptor",
+              "slot": "3",
+              "text": "Increase vs last month",
+              "charCount": 23
+            }
+          ],
+          "textArtifactCount": 5,
+          "textArtifactCounts": {
+            "core": 1,
+            "descriptor": 4,
+            "stray": 0
+          },
+          "format": "svg+gsap",
+          "version": "1.0.0"
+        }
+      </metadata>
+      <defs>
+        <radialGradient id="bgFade" cx="50%" cy="40%" r="60%">
+          <stop offset="0%" stop-color="#0b172a" stop-opacity="0.85" />
+          <stop offset="65%" stop-color="#0b172a" stop-opacity="0.25" />
+          <stop offset="100%" stop-color="#0b172a" stop-opacity="0" />
+        </radialGradient>
+
+        <linearGradient id="cardGradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#0b1a2d" />
+          <stop offset="100%" stop-color="#0a1224" />
+        </linearGradient>
+        <radialGradient id="cardGlow" cx="70%" cy="90%" r="70%">
+          <stop offset="0%" stop-color="#3d6bd6" stop-opacity="0.4" />
+          <stop offset="70%" stop-color="#0b172a" stop-opacity="0" />
+        </radialGradient>
+        <linearGradient id="cardStroke" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#6aa0ff" stop-opacity="0.9" />
+          <stop offset="100%" stop-color="#3d6bd6" stop-opacity="0.25" />
+        </linearGradient>
+
+        <pattern id="gridPattern" width="28" height="28" patternUnits="userSpaceOnUse">
+          <path d="M 28 0 L 0 0 0 28" fill="none" stroke="#1a2a48" stroke-width="1" opacity="0.35" />
+        </pattern>
+
+        <linearGradient id="chartGradient" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#5c7dbf" />
+          <stop offset="50%" stop-color="#9cc2ff" />
+          <stop offset="100%" stop-color="#6b8fe0" />
+        </linearGradient>
+        <radialGradient id="dotGlow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#cfe4ff" stop-opacity="1" />
+          <stop offset="60%" stop-color="#7fb3ff" stop-opacity="0.6" />
+          <stop offset="100%" stop-color="#7fb3ff" stop-opacity="0" />
+        </radialGradient>
+
+        <filter id="cardShadow" x="-30%" y="-30%" width="160%" height="180%">
+          <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#000000" flood-opacity="0.5" />
+        </filter>
+        <filter id="softGlow" x="-40%" y="-40%" width="180%" height="200%">
+          <feGaussianBlur stdDeviation="8" />
+        </filter>
+        <filter id="textShadow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="1" stdDeviation="0" flood-color="#ffffff" flood-opacity="0.12" />
+          <feDropShadow dx="0" dy="2" stdDeviation="12" flood-color="#000000" flood-opacity="0.25" />
+        </filter>
+
+        <clipPath id="clip-card">
+          <rect x="72" y="84" width="400" height="512" rx="36" />
+        </clipPath>
+        <clipPath id="clip-text">
+          <rect id="textClipRect" x="96" y="110" width="352" height="470" />
+        </clipPath>
+      </defs>
+
+      <g id="ground_glow">
+        <ellipse cx="272" cy="340" rx="230" ry="300" fill="url(#bgFade)" />
+      </g>
+
+      <g id="card_group" filter="url(#cardShadow)">
+        <rect x="72" y="84" width="400" height="512" rx="36" fill="url(#cardGradient)" />
+        <rect x="72" y="84" width="400" height="512" rx="36" fill="url(#cardGlow)" />
+        <rect x="72" y="84" width="400" height="512" rx="36" fill="none" stroke="url(#cardStroke)" stroke-width="2" />
+      </g>
+
+      <g id="grid_group" clip-path="url(#clip-card)">
+        <rect x="72" y="84" width="400" height="512" fill="url(#gridPattern)" opacity="0.35" />
+        <rect x="72" y="84" width="400" height="512" fill="url(#cardGlow)" opacity="0.4" />
+      </g>
+
+      <g id="chart_group" clip-path="url(#clip-card)">
+        <path
+          id="chart_glow"
+          d="M120 380 C170 340 210 430 250 420 C270 320 280 250 296 248 C320 248 330 330 350 360 C380 395 410 360 432 362"
+          fill="none"
+          stroke="#6fa0ff"
+          stroke-width="6"
+          opacity="0.35"
+          filter="url(#softGlow)"
+        />
+        <path
+          id="chart_line"
+          d="M120 380 C170 340 210 430 250 420 C270 320 280 250 296 248 C320 248 330 330 350 360 C380 395 410 360 432 362"
+          fill="none"
+          stroke="url(#chartGradient)"
+          stroke-width="3"
+        />
+        <g id="chart_dot" transform="translate(296 248)">
+          <circle r="22" fill="url(#dotGlow)" />
+          <circle r="6" fill="#d7e9ff" />
+        </g>
+      </g>
+
+      <g id="top_ui" clip-path="url(#clip-card)">
+        <text id="text_tertiary_1" data-text-slot="1" data-text-role="tertiary" class="text-tertiary" x="108" y="122">Data updated 2h ago</text>
+        <g id="pill_monthly" transform="translate(358 104)">
+          <rect width="110" height="28" rx="14" fill="#1f2c4a" opacity="0.7" />
+          <rect width="110" height="28" rx="14" fill="#ffffff" opacity="0.05" />
+          <text id="text_tertiary_2" data-text-slot="2" data-text-role="tertiary" class="text-tertiary" x="55" y="19" text-anchor="middle" fill="#c2d2ea">Monthly</text>
+          <path d="M92 11 L99 11 L95.5 16 Z" fill="#c2d2ea" />
+        </g>
+      </g>
+
+      <g id="text_group" clip-path="url(#clip-text)" filter="url(#textShadow)">
+        <text id="text_secondary_1" data-text-slot="1" data-text-role="secondary" class="text-secondary" x="272" y="450" text-anchor="middle">Conversion rate</text>
+        <text id="text_primary_1" data-text-slot="1" data-text-role="primary" class="text-primary" x="272" y="520" text-anchor="middle">400%</text>
+        <text id="text_tertiary_3" data-text-slot="3" data-text-role="tertiary" class="text-tertiary" x="272" y="545" text-anchor="middle" fill="#7d8da3">Increase vs last month</text>
+        <path d="M338 535 L344 528 L350 535" fill="none" stroke="#6cf081" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      </g>
+    </svg>
+  </div>
+
+  <script src="/motion-assets/vendor/gsap.min.js"></script>
+  <script>
+    const svg = document.getElementById('asset');
+    const cardGroup = document.getElementById('card_group');
+    const gridGroup = document.getElementById('grid_group');
+    const chartGroup = document.getElementById('chart_group');
+    const topUi = document.getElementById('top_ui');
+    const textGroup = document.getElementById('text_group');
+    const textClipRect = document.getElementById('textClipRect');
+    const groundGlow = document.getElementById('ground_glow');
+
+    const primaryText = document.getElementById('text_primary_1');
+    const secondaryText = document.getElementById('text_secondary_1');
+
+    const CHAR_ROLES = new Set(['primary', 'secondary', 'tertiary']);
+    const SVG_NS = 'http://www.w3.org/2000/svg';
+    let primaryChars = [];
+    let secondaryChars = [];
+    let tertiaryChars = [];
+    let allChars = [];
+
+    let idleTweens = [];
+    let mainTl = null;
+
+    function splitTextToChars(textEl) {
+      const role = textEl.getAttribute('data-text-role');
+      if (!CHAR_ROLES.has(role)) return null;
+      if (!textEl.id) textEl.id = `text_${Math.random().toString(36).slice(2, 8)}`;
+      const id = textEl.id;
+      const parent = textEl.parentNode;
+      const existing = parent.querySelector(`[data-char-group-for="${id}"]`);
+      if (existing) existing.remove();
+
+      const group = document.createElementNS(SVG_NS, 'g');
+      group.setAttribute('data-char-group-for', id);
+      group.setAttribute('data-text-role', role);
+      const slot = textEl.getAttribute('data-text-slot');
+      if (slot) group.setAttribute('data-text-slot', slot);
+
+      textEl.setAttribute('opacity', '0');
+      textEl.style.pointerEvents = 'none';
+
+      const charCount = textEl.getNumberOfChars();
+      const textValue = textEl.textContent || '';
+      const attrs = ['class', 'fill', 'font-family', 'font-size', 'font-weight', 'text-anchor'];
+      for (let i = 0; i < charCount; i += 1) {
+        const ch = textValue.charAt(i);
+        const pos = textEl.getStartPositionOfChar(i);
+        const charEl = document.createElementNS(SVG_NS, 'text');
+        charEl.textContent = ch;
+        charEl.setAttribute('x', pos.x);
+        charEl.setAttribute('y', pos.y);
+        attrs.forEach((attr) => {
+          const val = textEl.getAttribute(attr);
+          if (val) charEl.setAttribute(attr, val);
+        });
+        charEl.setAttribute('xml:space', 'preserve');
+        charEl.setAttribute('data-char', '1');
+        charEl.setAttribute('data-text-role', role);
+        if (slot) charEl.setAttribute('data-text-slot', slot);
+        group.appendChild(charEl);
+      }
+      parent.appendChild(group);
+      return group;
+    }
+
+    function rebuildCharGroups() {
+      const textNodes = Array.from(svg.querySelectorAll('text[data-text-role]'))
+        .filter((node) => CHAR_ROLES.has(node.getAttribute('data-text-role')));
+      textNodes.forEach(splitTextToChars);
+      primaryChars = Array.from(svg.querySelectorAll('[data-char="1"][data-text-role="primary"]'));
+      secondaryChars = Array.from(svg.querySelectorAll('[data-char="1"][data-text-role="secondary"]'));
+      tertiaryChars = Array.from(svg.querySelectorAll('[data-char="1"][data-text-role="tertiary"]'));
+      allChars = primaryChars.concat(secondaryChars, tertiaryChars);
+    }
+
+    function animateCharsInTimeline(tl, atTime) {
+      if (primaryChars.length) {
+        tl.to(primaryChars, {
+          opacity: 1,
+          y: 0,
+          filter: 'blur(0px)',
+          duration: 0.9,
+          ease: 'power3.out',
+          stagger: { each: 0.018, from: 'center' }
+        }, atTime);
+      }
+      if (secondaryChars.length) {
+        tl.to(secondaryChars, {
+          opacity: 1,
+          y: 0,
+          filter: 'blur(0px)',
+          duration: 0.85,
+          ease: 'power3.out',
+          stagger: { each: 0.012, from: 'start' }
+        }, atTime + 0.03);
+      }
+      if (tertiaryChars.length) {
+        tl.to(tertiaryChars, {
+          opacity: 1,
+          y: 0,
+          filter: 'blur(0px)',
+          duration: 0.8,
+          ease: 'power3.out',
+          stagger: { each: 0.012, from: 'start' }
+        }, atTime + 0.05);
+      }
+    }
+
+    function animateCharsInNow() {
+      if (primaryChars.length) {
+        gsap.to(primaryChars, {
+          opacity: 1,
+          y: 0,
+          filter: 'blur(0px)',
+          duration: 0.9,
+          ease: 'power3.out',
+          stagger: { each: 0.018, from: 'center' }
+        });
+      }
+      if (secondaryChars.length) {
+        gsap.to(secondaryChars, {
+          opacity: 1,
+          y: 0,
+          filter: 'blur(0px)',
+          duration: 0.85,
+          ease: 'power3.out',
+          stagger: { each: 0.012, from: 'start' }
+        });
+      }
+      if (tertiaryChars.length) {
+        gsap.to(tertiaryChars, {
+          opacity: 1,
+          y: 0,
+          filter: 'blur(0px)',
+          duration: 0.8,
+          ease: 'power3.out',
+          stagger: { each: 0.012, from: 'start' }
+        });
+      }
+    }
+
+    function setInitial() {
+      rebuildCharGroups();
+      gsap.set([cardGroup, gridGroup], {
+        y: 110,
+        opacity: 0,
+        scale: 0.88,
+        filter: 'blur(16px)',
+        rotationX: 12,
+        transformPerspective: 800,
+        transformOrigin: '50% 50%'
+      });
+      gsap.set(groundGlow, {
+        scaleX: 0.2,
+        opacity: 0,
+        transformOrigin: '50% 50%'
+      });
+      gsap.set([chartGroup, topUi], {
+        y: 120,
+        opacity: 0,
+        filter: 'blur(10px)'
+      });
+      gsap.set(textClipRect, {
+        attr: { y: 560 }
+      });
+      gsap.set(allChars, { opacity: 0, y: 12, filter: 'blur(12px)' });
+    }
+
+    function runScene() {
+      idleTweens.forEach((t) => t.kill());
+      idleTweens = [];
+      if (mainTl) mainTl.kill();
+      gsap.killTweensOf([cardGroup, gridGroup, chartGroup, topUi, textClipRect, groundGlow, ...allChars]);
+
+      setInitial();
+
+      mainTl = gsap.timeline();
+      mainTl
+        .to([cardGroup, gridGroup], {
+          y: 0,
+          opacity: 1,
+          scale: 1,
+          filter: 'blur(0px)',
+          rotationX: 0,
+          duration: 1.15,
+          ease: 'expo.out'
+        }, 0)
+        .to(groundGlow, {
+          scaleX: 1,
+          opacity: 1,
+          duration: 1.05,
+          ease: 'expo.out'
+        }, 0.1)
+        .to([chartGroup, topUi], {
+          y: 0,
+          opacity: 1,
+          filter: 'blur(0px)',
+          duration: 0.92,
+          ease: 'expo.out'
+        }, 0.38)
+        .to(textClipRect, {
+          attr: { y: 110 },
+          duration: 0.9,
+          ease: 'expo.out'
+        }, 0.75)
+        .add(() => {
+          idleTweens.push(
+            gsap.to([cardGroup, gridGroup], {
+              y: -8,
+              duration: 3.8,
+              ease: 'sine.inOut',
+              yoyo: true,
+              repeat: -1
+            })
+          );
+          idleTweens.push(
+            gsap.to([chartGroup, topUi], {
+              y: -4,
+              duration: 3.2,
+              ease: 'sine.inOut',
+              yoyo: true,
+              repeat: -1,
+              delay: 0.35
+            })
+          );
+          idleTweens.push(
+            gsap.to(groundGlow, {
+              scaleX: 0.7,
+              opacity: 0.55,
+              duration: 3.8,
+              ease: 'sine.inOut',
+              yoyo: true,
+              repeat: -1
+            })
+          );
+        }, 1.45);
+
+      animateCharsInTimeline(mainTl, 0.75);
+    }
+
+    function updateAsset(newPrimary, newSecondary) {
+      const tl = gsap.timeline();
+      tl.to(allChars, {
+        opacity: 0,
+        y: 10,
+        filter: 'blur(4px)',
+        duration: 0.28,
+        ease: 'power2.in',
+        stagger: 0.006
+      })
+        .call(() => {
+          if (typeof newPrimary === 'string') primaryText.textContent = newPrimary;
+          if (typeof newSecondary === 'string') secondaryText.textContent = newSecondary;
+          rebuildCharGroups();
+          gsap.set(allChars, { opacity: 0, y: 12, filter: 'blur(12px)' });
+        })
+        .call(() => {
+          animateCharsInNow();
+        });
+    }
+
+    window.runScene = runScene;
+    window.updateAsset = updateAsset;
+
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(runScene);
+    } else {
+      runScene();
+    }
+  </script>
+</body>
+</html>
+

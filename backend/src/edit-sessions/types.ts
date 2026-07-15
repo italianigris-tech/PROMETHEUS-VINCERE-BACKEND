@@ -181,6 +181,8 @@ export const editSessionLiveActivitySchema = z.object({
 export const editSessionPublicRoutesSchema = z.object({
   status: z.string(),
   previewManifest: z.string(),
+  josephManifest: z.string(),
+  josephRenderJob: z.string(),
   previewArtifact: z.string(),
   preview: z.string(),
   render: z.string(),

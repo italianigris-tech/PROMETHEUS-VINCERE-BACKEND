@@ -1,0 +1,12 @@
+<svg width="1080" height="1920" viewBox="0 0 1080 1920" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="beam" x1="220" y1="1120" x2="980" y2="1680" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFD49A" stop-opacity="0" />
+      <stop offset="0.46" stop-color="#FFD49A" stop-opacity="0.82" />
+      <stop offset="0.7" stop-color="#FFFFFF" stop-opacity="0.55" />
+      <stop offset="1" stop-color="#8CB8FF" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+  <path d="M84 1658L732 1088L1016 1230L372 1800L84 1658Z" fill="url(#beam)" opacity="0.88" />
+  <path d="M744 1134L930 1038L1064 1180L886 1268L744 1134Z" fill="#FFE7C5" opacity="0.18" />
+</svg>

@@ -3,8 +3,8 @@
 Runs WITHOUT a GPU, WITHOUT a video, WITHOUT librosa/mediapipe/easyocr.
 cv2 + pydantic + numpy are all it needs (all present locally).
 
-It loads the ACTUAL module file (not a copy) via importlib — because the
-package dir has a hyphen it isn't importable the normal way — and exercises
+It loads the ACTUAL module file (not a copy) via importlib - because the
+package dir has a hyphen it isn't importable the normal way - and exercises
 the pure-logic paths that previously crashed or produced wrong output.
 """
 import importlib.util
@@ -22,7 +22,7 @@ import numpy as np
 passed, failed = [], []
 def check(name, cond, detail=""):
     (passed if cond else failed).append(name)
-    print(f"  [{'PASS' if cond else 'FAIL'}] {name}" + (f" — {detail}" if detail and not cond else ""))
+    print(f"  [{'PASS' if cond else 'FAIL'}] {name}" + (f" - {detail}" if detail and not cond else ""))
 
 # Synthetic frames: 4 frames, 720x1280 RGB (portrait, Joseph's format).
 def synth_frames(w=720, h=1280, n=4):
@@ -34,7 +34,7 @@ box_a = (120, 80, 200, 260)    # a plausible face box (x,y,w,h) in px
 box_b = (128, 84, 200, 260)    # slightly moved -> exercises velocity math
 
 print("=" * 70)
-print("1. FACE-BOX INDEXING — previously TypeError at window 1")
+print("1. FACE-BOX INDEXING - previously TypeError at window 1")
 print("=" * 70)
 # extract_camera: the old code did face_b[0][0] on a single box -> crash.
 try:
@@ -64,7 +64,7 @@ except Exception as e:
 
 print()
 print("=" * 70)
-print("2. derive_genre — tutorial branch was dead code (precedence bug)")
+print("2. derive_genre - tutorial branch was dead code (precedence bug)")
 print("=" * 70)
 class C: pass
 class M: pass
@@ -84,7 +84,7 @@ check("no screen-rec + no speaker -> broll_only",
 
 print()
 print("=" * 70)
-print("3. EnergyBucket fallback — no more latent 'none' member footgun")
+print("3. EnergyBucket fallback - no more latent 'none' member footgun")
 print("=" * 70)
 check("EnergyBucket has exactly low/mid/high",
       {e.value for e in kx.EnergyBucket} == {"low","mid","high"})
@@ -96,7 +96,7 @@ check("_b returns a real bucket for various inputs", all(
 
 print()
 print("=" * 70)
-print("4. SCHEMA INTEGRITY — a fully-built window must still validate (74 feats)")
+print("4. SCHEMA INTEGRITY - a fully-built window must still validate (74 feats)")
 print("=" * 70)
 from pydantic import ValidationError
 cam_full   = kx.extract_camera(frames, 2.0, box_a, box_b)
@@ -152,11 +152,74 @@ except Exception as e:
 
 print()
 print("=" * 70)
-print("5. AUDIO LIBROSA-ABSENT PATH — must return sane defaults, not crash")
+print("5. AUDIO LIBROSA-ABSENT PATH - must return sane defaults, not crash")
 print("=" * 70)
 a = kx.extract_audio(None, 22050, 0.0, 1.0, np.array([]), None)
 check("audio defaults to low buckets when librosa absent",
       a.music_energy == a.vocal_energy == a.spectral_brightness == a.transient_density == kx.EnergyBucket.low)
+
+analyzed_artifact = {
+    "is_fallback": False,
+    "beat_grid": [{"time_seconds": 0.5, "source": "pcm_onset"}],
+    "onsets": [
+        {"time_seconds": 0.1, "strength": 0.7},
+        {"time_seconds": 0.2, "strength": 0.7},
+        {"time_seconds": 0.3, "strength": 0.7},
+    ],
+    "energy": {
+        "windows": [
+            {
+                "start_seconds": 0.0,
+                "end_seconds": 1.0,
+                "rms": 0.3,
+                "music_energy": 0.3,
+                "vocal_energy": 0.2,
+            }
+        ]
+    },
+    "sfx_events": [{"time_seconds": 0.25, "class": "whoosh"}],
+    "ducking_envelope": {"points": [{"time_seconds": 0.25, "gain_db": -8.0}]},
+}
+aa = kx.extract_audio(None, 22050, 0.0, 1.0, np.array([]), None, audio_artifact=analyzed_artifact)
+check("audio artifact path maps analyzed signals into AudioFeatures",
+      aa.music_presence and aa.music_energy == kx.EnergyBucket.high
+      and aa.beat_proximity == "on_beat" and aa.sfx_class == "whoosh"
+      and aa.sfx_count == 1 and aa.ducking_active
+      and aa.transient_density == kx.EnergyBucket.high)
+
+fallback_artifact = {
+    "is_fallback": True,
+    "beat_grid": [{"time_seconds": 0.5, "source": "fallback_bpm"}],
+    "energy": {"windows": [{"start_seconds": 0.0, "end_seconds": 1.0, "rms": "unknown"}]},
+    "warnings": ["fallback_bpm_grid"],
+}
+fa = kx.extract_audio(None, 22050, 0.0, 1.0, np.array([]), None, audio_artifact=fallback_artifact)
+check("fallback artifact cannot masquerade as analyzed audio",
+      not fa.music_presence and fa.music_energy == kx.EnergyBucket.low
+      and fa.beat_proximity == "off_beat" and fa.sfx_class == "none"
+      and fa.sfx_count == 0 and not fa.ducking_active)
+
+check("analyzed artifact beat grid can feed transition sync",
+      kx.audio_artifact_beat_times(analyzed_artifact).tolist() == [0.5]
+      and kx.audio_artifact_beat_times(fallback_artifact).tolist() == [])
+
+print()
+print("=" * 70)
+print("6. LOCAL SPARSE WINDOWS - smoke run must stay bounded")
+print("=" * 70)
+sys.path.insert(0, str(HERE))
+local_spec = importlib.util.spec_from_file_location("run_local_joseph_artifacts", HERE / "run_local_joseph_artifacts.py")
+local = importlib.util.module_from_spec(local_spec)
+sys.modules["run_local_joseph_artifacts"] = local
+local_spec.loader.exec_module(local)
+probe_events = [
+    {"timeSeconds": [10.2, 12.9]},
+    {"timeSeconds": 20.4},
+]
+check("local sparse windows default to bookends plus audit midpoints",
+      local._trajectory_window_indices(probe_events, 30.0, context_radius=0) == [0, 11, 20, 29])
+check("local sparse windows can opt into neighbor context",
+      local._trajectory_window_indices(probe_events, 30.0, context_radius=1) == [0, 10, 11, 12, 19, 20, 21, 29])
 
 print()
 print("=" * 70)

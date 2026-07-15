@@ -14,6 +14,7 @@
     "animation:prototype:index": "tsx scripts/animation-prototype-index.ts",
     "pattern-memory:sync": "tsx scripts/pattern-memory-sync.ts",
     "music:sync": "tsx scripts/music-sync.ts",
+    "audio:preview:materialize": "tsx scripts/materialize-audio-preview-catalog.ts",
     "soundfx:sync": "tsx scripts/sound-fx-sync.ts",
     "transition-overlays:sync": "tsx scripts/transition-overlays-sync.ts",
     "showcase:remove-bg": "node scripts/showcase-remove-bg.js",

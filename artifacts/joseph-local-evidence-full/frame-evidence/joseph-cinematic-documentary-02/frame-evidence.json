@@ -1,0 +1,106 @@
+{
+  "failures": [],
+  "frame_count": 12,
+  "frames": [
+    {
+      "end_seconds": 2.165,
+      "event_index": 0,
+      "path": "frame-evidence\\joseph-cinematic-documentary-02\\frames\\event-000-1.598s.jpg",
+      "sample_seconds": 1.598,
+      "source": "ffmpeg",
+      "start_seconds": 1.031
+    },
+    {
+      "end_seconds": 6.56,
+      "event_index": 1,
+      "path": "frame-evidence\\joseph-cinematic-documentary-02\\frames\\event-001-5.737s.jpg",
+      "sample_seconds": 5.7375,
+      "source": "ffmpeg",
+      "start_seconds": 4.915
+    },
+    {
+      "end_seconds": 24.513,
+      "event_index": 2,
+      "path": "frame-evidence\\joseph-cinematic-documentary-02\\frames\\event-002-19.945s.jpg",
+      "sample_seconds": 19.9455,
+      "source": "ffmpeg",
+      "start_seconds": 15.378
+    },
+    {
+      "end_seconds": 41.011,
+      "event_index": 3,
+      "path": "frame-evidence\\joseph-cinematic-documentary-02\\frames\\event-003-37.678s.jpg",
+      "sample_seconds": 37.6775,
+      "source": "ffmpeg",
+      "start_seconds": 34.344
+    },
+    {
+      "end_seconds": 68.976,
+      "event_index": 4,
+      "path": "frame-evidence\\joseph-cinematic-documentary-02\\frames\\event-004-58.642s.jpg",
+      "sample_seconds": 58.6425,
+      "source": "ffmpeg",
+      "start_seconds": 48.309
+    },
+    {
+      "end_seconds": 125.718,
+      "event_index": 5,
+      "path": "frame-evidence\\joseph-cinematic-documentary-02\\frames\\event-005-100.308s.jpg",
+      "sample_seconds": 100.308,
+      "source": "ffmpeg",
+      "start_seconds": 74.898
+    },
+    {
+      "end_seconds": 293.085,
+      "event_index": 6,
+      "path": "frame-evidence\\joseph-cinematic-documentary-02\\frames\\event-006-288.221s.jpg",
+      "sample_seconds": 288.2205,
+      "source": "ffmpeg",
+      "start_seconds": 283.356
+    },
+    {
+      "end_seconds": 341.56,
+      "event_index": 7,
+      "path": "frame-evidence\\joseph-cinematic-documentary-02\\frames\\event-007-332.114s.jpg",
+      "sample_seconds": 332.114,
+      "source": "ffmpeg",
+      "start_seconds": 322.668
+    },
+    {
+      "end_seconds": 369.406,
+      "event_index": 8,
+      "path": "frame-evidence\\joseph-cinematic-documentary-02\\frames\\event-008-358.043s.jpg",
+      "sample_seconds": 358.0425,
+      "source": "ffmpeg",
+      "start_seconds": 346.679
+    },
+    {
+      "end_seconds": 838.332,
+      "event_index": 9,
+      "path": "frame-evidence\\joseph-cinematic-documentary-02\\frames\\event-009-737.332s.jpg",
+      "sample_seconds": 737.3325,
+      "source": "ffmpeg",
+      "start_seconds": 636.333
+    },
+    {
+      "end_seconds": 950.701,
+      "event_index": 10,
+      "path": "frame-evidence\\joseph-cinematic-documentary-02\\frames\\event-010-950.701s.jpg",
+      "sample_seconds": 950.701,
+      "source": "ffmpeg",
+      "start_seconds": 950.701
+    },
+    {
+      "end_seconds": 1245.22,
+      "event_index": 11,
+      "path": "frame-evidence\\joseph-cinematic-documentary-02\\frames\\event-011-1213.775s.jpg",
+      "sample_seconds": 1213.775,
+      "source": "ffmpeg",
+      "start_seconds": 1182.33
+    }
+  ],
+  "schema_version": "frame-evidence-v1",
+  "source_video_path": "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\JOSEPH VIDEO PROOF\\How_to_Edit_Cinematic_Documentary_     second video.mp4",
+  "video_id": "joseph-cinematic-documentary-02",
+  "warnings": []
+}

@@ -1,0 +1,29 @@
+{
+  "ok": true,
+  "musicCatalogPath": "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\YOUTUBE MUSIC DOWNLOADER -THRAGG\\downloads\\music-catalog.json",
+  "musicSourceRoot": "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\YOUTUBE MUSIC DOWNLOADER -THRAGG\\downloads",
+  "musicTracks": 9,
+  "musicCategories": [
+    "cinematic-trailer-epic-intense",
+    "classical-orchestral-prestige-vivaldi-the-four-seasons-summer-violin-concerto-in-g-minor-op-8-2-rv-315-iii",
+    "classical-passacaglia-handel-halvorsen-relaxing-piano",
+    "hip-hop-trap-urban-energy-beats",
+    "lo-fi-chill-soft-focus-the-way",
+    "motivational-uplift",
+    "other-work-for",
+    "pop-indie-lifestyle-pop",
+    "tech-futuristic-ai-ain-t"
+  ],
+  "soundFxTracks": 43,
+  "soundFxSections": [
+    "impact-hit",
+    "riser",
+    "text",
+    "transition",
+    "whoosh"
+  ],
+  "writtenManifests": [
+    "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\remotion-app\\src\\data\\music.local.json",
+    "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\remotion-app\\src\\data\\sound-fx.local.json"
+  ]
+}

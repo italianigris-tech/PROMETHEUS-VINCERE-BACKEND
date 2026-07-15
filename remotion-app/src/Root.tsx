@@ -1,5 +1,6 @@
 import React from "react";
 import {Composition, staticFile} from "remotion";
+import {UnifiedRenderManifestSchema, type UnifiedRenderManifest} from "@prometheus/shared-types";
 
 import {FemaleCoachDeanGraziosi} from "./compositions/FemaleCoachDeanGraziosi";
 import {ProjectScopedMotionComposition} from "./compositions/ProjectScopedMotionComposition";
@@ -43,7 +44,8 @@ const KNOWN_STUDIO_COMPOSITION_IDS = new Set([
   "Cinematic3DDemo",
   "CinematicChoreographyProof",
   "TargetFocusZoomShowcase",
-  "CinematicPiPShowcase"
+  "CinematicPiPShowcase",
+  "JosephEdit"
 ]);
 const reelPreset = getPresentationPreset("reel");
 const longFormPreset = getPresentationPreset("long-form");
@@ -71,6 +73,34 @@ const cinematicPiPShowcaseVideoMetadata = {
 };
 const projectScopedStudioDefaultProps = buildProjectScopedStudioDefaultProps(
   defaultCaptionProfileId ?? longFormPreset.captionProfileId
+);
+const JOSEPH_STUDIO_LATEST_MANIFEST_URL = staticFile("joseph-studio/latest.json");
+
+type JosephStudioCompositionProps = {
+  manifest?: UnifiedRenderManifest;
+  manifestUrl?: string | null;
+};
+
+const loadJosephStudioManifest = async ({
+  manifest,
+  manifestUrl
+}: JosephStudioCompositionProps): Promise<UnifiedRenderManifest> => {
+  if (manifestUrl?.trim()) {
+    try {
+      const response = await fetch(manifestUrl, {cache: "no-store"});
+      if (response.ok) {
+        return UnifiedRenderManifestSchema.parse(await response.json());
+      }
+    } catch {
+      // A fresh checkout has no latest upload yet; the explicit fallback remains inspectable.
+    }
+  }
+
+  return UnifiedRenderManifestSchema.parse(manifest ?? DEFAULT_JOSEPH_MANIFEST);
+};
+
+const JosephStudioComposition: React.FC<JosephStudioCompositionProps> = ({manifest}) => (
+  <JosephEdit manifest={manifest ?? DEFAULT_JOSEPH_MANIFEST} />
 );
 
 export const RemotionRoot: React.FC = () => {
@@ -256,9 +286,9 @@ export const RemotionRoot: React.FC = () => {
       />
       <Composition
         id="JosephEdit"
-        component={JosephEdit}
+        component={JosephStudioComposition}
         calculateMetadata={async ({ props }) => {
-          const manifest = props.manifest ?? DEFAULT_JOSEPH_MANIFEST;
+          const manifest = await loadJosephStudioManifest(props);
           if (
             manifest.width !== JOSEPH_RENDER_WIDTH ||
             manifest.height !== JOSEPH_RENDER_HEIGHT ||
@@ -273,7 +303,7 @@ export const RemotionRoot: React.FC = () => {
             fps: manifest.fps || JOSEPH_RENDER_FPS,
             width: JOSEPH_RENDER_WIDTH,
             height: JOSEPH_RENDER_HEIGHT,
-            props: {manifest},
+            props: {...props, manifest},
           };
         }}
         width={JOSEPH_RENDER_WIDTH}
@@ -281,7 +311,8 @@ export const RemotionRoot: React.FC = () => {
         fps={JOSEPH_RENDER_FPS}
         durationInFrames={DEFAULT_JOSEPH_MANIFEST.durationFrames}
         defaultProps={{
-          manifest: DEFAULT_JOSEPH_MANIFEST
+          manifest: DEFAULT_JOSEPH_MANIFEST,
+          manifestUrl: JOSEPH_STUDIO_LATEST_MANIFEST_URL
         }}
       />
     </>

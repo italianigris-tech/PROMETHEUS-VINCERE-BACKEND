@@ -214,13 +214,8 @@ const hasSfxAnimationDesync = (manifest: UnifiedRenderManifest, cuts: CutEvent[]
   if (profileSfxDensity <= 0 || sfx.length === 0) {
     return false;
   }
-
-  if (profileSfxDensity >= 1) {
-    const hardCutMissingWhoosh = cuts.some((cut) => cut.style === "hard" && !hasCueNear(sfx, "whoosh_fast", cut.atMs));
-    if (hardCutMissingWhoosh) {
-      return true;
-    }
-  }
+  // Hard cuts do not imply mandatory whooshes. SFX sync validation only
+  // governs authored audio punctuations such as glitch/pop text cues.
 
   return texts.some((text) => {
     const highSalience = text.color?.toUpperCase() === "#FF0040" || text.style === "glitch";
@@ -290,17 +285,23 @@ export const meetsQualityFloor = (
     failures.push("wrong_resolution");
   }
 
-  if (cuts.filter((cut) => cut.atMs <= 3000).length < 2) {
-    failures.push("hook_cuts < 2");
+  const profile = profileOf(manifest);
+  // Joseph profiles: aggressive still needs a hook beat; cinematic/minimal may restrain.
+  const minHookCuts = profile === "joseph_aggressive" ? 2 : profile === "joseph_cinematic" ? 1 : 0;
+  if (cuts.filter((cut) => cut.atMs <= 3000).length < minHookCuts) {
+    failures.push(minHookCuts >= 2 ? "hook_cuts < 2" : "hook_cuts < 1");
   }
 
-  if (cuts.filter((cut) => cut.atMs >= Math.max(0, durationMs - 3000) && cut.atMs <= durationMs).length < 1) {
+  if (
+    profile !== "joseph_minimal"
+    && cuts.filter((cut) => cut.atMs >= Math.max(0, durationMs - 3000) && cut.atMs <= durationMs).length < 1
+  ) {
     failures.push("cta_cuts < 1");
   }
 
-  if (bodyCutDensityIsLow(manifest, cuts, durationMs)) {
-    failures.push("body_cut_density_low");
-  }
+  // Body density is a soft pressure, not a hard floor. Hard density floors force
+  // anti-Joseph cut spam and poison IRL by rewarding over-editing.
+  // (penalty applied below via densityPenaltyOf / lowBodyDensityPenalty)
 
   if (hasTooMuchTextOverlap(texts)) {
     failures.push("text_overlap > 3");
@@ -338,12 +339,19 @@ export const meetsQualityFloor = (
 
   const sequenceDiscipline = evaluateJosephSequenceDiscipline(manifest, {enabled: options.sequenceDisciplineEnabled});
   const densityPenalty = densityPenaltyOf(manifest, cuts, texts, sfx, durationMs);
+  // Mild under-editing pressure only — never a hard fail.
+  const lowBodyDensityPenalty = bodyCutDensityIsLow(manifest, cuts, durationMs) ? 0.04 : 0;
+  // Mild reward for SFX restraint (not every cut needs punctuation).
+  const sfxPerCut = cuts.length > 0 ? sfx.length / cuts.length : sfx.length;
+  const restraintBonus = sfxPerCut <= 0.85 ? 0.03 : sfxPerCut > 1.25 ? -0.04 : 0;
   const typographyPenalty = 1 - typographyQuality.score;
   const microAnimationPenalty = 1 - microAnimationQuality.score;
   const qualityScore = clamp01(
     1 -
       failures.length * 0.1 -
       densityPenalty * 0.05 -
+      lowBodyDensityPenalty +
+      restraintBonus -
       negativeGrammar.penalty * 0.15 -
       typographyPenalty * 0.12 -
       microAnimationPenalty * 0.16 -
@@ -436,7 +444,7 @@ const jaccard = <T>(left: T[], right: T[]): number => {
 
 const structuralSimilarity = (left: SimilaritySignature, right: SimilaritySignature): number => {
   const profileScore = left.profile === right.profile ? 1 : 0;
-  return (
+  return clamp01(
     jaccard(left.cutPositions, right.cutPositions) * 0.4 +
     jaccard(left.textPositions, right.textPositions) * 0.2 +
     jaccard(left.transitionTypes, right.transitionTypes) * 0.15 +
@@ -547,13 +555,16 @@ export class JudgmentLayer {
       meetsQualityFloor(candidate, {sequenceDisciplineEnabled: this.sequenceDisciplineEnabled})
     );
     const floorPassed = floorScores.filter((score) => score.passedFloor);
-
     if (floorPassed.length === 0) {
-      throw new Error("No candidates passed quality floor");
+      const diagnostics = floorScores
+        .map((score) => `${score.manifest.jobId}:${score.floorFailures.join("|") || "unknown"}`)
+        .join("; ");
+      throw new Error(`No candidates passed quality floor (${diagnostics})`);
     }
 
     const priorEntries = this.ledger.getBySource(variationKey.sourceFingerprint);
     const evaluated = floorPassed.map((score) => evaluateSimilarity(score, priorEntries, variationKey));
+    let similarityExhausted = false;
     let qualified = evaluated.filter((evaluation) =>
       passesSimilarity(evaluation, this.similarityThresholdSamePrompt, this.similarityThresholdDiffPrompt)
     );
@@ -569,7 +580,15 @@ export class JudgmentLayer {
     }
 
     if (qualified.length === 0) {
-      throw new Error("No novel candidates passed judgment - all too similar to Replay Ledger");
+      similarityExhausted = true;
+      const [leastSimilar] = [...evaluated].sort((left, right) =>
+        left.score.similarityScore - right.score.similarityScore ||
+        right.score.qualityScore - left.score.qualityScore ||
+        left.score.manifest.jobId.localeCompare(right.score.manifest.jobId)
+      );
+      if (leastSimilar) {
+        qualified = [leastSimilar];
+      }
     }
 
     const sequenceObjective = rankJosephSequenceObjective({
@@ -589,13 +608,17 @@ export class JudgmentLayer {
     });
     const rejected = candidates.filter((candidate) => candidate !== selected);
     const rejectedTags = uniqueFailureTags(scores, rejected);
-    const similarityVetoed = evaluated.some((evaluation) =>
+    const similarityVetoed = similarityExhausted || evaluated.some((evaluation) =>
       !qualified.some((candidate) => candidate.score.manifest === evaluation.score.manifest) &&
       evaluation.score.manifest !== selected
     );
 
     const negativeEvaluator = negativeEvaluatorSummary(scores);
-    const verdictFailureTags = similarityVetoed ? [...rejectedTags, "replay_similarity_veto"] : rejectedTags;
+    const verdictFailureTags = [
+      ...rejectedTags,
+      ...(similarityVetoed ? ["replay_similarity_veto"] : []),
+      ...(similarityExhausted ? ["replay_similarity_exhausted"] : []),
+    ];
     const verdict: JudgmentVerdict = {
       qualityScore: selectedEvaluation.score.qualityScore,
       similarityScore: selectedEvaluation.score.similarityScore,

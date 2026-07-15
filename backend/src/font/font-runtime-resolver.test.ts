@@ -7,16 +7,18 @@ import {describe, expect, it} from "vitest";
 import {selectHeroFonts} from "./font-runtime-resolver";
 
 describe("selectHeroFonts", () => {
+  const validOtfBytes = Buffer.concat([Buffer.from("OTTO", "ascii"), Buffer.alloc(60, 1)]);
+  const writeValidFont = (filePath: string) => writeFileSync(filePath, validOtfBytes);
   const createHeroManifest = () => {
     const dir = mkdtempSync(path.join(tmpdir(), "prometheus-hero-fonts-"));
     const aggressivePath = path.join(dir, "bold.otf");
     const cinematicPath = path.join(dir, "editorial.otf");
     const minimalPath = path.join(dir, "neutral.otf");
     const fallbackPath = path.join(dir, "fallback.otf");
-    writeFileSync(aggressivePath, "font-bytes");
-    writeFileSync(cinematicPath, "font-bytes");
-    writeFileSync(minimalPath, "font-bytes");
-    writeFileSync(fallbackPath, "font-bytes");
+    writeValidFont(aggressivePath);
+    writeValidFont(cinematicPath);
+    writeValidFont(minimalPath);
+    writeValidFont(fallbackPath);
     const manifestPath = path.join(dir, "hero-fonts.json");
     writeFileSync(manifestPath, JSON.stringify({
       fonts: [
@@ -95,7 +97,7 @@ describe("selectHeroFonts", () => {
   it("falls back and records a warning when a selected hero file is missing", () => {
     const dir = mkdtempSync(path.join(tmpdir(), "prometheus-hero-fonts-missing-"));
     const fallbackPath = path.join(dir, "fallback.otf");
-    writeFileSync(fallbackPath, "font-bytes");
+    writeValidFont(fallbackPath);
     const manifestPath = path.join(dir, "hero-fonts.json");
     writeFileSync(manifestPath, JSON.stringify({
       fonts: [
@@ -141,11 +143,57 @@ describe("selectHeroFonts", () => {
     expect(selection.fallback.fontFamily).toContain("PrometheusHero");
     expect(selection.warnings).toEqual([]);
   });
+
+  it("rejects an existing zero-filled font before it can enter a render manifest", () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "prometheus-hero-fonts-corrupt-"));
+    const corruptPath = path.join(dir, "corrupt.otf");
+    const fallbackPath = path.join(dir, "fallback.otf");
+    writeFileSync(corruptPath, Buffer.alloc(64));
+    writeValidFont(fallbackPath);
+    const manifestPath = path.join(dir, "hero-fonts.json");
+    writeFileSync(manifestPath, JSON.stringify({
+      fonts: [
+        {
+          fontId: "corrupt-bold",
+          family: "Corrupt Bold",
+          cssFamily: "CorruptBold",
+          publicUrl: "/fonts/hero/corrupt.otf",
+          localFilePath: corruptPath,
+          profileAffinity: ["aggressive"],
+          roleTags: ["hero", "bold", "kinetic"],
+          readabilityScore: 1,
+          expressivenessScore: 1,
+          licenseStatus: "render_safe",
+          reviewOnly: false,
+        },
+        {
+          fontId: "hero-fallback",
+          family: "Hero Fallback",
+          cssFamily: "PrometheusHeroFallback",
+          publicUrl: "/fonts/hero/fallback.otf",
+          localFilePath: fallbackPath,
+          profileAffinity: ["minimal", "cinematic", "aggressive"],
+          roleTags: ["fallback", "readable"],
+          readabilityScore: 1,
+          expressivenessScore: 0.2,
+          licenseStatus: "render_safe",
+          reviewOnly: false,
+        },
+      ],
+    }));
+
+    const selection = selectHeroFonts({profile: "aggressive", heroManifestPath: manifestPath}, 1);
+
+    expect(selection.hero.fontId).toBe("hero-fallback");
+    expect(selection.warnings).toContain(
+      `Font corrupt-bold has an invalid or unsupported binary at ${corruptPath}; excluded from selection.`,
+    );
+  });
   it("can prefer hydrated renderable library fonts over the hero MVP set", () => {
     const heroManifestPath = createHeroManifest();
     const dir = mkdtempSync(path.join(tmpdir(), "prometheus-library-fonts-"));
     const libraryFontPath = path.join(dir, "library-display.woff2");
-    writeFileSync(libraryFontPath, "font-bytes");
+    writeFileSync(libraryFontPath, Buffer.concat([Buffer.from("wOF2", "ascii"), Buffer.alloc(60, 1)]));
     const libraryManifestPath = path.join(dir, "font-manifest-urls.json");
     writeFileSync(libraryManifestPath, JSON.stringify([
       {

@@ -1,0 +1,217 @@
+<svg
+      id="asset"
+      viewBox="0 0 564 564"
+      width="564"
+      height="564"
+      xmlns="http://www.w3.org/2000/svg"
+      data-asset-name="93379f1532461e1d70ee84dddfc1a454"
+      data-asset-type="glass-card"
+      data-image-slots="0"
+      data-text-slots="5"
+      data-asset-version="1"
+    >
+<style type="text/css">
+html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background: transparent !important;
+    }
+    body::before, body::after { display: none !important; }
+
+    body {
+      display: grid;
+      place-items: center;
+      font-family: 'Sora', sans-serif;
+    }
+
+    #scene {
+      width: 564px;
+      height: 564px;
+      perspective: 900px;
+    }
+
+    svg {
+      width: 564px;
+      height: 564px;
+      overflow: visible;
+      transform-style: preserve-3d;
+    }
+
+    .text-primary {
+      font-size: 48px;
+      font-weight: 700;
+      fill: #ffffff;
+      letter-spacing: -0.6px;
+    }
+
+    .text-tertiary {
+      font-size: 12px;
+      font-weight: 500;
+      fill: #d6d6d6;
+    }
+
+    .text-stray {
+      font-size: 12px;
+      font-weight: 500;
+      fill: #e3e3e3;
+    }
+</style>
+
+      <title>Red Glass Designer Card</title>
+      <desc>Red glassmorphism card with headline and small labels.</desc>
+      <metadata id="asset_metadata">
+        {
+          "name": "93379f1532461e1d70ee84dddfc1a454",
+          "assetId": "93379f1532461e1d70ee84dddfc1a454",
+          "filename": "93379f1532461e1d70ee84dddfc1a454.html",
+          "displayName": "Red Glass Designer Card",
+          "type": "glass-card",
+          "description": "Red glassmorphism card with headline and minimal labels.",
+          "macro": "red glass designer card",
+          "keywords": [
+            "glassmorphism",
+            "designer",
+            "hello",
+            "red",
+            "card",
+            "portfolio",
+            "minimal"
+          ],
+          "imageSlots": 0,
+          "imageSlotNames": [],
+          "imageSlotRoles": [],
+          "textSlots": 5,
+          "textSlotNames": [
+            "text_primary_1",
+            "text_tertiary_1",
+            "text_tertiary_2",
+            "text_tertiary_3",
+            "text_stray_1"
+          ],
+          "textSlotRoles": [
+            "primary",
+            "tertiary",
+            "tertiary",
+            "tertiary",
+            "stray"
+          ],
+          "textArtifacts": [
+            {
+              "id": "text_primary_1",
+              "role": "primary",
+              "category": "core",
+              "slot": "1",
+              "text": "Hello, I'm a Designer.",
+              "charCount": 22
+            },
+            {
+              "id": "text_tertiary_1",
+              "role": "tertiary",
+              "category": "descriptor",
+              "slot": "1",
+              "text": "Glass",
+              "charCount": 5
+            },
+            {
+              "id": "text_tertiary_2",
+              "role": "tertiary",
+              "category": "descriptor",
+              "slot": "2",
+              "text": "morphic effect",
+              "charCount": 13
+            },
+            {
+              "id": "text_tertiary_3",
+              "role": "tertiary",
+              "category": "descriptor",
+              "slot": "3",
+              "text": "Let's create",
+              "charCount": 12
+            },
+            {
+              "id": "text_stray_1",
+              "role": "stray",
+              "category": "stray",
+              "slot": "1",
+              "text": "@_Taiwo_taiwo",
+              "charCount": 13
+            }
+          ],
+          "textArtifactCount": 5,
+          "textArtifactCounts": {
+            "core": 1,
+            "descriptor": 3,
+            "stray": 1
+          },
+          "format": "svg+gsap",
+          "version": "1.0.0"
+        }
+      </metadata>
+      <defs>
+        <radialGradient id="bgGlowA" cx="75%" cy="70%" r="60%">
+          <stop offset="0%" stop-color="#e2242f" stop-opacity="0.8" />
+          <stop offset="70%" stop-color="#3a0507" stop-opacity="0.25" />
+          <stop offset="100%" stop-color="#3a0507" stop-opacity="0" />
+        </radialGradient>
+        <radialGradient id="bgGlowB" cx="25%" cy="20%" r="55%">
+          <stop offset="0%" stop-color="#7a0c12" stop-opacity="0.65" />
+          <stop offset="80%" stop-color="#110104" stop-opacity="0" />
+        </radialGradient>
+
+        <linearGradient id="cardGradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#3d3d3d" />
+          <stop offset="45%" stop-color="#4b1d25" />
+          <stop offset="100%" stop-color="#b71d27" />
+        </linearGradient>
+        <radialGradient id="cardSheen" cx="30%" cy="25%" r="70%">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity="0.25" />
+          <stop offset="70%" stop-color="#ffffff" stop-opacity="0" />
+        </radialGradient>
+        <linearGradient id="cardEdge" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity="0.25" />
+          <stop offset="100%" stop-color="#ffffff" stop-opacity="0.05" />
+        </linearGradient>
+
+        <filter id="cardShadow" x="-30%" y="-30%" width="160%" height="180%">
+          <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#000000" flood-opacity="0.4" />
+        </filter>
+        <filter id="frostBlur" x="-20%" y="-20%" width="140%" height="160%">
+          <feGaussianBlur stdDeviation="18" />
+        </filter>
+        <filter id="textShadow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="1" stdDeviation="0" flood-color="#ffffff" flood-opacity="0.15" />
+          <feDropShadow dx="0" dy="2" stdDeviation="12" flood-color="#000000" flood-opacity="0.2" />
+        </filter>
+
+        <clipPath id="clip-card">
+          <rect x="120" y="90" width="324" height="400" rx="36" />
+        </clipPath>
+        <clipPath id="clip-text">
+          <rect id="textClipRect" x="140" y="120" width="284" height="340" />
+        </clipPath>
+      </defs>
+
+      <g id="background_glows">
+        <ellipse cx="420" cy="440" rx="250" ry="230" fill="url(#bgGlowA)" />
+        <ellipse cx="160" cy="120" rx="220" ry="200" fill="url(#bgGlowB)" />
+      </g>
+
+      <g id="card_group" filter="url(#cardShadow)">
+        <rect x="120" y="90" width="324" height="400" rx="36" fill="url(#cardGradient)" />
+        <rect x="120" y="90" width="324" height="400" rx="36" fill="#ffffff" fill-opacity="0.08" filter="url(#frostBlur)" />
+        <rect x="120" y="90" width="324" height="400" rx="36" fill="url(#cardSheen)" />
+        <rect x="120" y="90" width="324" height="400" rx="36" fill="none" stroke="url(#cardEdge)" stroke-width="1.5" />
+      </g>
+
+      <g id="text_group" clip-path="url(#clip-text)" filter="url(#textShadow)">
+        <text id="text_tertiary_1" data-text-slot="1" data-text-role="tertiary" class="text-tertiary" x="160" y="140">Glass</text>
+        <text id="text_tertiary_2" data-text-slot="2" data-text-role="tertiary" class="text-tertiary" x="160" y="158">morphic effect</text>
+        <text id="text_tertiary_3" data-text-slot="3" data-text-role="tertiary" class="text-tertiary" x="362" y="144" text-anchor="end">Let's create</text>
+
+        <text id="text_primary_1" data-text-slot="1" data-text-role="primary" class="text-primary" x="160" y="260" xml:space="preserve">Hello, <tspan x="160" dy="56">I'm a </tspan><tspan x="160" dy="56">Designer.</tspan></text>
+
+        <text id="text_stray_1" data-text-slot="1" data-text-role="stray" class="text-stray" x="160" y="430">@_Taiwo_taiwo</text>
+      </g>
+    </svg>

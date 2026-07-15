@@ -58,7 +58,7 @@ describe("Director Orchestrator Candidate Score Summary", () => {
     const compilerArtifact = JSON.parse(fs.readFileSync(result.evidencePaths.compilerArtifactPath, "utf8"));
     expect(compilerArtifact).toMatchObject({
       artifactHash: evidenceRecord.compilerArtifactHash,
-      mode: "phase0_read_only",
+      mode: "compile_manifest",
     });
     const plannerAuditArtifact = JSON.parse(fs.readFileSync(result.evidencePaths.plannerAuditPath, "utf8"));
     expect(plannerAuditArtifact).toMatchObject({

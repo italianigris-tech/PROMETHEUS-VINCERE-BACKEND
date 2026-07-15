@@ -99,6 +99,30 @@ export function resolveSfxPath(sfxDir: string, sfxEvent: UnifiedRenderManifest["
   throw new SFXNotFoundError(`SFX file not found or empty for cue ${sfxEvent.cue}${variant ? ` variant ${variant}` : ''} in ${sfxDir}`);
 }
 
+const seconds = (value: number): string => Number(value.toFixed(3)).toString();
+
+const buildDjDuckingExpression = (manifest: UnifiedRenderManifest, baseVolumeDb: number) => {
+  const regions = manifest.audio.djPlan?.duckingRegions ?? [];
+  if (regions.length > 0) {
+    return regions.reduceRight(
+      (fallback, region) =>
+        `if(between(t,${seconds(region.videoStartSec)},${seconds(region.videoEndSec)}),${region.targetMusicDb}dB,${fallback})`,
+      `${baseVolumeDb}dB`,
+    );
+  }
+
+  if (manifest.source.transcript.length === 0) {
+    return null;
+  }
+
+  const clauses = manifest.source.transcript.map((word) => {
+    sanitizeForFFmpeg(word.text);
+    return `between(t,${(word.startMs / 1000).toFixed(2)},${(word.endMs / 1000).toFixed(2)})`;
+  });
+
+  return `if(${clauses.join('+')},-24dB,${baseVolumeDb}dB)`;
+};
+
 const buildVoiceDuckingExpression = (manifest: UnifiedRenderManifest) => {
   if (manifest.source.transcript.length === 0) {
     return null;
@@ -117,14 +141,12 @@ const buildSfxDuckingExpression = (manifest: UnifiedRenderManifest) => {
     return null;
   }
 
-  const clauses = manifest.audio.sfx.map((cue) => {
+  return manifest.audio.sfx.reduceRight((fallback, cue) => {
     const start = (cue.triggerMs / 1000).toFixed(1);
     const end = ((cue.triggerMs + cue.durationMs) / 1000).toFixed(1);
     const volume = manifest.audio.musicVolumeDb + cue.duckMusicDb;
-    return `if(between(t,${start},${end}),${volume},-18)`;
-  });
-
-  return clauses.join('+');
+    return `if(between(t,${start},${end}),${volume}dB,${fallback})`;
+  }, '-18dB');
 };
 
 export function buildFfmpegArgs(
@@ -146,26 +168,62 @@ export function buildFfmpegArgs(
   const filterParts: string[] = [];
   const sfxInputs: string[] = [];
 
-  let musicTrack = manifest.audio.musicReference?.localFilePath ?? manifest.audio.musicTrackUrl;
-  const hasMusic = Boolean(musicTrack);
-  if (hasMusic) {
-    if (manifest.audio.musicReference && !manifest.audio.musicReference.renderSafe) {
-      throw new AudioMixError(`musicReference is not renderSafe: ${manifest.audio.musicReference.trackId}`);
-    }
-    musicTrack = assertReadableLocalFile(musicTrack!, 'music track');
-    args.push('-i', musicTrack!);
+  const musicInputLabels: string[] = [];
+  const djMusicEvents = manifest.audio.djPlan?.musicEvents ?? [];
+  if (djMusicEvents.length > 0) {
+    djMusicEvents.forEach((event, index) => {
+      const musicTrack = assertReadableLocalFile(event.localFilePath, `DJ music event ${event.id}`);
+      args.push('-i', musicTrack);
+      const inputIdx = inputCount++;
+      const baseLabel = `dj${index}`;
+      const duckExpression = event.duckingEnabled ? buildDjDuckingExpression(manifest, event.volumeDb) : null;
+      const filters = [
+        `atrim=start=${seconds(event.trackStartSec)}:end=${seconds(event.trackEndSec)}`,
+        'asetpts=PTS-STARTPTS',
+        `volume=${event.volumeDb}dB`,
+      ];
+      const eventDurationSec = Math.max(0.001, event.videoEndSec - event.videoStartSec);
+      if (event.fadeInSec > 0) {
+        filters.push(`afade=t=in:st=0:d=${seconds(Math.min(event.fadeInSec, eventDurationSec))}`);
+      }
+      if (event.fadeOutSec > 0) {
+        filters.push(`afade=t=out:st=${seconds(Math.max(0, eventDurationSec - event.fadeOutSec))}:d=${seconds(Math.min(event.fadeOutSec, eventDurationSec))}`);
+      }
+      filters.push(`adelay=${Math.round(event.videoStartSec * 1000)}|${Math.round(event.videoStartSec * 1000)}`);
+      filterParts.push(`[${inputIdx}:a]${filters.join(',')}[${baseLabel}]`);
+      if (duckExpression) {
+        filterParts.push(`[${baseLabel}]volume='${duckExpression}':eval=frame[${baseLabel}duck]`);
+        musicInputLabels.push(`[${baseLabel}duck]`);
+      } else {
+        musicInputLabels.push(`[${baseLabel}]`);
+      }
+    });
+  } else {
+    let musicTrack = manifest.audio.musicReference?.localFilePath ?? manifest.audio.musicTrackUrl;
+    const hasMusic = Boolean(musicTrack);
+    if (hasMusic) {
+      if (manifest.audio.musicReference && !manifest.audio.musicReference.renderSafe) {
+        throw new AudioMixError(`musicReference is not renderSafe: ${manifest.audio.musicReference.trackId}`);
+      }
+      musicTrack = assertReadableLocalFile(musicTrack!, 'music track');
+      args.push('-i', musicTrack!);
 
-    const voiceDuck = buildVoiceDuckingExpression(manifest);
-    const sfxDuck = buildSfxDuckingExpression(manifest);
-    if (voiceDuck) {
-      filterParts.push(`[1:a]volume='${voiceDuck}':eval=frame[a1]`);
-    } else {
-      filterParts.push(`[1:a]volume=-18dB[a1]`);
+      const voiceDuck = buildVoiceDuckingExpression(manifest);
+      const sfxDuck = buildSfxDuckingExpression(manifest);
+      const musicLabel = `a${inputCount}`;
+      if (voiceDuck) {
+        filterParts.push(`[${inputCount}:a]volume='${voiceDuck}':eval=frame[${musicLabel}]`);
+      } else {
+        filterParts.push(`[${inputCount}:a]volume=-18dB[${musicLabel}]`);
+      }
+      if (sfxDuck) {
+        filterParts.push(`[${musicLabel}]volume='${sfxDuck}':eval=frame[${musicLabel}duck]`);
+        musicInputLabels.push(`[${musicLabel}duck]`);
+      } else {
+        musicInputLabels.push(`[${musicLabel}]`);
+      }
+      inputCount += 1;
     }
-    if (sfxDuck) {
-      filterParts.push(`[a1]volume='${sfxDuck}':eval=frame[a1duck]`);
-    }
-    inputCount += 1;
   }
 
   const sfxCues = manifest.audio.sfx || [];
@@ -179,14 +237,9 @@ export function buildFfmpegArgs(
     });
   }
 
-  const musicInput = hasMusic ? (manifest.audio.sfx.length > 0 ? '[a1duck]' : '[a1]') : null;
   filterParts.unshift(`[0:a]volume=${manifest.audio.voiceVolumeDb}dB[voice]`);
 
-  const mixInputs = ['[voice]'];
-  if (musicInput) {
-    mixInputs.push(musicInput);
-  }
-  mixInputs.push(...sfxInputs);
+  const mixInputs = ['[voice]', ...musicInputLabels, ...sfxInputs];
 
   filterParts.push(`${mixInputs.join('')}amix=inputs=${mixInputs.length}:duration=first[mix]`);
   filterParts.push(`[mix]loudnorm=I=${manifest.audio.targetLufs}:TP=-1:LRA=11[out]`);

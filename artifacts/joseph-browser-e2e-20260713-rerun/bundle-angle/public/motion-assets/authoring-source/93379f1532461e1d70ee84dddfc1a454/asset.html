@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Red Glass Designer Card</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background: transparent !important;
+    }
+    body::before, body::after { display: none !important; }
+
+    body {
+      display: grid;
+      place-items: center;
+      font-family: 'Sora', sans-serif;
+    }
+
+    #scene {
+      width: 564px;
+      height: 564px;
+      perspective: 900px;
+    }
+
+    svg {
+      width: 564px;
+      height: 564px;
+      overflow: visible;
+      transform-style: preserve-3d;
+    }
+
+    .text-primary {
+      font-size: 48px;
+      font-weight: 700;
+      fill: #ffffff;
+      letter-spacing: -0.6px;
+    }
+
+    .text-tertiary {
+      font-size: 12px;
+      font-weight: 500;
+      fill: #d6d6d6;
+    }
+
+    .text-stray {
+      font-size: 12px;
+      font-weight: 500;
+      fill: #e3e3e3;
+    }
+  </style>
+</head>
+<body>
+  <div id="scene">
+    <svg
+      id="asset"
+      viewBox="0 0 564 564"
+      width="564"
+      height="564"
+      xmlns="http://www.w3.org/2000/svg"
+      data-asset-name="93379f1532461e1d70ee84dddfc1a454"
+      data-asset-type="glass-card"
+      data-image-slots="0"
+      data-text-slots="5"
+      data-asset-version="1"
+    >
+      <title>Red Glass Designer Card</title>
+      <desc>Red glassmorphism card with headline and small labels.</desc>
+      <metadata id="asset_metadata">
+        {
+          "name": "93379f1532461e1d70ee84dddfc1a454",
+          "assetId": "93379f1532461e1d70ee84dddfc1a454",
+          "filename": "93379f1532461e1d70ee84dddfc1a454.html",
+          "displayName": "Red Glass Designer Card",
+          "type": "glass-card",
+          "description": "Red glassmorphism card with headline and minimal labels.",
+          "macro": "red glass designer card",
+          "keywords": [
+            "glassmorphism",
+            "designer",
+            "hello",
+            "red",
+            "card",
+            "portfolio",
+            "minimal"
+          ],
+          "imageSlots": 0,
+          "imageSlotNames": [],
+          "imageSlotRoles": [],
+          "textSlots": 5,
+          "textSlotNames": [
+            "text_primary_1",
+            "text_tertiary_1",
+            "text_tertiary_2",
+            "text_tertiary_3",
+            "text_stray_1"
+          ],
+          "textSlotRoles": [
+            "primary",
+            "tertiary",
+            "tertiary",
+            "tertiary",
+            "stray"
+          ],
+          "textArtifacts": [
+            {
+              "id": "text_primary_1",
+              "role": "primary",
+              "category": "core",
+              "slot": "1",
+              "text": "Hello, I'm a Designer.",
+              "charCount": 22
+            },
+            {
+              "id": "text_tertiary_1",
+              "role": "tertiary",
+              "category": "descriptor",
+              "slot": "1",
+              "text": "Glass",
+              "charCount": 5
+            },
+            {
+              "id": "text_tertiary_2",
+              "role": "tertiary",
+              "category": "descriptor",
+              "slot": "2",
+              "text": "morphic effect",
+              "charCount": 13
+            },
+            {
+              "id": "text_tertiary_3",
+              "role": "tertiary",
+              "category": "descriptor",
+              "slot": "3",
+              "text": "Let's create",
+              "charCount": 12
+            },
+            {
+              "id": "text_stray_1",
+              "role": "stray",
+              "category": "stray",
+              "slot": "1",
+              "text": "@_Taiwo_taiwo",
+              "charCount": 13
+            }
+          ],
+          "textArtifactCount": 5,
+          "textArtifactCounts": {
+            "core": 1,
+            "descriptor": 3,
+            "stray": 1
+          },
+          "format": "svg+gsap",
+          "version": "1.0.0"
+        }
+      </metadata>
+      <defs>
+        <radialGradient id="bgGlowA" cx="75%" cy="70%" r="60%">
+          <stop offset="0%" stop-color="#e2242f" stop-opacity="0.8" />
+          <stop offset="70%" stop-color="#3a0507" stop-opacity="0.25" />
+          <stop offset="100%" stop-color="#3a0507" stop-opacity="0" />
+        </radialGradient>
+        <radialGradient id="bgGlowB" cx="25%" cy="20%" r="55%">
+          <stop offset="0%" stop-color="#7a0c12" stop-opacity="0.65" />
+          <stop offset="80%" stop-color="#110104" stop-opacity="0" />
+        </radialGradient>
+
+        <linearGradient id="cardGradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#3d3d3d" />
+          <stop offset="45%" stop-color="#4b1d25" />
+          <stop offset="100%" stop-color="#b71d27" />
+        </linearGradient>
+        <radialGradient id="cardSheen" cx="30%" cy="25%" r="70%">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity="0.25" />
+          <stop offset="70%" stop-color="#ffffff" stop-opacity="0" />
+        </radialGradient>
+        <linearGradient id="cardEdge" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity="0.25" />
+          <stop offset="100%" stop-color="#ffffff" stop-opacity="0.05" />
+        </linearGradient>
+
+        <filter id="cardShadow" x="-30%" y="-30%" width="160%" height="180%">
+          <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#000000" flood-opacity="0.4" />
+        </filter>
+        <filter id="frostBlur" x="-20%" y="-20%" width="140%" height="160%">
+          <feGaussianBlur stdDeviation="18" />
+        </filter>
+        <filter id="textShadow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="1" stdDeviation="0" flood-color="#ffffff" flood-opacity="0.15" />
+          <feDropShadow dx="0" dy="2" stdDeviation="12" flood-color="#000000" flood-opacity="0.2" />
+        </filter>
+
+        <clipPath id="clip-card">
+          <rect x="120" y="90" width="324" height="400" rx="36" />
+        </clipPath>
+        <clipPath id="clip-text">
+          <rect id="textClipRect" x="140" y="120" width="284" height="340" />
+        </clipPath>
+      </defs>
+
+      <g id="background_glows">
+        <ellipse cx="420" cy="440" rx="250" ry="230" fill="url(#bgGlowA)" />
+        <ellipse cx="160" cy="120" rx="220" ry="200" fill="url(#bgGlowB)" />
+      </g>
+
+      <g id="card_group" filter="url(#cardShadow)">
+        <rect x="120" y="90" width="324" height="400" rx="36" fill="url(#cardGradient)" />
+        <rect x="120" y="90" width="324" height="400" rx="36" fill="#ffffff" fill-opacity="0.08" filter="url(#frostBlur)" />
+        <rect x="120" y="90" width="324" height="400" rx="36" fill="url(#cardSheen)" />
+        <rect x="120" y="90" width="324" height="400" rx="36" fill="none" stroke="url(#cardEdge)" stroke-width="1.5" />
+      </g>
+
+      <g id="text_group" clip-path="url(#clip-text)" filter="url(#textShadow)">
+        <text id="text_tertiary_1" data-text-slot="1" data-text-role="tertiary" class="text-tertiary" x="160" y="140">Glass</text>
+        <text id="text_tertiary_2" data-text-slot="2" data-text-role="tertiary" class="text-tertiary" x="160" y="158">morphic effect</text>
+        <text id="text_tertiary_3" data-text-slot="3" data-text-role="tertiary" class="text-tertiary" x="362" y="144" text-anchor="end">Let's create</text>
+
+        <text id="text_primary_1" data-text-slot="1" data-text-role="primary" class="text-primary" x="160" y="260" xml:space="preserve">Hello, <tspan x="160" dy="56">I'm a </tspan><tspan x="160" dy="56">Designer.</tspan></text>
+
+        <text id="text_stray_1" data-text-slot="1" data-text-role="stray" class="text-stray" x="160" y="430">@_Taiwo_taiwo</text>
+      </g>
+    </svg>
+  </div>
+
+  <script src="/motion-assets/vendor/gsap.min.js"></script>
+  <script>
+    const svg = document.getElementById('asset');
+    const cardGroup = document.getElementById('card_group');
+    const backgroundGlows = document.getElementById('background_glows');
+    const textGroup = document.getElementById('text_group');
+    const textClipRect = document.getElementById('textClipRect');
+
+    const primaryText = document.getElementById('text_primary_1');
+
+    const CHAR_ROLES = new Set(['primary', 'secondary', 'tertiary']);
+    const SVG_NS = 'http://www.w3.org/2000/svg';
+    let primaryChars = [];
+    let secondaryChars = [];
+    let tertiaryChars = [];
+    let allChars = [];
+
+    let idleTweens = [];
+    let mainTl = null;
+
+    function splitTextToChars(textEl) {
+      const role = textEl.getAttribute('data-text-role');
+      if (!CHAR_ROLES.has(role)) return null;
+      if (!textEl.id) textEl.id = `text_${Math.random().toString(36).slice(2, 8)}`;
+      const id = textEl.id;
+      const parent = textEl.parentNode;
+      const existing = parent.querySelector(`[data-char-group-for="${id}"]`);
+      if (existing) existing.remove();
+
+      const group = document.createElementNS(SVG_NS, 'g');
+      group.setAttribute('data-char-group-for', id);
+      group.setAttribute('data-text-role', role);
+      const slot = textEl.getAttribute('data-text-slot');
+      if (slot) group.setAttribute('data-text-slot', slot);
+
+      textEl.setAttribute('opacity', '0');
+      textEl.style.pointerEvents = 'none';
+
+      const charCount = textEl.getNumberOfChars();
+      const textValue = textEl.textContent || '';
+      const attrs = ['class', 'fill', 'font-family', 'font-size', 'font-weight', 'text-anchor'];
+      for (let i = 0; i < charCount; i += 1) {
+        const ch = textValue.charAt(i);
+        const pos = textEl.getStartPositionOfChar(i);
+        const charEl = document.createElementNS(SVG_NS, 'text');
+        charEl.textContent = ch;
+        charEl.setAttribute('x', pos.x);
+        charEl.setAttribute('y', pos.y);
+        attrs.forEach((attr) => {
+          const val = textEl.getAttribute(attr);
+          if (val) charEl.setAttribute(attr, val);
+        });
+        charEl.setAttribute('xml:space', 'preserve');
+        charEl.setAttribute('data-char', '1');
+        charEl.setAttribute('data-text-role', role);
+        if (slot) charEl.setAttribute('data-text-slot', slot);
+        group.appendChild(charEl);
+      }
+      parent.appendChild(group);
+      return group;
+    }
+
+    function rebuildCharGroups() {
+      const textNodes = Array.from(svg.querySelectorAll('text[data-text-role]'))
+        .filter((node) => CHAR_ROLES.has(node.getAttribute('data-text-role')));
+      textNodes.forEach(splitTextToChars);
+      primaryChars = Array.from(svg.querySelectorAll('[data-char="1"][data-text-role="primary"]'));
+      secondaryChars = Array.from(svg.querySelectorAll('[data-char="1"][data-text-role="secondary"]'));
+      tertiaryChars = Array.from(svg.querySelectorAll('[data-char="1"][data-text-role="tertiary"]'));
+      allChars = primaryChars.concat(secondaryChars, tertiaryChars);
+    }
+
+    function animateCharsInTimeline(tl, atTime) {
+      if (primaryChars.length) {
+        tl.to(primaryChars, {
+          opacity: 1,
+          y: 0,
+          filter: 'blur(0px)',
+          duration: 0.9,
+          ease: 'power3.out',
+          stagger: { each: 0.018, from: 'center' }
+        }, atTime);
+      }
+      if (secondaryChars.length) {
+        tl.to(secondaryChars, {
+          opacity: 1,
+          y: 0,
+          filter: 'blur(0px)',
+          duration: 0.85,
+          ease: 'power3.out',
+          stagger: { each: 0.012, from: 'start' }
+        }, atTime + 0.03);
+      }
+      if (tertiaryChars.length) {
+        tl.to(tertiaryChars, {
+          opacity: 1,
+          y: 0,
+          filter: 'blur(0px)',
+          duration: 0.8,
+          ease: 'power3.out',
+          stagger: { each: 0.012, from: 'start' }
+        }, atTime + 0.05);
+      }
+    }
+
+    function animateCharsInNow() {
+      if (primaryChars.length) {
+        gsap.to(primaryChars, {
+          opacity: 1,
+          y: 0,
+          filter: 'blur(0px)',
+          duration: 0.9,
+          ease: 'power3.out',
+          stagger: { each: 0.018, from: 'center' }
+        });
+      }
+      if (secondaryChars.length) {
+        gsap.to(secondaryChars, {
+          opacity: 1,
+          y: 0,
+          filter: 'blur(0px)',
+          duration: 0.85,
+          ease: 'power3.out',
+          stagger: { each: 0.012, from: 'start' }
+        });
+      }
+      if (tertiaryChars.length) {
+        gsap.to(tertiaryChars, {
+          opacity: 1,
+          y: 0,
+          filter: 'blur(0px)',
+          duration: 0.8,
+          ease: 'power3.out',
+          stagger: { each: 0.012, from: 'start' }
+        });
+      }
+    }
+
+    function setInitial() {
+      rebuildCharGroups();
+      gsap.set([cardGroup, backgroundGlows], {
+        y: 110,
+        opacity: 0,
+        scale: 0.88,
+        filter: 'blur(16px)',
+        rotationX: 12,
+        transformPerspective: 800,
+        transformOrigin: '50% 50%'
+      });
+      gsap.set(textClipRect, {
+        attr: { y: 420 }
+      });
+      gsap.set(allChars, { opacity: 0, y: 12, filter: 'blur(12px)' });
+    }
+
+    function runScene() {
+      idleTweens.forEach((t) => t.kill());
+      idleTweens = [];
+      if (mainTl) mainTl.kill();
+      gsap.killTweensOf([cardGroup, backgroundGlows, textClipRect, ...allChars]);
+
+      setInitial();
+
+      mainTl = gsap.timeline();
+      mainTl
+        .to([cardGroup, backgroundGlows], {
+          y: 0,
+          opacity: 1,
+          scale: 1,
+          filter: 'blur(0px)',
+          rotationX: 0,
+          duration: 1.15,
+          ease: 'expo.out'
+        }, 0)
+        .to(textClipRect, {
+          attr: { y: 120 },
+          duration: 0.9,
+          ease: 'expo.out'
+        }, 0.75)
+        .add(() => {
+          idleTweens.push(
+            gsap.to([cardGroup, backgroundGlows], {
+              y: -8,
+              duration: 3.8,
+              ease: 'sine.inOut',
+              yoyo: true,
+              repeat: -1
+            })
+          );
+        }, 1.45);
+
+      animateCharsInTimeline(mainTl, 0.75);
+    }
+
+    function updateAsset(newPrimary) {
+      const tl = gsap.timeline();
+      tl.to(allChars, {
+        opacity: 0,
+        y: 10,
+        filter: 'blur(4px)',
+        duration: 0.28,
+        ease: 'power2.in',
+        stagger: 0.006
+      })
+        .call(() => {
+          if (typeof newPrimary === 'string') primaryText.textContent = newPrimary;
+          rebuildCharGroups();
+          gsap.set(allChars, { opacity: 0, y: 12, filter: 'blur(12px)' });
+        })
+        .call(() => {
+          animateCharsInNow();
+        });
+    }
+
+    window.runScene = runScene;
+    window.updateAsset = updateAsset;
+
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(runScene);
+    } else {
+      runScene();
+    }
+  </script>
+</body>
+</html>
+

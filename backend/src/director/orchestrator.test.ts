@@ -28,6 +28,40 @@ const registry = (): PromptRegistry =>
 
 const canonical = (value: unknown): string => JSON.stringify(value);
 
+const denseTalkingHeadTranscriptPath = (): string => {
+  const transcriptPath = tempFile("orchestrator-talking-head-", "transcript.json");
+  const tuples: Array<[string, number, number]> = [
+    ["Over", 800, 920], ["the", 920, 1080], ["last", 1080, 1320], ["12", 1320, 1640],
+    ["months,", 1640, 2000], ["I've", 2000, 2360], ["purchased", 2360, 2800], ["more", 2800, 3000],
+    ["than", 3000, 3240], ["12,000", 3240, 3920], ["physical", 4000, 4560], ["products", 4560, 4920],
+    ["from", 4920, 5200], ["eBay.com", 5200, 6080], ["that", 6240, 6520], ["I've", 6520, 6760],
+    ["then", 6760, 6960], ["resold", 6960, 7440], ["on", 7440, 7640], ["Amazon", 7640, 8120],
+    ["for", 8120, 8320], ["more", 8320, 8440], ["than", 8440, 8680], ["six", 8680, 9000],
+    ["figures", 9000, 9360], ["in", 9360, 9560], ["Pure.", 9560, 9920],
+  ];
+  const words = tuples.map(([text, startMs, endMs]) => ({text, startMs, endMs, confidence: 0.99}));
+  const phraseRanges: Array<[number, number]> = [[0, 8], [8, 16], [16, 24], [24, 27]];
+  const phrases = phraseRanges.map(([start, end]) => {
+    const phraseWords = words.slice(start, end);
+    return {
+      startMs: phraseWords[0]?.startMs ?? 0,
+      endMs: phraseWords.at(-1)?.endMs ?? 0,
+      text: phraseWords.map((word) => word.text).join(" "),
+      words: phraseWords,
+    };
+  });
+
+  fs.writeFileSync(transcriptPath, JSON.stringify({
+    words,
+    phrases,
+    beats: Array.from({length: 20}, (_, index) => index * 500),
+    onsets: words.map((word) => word.startMs),
+    energyCurve: [0.42, 0.68, 0.78, 0.55, 0.74, 0.62],
+    durationMs: 10_000,
+  }), "utf8");
+  return transcriptPath;
+};
+
 describe("Director Orchestrator", () => {
   it("orchestrates aggressive profile end-to-end", async () => {
     const ledger = new ReplayLedger(":memory:");
@@ -65,6 +99,28 @@ describe("Director Orchestrator", () => {
 
     expect(result.candidateCount).toBe(4);
     expect(result.manifest.creativeProfile.name).toBe("joseph_cinematic");
+  });
+
+  it("keeps dense real talking-head typography inside the quality floor", async () => {
+    const result = await orchestrateRender(
+      baseInput("joseph_cinematic", {
+        transcriptPath: denseTalkingHeadTranscriptPath(),
+        uploadInstanceId: "dense-real-talking-head",
+      }),
+      new ReplayLedger(":memory:"),
+      registry(),
+    );
+    const overlayStarts = result.manifest.textOverlays
+      .map((overlay) => overlay.startFrame)
+      .sort((left, right) => left - right);
+    const selectedScore = result.candidateScoreSummary.candidateScores.find(
+      (score) => score.manifest.jobId === result.manifest.jobId,
+    );
+
+    expect(selectedScore?.floorFailures).toEqual([]);
+    expect(result.manifest.microAnimationAudit?.failures).toEqual([]);
+    expect(result.manifest.textOverlays.length).toBeLessThanOrEqual(result.manifest.josephTypography?.lines.length ?? 4);
+    expect(overlayStarts.every((start, index) => index === 0 || start - (overlayStarts[index - 1] ?? start) >= 6)).toBe(true);
   });
 
   it("orchestrates minimal profile end-to-end", async () => {

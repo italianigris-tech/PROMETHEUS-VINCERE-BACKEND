@@ -44,7 +44,7 @@ const JOSEPH_MANIFEST_COMPILER_COMPILED_TARGET_FIELD_PATHS = [
 ] as const;
 
 export type JosephManifestCompilerMode = "pass_through" | "compile_manifest";
-export type JosephManifestCompilerArtifactMode = "phase0_read_only";
+export type JosephManifestCompilerArtifactMode = "phase0_read_only" | "compile_manifest";
 
 export type JosephManifestCompilerAuditReferences = {
   candidateScoreSummary?: boolean;
@@ -259,16 +259,24 @@ const fallbackForMissingCompiledFields = (manifest: UnifiedRenderManifest): Jose
   return fallbacks;
 };
 
-const buildPhase0Artifact = ({
+const buildCompilerArtifact = ({
   manifest,
   selectedPlannerCandidate,
+  mode,
 }: {
   manifest: UnifiedRenderManifest;
   selectedPlannerCandidate: JosephSelectedPlannerCandidate;
+  mode: JosephManifestCompilerArtifactMode;
 }): JosephManifestCompilerArtifact => {
+  const fallbacks = mode === "compile_manifest"
+    ? [
+      ...fallbackForMissingCompiledFields(manifest),
+      ...fallbackForSelectedPlannerCandidate(selectedPlannerCandidate),
+    ]
+    : fallbackForSelectedPlannerCandidate(selectedPlannerCandidate);
   const withoutHash = {
     version: JOSEPH_MANIFEST_COMPILER_VERSION,
-    mode: "phase0_read_only" as const,
+    mode,
     deterministic: true as const,
     inputPlannerIds: {
       plannerPathId: selectedPlannerCandidate.plannerPathId,
@@ -277,9 +285,15 @@ const buildPhase0Artifact = ({
       doctrineBranchIds: [...selectedPlannerCandidate.doctrineBranchIds],
       archiveCellKeys: [...selectedPlannerCandidate.archiveCellKeys],
     },
-    targetManifestFields: targetManifestFieldsFor(manifest),
-    fallbacks: fallbackForSelectedPlannerCandidate(selectedPlannerCandidate),
-    warnings: ["Phase 0 compiler artifact only; manifest output was not mutated."],
+    targetManifestFields: mode === "compile_manifest"
+      ? compiledTargetManifestFieldsFor(manifest)
+      : targetManifestFieldsFor(manifest),
+    fallbacks,
+    warnings: mode === "compile_manifest"
+      ? (fallbacks.length > 0
+        ? ["Compiled manifest contains governed fallbacks; renderer must not invent omitted planner intent."]
+        : ["Compiled manifest handoff is authoritative for plannerHandoff fields."])
+      : ["Phase 0 compiler artifact only; manifest output was not mutated."],
     manifestHash: sha256Json(manifest),
   };
 
@@ -401,14 +415,18 @@ const buildAudit = ({
 
 export const compileJosephManifest = ({
   manifest,
-  mode = "pass_through",
+  mode,
   variationKey,
   auditReferences = {},
   selectedPlannerCandidate,
 }: JosephManifestCompilerInput): JosephManifestCompilerResult => {
   const parsedManifest = UnifiedRenderManifestSchema.parse(manifest);
+  // Authority default: when a selected planner candidate is present, compile it.
+  // pass_through remains available for explicit Phase-0/read-only callers.
+  const resolvedMode: JosephManifestCompilerMode = mode
+    ?? (selectedPlannerCandidate ? "compile_manifest" : "pass_through");
 
-  if (mode === "compile_manifest") {
+  if (resolvedMode === "compile_manifest") {
     if (!selectedPlannerCandidate) {
       throw new Error("compile_manifest mode requires a selected planner candidate.");
     }
@@ -421,17 +439,26 @@ export const compileJosephManifest = ({
 
     return {
       manifest: compiledManifest,
-      audit: buildAudit({manifest: compiledManifest, mode, auditReferences}),
+      audit: buildAudit({manifest: compiledManifest, mode: resolvedMode, auditReferences}),
+      artifact: buildCompilerArtifact({
+        manifest: compiledManifest,
+        selectedPlannerCandidate,
+        mode: "compile_manifest",
+      }),
     };
   }
 
   const result: JosephManifestCompilerResult = {
     manifest,
-    audit: buildAudit({manifest, mode, auditReferences}),
+    audit: buildAudit({manifest, mode: resolvedMode, auditReferences}),
   };
 
   if (selectedPlannerCandidate) {
-    result.artifact = buildPhase0Artifact({manifest: parsedManifest, selectedPlannerCandidate});
+    result.artifact = buildCompilerArtifact({
+      manifest: parsedManifest,
+      selectedPlannerCandidate,
+      mode: "phase0_read_only",
+    });
   }
 
   return result;

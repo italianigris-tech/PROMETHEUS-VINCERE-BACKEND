@@ -178,6 +178,18 @@ describe("JudgmentLayer active contract", () => {
     expect(score.qualityScore).toBeGreaterThan(0.8);
   });
 
+  it("does not require a whoosh on every hard cut", () => {
+    const manifest = validManifest("restrained-hard-cuts", {
+      audio: {
+        ...validManifest("restrained-hard-cuts-audio").audio,
+        sfx: [sfx("authored-impact", "impact_deep", 3300)],
+      },
+    });
+
+    const score = meetsQualityFloor(manifest);
+
+    expect(score.floorFailures).not.toContain("sfx_animation_desync");
+  });
   it("fails candidate with missing hook cuts", () => {
     const manifest = validManifest("bad-hook", {
       timeline: [cut(1500), cut(4200), cut(6200), cut(8200), cut(9500), text(3300, 3700), text(4800, 5200)],
@@ -463,6 +475,66 @@ describe("JudgmentLayer active contract", () => {
     expect(result.selected.jobId).toBe("relaxed");
     expect(result.scores[0]?.similarityScore).toBeGreaterThan(0.85);
     expect(result.scores[0]?.similarityScore).toBeLessThanOrEqual(0.95);
+  });
+
+  it("keeps a quality-passing upload renderable when replay novelty is exhausted", async () => {
+    const repeated = validManifest("repeat-only");
+    const leastRepeated = validManifest("least-repeated", {
+      timeline: [cut(400), cut(2600), cut(3600), cut(5100), cut(7700), cut(9800), text(3900, 4300)],
+      audio: {
+        ...validManifest("least-repeated-audio").audio,
+        sfx: [sfx("least-0", "whoosh_fast", 400), sfx("least-1", "whoosh_fast", 2600), sfx("least-2", "whoosh_fast", 3600), sfx("least-3", "whoosh_fast", 5100), sfx("least-4", "whoosh_fast", 7700), sfx("least-5", "whoosh_fast", 9800)],
+      },
+      cameraMoves: [{type: "dutch", startFrame: 30, endFrame: 55}, {type: "push_in", startFrame: 210, endFrame: 235}],
+      transitions: [{startFrame: 90, endFrame: 102}],
+    });
+    const leastRepeatedHash = computeSimilarityHash(leastRepeated);
+    const almostExactHash = `${leastRepeatedHash[0] === "a" ? "b" : "a"}${leastRepeatedHash.slice(1)}`;
+    const ledger = new ReplayLedger(":memory:");
+    ledger.insert({
+      id: "prior-repeat-only",
+      sourceFingerprint: "source-a",
+      promptFingerprint: "prompt-a",
+      uploadInstanceId: "prior-upload",
+      retryIndex: 0,
+      profile: "joseph_aggressive",
+      chosenGenome: "{}",
+      rejectedGenomes: "[]",
+      candidateScoreSummary: "{}",
+      similarityHash: computeSimilarityHash(repeated),
+      qualityScore: 0.95,
+      failureTags: "",
+      createdAt: "2026-06-20T00:00:00.000Z",
+    });
+    ledger.insert({
+      id: "prior-least-repeated",
+      sourceFingerprint: "source-a",
+      promptFingerprint: "prompt-a",
+      uploadInstanceId: "prior-upload-2",
+      retryIndex: 0,
+      profile: "joseph_aggressive",
+      chosenGenome: "{}",
+      rejectedGenomes: "[]",
+      candidateScoreSummary: "{}",
+      similarityHash: almostExactHash,
+      qualityScore: 0.95,
+      failureTags: "",
+      createdAt: "2026-06-20T00:01:00.000Z",
+    });
+
+    const result = await new JudgmentLayer(ledger).judgeCandidates(
+      [repeated, leastRepeated],
+      variationKey(),
+      governedPrompt(),
+    );
+
+    expect(result.selected.jobId).toBe("least-repeated");
+    expect(result.verdict.passedFloor).toBe(true);
+    expect(result.verdict.failureTags).toEqual(
+      expect.arrayContaining(["replay_similarity_veto", "replay_similarity_exhausted"]),
+    );
+    expect(result.scores.find((score) => score.manifest.jobId === "repeat-only")?.similarityScore).toBe(1);
+    expect(result.scores.find((score) => score.manifest.jobId === "least-repeated")?.similarityScore).toBeCloseTo(63 / 64);
   });
 
   it("throws if no candidates pass quality floor", async () => {

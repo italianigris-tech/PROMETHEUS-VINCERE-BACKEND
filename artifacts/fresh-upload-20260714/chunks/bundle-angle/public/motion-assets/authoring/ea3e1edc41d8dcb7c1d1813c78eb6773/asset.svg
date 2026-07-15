@@ -1,0 +1,227 @@
+<svg
+      id="asset"
+      viewBox="0 0 564 705"
+      width="564"
+      height="705"
+      xmlns="http://www.w3.org/2000/svg"
+      data-asset-name="ea3e1edc41d8dcb7c1d1813c78eb6773"
+      data-asset-type="headline-card"
+      data-image-slots="0"
+      data-text-slots="4"
+      data-asset-version="1"
+    >
+<style type="text/css">
+html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background: transparent !important;
+    }
+    body::before, body::after { display: none !important; }
+
+    body {
+      display: grid;
+      place-items: center;
+      font-family: 'Sora', sans-serif;
+    }
+
+    #scene {
+      width: 564px;
+      height: 705px;
+      perspective: 900px;
+    }
+
+    svg {
+      width: 564px;
+      height: 705px;
+      overflow: visible;
+      transform-style: preserve-3d;
+    }
+
+    .text-primary {
+      font-size: 44px;
+      font-weight: 600;
+      fill: #eef2ff;
+      letter-spacing: -0.8px;
+    }
+
+    .text-secondary {
+      font-size: 44px;
+      font-weight: 400;
+      fill: #e5ebff;
+      letter-spacing: -0.8px;
+    }
+
+    .text-secondary-italic {
+      font-size: 44px;
+      font-weight: 400;
+      font-style: italic;
+      fill: #dce5ff;
+      letter-spacing: -0.8px;
+    }
+
+    .text-tertiary {
+      font-size: 14px;
+      font-weight: 500;
+      fill: #c7d2ff;
+    }
+</style>
+
+      <title>Headline Glass Card</title>
+      <desc>Blue headline with glass chart card.</desc>
+      <metadata id="asset_metadata">
+        {
+          "name": "ea3e1edc41d8dcb7c1d1813c78eb6773",
+          "assetId": "ea3e1edc41d8dcb7c1d1813c78eb6773",
+          "filename": "ea3e1edc41d8dcb7c1d1813c78eb6773.html",
+          "displayName": "Headline Glass Card",
+          "type": "headline-card",
+          "description": "Blue headline with glass chart and body text.",
+          "macro": "headline glass card",
+          "keywords": [
+            "headline",
+            "blue",
+            "glassmorphism",
+            "chart",
+            "card"
+          ],
+          "imageSlots": 0,
+          "imageSlotNames": [],
+          "imageSlotRoles": [],
+          "textSlots": 4,
+          "textSlotNames": [
+            "text_primary_1",
+            "text_secondary_1",
+            "text_secondary_2",
+            "text_tertiary_1"
+          ],
+          "textSlotRoles": [
+            "primary",
+            "secondary",
+            "secondary",
+            "tertiary"
+          ],
+          "textArtifacts": [
+            {
+              "id": "text_primary_1",
+              "role": "primary",
+              "category": "core",
+              "slot": "1",
+              "text": "Headline",
+              "charCount": 8
+            },
+            {
+              "id": "text_secondary_1",
+              "role": "secondary",
+              "category": "descriptor",
+              "slot": "1",
+              "text": "Goes",
+              "charCount": 4
+            },
+            {
+              "id": "text_secondary_2",
+              "role": "secondary",
+              "category": "descriptor",
+              "slot": "2",
+              "text": "Here",
+              "charCount": 4
+            },
+            {
+              "id": "text_tertiary_1",
+              "role": "tertiary",
+              "category": "descriptor",
+              "slot": "1",
+              "text": "maybe put a little bit of body text here.",
+              "charCount": 41
+            }
+          ],
+          "textArtifactCount": 4,
+          "textArtifactCounts": {
+            "core": 1,
+            "descriptor": 3,
+            "stray": 0
+          },
+          "format": "svg+gsap",
+          "version": "1.0.0"
+        }
+      </metadata>
+      <defs>
+        <radialGradient id="bgFade" cx="45%" cy="30%" r="70%">
+          <stop offset="0%" stop-color="#2b58c7" stop-opacity="0.9" />
+          <stop offset="55%" stop-color="#0d1e4a" stop-opacity="0.75" />
+          <stop offset="100%" stop-color="#0d1e4a" stop-opacity="0" />
+        </radialGradient>
+        <radialGradient id="fadeMaskGradient" cx="50%" cy="45%" r="70%">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity="1" />
+          <stop offset="70%" stop-color="#ffffff" stop-opacity="0.7" />
+          <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
+        </radialGradient>
+        <linearGradient id="cardFill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#2a4f9e" stop-opacity="0.45" />
+          <stop offset="100%" stop-color="#162e6b" stop-opacity="0.65" />
+        </linearGradient>
+        <linearGradient id="cardStroke" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#c6d7ff" stop-opacity="0.55" />
+          <stop offset="100%" stop-color="#8ba7ff" stop-opacity="0.25" />
+        </linearGradient>
+        <radialGradient id="cardSheen" cx="35%" cy="20%" r="70%">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity="0.18" />
+          <stop offset="70%" stop-color="#ffffff" stop-opacity="0" />
+        </radialGradient>
+        <linearGradient id="chartLine" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#9bb4ff" />
+          <stop offset="100%" stop-color="#dbe6ff" />
+        </linearGradient>
+        <radialGradient id="dotGlow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity="0.9" />
+          <stop offset="70%" stop-color="#9bb4ff" stop-opacity="0.2" />
+          <stop offset="100%" stop-color="#9bb4ff" stop-opacity="0" />
+        </radialGradient>
+        <pattern id="dotPattern" width="14" height="14" patternUnits="userSpaceOnUse">
+          <circle cx="2" cy="2" r="1.2" fill="#8ba7ff" opacity="0.35" />
+        </pattern>
+        <filter id="cardShadow" x="-30%" y="-30%" width="160%" height="180%">
+          <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#000000" flood-opacity="0.4" />
+        </filter>
+        <filter id="textShadow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="1" stdDeviation="0" flood-color="#ffffff" flood-opacity="0.15" />
+          <feDropShadow dx="0" dy="2" stdDeviation="10" flood-color="#000000" flood-opacity="0.2" />
+        </filter>
+        <mask id="fadeMask">
+          <rect x="0" y="0" width="564" height="705" fill="url(#fadeMaskGradient)" />
+        </mask>
+        <clipPath id="clip-card">
+          <rect x="100" y="290" width="364" height="300" rx="28" />
+        </clipPath>
+        <clipPath id="clip-text">
+          <rect id="textClipRect" x="60" y="80" width="444" height="360" />
+        </clipPath>
+      </defs>
+
+      <g id="background_fade" mask="url(#fadeMask)">
+        <rect x="0" y="0" width="564" height="705" fill="url(#bgFade)" />
+      </g>
+
+      <g id="text_group" clip-path="url(#clip-text)" filter="url(#textShadow)">
+        <text id="text_primary_1" data-text-slot="1" data-text-role="primary" class="text-primary" x="68" y="140">Headline</text>
+        <text id="text_secondary_1" data-text-slot="1" data-text-role="secondary" class="text-secondary" x="68" y="195">Goes</text>
+        <text id="text_secondary_2" data-text-slot="2" data-text-role="secondary" class="text-secondary-italic" x="210" y="195">Here</text>
+        <text id="text_tertiary_1" data-text-slot="1" data-text-role="tertiary" class="text-tertiary" x="282" y="360" text-anchor="middle">maybe put a little bit of body text here.</text>
+      </g>
+
+      <g id="card_group" filter="url(#cardShadow)">
+        <rect x="100" y="290" width="364" height="300" rx="28" fill="url(#cardFill)" />
+        <rect x="100" y="290" width="364" height="300" rx="28" fill="url(#cardSheen)" />
+        <rect x="100" y="290" width="364" height="300" rx="28" fill="none" stroke="url(#cardStroke)" stroke-width="1.5" />
+      </g>
+
+      <g id="card_detail" clip-path="url(#clip-card)">
+        <path d="M140 520 C180 480 210 560 260 520 C290 500 300 450 330 470 C360 490 380 460 420 420" fill="none" stroke="url(#chartLine)" stroke-width="2" />
+        <rect x="140" y="420" width="300" height="120" fill="url(#dotPattern)" opacity="0.45" />
+        <g transform="translate(310 470)">
+          <circle r="22" fill="url(#dotGlow)" />
+          <circle r="6" fill="#ffffff" />
+        </g>
+      </g>
+    </svg>

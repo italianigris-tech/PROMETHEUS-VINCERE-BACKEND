@@ -1,10 +1,12 @@
 import React, {useEffect, useMemo, useRef, useState} from "react";
+import {UnifiedRenderManifestSchema, type UnifiedRenderManifest} from "@prometheus/shared-types";
 
 import {CreativeLiveAudioPreview} from "./CreativeLiveAudioPreview";
 import {DisplayGodPreviewStage} from "./DisplayGodPreviewStage";
 import {NativePreviewStage} from "./NativePreviewStage";
 import type {PreviewPlaybackHealth} from "./preview-telemetry";
 import {RemotionPreviewPlayer} from "./RemotionPreviewPlayer";
+import {JosephManifestPreviewPlayer} from "./JosephManifestPreviewPlayer";
 import type {ProjectScopedLivePreviewSessionData} from "../compositions/ProjectScopedMotionComposition";
 import {buildMotionCompositionModel} from "../lib/motion-platform/scene-engine";
 import type {
@@ -130,6 +132,8 @@ export type LiveEditSessionPublicState = {
   routes?: {
     status: string;
     previewManifest: string;
+    josephManifest?: string;
+    josephRenderJob?: string;
     previewArtifact: string;
     preview: string;
     render: string;
@@ -1387,6 +1391,7 @@ export const CreativeAudioLivePlayer: React.FC<CreativeAudioLivePlayerProps> = (
   const [playbackSourcePending, setPlaybackSourcePending] = useState(false);
   const [playbackSourceError, setPlaybackSourceError] = useState<string | null>(null);
   const [liveSessionState, setLiveSessionState] = useState<LiveEditSessionPublicState | null>(null);
+  const [josephManifest, setJosephManifest] = useState<UnifiedRenderManifest | null>(null);
   const [browserVideoMetadata, setBrowserVideoMetadata] = useState<Pick<VideoMetadata, "width" | "height" | "fps" | "durationSeconds" | "durationInFrames"> | null>(null);
   const [nativePreviewHealth, setNativePreviewHealth] = useState<PreviewPlaybackHealth>("booting");
   const [nativePreviewErrorMessage, setNativePreviewErrorMessage] = useState<string | null>(null);
@@ -1463,6 +1468,36 @@ export const CreativeAudioLivePlayer: React.FC<CreativeAudioLivePlayerProps> = (
     () => buildPreviewManifestFromSessionState(liveSessionState, apiBase),
     [apiBase, liveSessionState]
   );
+
+  useEffect(() => {
+    const manifestRoute = liveSessionState?.routes?.josephManifest;
+    if (previewRenderer !== "remotion" || !manifestRoute) {
+      setJosephManifest(null);
+      return;
+    }
+
+    const abortController = new AbortController();
+    const loadManifest = async (): Promise<void> => {
+      try {
+        const manifestUrl = resolveApiUrl(apiBase, manifestRoute);
+        if (!manifestUrl) {
+          return;
+        }
+        const response = await fetch(manifestUrl, {cache: "no-store", signal: abortController.signal});
+        if (!response.ok) {
+          return;
+        }
+        setJosephManifest(UnifiedRenderManifestSchema.parse(await response.json()));
+      } catch (error) {
+        if (!abortController.signal.aborted) {
+          setNativePreviewErrorMessage(error instanceof Error ? error.message : String(error));
+        }
+      }
+    };
+
+    void loadManifest();
+    return () => abortController.abort();
+  }, [apiBase, liveSessionState?.id, liveSessionState?.routes?.josephManifest, previewRenderer]);
   const currentBackendPreviewPlan = useMemo(
     () => liveSessionState ? buildBackendPreviewPlan(liveSessionState) : null,
     [liveSessionState]
@@ -1977,6 +2012,8 @@ export const CreativeAudioLivePlayer: React.FC<CreativeAudioLivePlayerProps> = (
           formData.append("source_video", sourceFile);
           formData.append("captionProfileId", captionProfileId);
           formData.append("motionTier", motionTier);
+          formData.append("josephProfile", "joseph_cinematic");
+          formData.append("promptText", "Apply the full Joseph cinematic treatment with synchronized typography, motion, music, ducking, and SFX.");
           if (backendSourcePath) {
             formData.append("sourcePath", backendSourcePath);
           }
@@ -1999,7 +2036,9 @@ export const CreativeAudioLivePlayer: React.FC<CreativeAudioLivePlayerProps> = (
             body: JSON.stringify({
               sourcePath: backendSourcePath,
               captionProfileId,
-              motionTier
+              motionTier,
+              josephProfile: "joseph_cinematic",
+              promptText: "Apply the full Joseph cinematic treatment with synchronized typography, motion, music, ducking, and SFX."
             }),
             signal: abortController.signal
           });
@@ -2419,25 +2458,32 @@ export const CreativeAudioLivePlayer: React.FC<CreativeAudioLivePlayerProps> = (
       <div style={{display: "grid"}}>
         <div style={{gridArea: "1 / 1"}}>
           {interactivePreviewSurface === "remotion-player" ? (
-            <RemotionPreviewPlayer
-              videoSrc={resolvedVideoSrc}
-              videoMetadata={session?.videoMetadata ?? fallbackVideoMetadata}
-              motionModel={session?.motionModel ?? fallbackMotionModel}
-              captionChunks={session?.captionChunks ?? []}
-              captionProfileId={captionProfileId}
-              previewPerformanceMode="balanced"
-              livePreviewSession={livePreviewSessionData}
-              onHealthChange={(health) => {
-                setNativePreviewHealth(health);
-              }}
-              onErrorMessageChange={(message) => {
-                setNativePreviewErrorMessage(message);
-                if (message) {
-                  audioStatusCallbackRef.current?.("error", message);
-                  previewStateCallbackRef.current?.("error");
-                }
-              }}
-            />
+            josephManifest ? (
+              <JosephManifestPreviewPlayer
+                manifest={josephManifest}
+                renderJobUrl={resolveApiUrl(apiBase, liveSessionState?.routes?.josephRenderJob)}
+              />
+            ) : (
+              <RemotionPreviewPlayer
+                videoSrc={resolvedVideoSrc}
+                videoMetadata={session?.videoMetadata ?? fallbackVideoMetadata}
+                motionModel={session?.motionModel ?? fallbackMotionModel}
+                captionChunks={session?.captionChunks ?? []}
+                captionProfileId={captionProfileId}
+                previewPerformanceMode="balanced"
+                livePreviewSession={livePreviewSessionData}
+                onHealthChange={(health) => {
+                  setNativePreviewHealth(health);
+                }}
+                onErrorMessageChange={(message) => {
+                  setNativePreviewErrorMessage(message);
+                  if (message) {
+                    audioStatusCallbackRef.current?.("error", message);
+                    previewStateCallbackRef.current?.("error");
+                  }
+                }}
+              />
+            )
           ) : interactivePreviewSurface === "display-god" && displayTimeline ? (
             <DisplayGodPreviewStage
               displayTimeline={displayTimeline}

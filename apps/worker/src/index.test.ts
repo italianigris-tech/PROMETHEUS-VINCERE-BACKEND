@@ -103,7 +103,7 @@ describe('renderFromManifest', () => {
     await expect(renderFromManifest(invalidManifest)).rejects.toThrow(ValidationError);
   });
 
-  it('renders silent video and mixes audio with the Windows software GL path', async () => {
+  it('renders silent video and mixes audio with the durable Windows hardware GL path', async () => {
     const mockChildProcess = {
       stderr: {on: vi.fn()},
       on: vi.fn((event, cb) => {
@@ -116,7 +116,10 @@ describe('renderFromManifest', () => {
 
     expect(bundle).toHaveBeenCalled();
     const bundleArg = vi.mocked(bundle).mock.calls[0]?.[0];
-    expect(bundleArg).toEqual(expect.objectContaining({entryPoint: expect.any(String)}));
+    expect(bundleArg).toEqual(expect.objectContaining({
+      entryPoint: expect.any(String),
+      outDir: expect.stringMatching(/apps[\\/]worker[\\/]\.cache[\\/]joseph-remotion-bundle$/),
+    }));
     const entryPoint = typeof bundleArg === 'object' && bundleArg !== null && 'entryPoint' in bundleArg
       ? String(bundleArg.entryPoint)
       : '';
@@ -124,21 +127,24 @@ describe('renderFromManifest', () => {
     expect(selectComposition).toHaveBeenCalledWith(expect.objectContaining({
       serveUrl: 'mock-serve-url',
       id: 'JosephEdit',
-      inputProps: {manifest: mockManifest},
-      gl: 'swangle',
+      inputProps: {manifest: mockManifest, audioPreviewEnabled: false},
+      timeoutInMilliseconds: 600000,
+      gl: 'angle',
+      chromiumOptions: expect.objectContaining({gl: 'angle'}),
     }));
     expect(renderMedia).toHaveBeenCalledWith(expect.objectContaining({
       composition: expect.objectContaining({id: 'JosephEdit'}),
       serveUrl: 'mock-serve-url',
-      inputProps: {manifest: mockManifest},
+      inputProps: {manifest: mockManifest, audioPreviewEnabled: false},
       outputLocation: expect.stringContaining('_silent.mp4'),
       codec: 'h264',
       width: 1080,
       height: 1920,
       concurrency: 1,
-      timeoutInMilliseconds: 300000,
-      gl: 'swangle',
-      hardwareAcceleration: 'disable',
+      timeoutInMilliseconds: 600000,
+      gl: 'angle',
+      hardwareAcceleration: 'if-possible',
+      chromiumOptions: expect.objectContaining({gl: 'angle'}),
       onProgress: expect.any(Function),
     }));
     expect(mixAudio).toHaveBeenCalledWith(
@@ -202,6 +208,7 @@ describe('renderFromManifest', () => {
 
   it('retries renderMedia on timeout', async () => {
     const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const warningSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     const mockChildProcess = {
       stderr: {on: vi.fn()},
       on: vi.fn((event, cb) => {
@@ -219,14 +226,30 @@ describe('renderFromManifest', () => {
     await renderFromManifest(mockManifest);
 
     expect(renderMedia).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(renderMedia).mock.calls[0]?.[0]).toEqual(expect.objectContaining({
+      serveUrl: 'mock-serve-url',
+      gl: 'angle',
+      hardwareAcceleration: 'if-possible',
+    }));
     expect(vi.mocked(renderMedia).mock.calls[1]?.[0]).toEqual(expect.objectContaining({
+      serveUrl: 'mock-serve-url',
       timeoutInMilliseconds: 600000,
       concurrency: 1,
       gl: 'swangle',
       hardwareAcceleration: 'disable',
     }));
     expect(consoleSpy).toHaveBeenCalledWith('[Worker] Render progress: 10%');
+    expect(warningSpy).toHaveBeenCalledWith(expect.stringMatching(/retrying.*same durable bundle.*mock-serve-url/i));
     consoleSpy.mockRestore();
+    warningSpy.mockRestore();
+  });
+
+  it('does not retry deterministic root suspension failures', async () => {
+    vi.mocked(renderMedia).mockRejectedValue(new Error('Waiting for Root component to unsuspend after 598000ms'));
+
+    await expect(renderFromManifest(mockManifest)).rejects.toThrow(RenderError);
+
+    expect(renderMedia).toHaveBeenCalledTimes(1);
   });
 
   it('throws RenderError on non-retryable Remotion failure', async () => {

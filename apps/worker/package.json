@@ -10,6 +10,7 @@
     "studio": "remotion studio src/remotion-entry.tsx --force-new",
     "compositions": "remotion compositions src/remotion-entry.tsx",
     "render:sample": "remotion render src/remotion-entry.tsx PrometheusRegenerateSample out/regenerate-sample.mp4 --codec=h264 --audio-codec=aac",
+    "render:manifest": "tsx scripts/render-manifest.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },

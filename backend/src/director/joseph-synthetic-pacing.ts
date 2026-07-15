@@ -245,11 +245,29 @@ export function buildJosephSyntheticPacingPlan(input: JosephSyntheticPacingInput
   const proposals: JosephSyntheticPacingProposal[] = [];
   const rejectedCandidates: JosephSyntheticPacingRejection[] = [];
   let earlyImpactUsed = 0;
+  const terminalPhrase = input.phrases.at(-1);
+  const terminalPayoffPoint = terminalPhrase?.endMs === input.durationMs
+    ? terminalPhrase.startMs
+    : null;
 
   for (const point of legalWindows) {
     const sync = syncKindFor(point, input);
     if (isInsideWord(point, input.phrases)) {
       rejectedCandidates.push(rejection(point, "mid_word_cut", sync, "Cut candidate fell inside a spoken word."));
+      continue;
+    }
+
+    if (
+      terminalPayoffPoint !== null
+      && point < terminalPayoffPoint
+      && terminalPayoffPoint - point < minGapMs
+    ) {
+      rejectedCandidates.push(rejection(
+        point,
+        "jump_cut_spam",
+        sync,
+        "Nearby beat held back so the terminal payoff phrase can carry the emphasis cut.",
+      ));
       continue;
     }
 

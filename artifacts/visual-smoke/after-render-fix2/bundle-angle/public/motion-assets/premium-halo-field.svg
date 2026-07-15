@@ -1,0 +1,15 @@
+<svg width="1080" height="1920" viewBox="0 0 1080 1920" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="haloWarm" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(240 380) rotate(90) scale(260 320)">
+      <stop stop-color="#FFD49A" stop-opacity="0.48" />
+      <stop offset="1" stop-color="#FFD49A" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="haloCool" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(846 1420) rotate(90) scale(310 360)">
+      <stop stop-color="#94BFFF" stop-opacity="0.44" />
+      <stop offset="1" stop-color="#94BFFF" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <ellipse cx="240" cy="380" rx="260" ry="320" fill="url(#haloWarm)" />
+  <ellipse cx="846" cy="1420" rx="310" ry="360" fill="url(#haloCool)" />
+  <ellipse cx="540" cy="1440" rx="340" ry="160" fill="#FFFFFF" fill-opacity="0.04" />
+</svg>

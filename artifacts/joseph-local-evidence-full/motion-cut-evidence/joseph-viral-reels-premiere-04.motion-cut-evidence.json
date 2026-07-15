@@ -1,0 +1,173 @@
+{
+  "audit_windows": [
+    {
+      "cut_seconds": [
+        2.033359
+      ],
+      "end_seconds": 2.6877,
+      "event_index": 0,
+      "sample_seconds": 1.615933,
+      "scan_end_seconds": 2.6877,
+      "scan_start_seconds": 0.544166,
+      "scene_cut_count": 1,
+      "start_seconds": 0.544166
+    },
+    {
+      "cut_seconds": [],
+      "end_seconds": 17.908,
+      "event_index": 1,
+      "sample_seconds": 12.260035,
+      "scan_end_seconds": 14.260035,
+      "scan_start_seconds": 10.260035,
+      "scene_cut_count": 0,
+      "start_seconds": 6.61207
+    },
+    {
+      "cut_seconds": [],
+      "end_seconds": 28.117,
+      "event_index": 2,
+      "sample_seconds": 24.2822,
+      "scan_end_seconds": 26.2822,
+      "scan_start_seconds": 22.2822,
+      "scene_cut_count": 0,
+      "start_seconds": 20.4474
+    },
+    {
+      "cut_seconds": [
+        49.43332
+      ],
+      "end_seconds": 66.4462,
+      "event_index": 3,
+      "sample_seconds": 51.18625,
+      "scan_end_seconds": 53.18625,
+      "scan_start_seconds": 49.18625,
+      "scene_cut_count": 1,
+      "start_seconds": 35.9263
+    },
+    {
+      "cut_seconds": [],
+      "end_seconds": 103.555,
+      "event_index": 4,
+      "sample_seconds": 93.67045,
+      "scan_end_seconds": 95.67045,
+      "scan_start_seconds": 91.67045,
+      "scene_cut_count": 0,
+      "start_seconds": 83.7859
+    },
+    {
+      "cut_seconds": [
+        133.266638
+      ],
+      "end_seconds": 158.685,
+      "event_index": 5,
+      "sample_seconds": 132.3585,
+      "scan_end_seconds": 134.3585,
+      "scan_start_seconds": 130.3585,
+      "scene_cut_count": 1,
+      "start_seconds": 106.032
+    },
+    {
+      "cut_seconds": [
+        187.733302
+      ],
+      "end_seconds": 201.596,
+      "event_index": 6,
+      "sample_seconds": 186.732,
+      "scan_end_seconds": 188.732,
+      "scan_start_seconds": 184.732,
+      "scene_cut_count": 1,
+      "start_seconds": 171.868
+    },
+    {
+      "cut_seconds": [
+        294.266659
+      ],
+      "end_seconds": 365.591,
+      "event_index": 7,
+      "sample_seconds": 293.908,
+      "scan_end_seconds": 295.908,
+      "scan_start_seconds": 291.908,
+      "scene_cut_count": 1,
+      "start_seconds": 222.225
+    },
+    {
+      "cut_seconds": [],
+      "end_seconds": 424.04,
+      "event_index": 8,
+      "sample_seconds": 402.3465,
+      "scan_end_seconds": 404.3465,
+      "scan_start_seconds": 400.3465,
+      "scene_cut_count": 0,
+      "start_seconds": 380.653
+    },
+    {
+      "cut_seconds": [
+        448.399995,
+        450.666661
+      ],
+      "end_seconds": 466.781,
+      "event_index": 9,
+      "sample_seconds": 449.547,
+      "scan_end_seconds": 451.547,
+      "scan_start_seconds": 447.547,
+      "scene_cut_count": 2,
+      "start_seconds": 432.313
+    },
+    {
+      "cut_seconds": [
+        793.199992
+      ],
+      "end_seconds": 804.496,
+      "event_index": 10,
+      "sample_seconds": 795.058,
+      "scan_end_seconds": 797.058,
+      "scan_start_seconds": 793.058,
+      "scene_cut_count": 1,
+      "start_seconds": 785.62
+    },
+    {
+      "cut_seconds": [],
+      "end_seconds": 863.839,
+      "event_index": 11,
+      "sample_seconds": 863.839,
+      "scan_end_seconds": 864.339,
+      "scan_start_seconds": 863.339,
+      "scene_cut_count": 0,
+      "start_seconds": 863.839
+    }
+  ],
+  "failures": [],
+  "scene_count": 8,
+  "scene_detector": "ffmpeg_scene_select_showinfo_audit_windows",
+  "scene_threshold": 0.35,
+  "scenes": [
+    {
+      "cut_seconds": 2.033359
+    },
+    {
+      "cut_seconds": 49.43332
+    },
+    {
+      "cut_seconds": 133.266638
+    },
+    {
+      "cut_seconds": 187.733302
+    },
+    {
+      "cut_seconds": 294.266659
+    },
+    {
+      "cut_seconds": 448.399995
+    },
+    {
+      "cut_seconds": 450.666661
+    },
+    {
+      "cut_seconds": 793.199992
+    }
+  ],
+  "schema_version": "motion-cut-evidence-v1",
+  "source_video_path": "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\JOSEPH VIDEO PROOF\\YouTube_How-to-Edit-Viral-Instagram-Reels      fourth video.mp4",
+  "video_id": "joseph-viral-reels-premiere-04",
+  "warnings": []
+}

@@ -275,4 +275,144 @@ describe("edit session live preview route", () => {
 
     expect(previewReadyEvent?.session["previewDiagnostics"]).toBeTruthy();
   });
+
+  it("compiles a browser upload through the Joseph pipeline and exposes the exact UnifiedRenderManifest", async () => {
+    let receivedProfile: string | null = null;
+    context = await createTestApp({
+      storageDir: tempDir,
+      envOverrides: {
+        PREVIEW_ENGINE: "remotion",
+        ENABLE_REMOTION_PREVIEW: "true"
+      },
+      deps: {
+        probeVideoMetadata: async () => ({
+          width: 1920,
+          height: 1080,
+          fps: 30,
+          duration_seconds: 6,
+          duration_in_frames: 180
+        }),
+        extractPreviewAudioBuffer: async () => Buffer.from("preview-audio"),
+        streamPreviewAudio: async () => undefined,
+        transcribeMedia: async () => ([{text: "Joseph", start_ms: 0, end_ms: 320}]),
+        josephUploadPipeline: {
+          createRenderJob: async (input) => {
+            receivedProfile = input.profile;
+            const manifest = {
+              version: "2.0" as const,
+              jobId: "123e4567-e89b-12d3-a456-426614174301",
+              seed: 301,
+              createdAt: "2026-01-01T00:00:00.000Z",
+              durationFrames: 180,
+              fps: 30,
+              width: 1080,
+              height: 1920,
+              videoTracks: [{sourcePath: "/uploads/test/source.mp4", startFrame: 0, endFrame: 179}],
+              cameraMoves: [],
+              textOverlays: [],
+              transitions: [],
+              source: {
+                videoUrl: "/uploads/test/source.mp4",
+                audioUrl: input.sourcePath,
+                transcript: [{text: "Joseph", startMs: 0, endMs: 320}],
+                durationMs: 6000,
+                width: 1920,
+                height: 1080,
+                fps: 30
+              },
+              audio: {
+                beats: [],
+                onsets: [],
+                djPlan: {
+                  version: "joseph-dj-plan-v1" as const,
+                  source: "video-aware-audio-plan" as const,
+                  planId: "live-preview-plan",
+                  planMode: "render_ready" as const,
+                  musicEvents: [{
+                    id: "music-1",
+                    trackId: "track-1",
+                    browserUrl: "/joseph-music/track-1.mp3",
+                    localFilePath: path.join(tempDir, "track-1.mp3"),
+                    videoStartSec: 0,
+                    videoEndSec: 6,
+                    trackStartSec: 0,
+                    trackEndSec: 6,
+                    volumeDb: -24,
+                    fadeInSec: 0.3,
+                    fadeOutSec: 1,
+                    duckingEnabled: true,
+                    purpose: "video_hook_bed",
+                    sectionRole: "intro",
+                    beatAligned: false
+                  }],
+                  transitionEvents: [],
+                  duckingRegions: [],
+                  warnings: []
+                },
+                sfx: [],
+                voiceVolumeDb: 0,
+                musicVolumeDb: -18,
+                targetLufs: -14
+              },
+              timeline: [],
+              creativeProfile: {
+                name: "joseph_cinematic" as const,
+                cutDensity: 0.5,
+                textDensity: 0.5,
+                sfxDensity: 0.2,
+                cameraAggression: 0.4,
+                colorIntensity: 0.4
+              },
+              output: {width: 1080, height: 1920, fps: 30, codec: "h264" as const, crf: 18}
+            };
+            return {
+              renderJobId: manifest.jobId,
+              replayLedgerEntryId: "ledger:1",
+              evidencePath: path.join(tempDir, "evidence"),
+              variationKey: "variation:1",
+              manifest,
+              transcript: {
+                path: path.join(tempDir, "transcript.json"),
+                source: "fixture_words" as const,
+                wordCount: 1,
+                warnings: [],
+                trainableForIrl: false
+              }
+            };
+          }
+        }
+      }
+    });
+
+    const multipart = buildMultipartBody([
+      {name: "source_video", value: Buffer.from("fake-video-file"), filename: "joseph-source.mp4", contentType: "video/mp4"},
+      {name: "josephProfile", value: "joseph_cinematic"},
+      {name: "promptText", value: "Apply the complete Joseph treatment."}
+    ]);
+    const response = await context.app.inject({
+      method: "POST",
+      url: "/api/edit-sessions/live-preview",
+      payload: multipart.body,
+      headers: {"content-type": multipart.contentType}
+    });
+
+    expect(response.statusCode).toBe(202);
+    const body = response.json() as {id: string; routes: Record<string, string>; urls: Record<string, string>; metadata: Record<string, unknown>};
+    expect(receivedProfile).toBe("joseph_cinematic");
+    expect(body.metadata.josephRenderJobId).toBe("123e4567-e89b-12d3-a456-426614174301");
+    expect(body.routes.josephManifest).toBe(`/api/edit-sessions/${body.id}/joseph-manifest`);
+    expect(body.urls.josephManifest).toBe(body.routes.josephManifest);
+
+    const manifestResponse = await context.app.inject({
+      method: "GET",
+      url: body.routes.josephManifest,
+      headers: {host: "127.0.0.1:8000"}
+    });
+    expect(manifestResponse.statusCode).toBe(200);
+    const manifest = manifestResponse.json();
+    expect(manifest.source.videoUrl).toBe(`http://127.0.0.1:8000/api/edit-sessions/${body.id}/source`);
+    expect(manifest.videoTracks[0].sourcePath).toBe(manifest.source.videoUrl);
+    expect(manifest.source.audioUrl).toBe(manifest.source.videoUrl);
+    expect(manifest.audio.djPlan.musicEvents[0].browserUrl).toBe("/joseph-music/track-1.mp3");
+  });
 });

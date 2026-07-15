@@ -1,5 +1,5 @@
-import {existsSync} from "node:fs";
-import {writeFile} from "node:fs/promises";
+﻿import {existsSync} from "node:fs";
+import {readFile, writeFile} from "node:fs/promises";
 import path from "node:path";
 
 import {afterEach, beforeEach, describe, expect, it} from "vitest";
@@ -209,6 +209,8 @@ describe("R2 upload routes", () => {
   }, 15_000);
 
   it("queues a Joseph UnifiedRenderManifest when upload completion requests a Joseph profile", async () => {
+    await writeFile(path.join(tempDir, "fixture-track-a.mp3"), Buffer.from("fixture-track-a"));
+    await writeFile(path.join(tempDir, "fixture-track-b.mp3"), Buffer.from("fixture-track-b"));
     const context = await createTestApp({
       storageDir: tempDir,
       deps: {
@@ -224,12 +226,21 @@ describe("R2 upload routes", () => {
           publicDir: path.join(tempDir, "remotion-public"),
           uploadDir: path.join(tempDir, "resolved-media"),
           listLocalMusicCatalog: () => [{
-            trackId: "local-fixture",
-            title: "Fixture Track",
+            trackId: "local-fixture-a",
+            title: "Fixture Track A",
             sourceKind: "local",
-            localFilePath: path.join(tempDir, "fixture-track.mp3"),
-            browserUrl: "/music/fixture-track.mp3",
-            durationSeconds: 1,
+            localFilePath: path.join(tempDir, "fixture-track-a.mp3"),
+            browserUrl: "/music/fixture-track-a.mp3",
+            durationSeconds: 4,
+            renderSafe: true,
+            licenseStatus: "test_fixture"
+          }, {
+            trackId: "local-fixture-b",
+            title: "Fixture Track B",
+            sourceKind: "local",
+            localFilePath: path.join(tempDir, "fixture-track-b.mp3"),
+            browserUrl: "/music/fixture-track-b.mp3",
+            durationSeconds: 4,
             renderSafe: true,
             licenseStatus: "test_fixture"
           }],
@@ -240,7 +251,7 @@ describe("R2 upload routes", () => {
             sections: [{id: "section-01", startSeconds: 0, endSeconds: 8, label: "main", energy: 0.7}],
             loudnessLUFS: -15,
             energyCurve: [0.7, 0.72, 0.68],
-            duration: 8,
+            duration: 4,
             source: "ffmpeg_fallback",
             warnings: []
           })
@@ -308,9 +319,25 @@ describe("R2 upload routes", () => {
     expect(job.manifest.source.videoUrl).not.toMatch(/^file:\/\//);
     expect(job.manifest.source.videoUrl).not.toMatch(/^[A-Za-z]:[\\/]/);
     expect(job.manifest.videoTracks[0].sourcePath).toBe(job.manifest.source.videoUrl);
+    expect(job.manifest.source.audioUrl).toMatch(/resolved-media/);
+    expect(job.manifest.source.audioUrl).not.toBe(job.manifest.audio.djPlan.musicEvents[0].localFilePath);
     expect(job.manifest.typography.fontAssetUrl).toMatch(/^\/fonts\/(hero|library)\//);
-    expect(job.manifest.audio.musicReference.durationSeconds).toBe(8);
+    expect(job.manifest.audio.djPlan?.source).toBe("video-aware-audio-plan");
+    expect(job.manifest.audio.djPlan?.planMode).toBe("render_ready");
+    expect(job.manifest.audio.djPlan?.musicEvents.length).toBeGreaterThan(1);
+    expect(job.manifest.audio.djPlan?.transitionEvents.length).toBeGreaterThan(0);
+    expect(new Set(job.manifest.audio.djPlan?.musicEvents.map((event: any) => event.trackId)).size).toBeGreaterThan(1);
+    expect(job.manifest.audio.djPlan?.musicEvents.every((event: any) => /^\/joseph-music\//.test(event.browserUrl))).toBe(true);
+    expect(job.manifest.audio.musicReference).toBeUndefined();
+    expect(job.manifest.audio.musicTrackUrl).toBeUndefined();
     expect(job.manifest.audio.musicBpm).toBe(128);
+    const studioManifest = JSON.parse(await readFile(
+      path.join(tempDir, "remotion-public", "joseph-studio", "latest.json"),
+      "utf8",
+    ));
+    expect(studioManifest.source.videoUrl).toMatch(/^\/uploads\//);
+    expect(studioManifest.source.audioUrl).toBe(studioManifest.source.videoUrl);
+    expect(job.manifest.source.audioUrl).toMatch(/resolved-media/);
 
     const nextResponse = await context.app.inject({
       method: "GET",
@@ -320,7 +347,7 @@ describe("R2 upload routes", () => {
     expect(nextResponse.json()).toEqual(job.manifest);
 
     await context.app.close();
-  });
+  }, 15_000);
 
   it("leaves the non-Joseph upload path on the existing edit-session pipeline", async () => {
     const context = await createTestApp({

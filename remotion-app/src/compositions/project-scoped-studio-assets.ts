@@ -16,26 +16,10 @@ export type ProjectScopedStudioSampleAsset = {
 
 export const PROJECT_SCOPED_STUDIO_SAMPLE_ASSETS = [
   {
-    id: "male-head-longform-dataset",
-    label: "Male head longform dataset",
-    publicPath: "datasets/male-head-raw-longform/input-video-landscape.mp4",
-    videoSrc: staticFile("datasets/male-head-raw-longform/input-video-landscape.mp4")
-  },
-  {
-    id: "patrick-bet-david-part-01",
-    label: "Patrick Bet-David sample",
-    publicPath: "talking-head-chunks/patrick-bet-david-live-episode-1/patrick-bet-david-live-episode-1-part-01.mp4",
-    videoSrc: staticFile(
-      "talking-head-chunks/patrick-bet-david-live-episode-1/patrick-bet-david-live-episode-1-part-01.mp4"
-    )
-  },
-  {
-    id: "nolan-audience-hook",
-    label: "Nolan audience hook sample",
-    publicPath: "nolan-clips/unedited-videos-made-me-a-better-editor-here-s-how/page-01/01-but-understanding-who-your-audience-is.mp4",
-    videoSrc: staticFile(
-      "nolan-clips/unedited-videos-made-me-a-better-editor-here-s-how/page-01/01-but-understanding-who-your-audience-is.mp4"
-    )
+    id: "raw-landscape-test-video",
+    label: "Raw landscape test video",
+    publicPath: "dev-fixtures/test-video.mp4",
+    videoSrc: staticFile("dev-fixtures/test-video.mp4")
   }
 ] as const satisfies readonly ProjectScopedStudioSampleAsset[];
 

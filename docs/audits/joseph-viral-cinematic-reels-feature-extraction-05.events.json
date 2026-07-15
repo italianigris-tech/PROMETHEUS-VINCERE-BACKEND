@@ -1,0 +1,211 @@
+{
+  "schemaVersion": "manual-feature-extraction-v1",
+  "referenceId": "joseph-viral-cinematic-reels-05",
+  "status": "candidate_reference_5_of_5",
+  "title": "How to Edit Viral Cinematic Reels in Premiere Pro (Easy Guide)",
+  "videoPath": "JOSEPH VIDEO PROOF/How_to_Edit_Viral_Cinematic_Reels    fifth video.mp4",
+  "verifiedMedia": {
+    "durationSeconds": 1427.423492,
+    "width": 1280,
+    "height": 720,
+    "fps": 30,
+    "videoCodec": "av1",
+    "audioCodec": "aac",
+    "audioSampleRate": 44100,
+    "audioChannels": 2,
+    "fileSizeBytes": 74993105
+  },
+  "sourceEvidence": [
+    "Great Joshua raw timestamp analysis",
+    "Local MP4 in JOSEPH VIDEO PROOF"
+  ],
+  "coverageEstimate": {
+    "rawTimestampObservations": 40,
+    "observedKeyDecisions": 30,
+    "explainableByCurrentCatalogApprox": 19,
+    "explainableAfterCandidateDeltasApprox": 27,
+    "trainingSafeNowApprox": 16
+  },
+  "events": [
+    {
+      "timeSeconds": [1.4896, 8.21311],
+      "observed": "Fast zoom-in hook with swoosh, single keystroke/click SFX, low sci-fi bed, right-to-left speaker return, and transparent lower-third audience icons with purple vignette.",
+      "probableIntent": "Create hook pressure and make audience categories concrete without leaving talking-head mode.",
+      "viewerProblemSolved": "Stops passive viewing and helps viewers self-identify quickly.",
+      "currentFeatures": ["camera.movement_class", "audio.sfx_class", "transition.directional_axis", "motion_graphics.has_image_asset", "composition.vignette"],
+      "missingFeatures": ["intro.fast_zoom_in_hook", "audio.single_keystroke_punctuation", "audio.low_sci_fi_bed_ramp", "audience.segment_icon_row", "asset.transparent_icon_explainer", "vignette.icon_palette_coherence"],
+      "confidence": {"visual": "medium", "audio": "medium", "intent": "strong"},
+      "verdict": "good",
+      "trainingSafety": "verify_from_mp4"
+    },
+    {
+      "timeSeconds": [14.6035, 20.2237],
+      "observed": "`$1,000` count-up uses gradient/themed canvas; asset-to-asset canvas movement emphasizes 'using only' with square/cube asset, glass-blur text edges, breathing motion, and canvas zoom-out back to speaker.",
+      "probableIntent": "Anchor value and semantic platform/tool constraint in a premium visual system.",
+      "viewerProblemSolved": "Makes value and constraint memorable without relying only on narration.",
+      "currentFeatures": ["motion_graphics.has_data_viz", "typography.text_color_treatment", "transition.asset_to_asset_bridge", "camera.movement_class"],
+      "missingFeatures": ["number.value_anchor_canvas", "color.video_theme_gradient_coherence", "typography.glass_blur_edge_treatment", "asset.square_cube_rise", "transition.canvas_zoom_out_to_speaker", "motion.breathing_curve_with_pause"],
+      "confidence": {"visual": "medium", "audio": "low", "intent": "strong"},
+      "verdict": "good",
+      "trainingSafety": "manual_review_then_train"
+    },
+    {
+      "timeSeconds": [25.7849, 31.7414],
+      "observed": "Bottom-up emphasis text, chunk reposition, glowing gradient divider, word/letter-level 'step by step,' own-canvas 'cinematic' keyword, color-sampling text, and sine-line storyboard connecting assets.",
+      "probableIntent": "Elevate a promise and keyword into a structured visual explanation.",
+      "viewerProblemSolved": "Builds clarity and premium perception around a core tutorial claim.",
+      "currentFeatures": ["typography.animation_class", "composition.vignette", "semantic_keyword_weight", "callout.line_drawn_explainer"],
+      "missingFeatures": ["text.bottom_up_talking_head_emphasis", "divider.gradient_fade_line", "text.chunk_reposition_for_subpoint", "keyword.own_canvas_gravity", "typography.background_color_sampling_fill", "storyboard.sine_line_asset_connection", "line.asset_occlusion_blur"],
+      "confidence": {"visual": "high", "audio": "low", "intent": "strong"},
+      "verdict": "good",
+      "trainingSafety": "train_after_frame_extraction"
+    },
+    {
+      "timeSeconds": [39.0355, 63.4488],
+      "observed": "Purple-themed list/explainer canvas, glass-blur circular icon, subtext color contrast, percent-progress list counter, count-up number over text with depth hierarchy, and semantic project-files CTA on speaker return.",
+      "probableIntent": "Explain workflow progress and resource CTA while maintaining theme coherence and visual hierarchy.",
+      "viewerProblemSolved": "Keeps list progress and resource action clear.",
+      "currentFeatures": ["typography.text_color_treatment", "motion_graphics.has_data_viz", "composition.visual_density", "composition.vignette"],
+      "missingFeatures": ["list.percent_progress_counter", "list.non_exact_progress_mapping", "typography.subtext_color_contrast_for_fatigue", "icon.glass_blur_edge_recurrence", "number.over_text_depth_hierarchy", "resource_cta.semantic_text_extraction"],
+      "confidence": {"visual": "medium", "audio": "low", "intent": "strong"},
+      "verdict": "good",
+      "trainingSafety": "manual_review_then_train"
+    },
+    {
+      "timeSeconds": [124.444, 150.94],
+      "observed": "Music importance uses sound icon and text, curved lines reorient concepts, stacked typography balances large keywords, graph/axis motion explains build-up/drop/tension/impact, then graph zoom momentum continues into talking head.",
+      "probableIntent": "Convert abstract audio/editing ideas into simple visual models.",
+      "viewerProblemSolved": "Makes music/tension concepts understandable and memorable.",
+      "currentFeatures": ["motion_graphics.has_image_asset", "callout.line_drawn_explainer", "typography.animation_class", "motion_graphics.has_data_viz", "camera.movement_class"],
+      "missingFeatures": ["line.reorients_existing_concept", "typography.stacked_phrase_balance", "graph.motion_explainer_primitive", "line.lens_flare_treatment", "concept.build_up_curve_visualization", "transition.momentum_continuation_across_cut"],
+      "confidence": {"visual": "medium", "audio": "medium", "intent": "strong"},
+      "verdict": "good",
+      "trainingSafety": "manual_review_then_train"
+    },
+    {
+      "timeSeconds": [307.311, 380.221],
+      "observed": "Slow zoom emphasizes critical point; CTA weights 'first link below'; story-structure text uses glow/blur; momentum deliberately dies before sharp cut; full B-roll question text gets word-by-word left/right reveal.",
+      "probableIntent": "Focus attention, convert to action, then break expected motion continuity to fight patternicity.",
+      "viewerProblemSolved": "Keeps CTA clear and prevents motion grammar from becoming predictable.",
+      "currentFeatures": ["camera.semantic_emphasis_zoom", "cta.resource_download_visualization", "typography.animation_class", "transition.type"],
+      "missingFeatures": ["cta.weighted_phrase_hierarchy", "vignette.visual_anticipation_buffer", "pattern.break_momentum_deliberately", "question.full_sentence_visual_weight", "typography.left_right_word_reveal", "text.gradient_transparency_stack"],
+      "confidence": {"visual": "medium", "audio": "low", "intent": "strong"},
+      "verdict": "good",
+      "trainingSafety": "manual_review_then_train"
+    },
+    {
+      "timeSeconds": [515.047, 701.809],
+      "observed": "PiP has vertical gradient border and side-fading support text; later text/camera momentum moves around purple 3D person icon and Beginner tag; B-roll canvas uses exact YouTube search footage, red problem scrim, bracket, and rotating problem words.",
+      "probableIntent": "Pair proof with explanation and make problem-state B-roll semantically exact.",
+      "viewerProblemSolved": "Keeps support text connected and makes the abstract difficulty claim concrete.",
+      "currentFeatures": ["composition.has_pip", "typography.placement_zone", "camera.movement_class", "motion_graphics.has_screen_recording", "composition.color_palette"],
+      "missingFeatures": ["pip.vertical_gradient_border", "pip.support_text_side_fade", "motion.continuous_momentum_transfer", "asset.group_as_single_concept", "tag.semantic_label_attached_to_icon", "broll.semantic_exactness", "color.red_problem_scrim", "bracket.problem_label_frame", "keyword.rotating_problem_terms"],
+      "confidence": {"visual": "medium", "audio": "low", "intent": "strong"},
+      "verdict": "good",
+      "trainingSafety": "manual_review_then_train"
+    },
+    {
+      "timeSeconds": [704.976, 712.933],
+      "observed": "Mouse click plus whoosh transition into new background; 'easiest & fastest' uses mature stacked negative-space layout; incoming asset pushes old asset out; frame casing has mirror/reflection polish; group miniaturizes and blurs for focus shift.",
+      "probableIntent": "Refresh session background and shift attention while preserving motion initiative and premium polish.",
+      "viewerProblemSolved": "Avoids stale background and focuses the next concept without a full reset.",
+      "currentFeatures": ["transition.type", "audio.sfx_class", "typography.placement_zone", "camera.movement_class", "composition.has_depth_layering"],
+      "missingFeatures": ["background.session_refresh", "typography.negative_space_ampersand", "motion.offscreen_incoming_asset_push", "motion.settle_then_reaccelerate", "surface.mirror_reflection_shadow", "asset.group_miniaturize_blur_refocus", "attention.focus_resource_management"],
+      "confidence": {"visual": "medium", "audio": "medium", "intent": "strong"},
+      "verdict": "good",
+      "trainingSafety": "manual_review_then_train"
+    },
+    {
+      "timeSeconds": [730.684, 746.989],
+      "observed": "When `$2,000` and `60 days` compete, `60 days` gets visual treatment while `$2,000` does not; later `$2,000` is mentioned again with no visual. CTA varies by removing text glow/gradient and using glowing chevrons.",
+      "probableIntent": "Allocate animation to the number with stronger local semantic punch and fight CTA fatigue with a low-cost variant.",
+      "viewerProblemSolved": "Preserves restraint, novelty, and CTA clarity.",
+      "currentFeatures": ["motion_graphics.has_data_viz", "typography.text_color_treatment", "temporal.repetition", "cta.resource_download_visualization"],
+      "missingFeatures": ["number.competing_numeric_priority", "number.semantic_punch_selection", "number.repeated_mention_no_visual", "restraint.best_editing_choice", "cta.chevron_bracket_variant", "cta.no_gradient_text_refresh", "cta.pattern_fatigue_variant"],
+      "confidence": {"visual": "medium", "audio": "low", "intent": "strong"},
+      "verdict": "good",
+      "trainingSafety": "manual_review_then_train"
+    },
+    {
+      "timeSeconds": [784.899, 784.899],
+      "observed": "Tutorial note: nested cinematic text groups can become one module and receive 3D rotation/effects, making text feel part of the background.",
+      "probableIntent": "Treat typography arrangement as a composable render object.",
+      "viewerProblemSolved": "Creates richer runtime primitive options for landscape and vertical edits.",
+      "currentFeatures": ["typography.placement_zone", "motion_graphics.has_depth_layering", "camera.movement_class"],
+      "missingFeatures": ["typography.nested_text_module", "text_group.3d_rotation_integration", "primitive.text_composition_as_object"],
+      "confidence": {"visual": "low", "audio": "none", "intent": "plausible"},
+      "verdict": "neutral_good",
+      "trainingSafety": "manual_only_for_renderer_design"
+    }
+  ],
+  "candidateFeatures": [
+    "motion.offscreen_incoming_asset_push",
+    "motion.continuous_momentum_transfer",
+    "motion.settle_then_reaccelerate",
+    "pattern.break_momentum_deliberately",
+    "transition.momentum_continuation_across_cut",
+    "asset.group_miniaturize_blur_refocus",
+    "typography.glass_blur_edge_treatment",
+    "divider.gradient_fade_line",
+    "typography.background_color_sampling_fill",
+    "storyboard.sine_line_asset_connection",
+    "line.asset_occlusion_blur",
+    "line.lens_flare_treatment",
+    "typography.stacked_phrase_balance",
+    "question.full_sentence_visual_weight",
+    "list.percent_progress_counter",
+    "list.non_exact_progress_mapping",
+    "graph.motion_explainer_primitive",
+    "concept.build_up_curve_visualization",
+    "number.competing_numeric_priority",
+    "number.semantic_punch_selection",
+    "number.repeated_mention_no_visual",
+    "broll.semantic_exactness",
+    "color.red_problem_scrim",
+    "bracket.problem_label_frame",
+    "cta.chevron_bracket_variant",
+    "cta.pattern_fatigue_variant",
+    "primitive.text_composition_as_object",
+    "surface.mirror_reflection_shadow",
+    "asset.transparent_icon_explainer",
+    "resource_cta.semantic_text_extraction"
+  ],
+  "postFiveStatus": {
+    "humanReadableJosephGrammarScoreApprox": 8.5,
+    "featureCatalogReadinessScoreApprox": 8.0,
+    "mvpPlannerReadinessScoreApprox": 7.5,
+    "irlTrainingWithoutVerificationScoreApprox": 6.5,
+    "irlTrainingAfterSynthesisAndVerificationScoreApprox": 8.0,
+    "recommendation": "Proceed to first synthesis and MVP architecture pass now; run the next five videos as validation rather than delaying synthesis."
+  },
+  "prioritySteps": [
+    {
+      "priority": "P0",
+      "step": "Synthesize references 1-5 into stable feature catalog with train_now/manual_only/defer/reject labels."
+    },
+    {
+      "priority": "P0",
+      "step": "Collapse duplicate feature names into 25-50 feature families and create initial edit-move catalog."
+    },
+    {
+      "priority": "P1",
+      "step": "Build small primitive registry for typography, speaker returns, PiP, value numbers, CTAs, vignette panels, line callouts, graph explainers, and SFX lifecycle."
+    },
+    {
+      "priority": "P1",
+      "step": "Define JSON schemas for edit plans, primitive requests, render manifests, and critic reports."
+    },
+    {
+      "priority": "P2",
+      "step": "Extract frame/audio samples to verify timing, SFX/no-SFX claims, count animations, crop motion, and layout."
+    },
+    {
+      "priority": "P2",
+      "step": "Build negative examples for over-editing, repeated counters, excessive clicks, and pattern fatigue."
+    },
+    {
+      "priority": "P3",
+      "step": "Analyze five more videos as validation and recurrence/exception mapping."
+    }
+  ]
+}
