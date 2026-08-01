@@ -56,6 +56,34 @@ export const JosephTypographyWordWeightSchema = z.object({
   reasons: z.array(z.string().trim().min(1)).default([]),
 });
 
+export const TypographySemanticsTraceSchema = z.object({
+  version: z.literal("typography-semantics-kernel-v1"),
+  ruleIds: z.array(z.string().trim().min(1)).min(1),
+  intent: z.enum(["authority", "emphasis", "premium_explain", "neutral"]),
+  tokens: z.array(z.object({
+    sourceIndex: z.number().int().nonnegative(),
+    text: z.string().trim().min(1),
+    normalized: z.string().trim().min(1),
+    startMs: z.number().int().nonnegative(),
+    endMs: z.number().int().nonnegative(),
+    role: JosephTypographyWordRoleSchema,
+    score: z.number().min(0).max(1),
+    reasons: z.array(z.string().trim().min(1)),
+  })),
+  visibleTokenIndexes: z.array(z.number().int().nonnegative()),
+  lines: z.array(z.object({
+    tokenIndexes: z.array(z.number().int().nonnegative()).min(1),
+    text: z.string().trim().min(1),
+    role: z.enum(["support", "hero", "cta"]),
+    maxCharacters: z.number().int().positive(),
+  })),
+  quality: z.object({
+    score: z.number().min(0).max(1),
+    failures: z.array(z.string().trim().min(1)),
+    warnings: z.array(z.string().trim().min(1)),
+  }),
+});
+
 export const JosephTypographyCompositionRulesSchema = z.object({
   caseStrategy: z.enum(["all_caps", "hero_upper_support_title", "title_case", "sentence_case"]),
   lineBreakStrategy: z.enum(["phrase_stack", "breath_balanced", "single_anchor"]),
@@ -116,6 +144,7 @@ export const JosephTypographyIntelligencePlanSchema = z.object({
   version: z.literal("joseph-typography-v1"),
   stylebookId: JosephTypographyStylebookIdSchema,
   lexicalWeights: z.array(JosephTypographyWordWeightSchema).default([]),
+  semanticsTrace: TypographySemanticsTraceSchema.optional(),
   compositionRules: JosephTypographyCompositionRulesSchema,
   lines: z.array(JosephTypographyLineSchema).default([]),
   fontPairing: JosephTypographyFontPairingSchema.optional(),
@@ -834,6 +863,7 @@ export type JosephTypography = z.infer<typeof JosephTypographySchema>;
 export type JosephTypographyStylebookId = z.infer<typeof JosephTypographyStylebookIdSchema>;
 export type JosephTypographyWordRole = z.infer<typeof JosephTypographyWordRoleSchema>;
 export type JosephTypographyWordWeight = z.infer<typeof JosephTypographyWordWeightSchema>;
+export type TypographySemanticsTrace = z.infer<typeof TypographySemanticsTraceSchema>;
 export type JosephTypographyCompositionRules = z.infer<typeof JosephTypographyCompositionRulesSchema>;
 export type JosephTypographyLine = z.infer<typeof JosephTypographyLineSchema>;
 export type JosephTypographyFontRole = z.infer<typeof JosephTypographyFontRoleSchema>;

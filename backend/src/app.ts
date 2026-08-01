@@ -29,6 +29,15 @@ import {registerVideoContextRoutes} from "./video-context/routes";
 import {GodService, registerGodRoutes} from "./god";
 import {registerThumbnailRoutes} from "./thumbnail";
 import {registerRenderJobRoutes} from "./render-jobs/routes";
+import {MaulProjectStore} from "./maul/store";
+import {MaulProjectService} from "./maul/service";
+import type {MaulShortRenderEngine} from "./maul/render-engine";
+import type {MaulThumbnailGenerator} from "./maul/thumbnail-generator";
+import type {MaulQualityTruthProofProvider} from "./maul/quality-truth";
+import {MaulDurableControlPlane} from "./maul/control-plane";
+import {registerMaulControlPlaneRoutes} from "./maul/control-plane-routes";
+import {MaulLearningStore} from "./maul/learning";
+import {registerMaulProjectRoutes} from "./maul/routes";
 import {
   createJosephStudyCandidateGenerator,
   registerJosephStudyCandidateRoutes,
@@ -69,6 +78,7 @@ export type BackendAppContext = {
   repository: FileJobRepository;
   queue: InProcessQueue;
   editSessions: EditSessionManager;
+  maulProjects: MaulProjectService;
   god: GodService;
   videoContexts: VideoContextService;
   executionTelemetry: ExecutionTelemetryBroker;
@@ -82,6 +92,9 @@ export type BackendDependencies = PipelineDependencies & EditSessionDependencies
   extractAudioPreviewFile?: LocalPreviewRunnerDependencies["extractAudioPreviewFile"];
   musicPreviewUrlSigner?: MusicPreviewUrlSigner;
   videoContext?: ConstructorParameters<typeof VideoContextService>[4];
+  maulRenderEngine?: MaulShortRenderEngine;
+  maulThumbnailGenerator?: MaulThumbnailGenerator;
+  maulQualityTruthProofProvider?: MaulQualityTruthProofProvider;
 };
 
 const parseCorsOrigins = (value: string): string[] => {
@@ -253,6 +266,21 @@ export const createBackendApp = async ({
     deps: pipelineDeps
   });
   await editSessions.initialize();
+  const maulProjectStore = new MaulProjectStore(env.STORAGE_DIR);
+  const maulProjects = new MaulProjectService(
+    maulProjectStore,
+    buildModelRoutingTable(env),
+    undefined,
+    undefined,
+    deps?.maulRenderEngine,
+    deps?.maulThumbnailGenerator,
+    deps?.maulQualityTruthProofProvider
+  );
+  await maulProjects.initialize();
+  const maulControlPlane = new MaulDurableControlPlane(env.STORAGE_DIR, maulProjects);
+  await maulControlPlane.initialize();
+  const maulLearning = new MaulLearningStore(env.STORAGE_DIR);
+  await maulLearning.initialize();
   const videoContextStore = new VideoContextStore(env.STORAGE_DIR);
   const videoContexts = new VideoContextService(
     env,
@@ -831,6 +859,7 @@ export const createBackendApp = async ({
     repository,
     queue,
     editSessions,
+    maulProjects,
     god,
     videoContexts,
     executionTelemetry,
@@ -847,6 +876,14 @@ export const createBackendApp = async ({
   registerJosephStudyCandidateRoutes(app, josephStudyCandidateGenerator);
   await registerVideoContextRoutes(app, videoContexts);
   await registerRenderJobRoutes(app);
+  registerMaulProjectRoutes(app, maulProjects);
+  registerMaulControlPlaneRoutes(
+    app,
+    maulControlPlane,
+    envOverrides?.MAUL_WORKER_TOKEN ?? process.env.MAUL_WORKER_TOKEN ?? "",
+    maulProjects,
+    maulLearning
+  );
 
   return {
     app,
@@ -854,6 +891,7 @@ export const createBackendApp = async ({
     repository,
     queue,
     editSessions,
+    maulProjects,
     god,
     videoContexts,
     executionTelemetry,

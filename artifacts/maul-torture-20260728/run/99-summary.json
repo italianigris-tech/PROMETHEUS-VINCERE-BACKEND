@@ -1,0 +1,25 @@
+{
+  "projectId": "maul_project_ms4s6una_012fd65e13",
+  "outputDurationMs": 32734,
+  "exports": {
+    "founder_podcast": {
+      "sha256": "6f470882e6bf6d890b2f1646bbe6eecb193af80ecd39f2f599ad9dc2ed771bf8",
+      "renderMs": 281000,
+      "resumed": true
+    },
+    "premium_direct_response": {
+      "sha256": "5f84a558b47bdf119abaf7d48f0b6faa3695d4ec46f1292f95776750c16da3bb",
+      "renderMs": 467522
+    },
+    "minimal_expert": {
+      "sha256": "83d8d715ac1efc92c2d6b4bab564f2b4177c4b7c09437f19fac30574e4260a35",
+      "renderMs": 580411
+    }
+  },
+  "gates": {
+    "gate:unlicensed-music-rejected": "PASS",
+    "gate:tenant-isolation": "PASS",
+    "gate:deterministic-replay": "FAIL"
+  },
+  "totalMs": 1158847
+}

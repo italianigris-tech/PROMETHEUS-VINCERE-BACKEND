@@ -27,6 +27,11 @@ import {
   JOSEPH_RENDER_HEIGHT,
   JOSEPH_RENDER_WIDTH
 } from "./compositions/joseph-default-manifest";
+import {
+  calculateMaulShortMetadata,
+  MaulShort,
+  MAUL_SHORT_DEFAULT_PROPS
+} from "./compositions/MaulShort";
 
 const importMetaEnv = typeof import.meta !== "undefined" ? import.meta.env : undefined;
 const envCaptionProfileId =
@@ -45,7 +50,8 @@ const KNOWN_STUDIO_COMPOSITION_IDS = new Set([
   "CinematicChoreographyProof",
   "TargetFocusZoomShowcase",
   "CinematicPiPShowcase",
-  "JosephEdit"
+  "JosephEdit",
+  "MaulShort"
 ]);
 const reelPreset = getPresentationPreset("reel");
 const longFormPreset = getPresentationPreset("long-form");
@@ -283,6 +289,16 @@ export const RemotionRoot: React.FC = () => {
         height={cinematicPiPShowcaseVideoMetadata.height}
         fps={cinematicPiPShowcaseVideoMetadata.fps}
         durationInFrames={cinematicPiPShowcaseVideoMetadata.durationInFrames}
+      />
+      <Composition
+        id="MaulShort"
+        component={MaulShort}
+        calculateMetadata={calculateMaulShortMetadata}
+        width={1080}
+        height={1920}
+        fps={30}
+        durationInFrames={30}
+        defaultProps={MAUL_SHORT_DEFAULT_PROPS}
       />
       <Composition
         id="JosephEdit"

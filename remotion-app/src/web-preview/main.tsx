@@ -83,7 +83,11 @@ const renderRootApp = async (route: WebPreviewRootRoute): Promise<void> => {
     ? (await import("./Sandbox")).Sandbox
     : route === "joseph-study"
       ? (await import("./JosephStudyStudio")).JosephStudyStudio
-      : (await import("./PreviewApp")).PreviewApp;
+      : route === "maul-reference-review"
+        ? (await import("./MaulReferenceReview")).MaulReferenceReview
+        : route === "maul-review"
+          ? (await import("./MaulReviewSurface")).MaulReviewSurface
+        : (await import("./PreviewApp")).PreviewApp;
 
   ReactDOM.createRoot(rootElement).render(
     <React.StrictMode>

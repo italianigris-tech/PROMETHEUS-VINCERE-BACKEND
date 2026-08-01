@@ -1,0 +1,460 @@
+:root {
+  color-scheme: dark;
+  --maul-bg: #07090d;
+  --maul-surface: #10141b;
+  --maul-surface-raised: #171c24;
+  --maul-line: #303743;
+  --maul-text: #f6f3ea;
+  --maul-muted: #aeb7c4;
+  --maul-accent: #e6b84f;
+  --maul-accent-ink: #161106;
+  --maul-danger: #ff7d7d;
+  --maul-success: #72d7aa;
+  --maul-focus: #8bc5ff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--maul-bg);
+}
+
+.maul-review-shell {
+  min-height: 100dvh;
+  padding: clamp(16px, 2.4vw, 36px);
+  background:
+    radial-gradient(circle at 8% 0%, rgba(230, 184, 79, 0.1), transparent 28rem),
+    var(--maul-bg);
+  color: var(--maul-text);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.maul-review-header,
+.maul-review-toolbar,
+.maul-review-workspace {
+  width: min(1480px, 100%);
+  margin-inline: auto;
+}
+
+.maul-review-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+  padding-block: 8px 28px;
+}
+
+.maul-review-kicker,
+.maul-review-eyebrow {
+  margin: 0 0 8px;
+  color: var(--maul-accent);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.maul-review-header h1,
+.maul-review-detail h2,
+.maul-review-card h3 {
+  margin: 0;
+}
+
+.maul-review-header h1 {
+  max-width: 14ch;
+  font-size: clamp(34px, 4vw, 64px);
+  line-height: 0.98;
+  letter-spacing: -0.045em;
+}
+
+.maul-review-subtitle {
+  max-width: 68ch;
+  margin: 14px 0 0;
+  color: var(--maul-muted);
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+.maul-review-status {
+  width: min(420px, 100%);
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  border: 1px solid var(--maul-line);
+  background: rgba(16, 20, 27, 0.9);
+  color: var(--maul-muted);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.maul-review-error {
+  color: #ffd0d0;
+}
+
+.maul-review-toolbar {
+  display: grid;
+  grid-template-columns: minmax(200px, 0.8fr) minmax(260px, 1.3fr) minmax(180px, 0.6fr) auto;
+  gap: 12px;
+  align-items: end;
+  padding: 16px;
+  border: 1px solid var(--maul-line);
+  background: var(--maul-surface);
+}
+
+.maul-review-field {
+  display: grid;
+  gap: 7px;
+}
+
+.maul-review-field label {
+  color: var(--maul-muted);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.maul-review-field input,
+.maul-review-field select,
+.maul-review-field textarea,
+.maul-review-toolbar button,
+.maul-action {
+  min-height: 44px;
+  border: 1px solid var(--maul-line);
+  border-radius: 0;
+  font: inherit;
+}
+
+.maul-review-field input,
+.maul-review-field select,
+.maul-review-field textarea {
+  width: 100%;
+  padding: 10px 12px;
+  background: #0b0e13;
+  color: var(--maul-text);
+}
+
+.maul-review-field textarea {
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.maul-review-field small {
+  color: var(--maul-muted);
+  line-height: 1.45;
+}
+
+.maul-review-toolbar button,
+.maul-action,
+.maul-reference-row {
+  cursor: pointer;
+}
+
+.maul-review-toolbar button {
+  padding: 0 18px;
+  background: var(--maul-accent);
+  color: var(--maul-accent-ink);
+  font-weight: 850;
+}
+
+.maul-review-workspace {
+  min-height: 640px;
+  display: grid;
+  grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+  border: 1px solid var(--maul-line);
+  border-top: 0;
+  background: var(--maul-surface);
+}
+
+.maul-review-list {
+  border-right: 1px solid var(--maul-line);
+  background: #0c0f14;
+}
+
+.maul-review-panel-heading {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--maul-line);
+  color: var(--maul-muted);
+  font-size: 13px;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+
+.maul-review-panel-heading strong {
+  color: var(--maul-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.maul-reference-row {
+  width: 100%;
+  min-height: 92px;
+  display: grid;
+  justify-items: start;
+  gap: 7px;
+  padding: 14px 16px;
+  border: 0;
+  border-bottom: 1px solid rgba(48, 55, 67, 0.7);
+  background: transparent;
+  color: var(--maul-text);
+  text-align: left;
+}
+
+.maul-reference-row[aria-pressed="true"] {
+  background: var(--maul-surface-raised);
+  box-shadow: inset 3px 0 var(--maul-accent);
+}
+
+.maul-reference-row small {
+  color: var(--maul-muted);
+}
+
+.maul-status-token {
+  padding: 4px 7px;
+  border: 1px solid var(--maul-line);
+  color: var(--maul-muted);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.maul-status-token--approved {
+  border-color: rgba(114, 215, 170, 0.5);
+  color: var(--maul-success);
+}
+
+.maul-status-token--restricted {
+  border-color: rgba(230, 184, 79, 0.52);
+  color: var(--maul-accent);
+}
+
+.maul-status-token--rejected {
+  border-color: rgba(255, 125, 125, 0.52);
+  color: var(--maul-danger);
+}
+
+.maul-review-detail {
+  min-width: 0;
+  padding: clamp(18px, 2.5vw, 34px);
+}
+
+.maul-review-detail-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--maul-line);
+}
+
+.maul-review-detail h2 {
+  overflow-wrap: anywhere;
+  font-size: clamp(24px, 3vw, 42px);
+  line-height: 1.05;
+}
+
+.maul-review-facts {
+  min-width: min(360px, 45%);
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--maul-line);
+}
+
+.maul-review-facts div {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  background: var(--maul-surface-raised);
+}
+
+.maul-review-facts dt {
+  color: var(--maul-muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.maul-review-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-weight: 750;
+}
+
+.maul-review-card {
+  display: grid;
+  gap: 16px;
+  padding: 22px 0;
+  border-bottom: 1px solid var(--maul-line);
+}
+
+.maul-review-card h3 {
+  font-size: 18px;
+}
+
+.maul-review-card p {
+  margin: 0;
+  color: var(--maul-muted);
+  line-height: 1.55;
+}
+
+.maul-review-card a {
+  width: fit-content;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--maul-accent);
+  font-weight: 750;
+}
+
+.maul-review-warning-grid,
+.maul-annotation-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.maul-review-warning-grid div,
+.maul-annotation-grid div {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid var(--maul-line);
+  background: #0b0e13;
+}
+
+.maul-review-warning-grid span,
+.maul-annotation-grid span {
+  color: var(--maul-muted);
+  line-height: 1.45;
+}
+
+.maul-review-field--wide {
+  width: 100%;
+}
+
+.maul-review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-top: 22px;
+}
+
+.maul-action {
+  padding: 0 18px;
+  background: transparent;
+  color: var(--maul-text);
+  font-weight: 820;
+}
+
+.maul-action--primary {
+  border-color: var(--maul-accent);
+  background: var(--maul-accent);
+  color: var(--maul-accent-ink);
+}
+
+.maul-action--secondary {
+  border-color: rgba(230, 184, 79, 0.7);
+  color: var(--maul-accent);
+}
+
+.maul-action--danger {
+  margin-left: auto;
+  border-color: rgba(255, 125, 125, 0.72);
+  color: var(--maul-danger);
+}
+
+.maul-review-toolbar button:disabled,
+.maul-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.maul-review-field input:focus-visible,
+.maul-review-field select:focus-visible,
+.maul-review-field textarea:focus-visible,
+.maul-review-toolbar button:focus-visible,
+.maul-action:focus-visible,
+.maul-reference-row:focus-visible,
+.maul-review-card a:focus-visible {
+  outline: 3px solid var(--maul-focus);
+  outline-offset: 2px;
+}
+
+.maul-review-empty {
+  margin: 0;
+  padding: 20px 16px;
+  color: var(--maul-muted);
+  line-height: 1.5;
+}
+
+.maul-review-empty--detail {
+  min-height: 420px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+
+@media (max-width: 980px) {
+  .maul-review-header,
+  .maul-review-detail-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .maul-review-toolbar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .maul-review-facts {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 760px) {
+  .maul-review-shell {
+    padding: 12px;
+  }
+
+  .maul-review-toolbar,
+  .maul-review-workspace,
+  .maul-review-warning-grid,
+  .maul-annotation-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .maul-review-list {
+    border-right: 0;
+    border-bottom: 1px solid var(--maul-line);
+  }
+
+  .maul-review-facts {
+    grid-template-columns: 1fr;
+  }
+
+  .maul-action,
+  .maul-action--danger {
+    width: 100%;
+    margin-left: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

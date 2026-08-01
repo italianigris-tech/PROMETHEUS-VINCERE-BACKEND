@@ -1,0 +1,49 @@
+{
+  "candidates": [
+    {
+      "schemaVersion": "maul-artifact/v1",
+      "artifactId": "maul_artifact_ms4s792p_d90917e3f6",
+      "artifactType": "candidate",
+      "lineage": {
+        "projectId": "maul_project_ms4s6una_012fd65e13",
+        "canonicalJobId": "maul_job_ms4s6una_6bae341d84",
+        "runId": "maul_run_ms4s6una_6fc7805635",
+        "rootSourceAssetId": "maul_artifact_ms4s6una_38be0b777a",
+        "parentArtifactIds": [
+          "maul_artifact_ms4s6una_38be0b777a",
+          "maul_artifact_ms4s78oe_3e402fa4a6"
+        ],
+        "sequence": 7,
+        "producedBy": {
+          "module": "maul-candidate-scorer",
+          "version": "1"
+        },
+        "createdAt": "2026-07-28T14:59:07.825Z"
+      },
+      "payload": {
+        "sourceAssetId": "maul_artifact_ms4s6una_38be0b777a",
+        "timelineArtifactId": "maul_artifact_ms4s78oe_3e402fa4a6",
+        "rank": 1,
+        "sourceStartMs": 26070,
+        "sourceEndMs": 62760,
+        "title": "happened. Last week. We tested the exact",
+        "transcriptText": "happened. Last week. We tested the exact same landing page with one small change. The first version converted at 2.8%. The second converted at 5.1%. We didn't change the product, we didn't change the pricing. We only changed where people looked first. And that's when everything started making sense. Imagine taking a walk into a store where the entrance points you towards the checkout instead of the shelves. That's basically what happened.",
+        "scores": {
+          "hookClarity": 0.9,
+          "semanticCompletion": 0.95,
+          "pacing": 0.95,
+          "overall": 0.933
+        },
+        "qualityThresholdPassed": true,
+        "insufficiencyReason": null
+      }
+    }
+  ],
+  "rejectedCandidates": [],
+  "insufficiency": {
+    "requestedCount": 3,
+    "producedCount": 1,
+    "missingCount": 2,
+    "reason": "This Editorial Timeline contains one coherent idea; MAUL will not duplicate it to pad the requested output count."
+  }
+}

@@ -1,4 +1,10 @@
 import type {RenderConfig} from "../config/render-flags";
+import {
+  buildSharedTypographyRoleStyles,
+  planTypographySemantics,
+  selectTypographyCoreWords,
+  type TypographySemanticsTrace,
+} from "../creative-kernel/typography-semantics";
 
 type TypographyFontSource = "custom_ingested" | "system" | "fallback";
 type TypographyFontRole = "hero" | "support" | "cta";
@@ -48,6 +54,7 @@ export type TypographyDecision = {
   fallbackUsed: boolean;
   fallbackReasons: string[];
   coreWords: string[];
+  semanticsTrace: TypographySemanticsTrace;
   linePlan: {
     lines: string[];
     maxLines: number;
@@ -187,9 +194,24 @@ export const generateTypographyDecision = (input: TypographyDecisionInput): Typo
     }
   }
 
-  const lines = splitLines(input.text, maxLines, maxCharsPerLine);
-  const coreWords = selectCoreWords(input.text, input.rhetoricalIntent);
-  const roleStyles = buildRoleStyles(input.rhetoricalIntent);
+  const sourceTokens = input.text.replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
+  const semanticsTrace = planTypographySemantics({
+    tokens: sourceTokens.map((text) => ({text})),
+    intent: input.rhetoricalIntent,
+    fillerTreatment: "suppress",
+    maxVisibleTokens: sourceTokens.length,
+    maxLines,
+    maxWordsPerLine: 5,
+    maxCharsPerLine,
+  });
+  const lines = semanticsTrace.lines.map((line) => line.text);
+  const coreWords = selectTypographyCoreWords(
+    semanticsTrace,
+    input.rhetoricalIntent === "emphasis" || input.rhetoricalIntent === "authority" ? 3 : 2,
+  );
+  const roleStyles: TypographyRoleStyle[] = buildSharedTypographyRoleStyles(
+    input.rhetoricalIntent,
+  );
   const fontPairing: TypographyFontPairing = {
     primary: {
       fontId: fontIdFor(primary.family, "hero"),
@@ -226,6 +248,7 @@ export const generateTypographyDecision = (input: TypographyDecisionInput): Typo
     fallbackUsed,
     fallbackReasons,
     coreWords,
+    semanticsTrace,
     linePlan: {
       lines,
       maxLines,

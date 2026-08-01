@@ -67,8 +67,10 @@
   "dependencies": {
     "@react-three/drei": "^9.92.0",
     "@react-three/fiber": "^8.15.0",
+    "@remotion/captions": "^4.0.428",
     "@remotion/cli": "^4.0.120",
     "@remotion/google-fonts": "^4.0.428",
+    "@remotion/media": "^4.0.428",
     "@remotion/player": "^4.0.428",
     "@zilliz/milvus2-sdk-node": "^2.6.13",
     "dotenv": "^17.3.1",

@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "maul-artifact/v1",
+  "artifactId": "maul_artifact_ms4tl18t_7277d80296",
+  "artifactType": "export_artifact",
+  "lineage": {
+    "projectId": "maul_project_ms4s6una_012fd65e13",
+    "canonicalJobId": "maul_job_ms4s6una_6bae341d84",
+    "runId": "maul_run_ms4s6una_6fc7805635",
+    "rootSourceAssetId": "maul_artifact_ms4s6una_38be0b777a",
+    "parentArtifactIds": [
+      "maul_artifact_ms4s6una_38be0b777a",
+      "maul_artifact_ms4s792p_d90917e3f6",
+      "maul_artifact_ms4s78oe_3e402fa4a6",
+      "maul_artifact_ms4s790l_704acabbbe",
+      "maul_artifact_ms4t8ldm_e47ac0350d"
+    ],
+    "sequence": 14,
+    "producedBy": {
+      "module": "maul-short-render",
+      "version": "1"
+    },
+    "createdAt": "2026-07-28T15:37:50.477Z"
+  },
+  "payload": {
+    "sourceAssetId": "maul_artifact_ms4s6una_38be0b777a",
+    "candidateArtifactId": "maul_artifact_ms4s792p_d90917e3f6",
+    "timelineArtifactId": "maul_artifact_ms4s78oe_3e402fa4a6",
+    "treatmentGenomeArtifactId": "maul_artifact_ms4s790l_704acabbbe",
+    "reviewDecisionArtifactId": "maul_artifact_ms4t8ldm_e47ac0350d",
+    "storageKey": "maul-export:maul_export_file_ms4tl0tr_4709cb9f0c",
+    "mediaType": "video/mp4",
+    "sha256": "83d8d715ac1efc92c2d6b4bab564f2b4177c4b7c09437f19fac30574e4260a35",
+    "durationMs": 32734,
+    "width": 1080,
+    "height": 1920,
+    "evidence": {
+      "aestheticSoundnessPassed": true,
+      "rightsVerified": true,
+      "deterministicReplayKey": "4f429a978f85a57ab310601dd331e9853f3e10581d8f5a9c0dd402ab9f9f5ad8",
+      "reviewPassed": true,
+      "remotionCompositionId": "MaulShort",
+      "audioPlanId": "video-aware-audio-plan-maul_job_ms4s6una_6bae341d84-maul_artifact_ms4s792p_d90917e3f6",
+      "sourceMappingPreserved": true,
+      "fileSizeBytes": 15031643,
+      "warnings": []
+    }
+  }
+}

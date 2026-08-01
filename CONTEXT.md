@@ -68,6 +68,34 @@ _Avoid_: passive inference only, heavyweight annotation suite
 The deterministic backend module that turns long-form material into ranked short-form candidates using semantic, acoustic, visual, and pacing signals.
 _Avoid_: raw slicing, fixed-duration clipping, truth understanding engine
 
+**Editorial Optimization Hierarchy**:
+The ordered editorial objective for MAUL: retention and clarity first, conversion second, creator-brand consistency third, and novelty fourth.
+_Avoid_: clickbait-first optimization, engagement certainty, novelty at any cost
+
+**V1 Source Scope**:
+The first MAUL release accepts one-principal-speaker talking-head or podcast footage, with optional B-roll.
+_Avoid_: generic all-video support, multi-speaker panels, gameplay-first editing
+
+**Protected Pause**:
+A timed silence intentionally retained by the Editorial Timeline because it strengthens meaning, emotion, emphasis, or comprehension.
+_Avoid_: dead air, automatic cut target, arbitrary slowdown
+
+**Reference Trait Extraction**:
+The conversion of a reference edit into abstract, governed editorial traits without reproducing its creator identity, assets, or exact treatment.
+_Avoid_: imitation preset, copied template, named creator style
+
+**Reference Corpus**:
+A governed collection of supplied references, their rights status, extracted traits, and review state used to improve treatment policy and evaluation.
+_Avoid_: template piracy, asset library, export source
+
+**Aesthetic Soundness**:
+The export-quality judgment that an edit has coherent treatment, readable captions, purposeful cuts, non-repetitive motion, credible sound, clean framing, and no obvious template artifact.
+_Avoid_: mere technical validity, engagement certainty, subjective taste without rubric
+
+**Governed CTA**:
+A source- and brand-constrained call to action whose wording or animation MAUL may vary without inventing facts, offers, destinations, or endorsements.
+_Avoid_: fabricated claim, unconstrained conversion tactic, source truth override
+
 **Correlated Signal Stacking**:
 The scoring stance for short-form ranking: RMS energy, transcript velocity, motion proxies, and semantic signals are treated as correlated heuristics, not ground truth.
 _Avoid_: emotional truth modeling, engagement certainty
@@ -151,6 +179,12 @@ _Avoid_: prompt parser, user override, hidden architecture switch
 - A **Top-Level Planner** may explore a small number of **Doctrine Branches** for high-value moments
 - The **Judgment Layer** evaluates candidates proposed by the **Top-Level Planner**
 - **GOD** is subordinate to the **Top-Level Planner** and is invoked only when the chosen treatment cannot be satisfied by the existing asset library
+- **Short-Form Intelligence** and the **Judgment Layer** apply the **Editorial Optimization Hierarchy** when evaluating a treatment candidate
+- An **Editorial Timeline** retains a **Protected Pause** only when its value outweighs the pacing cost
+- A **Treatment Genome** may use **Reference Trait Extraction** but must remain original and governed
+- A **Reference Corpus** supplies approved **Reference Trait Extraction** records to a **Treatment Genome** and its evaluator
+- The **Judgment Layer** applies **Aesthetic Soundness** before an export is approved
+- A **Treatment Genome** may express a **Governed CTA** only after source and brand facts are available
 
 ## Example dialogue
 
