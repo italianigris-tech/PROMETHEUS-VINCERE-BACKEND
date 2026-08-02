@@ -84,6 +84,12 @@ The requested experience needs placement that:
 The excluded features have explicit seams. They do not silently masquerade as live
 capabilities.
 
+Optional B-roll already baked into the source is covered by the source observation.
+Inserted B-roll selected by a Visual Plan is placement-eligible only when that exact
+asset has its own Visual Observation and compiled output transform. Without both,
+ordinary overlays on its pixels are ineligible; only the padded non-source caption
+band or a blocked result is allowed.
+
 ### Relationship To The Existing Layout Plan
 
 This design supersedes the placement-specific architecture and acceptance details in
@@ -212,6 +218,7 @@ Each output interval carries:
 
 - scene and discontinuity IDs;
 - output start and end time;
+- active visual asset ID and that asset's Visual Observation hash;
 - complete source-to-output transform, including autorotation, mirroring, sample
   aspect ratio, crop, scale, camera easing, frame quantization, and source/output PTS
   conventions;
@@ -221,6 +228,9 @@ Each output interval carries:
 - local contrast and clutter summaries;
 - platform UI reserves; and
 - evidence confidence and fallback state.
+
+For inserted B-roll, the transform maps that B-roll asset into output space. Source
+observations cannot authorize placement over another asset's pixels.
 
 The compiler may emit a primary composition and a prevalidated
 `caption_safe_fallback` composition that reframes or pads the source without violating
@@ -263,12 +273,19 @@ may not split a multi-token entity. V1 recognizes:
 - duration;
 - range;
 - ratio or multiplier;
-- ordinal or ranking; and
-- list count.
+- ordinal or ranking;
+- list count;
+- phone-like identifier; and
+- opaque identifier.
 
 Each Source Entity Fact records stable token IDs, original transcript indices, exact
 source text, parsed value and unit when unambiguous, semantic kind, and parse
 confidence.
+
+Entity spans of eight tokens or fewer are indivisible. A longer phone-like or opaque
+identifier becomes `oversized_static_identifier`: chunking may divide it into ordered
+one-to-eight-token static fragments linked by one continuation ID. Those fragments are
+never eligible for canonical replacement, count-up, or hero treatment.
 
 ### Presentation Intent
 
@@ -311,7 +328,9 @@ reserved worst-case metrics envelope. The existing Typography Motion Plan remain
 owner of exact font asset, weight, and treatment. It may select only an asset inside
 the chosen compatibility profile. The Manifest Compiler verifies the exact selected
 font against the reserved envelope; mismatch rejects compilation and triggers a
-declared replan or fallback. Neither artifact duplicates the other's authority.
+declared replan or fallback. It also verifies that the Typography Motion Plan provides
+the Placement Plan's required minimum legibility primitive and parameters. Neither
+artifact duplicates the other's authority.
 
 ### Attention Occupancy Track
 
@@ -341,11 +360,19 @@ Each segment records:
 - resolved render z intent: `front` or `front_fallback` (V1 never emits executable
   behind-subject placement);
 - static bounds and maximum treatment/animation envelope;
+- required minimum legibility primitive (`none`, `outline`, `shadow`, or
+  `solid_plate`) plus its measured minimum parameters;
 - platform profile and safe-zone version;
 - hard-gate results and dimension scores;
 - selected path rationale and confidence;
 - fallback code and reason; and
 - desired depth treatment state, including `accounted-deferred`.
+
+Composition selection is scene-level. All segments inside one continuity scene use the
+same primary or caption-safe composition. A change is allowed only at a hard
+discontinuity or an explicit preplanned camera transition with the configured minimum
+dwell. If no one compiled composition supports all mandatory dialogue in that scene,
+the scene is blocked rather than switching framing on successive chunks.
 
 ### Layout Interval
 
@@ -414,8 +441,9 @@ Output Composition Track + Text Placement Plan + Typography Motion Plan
 Visual extraction is asynchronous. Each observation channel is cached by source SHA,
 requested source interval, extractor/model/config version, and orientation policy. The
 Output Composition Track is cached separately by observation hash, Editorial Timeline
-hash, Framing Camera Plan hash, output profile, and platform profile. Placement is
-cached by those compiled inputs plus chunk, intent, typography-profile, catalog, and
+hash, Visual Plan hash, every active visual asset observation hash, Framing Camera Plan
+hash, output profile, and platform profile. Placement is cached by those compiled
+inputs plus chunk, intent, Attention Occupancy Track, typography-profile, catalog, and
 score-policy hashes.
 
 Preview and render consume persisted artifacts. They never initialize MediaPipe or
@@ -435,6 +463,14 @@ A new discontinuity starts at:
 
 Shot cuts come only from the declared shot-boundary provider. MediaPipe track jumps may
 raise an ambiguity or identity-change signal, but they cannot manufacture a scene cut.
+
+An independent residual-discontinuity guard compares adjacent decoded frames and track
+state. A large perceptual-frame delta, impossible subject displacement, decoder PTS
+jump, or crop-transform jump emits a conservative `geometry_reset` without claiming a
+new semantic scene. Smoothing and holds reset on either a declared cut or this guard.
+The V1 shot policy must reach 100% recall on mandatory synthetic hard/jump-cut fixtures
+and at least 98% recall on the annotated acceptance corpus; failing either gate disables
+subject-aware placement for that policy version.
 
 Tracking filters, short-gap holds, placement continuity, and coordinate smoothing reset
 at every discontinuity. Style continuity may carry when doctrine permits; geometry
@@ -545,15 +581,18 @@ The planner ranks surviving candidates using separate inspectable dimensions:
 - presentation-intent compatibility; and
 - fallback cost.
 
-It uses deterministic beam search over an Adaptive Planning Horizon of three to five
-chunks. The path objective prevents independent top-scoring choices from producing
-left-right-top-bottom thrashing. Geometry continuity resets on cuts, while typography
-doctrine may deliberately echo across them.
+It uses deterministic beam search over Layout Segment nodes, with an Adaptive Planning
+Horizon of three to five segments or five to ten seconds, whichever ends first. A
+stable segment ID derives from chunk ID, discontinuity ID, and output interval. A
+stable candidate ID adds composition, family, and variant IDs. The path objective
+prevents independent top-scoring choices from producing left-right-top-bottom
+thrashing. Geometry and composition continuity reset on discontinuities, while
+typography doctrine may deliberately echo across them.
 
 All post-gate dimensions are normalized by a versioned score policy. The beam objective
 records dimension weights, continuity and repetition penalties, beam width, and catalog
-version. Equal objectives resolve lexicographically by template family ID, variant ID,
-then chunk ID, making replay independent of iteration order.
+version. Equal objectives resolve lexicographically by segment ID then candidate ID,
+making replay independent of iteration order.
 
 No single weighted total can override truth, readability, or subject protection.
 
@@ -584,6 +623,7 @@ into the MAUL Unified Short Render Manifest. Remotion must:
 - convert normalized plan coordinates through actual output dimensions;
 - load the exact font owned by the Typography Motion Plan and verify its metrics fit
   the Placement Plan's compatibility-profile envelope before rendering;
+- execute the required minimum legibility primitive exactly as compiled;
 - honor exact line token IDs and hierarchy;
 - render within the planned static and motion envelope;
 - apply the declared front fallback when depth is `accounted-deferred`;
@@ -671,11 +711,17 @@ findings, fallback state, and deterministic replay information.
 - schema acceptance and rejection for all new artifacts;
 - standalone chunk-plan authority and legacy nested-plan hash parity;
 - independent status, provenance, and missingness for every observation channel;
+- active source or B-roll asset identity, observation hash, and transform agree for
+  every Output Composition interval;
+- Visual Plan and Attention Occupancy changes invalidate composition and placement
+  cache keys respectively;
 - source-to-output time and coordinate transforms;
 - source cuts and Editorial Timeline joins create hard resets;
 - no scene-local smoother crosses a reset;
 - unavailable or incomplete cut coverage disables smoothing, holds, and subject-aware
   candidates;
+- the residual-discontinuity guard resets geometry on missed-cut fixtures and shot
+  policy recall meets the declared corpus gates;
 - detector loss remains unknown and triggers confidence decay;
 - stable token identity survives candidate filtering and output-time mapping;
 - chunk/scene intersections, cuts inside words, and Protected Pauses produce the
@@ -683,12 +729,16 @@ findings, fallback state, and deterministic replay information.
 - numeric entity classification and count-up eligibility;
 - multi-token numeric facts cannot be split, and source-equivalent numeric overlays
   preserve parsed value, unit, precision, and token provenance;
+- oversized identifiers split into linked static fragments without canonical or hero
+  treatment;
 - exact line token coverage and no rewritten dialogue;
 - worst-case compatibility-profile measurement, exact-font verification, long-word
   fitting, and motion-envelope fit;
 - platform-specific reserves and conservative unknown-platform fallback;
 - hard-gate precedence over aesthetic scores;
 - deterministic sequence selection and anti-thrashing;
+- sequence nodes and tie-breaks use stable Layout Segment and candidate IDs;
+- composition variants persist through each continuity scene;
 - fallback ladder behavior and audit codes; and
 - legacy manifest compatibility without malformed-new-manifest fallback.
 
@@ -707,6 +757,8 @@ findings, fallback state, and deterministic replay information.
 - editorial silence joins reset geometry;
 - tracker loss and multiple-face ambiguity render declared fallbacks;
 - outline, shadow, and solid plate legibility fallbacks produce measured visible output;
+- a Typography Motion Plan weaker than the required legibility primitive fails
+  compilation;
 - matte-unavailable desired depth renders front fallback with evidence; and
 - preview and final rendering consume the same plan.
 
@@ -795,7 +847,8 @@ The following require separate specs and implementation plans:
 Placement V1 is complete only when:
 
 - every new artifact validates and has explicit authority and provenance;
-- no smoothing crosses a source cut or editorial discontinuity;
+- no smoothing crosses an authoritative cut, editorial discontinuity, or residual
+  geometry reset, and the shot policy meets its declared recall gates;
 - every governed chunk has exact stable-token coverage and one or more valid Layout
   Segments;
 - all dialogue captions render through a valid candidate or declared readable fallback,
