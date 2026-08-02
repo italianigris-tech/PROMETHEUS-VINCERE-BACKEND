@@ -1,3 +1,5 @@
+import React from "react";
+import {renderToStaticMarkup} from "react-dom/server";
 import {describe, expect, it} from "vitest";
 
 const baseProps = {
@@ -29,6 +31,47 @@ const baseProps = {
 };
 
 describe("MAUL Remotion short composition", () => {
+  it("renders governed padded non-source regions", async () => {
+    const module = await import("../MaulShort").catch(() => null);
+    expect(module).not.toBeNull();
+    if (!module) return;
+
+    const markup = renderToStaticMarkup(
+      React.createElement(module.MaulPaddedSourceRegions, {
+        regions: [{x: 0, y: 0.75, width: 1, height: 0.25}],
+        background: "#091218",
+      }),
+    );
+
+    expect(markup).toContain('data-maul-padded-source-region="0"');
+    expect(markup).toContain("left:0%");
+    expect(markup).toContain("top:75%");
+    expect(markup).toContain("width:100%");
+    expect(markup).toContain("height:25%");
+  });
+
+  it("executes the full governed crop box", async () => {
+    const module = await import("../MaulShort").catch(() => null);
+    expect(module).not.toBeNull();
+    if (!module) return;
+
+    expect(
+      module.buildMaulPlannedSourceVideoStyle({
+        crop: {x: 0.2, y: 0.1, width: 0.5, height: 0.8},
+        scale: {x: 1.1, y: 1.2},
+      }),
+    ).toEqual({
+      left: "-40%",
+      top: "-12.5%",
+      width: "200%",
+      height: "125%",
+      objectFit: "fill",
+      objectPosition: "center",
+      transform: "scale(1.1, 1.2)",
+      transformOrigin: "45% 50%",
+    });
+  });
+
   it("uses dynamic 9:16 metadata and omits cut segments", async () => {
     const module = await import("../MaulShort").catch(() => null);
     expect(module).not.toBeNull();

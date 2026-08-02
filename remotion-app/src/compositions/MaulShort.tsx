@@ -7,6 +7,7 @@ import {
 import { Audio, Video } from "@remotion/media";
 import type {
   MaulEditorialTimelinePayload,
+  MaulNormalizedBox,
   MaulTreatmentGenomePayload,
   MaulUnifiedShortRenderManifest,
   MaulUnifiedShortRenderManifestV1,
@@ -21,6 +22,52 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
+
+import {MaulPlannedTextLayer} from "./MaulPlannedTextLayer";
+import {
+  adaptMaulShortManifest,
+  buildMaulPlannedRenderModel,
+} from "./maul-short-manifest-adapter";
+
+export const MaulPaddedSourceRegions: React.FC<{
+  regions: MaulNormalizedBox[];
+  background: string;
+}> = ({regions, background}) => (
+  <>
+    {regions.map((region, index) => (
+      <div
+        key={`${region.x}-${region.y}-${region.width}-${region.height}`}
+        data-maul-padded-source-region={index}
+        style={{
+          position: "absolute",
+          left: `${region.x * 100}%`,
+          top: `${region.y * 100}%`,
+          width: `${region.width * 100}%`,
+          height: `${region.height * 100}%`,
+          background,
+          pointerEvents: "none",
+        }}
+      />
+    ))}
+  </>
+);
+
+export const buildMaulPlannedSourceVideoStyle = ({
+  crop,
+  scale,
+}: {
+  crop: MaulNormalizedBox;
+  scale: {x: number; y: number};
+}) => ({
+  left: `${-(crop.x / crop.width) * 100}%`,
+  top: `${-(crop.y / crop.height) * 100}%`,
+  width: `${100 / crop.width}%`,
+  height: `${100 / crop.height}%`,
+  objectFit: "fill" as const,
+  objectPosition: "center" as const,
+  transform: `scale(${scale.x}, ${scale.y})`,
+  transformOrigin: `${(crop.x + crop.width / 2) * 100}% ${(crop.y + crop.height / 2) * 100}%`,
+});
 
 export type MaulShortProps = {
   manifest: MaulUnifiedShortRenderManifest;
@@ -401,14 +448,28 @@ const SourceSegment: React.FC<{
   trimAfter: number;
   playbackRate: number;
   cropCenterPercent: number;
+  cropCenterYPercent?: number;
   motionAmplitude: number;
+  compositionScale?: {x: number; y: number};
+  sourceViewport?: MaulNormalizedBox;
+  plannedCrop?: MaulNormalizedBox;
+  paddedNonSourceRegions?: MaulNormalizedBox[];
+  background?: string;
+  compositionIntervalId?: string;
 }> = ({
   sourceAsset,
   trimBefore,
   trimAfter,
   playbackRate,
   cropCenterPercent,
+  cropCenterYPercent = 50,
   motionAmplitude,
+  compositionScale = {x: 1, y: 1},
+  sourceViewport = {x: 0, y: 0, width: 1, height: 1},
+  plannedCrop,
+  paddedNonSourceRegions = [],
+  background = "#000000",
+  compositionIntervalId,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -422,20 +483,53 @@ const SourceSegment: React.FC<{
       extrapolateRight: "clamp",
     },
   );
+  const plannedVideoStyle = plannedCrop
+    ? buildMaulPlannedSourceVideoStyle({
+        crop: plannedCrop,
+        scale: {
+          x: scale * compositionScale.x,
+          y: scale * compositionScale.y,
+        },
+      })
+    : null;
   return (
-    <Video
-      src={staticFile(sourceAsset)}
-      trimBefore={trimBefore}
-      trimAfter={trimAfter}
-      playbackRate={playbackRate}
-      style={{
-        width: "100%",
-        height: "100%",
-        objectFit: "cover",
-        objectPosition: `${cropCenterPercent}% 50%`,
-        transform: `scale(${scale})`,
-      }}
-    />
+    <AbsoluteFill
+      data-maul-composition-interval={compositionIntervalId}
+      style={{background}}
+    >
+      <div
+        style={{
+          position: "absolute",
+          left: `${sourceViewport.x * 100}%`,
+          top: `${sourceViewport.y * 100}%`,
+          width: `${sourceViewport.width * 100}%`,
+          height: `${sourceViewport.height * 100}%`,
+          overflow: "hidden",
+        }}
+      >
+        <Video
+          src={staticFile(sourceAsset)}
+          trimBefore={trimBefore}
+          trimAfter={trimAfter}
+          playbackRate={playbackRate}
+          style={
+            plannedVideoStyle
+              ? {position: "absolute", ...plannedVideoStyle}
+              : {
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  objectPosition: `${cropCenterPercent}% ${cropCenterYPercent}%`,
+                  transform: `scale(${scale})`,
+                }
+          }
+        />
+      </div>
+      <MaulPaddedSourceRegions
+        regions={paddedNonSourceRegions}
+        background={background}
+      />
+    </AbsoluteFill>
   );
 };
 
@@ -566,6 +660,10 @@ const MaulCaptionLayer: React.FC<{
 };
 
 export const MaulShort: React.FC<MaulShortProps> = ({ manifest }) => {
+  const adaptedManifest = useMemo(
+    () => adaptMaulShortManifest(manifest),
+    [manifest],
+  );
   const { timeline, treatment, captions } = manifest;
   const sourceAsset = manifest.source.storagePath;
   const musicAsset = manifest.audio.musicTrack.storagePath;
@@ -578,9 +676,19 @@ export const MaulShort: React.FC<MaulShortProps> = ({ manifest }) => {
   const audioPlanId = manifest.audio.planId;
   const { fps } = useVideoConfig();
   const visualStyle = buildMaulVisualStyle(treatment.treatmentId);
-  const sequences = buildMaulSourceSequences(timeline, fps);
+  const legacySequences =
+    adaptedManifest.mode === "legacy"
+      ? buildMaulSourceSequences(timeline, fps)
+      : [];
+  const plannedModel =
+    adaptedManifest.mode === "planned"
+      ? buildMaulPlannedRenderModel(adaptedManifest.manifest)
+      : null;
   const captionPlans = resolveMaulCaptionPlans(manifest);
-  const crop = timeline.speakerCropTracks[0]?.crop;
+  const crop =
+    adaptedManifest.mode === "legacy"
+      ? timeline.speakerCropTracks[0]?.crop
+      : undefined;
   const cropCenterPercent = crop ? (crop.x + crop.width / 2) * 100 : 50;
   const musicVolume = Math.min(
     0.42,
@@ -594,7 +702,7 @@ export const MaulShort: React.FC<MaulShortProps> = ({ manifest }) => {
       data-treatment-id={treatment.treatmentId}
       style={{ background: visualStyle.background, overflow: "hidden" }}
     >
-      {sequences.map((segment, index) => (
+      {legacySequences.map((segment, index) => (
         <Sequence
           key={`${segment.from}-${index}`}
           from={segment.from}
@@ -610,18 +718,49 @@ export const MaulShort: React.FC<MaulShortProps> = ({ manifest }) => {
           />
         </Sequence>
       ))}
+      {plannedModel?.sourceSequences.map((segment) => (
+        <Sequence
+          key={`${segment.compositionIntervalId}-${segment.from}`}
+          from={segment.from}
+          durationInFrames={segment.durationInFrames}
+        >
+          <SourceSegment
+            sourceAsset={sourceAsset}
+            trimBefore={segment.trimBefore}
+            trimAfter={segment.trimAfter}
+            playbackRate={segment.playbackRate}
+            cropCenterPercent={segment.cropCenterXPercent}
+            cropCenterYPercent={segment.cropCenterYPercent}
+            motionAmplitude={visualStyle.motionAmplitude}
+            compositionScale={segment.scale}
+            sourceViewport={segment.sourceViewport}
+            plannedCrop={segment.crop}
+            paddedNonSourceRegions={segment.paddedNonSourceRegions}
+            background={visualStyle.background}
+            compositionIntervalId={segment.compositionIntervalId}
+          />
+        </Sequence>
+      ))}
       <AbsoluteFill
         style={{
           background:
             "linear-gradient(180deg, rgba(0,0,0,0.02) 45%, rgba(0,0,0,0.42) 100%)",
         }}
       />
-      <MaulCaptionLayer
-        captions={captions}
-        captionGroups={captionPlans.captionGroups}
-        captionGroupsAreGoverned={captionPlans.captionGroupsAreGoverned}
-        treatmentId={treatment.treatmentId}
-      />
+      {plannedModel ? (
+        <MaulPlannedTextLayer
+          records={plannedModel.textRecords}
+          textColor={visualStyle.captionText}
+          accentColor={visualStyle.captionAccent}
+        />
+      ) : (
+        <MaulCaptionLayer
+          captions={captions}
+          captionGroups={captionPlans.captionGroups}
+          captionGroupsAreGoverned={captionPlans.captionGroupsAreGoverned}
+          treatmentId={treatment.treatmentId}
+        />
+      )}
       {musicAsset ? (
         <Audio src={staticFile(musicAsset)} loop volume={musicVolume} />
       ) : null}
