@@ -116,7 +116,7 @@ git commit -m "fix(maul): close chunking and playback prerequisites"
 
 - [ ] **Step 1: Write core-schema red tests**
 
-Create valid two-token V2 chunk and one-segment placement fixtures. Assert rejection for duplicate token IDs, non-exact coverage, emphasis outside chunk, box outside `[0,1]`, line token loss/reordering, selected `fail`/`unknown` gates, executable behind-subject depth, and blocked plan without reason.
+Create valid two-token V2 chunk and one-segment placement fixtures. Assert rejection for duplicate token IDs, non-exact coverage, emphasis outside chunk, box outside `[0,1]`, line token loss/reordering, selected `fail`/`unknown` gates, executable behind-subject depth, and blocked plan without reason. Extend Quality Truth V2 proof fixtures with placement plan/segment IDs, composition variant/transform hash, compatibility profile/fingerprint, exact font asset, and compiled legibility primitive.
 
 ```ts
 expect(maulShortsTextChunkPlanV2CoreSchema.parse(chunkCore).chunks[0]!.tokenIds)
@@ -172,7 +172,7 @@ git commit -m "feat(maul): add governed chunk and placement contracts"
 
 - [ ] **Step 1: Write materialization red tests**
 
-Given source words, mapped output spans, V1 plan, and timeline hash: require stable replay IDs, original indices, both timelines, exact chunk/emphasis token references, and rejection of unapproved Protected Pause bridging. Add a word spanning removed source time; require one token identity with two output spans and allow both adjacent Layout Segments to reference that identity without duplicating coverage.
+Given source words, mapped output spans, V1 plan, and timeline hash: require stable replay IDs, original indices, both timelines, exact chunk/emphasis token references, and rejection of unapproved Protected Pause bridging. Replace the existing cut-spanning-word rejection expectations in `backend/src/maul/planning.test.ts` with acceptance regressions: one logical word/stable token, two ordered non-overlapping output spans, and two adjacent Layout Segments retaining the same token ID without duplicating token coverage.
 
 - [ ] **Step 2: Verify red**
 
