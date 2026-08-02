@@ -12,7 +12,7 @@
 
 ## Scope
 
-Implements delivery slices 1-2 from approved design. Production MediaPipe, PySceneDetect/PyAV extraction, field/OCR/saliency providers, padded fallback composition generation, numeric animation, expressive treatment, and twelve-family catalog are excluded. Missing subject/cut evidence is `unknown`; only explicit conservative plate fallback or blocked result is allowed.
+Implements delivery slices 1-2 from approved design. Production MediaPipe, PySceneDetect/PyAV extraction, field/OCR/saliency providers, numeric animation, expressive treatment, and twelve-family catalog are excluded. Missing subject/cut evidence is `unknown`; it may use only a precompiled `caption_safe_fallback` whose text band contains no source pixels, or return a blocked result.
 
 ## File Map
 
@@ -20,10 +20,15 @@ Implements delivery slices 1-2 from approved design. Production MediaPipe, PySce
 - Create `packages/shared-types/src/maul-text-placement.ts` and test: V2 chunk and placement core contracts.
 - Modify `packages/shared-types/src/maul.ts`, test, and `index.ts`: MAUL wrappers, artifacts, V1/V2 bundle/manifest unions.
 - Modify `backend/src/maul/shorts-text-chunking.ts` and test: proposal rejection prerequisite.
-- Create `backend/src/maul/text-placement.ts` and test: stable-token adapter, intervals, candidates, hard gates, selection.
+- Create `backend/src/maul/text-chunk-plan.ts` and test: stable-token V1-to-V2 adapter.
+- Create `backend/src/maul/shorts-text-placement.ts` and test: intervals, candidates, hard gates, selection.
 - Modify `backend/src/maul/planning.ts`, test, `service.ts`, and render-path test: registration, lineage, compilation.
 - Modify `backend/src/maul/routes.ts` and `backend/src/maul/runtime-contracts.ts`: governed artifact ownership and V2 handoff declaration.
+- Modify `backend/src/maul/quality-truth.ts` and test: compare rendered boxes to planned segments.
 - Modify `remotion-app/src/compositions/MaulShort.tsx` and test: shared joining, source mapping, planned layout.
+- Create `remotion-app/src/compositions/MaulPlannedTextLayer.tsx` and test: execution-only text renderer.
+- Create `remotion-app/src/compositions/maul-short-manifest-adapter.ts`: strict V1 adapter and V2 fail-closed normalization.
+- Create `remotion-app/src/web-preview/MaulPlacementTracer.tsx`, route tests, and Playwright config/spec: rendered three-family geometry proof.
 
 ## Fixed Names
 
@@ -128,9 +133,9 @@ Expected: module missing.
 
 - [ ] **Step 3: Implement core schemas**
 
-Chunk core contains schema/version/hashes, duration, pacing/style/strategy, ordered tokens, ordered chunks, exact coverage, protected pauses, inference, and input hashes. Token fields: stable ID, authoritative transcript index, text, source interval, output interval. Chunk fields: IDs, token IDs, output interval, semantic role, emphasis token IDs/text/level, pause-hold flag, rationale, confidence.
+Chunk core contains schema/version/hashes, duration, pacing/style/strategy, ordered tokens, ordered chunks, exact coverage, protected entities/pauses, inference, and input hashes. Token fields: stable ID, authoritative transcript index, text, source interval, ordered non-overlapping output spans, and covering output interval. Chunk fields: IDs, token IDs, output interval, semantic role, emphasis token IDs/text/level, pause-hold flag, rationale, confidence.
 
-Placement core contains chunk artifact ID/hash, catalog and score policy, normalized platform profile, `planned|blocked`, blocking reason, and segments. Segment fields: stable chunk/scene/discontinuity IDs, output interval, transform hash, exact lines, family/variant, normalized box/envelope, alignment, compatibility metrics, front/deferred depth, minimum legibility primitive, hard gates, named scores, rationale, confidence, fallback code.
+Placement core contains chunk artifact ID/hash, catalog and score policy, normalized platform profile, fixture-driven Output Composition intervals, `planned|blocked`, blocking reason, and segments. Every composition interval declares variant ID, output interval, transform hash, source viewport, source occupancy, padded non-source regions, crop/scale, and discontinuity ID. Segment fields: stable chunk/scene/discontinuity IDs, output interval, selected composition variant/transform hash, exact lines, family/variant, normalized box/envelope, alignment, compatibility metrics, front/deferred depth, minimum legibility primitive, hard gates, named scores, rationale, confidence, fallback code.
 
 - [ ] **Step 4: Write MAUL wrapper and compatibility red tests**
 
@@ -160,16 +165,18 @@ git commit -m "feat(maul): add governed chunk and placement contracts"
 ### Task 3: Implement V2 Materialization And Three-Family Planner
 
 **Files:**
-- Create: `backend/src/maul/text-placement.ts`
-- Create: `backend/src/maul/text-placement.test.ts`
+- Create: `backend/src/maul/text-chunk-plan.ts`
+- Create: `backend/src/maul/text-chunk-plan.test.ts`
+- Create: `backend/src/maul/shorts-text-placement.ts`
+- Create: `backend/src/maul/shorts-text-placement.test.ts`
 
 - [ ] **Step 1: Write materialization red tests**
 
-Given source words, mapped output words, V1 plan, and timeline hash: require stable replay IDs, original indices, both timelines, exact chunk/emphasis token references, and rejection of unapproved Protected Pause bridging.
+Given source words, mapped output spans, V1 plan, and timeline hash: require stable replay IDs, original indices, both timelines, exact chunk/emphasis token references, and rejection of unapproved Protected Pause bridging. Add a word spanning removed source time; require one token identity with two output spans and allow both adjacent Layout Segments to reference that identity without duplicating coverage.
 
 - [ ] **Step 2: Verify red**
 
-Run: `npm --prefix backend test -- src/maul/text-placement.test.ts`
+Run: `npm --prefix backend test -- src/maul/text-chunk-plan.test.ts`
 
 Expected: exports missing.
 
@@ -179,24 +186,26 @@ Generate `token_<24 hex>` from SHA-256 of transcript hash plus authoritative wor
 
 - [ ] **Step 4: Write placement red tests**
 
-Cover centered/left/right subject fixtures; chunk crossing source cut; removed-time join; same-scene dropout; unknown cut evidence; no fit; reversed candidate iteration. Require no segment across reset, x=.25 -> x=.75 never x=.50, exact line coverage, three-family membership, stable tie-break.
+In `shorts-text-placement.test.ts`, cover centered/left/right subject fixtures; chunk crossing source cut; removed-time join; same-scene dropout; unknown cut evidence; no fit; reversed candidate iteration. Require no segment across reset, x=.25 -> x=.75 never x=.50, exact line coverage, three-family membership, stable tie-break.
 
 - [ ] **Step 5: Implement intervals and candidates**
 
-Intersect chunk, mapped shot, non-cut timeline, and residual-reset spans using half-open intervals. Generate only `measured`, `editorial`, `personal`; partition lines semantically without token changes. Use normalized reserves and compatibility profile `maul-compat-arial-v1`.
+Change `mapMaulTranscriptWordsToOutput` to intersect a source word with every kept map segment, preserving one logical word plus ordered output spans even when a cut occurs inside it. Intersect chunk, mapped shot, non-cut timeline, composition, and residual-reset spans using half-open intervals. Generate only `measured`, `editorial`, `personal`; partition lines semantically without token changes.
+
+Use pinned compatibility profile `maul-compat-dm-sans-v1`: exact family `DM Sans`, asset `font_google_dm_sans_700`, weights 500/700/800, loaded DM Sans fallback, measured conservative glyph/line metrics, and fingerprint. Add compile rejection when Typography Motion selects another asset/family or exceeds reserved metrics.
 
 - [ ] **Step 6: Implement gates and sequence selection**
 
-Hard-reject unsafe envelope, font-size failure, token mismatch, known collision, subject-aware use with unknown evidence, and executable behind-depth. Rank survivors by named dimensions; apply same-scene continuity/anti-repetition; reset geometry penalties at discontinuities. Unknown evidence may use only `measured.conservative_plate_v1` with `solid_plate`, otherwise emit `blocked_no_readable_dialogue_candidate`.
+Hard-reject unsafe envelope, font-size failure, token mismatch, known collision, subject-aware use with unknown evidence, font/profile unavailability, and executable behind-depth. Rank survivors by named dimensions; apply same-scene continuity/anti-repetition; reset geometry penalties at discontinuities. Unknown evidence may use only `caption_safe_fallback.padded_band_v1`, whose planned box lies wholly inside a compiled non-source band; otherwise emit `blocked_no_readable_dialogue_candidate`. Composition choice persists for each continuity scene.
 
 - [ ] **Step 7: Verify and commit**
 
-Run: `npm --prefix backend test -- src/maul/text-placement.test.ts && npm --prefix backend run typecheck`
+Run: `npm --prefix backend test -- src/maul/text-chunk-plan.test.ts src/maul/shorts-text-placement.test.ts && npm --prefix backend run typecheck`
 
 Expected: pass.
 
 ```bash
-git add backend/src/maul/text-placement.ts backend/src/maul/text-placement.test.ts
+git add backend/src/maul/text-chunk-plan.ts backend/src/maul/text-chunk-plan.test.ts backend/src/maul/shorts-text-placement.ts backend/src/maul/shorts-text-placement.test.ts
 git commit -m "feat(maul): plan scene-aware text placement"
 ```
 
@@ -209,6 +218,8 @@ git commit -m "feat(maul): plan scene-aware text placement"
 - Modify: `backend/src/__tests__/maul-short-render-path.test.ts`
 - Modify: `backend/src/maul/routes.ts`
 - Modify: `backend/src/maul/runtime-contracts.ts`
+- Modify: `backend/src/maul/quality-truth.ts`
+- Modify: `backend/src/maul/quality-truth.test.ts`
 
 - [ ] **Step 1: Write orchestration red tests**
 
@@ -232,24 +243,29 @@ For an explicitly versioned V1 Bundle, call `adaptMaulLegacyPlanningBundleV1`: v
 
 - [ ] **Step 5: Compile manifest**
 
-Include both payloads; add native executions `MaulShort.PlannedCaptionTokens.v1` and `MaulShort.PlannedPlacement.v1`; include hashes in replay key; retain 1080x1920/30.
+Include both payloads and compiled Output Composition intervals; add native executions `MaulShort.PlannedCaptionTokens.v1` and `MaulShort.PlannedPlacement.v1`; include hashes in replay key; retain 1080x1920/30. Compiler verifies selected DM Sans asset/fingerprint against placement reservations and fails closed on mismatch.
 
 Add both new artifact types to `GOVERNED_RUNTIME_ONLY_ARTIFACT_TYPES`. Extend runtime-contract ownership text so deterministic planner owns placement and manifest compiler owns renderer handoff.
 
+Extend proof records with placement plan/segment ID, composition variant/interval/transform hash, compatibility profile/fingerprint, exact font asset, and legibility primitive. Make Quality Truth compare measured box to planned maximum envelope; crop proof to selected composition; font proof to DM Sans profile; primitive proof to compiled minimum. Old adapter-safe-region proof alone cannot validate V2.
+
 - [ ] **Step 6: Verify and commit**
 
-Run: `npm --prefix backend test -- src/maul/planning.test.ts src/__tests__/maul-short-render-path.test.ts && npm --prefix backend run typecheck`
+Run: `npm --prefix backend test -- src/maul/planning.test.ts src/maul/quality-truth.test.ts src/__tests__/maul-short-render-path.test.ts && npm --prefix backend run typecheck`
 
 Expected: pass.
 
 ```bash
-git add backend/src/maul/planning.ts backend/src/maul/planning.test.ts backend/src/maul/service.ts backend/src/__tests__/maul-short-render-path.test.ts backend/src/maul/routes.ts backend/src/maul/runtime-contracts.ts
+git add backend/src/maul/planning.ts backend/src/maul/planning.test.ts backend/src/maul/service.ts backend/src/__tests__/maul-short-render-path.test.ts backend/src/maul/routes.ts backend/src/maul/runtime-contracts.ts backend/src/maul/quality-truth.ts backend/src/maul/quality-truth.test.ts
 git commit -m "feat(maul): compile placement through planning bundle"
 ```
 
 ### Task 5: Execute Planned Layout In Remotion
 
 **Files:**
+- Create: `remotion-app/src/compositions/MaulPlannedTextLayer.tsx`
+- Create: `remotion-app/src/compositions/__tests__/MaulPlannedTextLayer.test.tsx`
+- Create: `remotion-app/src/compositions/maul-short-manifest-adapter.ts`
 - Modify: `remotion-app/src/compositions/MaulShort.tsx`
 - Modify: `remotion-app/src/compositions/__tests__/MaulShort.test.ts`
 
@@ -265,38 +281,54 @@ Expected: planned segment compiler/time-varying crops absent.
 
 - [ ] **Step 3: Implement execution-only captions**
 
-Build display records from manifest chunk tokens and placement segments. Reject missing tokens, line mismatch, transform mismatch, and blocked plan. Render stable absolute boxes, exact lines, data attributes, and only compiled `solid_plate|outline|shadow|none`. Legacy pagination remains only for explicit Studio/pre-placement fixtures.
+Normalize explicitly versioned V1 through `maul-short-manifest-adapter.ts`; malformed or stale V2 throws. Build display records and render them in `MaulPlannedTextLayer.tsx` from manifest chunk tokens and placement segments. Load DM Sans through `@remotion/google-fonts/DMSans`; reject unavailable/mismatched font, missing tokens, line mismatch, transform mismatch, and blocked plan. Render stable absolute boxes, exact lines, data attributes, and only compiled `solid_plate|outline|shadow|none`. Legacy pagination remains only for explicit Studio/pre-placement fixtures.
 
 - [ ] **Step 4: Execute every crop interval**
 
-Split source sequences at timeline and crop boundaries; carry crop center and playback rate into `SourceSegment`. Never read only first crop.
+Split source sequences at Output Composition and timeline boundaries; carry exact source viewport/crop/scale/transform hash and playback rate into `SourceSegment`. Render padded non-source regions from compiled composition. V2 never reads `timeline.speakerCropTracks` directly.
 
 - [ ] **Step 5: Verify and commit**
 
-Run: `npm --prefix remotion-app test -- src/compositions/__tests__/MaulShort.test.ts && npm --prefix remotion-app run typecheck`
+Run: `npm --prefix remotion-app test -- src/compositions/__tests__/MaulShort.test.ts src/compositions/__tests__/MaulPlannedTextLayer.test.tsx && npm --prefix remotion-app run typecheck`
 
 Expected: pass.
 
 ```bash
-git add remotion-app/src/compositions/MaulShort.tsx remotion-app/src/compositions/__tests__/MaulShort.test.ts
+git add remotion-app/src/compositions/MaulPlannedTextLayer.tsx remotion-app/src/compositions/__tests__/MaulPlannedTextLayer.test.tsx remotion-app/src/compositions/maul-short-manifest-adapter.ts remotion-app/src/compositions/MaulShort.tsx remotion-app/src/compositions/__tests__/MaulShort.test.ts
 git commit -m "feat(maul): render governed text placement"
 ```
 
 ### Task 6: Cross-Package Verification And Review
 
-**Files:** No planned production edits.
+**Files:**
+- Create: `remotion-app/src/web-preview/MaulPlacementTracer.tsx`
+- Modify: `remotion-app/src/web-preview/main.tsx`
+- Modify: `remotion-app/src/web-preview/sandbox-data.ts`
+- Create: `remotion-app/src/web-preview/__tests__/maul-placement-tracer.test.tsx`
+- Create: `remotion-app/playwright-maul-placement.config.ts`
+- Create: `remotion-app/playwright-maul-placement.spec.ts`
 
-- [ ] **Step 1: Focused suites**
+- [ ] **Step 1: Write rendered-proof red tests**
+
+Add `/maul/placement-tracer` route with deterministic measured/editorial/personal fixtures, a crop-change fixture, and x=.25 -> x=.75 hard cut. Playwright must assert nonblank video/text pixels, DOM bounds equal planned boxes within one pixel, data attributes match plan IDs/families/fallbacks, no midpoint smoothing frame exists, no overlap/overflow, and screenshots exist for all probes.
+
+- [ ] **Step 2: Implement and run visual proof**
+
+Run: `npm --prefix remotion-app exec -- playwright test --config=playwright-maul-placement.config.ts`
+
+Expected: all desktop 1080x1920 scaled-player and mobile viewport probes pass with no console/media errors.
+
+- [ ] **Step 3: Focused suites**
 
 ```bash
 npm --prefix packages/shared-types test -- src/shorts-text-chunking.test.ts src/maul-text-placement.test.ts src/maul.test.ts
-npm --prefix backend test -- src/maul/shorts-text-chunking.test.ts src/maul/shorts-text-chunking-llm.test.ts src/maul/text-placement.test.ts src/maul/planning.test.ts src/__tests__/maul-short-render-path.test.ts
-npm --prefix remotion-app test -- src/compositions/__tests__/MaulShort.test.ts
+npm --prefix backend test -- src/maul/shorts-text-chunking.test.ts src/maul/shorts-text-chunking-llm.test.ts src/maul/text-chunk-plan.test.ts src/maul/shorts-text-placement.test.ts src/maul/planning.test.ts src/maul/quality-truth.test.ts src/__tests__/maul-short-render-path.test.ts
+npm --prefix remotion-app test -- src/compositions/__tests__/MaulShort.test.ts src/compositions/__tests__/MaulPlannedTextLayer.test.tsx
 ```
 
 Expected: zero failures.
 
-- [ ] **Step 2: Typechecks**
+- [ ] **Step 4: Typechecks**
 
 ```bash
 npm --prefix packages/shared-types run typecheck
@@ -306,7 +338,7 @@ npm --prefix remotion-app run typecheck
 
 Expected: all exit 0.
 
-- [ ] **Step 3: Full suites and diff**
+- [ ] **Step 5: Full suites and diff**
 
 ```bash
 npm --prefix packages/shared-types test
@@ -318,17 +350,19 @@ git status --short
 
 Expected: all suites exit 0; diff check empty; status intentional.
 
-- [ ] **Step 4: Independent review**
+- [ ] **Step 6: Independent review**
 
-Review plan commit through HEAD against approved design. Fix every Critical/Important finding with a failing regression first, then rerun Steps 1-3.
+Review plan commit through HEAD against approved design. Fix every Critical/Important finding with a failing regression first, then rerun Steps 2-5.
 
 ## Completion Criteria
 
 - Invalid emphasis cannot enter V2; transcript stays source-exact.
 - V2 tokens preserve authoritative source index and source/output timing.
+- A cut inside a timed word preserves one token identity and creates no geometry interpolation.
 - Every segment stops at discontinuities and covers chunk tokens exactly.
 - Unknown evidence never authorizes subject-aware negative space.
-- Three families, conservative fallback, and blocked state are testable.
+- Three families, padded non-source fallback, and blocked state are testable.
 - New V2 Bundle/manifest govern exactly 16 plans with verified hashes; unchanged V1 artifacts still parse and use only explicit legacy adaptation.
 - Remotion uses planned box, lines, primitive, crop interval, and playback rate.
+- DM Sans asset/profile/fingerprint and rendered geometry have runtime/Playwright proof.
 - No production vision or expressive-animation claim is made.
