@@ -1,5 +1,3 @@
-import { createHash } from "node:crypto";
-
 import {
   maulAdapterDecisionPayloadSchema,
   maulArtDirectionPlanPayloadSchema,
@@ -27,6 +25,12 @@ import {
 
 import type { VideoAwareAudioPlan } from "../music/index.js";
 import type { MaulRenderCaption } from "./render-engine.js";
+import {
+  hashMaulPlanPayload,
+  type MaulMappedTranscriptWord,
+} from "./text-chunk-plan.js";
+
+export {hashMaulPlanPayload} from "./text-chunk-plan.js";
 
 type SourceArtifact = Extract<
   MaulArtifactRecord,
@@ -59,8 +63,7 @@ export type MaulPlanningInputs = {
   textChunkPlan: ShortsTextChunkPlan | null;
 };
 
-const stableHash = (value: unknown): string =>
-  createHash("sha256").update(JSON.stringify(value)).digest("hex");
+const stableHash = hashMaulPlanPayload;
 
 const executionNative = (
   nativeBranch: string,
@@ -152,8 +155,10 @@ export const mapMaulTranscriptWordsToOutput = ({
   words,
 }: {
   timestampMap: TimelineArtifact["payload"]["timestampMap"];
-  words: AnalysisArtifact["payload"]["transcript"]["words"];
-}): AnalysisArtifact["payload"]["transcript"]["words"] => {
+  words: readonly (AnalysisArtifact["payload"]["transcript"]["words"][number] & {
+    transcriptWordIndex?: number;
+  })[];
+}): MaulMappedTranscriptWord[] => {
   if (words.length === 0) {
     throw new Error("The selected transcript contains no words to chunk.");
   }
@@ -175,25 +180,41 @@ export const mapMaulTranscriptWordsToOutput = ({
       );
     }
 
-    const containingSegment = timestampMap.find(
-      (segment) =>
-        segment.mode !== "cut" &&
-        word.startMs >= segment.sourceStartMs &&
-        word.endMs <= segment.sourceEndMs,
-    );
-    if (!containingSegment) {
+    const outputSpans = timestampMap
+      .filter((segment) => segment.mode !== "cut")
+      .map((segment) => {
+        const sourceStartMs = Math.max(word.startMs, segment.sourceStartMs);
+        const sourceEndMs = Math.min(word.endMs, segment.sourceEndMs);
+        if (sourceEndMs <= sourceStartMs) return null;
+        const sourceDurationMs = segment.sourceEndMs - segment.sourceStartMs;
+        const outputDurationMs = segment.outputEndMs - segment.outputStartMs;
+        const outputStartMs = Math.round(
+          segment.outputStartMs +
+            (sourceStartMs - segment.sourceStartMs) *
+              (outputDurationMs / sourceDurationMs),
+        );
+        const outputEndMs = Math.round(
+          segment.outputStartMs +
+            (sourceEndMs - segment.sourceStartMs) *
+              (outputDurationMs / sourceDurationMs),
+        );
+        return outputEndMs > outputStartMs
+          ? {outputStartMs, outputEndMs}
+          : null;
+      })
+      .filter(
+        (span): span is {outputStartMs: number; outputEndMs: number} =>
+          span !== null,
+      );
+    const firstSpan = outputSpans[0];
+    const lastSpan = outputSpans.at(-1);
+    if (!firstSpan || !lastSpan) {
       throw new Error(
-        `Transcript word ${wordIndex} must fit inside a single kept output-timeline segment.`,
+        `Transcript word ${wordIndex} does not intersect the kept output timeline.`,
       );
     }
-
-    const startMs = mapMaulSourceMsToOutput(timestampMap, word.startMs);
-    const endMs = mapMaulSourceMsToOutput(timestampMap, word.endMs);
-    if (startMs === null || endMs === null) {
-      throw new Error(
-        `Transcript word ${wordIndex} does not map completely onto the output timeline.`,
-      );
-    }
+    const startMs = firstSpan.outputStartMs;
+    const endMs = lastSpan.outputEndMs;
     if (endMs <= startMs) {
       throw new Error(
         `Transcript word ${wordIndex} has no positive output duration.`,
@@ -207,7 +228,20 @@ export const mapMaulTranscriptWordsToOutput = ({
 
     previousSourceEndMs = word.endMs;
     previousOutputEndMs = endMs;
-    return {...word, startMs, endMs};
+    return {
+      transcriptWordIndex:
+        "transcriptWordIndex" in word &&
+        typeof word.transcriptWordIndex === "number"
+          ? word.transcriptWordIndex
+          : wordIndex,
+      text: word.text,
+      confidence: word.confidence,
+      sourceStartMs: word.startMs,
+      sourceEndMs: word.endMs,
+      outputSpans,
+      startMs,
+      endMs,
+    };
   });
 };
 

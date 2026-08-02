@@ -60,8 +60,8 @@ describe("MAUL planning timestamp mapping", () => {
     ).toThrow(/word 1.*empty|empty.*word 1/i);
   });
 
-  it("rejects words that do not map completely onto the output timeline", () => {
-    expect(() =>
+  it("preserves a word portion that remains before a source cut", () => {
+    expect(
       mapMaulTranscriptWordsToOutput({
         timestampMap: [
           {
@@ -86,16 +86,28 @@ describe("MAUL planning timestamp mapping", () => {
             mode: "keep",
           },
         ],
-        words: [
-          {text: "straddles", startMs: 450, endMs: 550, confidence: 0.99},
-        ],
+        words: [{
+          transcriptWordIndex: 11,
+          text: "straddles",
+          startMs: 450,
+          endMs: 550,
+          confidence: 0.99,
+        }],
       }),
-    ).toThrow(/word 0.*timeline|timeline.*word 0/i);
+    ).toEqual([
+      expect.objectContaining({
+        transcriptWordIndex: 11,
+        sourceStartMs: 450,
+        sourceEndMs: 550,
+        startMs: 450,
+        endMs: 500,
+        outputSpans: [{outputStartMs: 450, outputEndMs: 500}],
+      }),
+    ]);
   });
 
-  it("rejects a word whose endpoints map but whose duration spans a cut", () => {
-    expect(() =>
-      mapMaulTranscriptWordsToOutput({
+  it("keeps one logical word with multiple output spans when a cut crosses it", () => {
+    const mapped = mapMaulTranscriptWordsToOutput({
         timestampMap: [
           {
             sourceStartMs: 0,
@@ -119,10 +131,28 @@ describe("MAUL planning timestamp mapping", () => {
             mode: "keep",
           },
         ],
-        words: [
-          {text: "straddles", startMs: 450, endMs: 750, confidence: 0.99},
+        words: [{
+          transcriptWordIndex: 12,
+          text: "straddles",
+          startMs: 450,
+          endMs: 750,
+          confidence: 0.99,
+        }],
+      });
+
+    expect(mapped).toHaveLength(1);
+    expect(mapped[0]).toEqual(
+      expect.objectContaining({
+        transcriptWordIndex: 12,
+        sourceStartMs: 450,
+        sourceEndMs: 750,
+        startMs: 450,
+        endMs: 550,
+        outputSpans: [
+          {outputStartMs: 450, outputEndMs: 500},
+          {outputStartMs: 500, outputEndMs: 550},
         ],
       }),
-    ).toThrow(/word 0.*single kept|single kept.*word 0/i);
+    );
   });
 });
