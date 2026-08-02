@@ -335,6 +335,16 @@ describe("MAUL text placement core contract", () => {
     );
   });
 
+  it("rejects hierarchy-scaled typography outside its profile", () => {
+    const invalid = clone(placementCore);
+    invalid.compatibilityProfiles[0].metrics.maximumFontSizePx = 72;
+    invalid.segments[0].compatibility.hierarchyScale = 1.01;
+
+    expect(() => maulTextPlacementPlanCoreSchema.parse(invalid)).toThrow(
+      /metrics.*fit.*compatibility profile/i,
+    );
+  });
+
   it.each(["fail", "unknown"] as const)(
     "rejects a selected segment with a %s hard gate",
     (status) => {

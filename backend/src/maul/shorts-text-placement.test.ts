@@ -157,8 +157,8 @@ describe("MAUL scene-aware text placement", () => {
   });
 
   it("splits at a cut without duplicating a cut-spanning stable token", () => {
-    const firstBand = {x: 0.25, y: 0.08, width: 0.2, height: 0.16};
-    const secondBand = {x: 0.75, y: 0.08, width: 0.2, height: 0.16};
+    const firstBand = {x: 0.2, y: 0.08, width: 0.24, height: 0.16};
+    const secondBand = {x: 0.7, y: 0.08, width: 0.24, height: 0.16};
     const plan = buildMaulTextPlacementPlan({
       textChunkPlanArtifactId: "artifact_text_chunk",
       textChunkPlan: makeChunkPlan({
@@ -206,7 +206,7 @@ describe("MAUL scene-aware text placement", () => {
       ["token_across"],
       ["token_across"],
     ]);
-    expect(plan.segments.map((segment) => segment.box.x)).toEqual([0.25, 0.75]);
+    expect(plan.segments.map((segment) => segment.box.x)).toEqual([0.2, 0.7]);
     expect(plan.segments.some((segment) => segment.box.x === 0.5)).toBe(false);
     expect(plan.segments.every((segment) =>
       segment.outputStartMs >= 500 || segment.outputEndMs <= 500,
@@ -283,6 +283,34 @@ describe("MAUL scene-aware text placement", () => {
     expect(blocked.blockingReason).toBe(
       "blocked_no_readable_dialogue_candidate",
     );
+  });
+
+  it("accounts for solid-plate padding before authorizing fallback fit", () => {
+    const chunkPlan = makeChunkPlan();
+    const text = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    chunkPlan.tokens[0]!.text = text;
+    chunkPlan.chunks[0]!.text = text;
+    chunkPlan.chunks[0]!.emphasis.text = text;
+
+    const plan = buildMaulTextPlacementPlan({
+      textChunkPlanArtifactId: "artifact_text_chunk",
+      textChunkPlan: chunkPlan,
+      compositionIntervals: [
+        composition({
+          intervalId: "fallback",
+          variantId: "caption_safe_fallback",
+          paddedNonSourceRegions: [
+            {x: 0.08, y: 0.08, width: 0.84, height: 0.16},
+          ],
+        }),
+      ],
+      observationIntervals: [
+        observation({trackingState: "unknown", cutEvidenceStatus: "unknown"}),
+      ],
+    });
+
+    expect(plan.status).toBe("blocked");
+    expect(plan.segments).toEqual([]);
   });
 
   it("blocks when known subject occupancy leaves no readable region", () => {
@@ -362,5 +390,36 @@ describe("MAUL scene-aware text placement", () => {
         compiledMetrics: {maxGlyphWidthEm: 0.8, maxLineHeightEm: 1.2},
       }),
     ).toThrow(/metrics|envelope/i);
+  });
+
+  it("fits hierarchy-scaled typography inside the selected box", () => {
+    const chunkPlan = makeChunkPlan();
+    chunkPlan.tokens[0]!.text = "Metrics";
+    chunkPlan.chunks[0]!.text = "Metrics";
+    chunkPlan.chunks[0]!.semanticRole = "claim";
+    chunkPlan.chunks[0]!.emphasis.text = "Metrics";
+
+    const plan = buildMaulTextPlacementPlan({
+      textChunkPlanArtifactId: "artifact_text_chunk",
+      textChunkPlan: chunkPlan,
+      compositionIntervals: [composition()],
+      observationIntervals: [
+        observation({
+          subjectBox: {x: 0.06, y: 0.08, width: 0.28, height: 0.48},
+        }),
+      ],
+    });
+
+    expect(plan.status).toBe("planned");
+    expect(plan.segments[0]!.family).toBe("measured");
+    const segment = plan.segments[0]!;
+    const effectiveFontSizePx =
+      segment.compatibility.nominalFontSizePx *
+      segment.compatibility.hierarchyScale;
+    expect(
+      chunkPlan.tokens[0]!.text.length * effectiveFontSizePx * 0.72,
+    ).toBeLessThanOrEqual(
+      segment.box.width * 1080,
+    );
   });
 });

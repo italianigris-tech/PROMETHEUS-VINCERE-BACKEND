@@ -9,6 +9,7 @@ import {
 
 import {
   compileMaulLegibilityPrimitive,
+  toMaulFrameInterval,
   type MaulPlannedTextRecord,
   type MaulPlannedTextToken,
 } from "./maul-short-manifest-adapter";
@@ -45,6 +46,7 @@ export const MaulPlannedTextCard: React.FC<{
       data-font-family={record.font.family}
       data-font-asset-id={record.font.assetId}
       data-font-profile-id={record.font.profileId}
+      data-font-metrics-fingerprint={record.font.metricsFingerprint}
       style={{
         position: "absolute",
         left: record.boxPx.leftPx,
@@ -125,13 +127,11 @@ export const MaulPlannedTextLayer: React.FC<{
       {records.map((record) => (
         <Sequence
           key={record.segmentId}
-          from={Math.round((record.outputStartMs / 1000) * fps)}
-          durationInFrames={Math.max(
-            1,
-            Math.round(
-              ((record.outputEndMs - record.outputStartMs) / 1000) * fps,
-            ),
-          )}
+          {...toMaulFrameInterval({
+            outputStartMs: record.outputStartMs,
+            outputEndMs: record.outputEndMs,
+            fps,
+          })}
         >
           <TimedMaulPlannedTextCard
             record={record}

@@ -74,6 +74,20 @@ export const toMaulPixelBox = (
   heightPx: box.height * output.height,
 });
 
+export const toMaulFrameInterval = ({
+  outputStartMs,
+  outputEndMs,
+  fps,
+}: {
+  outputStartMs: number;
+  outputEndMs: number;
+  fps: number;
+}): {from: number; durationInFrames: number} => {
+  const from = Math.ceil((outputStartMs / 1000) * fps);
+  const until = Math.ceil((outputEndMs / 1000) * fps);
+  return {from, durationInFrames: Math.max(1, until - from)};
+};
+
 export type MaulShortManifestAdapterResult =
   | {
       mode: "legacy";
@@ -234,18 +248,21 @@ export const buildMaulPlannedSourceSequences = ({
         const sourceEndMs =
           timelineSegment.sourceStartMs +
           (outputEndMs - timelineSegment.outputStartMs) * playbackRate;
-        const trimBefore = Math.round((sourceStartMs / 1000) * fps);
+        const frameInterval = toMaulFrameInterval({
+          outputStartMs,
+          outputEndMs,
+          fps,
+        });
+        const sourceFrameInterval = toMaulFrameInterval({
+          outputStartMs: sourceStartMs,
+          outputEndMs: sourceEndMs,
+          fps,
+        });
         return {
-          from: Math.round((outputStartMs / 1000) * fps),
-          durationInFrames: Math.max(
-            1,
-            Math.round(((outputEndMs - outputStartMs) / 1000) * fps),
-          ),
-          trimBefore,
-          trimAfter: Math.max(
-            trimBefore + 1,
-            Math.round((sourceEndMs / 1000) * fps),
-          ),
+          ...frameInterval,
+          trimBefore: sourceFrameInterval.from,
+          trimAfter:
+            sourceFrameInterval.from + sourceFrameInterval.durationInFrames,
           playbackRate,
           compositionIntervalId: composition.intervalId,
           cropCenterXPercent:

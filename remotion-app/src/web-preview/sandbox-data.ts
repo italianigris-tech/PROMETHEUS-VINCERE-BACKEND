@@ -1,3 +1,7 @@
+import type {
+  MaulMinimumLegibilityPrimitive,
+  MaulNormalizedBox,
+} from "@prometheus/shared-types";
 import type {CaptionChunk, TranscribedWord, VideoMetadata} from "../lib/types";
 import type {MatteManifest} from "../lib/types";
 import {deterministicChunkWords, mapWordChunksToCaptionChunks} from "../lib/caption-chunker";
@@ -55,7 +59,115 @@ export type WebPreviewRootRoute =
   | "preview-app"
   | "joseph-study"
   | "maul-reference-review"
-  | "maul-review";
+  | "maul-review"
+  | "maul-placement-tracer";
+
+export type MaulPlacementTracerFixture = {
+  probeId: string;
+  frame: number;
+  family: "measured" | "editorial" | "personal";
+  variantId: string;
+  fallbackCode: string | null;
+  text: string;
+  alignment: "left" | "center" | "right";
+  box: MaulNormalizedBox;
+  fontSizePx: number;
+  primitive: MaulMinimumLegibilityPrimitive;
+};
+
+export const resolveMaulPlacementTracerCropCenterX = (frame: number): number =>
+  frame < 15 ? 0.25 : 0.75;
+
+export const MAUL_PLACEMENT_TRACER_FIXTURES: readonly MaulPlacementTracerFixture[] = [
+  {
+    probeId: "measured",
+    frame: 8,
+    family: "measured",
+    variantId: "measured.centered_statement_v1",
+    fallbackCode: null,
+    text: "Measured proof",
+    alignment: "center",
+    box: {x: 0.1, y: 0.16, width: 0.8, height: 0.14},
+    fontSizePx: 72,
+    primitive: {kind: "outline", widthPx: 2, color: "#101316"},
+  },
+  {
+    probeId: "editorial",
+    frame: 8,
+    family: "editorial",
+    variantId: "editorial.subject_opposite_v1",
+    fallbackCode: null,
+    text: "Editorial contrast",
+    alignment: "left",
+    box: {x: 0.08, y: 0.4, width: 0.58, height: 0.16},
+    fontSizePx: 68,
+    primitive: {
+      kind: "shadow",
+      blurPx: 12,
+      offsetXPx: 0,
+      offsetYPx: 4,
+      color: "#000000",
+      minimumOpacity: 0.8,
+    },
+  },
+  {
+    probeId: "personal",
+    frame: 8,
+    family: "personal",
+    variantId: "personal.lower_dialogue_v1",
+    fallbackCode: "caption_safe_fallback",
+    text: "Personal voice",
+    alignment: "center",
+    box: {x: 0.12, y: 0.7, width: 0.76, height: 0.12},
+    fontSizePx: 60,
+    primitive: {
+      kind: "solid_plate",
+      paddingXPx: 20,
+      paddingYPx: 12,
+      cornerRadiusPx: 4,
+      backgroundColor: "#111417",
+      minimumOpacity: 0.82,
+    },
+  },
+  {
+    probeId: "crop-before",
+    frame: 14,
+    family: "personal",
+    variantId: "personal.crop_hard_cut_v1",
+    fallbackCode: "caption_safe_fallback",
+    text: "Crop left",
+    alignment: "center",
+    box: {x: 0.12, y: 0.7, width: 0.76, height: 0.12},
+    fontSizePx: 60,
+    primitive: {
+      kind: "solid_plate",
+      paddingXPx: 20,
+      paddingYPx: 12,
+      cornerRadiusPx: 4,
+      backgroundColor: "#111417",
+      minimumOpacity: 0.82,
+    },
+  },
+  {
+    probeId: "crop-after",
+    frame: 15,
+    family: "personal",
+    variantId: "personal.crop_hard_cut_v1",
+    fallbackCode: "caption_safe_fallback",
+    text: "Crop right",
+    alignment: "center",
+    box: {x: 0.12, y: 0.7, width: 0.76, height: 0.12},
+    fontSizePx: 60,
+    primitive: {
+      kind: "solid_plate",
+      paddingXPx: 20,
+      paddingYPx: 12,
+      cornerRadiusPx: 4,
+      backgroundColor: "#111417",
+      minimumOpacity: 0.82,
+    },
+  },
+];
 
 export const resolveWebPreviewRootRoute = (pathnameOrUrl: string): WebPreviewRootRoute => {
   const rawPath = pathnameOrUrl.split("?")[0]?.split("#")[0] ?? "/";
@@ -76,11 +188,18 @@ export const resolveWebPreviewRootRoute = (pathnameOrUrl: string): WebPreviewRoo
     return "maul-review";
   }
 
+  if (normalizedPath === "/maul/placement-tracer") {
+    return "maul-placement-tracer";
+  }
+
   return "preview-app";
 };
 
 export const shouldPreloadWebPreviewFonts = (route: WebPreviewRootRoute): boolean =>
-  route !== "joseph-study" && route !== "maul-reference-review" && route !== "maul-review";
+  route !== "joseph-study" &&
+  route !== "maul-reference-review" &&
+  route !== "maul-review" &&
+  route !== "maul-placement-tracer";
 
 export const resolveSandboxDurationMs = (chunks: CaptionChunk[]): number => {
   const lastChunkEndMs = chunks.reduce((max, chunk) => Math.max(max, chunk.endMs), 0);

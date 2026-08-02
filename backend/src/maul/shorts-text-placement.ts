@@ -2,6 +2,7 @@ import {
   joinShortsTextTokens,
   maulShortsTextChunkPlanV2CoreSchema,
   maulTextPlacementPlanCoreSchema,
+  type MaulMinimumLegibilityPrimitive,
   type MaulNormalizedBox,
   type MaulOutputCompositionInterval,
   type MaulShortsTextChunkPlanV2Core,
@@ -63,6 +64,14 @@ const COMPATIBILITY_FINGERPRINT = hashMaulPlanPayload({
   weights: [500, 700, 800],
   ...COMPATIBILITY_METRICS,
 });
+
+const SOLID_PLATE_PRIMITIVE = {
+  paddingXPx: 18,
+  paddingYPx: 10,
+  cornerRadiusPx: 6,
+  backgroundColor: "#000000",
+  minimumOpacity: 0.78,
+} as const;
 
 export const MAUL_TYPOGRAPHY_COMPATIBILITY_PROFILE = {
   profileId: "maul-compat-dm-sans-v1" as const,
@@ -407,32 +416,38 @@ const geometryForFamily = ({
 const linesFit = ({
   lines,
   box,
-  nominalFontSizePx,
+  fontSizePx,
   lineHeight,
+  paddingXPx,
+  paddingYPx,
 }: {
   lines: Array<{text: string}>;
   box: MaulNormalizedBox;
-  nominalFontSizePx: number;
+  fontSizePx: number;
   lineHeight: number;
+  paddingXPx: number;
+  paddingYPx: number;
 }) => {
-  const availableWidthPx = box.width * PLATFORM_PROFILE.output.width;
-  const availableHeightPx = box.height * PLATFORM_PROFILE.output.height;
+  const availableWidthPx =
+    box.width * PLATFORM_PROFILE.output.width - paddingXPx * 2;
+  const availableHeightPx =
+    box.height * PLATFORM_PROFILE.output.height - paddingYPx * 2;
   const longestWordWidthPx = Math.max(
     ...lines.flatMap((line) =>
       line.text.split(/\s+/u).map(
         (word) =>
           word.length *
-          nominalFontSizePx *
+          fontSizePx *
           COMPATIBILITY_METRICS.maxGlyphWidthEm,
       ),
     ),
   );
   const longestLineWidthPx = Math.max(
     ...lines.map(
-      (line) => line.text.length * nominalFontSizePx * 0.55,
+      (line) => line.text.length * fontSizePx * 0.55,
     ),
   );
-  const requiredHeightPx = lines.length * nominalFontSizePx * lineHeight;
+  const requiredHeightPx = lines.length * fontSizePx * lineHeight;
   return (
     longestWordWidthPx <= availableWidthPx &&
     longestLineWidthPx <= availableWidthPx &&
@@ -522,6 +537,8 @@ const buildCandidate = ({
       : family === "editorial"
         ? 68
         : 64;
+  const hierarchyScale = family === "editorial" ? 1.08 : 1;
+  const effectiveFontSizePx = nominalFontSizePx * hierarchyScale;
   const lineHeight = 1.1;
   const variantId = isCaptionSafeFallback
     ? "caption_safe_fallback.padded_band_v1"
@@ -530,6 +547,27 @@ const buildCandidate = ({
       : family === "editorial"
         ? "editorial.subject_opposite_v1"
         : "personal.lower_dialogue_v1";
+  const minimumLegibilityPrimitive: MaulMinimumLegibilityPrimitive =
+    family === "editorial"
+      ? {kind: "outline", widthPx: 2, color: "#000000"}
+      : family === "personal" || isCaptionSafeFallback
+        ? {kind: "solid_plate", ...SOLID_PLATE_PRIMITIVE}
+        : {
+            kind: "shadow",
+            blurPx: 10,
+            offsetXPx: 0,
+            offsetYPx: 3,
+            color: "#000000",
+            minimumOpacity: 0.72,
+          };
+  const paddingXPx =
+    minimumLegibilityPrimitive.kind === "solid_plate"
+      ? minimumLegibilityPrimitive.paddingXPx
+      : 0;
+  const paddingYPx =
+    minimumLegibilityPrimitive.kind === "solid_plate"
+      ? minimumLegibilityPrimitive.paddingYPx
+      : 0;
   const hardGates = [
     gate(
       "exact_token_sequence",
@@ -546,18 +584,20 @@ const buildCandidate = ({
     ),
     gate(
       "typography_compatibility",
-      nominalFontSizePx >= COMPATIBILITY_METRICS.minimumFontSizePx &&
-        nominalFontSizePx <= COMPATIBILITY_METRICS.maximumFontSizePx,
+      effectiveFontSizePx >= COMPATIBILITY_METRICS.minimumFontSizePx &&
+        effectiveFontSizePx <= COMPATIBILITY_METRICS.maximumFontSizePx,
       COMPATIBILITY_FINGERPRINT,
-      "Pinned DM Sans metrics cover the selected nominal typography.",
+      "Pinned DM Sans metrics cover the selected effective typography.",
     ),
     gate(
       "minimum_readable_fit",
       linesFit({
         lines,
         box: geometry.box,
-        nominalFontSizePx,
+        fontSizePx: effectiveFontSizePx,
         lineHeight,
+        paddingXPx,
+        paddingYPx,
       }),
       COMPATIBILITY_FINGERPRINT,
       "Worst-case glyph and line metrics fit the selected box.",
@@ -653,33 +693,14 @@ const buildCandidate = ({
         metricsFingerprint: COMPATIBILITY_FINGERPRINT,
         nominalFontSizePx,
         lineHeight,
-        hierarchyScale: family === "editorial" ? 1.08 : 1,
+        hierarchyScale,
       },
       depth: {
         desired: "front",
         resolved: "front",
         treatmentState: "not_requested",
       },
-      minimumLegibilityPrimitive:
-        family === "editorial"
-          ? {kind: "outline", widthPx: 2, color: "#000000"}
-          : family === "personal" || isCaptionSafeFallback
-            ? {
-                kind: "solid_plate",
-                paddingXPx: 18,
-                paddingYPx: 10,
-                cornerRadiusPx: 6,
-                backgroundColor: "#000000",
-                minimumOpacity: 0.78,
-              }
-            : {
-                kind: "shadow",
-                blurPx: 10,
-                offsetXPx: 0,
-                offsetYPx: 3,
-                color: "#000000",
-                minimumOpacity: 0.72,
-              },
+      minimumLegibilityPrimitive,
       hardGates,
       scores,
       rationale: isCaptionSafeFallback

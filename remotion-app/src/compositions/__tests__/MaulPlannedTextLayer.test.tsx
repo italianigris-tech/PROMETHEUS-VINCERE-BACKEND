@@ -276,6 +276,38 @@ describe("MAUL planned text renderer contract", () => {
     ]);
   });
 
+  it("maps off-grid half-open intervals without gaps or cut bleed", () => {
+    const placement = structuredClone(textPlacementPlan);
+    placement.compositionIntervals[0]!.outputStartMs = 1016;
+    placement.compositionIntervals[0]!.outputEndMs = 1050;
+    placement.segments[0]!.outputStartMs = 1016;
+    placement.segments[0]!.outputEndMs = 1050;
+
+    const [sequence] = buildMaulPlannedSourceSequences({
+      timeline: {
+        timestampMap: [
+          {
+            sourceStartMs: 0,
+            sourceEndMs: 34,
+            outputStartMs: 1016,
+            outputEndMs: 1050,
+            mode: "keep",
+          },
+        ],
+      } as never,
+      textPlacementPlan: placement as never,
+      fps: 30,
+    });
+
+    expect(sequence).toMatchObject({
+      from: 31,
+      durationInFrames: 1,
+      trimBefore: 0,
+      trimAfter: 2,
+    });
+    expect(sequence!.from + sequence!.durationInFrames).toBe(32);
+  });
+
   it("normalizes V1 manifests only onto the explicit legacy path", () => {
     const manifest = {
       schemaVersion: "maul-unified-short-render-manifest/v1",
@@ -374,6 +406,9 @@ describe("MAUL planned text renderer contract", () => {
     expect(markup).toContain('data-placement-fallback="fallback_known"');
     expect(markup).toContain('data-legibility-primitive="solid_plate"');
     expect(markup).toContain('data-font-family="DM Sans"');
+    expect(markup).toContain(
+      `data-font-metrics-fingerprint="${sha("a")}"`,
+    );
     expect(markup).toContain("left:108px");
     expect(markup).toContain("top:384px");
     expect(markup).toContain("width:648px");
