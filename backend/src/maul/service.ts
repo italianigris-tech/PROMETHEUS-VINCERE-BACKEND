@@ -1625,7 +1625,11 @@ export class MaulProjectService {
       timeline,
       candidate,
       treatment,
-      textChunkPlan: typographyMotion.payload.textChunkPlan,
+      textChunkPlan:
+        typographyMotion.payload.schemaVersion ===
+        "maul-typography-motion-plan/v1"
+          ? typographyMotion.payload.textChunkPlan
+          : null,
     };
     const planningArtifacts = {
       observationSnapshot,

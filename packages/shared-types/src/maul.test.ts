@@ -2,15 +2,790 @@ import {describe, expect, it} from "vitest";
 
 import {
   maulAuditEventSchema,
+  maulArtifactCreateRequestSchema,
   maulArtifactRecordSchema,
+  maulArtifactTypeSchema,
   maulEditorialTimelinePayloadSchema,
+  maulPlanningBundlePayloadSchema,
+  maulPlanningBundleV1PayloadSchema,
+  maulPlanningBundleV2PayloadSchema,
   maulProjectSchema,
   maulQualityEvidenceBundlePayloadSchema,
   maulQualityTruthProofSchema,
-  maulQualityTruthResultSchema
+  maulQualityTruthProofV2Schema,
+  maulQualityTruthResultSchema,
+  maulTextChunkPlanPayloadSchema,
+  maulTextPlacementPlanPayloadSchema,
+  maulTypographyMotionPlanPayloadSchema,
+  maulTypographyMotionPlanV1PayloadSchema,
+  maulTypographyMotionPlanV2PayloadSchema,
+  maulUnifiedShortRenderManifestSchema,
+  maulUnifiedShortRenderManifestV1Schema,
+  maulUnifiedShortRenderManifestV2Schema,
 } from "./maul.js";
 
 const createdAt = "2026-07-28T12:00:00.000Z";
+const sha = (character: string) => character.repeat(64);
+
+const planBase = {
+  sourceAssetId: "artifact_source",
+  analysisArtifactId: "artifact_analysis",
+  timelineArtifactId: "artifact_timeline",
+  candidateArtifactId: "artifact_candidate",
+  treatmentGenomeArtifactId: "artifact_treatment",
+  planVersion: "fixture/v1",
+  replayKey: sha("a"),
+  authority: {
+    authorityClass: "deterministic",
+    stageId: "fixture_stage",
+    confidence: 1,
+    inferenceReceiptId: null,
+  },
+  warnings: [],
+  fallbacks: [
+    {
+      condition: "A required input is unavailable.",
+      action: "Block the plan.",
+      status: "available",
+    },
+  ],
+} as const;
+
+const textChunkCore = {
+  schemaVersion: "maul-shorts-text-chunk-plan/v2",
+  transcriptHash: sha("b"),
+  timelineHash: sha("c"),
+  chunkProposalHash: sha("d"),
+  outputDurationMs: 1000,
+  pacing: "measured",
+  style: "editorial",
+  strategy: "deterministic_fallback",
+  tokens: [
+    {
+      tokenId: "token_a",
+      transcriptWordIndex: 0,
+      text: "Proof",
+      sourceStartMs: 0,
+      sourceEndMs: 800,
+      outputSpans: [{outputStartMs: 0, outputEndMs: 800}],
+      outputStartMs: 0,
+      outputEndMs: 800,
+    },
+  ],
+  chunks: [
+    {
+      chunkId: "chunk_a",
+      tokenIds: ["token_a"],
+      text: "Proof",
+      outputStartMs: 0,
+      outputEndMs: 800,
+      semanticRole: "proof",
+      emphasis: {tokenIds: ["token_a"], text: "Proof", level: "key"},
+      holdAcrossProtectedPause: false,
+      rationale: "One source-grounded proof token.",
+      confidence: 1,
+    },
+  ],
+  protectedEntities: [],
+  protectedPauses: [],
+  inference: {
+    status: "skipped_missing_credentials",
+    provider: "openai_compatible",
+    baseUrl: "https://example.com/v1",
+    model: "fixture-model",
+    requestHash: null,
+    responseHash: null,
+    fallbackReason: "The fixture uses the governed deterministic fallback.",
+  },
+  inputHashes: {
+    transcript: sha("b"),
+    editorialTimeline: sha("c"),
+    chunkProposal: sha("d"),
+  },
+} as const;
+
+const textChunkPayload = {...planBase, ...textChunkCore} as const;
+
+const textPlacementCore = {
+  schemaVersion: "maul-text-placement-plan/v1",
+  textChunkPlanArtifactId: "artifact_text_chunk",
+  textChunkPlanHash: sha("e"),
+  catalog: {
+    catalogId: "maul-placement-catalog-three-family-v1",
+    version: "1",
+    hash: sha("f"),
+  },
+  scorePolicy: {
+    policyId: "maul-placement-score-policy-v1",
+    version: "1",
+    hash: sha("1"),
+    dimensionWeights: {readability: 1},
+    beamWidth: 3,
+    planningHorizonSegments: 3,
+  },
+  platformProfile: {
+    profileId: "maul-platform-instagram-reels-v1",
+    platform: "instagram_reels",
+    version: "1",
+    output: {width: 1080, height: 1920, fps: 30},
+    safeRegion: {x: 0.05, y: 0.05, width: 0.85, height: 0.82},
+  },
+  compatibilityProfiles: [
+    {
+      profileId: "maul-compat-dm-sans-v1",
+      family: "DM Sans",
+      approvedFontAssets: [
+        {
+          assetId: "font_google_dm_sans_700",
+          family: "DM Sans",
+          weights: [500, 700, 800],
+        },
+      ],
+      loadedFallback: {
+        assetId: "font_google_dm_sans_700",
+        family: "DM Sans",
+        weight: 700,
+      },
+      metrics: {
+        fingerprint: sha("2"),
+        maxGlyphWidthEm: 1.1,
+        maxLineHeightEm: 1.25,
+        minimumFontSizePx: 48,
+        maximumFontSizePx: 96,
+        minimumLineHeight: 1,
+        maximumLineHeight: 1.25,
+      },
+    },
+  ],
+  compositionIntervals: [
+    {
+      intervalId: "composition_interval_a",
+      sceneId: "scene_a",
+      discontinuityId: "discontinuity_a",
+      variantId: "primary.centered_v1",
+      outputStartMs: 0,
+      outputEndMs: 1000,
+      transformHash: sha("3"),
+      sourceViewport: {x: 0, y: 0, width: 1, height: 1},
+      sourceOccupancy: [{x: 0, y: 0, width: 1, height: 1}],
+      paddedNonSourceRegions: [],
+      crop: {x: 0.2, y: 0, width: 0.6, height: 1},
+      scale: {x: 1, y: 1},
+    },
+  ],
+  status: "planned",
+  blockingReason: null,
+  segments: [
+    {
+      segmentId: "placement_segment_a",
+      chunkId: "chunk_a",
+      sceneId: "scene_a",
+      discontinuityId: "discontinuity_a",
+      outputStartMs: 0,
+      outputEndMs: 800,
+      selectedCompositionVariantId: "primary.centered_v1",
+      selectedTransformHash: sha("3"),
+      tokenIds: ["token_a"],
+      lines: [{lineId: "line_a", tokenIds: ["token_a"], text: "Proof"}],
+      family: "measured",
+      variantId: "measured.centered_statement_v1",
+      box: {x: 0.15, y: 0.62, width: 0.7, height: 0.12},
+      maximumEnvelope: {x: 0.12, y: 0.59, width: 0.76, height: 0.18},
+      alignment: "center",
+      compatibility: {
+        profileId: "maul-compat-dm-sans-v1",
+        metricsFingerprint: sha("2"),
+        nominalFontSizePx: 72,
+        lineHeight: 1.1,
+        hierarchyScale: 1,
+      },
+      depth: {
+        desired: "front",
+        resolved: "front",
+        treatmentState: "not_requested",
+      },
+      minimumLegibilityPrimitive: {kind: "none"},
+      hardGates: [
+        {
+          gateId: "exact_token_sequence",
+          status: "pass",
+          evidenceId: "evidence_tokens",
+          rationale: "The token sequence is exact.",
+        },
+      ],
+      scores: {readability: 1},
+      rationale: "The measured fixture fits.",
+      confidence: 1,
+      fallbackCode: null,
+      fallbackReason: null,
+    },
+  ],
+  inputHashes: {
+    textChunkPlan: sha("e"),
+    outputCompositionTrack: sha("4"),
+    platformProfile: sha("5"),
+    compatibilityProfile: sha("6"),
+    catalog: sha("f"),
+    scorePolicy: sha("1"),
+  },
+} as const;
+
+const textPlacementPayload = {...planBase, ...textPlacementCore} as const;
+
+const typographyPlanCommon = {
+  captionGroups: [
+    {
+      text: "Proof",
+      outputStartMs: 0,
+      outputEndMs: 800,
+      sourceGrounded: true,
+      role: "dialogue_caption",
+    },
+  ],
+  editorialStatements: [],
+  editorialTextWithheldReason: "No authored statement is needed.",
+  fontResolution: {
+    requestedRole: "utility",
+    selectedFamily: "DM Sans",
+    selectedAssetId: "font_google_dm_sans_700",
+    status: "eligible_loaded",
+    reason: "The pinned compatibility-profile asset is loaded.",
+  },
+  motionPrograms: [
+    {
+      capabilityId: "maul_caption_static",
+      semanticRole: "Readable governed dialogue.",
+      outputStartMs: 0,
+      outputEndMs: 800,
+      execution: {
+        executionStatus: "native",
+        nativeBranch: "MaulShort.PlannedCaptionTokens.v1",
+        fallback: null,
+        evidenceRequirement: "Rendered token evidence is required.",
+      },
+    },
+  ],
+} as const;
+
+const typographyV1 = {
+  ...planBase,
+  schemaVersion: "maul-typography-motion-plan/v1",
+  textChunkPlan: null,
+  textChunkAuthority: null,
+  ...typographyPlanCommon,
+} as const;
+
+const typographyV2 = {
+  ...planBase,
+  schemaVersion: "maul-typography-motion-plan/v2",
+  textChunkPlanArtifactId: "artifact_text_chunk",
+  textChunkPlanHash: sha("e"),
+  textPlacementPlanArtifactId: "artifact_text_placement",
+  textPlacementPlanHash: sha("7"),
+  ...typographyPlanCommon,
+} as const;
+
+const planningArtifactIdsV1 = {
+  observationSnapshot: "artifact_observation",
+  candidateNarrative: "artifact_narrative",
+  beatMap: "artifact_beats",
+  typographyMotion: "artifact_typography",
+  camera: "artifact_camera",
+  visual: "artifact_visual",
+  audio: "artifact_audio",
+  capabilitySelection: "artifact_capabilities",
+  adapterDecision: "artifact_adapter",
+  artDirection: "artifact_art_direction",
+  contextAssembly: "artifact_context",
+  shotIntentMatrix: "artifact_shots",
+  textOpportunity: "artifact_text_opportunity",
+  revision: "artifact_revision",
+} as const;
+
+const planningArtifactIdsV2 = {
+  ...planningArtifactIdsV1,
+  textChunk: "artifact_text_chunk",
+  textPlacement: "artifact_text_placement",
+} as const;
+
+const planningBundleV1 = {
+  ...planBase,
+  schemaVersion: "maul-planning-bundle/v1",
+  planArtifactIds: planningArtifactIdsV1,
+  rendererReadiness: "governed_with_explicit_fallbacks",
+  blockingReasons: [],
+} as const;
+
+const planningBundleV2 = {
+  ...planBase,
+  schemaVersion: "maul-planning-bundle/v2",
+  planArtifactIds: planningArtifactIdsV2,
+  rendererReadiness: "governed_with_explicit_fallbacks",
+  blockingReasons: [],
+} as const;
+
+const governedNativeExecution = {
+  executionStatus: "native",
+  nativeBranch: "MaulShort.fixture.v1",
+  fallback: null,
+  evidenceRequirement: "A rendered fixture is required.",
+} as const;
+
+const manifestPlansV1 = {
+  observationSnapshot: {
+    ...planBase,
+    schemaVersion: "maul-observation-snapshot/v1",
+    facts: {
+      language: "en",
+      transcriptWordCount: 1,
+      verifiedVoiceSpanCount: 1,
+      verifiedSilenceSpanCount: 0,
+      shotCount: 1,
+      speakerTrackCount: 1,
+      sourceDurationMs: 1000,
+      sourceWidth: 1920,
+      sourceHeight: 1080,
+      sourceFps: 30,
+    },
+    unavailableSignals: [],
+  },
+  candidateNarrative: {
+    ...planBase,
+    schemaVersion: "maul-candidate-narrative/v1",
+    coherentThesis: "Proof",
+    segments: [
+      {
+        role: "proof",
+        claim: "Proof",
+        sourceStartMs: 0,
+        sourceEndMs: 800,
+        sourceSupported: true,
+        transcriptWordStartIndex: 0,
+        transcriptWordEndIndex: 0,
+      },
+    ],
+    unsupportedClaims: [],
+  },
+  beatMap: {
+    ...planBase,
+    schemaVersion: "maul-editorial-beat-map/v1",
+    beats: [
+      {
+        beatId: "beat_a",
+        role: "proof",
+        sourceStartMs: 0,
+        sourceEndMs: 1000,
+        outputStartMs: 0,
+        outputEndMs: 1000,
+        spokenIdea: "Proof",
+        intensity: 0.5,
+        informationDensity: 0.5,
+        dominantFocus: "typography",
+        allowedEvents: ["caption"],
+        protectedPause: false,
+        rationale: "Keep the proof readable.",
+        confidence: 1,
+      },
+    ],
+    sharedAttentionBudget: {
+      maxConcurrentDominantEvents: 1,
+      collisionPolicy: "One dominant event at a time.",
+    },
+  },
+  typographyMotion: typographyV1,
+  camera: {
+    ...planBase,
+    schemaVersion: "maul-framing-camera-plan/v1",
+    events: [
+      {
+        eventId: "camera_a",
+        outputStartMs: 0,
+        outputEndMs: 1000,
+        cropCenterX: 0.5,
+        cropCenterY: 0.5,
+        startScale: 1,
+        endScale: 1,
+        motivatedByBeatId: "beat_a",
+        rationale: "Keep the fixture stable.",
+        execution: governedNativeExecution,
+      },
+    ],
+    continuityPolicy: "Remain stable for the fixture.",
+    maxScale: 1,
+  },
+  visual: {
+    ...planBase,
+    schemaVersion: "maul-visual-plan/v1",
+    scenes: [
+      {
+        sceneId: "scene_a",
+        outputStartMs: 0,
+        outputEndMs: 1000,
+        mode: "speaker_only",
+        purpose: "Render the authoritative source.",
+        assetArtifactId: "artifact_source",
+        provenanceStatus: "source",
+        referencePixelsExcluded: true,
+        execution: governedNativeExecution,
+      },
+    ],
+    neededButUnavailable: [],
+  },
+  audio: {
+    ...planBase,
+    schemaVersion: "maul-dialogue-audio-plan/v1",
+    dialoguePriority: true,
+    targetLufs: -14,
+    musicPolicy: "Dialogue first.",
+    duckingDb: -8,
+    sfxIntents: [],
+    execution: governedNativeExecution,
+  },
+  capabilitySelection: {
+    ...planBase,
+    schemaVersion: "maul-capability-selection/v1",
+    selections: [
+      {
+        capabilityId: "maul_fixture",
+        semanticRole: "Execute the fixture.",
+        selected: true,
+        execution: governedNativeExecution,
+      },
+    ],
+    unknownCapabilityIds: [],
+  },
+  adapterDecision: {
+    ...planBase,
+    schemaVersion: "maul-adapter-decision/v1",
+    adapterId: "maul-portrait-format-adapter/v1",
+    platform: "instagram_reels",
+    canvas: {width: 1080, height: 1920, fps: 30},
+    safeRegion: {topPx: 96, rightPx: 72, bottomPx: 320, leftPx: 72},
+    preservedIntent: ["Readable source-grounded dialogue."],
+    adaptedConstraints: [
+      {
+        field: "canvas",
+        from: "source",
+        to: "1080x1920",
+        reason: "The governed output is portrait.",
+      },
+    ],
+    silentIntentMutations: [],
+  },
+  artDirection: {
+    ...planBase,
+    schemaVersion: "maul-art-direction-plan/v1",
+    audienceIntent: "Present one clear proof.",
+    emotionalTemperature: "calm_authoritative",
+    sourceRespectStance: "Keep source truth authoritative.",
+    theme: "Restrained proof.",
+    paletteIntent: ["Black", "White"],
+    typeRoles: [
+      {role: "dialogue", intent: "Readable"},
+      {role: "utility", intent: "Restrained"},
+    ],
+    layoutAndNegativeSpaceLogic: "Use measured negative space.",
+    imageryAndBackgroundLanguage: "Use source imagery only.",
+    cameraBehavior: "Static.",
+    motionPhysics: "Static.",
+    annotationGrammar: "No annotations.",
+    soundWorld: "Dialogue first.",
+    motifArc: {introduction: "None", development: "None", recall: "None"},
+    treatmentVariation: "Measured fixture.",
+    explicitProhibitions: ["No unsupported claims."],
+  },
+  contextAssembly: {
+    ...planBase,
+    schemaVersion: "maul-context-assembly-plan/v1",
+    wholeSourceSynopsis: "One source-grounded proof.",
+    narrativePhases: [
+      {
+        phase: "proof",
+        sourceStartMs: 0,
+        sourceEndMs: 1000,
+        summary: "Proof",
+      },
+    ],
+    candidateNeighborhood: {
+      sourceStartMs: 0,
+      sourceEndMs: 1000,
+      precedingContext: "",
+      followingContext: "",
+    },
+    localTranscript: "Proof",
+    namedFacts: [],
+    callbacks: [],
+    setupPayoffDependencies: [],
+    chronologyConstraints: [],
+    sourceQualityChanges: [],
+    unresolvedUncertainty: [],
+    omissionReports: [],
+  },
+  shotIntentMatrix: {
+    ...planBase,
+    schemaVersion: "maul-shot-intent-matrix/v1",
+    shots: [
+      {
+        shotId: "shot_a",
+        sourceStartMs: 0,
+        sourceEndMs: 1000,
+        outputStartMs: 0,
+        outputEndMs: 1000,
+        editorialPurpose: "Deliver proof.",
+        rhetoricalRole: "proof",
+        inReason: "Begin the proof.",
+        outReason: "End the proof.",
+        continuityRelationship: "Single continuous shot.",
+        screenDirection: "stable",
+        poseAndGestureState: "Stable.",
+        eyeLine: "camera",
+        cropAndCameraTarget: "Centered source crop.",
+        evidenceBackgroundDockingState: "No evidence panel.",
+        textOpportunityId: "text_opportunity_a",
+        audioHandlesMs: {pre: 0, post: 0},
+        colorMatchIntent: "Preserve source color.",
+        transition: "None.",
+        confidence: 1,
+        fallback: "Use the source crop.",
+      },
+    ],
+    implementationSegmentsAreShots: false,
+  },
+  textOpportunity: {
+    ...planBase,
+    schemaVersion: "maul-text-opportunity-plan/v1",
+    opportunities: [
+      {
+        opportunityId: "text_opportunity_a",
+        beatId: "beat_a",
+        kind: "dialogue_caption",
+        communicationBenefit: "Keep the proof readable.",
+        sourceSupport: "Proof",
+        viewerReadingLoad: 0.2,
+        availableNegativeSpace: "high",
+        subjectOcclusionRisk: "low",
+        speechRate: "slow",
+        concurrentImagery: "Speaker source.",
+        durationMs: 1000,
+        hierarchyOwner: "caption",
+        decision: "use",
+        rationale: "The dialogue requires a caption.",
+      },
+    ],
+    quotaUsed: false,
+  },
+  revision: {
+    ...planBase,
+    schemaVersion: "maul-revision-plan/v1",
+    immutableFields: ["source truth"],
+    allowedMutations: ["placement fallback"],
+    repairOptions: [
+      {
+        failureClass: "legibility",
+        permittedAction: "Select the governed plate.",
+        affectedGates: ["legibility"],
+      },
+    ],
+    maximumAttempts: 1,
+    maximumWallClockMs: 1000,
+    maximumCostUsd: 0,
+    criticMustBeIndependent: true,
+    noProgressDetection: "Stop after no change.",
+    oscillationDetection: "Stop after repeat state.",
+    humanCheckpoint: "Require review.",
+    stopReasons: ["Budget exhausted."],
+    thresholdReductionAllowed: false,
+  },
+} as const;
+
+const manifestTimeline = {
+  sourceAssetId: "artifact_source",
+  analysisArtifactId: "artifact_analysis",
+  sourceDurationMs: 1000,
+  outputDurationMs: 1000,
+  selectedClipWindows: [{sourceStartMs: 0, sourceEndMs: 1000}],
+  cutCandidates: [],
+  protectedRanges: [],
+  timestampMap: [
+    {
+      sourceStartMs: 0,
+      sourceEndMs: 1000,
+      outputStartMs: 0,
+      outputEndMs: 1000,
+      mode: "keep",
+    },
+  ],
+  speakerCropTracks: [],
+  editRationale: ["Keep the full fixture."],
+  qualityWarnings: [],
+} as const;
+
+const manifestTreatment = {
+  treatmentId: "minimal_expert",
+  timelineArtifactId: "artifact_timeline",
+  catalogEntryName: "Minimal Expert",
+  version: "1",
+  replayKey: sha("8"),
+  purpose: "Present one proof clearly.",
+  targetViewerState: "Informed.",
+  grammar: {
+    hook: "Proof",
+    escalation: "Proof",
+    proof: "Proof",
+    reveal: "Proof",
+    payoff: "Proof",
+    cta: "Proof",
+  },
+  pacing: {
+    minCutsPerMinute: 0,
+    maxCutsPerMinute: 0,
+    protectedPausePolicy: "Preserve verified pauses.",
+  },
+  visualPolicy: {},
+  audioPolicy: {},
+  rendererInputs: {
+    framing: {
+      mode: "clarity_first",
+      safeZone: "platform_ui_strict",
+      maxPunchInScale: 1,
+      speakerPriority: true,
+    },
+    caption: {
+      profile: "precision_minimal",
+      maxWordsPerCard: 8,
+      minFontScale: 1,
+      hierarchy: ["dialogue"],
+      typographyGrammar: "Measured.",
+    },
+    motion: {
+      intensity: "sparse",
+      permittedPrimitives: ["none"],
+      permittedTransitions: ["cut"],
+    },
+    bRoll: {policy: "withhold", maxInsertsPerMinute: 0},
+    audio: {
+      musicBehavior: "withhold",
+      sfxBehavior: "withhold",
+      duckingDb: -8,
+    },
+  },
+  repetitionBudget: {
+    maxRepeatedPrimitivePerClip: 1,
+    maxRecentFeedReuse: 0,
+    lookbackPosts: 1,
+  },
+  brandConstraints: [],
+  accessibilityConstraints: ["Readable captions."],
+  prohibitedMotifs: [],
+  referenceCorpusArtifactIds: [],
+  judgmentLayer: {
+    minimumWeightedScore: 85,
+    rubric: Array.from({length: 5}, (_, index) => ({
+      id: `rubric_${index}`,
+      label: `Rubric ${index}`,
+      weight: 1,
+      minimumScore: 80,
+    })),
+    failureClasses: Array.from({length: 5}, (_, index) => ({
+      id: `failure_${index}`,
+      label: `Failure ${index}`,
+      description: `Failure class ${index}.`,
+      severity: "major" as const,
+    })),
+  },
+  renderFallbacks: ["Block when unreadable."],
+  provenanceRules: ["Use source pixels only."],
+} as const;
+
+const manifestExecutionV1 = [
+  ["observationSnapshot", "observation_snapshot"],
+  ["candidateNarrative", "candidate_narrative"],
+  ["beatMap", "editorial_beat_map"],
+  ["typographyMotion", "typography_motion_plan"],
+  ["camera", "framing_camera_plan"],
+  ["visual", "visual_plan"],
+  ["audio", "dialogue_audio_plan"],
+  ["capabilitySelection", "capability_selection"],
+  ["adapterDecision", "adapter_decision"],
+  ["artDirection", "art_direction_plan"],
+  ["contextAssembly", "context_assembly_plan"],
+  ["shotIntentMatrix", "shot_intent_matrix"],
+  ["textOpportunity", "text_opportunity_plan"],
+  ["revision", "revision_plan"],
+] as const;
+
+const manifestV1 = {
+  schemaVersion: "maul-unified-short-render-manifest/v1",
+  rendererInputKind: "unified_short_render_manifest_only",
+  planningBundleArtifactId: "artifact_planning_bundle",
+  planArtifactIds: planningArtifactIdsV1,
+  source: {
+    sourceAssetId: "artifact_source",
+    storagePath: "source.mp4",
+    sha256: sha("9"),
+  },
+  timeline: manifestTimeline,
+  treatment: manifestTreatment,
+  captions: [
+    {text: "Proof", startMs: 0, endMs: 800, timestampMs: 0, confidence: 1},
+  ],
+  audio: {
+    planId: "audio_plan",
+    planMode: "render_ready",
+    musicTrack: {
+      id: "music_a",
+      storagePath: "music.wav",
+      licenseType: "fixture",
+      commercialAllowed: true,
+      licenseVerified: true,
+      renderSafe: true,
+      title: "Fixture",
+      artist: "Fixture",
+      durationSec: 1,
+    },
+    sfxAssets: [],
+  },
+  plans: manifestPlansV1,
+  planExecution: manifestExecutionV1.map(([key, planType]) => ({
+    planArtifactId: planningArtifactIdsV1[key],
+    planType,
+    executionStatus: "native" as const,
+    nativeBranch: "MaulShort.fixture.v1",
+    fallback: null,
+  })),
+  output: {width: 1080, height: 1920, fps: 30, codec: "h264"},
+  replayKey: sha("0"),
+  createdAt,
+} as const;
+
+const manifestV2 = {
+  ...manifestV1,
+  schemaVersion: "maul-unified-short-render-manifest/v2",
+  planArtifactIds: planningArtifactIdsV2,
+  plans: {
+    ...manifestPlansV1,
+    typographyMotion: typographyV2,
+    textChunk: textChunkPayload,
+    textPlacement: textPlacementPayload,
+  },
+  planExecution: [
+    ...manifestV1.planExecution,
+    {
+      planArtifactId: "artifact_text_chunk",
+      planType: "text_chunk_plan",
+      executionStatus: "native",
+      nativeBranch: "MaulShort.PlannedCaptionTokens.v1",
+      fallback: null,
+    },
+    {
+      planArtifactId: "artifact_text_placement",
+      planType: "text_placement_plan",
+      executionStatus: "native",
+      nativeBranch: "MaulShort.PlannedPlacement.v1",
+      fallback: null,
+    },
+  ],
+} as const;
 
 describe("MAUL shared contracts", () => {
   it("keeps canonical job identity and source ownership on the project", () => {
@@ -289,5 +1064,227 @@ describe("MAUL shared contracts", () => {
     });
 
     expect(event.type).toBe("quality_truth_evaluated");
+  });
+
+  it("registers standalone chunk and placement payloads as governed artifacts", () => {
+    expect(maulArtifactTypeSchema.parse("text_chunk_plan")).toBe(
+      "text_chunk_plan",
+    );
+    expect(maulArtifactTypeSchema.parse("text_placement_plan")).toBe(
+      "text_placement_plan",
+    );
+    expect(
+      maulTextChunkPlanPayloadSchema.parse(textChunkPayload).chunks[0]!.chunkId,
+    ).toBe("chunk_a");
+    expect(
+      maulTextPlacementPlanPayloadSchema.parse(textPlacementPayload).segments[0]!
+        .segmentId,
+    ).toBe("placement_segment_a");
+
+    const lineage = {
+      projectId: "project_alpha",
+      canonicalJobId: "maul_job_alpha",
+      runId: "run_alpha",
+      rootSourceAssetId: "artifact_source",
+      parentArtifactIds: ["artifact_timeline"],
+      sequence: 2,
+      producedBy: {module: "maul-planner", version: "2"},
+      createdAt,
+    } as const;
+    expect(
+      maulArtifactRecordSchema.parse({
+        schemaVersion: "maul-artifact/v1",
+        artifactId: "artifact_text_chunk",
+        artifactType: "text_chunk_plan",
+        lineage,
+        payload: textChunkPayload,
+      }).artifactType,
+    ).toBe("text_chunk_plan");
+    expect(
+      maulArtifactRecordSchema.parse({
+        schemaVersion: "maul-artifact/v1",
+        artifactId: "artifact_text_placement",
+        artifactType: "text_placement_plan",
+        lineage,
+        payload: textPlacementPayload,
+      }).artifactType,
+    ).toBe("text_placement_plan");
+    expect(
+      maulArtifactCreateRequestSchema.parse({
+        artifactType: "text_chunk_plan",
+        parentArtifactIds: ["artifact_timeline"],
+        payload: textChunkPayload,
+      }).artifactType,
+    ).toBe("text_chunk_plan");
+    expect(
+      maulArtifactCreateRequestSchema.parse({
+        artifactType: "text_placement_plan",
+        parentArtifactIds: ["artifact_text_chunk"],
+        payload: textPlacementPayload,
+      }).artifactType,
+    ).toBe("text_placement_plan");
+  });
+
+  it("keeps Typography Motion V1 readable and adds standalone V2 references", () => {
+    expect(
+      maulTypographyMotionPlanV1PayloadSchema.parse(typographyV1)
+        .textChunkPlan,
+    ).toBeNull();
+    expect(
+      maulTypographyMotionPlanPayloadSchema.parse(typographyV1).schemaVersion,
+    ).toBe("maul-typography-motion-plan/v1");
+
+    const v2 = maulTypographyMotionPlanV2PayloadSchema.parse(typographyV2);
+    expect(v2).toMatchObject({
+      textChunkPlanArtifactId: "artifact_text_chunk",
+      textChunkPlanHash: sha("e"),
+      textPlacementPlanArtifactId: "artifact_text_placement",
+      textPlacementPlanHash: sha("7"),
+    });
+    expect(
+      maulTypographyMotionPlanPayloadSchema.parse(typographyV2).schemaVersion,
+    ).toBe("maul-typography-motion-plan/v2");
+  });
+
+  it("keeps the V1 14-plan bundle and governs exactly 16 V2 plan IDs", () => {
+    const v1 = maulPlanningBundleV1PayloadSchema.parse(planningBundleV1);
+    expect(Object.keys(v1.planArtifactIds)).toHaveLength(14);
+    expect(
+      maulPlanningBundlePayloadSchema.parse(planningBundleV1).schemaVersion,
+    ).toBe("maul-planning-bundle/v1");
+
+    const v2 = maulPlanningBundleV2PayloadSchema.parse(planningBundleV2);
+    expect(Object.keys(v2.planArtifactIds)).toHaveLength(16);
+    expect(v2.planArtifactIds).toMatchObject({
+      textChunk: "artifact_text_chunk",
+      textPlacement: "artifact_text_placement",
+    });
+    expect(
+      maulPlanningBundlePayloadSchema.parse(planningBundleV2).schemaVersion,
+    ).toBe("maul-planning-bundle/v2");
+  });
+
+  it("keeps the V1 14-execution manifest and governs 16 unique V2 executions", () => {
+    expect(
+      maulUnifiedShortRenderManifestV1Schema.parse(manifestV1).planExecution,
+    ).toHaveLength(14);
+    expect(
+      maulUnifiedShortRenderManifestSchema.parse(manifestV1).schemaVersion,
+    ).toBe("maul-unified-short-render-manifest/v1");
+
+    const v2 = maulUnifiedShortRenderManifestV2Schema.parse(manifestV2);
+    expect(v2.planExecution).toHaveLength(16);
+    expect(new Set(v2.planExecution.map((entry) => entry.planType)).size).toBe(
+      16,
+    );
+    expect(
+      maulUnifiedShortRenderManifestSchema.parse(manifestV2).schemaVersion,
+    ).toBe("maul-unified-short-render-manifest/v2");
+
+    const duplicateExecution = structuredClone(manifestV2);
+    duplicateExecution.planExecution[15] = {
+      ...duplicateExecution.planExecution[14]!,
+    };
+    expect(() =>
+      maulUnifiedShortRenderManifestV2Schema.parse(duplicateExecution),
+    ).toThrow(/each governed plan exactly once|unique/i);
+
+    const tokenMismatch = structuredClone(manifestV2);
+    tokenMismatch.plans.textPlacement.segments[0].tokenIds = [
+      "token_missing",
+    ];
+    tokenMismatch.plans.textPlacement.segments[0].lines[0].tokenIds = [
+      "token_missing",
+    ];
+    expect(() =>
+      maulUnifiedShortRenderManifestV2Schema.parse(tokenMismatch),
+    ).toThrow(/placement.*chunk.*token|token.*placement.*chunk/i);
+  });
+
+  it("requires placement-specific proof records in Quality Truth V2", () => {
+    const proofV2 = {
+      schemaVersion: "maul-quality-truth-proof/v2",
+      manifestReplayKey: sha("0"),
+      captionLayout: {
+        status: "verified",
+        evidenceId: "evidence_caption_layout",
+        boxes: [
+          {
+            captionIndex: 0,
+            leftPx: 162,
+            topPx: 1190,
+            rightPx: 918,
+            bottomPx: 1420,
+          },
+        ],
+      },
+      fontRuntime: {
+        status: "eligible_loaded",
+        family: "DM Sans",
+        assetId: "font_google_dm_sans_700",
+        evidenceId: "evidence_font_loaded",
+      },
+      cropAndMask: {
+        status: "verified",
+        evidenceId: "evidence_crop_mask",
+        maskingRequired: false,
+        maskingStatus: "not_required",
+        crops: [
+          {
+            outputStartMs: 0,
+            outputEndMs: 1000,
+            x: 0.2,
+            y: 0,
+            width: 0.6,
+            height: 1,
+          },
+        ],
+      },
+      cameraContinuity: {
+        status: "verified_continuous",
+        evidenceId: "evidence_camera_continuity",
+        resetOutputMs: [],
+      },
+      capabilities: [],
+      fallbacks: [],
+      placementSegments: [
+        {
+          status: "verified",
+          evidenceId: "evidence_placement_segment_a",
+          textPlacementPlanArtifactId: "artifact_text_placement",
+          placementSegmentId: "placement_segment_a",
+          compositionIntervalId: "composition_interval_a",
+          compositionVariantId: "primary.centered_v1",
+          compositionTransformHash: sha("3"),
+          compatibilityProfileId: "maul-compat-dm-sans-v1",
+          metricsFingerprint: sha("2"),
+          exactFontAssetId: "font_google_dm_sans_700",
+          compiledLegibilityPrimitive: {kind: "none"},
+        },
+      ],
+    } as const;
+
+    expect(
+      maulQualityTruthProofV2Schema.parse(proofV2).placementSegments[0],
+    ).toMatchObject({
+      placementSegmentId: "placement_segment_a",
+      compatibilityProfileId: "maul-compat-dm-sans-v1",
+      exactFontAssetId: "font_google_dm_sans_700",
+    });
+    expect(maulQualityTruthProofSchema.parse(proofV2).schemaVersion).toBe(
+      "maul-quality-truth-proof/v2",
+    );
+
+    const missingEvidence = structuredClone(proofV2);
+    missingEvidence.placementSegments[0].evidenceId = null;
+    expect(() => maulQualityTruthProofV2Schema.parse(missingEvidence)).toThrow(
+      /placement.*evidence|evidence.*placement/i,
+    );
+
+    const wrongRuntimeFont = structuredClone(proofV2);
+    wrongRuntimeFont.fontRuntime.family = "Arial";
+    expect(() => maulQualityTruthProofV2Schema.parse(wrongRuntimeFont)).toThrow(
+      /DM Sans|pinned.*font/i,
+    );
   });
 });

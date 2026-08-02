@@ -9,6 +9,7 @@ import type {
   MaulEditorialTimelinePayload,
   MaulTreatmentGenomePayload,
   MaulUnifiedShortRenderManifest,
+  MaulUnifiedShortRenderManifestV1,
 } from "@prometheus/shared-types";
 import {joinShortsTextTokens} from "@prometheus/shared-types";
 import {
@@ -250,7 +251,9 @@ const defaultTimeline: MaulEditorialTimelinePayload = {
   qualityWarnings: [],
 };
 
-export const MAUL_SHORT_DEFAULT_PROPS: MaulShortProps = {
+export const MAUL_SHORT_DEFAULT_PROPS: {
+  manifest: MaulUnifiedShortRenderManifestV1;
+} = {
   manifest: {
     schemaVersion: "maul-unified-short-render-manifest/v1",
     rendererInputKind: "unified_short_render_manifest_only",
@@ -295,8 +298,9 @@ export const MAUL_SHORT_DEFAULT_PROPS: MaulShortProps = {
       },
       sfxAssets: [],
     },
-    plans: {} as MaulUnifiedShortRenderManifest["plans"],
-    planExecution: [] as MaulUnifiedShortRenderManifest["planExecution"],
+    plans: {} as MaulUnifiedShortRenderManifestV1["plans"],
+    planExecution:
+      [] as MaulUnifiedShortRenderManifestV1["planExecution"],
     output: { width: 1080, height: 1920, fps: 30, codec: "h264" },
     replayKey: "0".repeat(64),
     createdAt: "2026-01-01T00:00:00.000Z",
@@ -324,6 +328,9 @@ export const resolveMaulCaptionPlans = (
   captionGroups: MaulCaptionGroup[];
   captionGroupsAreGoverned: boolean;
 } => {
+  if (manifest.schemaVersion !== "maul-unified-short-render-manifest/v1") {
+    return {captionGroups: [], captionGroupsAreGoverned: false};
+  }
   const typographyMotion = manifest.plans?.typographyMotion;
   if (!typographyMotion?.textChunkPlan) {
     return {captionGroups: [], captionGroupsAreGoverned: false};
