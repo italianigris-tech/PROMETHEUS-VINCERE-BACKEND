@@ -54,6 +54,19 @@ export const registerMaulProjectRoutes = (
 ): void => {
   app.get("/api/maul/contracts", async () => MAUL_RUNTIME_CONTRACTS);
 
+  app.post(
+    "/api/maul/text-chunks/preview",
+    {bodyLimit: 512 * 1024},
+    async (req, reply) => {
+      try {
+        return await projects.previewTextChunks(req.body);
+      } catch (error) {
+        reply.code(statusForError(error));
+        return errorBody(error);
+      }
+    },
+  );
+
   app.get("/api/maul/treatment-catalog", async (_req, reply) => {
     try {
       return projects.getTreatmentCatalog();

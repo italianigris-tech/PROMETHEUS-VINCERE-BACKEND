@@ -34,6 +34,10 @@ import {MaulProjectService} from "./maul/service";
 import type {MaulShortRenderEngine} from "./maul/render-engine";
 import type {MaulThumbnailGenerator} from "./maul/thumbnail-generator";
 import type {MaulQualityTruthProofProvider} from "./maul/quality-truth";
+import {
+  createShortsTextChunkPlanner,
+  type ShortsTextChunkPlanner,
+} from "./maul/shorts-text-chunking-llm";
 import {MaulDurableControlPlane} from "./maul/control-plane";
 import {registerMaulControlPlaneRoutes} from "./maul/control-plane-routes";
 import {MaulLearningStore} from "./maul/learning";
@@ -95,6 +99,7 @@ export type BackendDependencies = PipelineDependencies & EditSessionDependencies
   maulRenderEngine?: MaulShortRenderEngine;
   maulThumbnailGenerator?: MaulThumbnailGenerator;
   maulQualityTruthProofProvider?: MaulQualityTruthProofProvider;
+  maulTextChunkPlanner?: ShortsTextChunkPlanner;
 };
 
 const parseCorsOrigins = (value: string): string[] => {
@@ -267,6 +272,23 @@ export const createBackendApp = async ({
   });
   await editSessions.initialize();
   const maulProjectStore = new MaulProjectStore(env.STORAGE_DIR);
+  const maulTextChunkPlanner =
+    deps?.maulTextChunkPlanner ??
+    createShortsTextChunkPlanner({
+      config: {
+        baseUrl: env.MAUL_CHUNKING_LLM_BASE_URL,
+        path: env.MAUL_CHUNKING_LLM_PATH,
+        apiKey: env.MAUL_CHUNKING_LLM_API_KEY,
+        model: env.MAUL_CHUNKING_LLM_MODEL,
+        temperature: env.MAUL_CHUNKING_LLM_TEMPERATURE,
+        maxOutputTokens: env.MAUL_CHUNKING_LLM_MAX_OUTPUT_TOKENS,
+        timeoutMs: env.MAUL_CHUNKING_LLM_TIMEOUT_MS,
+        maxRequestsPerMinute:
+          env.MAUL_CHUNKING_LLM_MAX_REQUESTS_PER_MINUTE,
+        maxConcurrentRequests:
+          env.MAUL_CHUNKING_LLM_MAX_CONCURRENT_REQUESTS,
+      },
+    });
   const maulProjects = new MaulProjectService(
     maulProjectStore,
     buildModelRoutingTable(env),
@@ -274,7 +296,8 @@ export const createBackendApp = async ({
     undefined,
     deps?.maulRenderEngine,
     deps?.maulThumbnailGenerator,
-    deps?.maulQualityTruthProofProvider
+    deps?.maulQualityTruthProofProvider,
+    maulTextChunkPlanner
   );
   await maulProjects.initialize();
   const maulControlPlane = new MaulDurableControlPlane(env.STORAGE_DIR, maulProjects);

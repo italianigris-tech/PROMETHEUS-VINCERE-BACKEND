@@ -307,6 +307,65 @@ export const joinMaulCaptionTokens = (tokens: MaulCaptionToken[]) =>
     if (!line || isClosingPunctuation(text)) return `${line}${text}`;
     return `${line} ${text}`;
   }, "");
+
+type MaulCaptionGroup =
+  MaulUnifiedShortRenderManifest["plans"]["typographyMotion"]["captionGroups"][number];
+type MaulCaptionPage = TikTokPage & { plannedEndMs: number | null };
+
+export const buildMaulCaptionPages = ({
+  captions,
+  captionGroups,
+  captionGroupsAreGoverned,
+  combineTokensWithinMilliseconds,
+}: {
+  captions: Caption[];
+  captionGroups: MaulCaptionGroup[];
+  captionGroupsAreGoverned: boolean;
+  combineTokensWithinMilliseconds: number;
+}): MaulCaptionPage[] => {
+  if (!captionGroupsAreGoverned || captionGroups.length === 0) {
+    return createTikTokStyleCaptions({
+      captions,
+      combineTokensWithinMilliseconds,
+    }).pages.map((page) => ({ ...page, plannedEndMs: null }));
+  }
+
+  return captionGroups.flatMap((group) => {
+    const matchingCaptions = captions.filter(
+      (caption) =>
+        caption.startMs >= group.outputStartMs &&
+        caption.endMs <= group.outputEndMs,
+    );
+    const matchingText = joinMaulCaptionTokens(
+      matchingCaptions.map((caption) => ({
+        text: caption.text,
+        fromMs: caption.startMs,
+        toMs: caption.endMs,
+      })),
+    );
+    const groupCaptions =
+      matchingCaptions.length > 0 && matchingText === group.text
+        ? matchingCaptions
+        : [
+            {
+              text: group.text,
+              startMs: group.outputStartMs,
+              endMs: group.outputEndMs,
+              timestampMs: group.outputStartMs,
+              confidence: null,
+            },
+          ];
+    const page = createTikTokStyleCaptions({
+      captions: groupCaptions,
+      combineTokensWithinMilliseconds: Math.max(
+        1,
+        group.outputEndMs - group.outputStartMs + 1,
+      ),
+    }).pages[0];
+    return page ? [{ ...page, plannedEndMs: group.outputEndMs }] : [];
+  });
+};
+
 const SourceSegment: React.FC<{
   sourceAsset: string;
   trimBefore: number;
@@ -409,8 +468,15 @@ const CaptionCard: React.FC<{
 
 const MaulCaptionLayer: React.FC<{
   captions: Caption[];
+  captionGroups: MaulCaptionGroup[];
+  captionGroupsAreGoverned: boolean;
   treatmentId: string;
-}> = ({ captions, treatmentId }) => {
+}> = ({
+  captions,
+  captionGroups,
+  captionGroupsAreGoverned,
+  treatmentId,
+}) => {
   const { fps } = useVideoConfig();
   const visualStyle = buildMaulVisualStyle(treatmentId);
   const combineTokensWithinMilliseconds =
@@ -419,13 +485,20 @@ const MaulCaptionLayer: React.FC<{
       : treatmentId === "founder_podcast"
         ? 1150
         : 1450;
-  const { pages } = useMemo(
+  const pages = useMemo(
     () =>
-      createTikTokStyleCaptions({
+      buildMaulCaptionPages({
         captions,
+        captionGroups,
+        captionGroupsAreGoverned,
         combineTokensWithinMilliseconds,
       }),
-    [captions, combineTokensWithinMilliseconds],
+    [
+      captions,
+      captionGroups,
+      captionGroupsAreGoverned,
+      combineTokensWithinMilliseconds,
+    ],
   );
   return (
     <>
@@ -433,6 +506,7 @@ const MaulCaptionLayer: React.FC<{
         const next = pages[index + 1];
         const from = Math.round((page.startMs / 1000) * fps);
         const endMs =
+          page.plannedEndMs ??
           next?.startMs ??
           Math.max(
             page.startMs + combineTokensWithinMilliseconds,
@@ -507,6 +581,10 @@ export const MaulShort: React.FC<MaulShortProps> = ({ manifest }) => {
       />
       <MaulCaptionLayer
         captions={captions}
+        captionGroups={manifest.plans.typographyMotion.captionGroups}
+        captionGroupsAreGoverned={Boolean(
+          manifest.plans.typographyMotion.textChunkPlan,
+        )}
         treatmentId={treatment.treatmentId}
       />
       {musicAsset ? (

@@ -4,6 +4,7 @@ import path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { materializeShortsTextChunkProposal } from "../maul/shorts-text-chunking";
 import { cleanupTempDir, createTestApp, makeTempDir } from "./test-utils";
 
 const sourceBytes = Buffer.from("maul-test-source-video");
@@ -21,17 +22,17 @@ const timelineRequest = {
       { text: "is", startMs: 1670, endMs: 1800, confidence: 0.99 },
       { text: "the", startMs: 1820, endMs: 1950, confidence: 0.99 },
       { text: "proof.", startMs: 1970, endMs: 2450, confidence: 0.99 },
-      { text: "Start", startMs: 2850, endMs: 3200, confidence: 0.99 },
-      { text: "now.", startMs: 3220, endMs: 3650, confidence: 0.99 },
+      { text: "Start", startMs: 3650, endMs: 4000, confidence: 0.99 },
+      { text: "now.", startMs: 4020, endMs: 4450, confidence: 0.99 },
     ],
   },
-  selectedWindow: { sourceStartMs: 0, sourceEndMs: 3650 },
+  selectedWindow: { sourceStartMs: 0, sourceEndMs: 4450 },
   vadEvidence: {
     kind: "detected_spans",
     provider: "manual_verified_vad",
     silenceSpans: [
       { sourceStartMs: 1050, sourceEndMs: 1400, confidence: 1 },
-      { sourceStartMs: 2450, sourceEndMs: 2850, confidence: 1 },
+      { sourceStartMs: 2450, sourceEndMs: 3650, confidence: 1 },
     ],
   },
   speakerDetections: [],
@@ -120,6 +121,41 @@ describe("MAUL complete short render path", () => {
   });
 
   it("blocks the thin baseline and holds a proven render until post-render approval", async () => {
+    const textChunkPlanner = {
+      plan: vi.fn(async (request: any) =>
+        materializeShortsTextChunkProposal({
+          request,
+          proposal: {
+            schemaVersion: "maul-shorts-text-chunk-proposal/v1",
+            chunks: [
+              {
+                startWordIndex: 0,
+                endWordIndex: 4,
+                semanticRole: "hook",
+                emphasisWordIndices: [1],
+                emphasisLevel: "hero",
+              },
+              {
+                startWordIndex: 5,
+                endWordIndex: 8,
+                semanticRole: "payoff",
+                emphasisWordIndices: [6, 8],
+                emphasisLevel: "hero",
+              },
+            ],
+          },
+          inference: {
+            status: "invoked",
+            provider: "openai_compatible",
+            baseUrl: "https://codex-everywhere.com",
+            model: "gpt-5.6-terra",
+            requestHash: "a".repeat(64),
+            responseHash: "b".repeat(64),
+            fallbackReason: null,
+          },
+        }),
+      ),
+    };
     const renderEngine = vi.fn(async (input: any) => ({
       bytes: renderedBytes,
       sha256: createHash("sha256").update(renderedBytes).digest("hex"),
@@ -138,6 +174,7 @@ describe("MAUL complete short render path", () => {
       deps: {
         maulRenderEngine: renderEngine,
         maulQualityTruthProofProvider: validQualityTruthProofProvider,
+        maulTextChunkPlanner: textChunkPlanner,
       } as any,
     });
     const projectResponse = await context.app.inject({
@@ -215,6 +252,25 @@ describe("MAUL complete short render path", () => {
     });
     expect(planningResponse.statusCode, planningResponse.body).toBe(201);
     const planningBundle = planningResponse.json().planningBundle;
+    expect(textChunkPlanner.plan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        videoDurationMs: 3250,
+        transcript: expect.objectContaining({
+          words: expect.arrayContaining([
+            expect.objectContaining({
+              text: "Start",
+              startMs: 2450,
+              endMs: 2800,
+            }),
+            expect.objectContaining({
+              text: "now.",
+              startMs: 2820,
+              endMs: 3250,
+            }),
+          ]),
+        }),
+      }),
+    );
     expect(planningBundle).toMatchObject({
       artifactType: "planning_bundle",
       payload: {
@@ -274,6 +330,56 @@ describe("MAUL complete short render path", () => {
       false,
     );
     expect(plans.textOpportunity.payload.quotaUsed).toBe(false);
+    expect(plans.typographyMotion.payload.textChunkPlan).toMatchObject({
+      schemaVersion: "maul-shorts-text-chunk-plan/v1",
+      strategy: "llm_assisted",
+      coverage: {
+        totalWordCount: timelineRequest.transcript.words.length,
+        coveredWordCount: timelineRequest.transcript.words.length,
+        exact: true,
+      },
+      inference: {
+        status: "invoked",
+        baseUrl: "https://codex-everywhere.com",
+        model: "gpt-5.6-terra",
+      },
+    });
+    expect(plans.typographyMotion.payload.authority).toMatchObject({
+      authorityClass: "deterministic",
+    });
+    expect(plans.typographyMotion.payload.textChunkAuthority).toEqual({
+      authorityClass: "invoked_model",
+      decisionScope: "semantic_boundaries_roles_and_emphasis_only",
+      decisionFields: [
+        "textChunkPlan.chunks[].startWordIndex",
+        "textChunkPlan.chunks[].endWordIndex",
+        "textChunkPlan.chunks[].semanticRole",
+        "textChunkPlan.chunks[].emphasis.wordIndices",
+        "textChunkPlan.chunks[].emphasis.level",
+      ],
+      inferenceReceiptPath: "textChunkPlan.inference",
+    });
+    expect(
+      plans.typographyMotion.payload.textChunkPlan.chunks
+        .map((chunk: any) => chunk.text)
+        .join(" "),
+    ).toBe(timelineRequest.transcript.text);
+    expect(plans.typographyMotion.payload.captionGroups).toEqual([
+      {
+        text: "This claim matters. Here is",
+        outputStartMs: 0,
+        outputEndMs: 1800,
+        sourceGrounded: true,
+        role: "dialogue_caption",
+      },
+      {
+        text: "the proof. Start now.",
+        outputStartMs: 1820,
+        outputEndMs: 3250,
+        sourceGrounded: true,
+        role: "dialogue_caption",
+      },
+    ]);
     expect(plans.revision.payload).toEqual(
       expect.objectContaining({
         criticMustBeIndependent: true,
@@ -554,7 +660,7 @@ describe("MAUL complete short render path", () => {
           storageKey: "external://forged-release.mp4",
           mediaType: "video/mp4",
           sha256: "f".repeat(64),
-          durationMs: 3650,
+          durationMs: 3250,
           width: 1080,
           height: 1920,
           evidence: {

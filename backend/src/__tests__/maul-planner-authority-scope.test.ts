@@ -107,6 +107,16 @@ describe("MAUL planner authority and S4 source-scope truth", () => {
         minimumWeightedScore: 85,
         requiresAuthenticatedPostRenderHumanApproval: true,
       },
+      plannerAuthority: {
+        maulLiveEditorialAuthority: "deterministic",
+        textChunkingAuthority:
+          "model_assisted_with_deterministic_validation_and_fallback",
+        textChunkingDecisionScope:
+          "semantic_boundaries_roles_and_emphasis_only",
+        configuredRouteIsInvocation: false,
+        inferenceReceiptRequiredForModelAuthority: true,
+        currentVisualPlanningAuthority: "unavailable",
+      },
     });
     expect(response.json().s4.mandatoryDimensions).toHaveLength(11);
     expect(response.json().s4.hardFailureIds).toContain(

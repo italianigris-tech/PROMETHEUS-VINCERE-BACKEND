@@ -10,6 +10,12 @@ Run the backend locally on `http://localhost:8000` by default.
 - `CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://localhost:3010,http://127.0.0.1:3010,http://localhost:3101,http://127.0.0.1:3101,http://localhost:4101,http://127.0.0.1:4101,http://localhost:5173,http://127.0.0.1:5173`
 - `ASSEMBLYAI_API_KEY=`
 - `GROQ_API_KEY=`
+- `MAUL_CHUNKING_LLM_BASE_URL=https://codex-everywhere.com`
+- `MAUL_CHUNKING_LLM_PATH=/v1/chat/completions`
+- `MAUL_CHUNKING_LLM_API_KEY=`
+- `MAUL_CHUNKING_LLM_MODEL=gpt-5.6-terra`
+- `MAUL_CHUNKING_LLM_MAX_REQUESTS_PER_MINUTE=20`
+- `MAUL_CHUNKING_LLM_MAX_CONCURRENT_REQUESTS=2`
 - `R2_ACCOUNT_ID=`
 - `R2_ENDPOINT=`
 - `R2_ACCESS_KEY_ID=`
@@ -104,6 +110,61 @@ Returns:
   }
 }
 ```
+
+### `POST /api/maul/text-chunks/preview`
+
+Previews the MAUL semantic chunk plan before placement, treatment, or animation.
+Set `MAUL_CHUNKING_LLM_API_KEY` to invoke the configured model. When the key is
+blank or the provider fails, the endpoint returns an explicit deterministic
+fallback instead of losing transcript words.
+
+```bash
+curl -X POST http://localhost:8000/api/maul/text-chunks/preview \
+  -H 'content-type: application/json' \
+  -d '{
+    "transcript": {
+      "language": "en",
+      "text": "You do not need permission.",
+      "words": [
+        {"text":"You","startMs":0,"endMs":220,"confidence":0.99},
+        {"text":"do","startMs":240,"endMs":400,"confidence":0.99},
+        {"text":"not","startMs":420,"endMs":610,"confidence":0.99},
+        {"text":"need","startMs":630,"endMs":860,"confidence":0.99},
+        {"text":"permission.","startMs":880,"endMs":1300,"confidence":0.99}
+      ]
+    },
+    "videoDurationMs": 40000,
+    "pacing": "fast",
+    "style": "cinematic",
+    "editorialContext": {
+      "platform": "instagram_reels",
+      "objective": "retention and clarity",
+      "audience": "entrepreneurs",
+      "notes": "One principal speaker"
+    },
+    "constraints": {
+      "minWordsPerChunk": 1,
+      "maxWordsPerChunk": 8,
+      "preserveEveryWord": true
+    }
+  }'
+```
+
+Read the response in this order:
+
+- `coverage.exact` must be `true`.
+- `chunks` contains exact transcript text, timing, semantic role, and emphasis.
+- `strategy` is `llm_assisted` or `deterministic_fallback`.
+- `inference.status` explains whether the provider ran and includes request and
+  response hashes when it did. API tokens are never returned.
+
+Creating a MAUL Planning Bundle runs the same chunker automatically. The
+validated plan is stored in `typography_motion_plan.textChunkPlan`, and its
+chunks become that plan's `captionGroups` for later placement and animation.
+Paid provider attempts are bounded per backend process. Requests beyond the
+configured minute or concurrency budget use the explicit deterministic
+fallback, so transcript coverage remains exact without additional provider
+spend.
 
 ### R2 Bucket CORS
 

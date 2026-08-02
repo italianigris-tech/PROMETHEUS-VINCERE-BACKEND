@@ -73,4 +73,87 @@ describe("MAUL Remotion short composition", () => {
       {text: "tested", fromMs: 700, toMs: 990}
     ])).toBe("Last week. We tested");
   });
+
+  it("uses governed semantic chunk groups as caption page boundaries", async () => {
+    const module = await import("../MaulShort").catch(() => null);
+    expect(module).not.toBeNull();
+    if (!module) return;
+
+    const pages = module.buildMaulCaptionPages({
+      captions: [
+        {text: "This", startMs: 0, endMs: 250, timestampMs: 0, confidence: 0.99},
+        {text: "claim", startMs: 270, endMs: 600, timestampMs: 270, confidence: 0.99},
+        {text: "matters.", startMs: 620, endMs: 1050, timestampMs: 620, confidence: 0.99},
+        {text: "Start", startMs: 1070, endMs: 1400, timestampMs: 1070, confidence: 0.99},
+        {text: "now.", startMs: 1420, endMs: 1800, timestampMs: 1420, confidence: 0.99}
+      ],
+      captionGroups: [
+        {
+          text: "This claim matters.",
+          outputStartMs: 0,
+          outputEndMs: 1050,
+          sourceGrounded: true,
+          role: "dialogue_caption"
+        },
+        {
+          text: "Start now.",
+          outputStartMs: 1070,
+          outputEndMs: 1800,
+          sourceGrounded: true,
+          role: "dialogue_caption"
+        }
+      ],
+      captionGroupsAreGoverned: true,
+      combineTokensWithinMilliseconds: 1450
+    });
+
+    expect(pages.map((page) => ({
+      text: module.joinMaulCaptionTokens(page.tokens),
+      startMs: page.startMs,
+      endMs: page.plannedEndMs
+    }))).toEqual([
+      {text: "This claim matters.", startMs: 0, endMs: 1050},
+      {text: "Start now.", startMs: 1070, endMs: 1800}
+    ]);
+  });
+
+  it("keeps legacy beat groups on the original caption pagination path", async () => {
+    const module = await import("../MaulShort").catch(() => null);
+    expect(module).not.toBeNull();
+    if (!module) return;
+
+    const pages = module.buildMaulCaptionPages({
+      captions: [
+        {text: "First", startMs: 0, endMs: 200, timestampMs: 0, confidence: 0.99},
+        {text: "thought.", startMs: 220, endMs: 450, timestampMs: 220, confidence: 0.99},
+        {text: "Second", startMs: 1700, endMs: 1900, timestampMs: 1700, confidence: 0.99},
+        {text: "thought.", startMs: 1920, endMs: 2200, timestampMs: 1920, confidence: 0.99}
+      ],
+      captionGroups: [
+        {
+          text: "First thought. Second thought.",
+          outputStartMs: 0,
+          outputEndMs: 2200,
+          sourceGrounded: true,
+          role: "dialogue_caption"
+        }
+      ],
+      captionGroupsAreGoverned: false,
+      combineTokensWithinMilliseconds: 500
+    });
+    const originalPagination = module.buildMaulCaptionPages({
+      captions: [
+        {text: "First", startMs: 0, endMs: 200, timestampMs: 0, confidence: 0.99},
+        {text: "thought.", startMs: 220, endMs: 450, timestampMs: 220, confidence: 0.99},
+        {text: "Second", startMs: 1700, endMs: 1900, timestampMs: 1700, confidence: 0.99},
+        {text: "thought.", startMs: 1920, endMs: 2200, timestampMs: 1920, confidence: 0.99}
+      ],
+      captionGroups: [],
+      captionGroupsAreGoverned: false,
+      combineTokensWithinMilliseconds: 500
+    });
+
+    expect(pages).toEqual(originalPagination);
+    expect(pages.every((page) => page.plannedEndMs === null)).toBe(true);
+  });
 });

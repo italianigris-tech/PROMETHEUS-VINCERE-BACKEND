@@ -17,6 +17,8 @@ import {
   maulThumbnailGenerationRequestSchema,
   maulThumbnailReviewRequestSchema,
   maulTreatmentCatalogRequestSchema,
+  joinShortsTextTokens,
+  shortsTextChunkingRequestSchema,
   type MaulArtifactCreateRequest,
   type MaulArtifactRecord,
   type MaulAuditEvent,
@@ -34,6 +36,7 @@ import {
   type MaulThumbnailGenerationRequest,
   type MaulThumbnailReviewRequest,
   type MaulTreatmentCatalogRequest,
+  type ShortsTextChunkPlan,
 } from "@prometheus/shared-types";
 
 import {
@@ -69,6 +72,8 @@ import {
   buildMaulPlanningBundlePayload,
   buildMaulPlanningPayloads,
   compileMaulUnifiedShortRenderManifest,
+  mapMaulSourceMsToOutput,
+  mapMaulTranscriptWordsToOutput,
   type MaulPlanningInputs,
 } from "./planning.js";
 import {
@@ -77,6 +82,7 @@ import {
   evaluateMaulQualityTruth,
   type MaulQualityTruthProofProvider,
 } from "./quality-truth.js";
+import type {ShortsTextChunkPlanner} from "./shorts-text-chunking-llm.js";
 
 export class MaulProjectNotFoundError extends Error {}
 export class MaulLineageConflictError extends Error {}
@@ -140,21 +146,6 @@ const rightsAllowApproval = (
 ): boolean =>
   ["owned", "licensed", "publicly_analysable"].includes(rightsStatus);
 
-const sourceMsToOutputMs = (
-  timeline: MaulEditorialTimelinePayload,
-  sourceMs: number,
-): number | null => {
-  const segment = timeline.timestampMap.find(
-    (candidate) =>
-      candidate.mode !== "cut" &&
-      sourceMs >= candidate.sourceStartMs &&
-      sourceMs <= candidate.sourceEndMs,
-  );
-  return segment
-    ? segment.outputStartMs + (sourceMs - segment.sourceStartMs)
-    : null;
-};
-
 const captionsForRender = (
   timeline: MaulEditorialTimelinePayload,
   words: Array<{
@@ -165,8 +156,11 @@ const captionsForRender = (
   }>,
 ): MaulRenderCaption[] =>
   words.flatMap((word) => {
-    const startMs = sourceMsToOutputMs(timeline, word.startMs);
-    const endMs = sourceMsToOutputMs(timeline, word.endMs);
+    const startMs = mapMaulSourceMsToOutput(
+      timeline.timestampMap,
+      word.startMs,
+    );
+    const endMs = mapMaulSourceMsToOutput(timeline.timestampMap, word.endMs);
     if (startMs === null || endMs === null || endMs <= startMs) {
       return [];
     }
@@ -272,10 +266,16 @@ export class MaulProjectService {
     private readonly qualityTruthProofProvider: MaulQualityTruthProofProvider = async (
       manifest,
     ) => buildUnverifiedMaulQualityTruthProof(manifest),
+    private readonly textChunkPlanner: ShortsTextChunkPlanner,
   ) {}
 
   public async initialize(): Promise<void> {
     await this.store.initialize();
+  }
+
+  public async previewTextChunks(input: unknown): Promise<ShortsTextChunkPlan> {
+    const request = shortsTextChunkingRequestSchema.parse(input);
+    return this.textChunkPlanner.plan(request);
   }
 
   private async withProjectLock<T>(
@@ -1070,6 +1070,23 @@ export class MaulProjectService {
         "Planning requires the authoritative source and Media Analysis.",
       );
     }
+    let candidateWords;
+    try {
+      candidateWords = mapMaulTranscriptWordsToOutput({
+        timestampMap: timeline.payload.timestampMap,
+        words: analysis.payload.transcript.words.filter(
+          (word) =>
+            word.endMs > candidate.payload.sourceStartMs &&
+            word.startMs < candidate.payload.sourceEndMs,
+        ),
+      });
+    } catch (error) {
+      throw new MaulLineageConflictError(
+        `Planning cannot chunk the authoritative transcript: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
     const planningInputs: MaulPlanningInputs = {
       project,
       source,
@@ -1077,6 +1094,42 @@ export class MaulProjectService {
       timeline,
       candidate,
       treatment,
+      textChunkPlan: await this.textChunkPlanner.plan({
+        transcript: {
+          language: analysis.payload.transcript.language,
+          text: joinShortsTextTokens(
+            candidateWords.map((word) => word.text),
+          ),
+          words: candidateWords,
+        },
+        videoDurationMs: timeline.payload.outputDurationMs,
+        pacing:
+          treatment.payload.treatmentId === "premium_direct_response"
+            ? "fast"
+            : treatment.payload.treatmentId === "minimal_expert"
+              ? "slow"
+              : "measured",
+        style:
+          treatment.payload.treatmentId === "premium_direct_response"
+            ? "direct_response"
+            : treatment.payload.treatmentId === "minimal_expert"
+              ? "restrained"
+              : "editorial",
+        editorialContext: {
+          platform: project.intake.platform,
+          objective: project.intake.goal,
+          audience: treatment.payload.targetViewerState,
+          notes: `Treatment: ${treatment.payload.catalogEntryName}`,
+        },
+        constraints: {
+          minWordsPerChunk: 1,
+          maxWordsPerChunk: Math.min(
+            8,
+            treatment.payload.rendererInputs.caption.maxWordsPerCard,
+          ),
+          preserveEveryWord: true,
+        },
+      }),
     };
     const payloads = buildMaulPlanningPayloads(planningInputs);
     const sharedParents = [
@@ -1572,6 +1625,7 @@ export class MaulProjectService {
       timeline,
       candidate,
       treatment,
+      textChunkPlan: typographyMotion.payload.textChunkPlan,
     };
     const planningArtifacts = {
       observationSnapshot,

@@ -22,6 +22,7 @@ import {
   type MaulProject,
   type MaulShortRenderRequest,
   type MaulUnifiedShortRenderManifest,
+  type ShortsTextChunkPlan,
 } from "@prometheus/shared-types";
 
 import type { VideoAwareAudioPlan } from "../music/index.js";
@@ -55,6 +56,7 @@ export type MaulPlanningInputs = {
   timeline: TimelineArtifact;
   candidate: CandidateArtifact;
   treatment: TreatmentArtifact;
+  textChunkPlan: ShortsTextChunkPlan | null;
 };
 
 const stableHash = (value: unknown): string =>
@@ -90,6 +92,9 @@ const basePlan = (inputs: MaulPlanningInputs, planVersion: string) => ({
     timelineArtifactId: inputs.timeline.artifactId,
     candidateArtifactId: inputs.candidate.artifactId,
     treatmentReplayKey: inputs.treatment.payload.replayKey,
+    textChunkPlanHash: inputs.textChunkPlan
+      ? stableHash(inputs.textChunkPlan)
+      : null,
   }),
   authority: {
     authorityClass: "deterministic" as const,
@@ -121,11 +126,11 @@ const textOf = (words: ReturnType<typeof wordsForCandidate>): string =>
     .join(" ")
     .trim();
 
-const sourceToOutput = (
-  timeline: TimelineArtifact["payload"],
+export const mapMaulSourceMsToOutput = (
+  timestampMap: TimelineArtifact["payload"]["timestampMap"],
   sourceMs: number,
 ): number | null => {
-  for (const segment of timeline.timestampMap) {
+  for (const segment of timestampMap) {
     if (
       segment.mode !== "cut" &&
       sourceMs >= segment.sourceStartMs &&
@@ -140,6 +145,70 @@ const sourceToOutput = (
     }
   }
   return null;
+};
+
+export const mapMaulTranscriptWordsToOutput = ({
+  timestampMap,
+  words,
+}: {
+  timestampMap: TimelineArtifact["payload"]["timestampMap"];
+  words: AnalysisArtifact["payload"]["transcript"]["words"];
+}): AnalysisArtifact["payload"]["transcript"]["words"] => {
+  if (words.length === 0) {
+    throw new Error("The selected transcript contains no words to chunk.");
+  }
+
+  let previousSourceEndMs = -1;
+  let previousOutputEndMs = -1;
+  return words.map((word, wordIndex) => {
+    if (!word.text.trim()) {
+      throw new Error(`Transcript word ${wordIndex} is empty.`);
+    }
+    if (word.endMs <= word.startMs) {
+      throw new Error(
+        `Transcript word ${wordIndex} must have positive duration.`,
+      );
+    }
+    if (word.startMs < previousSourceEndMs) {
+      throw new Error(
+        `Transcript word ${wordIndex} overlaps the preceding source word.`,
+      );
+    }
+
+    const containingSegment = timestampMap.find(
+      (segment) =>
+        segment.mode !== "cut" &&
+        word.startMs >= segment.sourceStartMs &&
+        word.endMs <= segment.sourceEndMs,
+    );
+    if (!containingSegment) {
+      throw new Error(
+        `Transcript word ${wordIndex} must fit inside a single kept output-timeline segment.`,
+      );
+    }
+
+    const startMs = mapMaulSourceMsToOutput(timestampMap, word.startMs);
+    const endMs = mapMaulSourceMsToOutput(timestampMap, word.endMs);
+    if (startMs === null || endMs === null) {
+      throw new Error(
+        `Transcript word ${wordIndex} does not map completely onto the output timeline.`,
+      );
+    }
+    if (endMs <= startMs) {
+      throw new Error(
+        `Transcript word ${wordIndex} has no positive output duration.`,
+      );
+    }
+    if (startMs < previousOutputEndMs) {
+      throw new Error(
+        `Transcript word ${wordIndex} overlaps the preceding output word.`,
+      );
+    }
+
+    previousSourceEndMs = word.endMs;
+    previousOutputEndMs = endMs;
+    return {...word, startMs, endMs};
+  });
 };
 
 export const buildMaulPlanningPayloads = (inputs: MaulPlanningInputs) => {
@@ -249,18 +318,56 @@ export const buildMaulPlanningPayloads = (inputs: MaulPlanningInputs) => {
         "Camera, editorial type, evidence, and SFX may not compete for dominant attention.",
     },
   });
+  const chunkCaptionGroups = inputs.textChunkPlan?.chunks.flatMap((chunk) => {
+    if (chunk.endMs <= chunk.startMs) {
+      return [];
+    }
+    return [
+      {
+        text: chunk.text,
+        outputStartMs: chunk.startMs,
+        outputEndMs: chunk.endMs,
+        sourceGrounded: true as const,
+        role: "dialogue_caption" as const,
+      },
+    ];
+  });
   const typographyMotion = maulTypographyMotionPlanPayloadSchema.parse({
     ...basePlan(inputs, "maul-typography-motion-plan/v1"),
     schemaVersion: "maul-typography-motion-plan/v1",
-    captionGroups: beatRecords
-      .filter((beat) => beat.spokenIdea !== "Protected source-grounded pause")
-      .map((beat) => ({
-        text: beat.spokenIdea,
-        outputStartMs: beat.outputStartMs,
-        outputEndMs: beat.outputEndMs,
-        sourceGrounded: true,
-        role: "dialogue_caption",
-      })),
+    textChunkPlan: inputs.textChunkPlan,
+    textChunkAuthority: inputs.textChunkPlan
+      ? {
+          authorityClass:
+            inputs.textChunkPlan.inference.status === "invoked"
+              ? ("invoked_model" as const)
+              : ("governed_fallback" as const),
+          decisionScope:
+            "semantic_boundaries_roles_and_emphasis_only" as const,
+          decisionFields: [
+            "textChunkPlan.chunks[].startWordIndex" as const,
+            "textChunkPlan.chunks[].endWordIndex" as const,
+            "textChunkPlan.chunks[].semanticRole" as const,
+            "textChunkPlan.chunks[].emphasis.wordIndices" as const,
+            "textChunkPlan.chunks[].emphasis.level" as const,
+          ],
+          inferenceReceiptPath: "textChunkPlan.inference" as const,
+        }
+      : null,
+    captionGroups:
+      chunkCaptionGroups && chunkCaptionGroups.length > 0
+        ? chunkCaptionGroups
+        : beatRecords
+            .filter(
+              (beat) => beat.spokenIdea !== "Protected source-grounded pause",
+            )
+            .map((beat) => ({
+              text: beat.spokenIdea,
+              outputStartMs: beat.outputStartMs,
+              outputEndMs: beat.outputEndMs,
+              sourceGrounded: true as const,
+              role: "dialogue_caption" as const,
+            })),
     editorialStatements: [],
     editorialTextWithheldReason:
       "The current deterministic planner has no governed editorial-writing authority; it will not relabel dialogue as authored hero copy.",
@@ -896,7 +1003,10 @@ export const compileMaulUnifiedShortRenderManifest = ({
       planMode: "render_ready",
       musicTrack: request.musicTrack,
       sfxAssets: request.sfxAssets.flatMap((sfx) => {
-        const outputMs = sourceToOutput(inputs.timeline.payload, sfx.sourceMs);
+        const outputMs = mapMaulSourceMsToOutput(
+          inputs.timeline.payload.timestampMap,
+          sfx.sourceMs,
+        );
         return outputMs === null
           ? []
           : [

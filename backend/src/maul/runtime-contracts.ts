@@ -63,6 +63,10 @@ export const MAUL_RUNTIME_CONTRACTS: MaulRuntimeContracts =
     plannerAuthority: {
       maulLiveEditorialAuthority: "deterministic",
       josephLiveEditorialAuthority: "deterministic_seeded",
+      textChunkingAuthority:
+        "model_assisted_with_deterministic_validation_and_fallback",
+      textChunkingDecisionScope:
+        "semantic_boundaries_roles_and_emphasis_only",
       configuredRouteIsInvocation: false,
       inferenceReceiptRequiredForModelAuthority: true,
       currentVisualPlanningAuthority: "unavailable",

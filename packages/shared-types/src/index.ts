@@ -89,6 +89,20 @@ export {
 } from "./seeded-prng.js";
 
 export {
+  joinShortsTextTokens,
+  shortsTextChunkPlanSchema,
+  shortsTextChunkSchema,
+  shortsTextChunkingRequestSchema,
+  shortsTextPacingSchema,
+  shortsTextSemanticRoleSchema,
+  shortsTextStyleSchema,
+  shortsTextTimedWordSchema,
+  type ShortsTextChunk,
+  type ShortsTextChunkPlan,
+  type ShortsTextChunkingRequest,
+} from "./shorts-text-chunking.js";
+
+export {
   maulAnalysisPayloadSchema,
   maulArtifactCreateRequestSchema,
   maulArtifactLineageSchema,

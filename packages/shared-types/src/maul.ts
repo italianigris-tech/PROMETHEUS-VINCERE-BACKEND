@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { shortsTextChunkPlanSchema } from "./shorts-text-chunking.js";
+
 const idSchema = z.string().trim().min(1);
 const isoDateSchema = z.string().datetime();
 const confidenceSchema = z.number().min(0).max(1);
@@ -604,6 +606,12 @@ export const maulRuntimeContractsSchema = z.object({
   plannerAuthority: z.object({
     maulLiveEditorialAuthority: z.literal("deterministic"),
     josephLiveEditorialAuthority: z.literal("deterministic_seeded"),
+    textChunkingAuthority: z.literal(
+      "model_assisted_with_deterministic_validation_and_fallback",
+    ),
+    textChunkingDecisionScope: z.literal(
+      "semantic_boundaries_roles_and_emphasis_only",
+    ),
     configuredRouteIsInvocation: z.literal(false),
     inferenceReceiptRequiredForModelAuthority: z.literal(true),
     currentVisualPlanningAuthority: z.literal("unavailable"),
@@ -1013,6 +1021,24 @@ export const maulEditorialBeatMapPayloadSchema = maulPlanBaseSchema.extend({
 export const maulTypographyMotionPlanPayloadSchema = maulPlanBaseSchema
   .extend({
     schemaVersion: z.literal("maul-typography-motion-plan/v1"),
+    textChunkPlan: shortsTextChunkPlanSchema.nullable().default(null),
+    textChunkAuthority: z
+      .object({
+        authorityClass: z.enum(["invoked_model", "governed_fallback"]),
+        decisionScope: z.literal(
+          "semantic_boundaries_roles_and_emphasis_only",
+        ),
+        decisionFields: z.tuple([
+          z.literal("textChunkPlan.chunks[].startWordIndex"),
+          z.literal("textChunkPlan.chunks[].endWordIndex"),
+          z.literal("textChunkPlan.chunks[].semanticRole"),
+          z.literal("textChunkPlan.chunks[].emphasis.wordIndices"),
+          z.literal("textChunkPlan.chunks[].emphasis.level"),
+        ]),
+        inferenceReceiptPath: z.literal("textChunkPlan.inference"),
+      })
+      .nullable()
+      .default(null),
     captionGroups: z.array(
       z.object({
         text: z.string().trim().min(1),
@@ -1049,6 +1075,27 @@ export const maulTypographyMotionPlanPayloadSchema = maulPlanBaseSchema
     ),
   })
   .superRefine((plan, ctx) => {
+    if (Boolean(plan.textChunkPlan) !== Boolean(plan.textChunkAuthority)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["textChunkAuthority"],
+        message:
+          "Text chunk plans require matching field-level authority disclosure.",
+      });
+    }
+    if (
+      plan.textChunkPlan &&
+      plan.textChunkAuthority &&
+      (plan.textChunkPlan.inference.status === "invoked") !==
+        (plan.textChunkAuthority.authorityClass === "invoked_model")
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["textChunkAuthority", "authorityClass"],
+        message:
+          "Text chunk authority must match the recorded inference status.",
+      });
+    }
     if (
       plan.editorialStatements.length === 0 &&
       !plan.editorialTextWithheldReason

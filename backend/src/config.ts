@@ -88,6 +88,35 @@ const envSchema = z.object({
   ASSET_EMBEDDING_API_KEY: z.string().default(""),
   OPENAI_API_KEY: z.string().default(""),
   OPENAI_BASE_URL: z.string().default("https://api.openai.com/v1"),
+  MAUL_CHUNKING_LLM_BASE_URL: z
+    .string()
+    .default("https://codex-everywhere.com"),
+  MAUL_CHUNKING_LLM_PATH: z.string().default("/v1/chat/completions"),
+  MAUL_CHUNKING_LLM_API_KEY: z.string().default(""),
+  MAUL_CHUNKING_LLM_MODEL: z.string().default("gpt-5.6-terra"),
+  MAUL_CHUNKING_LLM_TEMPERATURE: z.coerce.number().min(0).max(2).default(0.1),
+  MAUL_CHUNKING_LLM_MAX_OUTPUT_TOKENS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(4000),
+  MAUL_CHUNKING_LLM_TIMEOUT_MS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(60000),
+  MAUL_CHUNKING_LLM_MAX_REQUESTS_PER_MINUTE: z.coerce
+    .number()
+    .int()
+    .positive()
+    .max(600)
+    .default(20),
+  MAUL_CHUNKING_LLM_MAX_CONCURRENT_REQUESTS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .max(20)
+    .default(2),
   LOCAL_EMBEDDING_PYTHON_BIN: z.string().default("python"),
   LOCAL_EMBEDDING_MODEL_NAME: z.string().default("BAAI/bge-small-en-v1.5"),
   LOCAL_EMBEDDING_DIMENSIONS: z.coerce.number().int().positive().default(384),
