@@ -783,6 +783,7 @@ export const buildMaulTextPlacementPlan = ({
   timelineIntervals: inputTimelineIntervals,
   geometryResetOutputMs = [],
   candidateFamilyOrder = ["measured", "editorial", "personal"],
+  textChunkPlanHash: governedTextChunkPlanHash,
 }: {
   textChunkPlanArtifactId: string;
   textChunkPlan: MaulShortsTextChunkPlanV2Core;
@@ -792,6 +793,7 @@ export const buildMaulTextPlacementPlan = ({
   timelineIntervals?: readonly MaulPlacementTimelineInterval[];
   geometryResetOutputMs?: readonly number[];
   candidateFamilyOrder?: readonly MaulPlacementFamily[];
+  textChunkPlanHash?: string;
 }): MaulTextPlacementPlanCore => {
   const textChunkPlan = maulShortsTextChunkPlanV2CoreSchema.parse(inputChunkPlan);
   const compositionIntervals = [...inputCompositionIntervals].sort(
@@ -880,7 +882,8 @@ export const buildMaulTextPlacementPlan = ({
 
   const catalogHash = hashMaulPlanPayload(CATALOG);
   const scorePolicyHash = hashMaulPlanPayload(SCORE_POLICY);
-  const textChunkPlanHash = hashMaulPlanPayload(textChunkPlan);
+  const textChunkPlanHash =
+    governedTextChunkPlanHash ?? hashMaulPlanPayload(textChunkPlan);
   const outputCompositionTrackHash = hashMaulPlanPayload(compositionIntervals);
   const platformProfileHash = hashMaulPlanPayload(PLATFORM_PROFILE);
   const compatibilityProfileHash = hashMaulPlanPayload(

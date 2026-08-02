@@ -623,6 +623,8 @@ export const maulRuntimeContractsSchema = z.object({
     configuredRouteIsInvocation: z.literal(false),
     inferenceReceiptRequiredForModelAuthority: z.literal(true),
     currentVisualPlanningAuthority: z.literal("unavailable"),
+    textPlacementAuthority: z.literal("deterministic_placement_planner"),
+    rendererHandoffAuthority: z.literal("manifest_compiler"),
   }),
 });
 export const maulReferenceRightsStatusSchema = z.enum([
@@ -1946,6 +1948,10 @@ export const maulQualityTruthFailureCodeSchema = z.enum([
   "proof_manifest_mismatch",
   "caption_bounds_unverified",
   "caption_outside_safe_region",
+  "placement_evidence_missing",
+  "placement_bounds_mismatch",
+  "placement_reference_mismatch",
+  "placement_primitive_mismatch",
   "font_fallback_forbidden",
   "font_load_unverified",
   "crop_or_mask_unverified",
@@ -2046,6 +2052,18 @@ const maulQualityTruthProofV2ObjectSchema = z.object({
       metricsFingerprint: z.string().regex(/^[a-f0-9]{64}$/i),
       exactFontAssetId: z.literal("font_google_dm_sans_700"),
       compiledLegibilityPrimitive: maulMinimumLegibilityPrimitiveSchema,
+      measuredBox: z
+        .object({
+          leftPx: z.number().nonnegative(),
+          topPx: z.number().nonnegative(),
+          rightPx: z.number().positive(),
+          bottomPx: z.number().positive(),
+        })
+        .refine(
+          (box) =>
+            box.rightPx > box.leftPx && box.bottomPx > box.topPx,
+          {message: "Measured placement boxes require positive dimensions."},
+        ),
     }),
   ).min(1),
 });

@@ -3,6 +3,7 @@ import {createHash} from "node:crypto";
 import {
   joinShortsTextTokens,
   maulShortsTextChunkPlanV2CoreSchema,
+  shortsTextChunkPlanSchema,
   type MaulProtectedEntity,
   type MaulProtectedPause,
   type MaulShortsTextChunkPlanV2Core,
@@ -74,7 +75,10 @@ export const materializeMaulTextChunkPlanV2 = ({
   protectedPauses?: readonly MaulProtectedPause[];
   approvedProtectedPauseIds?: readonly string[];
 }): MaulShortsTextChunkPlanV2Core => {
-  if (mappedWords.length !== textChunkPlanV1.coverage.totalWordCount) {
+  const parsedTextChunkPlanV1 = shortsTextChunkPlanSchema.parse(
+    textChunkPlanV1,
+  );
+  if (mappedWords.length !== parsedTextChunkPlanV1.coverage.totalWordCount) {
     throw new Error(
       "Mapped words must match the exact V1 chunk-plan coverage.",
     );
@@ -95,7 +99,7 @@ export const materializeMaulTextChunkPlanV2 = ({
   }));
   const approvedPauseIds = new Set(approvedProtectedPauseIds);
 
-  const chunks = textChunkPlanV1.chunks.map((chunk) => {
+  const chunks = parsedTextChunkPlanV1.chunks.map((chunk) => {
     const chunkTokens = tokens.slice(
       chunk.startWordIndex,
       chunk.endWordIndex + 1,
@@ -146,23 +150,23 @@ export const materializeMaulTextChunkPlanV2 = ({
   });
 
   const timelineHash = hashMaulPlanPayload(editorialTimeline);
-  const chunkProposalHash = hashMaulPlanPayload(textChunkPlanV1);
+  const chunkProposalHash = hashMaulPlanPayload(parsedTextChunkPlanV1);
   return maulShortsTextChunkPlanV2CoreSchema.parse({
     schemaVersion: "maul-shorts-text-chunk-plan/v2",
-    transcriptHash: textChunkPlanV1.transcriptHash,
+    transcriptHash: parsedTextChunkPlanV1.transcriptHash,
     timelineHash,
     chunkProposalHash,
     outputDurationMs: editorialTimeline.outputDurationMs,
-    pacing: textChunkPlanV1.pacing,
-    style: textChunkPlanV1.style,
-    strategy: textChunkPlanV1.strategy,
+    pacing: parsedTextChunkPlanV1.pacing,
+    style: parsedTextChunkPlanV1.style,
+    strategy: parsedTextChunkPlanV1.strategy,
     tokens,
     chunks,
     protectedEntities: [...protectedEntities],
     protectedPauses: [...protectedPauses],
-    inference: textChunkPlanV1.inference,
+    inference: parsedTextChunkPlanV1.inference,
     inputHashes: {
-      transcript: textChunkPlanV1.transcriptHash,
+      transcript: parsedTextChunkPlanV1.transcriptHash,
       editorialTimeline: timelineHash,
       chunkProposal: chunkProposalHash,
     },

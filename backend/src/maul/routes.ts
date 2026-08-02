@@ -32,6 +32,8 @@ const GOVERNED_RUNTIME_ONLY_ARTIFACT_TYPES = new Set([
   "observation_snapshot",
   "candidate_narrative",
   "editorial_beat_map",
+  "text_chunk_plan",
+  "text_placement_plan",
   "typography_motion_plan",
   "framing_camera_plan",
   "visual_plan",

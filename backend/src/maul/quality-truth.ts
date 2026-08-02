@@ -41,6 +41,9 @@ export const evaluateMaulQualityTruth = (
   if (!parsedProof.success) {
     const issue = parsedProof.error.issues[0];
     const field = issue?.path.join(".") || "proof";
+    const missingV2PlacementProof =
+      manifest.schemaVersion === "maul-unified-short-render-manifest/v2" &&
+      issue?.path[0] === "placementSegments";
     return maulQualityTruthResultSchema.parse({
       schemaVersion: "maul-quality-truth-result/v1",
       manifestReplayKey: manifest.replayKey,
@@ -48,7 +51,9 @@ export const evaluateMaulQualityTruth = (
       evidenceIds: [],
       failures: [
         {
-          code: "proof_invalid",
+          code: missingV2PlacementProof
+            ? "placement_evidence_missing"
+            : "proof_invalid",
           field,
           outputStartMs: null,
           outputEndMs: null,
@@ -83,6 +88,17 @@ export const evaluateMaulQualityTruth = (
       "proof_manifest_mismatch",
       "manifestReplayKey",
       "Runtime proof does not belong to this compiled manifest.",
+    );
+  }
+
+  if (
+    manifest.schemaVersion === "maul-unified-short-render-manifest/v2" &&
+    proof.schemaVersion !== "maul-quality-truth-proof/v2"
+  ) {
+    fail(
+      "placement_evidence_missing",
+      "schemaVersion",
+      "A V2 manifest requires placement-specific Quality Truth V2 evidence.",
     );
   }
 
@@ -158,18 +174,155 @@ export const evaluateMaulQualityTruth = (
     );
   }
 
+  const selectedV2Compositions: Array<{
+    intervalId: string;
+    outputStartMs: number;
+    outputEndMs: number;
+    crop: {x: number; y: number; width: number; height: number};
+  }> = [];
+  if (
+    manifest.schemaVersion === "maul-unified-short-render-manifest/v2" &&
+    proof.schemaVersion === "maul-quality-truth-proof/v2"
+  ) {
+    const placement = manifest.plans.textPlacement;
+    const proofBySegmentId = new Map(
+      proof.placementSegments.map((record) => [
+        record.placementSegmentId,
+        record,
+      ]),
+    );
+    if (
+      proofBySegmentId.size !== placement.segments.length ||
+      proof.placementSegments.length !== placement.segments.length
+    ) {
+      fail(
+        "placement_evidence_missing",
+        "placementSegments",
+        "Every planned placement segment requires exactly one runtime proof record.",
+      );
+    }
+
+    for (const segment of placement.segments) {
+      const record = proofBySegmentId.get(segment.segmentId);
+      const composition = placement.compositionIntervals.find(
+        (interval) =>
+          interval.variantId === segment.selectedCompositionVariantId &&
+          interval.transformHash === segment.selectedTransformHash &&
+          interval.sceneId === segment.sceneId &&
+          interval.discontinuityId === segment.discontinuityId &&
+          interval.outputStartMs <= segment.outputStartMs &&
+          interval.outputEndMs >= segment.outputEndMs,
+      );
+      if (
+        composition &&
+        !selectedV2Compositions.some(
+          (selected) => selected.intervalId === composition.intervalId,
+        )
+      ) {
+        selectedV2Compositions.push(composition);
+      }
+      if (!record || record.status !== "verified" || !record.evidenceId) {
+        fail(
+          "placement_evidence_missing",
+          `placementSegments.${segment.segmentId}`,
+          "Planned placement segment lacks verified runtime evidence.",
+          record?.evidenceId ?? null,
+          segment.outputStartMs,
+          segment.outputEndMs,
+        );
+        continue;
+      }
+      const profile = placement.compatibilityProfiles.find(
+        (candidate) =>
+          candidate.profileId === segment.compatibility.profileId,
+      );
+      if (
+        !composition ||
+        record.textPlacementPlanArtifactId !==
+          manifest.planArtifactIds.textPlacement ||
+        record.compositionIntervalId !== composition.intervalId ||
+        record.compositionVariantId !==
+          segment.selectedCompositionVariantId ||
+        record.compositionTransformHash !== segment.selectedTransformHash ||
+        record.compatibilityProfileId !== segment.compatibility.profileId ||
+        record.metricsFingerprint !==
+          segment.compatibility.metricsFingerprint ||
+        !profile ||
+        profile.metrics.fingerprint !== record.metricsFingerprint ||
+        record.exactFontAssetId !==
+          manifest.plans.typographyMotion.fontResolution.selectedAssetId
+      ) {
+        fail(
+          "placement_reference_mismatch",
+          `placementSegments.${segment.segmentId}`,
+          "Placement proof does not match the selected plan, transform, or typography profile.",
+          record.evidenceId,
+          segment.outputStartMs,
+          segment.outputEndMs,
+        );
+      }
+
+      const envelope = segment.maximumEnvelope;
+      const measured = record.measuredBox;
+      const leftPx = envelope.x * manifest.output.width;
+      const topPx = envelope.y * manifest.output.height;
+      const rightPx = (envelope.x + envelope.width) * manifest.output.width;
+      const bottomPx =
+        (envelope.y + envelope.height) * manifest.output.height;
+      if (
+        measured.leftPx < leftPx ||
+        measured.topPx < topPx ||
+        measured.rightPx > rightPx ||
+        measured.bottomPx > bottomPx
+      ) {
+        fail(
+          "placement_bounds_mismatch",
+          `placementSegments.${segment.segmentId}.measuredBox`,
+          "Measured text bounds exceed the planned maximum envelope.",
+          record.evidenceId,
+          segment.outputStartMs,
+          segment.outputEndMs,
+        );
+      }
+      if (
+        JSON.stringify(record.compiledLegibilityPrimitive) !==
+        JSON.stringify(segment.minimumLegibilityPrimitive)
+      ) {
+        fail(
+          "placement_primitive_mismatch",
+          `placementSegments.${segment.segmentId}.compiledLegibilityPrimitive`,
+          "Compiled legibility primitive does not match the planned minimum.",
+          record.evidenceId,
+          segment.outputStartMs,
+          segment.outputEndMs,
+        );
+      }
+    }
+  }
+
+  const expectedCrops =
+    manifest.schemaVersion === "maul-unified-short-render-manifest/v2"
+      ? selectedV2Compositions.map((composition) => ({
+          outputStartMs: composition.outputStartMs,
+          outputEndMs: composition.outputEndMs,
+          ...composition.crop,
+        }))
+      : manifest.timeline.speakerCropTracks.map((track) => ({
+          outputStartMs: track.outputStartMs,
+          outputEndMs: track.outputEndMs,
+          ...track.crop,
+        }));
   const cropProofMatchesManifest =
-    proof.cropAndMask.crops.length ===
-      manifest.timeline.speakerCropTracks.length &&
-    manifest.timeline.speakerCropTracks.every((track) =>
+    proof.cropAndMask.crops.length === expectedCrops.length &&
+    expectedCrops.every((expectedCrop) =>
       proof.cropAndMask.crops.some(
         (crop) =>
-          crop.outputStartMs === track.outputStartMs &&
-          crop.outputEndMs === track.outputEndMs &&
-          crop.x === track.crop.x &&
-          crop.y === track.crop.y &&
-          crop.width === track.crop.width &&
-          crop.height === track.crop.height,
+          crop.outputStartMs === expectedCrop.outputStartMs &&
+          crop.outputEndMs === expectedCrop.outputEndMs &&
+          crop.x === expectedCrop.x &&
+          crop.y === expectedCrop.y &&
+          crop.width === expectedCrop.width &&
+          crop.height === expectedCrop.height,
       ),
     );
   if (
@@ -180,7 +333,9 @@ export const evaluateMaulQualityTruth = (
   ) {
     fail(
       "crop_or_mask_unverified",
-      "timeline.speakerCropTracks",
+      manifest.schemaVersion === "maul-unified-short-render-manifest/v2"
+        ? "plans.textPlacement.compositionIntervals"
+        : "timeline.speakerCropTracks",
       "Crop and required masking need matching runtime evidence.",
       proof.cropAndMask.evidenceId,
     );
@@ -289,6 +444,9 @@ export const evaluateMaulQualityTruth = (
       proof.cameraContinuity.evidenceId,
       ...proof.capabilities.map((capability) => capability.evidenceId),
       ...proof.fallbacks.map((fallback) => fallback.evidenceId),
+      ...(proof.schemaVersion === "maul-quality-truth-proof/v2"
+        ? proof.placementSegments.map((segment) => segment.evidenceId)
+        : []),
     ]
       .filter((evidenceId): evidenceId is string => evidenceId !== null)
       .filter((evidenceId, index, all) => all.indexOf(evidenceId) === index)
@@ -301,7 +459,10 @@ export const buildUnverifiedMaulQualityTruthProof = (
   manifest: MaulUnifiedShortRenderManifest,
 ): MaulQualityTruthProof =>
   maulQualityTruthProofSchema.parse({
-    schemaVersion: "maul-quality-truth-proof/v1",
+    schemaVersion:
+      manifest.schemaVersion === "maul-unified-short-render-manifest/v2"
+        ? "maul-quality-truth-proof/v2"
+        : "maul-quality-truth-proof/v1",
     manifestReplayKey: manifest.replayKey,
     captionLayout: {status: "unverified", evidenceId: null, boxes: []},
     fontRuntime: {
@@ -316,11 +477,20 @@ export const buildUnverifiedMaulQualityTruthProof = (
       evidenceId: null,
       maskingRequired: false,
       maskingStatus: "not_required",
-      crops: manifest.timeline.speakerCropTracks.map((track) => ({
-        outputStartMs: track.outputStartMs,
-        outputEndMs: track.outputEndMs,
-        ...track.crop,
-      })),
+      crops:
+        manifest.schemaVersion === "maul-unified-short-render-manifest/v2"
+          ? manifest.plans.textPlacement.compositionIntervals.map(
+              (interval) => ({
+                outputStartMs: interval.outputStartMs,
+                outputEndMs: interval.outputEndMs,
+                ...interval.crop,
+              }),
+            )
+          : manifest.timeline.speakerCropTracks.map((track) => ({
+              outputStartMs: track.outputStartMs,
+              outputEndMs: track.outputEndMs,
+              ...track.crop,
+            })),
     },
     cameraContinuity: {
       status: "unverified",
@@ -336,4 +506,49 @@ export const buildUnverifiedMaulQualityTruthProof = (
           evidenceId: null,
         })),
     fallbacks: [],
+    ...(manifest.schemaVersion === "maul-unified-short-render-manifest/v2"
+      ? {
+          placementSegments: manifest.plans.textPlacement.segments.map(
+            (segment) => {
+              const composition =
+                manifest.plans.textPlacement.compositionIntervals.find(
+                  (interval) =>
+                    interval.variantId ===
+                      segment.selectedCompositionVariantId &&
+                    interval.transformHash ===
+                      segment.selectedTransformHash &&
+                    interval.sceneId === segment.sceneId &&
+                    interval.discontinuityId === segment.discontinuityId &&
+                    interval.outputStartMs <= segment.outputStartMs &&
+                    interval.outputEndMs >= segment.outputEndMs,
+                )!;
+              const envelope = segment.maximumEnvelope;
+              return {
+                status: "unverified",
+                evidenceId: null,
+                textPlacementPlanArtifactId:
+                  manifest.planArtifactIds.textPlacement,
+                placementSegmentId: segment.segmentId,
+                compositionIntervalId: composition.intervalId,
+                compositionVariantId: segment.selectedCompositionVariantId,
+                compositionTransformHash: segment.selectedTransformHash,
+                compatibilityProfileId: segment.compatibility.profileId,
+                metricsFingerprint:
+                  segment.compatibility.metricsFingerprint,
+                exactFontAssetId: "font_google_dm_sans_700",
+                compiledLegibilityPrimitive:
+                  segment.minimumLegibilityPrimitive,
+                measuredBox: {
+                  leftPx: envelope.x * manifest.output.width,
+                  topPx: envelope.y * manifest.output.height,
+                  rightPx:
+                    (envelope.x + envelope.width) * manifest.output.width,
+                  bottomPx:
+                    (envelope.y + envelope.height) * manifest.output.height,
+                },
+              };
+            },
+          ),
+        }
+      : {}),
   });

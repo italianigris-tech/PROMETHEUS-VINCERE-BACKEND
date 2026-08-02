@@ -116,6 +116,8 @@ describe("MAUL planner authority and S4 source-scope truth", () => {
         configuredRouteIsInvocation: false,
         inferenceReceiptRequiredForModelAuthority: true,
         currentVisualPlanningAuthority: "unavailable",
+        textPlacementAuthority: "deterministic_placement_planner",
+        rendererHandoffAuthority: "manifest_compiler",
       },
     });
     expect(response.json().s4.mandatoryDimensions).toHaveLength(11);

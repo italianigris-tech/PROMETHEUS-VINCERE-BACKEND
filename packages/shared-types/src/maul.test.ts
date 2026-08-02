@@ -1260,6 +1260,12 @@ describe("MAUL shared contracts", () => {
           metricsFingerprint: sha("2"),
           exactFontAssetId: "font_google_dm_sans_700",
           compiledLegibilityPrimitive: {kind: "none"},
+          measuredBox: {
+            leftPx: 160,
+            topPx: 1180,
+            rightPx: 920,
+            bottomPx: 1460,
+          },
         },
       ],
     } as const;
@@ -1270,6 +1276,7 @@ describe("MAUL shared contracts", () => {
       placementSegmentId: "placement_segment_a",
       compatibilityProfileId: "maul-compat-dm-sans-v1",
       exactFontAssetId: "font_google_dm_sans_700",
+      measuredBox: {leftPx: 160, topPx: 1180, rightPx: 920, bottomPx: 1460},
     });
     expect(maulQualityTruthProofSchema.parse(proofV2).schemaVersion).toBe(
       "maul-quality-truth-proof/v2",
@@ -1280,6 +1287,12 @@ describe("MAUL shared contracts", () => {
     expect(() => maulQualityTruthProofV2Schema.parse(missingEvidence)).toThrow(
       /placement.*evidence|evidence.*placement/i,
     );
+
+    const missingMeasuredBox = structuredClone(proofV2) as any;
+    delete missingMeasuredBox.placementSegments[0].measuredBox;
+    expect(() =>
+      maulQualityTruthProofV2Schema.parse(missingMeasuredBox),
+    ).toThrow(/measured|required/i);
 
     const wrongRuntimeFont = structuredClone(proofV2);
     wrongRuntimeFont.fontRuntime.family = "Arial";

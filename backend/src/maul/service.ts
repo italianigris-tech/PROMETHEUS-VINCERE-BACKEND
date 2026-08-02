@@ -69,13 +69,20 @@ import {
 } from "./treatment-catalog.js";
 import { buildMaulPlannerAuditPayload } from "./planner-audit.js";
 import {
+  adaptMaulLegacyPlanningBundleV1,
   buildMaulPlanningBundlePayload,
+  buildMaulConservativePlacementInputs,
   buildMaulPlanningPayloads,
+  buildMaulTextChunkPlanPayload,
+  buildMaulTextPlacementPlanPayload,
   compileMaulUnifiedShortRenderManifest,
+  hashMaulPlanPayload,
   mapMaulSourceMsToOutput,
   mapMaulTranscriptWordsToOutput,
   type MaulPlanningInputs,
 } from "./planning.js";
+import {buildMaulTextPlacementPlan} from "./shorts-text-placement.js";
+import {materializeMaulTextChunkPlanV2} from "./text-chunk-plan.js";
 import {
   buildUnavailableMaulQualityTruthResult,
   buildUnverifiedMaulQualityTruthProof,
@@ -1011,6 +1018,14 @@ export class MaulProjectService {
         { artifactType: "text_opportunity_plan" }
       >;
       revision: Extract<MaulArtifactRecord, { artifactType: "revision_plan" }>;
+      textChunk: Extract<
+        MaulArtifactRecord,
+        { artifactType: "text_chunk_plan" }
+      >;
+      textPlacement: Extract<
+        MaulArtifactRecord,
+        { artifactType: "text_placement_plan" }
+      >;
     };
   }> {
     const request: MaulPlanningBundleRequest =
@@ -1074,11 +1089,16 @@ export class MaulProjectService {
     try {
       candidateWords = mapMaulTranscriptWordsToOutput({
         timestampMap: timeline.payload.timestampMap,
-        words: analysis.payload.transcript.words.filter(
-          (word) =>
-            word.endMs > candidate.payload.sourceStartMs &&
-            word.startMs < candidate.payload.sourceEndMs,
-        ),
+        words: analysis.payload.transcript.words
+          .map((word, transcriptWordIndex) => ({
+            ...word,
+            transcriptWordIndex,
+          }))
+          .filter(
+            (word) =>
+              word.endMs > candidate.payload.sourceStartMs &&
+              word.startMs < candidate.payload.sourceEndMs,
+          ),
       });
     } catch (error) {
       throw new MaulLineageConflictError(
@@ -1087,14 +1107,7 @@ export class MaulProjectService {
         }`,
       );
     }
-    const planningInputs: MaulPlanningInputs = {
-      project,
-      source,
-      analysis,
-      timeline,
-      candidate,
-      treatment,
-      textChunkPlan: await this.textChunkPlanner.plan({
+    const textChunkPlanV1 = await this.textChunkPlanner.plan({
         transcript: {
           language: analysis.payload.transcript.language,
           text: joinShortsTextTokens(
@@ -1129,9 +1142,16 @@ export class MaulProjectService {
           ),
           preserveEveryWord: true,
         },
-      }),
+      });
+    const planningInputs: MaulPlanningInputs = {
+      project,
+      source,
+      analysis,
+      timeline,
+      candidate,
+      treatment,
+      textChunkPlan: textChunkPlanV1,
     };
-    const payloads = buildMaulPlanningPayloads(planningInputs);
     const sharedParents = [
       source.artifactId,
       analysis.artifactId,
@@ -1139,87 +1159,149 @@ export class MaulProjectService {
       candidate.artifactId,
       treatment.artifactId,
     ];
+    const textChunkCore = materializeMaulTextChunkPlanV2({
+      mappedWords: candidateWords,
+      textChunkPlanV1,
+      editorialTimeline: timeline.payload,
+    });
+    const textChunkPayload = buildMaulTextChunkPlanPayload({
+      inputs: planningInputs,
+      core: textChunkCore,
+    });
+    const textChunkResult = await this.registerArtifact(projectId, {
+      artifactType: "text_chunk_plan",
+      parentArtifactIds: sharedParents,
+      producedBy: {module: "maul-text-chunk-materializer", version: "2"},
+      payload: textChunkPayload,
+    });
+    if (textChunkResult.artifact.artifactType !== "text_chunk_plan") {
+      throw new Error("MAUL planner produced the wrong text chunk artifact type.");
+    }
+    const textChunkPlanHash = hashMaulPlanPayload(
+      textChunkResult.artifact.payload,
+    );
+    const placementInputs = buildMaulConservativePlacementInputs(
+      timeline.payload,
+    );
+    const textPlacementCore = buildMaulTextPlacementPlan({
+      textChunkPlanArtifactId: textChunkResult.artifact.artifactId,
+      textChunkPlan: textChunkCore,
+      textChunkPlanHash,
+      ...placementInputs,
+    });
+    const textPlacementPayload = buildMaulTextPlacementPlanPayload({
+      inputs: planningInputs,
+      core: textPlacementCore,
+    });
+    const textPlacementResult = await this.registerArtifact(projectId, {
+      artifactType: "text_placement_plan",
+      parentArtifactIds: [
+        ...sharedParents,
+        textChunkResult.artifact.artifactId,
+      ],
+      producedBy: {module: "maul-text-placement-planner", version: "1"},
+      payload: textPlacementPayload,
+    });
+    if (textPlacementResult.artifact.artifactType !== "text_placement_plan") {
+      throw new Error(
+        "MAUL planner produced the wrong text placement artifact type.",
+      );
+    }
+    const textPlacementPlanHash = hashMaulPlanPayload(
+      textPlacementResult.artifact.payload,
+    );
+    const payloads = buildMaulPlanningPayloads(planningInputs, {
+      textChunkPlanArtifactId: textChunkResult.artifact.artifactId,
+      textChunkPlanHash,
+      textPlacementPlanArtifactId: textPlacementResult.artifact.artifactId,
+      textPlacementPlanHash,
+    });
+    const dependentParents = [
+      ...sharedParents,
+      textChunkResult.artifact.artifactId,
+      textPlacementResult.artifact.artifactId,
+    ];
     const observationResult = await this.registerArtifact(projectId, {
       artifactType: "observation_snapshot",
-      parentArtifactIds: sharedParents,
+      parentArtifactIds: dependentParents,
       producedBy: { module: "maul-stage-one-planner", version: "1" },
       payload: payloads.observationSnapshot,
     });
     const narrativeResult = await this.registerArtifact(projectId, {
       artifactType: "candidate_narrative",
-      parentArtifactIds: sharedParents,
+      parentArtifactIds: dependentParents,
       producedBy: { module: "maul-stage-one-planner", version: "1" },
       payload: payloads.candidateNarrative,
     });
     const beatMapResult = await this.registerArtifact(projectId, {
       artifactType: "editorial_beat_map",
-      parentArtifactIds: sharedParents,
+      parentArtifactIds: dependentParents,
       producedBy: { module: "maul-stage-one-planner", version: "1" },
       payload: payloads.beatMap,
     });
     const typographyResult = await this.registerArtifact(projectId, {
       artifactType: "typography_motion_plan",
-      parentArtifactIds: sharedParents,
+      parentArtifactIds: dependentParents,
       producedBy: { module: "maul-stage-one-planner", version: "1" },
       payload: payloads.typographyMotion,
     });
     const cameraResult = await this.registerArtifact(projectId, {
       artifactType: "framing_camera_plan",
-      parentArtifactIds: sharedParents,
+      parentArtifactIds: dependentParents,
       producedBy: { module: "maul-stage-one-planner", version: "1" },
       payload: payloads.camera,
     });
     const visualResult = await this.registerArtifact(projectId, {
       artifactType: "visual_plan",
-      parentArtifactIds: sharedParents,
+      parentArtifactIds: dependentParents,
       producedBy: { module: "maul-stage-one-planner", version: "1" },
       payload: payloads.visual,
     });
     const audioResult = await this.registerArtifact(projectId, {
       artifactType: "dialogue_audio_plan",
-      parentArtifactIds: sharedParents,
+      parentArtifactIds: dependentParents,
       producedBy: { module: "maul-stage-one-planner", version: "1" },
       payload: payloads.audio,
     });
     const capabilityResult = await this.registerArtifact(projectId, {
       artifactType: "capability_selection",
-      parentArtifactIds: sharedParents,
+      parentArtifactIds: dependentParents,
       producedBy: { module: "maul-stage-one-planner", version: "1" },
       payload: payloads.capabilitySelection,
     });
     const adapterResult = await this.registerArtifact(projectId, {
       artifactType: "adapter_decision",
-      parentArtifactIds: sharedParents,
+      parentArtifactIds: dependentParents,
       producedBy: { module: "maul-stage-one-planner", version: "1" },
       payload: payloads.adapterDecision,
     });
     const artDirectionResult = await this.registerArtifact(projectId, {
       artifactType: "art_direction_plan",
-      parentArtifactIds: sharedParents,
+      parentArtifactIds: dependentParents,
       producedBy: { module: "maul-stage-one-planner", version: "1" },
       payload: payloads.artDirection,
     });
     const contextAssemblyResult = await this.registerArtifact(projectId, {
       artifactType: "context_assembly_plan",
-      parentArtifactIds: sharedParents,
+      parentArtifactIds: dependentParents,
       producedBy: { module: "maul-stage-one-planner", version: "1" },
       payload: payloads.contextAssembly,
     });
     const shotIntentResult = await this.registerArtifact(projectId, {
       artifactType: "shot_intent_matrix",
-      parentArtifactIds: sharedParents,
+      parentArtifactIds: dependentParents,
       producedBy: { module: "maul-stage-one-planner", version: "1" },
       payload: payloads.shotIntentMatrix,
     });
     const textOpportunityResult = await this.registerArtifact(projectId, {
       artifactType: "text_opportunity_plan",
-      parentArtifactIds: sharedParents,
+      parentArtifactIds: dependentParents,
       producedBy: { module: "maul-stage-one-planner", version: "1" },
       payload: payloads.textOpportunity,
     });
     const revisionResult = await this.registerArtifact(projectId, {
       artifactType: "revision_plan",
-      parentArtifactIds: sharedParents,
+      parentArtifactIds: dependentParents,
       producedBy: { module: "maul-stage-one-planner", version: "1" },
       payload: payloads.revision,
     });
@@ -1244,6 +1326,8 @@ export class MaulProjectService {
       );
     }
     const plans = {
+      textChunk: textChunkResult.artifact,
+      textPlacement: textPlacementResult.artifact,
       observationSnapshot: observationResult.artifact,
       candidateNarrative: narrativeResult.artifact,
       beatMap: beatMapResult.artifact,
@@ -1260,6 +1344,8 @@ export class MaulProjectService {
       revision: revisionResult.artifact,
     };
     const planArtifactIds = {
+      textChunk: plans.textChunk.artifactId,
+      textPlacement: plans.textPlacement.artifactId,
       observationSnapshot: plans.observationSnapshot.artifactId,
       candidateNarrative: plans.candidateNarrative.artifactId,
       beatMap: plans.beatMap.artifactId,
@@ -1282,6 +1368,13 @@ export class MaulProjectService {
       payload: buildMaulPlanningBundlePayload({
         inputs: planningInputs,
         planArtifactIds,
+        blockingReasons:
+          plans.textPlacement.payload.status === "blocked"
+            ? [
+                plans.textPlacement.payload.blockingReason ??
+                  "Text placement is blocked.",
+              ]
+            : [],
       }),
     });
     if (planningBundleResult.artifact.artifactType !== "planning_bundle") {
@@ -1584,6 +1677,24 @@ export class MaulProjectService {
       (artifact) =>
         artifact.artifactId === planningBundle.payload.planArtifactIds.revision,
     );
+    const v2PlanArtifactIds =
+      planningBundle.payload.schemaVersion === "maul-planning-bundle/v2"
+        ? planningBundle.payload.planArtifactIds
+        : null;
+    const textChunk =
+      v2PlanArtifactIds
+        ? artifacts.find(
+            (artifact) =>
+              artifact.artifactId === v2PlanArtifactIds.textChunk,
+          )
+        : null;
+    const textPlacement =
+      v2PlanArtifactIds
+        ? artifacts.find(
+            (artifact) =>
+              artifact.artifactId === v2PlanArtifactIds.textPlacement,
+          )
+        : null;
     if (
       !observationSnapshot ||
       observationSnapshot.artifactType !== "observation_snapshot" ||
@@ -1612,11 +1723,94 @@ export class MaulProjectService {
       !textOpportunity ||
       textOpportunity.artifactType !== "text_opportunity_plan" ||
       !revision ||
-      revision.artifactType !== "revision_plan"
+      revision.artifactType !== "revision_plan" ||
+      (planningBundle.payload.schemaVersion === "maul-planning-bundle/v2" &&
+        (!textChunk ||
+          textChunk.artifactType !== "text_chunk_plan" ||
+          !textPlacement ||
+          textPlacement.artifactType !== "text_placement_plan"))
     ) {
       throw new MaulLineageConflictError(
         "The Planning Bundle is incomplete or contains an artifact with the wrong governed type.",
       );
+    }
+    if (planningBundle.payload.schemaVersion === "maul-planning-bundle/v2") {
+      if (
+        !textChunk ||
+        textChunk.artifactType !== "text_chunk_plan" ||
+        !textPlacement ||
+        textPlacement.artifactType !== "text_placement_plan" ||
+        typographyMotion.payload.schemaVersion !==
+          "maul-typography-motion-plan/v2"
+      ) {
+        throw new MaulLineageConflictError(
+          "V2 Planning Bundle requires governed chunk, placement, and Typography Motion V2 artifacts.",
+        );
+      }
+      const currentTextChunkHash = hashMaulPlanPayload(textChunk.payload);
+      const currentTextPlacementHash = hashMaulPlanPayload(
+        textPlacement.payload,
+      );
+      const referencesMatch =
+        textPlacement.payload.textChunkPlanArtifactId ===
+          textChunk.artifactId &&
+        textPlacement.payload.textChunkPlanHash === currentTextChunkHash &&
+        typographyMotion.payload.textChunkPlanArtifactId ===
+          textChunk.artifactId &&
+        typographyMotion.payload.textChunkPlanHash === currentTextChunkHash &&
+        typographyMotion.payload.textPlacementPlanArtifactId ===
+          textPlacement.artifactId &&
+        typographyMotion.payload.textPlacementPlanHash ===
+          currentTextPlacementHash;
+      const lineageMatches =
+        textPlacement.lineage.parentArtifactIds.includes(
+          textChunk.artifactId,
+        ) &&
+        typographyMotion.lineage.parentArtifactIds.includes(
+          textChunk.artifactId,
+        ) &&
+        typographyMotion.lineage.parentArtifactIds.includes(
+          textPlacement.artifactId,
+        ) &&
+        planningBundle.lineage.parentArtifactIds.includes(
+          textChunk.artifactId,
+        ) &&
+        planningBundle.lineage.parentArtifactIds.includes(
+          textPlacement.artifactId,
+        );
+      if (!referencesMatch || !lineageMatches) {
+        throw new MaulLineageConflictError(
+          "V2 Planning Bundle contains a stale hash, lineage mismatch, or mismatched placement reference.",
+        );
+      }
+    } else {
+      if (
+        typographyMotion.payload.schemaVersion !==
+        "maul-typography-motion-plan/v1"
+      ) {
+        throw new MaulLineageConflictError(
+          "Legacy Planning Bundle requires Typography Motion V1.",
+        );
+      }
+      const legacyMappedWords = mapMaulTranscriptWordsToOutput({
+        timestampMap: timeline.payload.timestampMap,
+        words: analysis.payload.transcript.words
+          .map((word, transcriptWordIndex) => ({
+            ...word,
+            transcriptWordIndex,
+          }))
+          .filter(
+            (word) =>
+              word.endMs > candidate.payload.sourceStartMs &&
+              word.startMs < candidate.payload.sourceEndMs,
+          ),
+      });
+      adaptMaulLegacyPlanningBundleV1({
+        planningBundle: planningBundle.payload,
+        typographyMotion: typographyMotion.payload,
+        mappedWords: legacyMappedWords,
+        editorialTimeline: timeline.payload,
+      });
     }
     const planningInputs: MaulPlanningInputs = {
       project,
@@ -1632,6 +1826,10 @@ export class MaulProjectService {
           : null,
     };
     const planningArtifacts = {
+      ...(textChunk?.artifactType === "text_chunk_plan" &&
+      textPlacement?.artifactType === "text_placement_plan"
+        ? {textChunk, textPlacement}
+        : {}),
       observationSnapshot,
       candidateNarrative,
       beatMap,

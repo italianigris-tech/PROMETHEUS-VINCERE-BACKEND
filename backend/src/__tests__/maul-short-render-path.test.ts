@@ -39,64 +39,135 @@ const timelineRequest = {
   shots: [],
 };
 
-const validQualityTruthProofProvider = async (manifest: any) => ({
-  schemaVersion: "maul-quality-truth-proof/v1",
-  manifestReplayKey: manifest.replayKey,
-  captionLayout: {
-    status: "verified",
-    evidenceId: "evidence_caption_layout",
-    boxes: manifest.captions.map((_caption: unknown, captionIndex: number) => ({
-      captionIndex,
-      leftPx: 120,
-      topPx: 1400,
-      rightPx: 960,
-      bottomPx: 1540,
+const validQualityTruthProofProvider = async (manifest: any) => {
+  const common = {
+    manifestReplayKey: manifest.replayKey,
+    captionLayout: {
+      status: "verified",
+      evidenceId: "evidence_caption_layout",
+      boxes: manifest.captions.map((_caption: unknown, captionIndex: number) => ({
+        captionIndex,
+        leftPx: 120,
+        topPx: 1400,
+        rightPx: 960,
+        bottomPx: 1540,
+      })),
+    },
+    fontRuntime: {
+      status: "eligible_loaded",
+      family: manifest.plans.typographyMotion.fontResolution.selectedFamily,
+      assetId: manifest.plans.typographyMotion.fontResolution.selectedAssetId,
+      evidenceId: "evidence_font_loaded",
+    },
+    cameraContinuity: {
+      status: "verified_continuous",
+      evidenceId: "evidence_camera_continuity",
+      resetOutputMs: [],
+    },
+    capabilities: [
+      ...new Set([
+        ...manifest.plans.capabilitySelection.selections
+          .filter((entry: any) => entry.selected)
+          .map((entry: any) => entry.capabilityId),
+        ...manifest.plans.typographyMotion.motionPrograms.map(
+          (entry: any) => entry.capabilityId,
+        ),
+      ]),
+    ].map((capabilityId) => ({
+      capabilityId,
+      status: "native_render_safe",
+      evidenceId: `evidence_${capabilityId}`,
     })),
-  },
-  fontRuntime: {
-    status: "eligible_loaded",
-    family: manifest.plans.typographyMotion.fontResolution.selectedFamily,
-    assetId: manifest.plans.typographyMotion.fontResolution.selectedAssetId,
-    evidenceId: "evidence_font_loaded",
-  },
-  cropAndMask: {
-    status: "verified",
-    evidenceId: "evidence_crop_mask",
-    maskingRequired: false,
-    maskingStatus: "not_required",
-    crops: manifest.timeline.speakerCropTracks.map((track: any) => ({
-      outputStartMs: track.outputStartMs,
-      outputEndMs: track.outputEndMs,
-      ...track.crop,
-    })),
-  },
-  cameraContinuity: {
-    status: "verified_continuous",
-    evidenceId: "evidence_camera_continuity",
-    resetOutputMs: [],
-  },
-  capabilities: [
-    ...new Set([
-      ...manifest.plans.capabilitySelection.selections
-        .filter((entry: any) => entry.selected)
-        .map((entry: any) => entry.capabilityId),
-      ...manifest.plans.typographyMotion.motionPrograms.map(
-        (entry: any) => entry.capabilityId,
+    fallbacks: manifest.planExecution
+      .filter((entry: any) => entry.executionStatus === "governed_fallback")
+      .map((entry: any) => ({
+        planType: entry.planType,
+        selected: true,
+        evidenceId: `evidence_fallback_${entry.planType}`,
+      })),
+  };
+  if (manifest.schemaVersion === "maul-unified-short-render-manifest/v2") {
+    const selectedCompositions = manifest.plans.textPlacement.segments.map(
+      (segment: any) =>
+        manifest.plans.textPlacement.compositionIntervals.find(
+          (interval: any) =>
+            interval.variantId === segment.selectedCompositionVariantId &&
+            interval.transformHash === segment.selectedTransformHash &&
+            interval.sceneId === segment.sceneId &&
+            interval.discontinuityId === segment.discontinuityId &&
+            interval.outputStartMs <= segment.outputStartMs &&
+            interval.outputEndMs >= segment.outputEndMs,
+        ),
+    );
+    return {
+      schemaVersion: "maul-quality-truth-proof/v2",
+      ...common,
+      cropAndMask: {
+        status: "verified",
+        evidenceId: "evidence_crop_mask",
+        maskingRequired: false,
+        maskingStatus: "not_required",
+        crops: selectedCompositions
+          .filter(
+            (composition: any, index: number, all: any[]) =>
+              composition &&
+              all.findIndex(
+                (candidate) =>
+                  candidate?.intervalId === composition.intervalId,
+              ) === index,
+          )
+          .map((composition: any) => ({
+            outputStartMs: composition.outputStartMs,
+            outputEndMs: composition.outputEndMs,
+            ...composition.crop,
+          })),
+      },
+      placementSegments: manifest.plans.textPlacement.segments.map(
+        (segment: any, index: number) => {
+          const composition = selectedCompositions[index];
+          const envelope = segment.maximumEnvelope;
+          return {
+            status: "verified",
+            evidenceId: `evidence_placement_${segment.segmentId}`,
+            textPlacementPlanArtifactId:
+              manifest.planArtifactIds.textPlacement,
+            placementSegmentId: segment.segmentId,
+            compositionIntervalId: composition.intervalId,
+            compositionVariantId: segment.selectedCompositionVariantId,
+            compositionTransformHash: segment.selectedTransformHash,
+            compatibilityProfileId: segment.compatibility.profileId,
+            metricsFingerprint: segment.compatibility.metricsFingerprint,
+            exactFontAssetId: "font_google_dm_sans_700",
+            compiledLegibilityPrimitive: segment.minimumLegibilityPrimitive,
+            measuredBox: {
+              leftPx: envelope.x * manifest.output.width + 1,
+              topPx: envelope.y * manifest.output.height + 1,
+              rightPx:
+                (envelope.x + envelope.width) * manifest.output.width - 1,
+              bottomPx:
+                (envelope.y + envelope.height) * manifest.output.height - 1,
+            },
+          };
+        },
       ),
-    ]),
-  ].map((capabilityId) => ({
-    capabilityId,
-    status: "native_render_safe",
-    evidenceId: `evidence_${capabilityId}`,
-  })),
-  fallbacks: manifest.planExecution
-    .filter((entry: any) => entry.executionStatus === "governed_fallback")
-    .map((entry: any) => ({
-      planType: entry.planType,
-      selected: true,
-      evidenceId: `evidence_fallback_${entry.planType}`,
-    })),
-});
+    };
+  }
+  return {
+    schemaVersion: "maul-quality-truth-proof/v1",
+    ...common,
+    cropAndMask: {
+      status: "verified",
+      evidenceId: "evidence_crop_mask",
+      maskingRequired: false,
+      maskingStatus: "not_required",
+      crops: manifest.timeline.speakerCropTracks.map((track: any) => ({
+        outputStartMs: track.outputStartMs,
+        outputEndMs: track.outputEndMs,
+        ...track.crop,
+      })),
+    },
+  };
+};
 
 describe("MAUL complete short render path", () => {
   let tempDir: string;
@@ -274,7 +345,7 @@ describe("MAUL complete short render path", () => {
     expect(planningBundle).toMatchObject({
       artifactType: "planning_bundle",
       payload: {
-        schemaVersion: "maul-planning-bundle/v1",
+        schemaVersion: "maul-planning-bundle/v2",
         rendererReadiness: "governed_with_explicit_fallbacks",
       },
     });
@@ -290,7 +361,9 @@ describe("MAUL complete short render path", () => {
       "observationSnapshot",
       "revision",
       "shotIntentMatrix",
+      "textChunk",
       "textOpportunity",
+      "textPlacement",
       "typographyMotion",
       "visual",
     ]);
@@ -311,7 +384,9 @@ describe("MAUL complete short render path", () => {
       "observation_snapshot",
       "revision_plan",
       "shot_intent_matrix",
+      "text_chunk_plan",
       "text_opportunity_plan",
+      "text_placement_plan",
       "typography_motion_plan",
       "visual_plan",
     ]);
@@ -330,37 +405,38 @@ describe("MAUL complete short render path", () => {
       false,
     );
     expect(plans.textOpportunity.payload.quotaUsed).toBe(false);
-    expect(plans.typographyMotion.payload.textChunkPlan).toMatchObject({
-      schemaVersion: "maul-shorts-text-chunk-plan/v1",
+    expect(plans.textChunk.payload).toMatchObject({
       strategy: "llm_assisted",
-      coverage: {
-        totalWordCount: timelineRequest.transcript.words.length,
-        coveredWordCount: timelineRequest.transcript.words.length,
-        exact: true,
-      },
+      schemaVersion: "maul-shorts-text-chunk-plan/v2",
       inference: {
         status: "invoked",
         baseUrl: "https://codex-everywhere.com",
         model: "gpt-5.6-terra",
       },
     });
+    expect(plans.textChunk.payload.tokens).toHaveLength(
+      timelineRequest.transcript.words.length,
+    );
+    expect(plans.textChunk.payload.tokens.map((token: any) => token.transcriptWordIndex)).toEqual(
+      timelineRequest.transcript.words.map((_word, index) => index),
+    );
+    expect(plans.textPlacement.payload.status).toBe("planned");
+    expect(plans.textPlacement.payload.segments.length).toBeGreaterThan(0);
+    expect(plans.typographyMotion.payload).toMatchObject({
+      schemaVersion: "maul-typography-motion-plan/v2",
+      textChunkPlanArtifactId: plans.textChunk.artifactId,
+      textPlacementPlanArtifactId: plans.textPlacement.artifactId,
+      fontResolution: {
+        selectedFamily: "DM Sans",
+        selectedAssetId: "font_google_dm_sans_700",
+        status: "eligible_loaded",
+      },
+    });
     expect(plans.typographyMotion.payload.authority).toMatchObject({
       authorityClass: "deterministic",
     });
-    expect(plans.typographyMotion.payload.textChunkAuthority).toEqual({
-      authorityClass: "invoked_model",
-      decisionScope: "semantic_boundaries_roles_and_emphasis_only",
-      decisionFields: [
-        "textChunkPlan.chunks[].startWordIndex",
-        "textChunkPlan.chunks[].endWordIndex",
-        "textChunkPlan.chunks[].semanticRole",
-        "textChunkPlan.chunks[].emphasis.wordIndices",
-        "textChunkPlan.chunks[].emphasis.level",
-      ],
-      inferenceReceiptPath: "textChunkPlan.inference",
-    });
     expect(
-      plans.typographyMotion.payload.textChunkPlan.chunks
+      plans.textChunk.payload.chunks
         .map((chunk: any) => chunk.text)
         .join(" "),
     ).toBe(timelineRequest.transcript.text);
@@ -392,6 +468,8 @@ describe("MAUL complete short render path", () => {
       "shotIntentMatrix",
       "textOpportunity",
       "revision",
+      "textChunk",
+      "textPlacement",
     ]) {
       expect(plans[key].lineage.parentArtifactIds).toEqual(
         expect.arrayContaining([
@@ -419,6 +497,15 @@ describe("MAUL complete short render path", () => {
     expect(forgedManifest.json().error).toMatch(
       /manual|manifest compiler|governed runtime/i,
     );
+    for (const artifactType of ["text_chunk_plan", "text_placement_plan"]) {
+      const forgedPlan = await context.app.inject({
+        method: "POST",
+        url: `/api/maul/projects/${project.id}/artifacts`,
+        payload: {artifactType, parentArtifactIds: [], payload: {}},
+      });
+      expect(forgedPlan.statusCode).toBe(409);
+      expect(forgedPlan.json().error).toMatch(/manual|governed runtime/i);
+    }
 
     const beforeReview = await context.app.inject({
       method: "POST",
@@ -551,29 +638,41 @@ describe("MAUL complete short render path", () => {
     );
     await unavailableContext.app.close();
 
-    const typographyPlanPath = path.join(
+    const textChunkPlanPath = path.join(
       tempDir,
       "maul",
       "projects",
       project.id,
       "artifacts",
-      `${plans.typographyMotion.artifactId}.json`,
+      `${plans.textChunk.artifactId}.json`,
     );
-    const typographyPlan = JSON.parse(
-      await readFile(typographyPlanPath, "utf8"),
+    const textChunkPlanRecord = JSON.parse(
+      await readFile(textChunkPlanPath, "utf8"),
     );
-    typographyPlan.payload.fontResolution = {
-      requestedRole: "utility",
-      selectedFamily: "Prometheus Test Sans",
-      selectedAssetId: "font_asset_test_sans",
-      status: "eligible_loaded",
-      reason: "Integration fixture stages a loaded export-safe font.",
-    };
+    const originalTextChunkPlanRecord = JSON.stringify(textChunkPlanRecord, null, 2);
+    textChunkPlanRecord.payload.warnings = ["Mutated after reference hash capture."];
     await writeFile(
-      typographyPlanPath,
-      `${JSON.stringify(typographyPlan, null, 2)}\n`,
+      textChunkPlanPath,
+      `${JSON.stringify(textChunkPlanRecord, null, 2)}\n`,
       "utf8",
     );
+
+    const staleRender = await context.app.inject({
+      method: "POST",
+      url: `/api/maul/projects/${project.id}/renders`,
+      payload: {
+        candidateArtifactId: candidate.artifactId,
+        treatmentGenomeArtifactId: treatment.artifactId,
+        planningBundleArtifactId: planningBundle.artifactId,
+        reviewDecisionArtifactId: review.artifactId,
+        musicTrack: licensedMusicTrack(),
+        sfxAssets: [licensedSfx()],
+      },
+    });
+    expect(staleRender.statusCode).toBe(409);
+    expect(staleRender.json().error).toMatch(/hash|stale|mismatch/i);
+    expect(renderEngine).not.toHaveBeenCalled();
+    await writeFile(textChunkPlanPath, `${originalTextChunkPlanRecord}\n`, "utf8");
 
     const renderResponse = await context.app.inject({
       method: "POST",
@@ -593,14 +692,20 @@ describe("MAUL complete short render path", () => {
     expect(Object.keys(renderInput).sort()).toEqual(["manifest", "workRoot"]);
     expect(renderInput.manifest).toEqual(
       expect.objectContaining({
-        schemaVersion: "maul-unified-short-render-manifest/v1",
+        schemaVersion: "maul-unified-short-render-manifest/v2",
         rendererInputKind: "unified_short_render_manifest_only",
         planningBundleArtifactId: planningBundle.artifactId,
         output: { width: 1080, height: 1920, fps: 30, codec: "h264" },
         audio: expect.objectContaining({ planMode: "render_ready" }),
       }),
     );
-    expect(renderInput.manifest.planExecution).toHaveLength(14);
+    expect(renderInput.manifest.planExecution).toHaveLength(16);
+    expect(renderInput.manifest.planExecution).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({planType: "text_chunk_plan", nativeBranch: "MaulShort.PlannedCaptionTokens.v1"}),
+        expect.objectContaining({planType: "text_placement_plan", nativeBranch: "MaulShort.PlannedPlacement.v1"}),
+      ]),
+    );
     expect(renderInput.manifest.planExecution).toSatisfy(
       (entries: Array<{ executionStatus: string }>) =>
         entries.every(

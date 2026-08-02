@@ -135,6 +135,118 @@ const codesFor = (proof: MaulQualityTruthProof) =>
   resultFor(proof).failures.map((failure) => failure.code);
 
 describe("MAUL Quality Truth gate", () => {
+  it("requires placement evidence for a V2 manifest and compares measured boxes to planned envelopes", () => {
+    const v2Manifest = {
+      ...manifest,
+      schemaVersion: "maul-unified-short-render-manifest/v2",
+      planArtifactIds: {textPlacement: "artifact_placement"},
+      plans: {
+        ...manifest.plans,
+        typographyMotion: {
+          ...manifest.plans.typographyMotion,
+          fontResolution: {
+            selectedFamily: "DM Sans",
+            selectedAssetId: "font_google_dm_sans_700",
+            status: "eligible_loaded",
+          },
+        },
+        textPlacement: {
+          status: "planned",
+          compatibilityProfiles: [
+            {
+              profileId: "maul-compat-dm-sans-v1",
+              metrics: {fingerprint: "d".repeat(64)},
+            },
+          ],
+          compositionIntervals: [
+            {
+              intervalId: "composition_interval_a",
+              outputStartMs: 0,
+              outputEndMs: 1000,
+              variantId: "primary.centered_v1",
+              transformHash: "c".repeat(64),
+              crop: {x: 0.2, y: 0, width: 0.6, height: 1},
+            },
+          ],
+          segments: [
+            {
+              segmentId: "placement_segment_a",
+              outputStartMs: 0,
+              outputEndMs: 1000,
+              maximumEnvelope: {x: 0.1, y: 0.55, width: 0.8, height: 0.2},
+              selectedCompositionVariantId: "primary.centered_v1",
+              selectedTransformHash: "c".repeat(64),
+              compatibility: {
+                profileId: "maul-compat-dm-sans-v1",
+                metricsFingerprint: "d".repeat(64),
+              },
+              minimumLegibilityPrimitive: {kind: "none"},
+            },
+          ],
+        },
+      },
+    } as unknown as MaulUnifiedShortRenderManifest;
+    const v2Proof = {
+      ...validProof,
+      schemaVersion: "maul-quality-truth-proof/v2" as const,
+      fontRuntime: {
+        status: "eligible_loaded" as const,
+        family: "DM Sans",
+        assetId: "font_google_dm_sans_700",
+        evidenceId: "evidence_font_loaded",
+      },
+      cropAndMask: {
+        ...validProof.cropAndMask,
+        crops: [
+          {
+            outputStartMs: 0,
+            outputEndMs: 1000,
+            x: 0.2,
+            y: 0,
+            width: 0.6,
+            height: 1,
+          },
+        ],
+      },
+      placementSegments: [
+        {
+          status: "verified" as const,
+          evidenceId: "evidence_placement",
+          textPlacementPlanArtifactId: "artifact_placement",
+          placementSegmentId: "placement_segment_a",
+          compositionIntervalId: "composition_interval_a",
+          compositionVariantId: "primary.centered_v1",
+          compositionTransformHash: "c".repeat(64),
+          compatibilityProfileId: "maul-compat-dm-sans-v1" as const,
+          metricsFingerprint: "d".repeat(64),
+          exactFontAssetId: "font_google_dm_sans_700" as const,
+          compiledLegibilityPrimitive: {kind: "none"} as const,
+          measuredBox: {leftPx: 160, topPx: 1180, rightPx: 920, bottomPx: 1400},
+        },
+      ],
+    };
+    expect(evaluateMaulQualityTruth(v2Manifest, v2Proof).failures).toEqual([]);
+
+    const outside = {
+      ...v2Proof,
+      placementSegments: [
+        {...v2Proof.placementSegments[0]!, measuredBox: {leftPx: 0, topPx: 0, rightPx: 1080, bottomPx: 1920}},
+      ],
+    };
+    expect(
+      evaluateMaulQualityTruth(v2Manifest, outside).failures.map(
+        (failure) => failure.code,
+      ),
+    ).toContain("placement_bounds_mismatch");
+
+    const missing = {...v2Proof, placementSegments: []};
+    expect(
+      evaluateMaulQualityTruth(v2Manifest, missing).failures.map(
+        (failure) => failure.code,
+      ),
+    ).toContain("placement_evidence_missing");
+  });
+
   it("returns a named blocked result for malformed proof", () => {
     const result = evaluateMaulQualityTruth(manifest, {});
 

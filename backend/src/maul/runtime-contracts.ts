@@ -70,5 +70,7 @@ export const MAUL_RUNTIME_CONTRACTS: MaulRuntimeContracts =
       configuredRouteIsInvocation: false,
       inferenceReceiptRequiredForModelAuthority: true,
       currentVisualPlanningAuthority: "unavailable",
+      textPlacementAuthority: "deterministic_placement_planner",
+      rendererHandoffAuthority: "manifest_compiler",
     },
   });
