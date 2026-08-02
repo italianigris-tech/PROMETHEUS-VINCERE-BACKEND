@@ -43,8 +43,16 @@ describe("MAUL Remotion short composition", () => {
       expect.objectContaining({durationInFrames: 120, width: 1080, height: 1920, fps: 30})
     );
     expect(module.buildMaulSourceSequences(baseProps.timeline as any, 30)).toEqual([
-      {from: 0, durationInFrames: 60, trimBefore: 0, trimAfter: 60},
-      {from: 60, durationInFrames: 60, trimBefore: 90, trimAfter: 150}
+      {from: 0, durationInFrames: 60, trimBefore: 0, trimAfter: 60, playbackRate: 1},
+      {from: 60, durationInFrames: 60, trimBefore: 90, trimAfter: 150, playbackRate: 1}
+    ]);
+    expect(module.buildMaulSourceSequences({
+      ...baseProps.timeline,
+      timestampMap: [
+        {sourceStartMs: 0, sourceEndMs: 1000, outputStartMs: 0, outputEndMs: 500, mode: "keep"}
+      ]
+    } as any, 30)).toEqual([
+      {from: 0, durationInFrames: 15, trimBefore: 0, trimAfter: 30, playbackRate: 2}
     ]);
   });
 
@@ -72,6 +80,21 @@ describe("MAUL Remotion short composition", () => {
       {text: "We", fromMs: 560, toMs: 700},
       {text: "tested", fromMs: 700, toMs: 990}
     ])).toBe("Last week. We tested");
+    expect(module.joinMaulCaptionTokens([
+      {text: "(", fromMs: 0, toMs: 20},
+      {text: "hello", fromMs: 20, toMs: 200},
+      {text: ")", fromMs: 200, toMs: 220}
+    ])).toBe("(hello)");
+  });
+
+  it("falls back to ungoverned empty caption groups for the Studio fixture", async () => {
+    const module = await import("../MaulShort").catch(() => null);
+    expect(module).not.toBeNull();
+    if (!module) return;
+
+    expect(
+      module.resolveMaulCaptionPlans(module.MAUL_SHORT_DEFAULT_PROPS.manifest),
+    ).toEqual({captionGroups: [], captionGroupsAreGoverned: false});
   });
 
   it("uses governed semantic chunk groups as caption page boundaries", async () => {

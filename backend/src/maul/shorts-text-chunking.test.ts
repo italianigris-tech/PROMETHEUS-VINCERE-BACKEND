@@ -152,6 +152,42 @@ describe("MAUL shorts text chunking", () => {
     });
   });
 
+  it.each([
+    ["duplicate", [2, 2]],
+    ["reverse-order", [4, 2]],
+  ])("rejects %s emphasis indices before reconstructing text", (_kind, emphasisWordIndices) => {
+    const proposal: ShortsTextChunkProposal = {
+      schemaVersion: "maul-shorts-text-chunk-proposal/v1",
+      chunks: [
+        {
+          startWordIndex: 0,
+          endWordIndex: 4,
+          semanticRole: "hook",
+          emphasisWordIndices,
+          emphasisLevel: "hero",
+        },
+        {
+          startWordIndex: 5,
+          endWordIndex: 12,
+          semanticRole: "payoff",
+          emphasisWordIndices: [7, 8],
+          emphasisLevel: "hero",
+        },
+      ],
+    };
+
+    expect(() =>
+      materializeShortsTextChunkProposal({
+        request: {
+          ...request,
+          constraints: {...request.constraints, maxWordsPerChunk: 8},
+        },
+        proposal,
+        inference: fallbackInference,
+      }),
+    ).toThrow(/ordered.*unique|unique.*ordered/i);
+  });
+
   it("reconstructs standalone punctuation without inserting spaces before it", () => {
     const punctuationRequest: ShortsTextChunkingRequest = {
       transcript: {

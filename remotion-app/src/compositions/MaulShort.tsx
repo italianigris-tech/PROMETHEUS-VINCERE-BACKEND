@@ -10,6 +10,7 @@ import type {
   MaulTreatmentGenomePayload,
   MaulUnifiedShortRenderManifest,
 } from "@prometheus/shared-types";
+import {joinShortsTextTokens} from "@prometheus/shared-types";
 import {
   AbsoluteFill,
   Easing,
@@ -78,6 +79,7 @@ export const buildMaulSourceSequences = (
   durationInFrames: number;
   trimBefore: number;
   trimAfter: number;
+  playbackRate: number;
 }> =>
   timeline.timestampMap
     .filter((segment) => segment.mode !== "cut")
@@ -94,6 +96,9 @@ export const buildMaulSourceSequences = (
         Math.round((segment.sourceStartMs / 1000) * fps) + 1,
         Math.round((segment.sourceEndMs / 1000) * fps),
       ),
+      playbackRate:
+        (segment.sourceEndMs - segment.sourceStartMs) /
+        (segment.outputEndMs - segment.outputStartMs),
     }));
 
 export const calculateMaulShortMetadata = ({
@@ -299,18 +304,35 @@ export const MAUL_SHORT_DEFAULT_PROPS: MaulShortProps = {
 };
 
 type MaulCaptionToken = { text: string; fromMs: number; toMs: number };
-const isClosingPunctuation = (text: string) => /^[,.;:!?%)}\]]/.test(text);
 export const joinMaulCaptionTokens = (tokens: MaulCaptionToken[]) =>
-  tokens.reduce((line, token) => {
-    const text = token.text.trim();
-    if (!text) return line;
-    if (!line || isClosingPunctuation(text)) return `${line}${text}`;
-    return `${line} ${text}`;
-  }, "");
+  joinShortsTextTokens(tokens.map((token) => token.text));
+
+const needsSpaceBeforeCaptionToken = (
+  previous: MaulCaptionToken,
+  current: MaulCaptionToken,
+) =>
+  joinShortsTextTokens([previous.text, current.text]) ===
+  `${previous.text.trim()} ${current.text.trim()}`;
 
 type MaulCaptionGroup =
   MaulUnifiedShortRenderManifest["plans"]["typographyMotion"]["captionGroups"][number];
 type MaulCaptionPage = TikTokPage & { plannedEndMs: number | null };
+
+export const resolveMaulCaptionPlans = (
+  manifest: MaulUnifiedShortRenderManifest,
+): {
+  captionGroups: MaulCaptionGroup[];
+  captionGroupsAreGoverned: boolean;
+} => {
+  const typographyMotion = manifest.plans?.typographyMotion;
+  if (!typographyMotion?.textChunkPlan) {
+    return {captionGroups: [], captionGroupsAreGoverned: false};
+  }
+  return {
+    captionGroups: typographyMotion.captionGroups,
+    captionGroupsAreGoverned: true,
+  };
+};
 
 export const buildMaulCaptionPages = ({
   captions,
@@ -370,12 +392,14 @@ const SourceSegment: React.FC<{
   sourceAsset: string;
   trimBefore: number;
   trimAfter: number;
+  playbackRate: number;
   cropCenterPercent: number;
   motionAmplitude: number;
 }> = ({
   sourceAsset,
   trimBefore,
   trimAfter,
+  playbackRate,
   cropCenterPercent,
   motionAmplitude,
 }) => {
@@ -396,6 +420,7 @@ const SourceSegment: React.FC<{
       src={staticFile(sourceAsset)}
       trimBefore={trimBefore}
       trimAfter={trimAfter}
+      playbackRate={playbackRate}
       style={{
         width: "100%",
         height: "100%",
@@ -449,7 +474,10 @@ const CaptionCard: React.FC<{
     >
       {page.tokens.map((token, index) => (
         <React.Fragment key={`${token.fromMs}-${token.text}`}>
-          {index > 0 && !isClosingPunctuation(token.text) ? " " : null}
+          {index > 0 &&
+          needsSpaceBeforeCaptionToken(page.tokens[index - 1]!, token)
+            ? " "
+            : null}
           <span
             style={{
               color:
@@ -544,6 +572,7 @@ export const MaulShort: React.FC<MaulShortProps> = ({ manifest }) => {
   const { fps } = useVideoConfig();
   const visualStyle = buildMaulVisualStyle(treatment.treatmentId);
   const sequences = buildMaulSourceSequences(timeline, fps);
+  const captionPlans = resolveMaulCaptionPlans(manifest);
   const crop = timeline.speakerCropTracks[0]?.crop;
   const cropCenterPercent = crop ? (crop.x + crop.width / 2) * 100 : 50;
   const musicVolume = Math.min(
@@ -568,6 +597,7 @@ export const MaulShort: React.FC<MaulShortProps> = ({ manifest }) => {
             sourceAsset={sourceAsset}
             trimBefore={segment.trimBefore}
             trimAfter={segment.trimAfter}
+            playbackRate={segment.playbackRate}
             cropCenterPercent={cropCenterPercent}
             motionAmplitude={visualStyle.motionAmplitude}
           />
@@ -581,10 +611,8 @@ export const MaulShort: React.FC<MaulShortProps> = ({ manifest }) => {
       />
       <MaulCaptionLayer
         captions={captions}
-        captionGroups={manifest.plans.typographyMotion.captionGroups}
-        captionGroupsAreGoverned={Boolean(
-          manifest.plans.typographyMotion.textChunkPlan,
-        )}
+        captionGroups={captionPlans.captionGroups}
+        captionGroupsAreGoverned={captionPlans.captionGroupsAreGoverned}
         treatmentId={treatment.treatmentId}
       />
       {musicAsset ? (

@@ -203,6 +203,18 @@ export const shortsTextChunkSchema = z
       });
     }
     chunk.emphasis.wordIndices.forEach((wordIndex, emphasisIndex) => {
+      const previousWordIndex =
+        chunk.emphasis.wordIndices[emphasisIndex - 1];
+      if (
+        previousWordIndex !== undefined &&
+        wordIndex <= previousWordIndex
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["emphasis", "wordIndices", emphasisIndex],
+          message: "Emphasis indices must be ordered and unique.",
+        });
+      }
       if (
         wordIndex < chunk.startWordIndex ||
         wordIndex > chunk.endWordIndex

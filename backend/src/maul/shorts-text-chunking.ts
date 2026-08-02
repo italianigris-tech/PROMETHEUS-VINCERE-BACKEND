@@ -270,6 +270,17 @@ const buildPlan = ({
         );
       }
     });
+    if (
+      candidate.emphasisWordIndices.some(
+        (wordIndex, emphasisIndex) =>
+          emphasisIndex > 0 &&
+          wordIndex <= candidate.emphasisWordIndices[emphasisIndex - 1]!,
+      )
+    ) {
+      throw new Error(
+        `Chunk ${index} emphasis indices must be ordered and unique.`,
+      );
+    }
 
     const chunkWords = words.slice(
       candidate.startWordIndex,

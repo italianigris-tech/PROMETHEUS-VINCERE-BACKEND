@@ -13,6 +13,51 @@ const words = [
   {text: "permission.", startMs: 880, endMs: 1300, confidence: 0.99},
 ];
 
+const validPlan = () => ({
+  schemaVersion: "maul-shorts-text-chunk-plan/v1" as const,
+  transcriptHash: "a".repeat(64),
+  videoDurationMs: 40_000,
+  pacing: "fast" as const,
+  style: "cinematic" as const,
+  strategy: "llm_assisted" as const,
+  chunks: [
+    {
+      chunkId: "chunk_0_4",
+      startWordIndex: 0,
+      endWordIndex: 4,
+      wordCount: 5,
+      text: "You do not need permission.",
+      startMs: 0,
+      endMs: 1300,
+      semanticRole: "claim" as const,
+      emphasis: {
+        wordIndices: [2, 4],
+        text: "not permission.",
+        level: "hero" as const,
+      },
+      rationale: "The final words carry the claim.",
+      confidence: 0.94,
+    },
+  ],
+  coverage: {
+    totalWordCount: 5,
+    coveredWordCount: 5,
+    omittedWordIndices: [],
+    duplicatedWordIndices: [],
+    exact: true,
+  },
+  inference: {
+    status: "invoked" as const,
+    provider: "openai_compatible" as const,
+    baseUrl: "https://codex-everywhere.com",
+    model: "gpt-5.6-terra",
+    requestHash: "b".repeat(64),
+    responseHash: "c".repeat(64),
+    fallbackReason: null,
+  },
+  validationFindings: [],
+});
+
 describe("shorts text chunking contracts", () => {
   it("accepts the complete timed transcript and supplies conservative defaults", () => {
     const request = shortsTextChunkingRequestSchema.parse({
@@ -127,52 +172,21 @@ describe("shorts text chunking contracts", () => {
   });
 
   it("accepts a fully covered plan with emphasis constrained to each chunk", () => {
-    const plan = shortsTextChunkPlanSchema.parse({
-      schemaVersion: "maul-shorts-text-chunk-plan/v1",
-      transcriptHash: "a".repeat(64),
-      videoDurationMs: 40_000,
-      pacing: "fast",
-      style: "cinematic",
-      strategy: "llm_assisted",
-      chunks: [
-        {
-          chunkId: "chunk_0_4",
-          startWordIndex: 0,
-          endWordIndex: 4,
-          wordCount: 5,
-          text: "You do not need permission.",
-          startMs: 0,
-          endMs: 1300,
-          semanticRole: "claim",
-          emphasis: {
-            wordIndices: [4],
-            text: "permission.",
-            level: "hero",
-          },
-          rationale: "The final word carries the claim.",
-          confidence: 0.94,
-        },
-      ],
-      coverage: {
-        totalWordCount: 5,
-        coveredWordCount: 5,
-        omittedWordIndices: [],
-        duplicatedWordIndices: [],
-        exact: true,
-      },
-      inference: {
-        status: "invoked",
-        provider: "openai_compatible",
-        baseUrl: "https://codex-everywhere.com",
-        model: "gpt-5.6-terra",
-        requestHash: "b".repeat(64),
-        responseHash: "c".repeat(64),
-        fallbackReason: null,
-      },
-      validationFindings: [],
-    });
+    const plan = shortsTextChunkPlanSchema.parse(validPlan());
 
-    expect(plan.chunks[0]?.emphasis.wordIndices).toEqual([4]);
+    expect(plan.chunks[0]?.emphasis.wordIndices).toEqual([2, 4]);
+  });
+
+  it.each([
+    ["duplicate", [2, 2]],
+    ["reverse-order", [4, 2]],
+  ])("rejects %s emphasis indices", (_kind, wordIndices) => {
+    const plan = validPlan();
+    plan.chunks[0]!.emphasis.wordIndices = wordIndices;
+
+    expect(() => shortsTextChunkPlanSchema.parse(plan)).toThrow(
+      /ordered.*unique|unique.*ordered/i,
+    );
   });
 
   it("rejects plans that skip transcript words", () => {
