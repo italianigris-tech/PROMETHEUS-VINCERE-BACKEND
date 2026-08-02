@@ -169,6 +169,8 @@ git commit -m "feat(maul): add governed chunk and placement contracts"
 - Create: `backend/src/maul/text-chunk-plan.test.ts`
 - Create: `backend/src/maul/shorts-text-placement.ts`
 - Create: `backend/src/maul/shorts-text-placement.test.ts`
+- Modify: `backend/src/maul/planning.ts`
+- Modify: `backend/src/maul/planning.test.ts`
 
 - [ ] **Step 1: Write materialization red tests**
 
@@ -176,7 +178,7 @@ Given source words, mapped output spans, V1 plan, and timeline hash: require sta
 
 - [ ] **Step 2: Verify red**
 
-Run: `npm --prefix backend test -- src/maul/text-chunk-plan.test.ts`
+Run: `npm --prefix backend test -- src/maul/text-chunk-plan.test.ts src/maul/planning.test.ts`
 
 Expected: exports missing.
 
@@ -200,12 +202,12 @@ Hard-reject unsafe envelope, font-size failure, token mismatch, known collision,
 
 - [ ] **Step 7: Verify and commit**
 
-Run: `npm --prefix backend test -- src/maul/text-chunk-plan.test.ts src/maul/shorts-text-placement.test.ts && npm --prefix backend run typecheck`
+Run: `npm --prefix backend test -- src/maul/text-chunk-plan.test.ts src/maul/shorts-text-placement.test.ts src/maul/planning.test.ts && npm --prefix backend run typecheck`
 
 Expected: pass.
 
 ```bash
-git add backend/src/maul/text-chunk-plan.ts backend/src/maul/text-chunk-plan.test.ts backend/src/maul/shorts-text-placement.ts backend/src/maul/shorts-text-placement.test.ts
+git add backend/src/maul/text-chunk-plan.ts backend/src/maul/text-chunk-plan.test.ts backend/src/maul/shorts-text-placement.ts backend/src/maul/shorts-text-placement.test.ts backend/src/maul/planning.ts backend/src/maul/planning.test.ts
 git commit -m "feat(maul): plan scene-aware text placement"
 ```
 
