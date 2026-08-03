@@ -76,6 +76,22 @@ _Avoid_: clickbait-first optimization, engagement certainty, novelty at any cost
 The first MAUL release accepts one-principal-speaker talking-head or podcast footage, with optional B-roll.
 _Avoid_: generic all-video support, multi-speaker panels, gameplay-first editing
 
+**Upload Authority**:
+The Next.js/Supabase boundary that authenticates, reserves, verifies, and commits a project source uploaded to R2.
+_Avoid_: MAUL intake, browser authority, R2 event authority
+
+**Canonical Source Asset**:
+The Supabase `source_assets` record currently referenced by a project's `source_asset_id` after R2 identity and byte verification.
+_Avoid_: upload intent, multipart upload, object event, local MAUL copy
+
+**Source Analysis Job**:
+The Supabase `durable_jobs` record keyed by a Canonical Source Asset ID that tracks materialization and progressive video analysis.
+_Avoid_: fake processing job, upload progress, MAUL render job
+
+**Source Fence**:
+The rule that a Source Analysis Job may publish progress or completion only while its source asset remains the project's Canonical Source Asset.
+_Avoid_: best-effort replacement check, filename comparison
+
 **Protected Pause**:
 A timed silence intentionally retained by the Editorial Timeline because it strengthens meaning, emotion, emphasis, or comprehension.
 _Avoid_: dead air, automatic cut target, arbitrary slowdown
@@ -174,6 +190,10 @@ _Avoid_: prompt parser, user override, hidden architecture switch
 - The **Failure Taxonomy** gives the **Judgment Layer** named editorial failure classes to detect and learn from
 - The **Review Surface** is the primary source of evaluator truth labels
 - **Short-Form Intelligence** ranks clip candidates through **Correlated Signal Stacking**
+- The **Upload Authority** commits exactly one **Canonical Source Asset** pointer per project
+- A video **Canonical Source Asset** creates at most one active **Source Analysis Job** with the same UUID
+- Every **Source Analysis Job** must pass the **Source Fence** before publishing progress or completion
+- MAUL materializes the **Canonical Source Asset** from R2 but does not become the **Upload Authority**
 - **Acoustic Fallback Segmentation** keeps **Short-Form Intelligence** producing candidates when transcripts are unavailable
 - The **Stepping-Stone Planner** ships before the full planner stack
 - A **Top-Level Planner** may explore a small number of **Doctrine Branches** for high-value moments
@@ -211,3 +231,5 @@ _Avoid_: prompt parser, user override, hidden architecture switch
 - planner decisions could have become impossible to inspect — resolved: emit a first-class **Planner Audit**.
 - "PlannerAudit" was being used for both rich planner trace and flat backend scoring summary - resolved: reserve **Planner Audit** for the rich trace and call the backend artifact **Candidate Score Summary**.
 - renderer fallback behavior could have silently ignored planner-selected primitive fields - resolved: introduce the **Manifest Compiler** and protect it with **Render Contract Tests**.
+- "upload intake" was being used for both browser/R2 upload authority and MAUL analysis intake - resolved: the **Upload Authority** ends at the **Canonical Source Asset** commit; MAUL starts with a **Source Analysis Job**.
+- R2 object events could have been mistaken for project commands - resolved: an object event is reconciliation evidence only and cannot select a project's **Canonical Source Asset**.

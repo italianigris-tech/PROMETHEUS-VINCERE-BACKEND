@@ -1,0 +1,71 @@
+{
+  "schemaVersion": "maul-artifact/v1",
+  "artifactId": "maul_artifact_msd6aw5e_8a69f3333c",
+  "artifactType": "framing_camera_plan",
+  "lineage": {
+    "projectId": "maul_project_msd6arga_7460614935",
+    "canonicalJobId": "maul_job_msd6argc_b953c855d6",
+    "runId": "maul_run_msd6argc_c6a7ab795c",
+    "rootSourceAssetId": "maul_artifact_msd6argc_d609707975",
+    "parentArtifactIds": [
+      "maul_artifact_msd6argc_d609707975",
+      "maul_artifact_msd6arjd_e45a1aa1f5",
+      "maul_artifact_msd6arl1_d987fa804c",
+      "maul_artifact_msd6arxr_e6640c8de1",
+      "maul_artifact_msd6arrj_102d360b7c",
+      "maul_artifact_msd6asgh_a4b13f9fac",
+      "maul_artifact_msd6at2a_e406ead8cb"
+    ],
+    "sequence": 16,
+    "producedBy": {
+      "module": "maul-stage-one-planner",
+      "version": "1"
+    },
+    "createdAt": "2026-08-03T11:56:01.730Z"
+  },
+  "payload": {
+    "sourceAssetId": "maul_artifact_msd6argc_d609707975",
+    "analysisArtifactId": "maul_artifact_msd6arjd_e45a1aa1f5",
+    "timelineArtifactId": "maul_artifact_msd6arl1_d987fa804c",
+    "candidateArtifactId": "maul_artifact_msd6arxr_e6640c8de1",
+    "treatmentGenomeArtifactId": "maul_artifact_msd6arrj_102d360b7c",
+    "planVersion": "maul-framing-camera-plan/v1",
+    "replayKey": "2786321b5403051c32cd3aeda0909992fd0879fadb974b13ae8953eebee35835",
+    "authority": {
+      "authorityClass": "deterministic",
+      "stageId": "maul-framing-camera-plan_v1",
+      "confidence": 0.72,
+      "inferenceReceiptId": null
+    },
+    "warnings": [],
+    "fallbacks": [
+      {
+        "condition": "A richer mandatory dependency is unavailable or unverified.",
+        "action": "Use the named restrained fallback and keep the release quality gate closed.",
+        "status": "available"
+      }
+    ],
+    "schemaVersion": "maul-framing-camera-plan/v1",
+    "events": [
+      {
+        "eventId": "maul_camera_1",
+        "outputStartMs": 0,
+        "outputEndMs": 20480,
+        "cropCenterX": 0.5,
+        "cropCenterY": 0.5,
+        "startScale": 1,
+        "endScale": 1.018,
+        "motivatedByBeatId": "maul_beat_1",
+        "rationale": "Use one restrained continuous push to support the spoken beat.",
+        "execution": {
+          "executionStatus": "native",
+          "nativeBranch": "MaulShort.SourceSegment.globalCameraScale",
+          "fallback": null,
+          "evidenceRequirement": "Encoded crop and scale probes must show continuity without segment resets."
+        }
+      }
+    ],
+    "continuityPolicy": "Camera state carries across kept source segments; protected pauses settle instead of pumping.",
+    "maxScale": 1.28
+  }
+}

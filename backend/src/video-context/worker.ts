@@ -24,6 +24,7 @@ import {
   type TranscriptChunkPlan,
   type TranscriptChunkResult
 } from "./transcript";
+import {buildEditorialAnalysis} from "./editorial-analysis";
 
 export type VideoContextTranscribeChunkInput = {
   videoId: string;
@@ -491,6 +492,7 @@ export class ProgressiveVideoContextWorker {
       videoId,
       (current) => ({
         ...current,
+        editorialAnalysis: buildEditorialAnalysis(current, generatedAt),
         status: "handoff_ready",
         contextLevel: 5,
         coverage: {

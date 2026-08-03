@@ -1,0 +1,62 @@
+{
+  "schemaVersion": "maul-project/v1",
+  "id": "maul_project_msd6arga_7460614935",
+  "canonicalJobId": "maul_job_msd6argc_b953c855d6",
+  "tenantId": "static_image_demo",
+  "creatorId": "static_image_demo",
+  "status": "intake_ready",
+  "intake": {
+    "goal": "conversion",
+    "platform": "instagram_reels",
+    "sourceProfile": {
+      "mode": "single_speaker_talking_head",
+      "principalSpeakerCount": 1,
+      "primaryLanguage": "en",
+      "suitabilityStatus": "declared_in_scope_pending_analysis"
+    },
+    "brandKitId": null,
+    "treatmentPreference": "premium_direct_response",
+    "requestedShortCount": 1,
+    "requestedThumbnailCount": 1,
+    "targetDurationMs": {
+      "min": 20480,
+      "max": 20480
+    }
+  },
+  "rootSourceAssetId": "maul_artifact_msd6argc_d609707975",
+  "artifactIds": [
+    "maul_artifact_msd6argc_d609707975",
+    "maul_artifact_msd6arjd_e45a1aa1f5",
+    "maul_artifact_msd6arl1_d987fa804c",
+    "maul_artifact_msd6arms_53550e31e3",
+    "maul_artifact_msd6arrj_102d360b7c",
+    "maul_artifact_msd6art2_1bdc7745ed",
+    "maul_artifact_msd6arxr_e6640c8de1",
+    "maul_artifact_msd6as46_8b413f8aad",
+    "maul_artifact_msd6asgh_a4b13f9fac",
+    "maul_artifact_msd6at2a_e406ead8cb",
+    "maul_artifact_msd6au5b_bad0dd2560",
+    "maul_artifact_msd6auut_10edd7b7cc",
+    "maul_artifact_msd6avht_c70ab25b08",
+    "maul_artifact_msd6avom_c0936c2ff1",
+    "maul_artifact_msd6avyh_e13830a478",
+    "maul_artifact_msd6aw5e_8a69f3333c",
+    "maul_artifact_msd6awag_2e58e93d81",
+    "maul_artifact_msd6awfr_a8ccadd802",
+    "maul_artifact_msd6awlb_7d5b8440bf",
+    "maul_artifact_msd6awpf_d63d1d023b",
+    "maul_artifact_msd6awu7_6ee0e68eab",
+    "maul_artifact_msd6awxa_d992337618",
+    "maul_artifact_msd6ax1g_4fd46e4ebe",
+    "maul_artifact_msd6ax9m_9b7902683b",
+    "maul_artifact_msd6axjj_583fb5ada6",
+    "maul_artifact_msd6ay2y_f44e5a3b66",
+    "maul_artifact_msd6aya8_18c3edf12d",
+    "maul_artifact_msd6az3z_1b8a480a85",
+    "maul_artifact_msd6jf73_92f73e7b69"
+  ],
+  "activeRunId": "maul_run_msd6argc_c6a7ab795c",
+  "revision": 1,
+  "createdAt": "2026-08-03T11:55:55.644Z",
+  "updatedAt": "2026-08-03T12:02:39.663Z"
+}

@@ -1,5 +1,6 @@
 import {
   joinShortsTextTokens,
+  MAUL_TEXT_ANIMATION_TREATMENTS,
   maulAdapterDecisionPayloadSchema,
   maulArtDirectionPlanPayloadSchema,
   maulCandidateNarrativePayloadSchema,
@@ -180,8 +181,21 @@ const identityTransform = {
   scale: 1,
 } as const;
 
+const MAUL_CORE_TREATMENTS: readonly MaulTextAnimationTreatment[] = ["keyword_pop", "two_word_stagger_punch", "two_word_focus_pivot", "three_word_tall_blade", "four_word_outline_whip", "hormozi_word_lock_snap", "cinematic_text_preset_5", "cinematic_text_preset_8", "cinematic_text_preset_11", "letter-float-overshoot", "depth-pop-letter", "impact-punch", "glitch-stabilize", "single-word-elastic-emphasis", "pulse-emphasis", "highlight-word", "blur-underline", "core-replaceable-word", "cursor-highlight-text-animation", "main-word-inside-a-glow-box", "text-underlining-effect", "word-cross-out"];
+const MAUL_SUPPORTING_TREATMENTS = MAUL_TEXT_ANIMATION_TREATMENTS.filter((treatment) => !MAUL_CORE_TREATMENTS.includes(treatment));
+const selectEditorialTreatment = ({candidates, seed}: {candidates: readonly MaulTextAnimationTreatment[]; seed: string}): MaulTextAnimationTreatment => {
+  if (candidates.length === 0) {
+    throw new Error("MAUL animation selection requires at least one treatment.");
+  }
+  return candidates[Number.parseInt(stableHash(seed).slice(0, 8), 16) % candidates.length]!;
+};
+
 const animationTransforms = (treatment: MaulTextAnimationTreatment) => {
-  if (treatment === "keyword_pop") {
+  const lower = treatment.toLowerCase();
+  if (
+    treatment === "keyword_pop" ||
+    /pop|punch|impact|elastic|emphasis|highlight|underline|glow|cross-out|cursor|lock/.test(lower)
+  ) {
     return {
       entry: {
         from: {...identityTransform, opacity: 0, scale: 0.92},
@@ -197,7 +211,10 @@ const animationTransforms = (treatment: MaulTextAnimationTreatment) => {
       },
     };
   }
-  if (treatment === "continuous_push") {
+  if (
+    treatment === "continuous_push" ||
+    /push|slide|drift|arc|orbit|wave|parallax|sweep|ladder|rain/.test(lower)
+  ) {
     return {
       entry: {
         from: {...identityTransform, opacity: 0, translateXPx: -18},
@@ -236,19 +253,27 @@ export const buildMaulTextAnimationPlanPayload = ({
   textChunkPlan,
   textPlacementPlan,
   treatment,
+  selectionSeed,
   outputDurationMs,
 }: {
   inputs: MaulPlanningInputs;
   textChunkPlan: TextChunkPlanArtifact;
   textPlacementPlan: TextPlacementPlanArtifact;
-  treatment: MaulTextAnimationTreatment;
+  treatment?: MaulTextAnimationTreatment;
+  selectionSeed?: string;
   outputDurationMs: number;
 }): MaulTextAnimationPlanPayload => {
   const chunkById = new Map(
     textChunkPlan.payload.chunks.map((chunk) => [chunk.chunkId, chunk]),
   );
+  let previousSupportingTreatment: MaulTextAnimationTreatment | null = null;
   const programs = textPlacementPlan.payload.segments.map((segment) => {
     const durationMs = segment.outputEndMs - segment.outputStartMs;
+    const selectedTreatment = treatment ?? selectEditorialTreatment({
+      candidates: MAUL_SUPPORTING_TREATMENTS.filter((candidate) => candidate !== previousSupportingTreatment),
+      seed: `${selectionSeed ?? inputs.project.id}:${segment.segmentId}:supporting`,
+    });
+    previousSupportingTreatment = selectedTreatment;
     if (durationMs < 3) {
       throw new Error(
         `Placement ${segment.segmentId} is too short for explicit entry, hold, and exit intervals.`,
@@ -270,13 +295,13 @@ export const buildMaulTextAnimationPlanPayload = ({
       );
     }
     const tokenIds =
-      treatment === "keyword_pop" ? chunk.emphasis.tokenIds : segment.tokenIds;
+      selectedTreatment === "keyword_pop" ? chunk.emphasis.tokenIds : segment.tokenIds;
     if (tokenIds.length === 0) {
       throw new Error(
         `Animation ${segment.segmentId} has no stable target tokens.`,
       );
     }
-    const transforms = animationTransforms(treatment);
+    const transforms = animationTransforms(selectedTreatment);
     const entryEasing = {
       type: "cubic_bezier" as const,
       x1: 0.16,
@@ -293,9 +318,9 @@ export const buildMaulTextAnimationPlanPayload = ({
     };
     return {
       animationId: `maul_text_animation_${segment.segmentId}`,
-      treatment,
+      treatment: selectedTreatment,
       target: {
-        scope: treatment === "keyword_pop" ? ("tokens" as const) : ("segment" as const),
+        scope: selectedTreatment === "keyword_pop" ? ("tokens" as const) : ("segment" as const),
         placementSegmentId: segment.segmentId,
         tokenIds,
       },
@@ -319,8 +344,31 @@ export const buildMaulTextAnimationPlanPayload = ({
           ...transforms.exit,
         },
       },
-      rationale: `Execute the governed ${treatment} treatment without changing placement or token geometry.`,
+      rationale: `Execute the governed ${selectedTreatment} treatment without changing placement or token geometry.`,
     };
+  });
+  let previousCoreTreatment: MaulTextAnimationTreatment | null = null;
+  const editorialPrograms = treatment ? programs : programs.flatMap((program) => {
+    const segment = textPlacementPlan.payload.segments.find((candidate) => candidate.segmentId === program.target.placementSegmentId);
+    const coreTokenIds = segment ? chunkById.get(segment.chunkId)?.emphasis.tokenIds ?? [] : [];
+    if (!segment || coreTokenIds.length === 0) return [program];
+    const coreTreatment = selectEditorialTreatment({
+      candidates: MAUL_CORE_TREATMENTS.filter((candidate) => candidate !== previousCoreTreatment),
+      seed: `${selectionSeed ?? inputs.project.id}:${segment.segmentId}:core`,
+    });
+    previousCoreTreatment = coreTreatment;
+    const coreTransforms = animationTransforms(coreTreatment);
+    return [program, {
+      animationId: `${program.animationId}_core`,
+      treatment: coreTreatment,
+      target: {scope: "tokens" as const, placementSegmentId: segment.segmentId, tokenIds: coreTokenIds},
+      phases: {
+        entry: {...program.phases.entry, ...coreTransforms.entry},
+        hold: {...program.phases.hold, ...coreTransforms.hold},
+        exit: {...program.phases.exit, ...coreTransforms.exit},
+      },
+      rationale: `Layer restrained ${coreTreatment} emphasis over supporting ${program.treatment} motion.`,
+    }];
   });
   const references = {
     textChunkPlanArtifactId: textChunkPlan.artifactId,
@@ -336,7 +384,7 @@ export const buildMaulTextAnimationPlanPayload = ({
     treatmentGenomeArtifactId: inputs.treatment.artifactId,
     treatmentGenomeHash,
     outputDurationMs,
-    programs,
+    programs: editorialPrograms,
     inputHashes: {
       textChunkPlan: references.textChunkPlanHash,
       textPlacementPlan: references.textPlacementPlanHash,

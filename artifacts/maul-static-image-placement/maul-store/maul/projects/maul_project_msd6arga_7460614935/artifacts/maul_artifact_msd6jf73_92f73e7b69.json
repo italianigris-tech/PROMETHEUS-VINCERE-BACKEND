@@ -1,0 +1,69 @@
+{
+  "schemaVersion": "maul-artifact/v1",
+  "artifactId": "maul_artifact_msd6jf73_92f73e7b69",
+  "artifactType": "export_artifact",
+  "lineage": {
+    "projectId": "maul_project_msd6arga_7460614935",
+    "canonicalJobId": "maul_job_msd6argc_b953c855d6",
+    "runId": "maul_run_msd6argc_c6a7ab795c",
+    "rootSourceAssetId": "maul_artifact_msd6argc_d609707975",
+    "parentArtifactIds": [
+      "maul_artifact_msd6argc_d609707975",
+      "maul_artifact_msd6arxr_e6640c8de1",
+      "maul_artifact_msd6arl1_d987fa804c",
+      "maul_artifact_msd6arrj_102d360b7c",
+      "maul_artifact_msd6aya8_18c3edf12d",
+      "maul_artifact_msd6az3z_1b8a480a85"
+    ],
+    "sequence": 29,
+    "producedBy": {
+      "module": "maul-short-render",
+      "version": "1"
+    },
+    "createdAt": "2026-08-03T12:02:39.663Z"
+  },
+  "payload": {
+    "sourceAssetId": "maul_artifact_msd6argc_d609707975",
+    "candidateArtifactId": "maul_artifact_msd6arxr_e6640c8de1",
+    "timelineArtifactId": "maul_artifact_msd6arl1_d987fa804c",
+    "treatmentGenomeArtifactId": "maul_artifact_msd6arrj_102d360b7c",
+    "reviewDecisionArtifactId": "maul_artifact_msd6aya8_18c3edf12d",
+    "renderManifestArtifactId": "maul_artifact_msd6az3z_1b8a480a85",
+    "storageKey": "maul-export:maul_export_file_msd6jeo4_ddc2fc2bad",
+    "mediaType": "video/mp4",
+    "sha256": "a3efe58719dd41291961ef703af1f94b439f6d937763515bf9f93c55705b5fd3",
+    "durationMs": 20480,
+    "width": 1080,
+    "height": 1920,
+    "evidence": {
+      "technicalValidationPassed": true,
+      "rightsVerified": true,
+      "deterministicReplayKey": "948394d5f55308f53f38f76d8c0fd504e2c9d5caa5f301dc22d39db3d1b8f1c4",
+      "preRenderReviewPassed": true,
+      "qualityGate": {
+        "status": "unverified",
+        "releaseEligible": false,
+        "implementationLabel": "encoded-output-verified",
+        "renderedEvidenceArtifactId": null,
+        "postRenderHumanApprovalArtifactId": null,
+        "hardFailures": [
+          {
+            "id": "rendered_quality_evidence_missing",
+            "dimension": "perceptual_quality",
+            "message": "The encoded render has not passed the independent rendered Quality Evidence Bundle."
+          },
+          {
+            "id": "post_render_human_approval_missing",
+            "dimension": "human_approval",
+            "message": "The encoded render has not received authenticated post-render human approval."
+          }
+        ]
+      },
+      "remotionCompositionId": "MaulShort",
+      "audioPlanId": "video-aware-audio-plan-maul_job_msd6argc_b953c855d6-maul_artifact_msd6arxr_e6640c8de1",
+      "sourceMappingPreserved": true,
+      "fileSizeBytes": 6865392,
+      "warnings": []
+    }
+  }
+}

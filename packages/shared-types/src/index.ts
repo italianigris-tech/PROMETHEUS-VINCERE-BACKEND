@@ -131,6 +131,7 @@ export {
 
 export {
   maulTextAnimationEasingSchema,
+  MAUL_TEXT_ANIMATION_TREATMENTS,
   maulTextAnimationPhaseSchema,
   maulTextAnimationPlanCoreSchema,
   maulTextAnimationProgramSchema,

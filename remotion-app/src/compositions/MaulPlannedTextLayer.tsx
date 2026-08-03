@@ -1,4 +1,8 @@
 import {loadFont as loadDMSans} from "@remotion/google-fonts/DMSans";
+import {loadFont as loadBebasNeue} from "@remotion/google-fonts/BebasNeue";
+import {loadFont as loadDMSerifDisplay} from "@remotion/google-fonts/DMSerifDisplay";
+import {loadFont as loadGreatVibes} from "@remotion/google-fonts/GreatVibes";
+import {loadFont as loadPlayfairDisplay} from "@remotion/google-fonts/PlayfairDisplay";
 import {
   joinShortsTextTokens,
   type MaulTextAnimationProgram,
@@ -12,6 +16,16 @@ import {
   useVideoConfig,
 } from "remotion";
 
+import {SvgCaptionOverlayAtFrame} from "../components/SvgCaptionOverlay";
+import {
+  SVG_TYPOGRAPHY_LAYOUT_VARIANT,
+  SVG_TYPOGRAPHY_PROFILE_ID,
+  getSvgSlotSchemaForWordCount,
+  getSvgTypographyVariant,
+  toSvgTypographyMotionKey,
+  toSvgTypographyStyleKey,
+} from "../lib/stylebooks/svg-typography-v1";
+import type {CaptionChunk} from "../lib/types";
 import {
   compileMaulLegibilityPrimitive,
   toMaulFrameInterval,
@@ -25,12 +39,118 @@ const {fontFamily: dmSansFamily} = loadDMSans("normal", {
   ignoreTooManyRequestsWarning: true,
 });
 
+const cinematicFontOptions = {
+  subsets: ["latin"] as ("latin")[],
+  ignoreTooManyRequestsWarning: true,
+};
+
+loadBebasNeue("normal", cinematicFontOptions);
+loadDMSerifDisplay("normal", cinematicFontOptions);
+loadGreatVibes("normal", cinematicFontOptions);
+loadPlayfairDisplay("normal", cinematicFontOptions);
+
+const MAUL_CINEMATIC_TREATMENT_IDS = new Set([
+  "cinematic_text_preset",
+  "cinematic_text_preset_1",
+  "cinematic_text_preset_2",
+  "cinematic_text_preset_3",
+  "cinematic_text_preset_4",
+  "cinematic_text_preset_5",
+  "cinematic_text_preset_6",
+  "cinematic_text_preset_7",
+  "cinematic_text_preset_8",
+  "cinematic_text_preset_9",
+  "cinematic_text_preset_10",
+  "cinematic_text_preset_11",
+] as const);
+
+const FALLBACK_CINEMATIC_TREATMENT_BY_WORD_COUNT = {
+  one: "cinematic_text_preset_1",
+  two: "cinematic_text_preset_2",
+  three: "cinematic_text_preset_7",
+  fourPlus: "cinematic_text_preset_10",
+} as const;
+
 const needsSpaceBeforeToken = (
   previous: MaulPlannedTextToken,
   current: MaulPlannedTextToken,
 ) =>
   joinShortsTextTokens([previous.text, current.text]) ===
   `${previous.text.trim()} ${current.text.trim()}`;
+
+const resolveRenderableCinematicTreatment = ({
+  requestedTreatment,
+  wordCount,
+}: {
+  requestedTreatment: string;
+  wordCount: number;
+}): string => {
+  const requestedVariant = getSvgTypographyVariant(requestedTreatment);
+  const requiredSlotSchema = getSvgSlotSchemaForWordCount(wordCount);
+  if (requestedVariant?.slotSchema === requiredSlotSchema) {
+    return requestedTreatment;
+  }
+  if (wordCount <= 1) return FALLBACK_CINEMATIC_TREATMENT_BY_WORD_COUNT.one;
+  if (wordCount === 2) return FALLBACK_CINEMATIC_TREATMENT_BY_WORD_COUNT.two;
+  if (wordCount === 3) return FALLBACK_CINEMATIC_TREATMENT_BY_WORD_COUNT.three;
+  return FALLBACK_CINEMATIC_TREATMENT_BY_WORD_COUNT.fourPlus;
+};
+
+export const buildMaulCinematicCaptionChunk = ({
+  record,
+  requestedTreatment,
+}: {
+  record: MaulPlannedTextRecord;
+  requestedTreatment: string;
+}): {chunk: CaptionChunk; treatment: string} => {
+  const tokens = record.lines.flatMap((line) => line.tokens);
+  const treatment = resolveRenderableCinematicTreatment({
+    requestedTreatment,
+    wordCount: tokens.length,
+  });
+  const emphasisTokenIds = new Set(
+    (record.animationPrograms ?? [])
+      .filter((program) => program.target.scope === "tokens")
+      .flatMap((program) => program.target.tokenIds),
+  );
+  const words = tokens.map((token) => ({
+    text: token.text,
+    startMs:
+      token.outputSpans.length > 0
+        ? Math.min(...token.outputSpans.map((span) => span.outputStartMs))
+        : record.outputStartMs,
+    endMs:
+      token.outputSpans.length > 0
+        ? Math.max(...token.outputSpans.map((span) => span.outputEndMs))
+        : record.outputEndMs,
+    confidence: 1,
+  }));
+
+  return {
+    treatment,
+    chunk: {
+      id: record.segmentId,
+      text: joinShortsTextTokens(tokens.map((token) => token.text)),
+      startMs: record.outputStartMs,
+      endMs: record.outputEndMs,
+      words,
+      styleKey: toSvgTypographyStyleKey(treatment),
+      motionKey: toSvgTypographyMotionKey(treatment),
+      layoutVariant: SVG_TYPOGRAPHY_LAYOUT_VARIANT,
+      emphasisWordIndices: tokens.flatMap((token, index) =>
+        emphasisTokenIds.has(token.tokenId) ? [index] : [],
+      ),
+      profileId: SVG_TYPOGRAPHY_PROFILE_ID,
+      semantic: {
+        intent: emphasisTokenIds.size > 0 ? "punch-emphasis" : "default",
+        nameSpans: [],
+        isVariation: true,
+        suppressDefault: true,
+      },
+      suppressDefault: true,
+    },
+  };
+};
 
 const interpolateTransform = ({
   from,
@@ -116,21 +236,65 @@ export const MaulPlannedTextCard: React.FC<{
   textColor: string;
   accentColor: string;
 }> = ({record, absoluteTimeMs, outputFrame, fps, textColor, accentColor}) => {
+  const animationPrograms = record.animationPrograms?.length
+    ? record.animationPrograms
+    : record.animationProgram ? [record.animationProgram] : [];
+  const resolvedAnimations = outputFrame !== undefined && fps !== undefined
+    ? animationPrograms.map((program) => ({
+        program,
+        transform: resolveMaulTextAnimationTransform({program, outputFrame, fps}),
+      }))
+    : [];
+  const requestedCinematicTreatment = animationPrograms.find((program) =>
+    MAUL_CINEMATIC_TREATMENT_IDS.has(
+      program.treatment as (typeof MAUL_CINEMATIC_TREATMENT_IDS extends Set<infer T>
+        ? T
+        : never),
+    ),
+  )?.treatment;
+  if (
+    requestedCinematicTreatment &&
+    outputFrame !== undefined &&
+    fps !== undefined
+  ) {
+    const cinematic = buildMaulCinematicCaptionChunk({
+      record,
+      requestedTreatment: requestedCinematicTreatment,
+    });
+    return (
+      <div
+        data-maul-placement-segment={record.segmentId}
+        data-placement-family={record.family}
+        data-placement-variant={record.variantId}
+        data-placement-fallback={record.fallbackCode ?? "none"}
+        data-legibility-primitive="cinematic_transparent"
+        data-requested-text-animation-treatment={requestedCinematicTreatment}
+        data-text-animation-treatment={cinematic.treatment}
+        style={{
+          position: "absolute",
+          left: record.boxPx.leftPx,
+          top: record.boxPx.topPx,
+          width: record.boxPx.widthPx,
+          height: record.boxPx.heightPx,
+          overflow: "visible",
+          color: textColor,
+        }}
+      >
+        <SvgCaptionOverlayAtFrame
+          chunks={[cinematic.chunk]}
+          frame={outputFrame}
+          fps={fps}
+        />
+      </div>
+    );
+  }
+
   const primitive = compileMaulLegibilityPrimitive(
     record.minimumLegibilityPrimitive,
   );
-  const resolvedAnimation =
-    record.animationProgram && outputFrame !== undefined && fps !== undefined
-      ? resolveMaulTextAnimationTransform({
-          program: record.animationProgram,
-          outputFrame,
-          fps,
-        })
-      : null;
-  const segmentAnimation =
-    record.animationProgram?.target.scope === "segment"
-      ? resolvedAnimation
-      : null;
+  const segmentAnimation = resolvedAnimations.find(
+    ({program}) => program.target.scope === "segment",
+  )?.transform ?? null;
   return (
     <div
       data-maul-placement-segment={record.segmentId}
@@ -142,7 +306,7 @@ export const MaulPlannedTextCard: React.FC<{
       data-font-asset-id={record.font.assetId}
       data-font-profile-id={record.font.profileId}
       data-font-metrics-fingerprint={record.font.metricsFingerprint}
-      data-text-animation-treatment={record.animationProgram?.treatment}
+      data-text-animation-treatment={animationPrograms.map((program) => program.treatment).join(",") || undefined}
       style={{
         position: "absolute",
         left: record.boxPx.leftPx,
@@ -174,12 +338,9 @@ export const MaulPlannedTextCard: React.FC<{
                 span.outputStartMs <= absoluteTimeMs &&
                 span.outputEndMs > absoluteTimeMs,
             );
-            const tokenAnimation =
-              resolvedAnimation &&
-              record.animationProgram?.target.scope === "tokens" &&
-              record.animationProgram.target.tokenIds.includes(token.tokenId)
-                ? resolvedAnimation
-                : null;
+            const tokenAnimation = resolvedAnimations.find(({program}) =>
+              program.target.scope === "tokens" && program.target.tokenIds.includes(token.tokenId),
+            )?.transform ?? null;
             return (
               <React.Fragment key={token.tokenId}>
                 {tokenIndex > 0 &&

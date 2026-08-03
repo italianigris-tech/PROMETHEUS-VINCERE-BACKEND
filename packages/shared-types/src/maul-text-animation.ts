@@ -3,11 +3,20 @@ import {z} from "zod";
 const idSchema = z.string().trim().min(1);
 const sha256Schema = z.string().regex(/^[a-f0-9]{64}$/i);
 
-export const maulTextAnimationTreatmentSchema = z.enum([
+export const MAUL_TEXT_ANIMATION_TREATMENTS = [
   "fade_rise",
   "keyword_pop",
   "continuous_push",
-]);
+  "softSlideLeft", "softSlideRight", "arcRise", "dropSettle", "whipIn", "parallaxCross",
+  "agentic_split_rise", "interesting_blur_lift", "cinematic_focus_lock", "generic_single_word", "two_word_cinematic_pair", "two_word_stagger_punch", "two_word_arc_sweep", "two_word_dual_rise", "two_word_focus_pivot", "three_word_serif_orbit", "three_word_tall_blade", "three_word_script_glide", "three_word_ref_lockup", "three_word_ref_last_punch", "three_word_ref_through_column", "three_word_ref_script_tag", "three_word_ref_dream_big_now_v1", "three_word_ref_your_master_mind_v1", "three_word_ref_take_action_now_v1", "three_word_ref_build_legacy_your_v1", "four_word_banner_drift", "four_word_split_stagger", "four_word_serif_pivot", "four_word_outline_whip", "six_word_quad_duo_depth", "two_word_script_caption_lock", "hormozi_word_lock_snap",
+  "cinematic_text_preset", "cinematic_text_preset_1", "cinematic_text_preset_2", "cinematic_text_preset_3", "cinematic_text_preset_4", "cinematic_text_preset_5", "cinematic_text_preset_6", "cinematic_text_preset_7", "cinematic_text_preset_8", "cinematic_text_preset_9", "cinematic_text_preset_10", "cinematic_text_preset_11",
+  "word-rise-blur-resolve", "letter-float-overshoot", "tracking-collapse", "vertical-slit-reveal", "horizontal-mask-sweep", "depth-pop-letter", "glitch-stabilize", "whisper-fade-up", "impact-punch", "drift-from-depth", "letter-shimmer-pass", "baseline-wave", "split-convergence", "scramble-to-clarity", "heavy-subtitle-rise", "documentary-soft-lock", "kinetic-cascade", "flash-exposure", "bottom-crop-drift", "single-word-elastic-emphasis", "stepped-dramatic-build", "ghost-trail-letter", "compression-release", "skew-unbend", "rise-glow-settle", "cinematic-typewriter", "phrase-inhale", "pulse-emphasis", "long-shadow-sweep", "word-ladder-build", "letter-rain-settle", "delayed-bloom",
+  "animated-quote-reveal", "blur-underline", "core-replaceable-word", "cursor-highlight-text-animation", "highlight-word", "main-word-inside-a-glow-box", "number-for-steps-counting-animation", "text-underlining-effect", "three-steps-pyramid", "word-cross-out",
+] as const;
+
+export const maulTextAnimationTreatmentSchema = z.enum(
+  MAUL_TEXT_ANIMATION_TREATMENTS,
+);
 
 export const maulTextAnimationEasingSchema = z.discriminatedUnion("type", [
   z.object({type: z.literal("linear")}).strict(),
@@ -114,20 +123,6 @@ export const maulTextAnimationProgramSchema = z
       });
     }
 
-    if (program.treatment === "keyword_pop" && program.target.scope !== "tokens") {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["target", "scope"],
-        message: "keyword_pop must target stable token references.",
-      });
-    }
-    if (program.treatment !== "keyword_pop" && program.target.scope !== "segment") {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["target", "scope"],
-        message: `${program.treatment} must target its stable placement segment.`,
-      });
-    }
   });
 
 export const maulTextAnimationPlanCoreSchema = z
@@ -159,14 +154,14 @@ export const maulTextAnimationPlanCoreSchema = z
       });
     }
 
-    const placementSegmentIds = plan.programs.map(
-      (program) => program.target.placementSegmentId,
+    const programTargetKeys = plan.programs.map(
+      (program) => `${program.target.placementSegmentId}:${program.target.scope}`,
     );
-    if (new Set(placementSegmentIds).size !== placementSegmentIds.length) {
+    if (new Set(programTargetKeys).size !== programTargetKeys.length) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["programs"],
-        message: "Each placement segment may have only one animation program.",
+        message: "Each placement segment may have one segment program and one token program.",
       });
     }
 

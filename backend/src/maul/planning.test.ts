@@ -426,6 +426,38 @@ describe("MAUL V3 text animation planning", () => {
     ]].sort((left, right) => left - right));
   });
 
+
+  it("gives the core word a restrained second treatment without breaking its supporting phrase", () => {
+    const options = {
+      inputs,
+      textChunkPlan: textChunkArtifact,
+      textPlacementPlan: textPlacementArtifact,
+      selectionSeed: "maul-editorial-variation-proof",
+      outputDurationMs: 1200,
+    };
+
+    const first = buildMaulTextAnimationPlanPayload(options);
+    const second = buildMaulTextAnimationPlanPayload(options);
+
+    expect(first.programs).toEqual(second.programs);
+    expect(first.programs).toHaveLength(2);
+    expect(first.programs[0]).toMatchObject({
+      target: {
+        placementSegmentId: "placement_a",
+        scope: "segment",
+        tokenIds: ["token_a", "token_b"],
+      },
+    });
+    expect(first.programs[1]).toMatchObject({
+      target: {
+        placementSegmentId: "placement_a",
+        scope: "tokens",
+        tokenIds: ["token_b"],
+      },
+    });
+    expect(first.programs[1]!.treatment).not.toBe(first.programs[0]!.treatment);
+  });
+
   it("builds the 17-artifact V3 bundle without registering audio treatment", () => {
     const planArtifactIds = {
       observationSnapshot: "observation",

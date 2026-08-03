@@ -1,0 +1,101 @@
+{
+  "schemaVersion": "maul-artifact/v1",
+  "artifactId": "maul_artifact_msd6axjj_583fb5ada6",
+  "artifactType": "revision_plan",
+  "lineage": {
+    "projectId": "maul_project_msd6arga_7460614935",
+    "canonicalJobId": "maul_job_msd6argc_b953c855d6",
+    "runId": "maul_run_msd6argc_c6a7ab795c",
+    "rootSourceAssetId": "maul_artifact_msd6argc_d609707975",
+    "parentArtifactIds": [
+      "maul_artifact_msd6argc_d609707975",
+      "maul_artifact_msd6arjd_e45a1aa1f5",
+      "maul_artifact_msd6arl1_d987fa804c",
+      "maul_artifact_msd6arxr_e6640c8de1",
+      "maul_artifact_msd6arrj_102d360b7c",
+      "maul_artifact_msd6asgh_a4b13f9fac",
+      "maul_artifact_msd6at2a_e406ead8cb"
+    ],
+    "sequence": 25,
+    "producedBy": {
+      "module": "maul-stage-one-planner",
+      "version": "1"
+    },
+    "createdAt": "2026-08-03T11:56:03.535Z"
+  },
+  "payload": {
+    "sourceAssetId": "maul_artifact_msd6argc_d609707975",
+    "analysisArtifactId": "maul_artifact_msd6arjd_e45a1aa1f5",
+    "timelineArtifactId": "maul_artifact_msd6arl1_d987fa804c",
+    "candidateArtifactId": "maul_artifact_msd6arxr_e6640c8de1",
+    "treatmentGenomeArtifactId": "maul_artifact_msd6arrj_102d360b7c",
+    "planVersion": "maul-revision-plan/v1",
+    "replayKey": "6a6558ce953708514b899d6a1c7581d0d7ecf78b2e23507e209380075b259176",
+    "authority": {
+      "authorityClass": "deterministic",
+      "stageId": "maul-revision-plan_v1",
+      "confidence": 0.72,
+      "inferenceReceiptId": null
+    },
+    "warnings": [],
+    "fallbacks": [
+      {
+        "condition": "A richer mandatory dependency is unavailable or unverified.",
+        "action": "Use the named restrained fallback and keep the release quality gate closed.",
+        "status": "available"
+      }
+    ],
+    "schemaVersion": "maul-revision-plan/v1",
+    "immutableFields": [
+      "Source claims and transcript wording",
+      "Authoritative Editorial Timeline source mapping",
+      "Rights and provenance state",
+      "Approved candidate and treatment identity",
+      "S4 release thresholds"
+    ],
+    "allowedMutations": [
+      "Caption line grouping within the governed safe region",
+      "Camera scale within treatment maximums",
+      "Audio mix levels without weakening dialogue priority",
+      "Explicit fallback selection"
+    ],
+    "repairOptions": [
+      {
+        "failureClass": "caption_safety_or_legibility",
+        "permittedAction": "Regroup captions or reduce caption scale within the safe region.",
+        "affectedGates": [
+          "typography",
+          "composition_and_hierarchy"
+        ]
+      },
+      {
+        "failureClass": "camera_continuity",
+        "permittedAction": "Reduce or remove the governed push without changing source timing.",
+        "affectedGates": [
+          "framing_and_camera",
+          "continuity"
+        ]
+      },
+      {
+        "failureClass": "dialogue_masking",
+        "permittedAction": "Lower music or SFX gain while retaining the licensed assets.",
+        "affectedGates": [
+          "dialogue_and_audio"
+        ]
+      }
+    ],
+    "maximumAttempts": 2,
+    "maximumWallClockMs": 300000,
+    "maximumCostUsd": 1,
+    "criticMustBeIndependent": true,
+    "noProgressDetection": "Stop when a retry does not improve every failing gate targeted by that repair.",
+    "oscillationDetection": "Stop when a later attempt recreates a previously observed gate score and failure signature.",
+    "humanCheckpoint": "Require human review before changing immutable source, rights, timeline, candidate, treatment, or threshold fields.",
+    "stopReasons": [
+      "Attempt, wall-clock, or cost budget exhausted.",
+      "No-progress or oscillation detected.",
+      "A repair would require immutable-field mutation or threshold reduction."
+    ],
+    "thresholdReductionAllowed": false
+  }
+}

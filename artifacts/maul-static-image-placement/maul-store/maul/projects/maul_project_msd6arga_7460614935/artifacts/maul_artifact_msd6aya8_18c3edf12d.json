@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "maul-artifact/v1",
+  "artifactId": "maul_artifact_msd6aya8_18c3edf12d",
+  "artifactType": "review_decision",
+  "lineage": {
+    "projectId": "maul_project_msd6arga_7460614935",
+    "canonicalJobId": "maul_job_msd6argc_b953c855d6",
+    "runId": "maul_run_msd6argc_c6a7ab795c",
+    "rootSourceAssetId": "maul_artifact_msd6argc_d609707975",
+    "parentArtifactIds": [
+      "maul_artifact_msd6arxr_e6640c8de1",
+      "maul_artifact_msd6arrj_102d360b7c",
+      "maul_artifact_msd6ay2y_f44e5a3b66"
+    ],
+    "sequence": 27,
+    "producedBy": {
+      "module": "maul-judgment-layer",
+      "version": "1"
+    },
+    "createdAt": "2026-08-03T11:56:04.496Z"
+  },
+  "payload": {
+    "subjectArtifactId": "maul_artifact_msd6arxr_e6640c8de1",
+    "treatmentGenomeArtifactId": "maul_artifact_msd6arrj_102d360b7c",
+    "planningBundleArtifactId": "maul_artifact_msd6ay2y_f44e5a3b66",
+    "reviewerId": "static_image_demo_reviewer",
+    "decision": "approved",
+    "failureClasses": [],
+    "rationale": "Static visual fixture approved to exercise MAUL's existing text planning and rendering path.",
+    "rubricScores": {
+      "editorial_clarity": 90,
+      "source_fidelity": 100,
+      "pacing_fit": 90,
+      "visual_hierarchy": 90,
+      "accessibility": 90
+    },
+    "weightedScore": 92.5,
+    "decidedAt": "2026-08-03T11:56:04.484Z"
+  }
+}

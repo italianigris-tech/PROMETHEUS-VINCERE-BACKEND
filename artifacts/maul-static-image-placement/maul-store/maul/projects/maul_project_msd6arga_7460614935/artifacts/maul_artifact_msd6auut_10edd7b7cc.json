@@ -1,0 +1,71 @@
+{
+  "schemaVersion": "maul-artifact/v1",
+  "artifactId": "maul_artifact_msd6auut_10edd7b7cc",
+  "artifactType": "observation_snapshot",
+  "lineage": {
+    "projectId": "maul_project_msd6arga_7460614935",
+    "canonicalJobId": "maul_job_msd6argc_b953c855d6",
+    "runId": "maul_run_msd6argc_c6a7ab795c",
+    "rootSourceAssetId": "maul_artifact_msd6argc_d609707975",
+    "parentArtifactIds": [
+      "maul_artifact_msd6argc_d609707975",
+      "maul_artifact_msd6arjd_e45a1aa1f5",
+      "maul_artifact_msd6arl1_d987fa804c",
+      "maul_artifact_msd6arxr_e6640c8de1",
+      "maul_artifact_msd6arrj_102d360b7c",
+      "maul_artifact_msd6asgh_a4b13f9fac",
+      "maul_artifact_msd6at2a_e406ead8cb"
+    ],
+    "sequence": 12,
+    "producedBy": {
+      "module": "maul-stage-one-planner",
+      "version": "1"
+    },
+    "createdAt": "2026-08-03T11:56:00.053Z"
+  },
+  "payload": {
+    "sourceAssetId": "maul_artifact_msd6argc_d609707975",
+    "analysisArtifactId": "maul_artifact_msd6arjd_e45a1aa1f5",
+    "timelineArtifactId": "maul_artifact_msd6arl1_d987fa804c",
+    "candidateArtifactId": "maul_artifact_msd6arxr_e6640c8de1",
+    "treatmentGenomeArtifactId": "maul_artifact_msd6arrj_102d360b7c",
+    "planVersion": "maul-observation-snapshot/v1",
+    "replayKey": "50c1bc96954a240484626513b51e3f04b47b102700387e00756595366c44c62e",
+    "authority": {
+      "authorityClass": "deterministic",
+      "stageId": "maul-observation-snapshot_v1",
+      "confidence": 0.72,
+      "inferenceReceiptId": null
+    },
+    "warnings": [
+      "Current MAUL analysis does not provide multimodal prosody, gesture, motion, or temporal visual authority."
+    ],
+    "fallbacks": [
+      {
+        "condition": "A richer mandatory dependency is unavailable or unverified.",
+        "action": "Use the named restrained fallback and keep the release quality gate closed.",
+        "status": "available"
+      }
+    ],
+    "schemaVersion": "maul-observation-snapshot/v1",
+    "facts": {
+      "language": "en",
+      "transcriptWordCount": 76,
+      "verifiedVoiceSpanCount": 1,
+      "verifiedSilenceSpanCount": 0,
+      "shotCount": 0,
+      "speakerTrackCount": 0,
+      "sourceDurationMs": 20480,
+      "sourceWidth": 1080,
+      "sourceHeight": 1920,
+      "sourceFps": 30
+    },
+    "unavailableSignals": [
+      "prosody",
+      "gesture",
+      "motion",
+      "source_quality_grade",
+      "temporal_visual_probe"
+    ]
+  }
+}

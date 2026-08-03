@@ -80,7 +80,7 @@ const SVG_FRAME_CONFIGS: Record<CaptionVerticalBias, SvgFrameConfig> = {
 };
 const SVG_MIN_PROGRAM_SCALE = 0.72;
 
-type SvgCaptionOverlayProps = {
+export type SvgCaptionOverlayProps = {
   chunks: CaptionChunk[];
   captionBias?: CaptionVerticalBias;
   editorialContext?: Omit<CaptionEditorialContext, "chunk" | "currentTimeMs">;
@@ -2264,14 +2264,19 @@ const getSlotValuesForChunk = (words: string[], variant: SvgTypographyVariant): 
   return mapWordsToSvgSlots(words, slotSchema);
 };
 
-export const SvgCaptionOverlay: React.FC<SvgCaptionOverlayProps> = ({
+export type SvgCaptionOverlayAtFrameProps = SvgCaptionOverlayProps & {
+  frame: number;
+  fps: number;
+};
+
+export const SvgCaptionOverlayAtFrame: React.FC<SvgCaptionOverlayAtFrameProps> = ({
   chunks,
   captionBias = "middle",
   editorialContext,
-  referenceMotionTrace = null
+  referenceMotionTrace = null,
+  frame,
+  fps
 }) => {
-  const frame = useCurrentFrame();
-  const {fps} = useVideoConfig();
   const currentTimeMs = (frame / fps) * 1000;
   const frameConfig = useMemo(() => SVG_FRAME_CONFIGS[captionBias] ?? SVG_FRAME_CONFIGS.middle, [captionBias]);
   const typingCursorChunkId = useMemo(() => {
@@ -2372,4 +2377,11 @@ export const SvgCaptionOverlay: React.FC<SvgCaptionOverlayProps> = ({
       })}
     </AbsoluteFill>
   );
+};
+
+export const SvgCaptionOverlay: React.FC<SvgCaptionOverlayProps> = (props) => {
+  const frame = useCurrentFrame();
+  const {fps} = useVideoConfig();
+
+  return <SvgCaptionOverlayAtFrame {...props} frame={frame} fps={fps} />;
 };

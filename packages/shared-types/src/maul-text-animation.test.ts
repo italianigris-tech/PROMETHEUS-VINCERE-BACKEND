@@ -68,12 +68,13 @@ const animationPlan = {
 const clone = <Value>(value: Value): Value => structuredClone(value);
 
 describe("MAUL text animation core contract", () => {
-  it("exposes exactly the three tracer treatments", () => {
-    expect(maulTextAnimationTreatmentSchema.options).toEqual([
-      "fade_rise",
-      "keyword_pop",
-      "continuous_push",
-    ]);
+  it("exposes imported treatment families alongside MAUL tracer treatments", () => {
+    expect(maulTextAnimationTreatmentSchema.options).toEqual(expect.arrayContaining([
+      "fade_rise", "keyword_pop", "continuous_push", "softSlideRight",
+      "two_word_cinematic_pair", "cinematic_text_preset_11",
+      "word-rise-blur-resolve", "word-cross-out",
+    ]));
+    expect(maulTextAnimationTreatmentSchema.options.length).toBeGreaterThan(3);
     expect(() => maulTextAnimationTreatmentSchema.parse("spring")).toThrow();
   });
 
@@ -101,7 +102,7 @@ describe("MAUL text animation core contract", () => {
     });
     expect(() =>
       maulTextAnimationPlanCoreSchema.parse(duplicateSegment),
-    ).toThrow(/placement segment.*one animation|one animation.*placement segment/i);
+    ).toThrow(/placement segment.*one segment|one segment.*placement segment/i);
 
     const duplicateToken = clone(animationPlan);
     duplicateToken.programs[0].target.tokenIds = ["token_a", "token_a"];
@@ -167,14 +168,12 @@ describe("MAUL text animation core contract", () => {
     expect(() => maulTextAnimationPlanCoreSchema.parse(invalid)).toThrow();
   });
 
-  it("requires keyword_pop to target stable tokens", () => {
-    const invalid = clone(animationPlan);
-    invalid.programs[0].treatment = "keyword_pop";
-    invalid.programs[0].target.scope = "segment";
+  it("allows a keyword family as a restrained segment base treatment", () => {
+    const plan = clone(animationPlan);
+    plan.programs[0].treatment = "keyword_pop";
+    plan.programs[0].target.scope = "segment";
 
-    expect(() => maulTextAnimationPlanCoreSchema.parse(invalid)).toThrow(
-      /keyword_pop.*token|token.*keyword_pop/i,
-    );
+    expect(maulTextAnimationPlanCoreSchema.parse(plan).programs[0]?.target.scope).toBe("segment");
   });
 
   it("binds authoritative parent hashes to input hashes", () => {

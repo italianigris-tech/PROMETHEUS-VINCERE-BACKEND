@@ -140,6 +140,26 @@ export const progressiveVideoContextSnapshotSchema = z.object({
     segments: z.array(progressiveMotionSegmentSchema).default([]),
     analysisComplete: z.boolean()
   }),
+  editorialAnalysis: z.object({
+    generatedAt: z.string().min(1),
+    summary: z.string().min(1),
+    pacing: z.enum(["slow", "balanced", "fast", "unknown"]),
+    wordsPerMinute: z.number().nonnegative().nullable(),
+    motionIntensity: z.number().min(0).max(1).nullable(),
+    recommendations: z.array(z.object({
+      id: z.string().min(1),
+      title: z.string().min(1),
+      rationale: z.string().min(1),
+      rangeMs: timeRangeSchema.optional()
+    })).max(8).default([])
+  }).default({
+    generatedAt: "pending",
+    summary: "Analysis is still being prepared.",
+    pacing: "unknown",
+    wordsPerMinute: null,
+    motionIntensity: null,
+    recommendations: []
+  }),
   handoff: z.object({
     renderGraphReady: z.boolean(),
     instructionalManualReady: z.boolean(),

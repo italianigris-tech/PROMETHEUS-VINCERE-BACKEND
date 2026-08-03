@@ -5,6 +5,8 @@ import path from "node:path";
 import {pipeline as streamPipeline} from "node:stream/promises";
 
 import {
+  AbortMultipartUploadCommand,
+  DeleteObjectCommand,
   GetObjectCommand,
   PutObjectCommand,
   S3Client
@@ -45,6 +47,7 @@ export type R2TransferService = {
     destinationPath: string;
     sizeBytes: number;
   }>;
+  cleanupSourceUpload?(input: {bucket: string; key: string; uploadId?: string | null}): Promise<void>;
 };
 
 const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, "");
@@ -164,6 +167,22 @@ export const createR2TransferService = (env: BackendEnv): R2TransferService => {
         destinationPath: input.destinationPath,
         sizeBytes: written.size
       };
+    },
+    async cleanupSourceUpload(input) {
+      const s3 = ensureConfigured();
+      if (input.uploadId) {
+        try {
+          await s3.send(new AbortMultipartUploadCommand({
+            Bucket: input.bucket,
+            Key: input.key,
+            UploadId: input.uploadId
+          }));
+        } catch (error) {
+          const status = (error as {$metadata?: {httpStatusCode?: number}}).$metadata?.httpStatusCode;
+          if (status !== 404) throw error;
+        }
+      }
+      await s3.send(new DeleteObjectCommand({Bucket: input.bucket, Key: input.key}));
     }
   };
 };

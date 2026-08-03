@@ -1,0 +1,75 @@
+{
+  "schemaVersion": "maul-artifact/v1",
+  "artifactId": "maul_artifact_msd6awlb_7d5b8440bf",
+  "artifactType": "capability_selection",
+  "lineage": {
+    "projectId": "maul_project_msd6arga_7460614935",
+    "canonicalJobId": "maul_job_msd6argc_b953c855d6",
+    "runId": "maul_run_msd6argc_c6a7ab795c",
+    "rootSourceAssetId": "maul_artifact_msd6argc_d609707975",
+    "parentArtifactIds": [
+      "maul_artifact_msd6argc_d609707975",
+      "maul_artifact_msd6arjd_e45a1aa1f5",
+      "maul_artifact_msd6arl1_d987fa804c",
+      "maul_artifact_msd6arxr_e6640c8de1",
+      "maul_artifact_msd6arrj_102d360b7c",
+      "maul_artifact_msd6asgh_a4b13f9fac",
+      "maul_artifact_msd6at2a_e406ead8cb"
+    ],
+    "sequence": 19,
+    "producedBy": {
+      "module": "maul-stage-one-planner",
+      "version": "1"
+    },
+    "createdAt": "2026-08-03T11:56:02.303Z"
+  },
+  "payload": {
+    "sourceAssetId": "maul_artifact_msd6argc_d609707975",
+    "analysisArtifactId": "maul_artifact_msd6arjd_e45a1aa1f5",
+    "timelineArtifactId": "maul_artifact_msd6arl1_d987fa804c",
+    "candidateArtifactId": "maul_artifact_msd6arxr_e6640c8de1",
+    "treatmentGenomeArtifactId": "maul_artifact_msd6arrj_102d360b7c",
+    "planVersion": "maul-capability-selection/v1",
+    "replayKey": "eab7874a0625eaff3b008fbf1b1ead2c989bde1a4d9d1821ad09a52b22e8d774",
+    "authority": {
+      "authorityClass": "deterministic",
+      "stageId": "maul-capability-selection_v1",
+      "confidence": 0.72,
+      "inferenceReceiptId": null
+    },
+    "warnings": [],
+    "fallbacks": [
+      {
+        "condition": "A richer mandatory dependency is unavailable or unverified.",
+        "action": "Use the named restrained fallback and keep the release quality gate closed.",
+        "status": "available"
+      }
+    ],
+    "schemaVersion": "maul-capability-selection/v1",
+    "selections": [
+      {
+        "capabilityId": "maul_source_timestamp_mapping",
+        "semanticRole": "Execute factual source-to-output mapping.",
+        "selected": true,
+        "execution": {
+          "executionStatus": "native",
+          "nativeBranch": "MaulShort.SourceSegment.video",
+          "fallback": null,
+          "evidenceRequirement": "Frame probes must match the Authoritative Editorial Timeline."
+        }
+      },
+      {
+        "capabilityId": "maul_governed_text_animation",
+        "semanticRole": "Present dialogue captions with a stable readable hold.",
+        "selected": true,
+        "execution": {
+          "executionStatus": "native",
+          "nativeBranch": "MaulPlannedTextLayer.governedTransforms",
+          "fallback": null,
+          "evidenceRequirement": "Governed entry, hold, and exit frames must be visually distinct and safe."
+        }
+      }
+    ],
+    "unknownCapabilityIds": []
+  }
+}

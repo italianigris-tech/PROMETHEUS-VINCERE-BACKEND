@@ -64,6 +64,15 @@ const envSchema = z.object({
   R2_UPLOAD_BUCKET: z.string().default("prometheus-uploads"),
   R2_PUBLIC_UPLOADS_BASE: z.string().default(""),
   R2_UPLOAD_URL_EXPIRES_SECONDS: z.coerce.number().int().positive().default(600),
+  SUPABASE_URL: z.string().default(""),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().default(""),
+  MAUL_SUPABASE_BRIDGE_ENABLED: z
+    .union([z.literal("true"), z.literal("false"), z.boolean()])
+    .transform((value) => value === true || value === "true")
+    .default(false),
+  MAUL_SUPABASE_POLL_INTERVAL_MS: z.coerce.number().int().min(1000).default(5000),
+  MAUL_SUPABASE_LEASE_SECONDS: z.coerce.number().int().min(30).max(3600).default(300),
+  MAUL_SUPABASE_STALE_JOB_MS: z.coerce.number().int().min(60000).default(6 * 60 * 60 * 1000),
   MUSIC_LIBRARY_PATH: z.string().default(""),
   ASSET_MILVUS_ENABLED: z
     .union([z.literal("true"), z.literal("false"), z.boolean()])

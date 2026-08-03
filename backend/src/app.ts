@@ -39,6 +39,7 @@ import {
   type ShortsTextChunkPlanner,
 } from "./maul/shorts-text-chunking-llm";
 import {MaulDurableControlPlane} from "./maul/control-plane";
+import {SupabaseSourceJobBridge} from "./maul/supabase-source-job-bridge";
 import {registerMaulControlPlaneRoutes} from "./maul/control-plane-routes";
 import {MaulLearningStore} from "./maul/learning";
 import {registerMaulProjectRoutes} from "./maul/routes";
@@ -325,6 +326,17 @@ export const createBackendApp = async ({
   const assetRetrieval = new AssetRetrievalService(env);
   const vectorRetrieval = env.ASSET_MILVUS_ENABLED ? new VectorRetrievalService(env) : undefined;
   const r2Service = deps?.r2Service ?? createR2TransferService(env);
+  const supabaseSourceJobs = new SupabaseSourceJobBridge(env, r2Service, videoContexts, deps?.fetchImpl);
+  if (env.MAUL_SUPABASE_BRIDGE_ENABLED && !supabaseSourceJobs.configured) {
+    console.warn(
+      "[maul-supabase-bridge] disabled: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, and R2 credentials are required."
+    );
+  } else {
+    supabaseSourceJobs.start();
+  }
+  app.addHook("onClose", async () => {
+    supabaseSourceJobs.stop();
+  });
   const josephUploadPipeline = deps?.josephUploadPipeline ?? createJosephUploadPipeline({
     storageDir: env.STORAGE_DIR
   });

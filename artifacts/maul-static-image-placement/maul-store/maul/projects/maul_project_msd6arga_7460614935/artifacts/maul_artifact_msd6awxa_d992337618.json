@@ -1,0 +1,86 @@
+{
+  "schemaVersion": "maul-artifact/v1",
+  "artifactId": "maul_artifact_msd6awxa_d992337618",
+  "artifactType": "context_assembly_plan",
+  "lineage": {
+    "projectId": "maul_project_msd6arga_7460614935",
+    "canonicalJobId": "maul_job_msd6argc_b953c855d6",
+    "runId": "maul_run_msd6argc_c6a7ab795c",
+    "rootSourceAssetId": "maul_artifact_msd6argc_d609707975",
+    "parentArtifactIds": [
+      "maul_artifact_msd6argc_d609707975",
+      "maul_artifact_msd6arjd_e45a1aa1f5",
+      "maul_artifact_msd6arl1_d987fa804c",
+      "maul_artifact_msd6arxr_e6640c8de1",
+      "maul_artifact_msd6arrj_102d360b7c",
+      "maul_artifact_msd6asgh_a4b13f9fac",
+      "maul_artifact_msd6at2a_e406ead8cb"
+    ],
+    "sequence": 22,
+    "producedBy": {
+      "module": "maul-stage-one-planner",
+      "version": "1"
+    },
+    "createdAt": "2026-08-03T11:56:02.734Z"
+  },
+  "payload": {
+    "sourceAssetId": "maul_artifact_msd6argc_d609707975",
+    "analysisArtifactId": "maul_artifact_msd6arjd_e45a1aa1f5",
+    "timelineArtifactId": "maul_artifact_msd6arl1_d987fa804c",
+    "candidateArtifactId": "maul_artifact_msd6arxr_e6640c8de1",
+    "treatmentGenomeArtifactId": "maul_artifact_msd6arrj_102d360b7c",
+    "planVersion": "maul-context-assembly-plan/v1",
+    "replayKey": "fd8ee34688213c8be1918221b4d075b4a92ca1842dfb0c08ba0d6f9eb9d7c979",
+    "authority": {
+      "authorityClass": "deterministic",
+      "stageId": "maul-context-assembly-plan_v1",
+      "confidence": 0.72,
+      "inferenceReceiptId": null
+    },
+    "warnings": [],
+    "fallbacks": [
+      {
+        "condition": "A richer mandatory dependency is unavailable or unverified.",
+        "action": "Use the named restrained fallback and keep the release quality gate closed.",
+        "status": "available"
+      }
+    ],
+    "schemaVersion": "maul-context-assembly-plan/v1",
+    "wholeSourceSynopsis": "Every great company starts with a simple choice to solve a real problem for people, and you do not need a massive budget, but you do need a clear plan and the courage to start small. Put your product in front of real users right away, listen to what they say, and fix what does not work because success is not about luck; it is about showing up every single day to make your product better.",
+    "narrativePhases": [
+      {
+        "phase": "available_transcript",
+        "sourceStartMs": 0,
+        "sourceEndMs": 20480,
+        "summary": "Every great company starts with a simple choice to solve a real problem for people, and you do not need a massive budget, but you do need a clear plan and the courage to start small. Put your product in front of real users right away, listen to what they say, and fix what does not work because success is not about luck; it is about showing up every single day to make your product better."
+      }
+    ],
+    "candidateNeighborhood": {
+      "sourceStartMs": 0,
+      "sourceEndMs": 20480,
+      "precedingContext": "",
+      "followingContext": ""
+    },
+    "localTranscript": "Every great company starts with a simple choice to solve a real problem for people, and you do not need a massive budget, but you do need a clear plan and the courage to start small. Put your product in front of real users right away, listen to what they say, and fix what does not work because success is not about luck; it is about showing up every single day to make your product better.",
+    "namedFacts": [],
+    "callbacks": [],
+    "setupPayoffDependencies": [
+      "The selected hook and payoff must remain in their source chronology."
+    ],
+    "chronologyConstraints": [
+      "Do not reorder words inside a kept source segment.",
+      "Preserve the Authoritative Editorial Timeline timestamp map."
+    ],
+    "sourceQualityChanges": [],
+    "unresolvedUncertainty": [
+      "Prosody, gesture, gaze, and temporal visual quality are not present in the current analysis contract."
+    ],
+    "omissionReports": [
+      {
+        "contextClass": "multimodal_whole_source_context",
+        "reason": "The current analysis supplies transcript and structural spans but no governed temporal visual/prosody interpretation.",
+        "effect": "degraded_authority"
+      }
+    ]
+  }
+}

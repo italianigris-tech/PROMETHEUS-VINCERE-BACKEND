@@ -1216,7 +1216,7 @@ export class MaulProjectService {
       inputs: planningInputs,
       textChunkPlan: textChunkResult.artifact,
       textPlacementPlan: textPlacementResult.artifact,
-      treatment: "fade_rise",
+      selectionSeed: `${projectId}:${timeline.artifactId}:editorial-text-v1`,
       outputDurationMs: timeline.payload.outputDurationMs,
     });
     const textAnimationResult = await this.registerArtifact(projectId, {

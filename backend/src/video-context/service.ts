@@ -265,6 +265,55 @@ export class VideoContextService implements VideoContextWorkerHost {
     };
   }
 
+  public async createVideoFromSource(
+    sourcePath: string,
+    mode: "progressive" | "one-shot" = "progressive"
+  ): Promise<{
+    videoId: string;
+    context: ProgressiveVideoContextSnapshot;
+    urls: Record<string, string>;
+  }> {
+    if (!sourcePath.trim()) {
+      throw new Error("Video context creation requires a source path.");
+    }
+    const sourceStats = await this.store.sourceStats(sourcePath);
+    const videoId = createVideoId();
+    await this.store.ensureVideoWorkspace(videoId);
+    const initialSnapshot = attachSourcePath(
+      buildInitialSnapshot({
+        videoId,
+        mode,
+        fileSizeBytes: sourceStats.size,
+        sourcePath
+      }),
+      sourcePath
+    );
+    await this.store.writeSnapshot(initialSnapshot);
+    await this.emit(videoId, "video.created", 0, {source: "canonical_r2_source"});
+    await this.emit(videoId, "context.static.ready", 3, {
+      capabilities: initialSnapshot.staticContext.capabilities
+    });
+    try {
+      this.queue.enqueue(async () => {
+        await this.worker.run(videoId);
+      });
+    } catch (error) {
+      if (error instanceof QueueBacklogLimitError) {
+        await this.updateSnapshot(videoId, (snapshot) => ({
+          ...snapshot,
+          status: "failed",
+          warnings: snapshot.warnings.concat([error.message])
+        }));
+      }
+      throw error;
+    }
+    return {
+      videoId,
+      context: initialSnapshot,
+      urls: this.urlsFor(videoId)
+    };
+  }
+
   public urlsFor(videoId: string): Record<string, string> {
     return {
       status: `/api/videos/${videoId}`,

@@ -311,6 +311,7 @@ export type MaulPlannedTextRecord = {
   alignment: MaulTextPlacementSegment["alignment"];
   minimumLegibilityPrimitive: MaulMinimumLegibilityPrimitive;
   animationProgram?: MaulTextAnimationProgram | null;
+  animationPrograms?: readonly MaulTextAnimationProgram[] | null;
   font: {
     profileId: string;
     metricsFingerprint: string;
@@ -372,12 +373,12 @@ export const buildMaulPlannedTextRecords = ({
   const chunkById = new Map(
     textChunkPlan.chunks.map((chunk) => [chunk.chunkId, chunk]),
   );
-  const animationBySegmentId = new Map(
-    (textAnimationPlan?.programs ?? []).map((program) => [
-      program.target.placementSegmentId,
-      program,
-    ]),
-  );
+  const animationProgramsBySegmentId = new Map<string, MaulTextAnimationProgram[]>();
+  for (const program of textAnimationPlan?.programs ?? []) {
+    const programs = animationProgramsBySegmentId.get(program.target.placementSegmentId) ?? [];
+    programs.push(program);
+    animationProgramsBySegmentId.set(program.target.placementSegmentId, programs);
+  }
 
   return textPlacementPlan.segments.map((segment) => {
     const chunk = chunkById.get(segment.chunkId);
@@ -433,13 +434,14 @@ export const buildMaulPlannedTextRecords = ({
         `Placement ${segment.segmentId} has no matching composition transform.`,
       );
     }
-    const animationProgram = animationBySegmentId.get(segment.segmentId) ?? null;
+    const animationPrograms = animationProgramsBySegmentId.get(segment.segmentId) ?? [];
+    const animationProgram = animationPrograms[0] ?? null;
     if (
       textAnimationPlan &&
-      (!animationProgram ||
-        animationProgram.target.tokenIds.some(
+      (animationPrograms.length === 0 ||
+        animationPrograms.some((program) => program.target.tokenIds.some(
           (tokenId) => !segment.tokenIds.includes(tokenId),
-        ))
+        )))
     ) {
       throw new Error(
         `Placement ${segment.segmentId} has no matching governed animation program.`,
@@ -478,6 +480,7 @@ export const buildMaulPlannedTextRecords = ({
       alignment: segment.alignment,
       minimumLegibilityPrimitive: segment.minimumLegibilityPrimitive,
       animationProgram,
+      animationPrograms,
       font: {
         profileId: profile.profileId,
         metricsFingerprint: profile.metrics.fingerprint,

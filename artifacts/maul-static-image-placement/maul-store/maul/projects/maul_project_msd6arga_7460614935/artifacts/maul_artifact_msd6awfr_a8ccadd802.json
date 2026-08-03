@@ -1,0 +1,63 @@
+{
+  "schemaVersion": "maul-artifact/v1",
+  "artifactId": "maul_artifact_msd6awfr_a8ccadd802",
+  "artifactType": "dialogue_audio_plan",
+  "lineage": {
+    "projectId": "maul_project_msd6arga_7460614935",
+    "canonicalJobId": "maul_job_msd6argc_b953c855d6",
+    "runId": "maul_run_msd6argc_c6a7ab795c",
+    "rootSourceAssetId": "maul_artifact_msd6argc_d609707975",
+    "parentArtifactIds": [
+      "maul_artifact_msd6argc_d609707975",
+      "maul_artifact_msd6arjd_e45a1aa1f5",
+      "maul_artifact_msd6arl1_d987fa804c",
+      "maul_artifact_msd6arxr_e6640c8de1",
+      "maul_artifact_msd6arrj_102d360b7c",
+      "maul_artifact_msd6asgh_a4b13f9fac",
+      "maul_artifact_msd6at2a_e406ead8cb"
+    ],
+    "sequence": 18,
+    "producedBy": {
+      "module": "maul-stage-one-planner",
+      "version": "1"
+    },
+    "createdAt": "2026-08-03T11:56:02.103Z"
+  },
+  "payload": {
+    "sourceAssetId": "maul_artifact_msd6argc_d609707975",
+    "analysisArtifactId": "maul_artifact_msd6arjd_e45a1aa1f5",
+    "timelineArtifactId": "maul_artifact_msd6arl1_d987fa804c",
+    "candidateArtifactId": "maul_artifact_msd6arxr_e6640c8de1",
+    "treatmentGenomeArtifactId": "maul_artifact_msd6arrj_102d360b7c",
+    "planVersion": "maul-dialogue-audio-plan/v1",
+    "replayKey": "56ae2582bebb50a9e6778ae55fbf0fc9cbd873cc1c285c77b8ab758136ca50a4",
+    "authority": {
+      "authorityClass": "deterministic",
+      "stageId": "maul-dialogue-audio-plan_v1",
+      "confidence": 0.72,
+      "inferenceReceiptId": null
+    },
+    "warnings": [
+      "The current native MAUL composition does not execute the full ducking envelope from the video-aware audio plan."
+    ],
+    "fallbacks": [
+      {
+        "condition": "A richer mandatory dependency is unavailable or unverified.",
+        "action": "Use the named restrained fallback and keep the release quality gate closed.",
+        "status": "available"
+      }
+    ],
+    "schemaVersion": "maul-dialogue-audio-plan/v1",
+    "dialoguePriority": true,
+    "targetLufs": -14,
+    "musicPolicy": "Licensed rhythmic bed may rise across escalation but must duck under every spoken claim.",
+    "duckingDb": -12,
+    "sfxIntents": [],
+    "execution": {
+      "executionStatus": "governed_fallback",
+      "nativeBranch": null,
+      "fallback": "Static dialogue-first source/music/SFX nodes; treatment ducking automation remains unimplemented.",
+      "evidenceRequirement": "Decoded-audio probes must verify dialogue dominance and disclose missing automation."
+    }
+  }
+}
