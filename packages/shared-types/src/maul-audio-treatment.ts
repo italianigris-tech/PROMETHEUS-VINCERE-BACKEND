@@ -330,6 +330,27 @@ export const maulAudioTreatmentPlanSchema = z
       });
     }
 
+    const selectedMusic = [...plan.music.selected].sort(
+      (left, right) =>
+        left.outputStartMs - right.outputStartMs ||
+        left.outputEndMs - right.outputEndMs ||
+        left.decisionId.localeCompare(right.decisionId),
+    );
+    if (
+      selectedMusic.some(
+        (selection, index) =>
+          index > 0 &&
+          selection.outputStartMs < selectedMusic[index - 1]!.outputEndMs,
+      )
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["music", "selected"],
+        message:
+          "Selected music intervals cannot overlap; one soundtrack is authoritative until a governed narrative-switch policy exists.",
+      });
+    }
+
     if (plan.sfx.selected.length === 0 && plan.sfx.omissions.length === 0) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,

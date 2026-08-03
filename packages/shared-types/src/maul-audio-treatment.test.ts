@@ -181,6 +181,17 @@ describe("MAUL standalone audio treatment contract", () => {
     );
   });
 
+  it("rejects overlapping selected soundtracks", () => {
+    const invalid = clone(audioTreatmentPlan) as any;
+    invalid.music.selected.push({
+      ...invalid.music.selected[0],
+      decisionId: "music_selected_b",
+      asset: {...invalid.music.selected[0].asset, assetId: "music_asset_c", assetHash: sha("7")},
+      outputStartMs: 4000,
+    });
+    expect(() => maulAudioTreatmentPlanSchema.parse(invalid)).toThrow(/selected music.*overlap|single soundtrack/i);
+  });
+
   it("keeps selected, rejected, and omitted SFX event IDs disjoint", () => {
     const invalid = clone(audioTreatmentPlan);
     invalid.sfx.rejected[0].eventId = "sfx_selected_a";
