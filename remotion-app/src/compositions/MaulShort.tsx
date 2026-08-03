@@ -753,6 +753,12 @@ export const MaulShort: React.FC<MaulShortProps> = ({ manifest }) => {
     adaptedManifest.mode === "planned"
       ? buildMaulPlannedRenderModel(adaptedManifest.manifest)
       : null;
+  const governedCameraEvents =
+    adaptedManifest.mode === "planned" &&
+    adaptedManifest.manifest.schemaVersion ===
+      "maul-unified-short-render-manifest/v3"
+      ? manifest.plans.camera.events
+      : undefined;
   const captionPlans = resolveMaulCaptionPlans(manifest);
   const crop =
     adaptedManifest.mode === "legacy"
@@ -785,7 +791,7 @@ export const MaulShort: React.FC<MaulShortProps> = ({ manifest }) => {
             cropCenterPercent={cropCenterPercent}
             motionAmplitude={visualStyle.motionAmplitude}
             globalFrameOffset={segment.from}
-            cameraEvents={manifest.plans.camera.events}
+            cameraEvents={undefined}
           />
         </Sequence>
       ))}
@@ -804,7 +810,7 @@ export const MaulShort: React.FC<MaulShortProps> = ({ manifest }) => {
             cropCenterYPercent={segment.cropCenterYPercent}
             motionAmplitude={visualStyle.motionAmplitude}
             globalFrameOffset={segment.from}
-            cameraEvents={manifest.plans.camera.events}
+            cameraEvents={governedCameraEvents}
             compositionScale={segment.scale}
             sourceViewport={segment.sourceViewport}
             plannedCrop={segment.crop}

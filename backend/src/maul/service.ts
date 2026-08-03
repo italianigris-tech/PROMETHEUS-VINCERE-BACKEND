@@ -70,9 +70,11 @@ import {
 import { buildMaulPlannerAuditPayload } from "./planner-audit.js";
 import {
   adaptMaulLegacyPlanningBundleV1,
+  assertMaulV3TextAnimationReferences,
   buildMaulPlanningBundlePayload,
   buildMaulConservativePlacementInputs,
   buildMaulPlanningPayloads,
+  buildMaulTextAnimationPlanPayload,
   buildMaulTextChunkPlanPayload,
   buildMaulTextPlacementPlanPayload,
   compileMaulUnifiedShortRenderManifest,
@@ -1210,11 +1212,38 @@ export class MaulProjectService {
     const textPlacementPlanHash = hashMaulPlanPayload(
       textPlacementResult.artifact.payload,
     );
+    const textAnimationPayload = buildMaulTextAnimationPlanPayload({
+      inputs: planningInputs,
+      textChunkPlan: textChunkResult.artifact,
+      textPlacementPlan: textPlacementResult.artifact,
+      treatment: "fade_rise",
+      outputDurationMs: timeline.payload.outputDurationMs,
+    });
+    const textAnimationResult = await this.registerArtifact(projectId, {
+      artifactType: "text_animation_plan",
+      parentArtifactIds: [
+        ...sharedParents,
+        textChunkResult.artifact.artifactId,
+        textPlacementResult.artifact.artifactId,
+      ],
+      producedBy: {module: "maul-text-animation-planner", version: "1"},
+      payload: textAnimationPayload,
+    });
+    if (textAnimationResult.artifact.artifactType !== "text_animation_plan") {
+      throw new Error(
+        "MAUL planner produced the wrong text animation artifact type.",
+      );
+    }
+    const textAnimationPlanHash = hashMaulPlanPayload(
+      textAnimationResult.artifact.payload,
+    );
     const payloads = buildMaulPlanningPayloads(planningInputs, {
       textChunkPlanArtifactId: textChunkResult.artifact.artifactId,
       textChunkPlanHash,
       textPlacementPlanArtifactId: textPlacementResult.artifact.artifactId,
       textPlacementPlanHash,
+      textAnimationPlanArtifactId: textAnimationResult.artifact.artifactId,
+      textAnimationPlanHash,
     });
     const dependentParents = [
       ...sharedParents,
@@ -1241,7 +1270,10 @@ export class MaulProjectService {
     });
     const typographyResult = await this.registerArtifact(projectId, {
       artifactType: "typography_motion_plan",
-      parentArtifactIds: dependentParents,
+      parentArtifactIds: [
+        ...dependentParents,
+        textAnimationResult.artifact.artifactId,
+      ],
       producedBy: { module: "maul-stage-one-planner", version: "1" },
       payload: payloads.typographyMotion,
     });
@@ -1328,6 +1360,7 @@ export class MaulProjectService {
     const plans = {
       textChunk: textChunkResult.artifact,
       textPlacement: textPlacementResult.artifact,
+      textAnimation: textAnimationResult.artifact,
       observationSnapshot: observationResult.artifact,
       candidateNarrative: narrativeResult.artifact,
       beatMap: beatMapResult.artifact,
@@ -1346,6 +1379,7 @@ export class MaulProjectService {
     const planArtifactIds = {
       textChunk: plans.textChunk.artifactId,
       textPlacement: plans.textPlacement.artifactId,
+      textAnimation: plans.textAnimation.artifactId,
       observationSnapshot: plans.observationSnapshot.artifactId,
       candidateNarrative: plans.candidateNarrative.artifactId,
       beatMap: plans.beatMap.artifactId,
@@ -1677,24 +1711,35 @@ export class MaulProjectService {
       (artifact) =>
         artifact.artifactId === planningBundle.payload.planArtifactIds.revision,
     );
-    const v2PlanArtifactIds =
-      planningBundle.payload.schemaVersion === "maul-planning-bundle/v2"
+    const plannedPlanArtifactIds =
+      planningBundle.payload.schemaVersion === "maul-planning-bundle/v2" ||
+      planningBundle.payload.schemaVersion === "maul-planning-bundle/v3"
+        ? planningBundle.payload.planArtifactIds
+        : null;
+    const v3PlanArtifactIds =
+      planningBundle.payload.schemaVersion === "maul-planning-bundle/v3"
         ? planningBundle.payload.planArtifactIds
         : null;
     const textChunk =
-      v2PlanArtifactIds
+      plannedPlanArtifactIds
         ? artifacts.find(
             (artifact) =>
-              artifact.artifactId === v2PlanArtifactIds.textChunk,
+              artifact.artifactId === plannedPlanArtifactIds.textChunk,
           )
         : null;
     const textPlacement =
-      v2PlanArtifactIds
+      plannedPlanArtifactIds
         ? artifacts.find(
             (artifact) =>
-              artifact.artifactId === v2PlanArtifactIds.textPlacement,
+              artifact.artifactId === plannedPlanArtifactIds.textPlacement,
           )
         : null;
+    const textAnimation = v3PlanArtifactIds
+      ? artifacts.find(
+          (artifact) =>
+            artifact.artifactId === v3PlanArtifactIds.textAnimation,
+        )
+      : null;
     if (
       !observationSnapshot ||
       observationSnapshot.artifactType !== "observation_snapshot" ||
@@ -1724,11 +1769,14 @@ export class MaulProjectService {
       textOpportunity.artifactType !== "text_opportunity_plan" ||
       !revision ||
       revision.artifactType !== "revision_plan" ||
-      (planningBundle.payload.schemaVersion === "maul-planning-bundle/v2" &&
+      (plannedPlanArtifactIds &&
         (!textChunk ||
           textChunk.artifactType !== "text_chunk_plan" ||
           !textPlacement ||
-          textPlacement.artifactType !== "text_placement_plan"))
+          textPlacement.artifactType !== "text_placement_plan")) ||
+      (v3PlanArtifactIds &&
+        (!textAnimation ||
+          textAnimation.artifactType !== "text_animation_plan"))
     ) {
       throw new MaulLineageConflictError(
         "The Planning Bundle is incomplete or contains an artifact with the wrong governed type.",
@@ -1783,6 +1831,62 @@ export class MaulProjectService {
           "V2 Planning Bundle contains a stale hash, lineage mismatch, or mismatched placement reference.",
         );
       }
+    } else if (
+      planningBundle.payload.schemaVersion === "maul-planning-bundle/v3"
+    ) {
+      if (
+        !textChunk ||
+        textChunk.artifactType !== "text_chunk_plan" ||
+        !textPlacement ||
+        textPlacement.artifactType !== "text_placement_plan" ||
+        !textAnimation ||
+        textAnimation.artifactType !== "text_animation_plan" ||
+        typographyMotion.payload.schemaVersion !==
+          "maul-typography-motion-plan/v3"
+      ) {
+        throw new MaulLineageConflictError(
+          "V3 Planning Bundle requires governed chunk, placement, animation, and Typography Motion V3 artifacts.",
+        );
+      }
+      try {
+        assertMaulV3TextAnimationReferences({
+          textChunk,
+          textPlacement,
+          treatmentGenome: treatment,
+          textAnimation,
+          typographyMotion: {payload: typographyMotion.payload},
+        });
+      } catch (error) {
+        throw new MaulLineageConflictError(
+          error instanceof Error
+            ? error.message
+            : "V3 Planning Bundle contains stale text-animation references.",
+        );
+      }
+      const lineageMatches =
+        textPlacement.lineage.parentArtifactIds.includes(
+          textChunk.artifactId,
+        ) &&
+        textAnimation.lineage.parentArtifactIds.includes(
+          textChunk.artifactId,
+        ) &&
+        textAnimation.lineage.parentArtifactIds.includes(
+          textPlacement.artifactId,
+        ) &&
+        textAnimation.lineage.parentArtifactIds.includes(
+          treatment.artifactId,
+        ) &&
+        typographyMotion.lineage.parentArtifactIds.includes(
+          textAnimation.artifactId,
+        ) &&
+        planningBundle.lineage.parentArtifactIds.includes(
+          textAnimation.artifactId,
+        );
+      if (!lineageMatches) {
+        throw new MaulLineageConflictError(
+          "V3 Planning Bundle contains a stale hash, lineage mismatch, or mismatched animation reference.",
+        );
+      }
     } else {
       if (
         typographyMotion.payload.schemaVersion !==
@@ -1829,6 +1933,9 @@ export class MaulProjectService {
       ...(textChunk?.artifactType === "text_chunk_plan" &&
       textPlacement?.artifactType === "text_placement_plan"
         ? {textChunk, textPlacement}
+        : {}),
+      ...(textAnimation?.artifactType === "text_animation_plan"
+        ? {textAnimation}
         : {}),
       observationSnapshot,
       candidateNarrative,

@@ -853,31 +853,45 @@ export const buildMaulPlanningPayloads = (
   const camera = maulFramingCameraPlanPayloadSchema.parse({
     ...basePlan(inputs, "maul-framing-camera-plan/v1"),
     schemaVersion: "maul-framing-camera-plan/v1",
-    events: beatRecords.map((beat, index) => ({
-      eventId: `maul_camera_${index + 1}`,
-      outputStartMs: beat.outputStartMs,
-      outputEndMs: beat.outputEndMs,
-      cropCenterX: firstCrop ? firstCrop.x + firstCrop.width / 2 : 0.5,
-      cropCenterY: firstCrop ? firstCrop.y + firstCrop.height / 2 : 0.5,
-      startScale: 1,
-      endScale: Math.min(
-        inputs.treatment.payload.rendererInputs.framing.maxPunchInScale,
-        1 +
-          (inputs.treatment.payload.treatmentId === "minimal_expert"
-            ? 0.008
-            : 0.018),
-      ),
-      motivatedByBeatId: beat.beatId,
-      rationale: beat.protectedPause
-        ? "Settle rather than restart motion across the protected pause."
-        : "Use one restrained continuous push to support the spoken beat.",
-      execution: executionNative(
-        MAUL_V3_NATIVE_RENDER_BRANCHES.camera,
-        "Encoded crop and scale probes must show continuity without segment resets.",
-      ),
-    })),
-    continuityPolicy:
-      "Camera state carries across kept source segments; protected pauses settle instead of pumping.",
+    events: (() => {
+      let previousEndScale = 1;
+      return beatRecords.map((beat, index) => {
+        const startScale = isV3 ? previousEndScale : 1;
+        const endScale = Math.min(
+          inputs.treatment.payload.rendererInputs.framing.maxPunchInScale,
+          startScale +
+            (inputs.treatment.payload.treatmentId === "minimal_expert"
+              ? 0.008
+              : 0.018),
+        );
+        previousEndScale = endScale;
+        return {
+          eventId: `maul_camera_${index + 1}`,
+          outputStartMs: beat.outputStartMs,
+          outputEndMs: beat.outputEndMs,
+          cropCenterX: firstCrop ? firstCrop.x + firstCrop.width / 2 : 0.5,
+          cropCenterY: firstCrop ? firstCrop.y + firstCrop.height / 2 : 0.5,
+          startScale,
+          endScale,
+          motivatedByBeatId: beat.beatId,
+          rationale: beat.protectedPause
+            ? "Settle rather than restart motion across the protected pause."
+            : "Use one restrained continuous push to support the spoken beat.",
+          execution: isV3
+            ? executionNative(
+                MAUL_V3_NATIVE_RENDER_BRANCHES.camera,
+                "Encoded crop and scale probes must show continuity without segment resets.",
+              )
+            : executionFallback(
+                "Legacy and V2 renderers retain their local per-sequence motion fallback.",
+                "Frame probes must not claim global camera continuity before V3.",
+              ),
+        };
+      });
+    })(),
+    continuityPolicy: isV3
+      ? "Camera state carries across kept source segments; protected pauses settle instead of pumping."
+      : "Legacy and V2 renderers retain local per-sequence motion without a global continuity claim.",
     maxScale: inputs.treatment.payload.rendererInputs.framing.maxPunchInScale,
   });
   const visual = maulVisualPlanPayloadSchema.parse({
@@ -1522,9 +1536,11 @@ export const buildMaulManifestPlanExecution = ({
     {
       planArtifactId: planningArtifacts.camera.artifactId,
       planType: "framing_camera_plan",
-      executionStatus: "native",
-      nativeBranch: MAUL_V3_NATIVE_RENDER_BRANCHES.camera,
-      fallback: null,
+      executionStatus: animatedText ? "native" : "governed_fallback",
+      nativeBranch: animatedText ? MAUL_V3_NATIVE_RENDER_BRANCHES.camera : null,
+      fallback: animatedText
+        ? null
+        : "Legacy and V2 renderers use their historical local motion fallback; the global camera plan is executed only by V3.",
     },
     {
       planArtifactId: planningArtifacts.visual.artifactId,
@@ -1581,11 +1597,11 @@ export const buildMaulManifestPlanExecution = ({
     {
       planArtifactId: planningArtifacts.textOpportunity.artifactId,
       planType: "text_opportunity_plan",
-      executionStatus: animatedText ? "governed_fallback" : "native",
-      nativeBranch: animatedText ? null : "MaulShort.CaptionPage.spring",
+      executionStatus: "governed_fallback",
+      nativeBranch: null,
       fallback: animatedText
         ? "Text opportunities are materialized through the selected chunk, placement, and animation plans."
-        : null,
+        : "Text opportunities remain planning provenance; V1/V2 renderers execute only their governed caption paths.",
     },
     {
       planArtifactId: planningArtifacts.revision.artifactId,

@@ -658,8 +658,15 @@ describe("MAUL V3 text animation planning", () => {
           timestampMap: [
             {
               sourceStartMs: 0,
-              sourceEndMs: 1000,
+              sourceEndMs: 500,
               outputStartMs: 0,
+              outputEndMs: 500,
+              mode: "keep",
+            },
+            {
+              sourceStartMs: 500,
+              sourceEndMs: 1000,
+              outputStartMs: 500,
               outputEndMs: 1000,
               mode: "keep",
             },
@@ -707,9 +714,25 @@ describe("MAUL V3 text animation planning", () => {
     expect(payloads.camera.events[0]?.execution.nativeBranch).toBe(
       MAUL_V3_NATIVE_RENDER_BRANCHES.camera,
     );
+    expect(payloads.camera.events).toHaveLength(2);
+    expect(payloads.camera.events[1]?.startScale).toBe(
+      payloads.camera.events[0]?.endScale,
+    );
+    expect(payloads.camera.events[1]?.endScale).toBeGreaterThanOrEqual(
+      payloads.camera.events[1]?.startScale ?? 0,
+    );
     expect(
       JSON.stringify(payloads).match(/CaptionPage\.spring|continuousPush/g),
     ).toBeNull();
+
+    const v2Payloads = buildMaulPlanningPayloads(planningInputs, references);
+    expect(v2Payloads.camera.events).toSatisfy(
+      (events: Array<{execution: {executionStatus: string}}>) =>
+        events.every(
+          (event) => event.execution.executionStatus === "governed_fallback",
+        ),
+    );
+    expect(v2Payloads.camera.continuityPolicy).not.toMatch(/carries across/i);
   });
 
   it("compiles one truthful execution entry for each V3 artifact", () => {
@@ -765,10 +788,10 @@ describe("MAUL V3 text animation planning", () => {
     expect(legacyEntries).toContainEqual(
       expect.objectContaining({
         planType: "text_opportunity_plan",
-        executionStatus: "native",
-        nativeBranch: "MaulShort.CaptionPage.spring",
-        fallback: null,
+        executionStatus: "governed_fallback",
+        nativeBranch: null,
       }),
     );
+    expect(JSON.stringify(legacyEntries)).not.toMatch(/CaptionPage\.spring/);
   });
 });
