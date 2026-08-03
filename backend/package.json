@@ -16,6 +16,7 @@
     "music:dj:smoke": "tsx src/music/scripts/music-dj-smoke.ts",
     "music:catalog:normalize": "tsx src/music/scripts/normalize-r2-music-catalog.ts",
     "music:catalog:smoke": "tsx src/music/scripts/smoke-music-catalog-api.ts",
+    "audio:sfx:catalog": "tsx src/audio/catalog/scan-sfx-catalog.ts",
     "music:upload:r2": "tsx src/music/scripts/upload-music-library-to-r2.ts",
     "test": "vitest run --pool threads",
     "test:watch": "vitest --pool threads",
