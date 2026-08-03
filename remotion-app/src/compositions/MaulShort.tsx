@@ -7,6 +7,7 @@ import {
 import { Audio, Video } from "@remotion/media";
 import type {
   MaulEditorialTimelinePayload,
+  MaulFramingCameraPlanPayload,
   MaulNormalizedBox,
   MaulTreatmentGenomePayload,
   MaulUnifiedShortRenderManifest,
@@ -148,6 +149,61 @@ export const buildMaulSourceSequences = (
         (segment.sourceEndMs - segment.sourceStartMs) /
         (segment.outputEndMs - segment.outputStartMs),
     }));
+
+export const toMaulManifestGlobalFrame = ({
+  sequenceFrom,
+  sequenceFrame,
+}: {
+  sequenceFrom: number;
+  sequenceFrame: number;
+}) => sequenceFrom + sequenceFrame;
+
+type MaulCameraScaleEvent = Pick<
+  MaulFramingCameraPlanPayload["events"][number],
+  "outputStartMs" | "outputEndMs" | "startScale" | "endScale"
+>;
+
+export const resolveMaulCameraScale = ({
+  events,
+  outputFrame,
+  fps,
+}: {
+  events: MaulCameraScaleEvent[];
+  outputFrame: number;
+  fps: number;
+}) => {
+  const outputTimeMs = (outputFrame / fps) * 1000;
+  const first = events[0];
+  const last = events.at(-1);
+  if (!first || !last) return 1;
+  if (outputTimeMs <= first.outputStartMs) return first.startScale;
+  if (outputTimeMs >= last.outputEndMs) return last.endScale;
+  const event = events.find(
+    (candidate) =>
+      candidate.outputStartMs <= outputTimeMs &&
+      outputTimeMs <= candidate.outputEndMs,
+  );
+  if (!event) {
+    const preceding = events.reduce<MaulCameraScaleEvent | null>(
+      (latest, candidate) =>
+        candidate.outputEndMs < outputTimeMs &&
+        (!latest || candidate.outputEndMs > latest.outputEndMs)
+          ? candidate
+          : latest,
+      null,
+    );
+    return preceding?.endScale ?? first.startScale;
+  }
+  const progress = Math.max(
+    0,
+    Math.min(
+      1,
+      (outputTimeMs - event.outputStartMs) /
+        (event.outputEndMs - event.outputStartMs),
+    ),
+  );
+  return event.startScale + (event.endScale - event.startScale) * progress;
+};
 
 export const calculateMaulShortMetadata = ({
   props,
@@ -450,6 +506,8 @@ const SourceSegment: React.FC<{
   cropCenterPercent: number;
   cropCenterYPercent?: number;
   motionAmplitude: number;
+  globalFrameOffset?: number;
+  cameraEvents?: MaulCameraScaleEvent[];
   compositionScale?: {x: number; y: number};
   sourceViewport?: MaulNormalizedBox;
   plannedCrop?: MaulNormalizedBox;
@@ -464,6 +522,8 @@ const SourceSegment: React.FC<{
   cropCenterPercent,
   cropCenterYPercent = 50,
   motionAmplitude,
+  globalFrameOffset = 0,
+  cameraEvents = [],
   compositionScale = {x: 1, y: 1},
   sourceViewport = {x: 0, y: 0, width: 1, height: 1},
   plannedCrop,
@@ -473,16 +533,25 @@ const SourceSegment: React.FC<{
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const scale = interpolate(
-    frame,
-    [0, Math.max(1, fps * 4)],
-    [1, 1 + motionAmplitude],
-    {
-      easing: Easing.bezier(0.45, 0, 0.55, 1),
-      extrapolateLeft: "clamp",
-      extrapolateRight: "clamp",
-    },
-  );
+  const scale = cameraEvents.length
+    ? resolveMaulCameraScale({
+        events: cameraEvents,
+        outputFrame: toMaulManifestGlobalFrame({
+          sequenceFrom: globalFrameOffset,
+          sequenceFrame: frame,
+        }),
+        fps,
+      })
+    : interpolate(
+        frame,
+        [0, Math.max(1, fps * 4)],
+        [1, 1 + motionAmplitude],
+        {
+          easing: Easing.bezier(0.45, 0, 0.55, 1),
+          extrapolateLeft: "clamp",
+          extrapolateRight: "clamp",
+        },
+      );
   const plannedVideoStyle = plannedCrop
     ? buildMaulPlannedSourceVideoStyle({
         crop: plannedCrop,
@@ -715,6 +784,8 @@ export const MaulShort: React.FC<MaulShortProps> = ({ manifest }) => {
             playbackRate={segment.playbackRate}
             cropCenterPercent={cropCenterPercent}
             motionAmplitude={visualStyle.motionAmplitude}
+            globalFrameOffset={segment.from}
+            cameraEvents={manifest.plans.camera.events}
           />
         </Sequence>
       ))}
@@ -732,6 +803,8 @@ export const MaulShort: React.FC<MaulShortProps> = ({ manifest }) => {
             cropCenterPercent={segment.cropCenterXPercent}
             cropCenterYPercent={segment.cropCenterYPercent}
             motionAmplitude={visualStyle.motionAmplitude}
+            globalFrameOffset={segment.from}
+            cameraEvents={manifest.plans.camera.events}
             compositionScale={segment.scale}
             sourceViewport={segment.sourceViewport}
             plannedCrop={segment.crop}

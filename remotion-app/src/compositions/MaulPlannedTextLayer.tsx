@@ -1,7 +1,12 @@
 import {loadFont as loadDMSans} from "@remotion/google-fonts/DMSans";
-import {joinShortsTextTokens} from "@prometheus/shared-types";
+import {
+  joinShortsTextTokens,
+  type MaulTextAnimationProgram,
+  type MaulTextAnimationTransform,
+} from "@prometheus/shared-types";
 import React from "react";
 import {
+  Easing,
   Sequence,
   useCurrentFrame,
   useVideoConfig,
@@ -27,15 +32,105 @@ const needsSpaceBeforeToken = (
   joinShortsTextTokens([previous.text, current.text]) ===
   `${previous.text.trim()} ${current.text.trim()}`;
 
+const interpolateTransform = ({
+  from,
+  to,
+  progress,
+}: {
+  from: MaulTextAnimationTransform;
+  to: MaulTextAnimationTransform;
+  progress: number;
+}): MaulTextAnimationTransform => ({
+  opacity: from.opacity + (to.opacity - from.opacity) * progress,
+  translateXPx:
+    from.translateXPx + (to.translateXPx - from.translateXPx) * progress,
+  translateYPx:
+    from.translateYPx + (to.translateYPx - from.translateYPx) * progress,
+  scale: from.scale + (to.scale - from.scale) * progress,
+});
+
+const resolvePhaseTransform = ({
+  phase,
+  outputTimeMs,
+}: {
+  phase: MaulTextAnimationProgram["phases"]["entry"];
+  outputTimeMs: number;
+}): MaulTextAnimationTransform => {
+  const linearProgress = Math.max(
+    0,
+    Math.min(
+      1,
+      (outputTimeMs - phase.outputStartMs) /
+        (phase.outputEndMs - phase.outputStartMs),
+    ),
+  );
+  const progress =
+    phase.easing.type === "linear"
+      ? linearProgress
+      : Easing.bezier(
+          phase.easing.x1,
+          phase.easing.y1,
+          phase.easing.x2,
+          phase.easing.y2,
+        )(linearProgress);
+  return interpolateTransform({from: phase.from, to: phase.to, progress});
+};
+
+export const resolveMaulTextAnimationTransform = ({
+  program,
+  outputFrame,
+  fps,
+}: {
+  program: MaulTextAnimationProgram;
+  outputFrame: number;
+  fps: number;
+}): MaulTextAnimationTransform => {
+  const outputTimeMs = (outputFrame / fps) * 1000;
+  const {entry, hold, exit} = program.phases;
+  if (outputTimeMs < entry.outputStartMs) return entry.from;
+  if (outputTimeMs <= entry.outputEndMs) {
+    return resolvePhaseTransform({phase: entry, outputTimeMs});
+  }
+  if (outputTimeMs < hold.outputStartMs) return entry.to;
+  if (outputTimeMs <= hold.outputEndMs) {
+    return resolvePhaseTransform({phase: hold, outputTimeMs});
+  }
+  if (outputTimeMs < exit.outputStartMs) return hold.to;
+  if (outputTimeMs <= exit.outputEndMs) {
+    return resolvePhaseTransform({phase: exit, outputTimeMs});
+  }
+  return exit.to;
+};
+
+const animationStyle = (transform: MaulTextAnimationTransform) => ({
+  opacity: transform.opacity,
+  transform: `translate3d(${transform.translateXPx}px, ${transform.translateYPx}px, 0) scale(${transform.scale})`,
+  transformOrigin: "center center",
+});
+
 export const MaulPlannedTextCard: React.FC<{
   record: MaulPlannedTextRecord;
   absoluteTimeMs: number;
+  outputFrame?: number;
+  fps?: number;
   textColor: string;
   accentColor: string;
-}> = ({record, absoluteTimeMs, textColor, accentColor}) => {
+}> = ({record, absoluteTimeMs, outputFrame, fps, textColor, accentColor}) => {
   const primitive = compileMaulLegibilityPrimitive(
     record.minimumLegibilityPrimitive,
   );
+  const resolvedAnimation =
+    record.animationProgram && outputFrame !== undefined && fps !== undefined
+      ? resolveMaulTextAnimationTransform({
+          program: record.animationProgram,
+          outputFrame,
+          fps,
+        })
+      : null;
+  const segmentAnimation =
+    record.animationProgram?.target.scope === "segment"
+      ? resolvedAnimation
+      : null;
   return (
     <div
       data-maul-placement-segment={record.segmentId}
@@ -47,6 +142,7 @@ export const MaulPlannedTextCard: React.FC<{
       data-font-asset-id={record.font.assetId}
       data-font-profile-id={record.font.profileId}
       data-font-metrics-fingerprint={record.font.metricsFingerprint}
+      data-text-animation-treatment={record.animationProgram?.treatment}
       style={{
         position: "absolute",
         left: record.boxPx.leftPx,
@@ -67,6 +163,7 @@ export const MaulPlannedTextCard: React.FC<{
         textAlign: record.alignment,
         ...primitive.containerStyle,
         ...primitive.textStyle,
+        ...(segmentAnimation ? animationStyle(segmentAnimation) : {}),
       }}
     >
       {record.lines.map((line) => (
@@ -77,6 +174,12 @@ export const MaulPlannedTextCard: React.FC<{
                 span.outputStartMs <= absoluteTimeMs &&
                 span.outputEndMs > absoluteTimeMs,
             );
+            const tokenAnimation =
+              resolvedAnimation &&
+              record.animationProgram?.target.scope === "tokens" &&
+              record.animationProgram.target.tokenIds.includes(token.tokenId)
+                ? resolvedAnimation
+                : null;
             return (
               <React.Fragment key={token.tokenId}>
                 {tokenIndex > 0 &&
@@ -86,7 +189,12 @@ export const MaulPlannedTextCard: React.FC<{
                 <span
                   data-maul-token-id={token.tokenId}
                   data-active={active}
-                  style={{color: active ? accentColor : textColor}}
+                  style={{
+                    color: active ? accentColor : textColor,
+                    ...(tokenAnimation
+                      ? {display: "inline-block", ...animationStyle(tokenAnimation)}
+                      : {}),
+                  }}
                 >
                   {token.text}
                 </span>
@@ -101,15 +209,17 @@ export const MaulPlannedTextCard: React.FC<{
 
 const TimedMaulPlannedTextCard: React.FC<{
   record: MaulPlannedTextRecord;
+  outputFrame: number;
+  fps: number;
   textColor: string;
   accentColor: string;
-}> = ({record, textColor, accentColor}) => {
-  const frame = useCurrentFrame();
-  const {fps} = useVideoConfig();
+}> = ({record, outputFrame, fps, textColor, accentColor}) => {
   return (
     <MaulPlannedTextCard
       record={record}
-      absoluteTimeMs={record.outputStartMs + (frame / fps) * 1000}
+      absoluteTimeMs={(outputFrame / fps) * 1000}
+      outputFrame={outputFrame}
+      fps={fps}
       textColor={textColor}
       accentColor={accentColor}
     />
@@ -121,6 +231,7 @@ export const MaulPlannedTextLayer: React.FC<{
   textColor: string;
   accentColor: string;
 }> = ({records, textColor, accentColor}) => {
+  const outputFrame = useCurrentFrame();
   const {fps} = useVideoConfig();
   return (
     <>
@@ -135,6 +246,8 @@ export const MaulPlannedTextLayer: React.FC<{
         >
           <TimedMaulPlannedTextCard
             record={record}
+            outputFrame={outputFrame}
+            fps={fps}
             textColor={textColor}
             accentColor={accentColor}
           />

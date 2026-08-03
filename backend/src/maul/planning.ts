@@ -14,6 +14,7 @@ import {
   maulRevisionPlanPayloadSchema,
   maulShotIntentMatrixPayloadSchema,
   maulTextChunkPlanPayloadSchema,
+  maulTextAnimationPlanPayloadSchema,
   maulTextOpportunityPlanPayloadSchema,
   maulTextPlacementPlanPayloadSchema,
   maulTypographyMotionPlanPayloadSchema,
@@ -28,6 +29,8 @@ import {
   type MaulUnifiedShortRenderManifest,
   type MaulShortsTextChunkPlanV2Core,
   type MaulTextChunkPlanPayload,
+  type MaulTextAnimationPlanPayload,
+  type MaulTextAnimationTreatment,
   type MaulTextPlacementPlanCore,
   type MaulTextPlacementPlanPayload,
   type MaulTypographyMotionPlanV1Payload,
@@ -49,6 +52,11 @@ import {
 
 export {hashMaulPlanPayload} from "./text-chunk-plan.js";
 
+export const MAUL_V3_NATIVE_RENDER_BRANCHES = {
+  textAnimation: "MaulPlannedTextLayer.governedTransforms",
+  camera: "MaulShort.SourceSegment.globalCameraScale",
+} as const;
+
 type SourceArtifact = Extract<
   MaulArtifactRecord,
   { artifactType: "source_asset" }
@@ -68,6 +76,14 @@ type CandidateArtifact = Extract<
 type TreatmentArtifact = Extract<
   MaulArtifactRecord,
   { artifactType: "treatment_genome" }
+>;
+type TextChunkPlanArtifact = Extract<
+  MaulArtifactRecord,
+  {artifactType: "text_chunk_plan"}
+>;
+type TextPlacementPlanArtifact = Extract<
+  MaulArtifactRecord,
+  {artifactType: "text_placement_plan"}
 >;
 
 export type MaulPlanningInputs = {
@@ -157,11 +173,252 @@ export const buildMaulTextPlacementPlanPayload = ({
     ...core,
   });
 
+const identityTransform = {
+  opacity: 1,
+  translateXPx: 0,
+  translateYPx: 0,
+  scale: 1,
+} as const;
+
+const animationTransforms = (treatment: MaulTextAnimationTreatment) => {
+  if (treatment === "keyword_pop") {
+    return {
+      entry: {
+        from: {...identityTransform, opacity: 0, scale: 0.92},
+        to: {...identityTransform, scale: 1.14},
+      },
+      hold: {
+        from: {...identityTransform, scale: 1.14},
+        to: identityTransform,
+      },
+      exit: {
+        from: identityTransform,
+        to: {...identityTransform, opacity: 0, scale: 0.98},
+      },
+    };
+  }
+  if (treatment === "continuous_push") {
+    return {
+      entry: {
+        from: {...identityTransform, opacity: 0, translateXPx: -18},
+        to: {...identityTransform, translateXPx: -12, scale: 1.005},
+      },
+      hold: {
+        from: {...identityTransform, translateXPx: -12, scale: 1.005},
+        to: {...identityTransform, translateXPx: 12, scale: 1.02},
+      },
+      exit: {
+        from: {...identityTransform, translateXPx: 12, scale: 1.02},
+        to: {
+          ...identityTransform,
+          opacity: 0,
+          translateXPx: 18,
+          scale: 1.025,
+        },
+      },
+    };
+  }
+  return {
+    entry: {
+      from: {...identityTransform, opacity: 0, translateYPx: 28},
+      to: identityTransform,
+    },
+    hold: {from: identityTransform, to: identityTransform},
+    exit: {
+      from: identityTransform,
+      to: {...identityTransform, opacity: 0, translateYPx: -16},
+    },
+  };
+};
+
+export const buildMaulTextAnimationPlanPayload = ({
+  inputs,
+  textChunkPlan,
+  textPlacementPlan,
+  treatment,
+  outputDurationMs,
+}: {
+  inputs: MaulPlanningInputs;
+  textChunkPlan: TextChunkPlanArtifact;
+  textPlacementPlan: TextPlacementPlanArtifact;
+  treatment: MaulTextAnimationTreatment;
+  outputDurationMs: number;
+}): MaulTextAnimationPlanPayload => {
+  const chunkById = new Map(
+    textChunkPlan.payload.chunks.map((chunk) => [chunk.chunkId, chunk]),
+  );
+  const programs = textPlacementPlan.payload.segments.map((segment) => {
+    const durationMs = segment.outputEndMs - segment.outputStartMs;
+    if (durationMs < 3) {
+      throw new Error(
+        `Placement ${segment.segmentId} is too short for explicit entry, hold, and exit intervals.`,
+      );
+    }
+    const entryDurationMs = Math.max(1, Math.floor(durationMs * 0.2));
+    const exitDurationMs = Math.max(1, Math.floor(durationMs * 0.2));
+    const entryEndMs = segment.outputStartMs + entryDurationMs;
+    const exitStartMs = segment.outputEndMs - exitDurationMs;
+    if (entryEndMs >= exitStartMs) {
+      throw new Error(
+        `Placement ${segment.segmentId} cannot fit non-overlapping animation phases.`,
+      );
+    }
+    const chunk = chunkById.get(segment.chunkId);
+    if (!chunk) {
+      throw new Error(
+        `Placement ${segment.segmentId} references missing chunk ${segment.chunkId}.`,
+      );
+    }
+    const tokenIds =
+      treatment === "keyword_pop" ? chunk.emphasis.tokenIds : segment.tokenIds;
+    if (tokenIds.length === 0) {
+      throw new Error(
+        `Animation ${segment.segmentId} has no stable target tokens.`,
+      );
+    }
+    const transforms = animationTransforms(treatment);
+    const entryEasing = {
+      type: "cubic_bezier" as const,
+      x1: 0.16,
+      y1: 1,
+      x2: 0.3,
+      y2: 1,
+    };
+    const exitEasing = {
+      type: "cubic_bezier" as const,
+      x1: 0.4,
+      y1: 0,
+      x2: 1,
+      y2: 1,
+    };
+    return {
+      animationId: `maul_text_animation_${segment.segmentId}`,
+      treatment,
+      target: {
+        scope: treatment === "keyword_pop" ? ("tokens" as const) : ("segment" as const),
+        placementSegmentId: segment.segmentId,
+        tokenIds,
+      },
+      phases: {
+        entry: {
+          outputStartMs: segment.outputStartMs,
+          outputEndMs: entryEndMs,
+          easing: entryEasing,
+          ...transforms.entry,
+        },
+        hold: {
+          outputStartMs: entryEndMs,
+          outputEndMs: exitStartMs,
+          easing: {type: "linear" as const},
+          ...transforms.hold,
+        },
+        exit: {
+          outputStartMs: exitStartMs,
+          outputEndMs: segment.outputEndMs,
+          easing: exitEasing,
+          ...transforms.exit,
+        },
+      },
+      rationale: `Execute the governed ${treatment} treatment without changing placement or token geometry.`,
+    };
+  });
+  const references = {
+    textChunkPlanArtifactId: textChunkPlan.artifactId,
+    textChunkPlanHash: stableHash(textChunkPlan.payload),
+    textPlacementPlanArtifactId: textPlacementPlan.artifactId,
+    textPlacementPlanHash: stableHash(textPlacementPlan.payload),
+  };
+  const treatmentGenomeHash = stableHash(inputs.treatment.payload);
+  const plan = {
+    ...basePlan(inputs, "maul-text-animation-plan/v1"),
+    schemaVersion: "maul-text-animation-plan/v1" as const,
+    ...references,
+    treatmentGenomeArtifactId: inputs.treatment.artifactId,
+    treatmentGenomeHash,
+    outputDurationMs,
+    programs,
+    inputHashes: {
+      textChunkPlan: references.textChunkPlanHash,
+      textPlacementPlan: references.textPlacementPlanHash,
+      treatmentGenome: treatmentGenomeHash,
+    },
+  };
+  return maulTextAnimationPlanPayloadSchema.parse({
+    ...plan,
+    replayKey: stableHash(plan),
+  });
+};
+
+type MaulV3TextAnimationReferenceSet = {
+  textChunk: {artifactId: string; payload: unknown};
+  textPlacement: {artifactId: string; payload: unknown};
+  treatmentGenome: {artifactId: string; payload: unknown};
+  textAnimation: {
+    artifactId: string;
+    payload: {
+      textChunkPlanArtifactId: string;
+      textChunkPlanHash: string;
+      textPlacementPlanArtifactId: string;
+      textPlacementPlanHash: string;
+      treatmentGenomeArtifactId: string;
+      treatmentGenomeHash: string;
+    };
+  };
+  typographyMotion: {
+    payload: {
+      textChunkPlanArtifactId: string;
+      textChunkPlanHash: string;
+      textPlacementPlanArtifactId: string;
+      textPlacementPlanHash: string;
+      textAnimationPlanArtifactId: string;
+      textAnimationPlanHash: string;
+    };
+  };
+};
+
+export const assertMaulV3TextAnimationReferences = (
+  artifacts: MaulV3TextAnimationReferenceSet,
+): void => {
+  const textChunkPlanHash = stableHash(artifacts.textChunk.payload);
+  const textPlacementPlanHash = stableHash(artifacts.textPlacement.payload);
+  const treatmentGenomeHash = stableHash(artifacts.treatmentGenome.payload);
+  const textAnimationPlanHash = stableHash(artifacts.textAnimation.payload);
+  const typography = artifacts.typographyMotion.payload;
+  const animation = artifacts.textAnimation.payload;
+  if (
+    typography.textChunkPlanArtifactId !== artifacts.textChunk.artifactId ||
+    typography.textChunkPlanHash !== textChunkPlanHash ||
+    typography.textPlacementPlanArtifactId !==
+      artifacts.textPlacement.artifactId ||
+    typography.textPlacementPlanHash !== textPlacementPlanHash ||
+    typography.textAnimationPlanArtifactId !==
+      artifacts.textAnimation.artifactId ||
+    typography.textAnimationPlanHash !== textAnimationPlanHash ||
+    animation.textChunkPlanArtifactId !== artifacts.textChunk.artifactId ||
+    animation.textChunkPlanHash !== textChunkPlanHash ||
+    animation.textPlacementPlanArtifactId !==
+      artifacts.textPlacement.artifactId ||
+    animation.textPlacementPlanHash !== textPlacementPlanHash ||
+    animation.treatmentGenomeArtifactId !==
+      artifacts.treatmentGenome.artifactId ||
+    animation.treatmentGenomeHash !== treatmentGenomeHash
+  ) {
+    throw new Error(
+      "V3 manifest compilation rejected a stale parent hash or mismatched animation reference.",
+    );
+  }
+};
+
 export type MaulPlanningV2References = {
   textChunkPlanArtifactId: string;
   textChunkPlanHash: string;
   textPlacementPlanArtifactId: string;
   textPlacementPlanHash: string;
+};
+
+export type MaulPlanningV3References = MaulPlanningV2References & {
+  textAnimationPlanArtifactId: string;
+  textAnimationPlanHash: string;
 };
 
 const wordsForCandidate = (inputs: MaulPlanningInputs) =>
@@ -357,8 +614,11 @@ export const buildMaulConservativePlacementInputs = (
 
 export const buildMaulPlanningPayloads = (
   inputs: MaulPlanningInputs,
-  v2References?: MaulPlanningV2References,
+  v2References?: MaulPlanningV2References | MaulPlanningV3References,
 ) => {
+  const isV3 =
+    v2References !== undefined &&
+    "textAnimationPlanArtifactId" in v2References;
   const candidateWords = wordsForCandidate(inputs);
   const midpoint = Math.max(1, Math.ceil(candidateWords.length / 2));
   const narrativeGroups = [
@@ -499,20 +759,46 @@ export const buildMaulPlanningPayloads = (
       "The current deterministic planner has no governed editorial-writing authority; it will not relabel dialogue as authored hero copy.",
     motionPrograms: [
       {
-        capabilityId: "maul_caption_page_spring",
+        capabilityId: isV3
+          ? "maul_governed_text_animation"
+          : v2References
+            ? "maul_planned_text_static"
+            : "maul_caption_fade_rise",
         semanticRole:
-          "Make dialogue captions readable without inventing emphasis.",
+          "Execute readable dialogue text without inventing timing, placement, or emphasis.",
         outputStartMs: 0,
         outputEndMs: inputs.timeline.payload.outputDurationMs,
         execution: executionNative(
-          "MaulShort.CaptionPage.spring",
-          "Rendered frame probes must distinguish the caption spring from a no-op and fallback.",
+          isV3
+            ? MAUL_V3_NATIVE_RENDER_BRANCHES.textAnimation
+            : v2References
+              ? "MaulPlannedTextLayer.staticPlacement"
+              : "MaulShort.CaptionCard.fadeRise",
+          isV3
+            ? "Rendered frame probes must match every governed transform phase."
+            : "Rendered frame probes must match the named static or fade-rise text path.",
         ),
       },
     ],
   };
   const typographyMotion = maulTypographyMotionPlanPayloadSchema.parse(
-    v2References
+    isV3
+      ? {
+          ...basePlan(inputs, "maul-typography-motion-plan/v3"),
+          schemaVersion: "maul-typography-motion-plan/v3",
+          ...v2References,
+          ...typographyCommon,
+          fontResolution: {
+            requestedRole: "utility",
+            selectedFamily: "DM Sans",
+            selectedAssetId: "font_google_dm_sans_700",
+            status: "eligible_loaded",
+            reason:
+              "Pinned DM Sans asset matches the governed placement compatibility profile.",
+          },
+          warnings: [],
+        }
+      : v2References
       ? {
           ...basePlan(inputs, "maul-typography-motion-plan/v2"),
           schemaVersion: "maul-typography-motion-plan/v2",
@@ -586,7 +872,7 @@ export const buildMaulPlanningPayloads = (
         ? "Settle rather than restart motion across the protected pause."
         : "Use one restrained continuous push to support the spoken beat.",
       execution: executionNative(
-        "MaulShort.SourceSegment.continuousPush",
+        MAUL_V3_NATIVE_RENDER_BRANCHES.camera,
         "Encoded crop and scale probes must show continuity without segment resets.",
       ),
     })),
@@ -651,12 +937,22 @@ export const buildMaulPlanningPayloads = (
         ),
       },
       {
-        capabilityId: "maul_caption_page_spring",
+        capabilityId: isV3
+          ? "maul_governed_text_animation"
+          : v2References
+            ? "maul_planned_text_static"
+            : "maul_caption_fade_rise",
         semanticRole: "Present dialogue captions with a stable readable hold.",
         selected: true,
         execution: executionNative(
-          "MaulShort.CaptionPage.spring",
-          "Caption entry, hold, and exit frames must be visually distinct and safe.",
+          isV3
+            ? MAUL_V3_NATIVE_RENDER_BRANCHES.textAnimation
+            : v2References
+              ? "MaulPlannedTextLayer.staticPlacement"
+              : "MaulShort.CaptionCard.fadeRise",
+          isV3
+            ? "Governed entry, hold, and exit frames must be visually distinct and safe."
+            : "The named static or fade-rise text path must remain readable and safe.",
         ),
       },
     ],
@@ -963,9 +1259,31 @@ export const buildMaulPlanningBundlePayload = ({
   inputs: MaulPlanningInputs;
   planArtifactIds: MaulPlanningBundlePayload["planArtifactIds"];
   blockingReasons?: string[];
-}): MaulPlanningBundlePayload =>
-  maulPlanningBundlePayloadSchema.parse(
-    "textChunk" in planArtifactIds && "textPlacement" in planArtifactIds
+}): MaulPlanningBundlePayload => {
+  const v3Base =
+    "textAnimation" in planArtifactIds
+      ? basePlan(inputs, "maul-planning-bundle/v3")
+      : null;
+  return maulPlanningBundlePayloadSchema.parse(
+    "textAnimation" in planArtifactIds
+      ? {
+          ...v3Base!,
+          schemaVersion: "maul-planning-bundle/v3",
+          planArtifactIds,
+          replayKey: stableHash({
+            parentReplayKey: v3Base!.replayKey,
+            planArtifactIds,
+          }),
+          rendererReadiness:
+            blockingReasons.length > 0
+              ? "blocked"
+              : "governed_with_explicit_fallbacks",
+          blockingReasons,
+          warnings: [
+            "V3 executes governed text animation; audio treatment remains a standalone unregistered contract until its later manifest version.",
+          ],
+        }
+      : "textChunk" in planArtifactIds && "textPlacement" in planArtifactIds
       ? {
           ...basePlan(inputs, "maul-planning-bundle/v2"),
           schemaVersion: "maul-planning-bundle/v2",
@@ -990,6 +1308,7 @@ export const buildMaulPlanningBundlePayload = ({
           ],
         },
   );
+};
 
 export const adaptMaulLegacyPlanningBundleV1 = ({
   planningBundle: inputPlanningBundle,
@@ -1099,6 +1418,10 @@ type PlanningArtifacts = {
     MaulArtifactRecord,
     {artifactType: "text_placement_plan"}
   >;
+  textAnimation?: Extract<
+    MaulArtifactRecord,
+    {artifactType: "text_animation_plan"}
+  >;
   observationSnapshot: Extract<
     MaulArtifactRecord,
     { artifactType: "observation_snapshot" }
@@ -1142,77 +1465,27 @@ type PlanningArtifacts = {
   revision: Extract<MaulArtifactRecord, { artifactType: "revision_plan" }>;
 };
 
-export const compileMaulUnifiedShortRenderManifest = ({
-  inputs,
-  planningBundle,
-  planningArtifacts,
-  captions,
-  audioPlan,
-  request,
-  createdAt,
-}: {
-  inputs: MaulPlanningInputs;
-  planningBundle: Extract<
-    MaulArtifactRecord,
-    { artifactType: "planning_bundle" }
-  >;
-  planningArtifacts: PlanningArtifacts;
-  captions: MaulRenderCaption[];
-  audioPlan: VideoAwareAudioPlan;
-  request: MaulShortRenderRequest;
-  createdAt: string;
-}): MaulUnifiedShortRenderManifest => {
-  const isV2 =
-    planningBundle.payload.schemaVersion === "maul-planning-bundle/v2";
-  const textChunkArtifact = planningArtifacts.textChunk;
-  const textPlacementArtifact = planningArtifacts.textPlacement;
-  if (isV2) {
-    if (
-      !textChunkArtifact ||
-      !textPlacementArtifact ||
-      planningArtifacts.typographyMotion.payload.schemaVersion !==
-        "maul-typography-motion-plan/v2"
-    ) {
-      throw new Error(
-        "V2 manifest compilation requires chunk, placement, and Typography Motion V2 artifacts.",
-      );
-    }
-    const textChunkPlanHash = hashMaulPlanPayload(textChunkArtifact.payload);
-    const textPlacementPlanHash = hashMaulPlanPayload(
-      textPlacementArtifact.payload,
-    );
-    if (
-      textPlacementArtifact.payload.textChunkPlanArtifactId !==
-        textChunkArtifact.artifactId ||
-      textPlacementArtifact.payload.textChunkPlanHash !== textChunkPlanHash ||
-      planningArtifacts.typographyMotion.payload.textChunkPlanArtifactId !==
-        textChunkArtifact.artifactId ||
-      planningArtifacts.typographyMotion.payload.textChunkPlanHash !==
-        textChunkPlanHash ||
-      planningArtifacts.typographyMotion.payload.textPlacementPlanArtifactId !==
-        textPlacementArtifact.artifactId ||
-      planningArtifacts.typographyMotion.payload.textPlacementPlanHash !==
-        textPlacementPlanHash
-    ) {
-      throw new Error(
-        "V2 manifest compilation rejected a stale hash or mismatched placement reference.",
-      );
-    }
-    const compatibility = textPlacementArtifact.payload.compatibilityProfiles[0]!;
-    assertMaulTypographyPlacementCompatibility({
-      placementPlan: textPlacementArtifact.payload,
-      selectedFamily:
-        planningArtifacts.typographyMotion.payload.fontResolution.selectedFamily,
-      selectedAssetId:
-        planningArtifacts.typographyMotion.payload.fontResolution.selectedAssetId,
-      compiledMetrics: {
-        maxGlyphWidthEm: compatibility.metrics.maxGlyphWidthEm,
-        maxLineHeightEm: compatibility.metrics.maxLineHeightEm,
-      },
-    });
-  }
+type MaulManifestPlanExecutionEntry = {
+  planArtifactId: string;
+  planType: string;
+  executionStatus: "native" | "governed_fallback";
+  nativeBranch: string | null;
+  fallback: string | null;
+};
 
-  const planExecution = [
+export const buildMaulManifestPlanExecution = ({
+  schemaVersion,
+  planningArtifacts,
+}: {
+  schemaVersion:
+    | "maul-unified-short-render-manifest/v1"
+    | "maul-unified-short-render-manifest/v2"
+    | "maul-unified-short-render-manifest/v3";
+  planningArtifacts: PlanningArtifacts;
+}): MaulManifestPlanExecutionEntry[] => {
+  const plannedText = schemaVersion !== "maul-unified-short-render-manifest/v1";
+  const animatedText = schemaVersion === "maul-unified-short-render-manifest/v3";
+  const entries: MaulManifestPlanExecutionEntry[] = [
     {
       planArtifactId: planningArtifacts.observationSnapshot.artifactId,
       planType: "observation_snapshot",
@@ -1241,14 +1514,16 @@ export const compileMaulUnifiedShortRenderManifest = ({
       planArtifactId: planningArtifacts.typographyMotion.artifactId,
       planType: "typography_motion_plan",
       executionStatus: "native",
-      nativeBranch: "MaulShort.CaptionPage.spring",
+      nativeBranch: plannedText
+        ? "MaulPlannedTextLayer.staticPlacement"
+        : "MaulShort.CaptionCard.fadeRise",
       fallback: null,
     },
     {
       planArtifactId: planningArtifacts.camera.artifactId,
       planType: "framing_camera_plan",
       executionStatus: "native",
-      nativeBranch: "MaulShort.SourceSegment.continuousPush",
+      nativeBranch: MAUL_V3_NATIVE_RENDER_BRANCHES.camera,
       fallback: null,
     },
     {
@@ -1286,7 +1561,7 @@ export const compileMaulUnifiedShortRenderManifest = ({
       executionStatus: "governed_fallback",
       nativeBranch: null,
       fallback:
-        "The manifest preserves the art-direction thesis, but the thin renderer currently executes only treatment-level style inputs.",
+        "The manifest preserves the art-direction thesis, while the renderer executes only supported governed treatment inputs.",
     },
     {
       planArtifactId: planningArtifacts.contextAssembly.artifactId,
@@ -1294,7 +1569,7 @@ export const compileMaulUnifiedShortRenderManifest = ({
       executionStatus: "governed_fallback",
       nativeBranch: null,
       fallback:
-        "Assembled context remains governed planning provenance; the renderer consumes only the approved timeline and source mapping.",
+        "Assembled context remains planning provenance; the renderer consumes the approved timeline and source mapping.",
     },
     {
       planArtifactId: planningArtifacts.shotIntentMatrix.artifactId,
@@ -1306,9 +1581,11 @@ export const compileMaulUnifiedShortRenderManifest = ({
     {
       planArtifactId: planningArtifacts.textOpportunity.artifactId,
       planType: "text_opportunity_plan",
-      executionStatus: "native",
-      nativeBranch: "MaulShort.CaptionPage.spring",
-      fallback: null,
+      executionStatus: animatedText ? "governed_fallback" : "native",
+      nativeBranch: animatedText ? null : "MaulShort.CaptionPage.spring",
+      fallback: animatedText
+        ? "Text opportunities are materialized through the selected chunk, placement, and animation plans."
+        : null,
     },
     {
       planArtifactId: planningArtifacts.revision.artifactId,
@@ -1316,46 +1593,230 @@ export const compileMaulUnifiedShortRenderManifest = ({
       executionStatus: "governed_fallback",
       nativeBranch: null,
       fallback:
-        "The bounded revision policy is preserved for the quality controller; this render invocation performs no autonomous retry cycle.",
+        "The bounded revision policy is preserved for the quality controller; rendering performs no autonomous retry cycle.",
     },
   ];
-  if (isV2 && textChunkArtifact && textPlacementArtifact) {
-    planExecution.push(
+
+  if (plannedText) {
+    if (!planningArtifacts.textChunk || !planningArtifacts.textPlacement) {
+      throw new Error("Planned text execution requires chunk and placement artifacts.");
+    }
+    entries.push(
       {
-        planArtifactId: textChunkArtifact.artifactId,
+        planArtifactId: planningArtifacts.textChunk.artifactId,
         planType: "text_chunk_plan",
         executionStatus: "native",
-        nativeBranch: "MaulShort.PlannedCaptionTokens.v1",
+        nativeBranch: animatedText
+          ? "MaulPlannedTextLayer.stableTokens"
+          : "MaulShort.PlannedCaptionTokens.v1",
         fallback: null,
       },
       {
-        planArtifactId: textPlacementArtifact.artifactId,
+        planArtifactId: planningArtifacts.textPlacement.artifactId,
         planType: "text_placement_plan",
         executionStatus: "native",
-        nativeBranch: "MaulShort.PlannedPlacement.v1",
+        nativeBranch: animatedText
+          ? "MaulPlannedTextLayer.exactPlacement"
+          : "MaulShort.PlannedPlacement.v1",
         fallback: null,
       },
     );
   }
-  const replayKey = stableHash({
+  if (animatedText) {
+    if (!planningArtifacts.textAnimation) {
+      throw new Error("V3 execution requires a text animation artifact.");
+    }
+    entries.push({
+      planArtifactId: planningArtifacts.textAnimation.artifactId,
+      planType: "text_animation_plan",
+      executionStatus: "native",
+      nativeBranch: MAUL_V3_NATIVE_RENDER_BRANCHES.textAnimation,
+      fallback: null,
+    });
+  }
+  return entries;
+};
+
+export const buildMaulManifestReplayKey = ({
+  schemaVersion,
+  sourceSha256,
+  timelineReplay,
+  treatmentReplayKey,
+  planningBundleReplayKey,
+  textChunkPlan,
+  textPlacementPlan,
+  typographyMotionPlan,
+  textAnimationPlan,
+  audioPlanId,
+  musicTrackId,
+  sfx,
+}: {
+  schemaVersion:
+    | "maul-planning-bundle/v1"
+    | "maul-planning-bundle/v2"
+    | "maul-planning-bundle/v3";
+  sourceSha256: string;
+  timelineReplay: unknown;
+  treatmentReplayKey: string;
+  planningBundleReplayKey: string;
+  textChunkPlan: unknown | null;
+  textPlacementPlan: unknown | null;
+  typographyMotionPlan: unknown;
+  textAnimationPlan: unknown | null;
+  audioPlanId: string;
+  musicTrackId: string;
+  sfx: readonly (readonly [string, number])[];
+}): string => {
+  if (
+    schemaVersion === "maul-planning-bundle/v3" &&
+    textAnimationPlan === null
+  ) {
+    throw new Error("V3 replay-key compilation requires text animation.");
+  }
+  return stableHash({
+    sourceSha256,
+    timelineReplay,
+    treatmentReplayKey,
+    planningBundleReplayKey,
+    textChunkPlanHash:
+      textChunkPlan === null ? null : stableHash(textChunkPlan),
+    textPlacementPlanHash:
+      textPlacementPlan === null ? null : stableHash(textPlacementPlan),
+    ...(schemaVersion === "maul-planning-bundle/v3"
+      ? {
+          typographyMotionPlanHash: stableHash(typographyMotionPlan),
+          textAnimationPlanHash: stableHash(textAnimationPlan),
+        }
+      : {}),
+    audioPlanId,
+    musicTrackId,
+    sfx,
+  });
+};
+
+export const compileMaulUnifiedShortRenderManifest = ({
+  inputs,
+  planningBundle,
+  planningArtifacts,
+  captions,
+  audioPlan,
+  request,
+  createdAt,
+}: {
+  inputs: MaulPlanningInputs;
+  planningBundle: Extract<
+    MaulArtifactRecord,
+    { artifactType: "planning_bundle" }
+  >;
+  planningArtifacts: PlanningArtifacts;
+  captions: MaulRenderCaption[];
+  audioPlan: VideoAwareAudioPlan;
+  request: MaulShortRenderRequest;
+  createdAt: string;
+}): MaulUnifiedShortRenderManifest => {
+  const isV2 = planningBundle.payload.schemaVersion === "maul-planning-bundle/v2";
+  const isV3 = planningBundle.payload.schemaVersion === "maul-planning-bundle/v3";
+  const isPlanned = isV2 || isV3;
+  const textChunkArtifact = planningArtifacts.textChunk;
+  const textPlacementArtifact = planningArtifacts.textPlacement;
+  const textAnimationArtifact = planningArtifacts.textAnimation;
+  if (isPlanned) {
+    if (
+      !textChunkArtifact ||
+      !textPlacementArtifact ||
+      planningArtifacts.typographyMotion.payload.schemaVersion !==
+        (isV3
+          ? "maul-typography-motion-plan/v3"
+          : "maul-typography-motion-plan/v2")
+    ) {
+      throw new Error(
+        `${isV3 ? "V3" : "V2"} manifest compilation requires chunk, placement, and matching Typography Motion artifacts.`,
+      );
+    }
+    const textChunkPlanHash = hashMaulPlanPayload(textChunkArtifact.payload);
+    const textPlacementPlanHash = hashMaulPlanPayload(
+      textPlacementArtifact.payload,
+    );
+    if (
+      textPlacementArtifact.payload.textChunkPlanArtifactId !==
+        textChunkArtifact.artifactId ||
+      textPlacementArtifact.payload.textChunkPlanHash !== textChunkPlanHash ||
+      planningArtifacts.typographyMotion.payload.textChunkPlanArtifactId !==
+        textChunkArtifact.artifactId ||
+      planningArtifacts.typographyMotion.payload.textChunkPlanHash !==
+        textChunkPlanHash ||
+      planningArtifacts.typographyMotion.payload.textPlacementPlanArtifactId !==
+        textPlacementArtifact.artifactId ||
+      planningArtifacts.typographyMotion.payload.textPlacementPlanHash !==
+        textPlacementPlanHash
+    ) {
+      throw new Error(
+        `${isV3 ? "V3" : "V2"} manifest compilation rejected a stale hash or mismatched placement reference.`,
+      );
+    }
+    const compatibility = textPlacementArtifact.payload.compatibilityProfiles[0]!;
+    assertMaulTypographyPlacementCompatibility({
+      placementPlan: textPlacementArtifact.payload,
+      selectedFamily:
+        planningArtifacts.typographyMotion.payload.fontResolution.selectedFamily,
+      selectedAssetId:
+        planningArtifacts.typographyMotion.payload.fontResolution.selectedAssetId,
+      compiledMetrics: {
+        maxGlyphWidthEm: compatibility.metrics.maxGlyphWidthEm,
+        maxLineHeightEm: compatibility.metrics.maxLineHeightEm,
+      },
+    });
+    if (isV3) {
+      if (!textAnimationArtifact) {
+        throw new Error(
+          "V3 manifest compilation requires a text animation artifact.",
+        );
+      }
+      const typographyPayload = planningArtifacts.typographyMotion.payload;
+      if (!("textAnimationPlanArtifactId" in typographyPayload)) {
+        throw new Error(
+          "V3 manifest compilation requires Typography Motion V3 references.",
+        );
+      }
+      assertMaulV3TextAnimationReferences({
+        textChunk: textChunkArtifact,
+        textPlacement: textPlacementArtifact,
+        treatmentGenome: inputs.treatment,
+        textAnimation: textAnimationArtifact,
+        typographyMotion: {payload: typographyPayload},
+      });
+    }
+  }
+
+  const planExecution = buildMaulManifestPlanExecution({
+    schemaVersion:
+      planningBundle.payload.schemaVersion === "maul-planning-bundle/v1"
+        ? "maul-unified-short-render-manifest/v1"
+        : planningBundle.payload.schemaVersion === "maul-planning-bundle/v2"
+          ? "maul-unified-short-render-manifest/v2"
+          : "maul-unified-short-render-manifest/v3",
+    planningArtifacts,
+  });
+  const replayKey = buildMaulManifestReplayKey({
+    schemaVersion: planningBundle.payload.schemaVersion,
     sourceSha256: inputs.source.payload.sha256,
     timelineReplay: inputs.timeline.payload.timestampMap,
     treatmentReplayKey: inputs.treatment.payload.replayKey,
     planningBundleReplayKey: planningBundle.payload.replayKey,
-    textChunkPlanHash: textChunkArtifact
-      ? hashMaulPlanPayload(textChunkArtifact.payload)
-      : null,
-    textPlacementPlanHash: textPlacementArtifact
-      ? hashMaulPlanPayload(textPlacementArtifact.payload)
-      : null,
+    textChunkPlan: textChunkArtifact?.payload ?? null,
+    textPlacementPlan: textPlacementArtifact?.payload ?? null,
+    typographyMotionPlan: planningArtifacts.typographyMotion.payload,
+    textAnimationPlan: textAnimationArtifact?.payload ?? null,
     audioPlanId: audioPlan.id,
     musicTrackId: request.musicTrack.id,
-    sfx: request.sfxAssets.map((asset) => [asset.id, asset.sourceMs]),
+    sfx: request.sfxAssets.map((asset) => [asset.id, asset.sourceMs] as const),
   });
   return maulUnifiedShortRenderManifestSchema.parse({
-    schemaVersion: isV2
-      ? "maul-unified-short-render-manifest/v2"
-      : "maul-unified-short-render-manifest/v1",
+    schemaVersion: isV3
+      ? "maul-unified-short-render-manifest/v3"
+      : isV2
+        ? "maul-unified-short-render-manifest/v2"
+        : "maul-unified-short-render-manifest/v1",
     rendererInputKind: "unified_short_render_manifest_only",
     planningBundleArtifactId: planningBundle.artifactId,
     planArtifactIds: planningBundle.payload.planArtifactIds,
@@ -1407,11 +1868,14 @@ export const compileMaulUnifiedShortRenderManifest = ({
       shotIntentMatrix: planningArtifacts.shotIntentMatrix.payload,
       textOpportunity: planningArtifacts.textOpportunity.payload,
       revision: planningArtifacts.revision.payload,
-      ...(isV2 && textChunkArtifact && textPlacementArtifact
+      ...(isPlanned && textChunkArtifact && textPlacementArtifact
         ? {
             textChunk: textChunkArtifact.payload,
             textPlacement: textPlacementArtifact.payload,
           }
+        : {}),
+      ...(isV3 && textAnimationArtifact
+        ? {textAnimation: textAnimationArtifact.payload}
         : {}),
     },
     planExecution,

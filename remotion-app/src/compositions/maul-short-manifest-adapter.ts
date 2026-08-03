@@ -1,17 +1,21 @@
 import {
   joinShortsTextTokens,
   maulUnifiedShortRenderManifestV2Schema,
+  maulUnifiedShortRenderManifestV3Schema,
   type MaulEditorialTimelinePayload,
   type MaulMinimumLegibilityPrimitive,
   type MaulNormalizedBox,
   type MaulOutputCompositionInterval,
   type MaulStableTextTokenV2,
   type MaulTextChunkPlanPayload,
+  type MaulTextAnimationPlanPayload,
+  type MaulTextAnimationProgram,
   type MaulTextPlacementPlanPayload,
   type MaulTextPlacementSegment,
   type MaulTypographyMotionPlanV2Payload,
   type MaulUnifiedShortRenderManifestV1,
   type MaulUnifiedShortRenderManifestV2,
+  type MaulUnifiedShortRenderManifestV3,
 } from "@prometheus/shared-types";
 type MaulCssStyle = Record<string, string | number>;
 
@@ -95,7 +99,9 @@ export type MaulShortManifestAdapterResult =
     }
   | {
       mode: "planned";
-      manifest: MaulUnifiedShortRenderManifestV2;
+      manifest:
+        | MaulUnifiedShortRenderManifestV2
+        | MaulUnifiedShortRenderManifestV3;
     };
 
 export const adaptMaulShortManifest = (
@@ -113,6 +119,15 @@ export const adaptMaulShortManifest = (
     if (!parsed.success) {
       throw new Error(
         `Invalid or stale MAUL V2 render manifest: ${parsed.error.issues[0]?.message ?? "schema validation failed"}`,
+      );
+    }
+    return {mode: "planned", manifest: parsed.data};
+  }
+  if (schemaVersion === "maul-unified-short-render-manifest/v3") {
+    const parsed = maulUnifiedShortRenderManifestV3Schema.safeParse(input);
+    if (!parsed.success) {
+      throw new Error(
+        `Invalid or stale MAUL V3 render manifest: ${parsed.error.issues[0]?.message ?? "schema validation failed"}`,
       );
     }
     return {mode: "planned", manifest: parsed.data};
@@ -295,6 +310,7 @@ export type MaulPlannedTextRecord = {
   fallbackReason: string | null;
   alignment: MaulTextPlacementSegment["alignment"];
   minimumLegibilityPrimitive: MaulMinimumLegibilityPrimitive;
+  animationProgram?: MaulTextAnimationProgram | null;
   font: {
     profileId: string;
     metricsFingerprint: string;
@@ -316,6 +332,7 @@ export const buildMaulPlannedTextRecords = ({
   textChunkPlan,
   textPlacementPlan,
   typographyMotion,
+  textAnimationPlan,
   output,
 }: {
   textChunkPlan: Pick<MaulTextChunkPlanPayload, "tokens" | "chunks">;
@@ -334,6 +351,7 @@ export const buildMaulPlannedTextRecords = ({
     | "textChunkPlanArtifactId"
     | "textChunkPlanHash"
   >;
+  textAnimationPlan?: Pick<MaulTextAnimationPlanPayload, "programs">;
   output: {width: number; height: number};
 }): MaulPlannedTextRecord[] => {
   if (textPlacementPlan.status !== "planned") {
@@ -353,6 +371,12 @@ export const buildMaulPlannedTextRecords = ({
   );
   const chunkById = new Map(
     textChunkPlan.chunks.map((chunk) => [chunk.chunkId, chunk]),
+  );
+  const animationBySegmentId = new Map(
+    (textAnimationPlan?.programs ?? []).map((program) => [
+      program.target.placementSegmentId,
+      program,
+    ]),
   );
 
   return textPlacementPlan.segments.map((segment) => {
@@ -409,6 +433,18 @@ export const buildMaulPlannedTextRecords = ({
         `Placement ${segment.segmentId} has no matching composition transform.`,
       );
     }
+    const animationProgram = animationBySegmentId.get(segment.segmentId) ?? null;
+    if (
+      textAnimationPlan &&
+      (!animationProgram ||
+        animationProgram.target.tokenIds.some(
+          (tokenId) => !segment.tokenIds.includes(tokenId),
+        ))
+    ) {
+      throw new Error(
+        `Placement ${segment.segmentId} has no matching governed animation program.`,
+      );
+    }
     const profile = textPlacementPlan.compatibilityProfiles.find(
       (candidate) => candidate.profileId === segment.compatibility.profileId,
     );
@@ -441,6 +477,7 @@ export const buildMaulPlannedTextRecords = ({
       fallbackReason: segment.fallbackReason,
       alignment: segment.alignment,
       minimumLegibilityPrimitive: segment.minimumLegibilityPrimitive,
+      animationProgram,
       font: {
         profileId: profile.profileId,
         metricsFingerprint: profile.metrics.fingerprint,
@@ -467,7 +504,9 @@ export const buildMaulPlannedTextRecords = ({
 };
 
 export const buildMaulPlannedRenderModel = (
-  manifest: MaulUnifiedShortRenderManifestV2,
+  manifest:
+    | MaulUnifiedShortRenderManifestV2
+    | MaulUnifiedShortRenderManifestV3,
 ): {
   textRecords: MaulPlannedTextRecord[];
   sourceSequences: MaulPlannedSourceSequence[];
@@ -476,6 +515,10 @@ export const buildMaulPlannedRenderModel = (
     textChunkPlan: manifest.plans.textChunk,
     textPlacementPlan: manifest.plans.textPlacement,
     typographyMotion: manifest.plans.typographyMotion,
+    textAnimationPlan:
+      manifest.schemaVersion === "maul-unified-short-render-manifest/v3"
+        ? manifest.plans.textAnimation
+        : undefined,
     output: manifest.output,
   }),
   sourceSequences: buildMaulPlannedSourceSequences({
