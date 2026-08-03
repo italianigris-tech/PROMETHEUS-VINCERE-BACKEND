@@ -1,0 +1,1040 @@
+{
+  "schemaVersion": "joseph-sfx-catalog/v1",
+  "catalogId": "joseph-tracer-30",
+  "assets": [
+    {
+      "assetId": "accent_cash_register",
+      "sha256": "f5b8e6e1175a886b2f57391c85eea344eecb71e61e571ba25433f8ef5b91540e",
+      "objectKey": "ACCENTS PUNCTUATION/cash-register-purchase-87313.mp3",
+      "durationMs": 2808,
+      "format": "mp3",
+      "analysis": {
+        "provider": "ffprobe",
+        "inputHash": "f5b8e6e1175a886b2f57391c85eea344eecb71e61e571ba25433f8ef5b91540e",
+        "durationStatus": "measured",
+        "loudnessLufs": null,
+        "truePeakDbtp": null,
+        "onsetMs": null,
+        "tailMs": null,
+        "status": "metadata_only"
+      },
+      "lifecycleRoles": [
+        "semantic_substitute"
+      ],
+      "material": "digital",
+      "direction": "neutral",
+      "intensity": "medium",
+      "semanticTags": [
+        "cash",
+        "purchase",
+        "proof"
+      ],
+      "rights": {
+        "state": "unknown",
+        "usage": "preview_only",
+        "sourceEvidence": null,
+        "licenseEvidence": null
+      }
+    },
+    {
+      "assetId": "accent_winning",
+      "sha256": "e6ae75d7285a5ffc7a0d67bcda0ed3d74402a4aa9fcd0c71dd5d9f2c15c157e3",
+      "objectKey": "ACCENTS PUNCTUATION/winning-elevation-111355.mp3",
+      "durationMs": 121966,
+      "format": "mp3",
+      "analysis": {
+        "provider": "ffprobe",
+        "inputHash": "e6ae75d7285a5ffc7a0d67bcda0ed3d74402a4aa9fcd0c71dd5d9f2c15c157e3",
+        "durationStatus": "measured",
+        "loudnessLufs": null,
+        "truePeakDbtp": null,
+        "onsetMs": null,
+        "tailMs": null,
+        "status": "metadata_only"
+      },
+      "lifecycleRoles": [
+        "release"
+      ],
+      "material": "cinematic",
+      "direction": "outward",
+      "intensity": "medium",
+      "semanticTags": [
+        "accent",
+        "win",
+        "payoff"
+      ],
+      "rights": {
+        "state": "unknown",
+        "usage": "preview_only",
+        "sourceEvidence": null,
+        "licenseEvidence": null
+      }
+    },
+    {
+      "assetId": "camera_shutter",
+      "sha256": "4953fea9de8e596cebaa5de24cc9d00e6631935f207c001cee55e57b122284f0",
+      "objectKey": "TRANSITIONS/freesound_community-camera-shutter-6305.mp3",
+      "durationMs": 340,
+      "format": "mp3",
+      "analysis": {
+        "provider": "ffprobe",
+        "inputHash": "4953fea9de8e596cebaa5de24cc9d00e6631935f207c001cee55e57b122284f0",
+        "durationStatus": "measured",
+        "loudnessLufs": null,
+        "truePeakDbtp": null,
+        "onsetMs": null,
+        "tailMs": null,
+        "status": "metadata_only"
+      },
+      "lifecycleRoles": [
+        "semantic_substitute",
+        "release"
+      ],
+      "material": "digital",
+      "direction": "neutral",
+      "intensity": "medium",
+      "semanticTags": [
+        "camera",
+        "proof",
+        "cut"
+      ],
+      "rights": {
+        "state": "unknown",
+        "usage": "preview_only",
+        "sourceEvidence": null,
+        "licenseEvidence": null
+      }
+    },
+    {
+      "assetId": "camera_shutter_mechanical",
+      "sha256": "be0464a7f490580f12fd4d1cd031faa10a746b9dc483b2392e9dabe6f9694bd7",
+      "objectKey": "MECHANICAL CLICKS/camera-shutter-18399.mp3",
+      "durationMs": 1512,
+      "format": "mp3",
+      "analysis": {
+        "provider": "ffprobe",
+        "inputHash": "be0464a7f490580f12fd4d1cd031faa10a746b9dc483b2392e9dabe6f9694bd7",
+        "durationStatus": "measured",
+        "loudnessLufs": null,
+        "truePeakDbtp": null,
+        "onsetMs": null,
+        "tailMs": null,
+        "status": "metadata_only"
+      },
+      "lifecycleRoles": [
+        "semantic_substitute"
+      ],
+      "material": "metal",
+      "direction": "neutral",
+      "intensity": "medium",
+      "semanticTags": [
+        "camera",
+        "proof",
+        "click"
+      ],
+      "rights": {
+        "state": "unknown",
+        "usage": "preview_only",
+        "sourceEvidence": null,
+        "licenseEvidence": null
+      }
+    },
+    {
+      "assetId": "data_counting",
+      "sha256": "29af593874a6b1e81b9092e9e346f5bac88ea2cd5ed4ca471635578734e2947d",
+      "objectKey": "DATA TELEMETRY/Digital counting.mp3",
+      "durationMs": 7105,
+      "format": "mp3",
+      "analysis": {
+        "provider": "ffprobe",
+        "inputHash": "29af593874a6b1e81b9092e9e346f5bac88ea2cd5ed4ca471635578734e2947d",
+        "durationStatus": "measured",
+        "loudnessLufs": null,
+        "truePeakDbtp": null,
+        "onsetMs": null,
+        "tailMs": null,
+        "status": "metadata_only"
+      },
+      "lifecycleRoles": [
+        "motion_follow"
+      ],
+      "material": "digital",
+      "direction": "neutral",
+      "intensity": "soft",
+      "semanticTags": [
+        "data",
+        "count",
+        "continuous"
+      ],
+      "rights": {
+        "state": "unknown",
+        "usage": "preview_only",
+        "sourceEvidence": null,
+        "licenseEvidence": null
+      }
+    },
+    {
+      "assetId": "data_reveal",
+      "sha256": "597be9cfe6c62c751d6737fee3477a31d0f973bd77b2dd1b9a0220977a89961f",
+      "objectKey": "DATA TELEMETRY/data-reveal-sound-6460.mp3",
+      "durationMs": 2376,
+      "format": "mp3",
+      "analysis": {
+        "provider": "ffprobe",
+        "inputHash": "597be9cfe6c62c751d6737fee3477a31d0f973bd77b2dd1b9a0220977a89961f",
+        "durationStatus": "measured",
+        "loudnessLufs": null,
+        "truePeakDbtp": null,
+        "onsetMs": null,
+        "tailMs": null,
+        "status": "metadata_only"
+      },
+      "lifecycleRoles": [
+        "semantic_substitute",
+        "entry"
+      ],
+      "material": "digital",
+      "direction": "outward",
+      "intensity": "medium",
+      "semanticTags": [
+        "data",
+        "reveal",
+        "proof"
+      ],
+      "rights": {
+        "state": "unknown",
+        "usage": "preview_only",
+        "sourceEvidence": null,
+        "licenseEvidence": null
+      }
+    },
+    {
+      "assetId": "foley_marker",
+      "sha256": "61bb775eea460beddc054e241e2715b20dcd90e01aa849243c9084e2709f2484",
+      "objectKey": "OFFICE FOLEY/marker-lineswav-14823.mp3",
+      "durationMs": 11112,
+      "format": "mp3",
+      "analysis": {
+        "provider": "ffprobe",
+        "inputHash": "61bb775eea460beddc054e241e2715b20dcd90e01aa849243c9084e2709f2484",
+        "durationStatus": "measured",
+        "loudnessLufs": null,
+        "truePeakDbtp": null,
+        "onsetMs": null,
+        "tailMs": null,
+        "status": "metadata_only"
+      },
+      "lifecycleRoles": [
+        "motion_follow",
+        "semantic_substitute"
+      ],
+      "material": "paper",
+      "direction": "left_to_right",
+      "intensity": "soft",
+      "semanticTags": [
+        "marker",
+        "write",
+        "explain"
+      ],
+      "rights": {
+        "state": "unknown",
+        "usage": "preview_only",
+        "sourceEvidence": null,
+        "licenseEvidence": null
+      }
+    },
+    {
+      "assetId": "foley_paper_flutter",
+      "sha256": "9d4eb0581292f2db85a598ee48f4cbc56dd2263e204e3009e213baf6f56aaea5",
+      "objectKey": "OFFICE FOLEY/paper-flutter-5933.mp3",
+      "durationMs": 54552,
+      "format": "mp3",
+      "analysis": {
+        "provider": "ffprobe",
+        "inputHash": "9d4eb0581292f2db85a598ee48f4cbc56dd2263e204e3009e213baf6f56aaea5",
+        "durationStatus": "measured",
+        "loudnessLufs": null,
+        "truePeakDbtp": null,
+        "onsetMs": null,
+        "tailMs": null,
+        "status": "metadata_only"
+      },
+      "lifecycleRoles": [
+        "motion_follow"
+      ],
+      "material": "paper",
+      "direction": "neutral",
+      "intensity": "soft",
+      "semanticTags": [
+        "paper",
+        "article",
+        "proof"
+      ],
+      "rights": {
+        "state": "unknown",
+        "usage": "preview_only",
+        "sourceEvidence": null,
+        "licenseEvidence": null
+      }
+    },
+    {
+      "assetId": "glitch_data",
+      "sha256": "2c64be42f7006bab7e02a3279b3b293201442e966719a130d3d243fa88468846",
+      "objectKey": "GLITCHES/Data Processing - Glitch - (Nikko Hunt's S.D.Essentials).wav",
+      "durationMs": 6000,
+      "format": "wav",
+      "analysis": {
+        "provider": "ffprobe",
+        "inputHash": "2c64be42f7006bab7e02a3279b3b293201442e966719a130d3d243fa88468846",
+        "durationStatus": "measured",
+        "loudnessLufs": null,
+        "truePeakDbtp": null,
+        "onsetMs": null,
+        "tailMs": null,
+        "status": "metadata_only"
+      },
+      "lifecycleRoles": [
+        "transition_bridge",
+        "semantic_substitute"
+      ],
+      "material": "digital",
+      "direction": "neutral",
+      "intensity": "medium",
+      "semanticTags": [
+        "glitch",
+        "data",
+        "transition"
+      ],
+      "rights": {
+        "state": "unknown",
+        "usage": "preview_only",
+        "sourceEvidence": null,
+        "licenseEvidence": null
+      }
+    },
+    {
+      "assetId": "impact_hit_01",
+      "sha256": "f4a8e2659ccb6ecfaff7c7bcbcf4b68cf94feef6138c67d679468a080a39a3f3",
+      "objectKey": "IMPACT HITS/Generdyn - HITS - 01.wav",
+      "durationMs": 6250,
+      "format": "wav",
+      "analysis": {
+        "provider": "ffprobe",
+        "inputHash": "f4a8e2659ccb6ecfaff7c7bcbcf4b68cf94feef6138c67d679468a080a39a3f3",
+        "durationStatus": "measured",
+        "loudnessLufs": null,
+        "truePeakDbtp": null,
+        "onsetMs": null,
+        "tailMs": null,
+        "status": "metadata_only"
+      },
+      "lifecycleRoles": [
+        "entry",
+        "release"
+      ],
+      "material": "cinematic",
+      "direction": "neutral",
+      "intensity": "hard",
+      "semanticTags": [
+        "impact",
+        "payoff",
+        "hit"
+      ],
+      "rights": {
+        "state": "unknown",
+        "usage": "preview_only",
+        "sourceEvidence": null,
+        "licenseEvidence": null
+      }
+    },
+    {
+      "assetId": "impact_hit_03",
+      "sha256": "1a778e192090fab5b870872ece8805fe91583495c92663557abab551666c65c4",
+      "objectKey": "IMPACT HITS/Generdyn - HITS - 03.wav",
+      "durationMs": 4219,
+      "format": "wav",
+      "analysis": {
+        "provider": "ffprobe",
+        "inputHash": "1a778e192090fab5b870872ece8805fe91583495c92663557abab551666c65c4",
+        "durationStatus": "measured",
+        "loudnessLufs": null,
+        "truePeakDbtp": null,
+        "onsetMs": null,
+        "tailMs": null,
+        "status": "metadata_only"
+      },
+      "lifecycleRoles": [
+        "entry",
+        "release"
+      ],
+      "material": "cinematic",
+      "direction": "neutral",
+      "intensity": "hard",
+      "semanticTags": [
+        "impact",
+        "payoff",
+        "hit"
+      ],
+      "rights": {
+        "state": "unknown",
+        "usage": "preview_only",
+        "sourceEvidence": null,
+        "licenseEvidence": null
+      }
+    },
+    {
+      "assetId": "impact_hit_06",
+      "sha256": "8e89901718065ea1bc7a54e849b66393693c4e0079a784ca8ce16a945820ddbc",
+      "objectKey": "IMPACT HITS/Generdyn - HITS - 06.wav",
+      "durationMs": 2769,
+      "format": "wav",
+      "analysis": {
+        "provider": "ffprobe",
+        "inputHash": "8e89901718065ea1bc7a54e849b66393693c4e0079a784ca8ce16a945820ddbc",
+        "durationStatus": "measured",
+        "loudnessLufs": null,
+        "truePeakDbtp": null,
+        "onsetMs": null,
+        "tailMs": null,
+        "status": "metadata_only"
+      },
+      "lifecycleRoles": [
+        "entry",
+        "release"
+      ],
+      "material": "cinematic",
+      "direction": "outward",
+      "intensity": "hard",
+      "semanticTags": [
+        "impact",
+        "payoff",
+        "hit"
+      ],
+      "rights": {
+        "state": "unknown",
+        "usage": "preview_only",
+        "sourceEvidence": null,
+        "licenseEvidence": null
+      }
+    },
+    {
+      "assetId": "impact_metallic",
+      "sha256": "d23a921b5fb6ae355afb642ced51ffb04241a974968d2b019ab3c5e006655af5",
+      "objectKey": "CINEMATIC HITS/Metallic - Hit - (Nikko Hunt's S.D.Essentials).wav",
+      "durationMs": 6615,
+      "format": "wav",
+      "analysis": {
+        "provider": "ffprobe",
+        "inputHash": "d23a921b5fb6ae355afb642ced51ffb04241a974968d2b019ab3c5e006655af5",
+        "durationStatus": "measured",
+        "loudnessLufs": null,
+        "truePeakDbtp": null,
+        "onsetMs": null,
+        "tailMs": null,
+        "status": "metadata_only"
+      },
+      "lifecycleRoles": [
+        "semantic_substitute",
+        "release"
+      ],
+      "material": "metal",
+      "direction": "neutral",
+      "intensity": "hard",
+      "semanticTags": [
+        "impact",
+        "metal",
+        "reveal"
+      ],
+      "rights": {
+        "state": "unknown",
+        "usage": "preview_only",
+        "sourceEvidence": null,
+        "licenseEvidence": null
+      }
+    },
+    {
+      "assetId": "release_reverse_cymbal",
+      "sha256": "199e4248f79aebb70858995c494ede09cea8c64e4433c664a087d22f0d27955e",
+      "objectKey": "SWEEPS/Reverse Cymbal - Sweeps - (Nikko Hunt's S.D.Essentials).wav",
+      "durationMs": 6000,
+      "format": "wav",
+      "analysis": {
+        "provider": "ffprobe",
+        "inputHash": "199e4248f79aebb70858995c494ede09cea8c64e4433c664a087d22f0d27955e",
+        "durationStatus": "measured",
+        "loudnessLufs": null,
+        "truePeakDbtp": null,
+        "onsetMs": null,
+        "tailMs": null,
+        "status": "metadata_only"
+      },
+      "lifecycleRoles": [
+        "release",
+        "transition_bridge"
+      ],
+      "material": "metal",
+      "direction": "inward",
+      "intensity": "medium",
+      "semanticTags": [
+        "release",
+        "cymbal",
+        "transition"
+      ],
+      "rights": {
+        "state": "unknown",
+        "usage": "preview_only",
+        "sourceEvidence": null,
+        "licenseEvidence": null
+      }
+    },
+    {
+      "assetId": "riser_01",
+      "sha256": "805d0a6fc2b1bd2cb31d8f31b45aafee004e2e526376664a88e040c54bc8000f",
+      "objectKey": "RISERS/Generdyn - RISER - 01.wav",
+      "durationMs": 13125,
+      "format": "wav",
+      "analysis": {
+        "provider": "ffprobe",
+        "inputHash": "805d0a6fc2b1bd2cb31d8f31b45aafee004e2e526376664a88e040c54bc8000f",
+        "durationStatus": "measured",
+        "loudnessLufs": null,
+        "truePeakDbtp": null,
+        "onsetMs": null,
+        "tailMs": null,
+        "status": "metadata_only"
+      },
+      "lifecycleRoles": [
+        "transition_bridge"
+      ],
+      "material": "cinematic",
+      "direction": "outward",
+      "intensity": "medium",
+      "semanticTags": [
+        "riser",
+        "build",
+        "transition"
+      ],
+      "rights": {
+        "state": "unknown",
+        "usage": "preview_only",
+        "sourceEvidence": null,
+        "licenseEvidence": null
+      }
+    },
+    {
+      "assetId": "riser_03",
+      "sha256": "7125bb1143f351883b77f0db14ec3bcb6fdd9f7f26523f845c2ae7539516a137",
+      "objectKey": "RISERS/Generdyn - RISER - 03.wav",
+      "durationMs": 19688,
+      "format": "wav",
+      "analysis": {
+        "provider": "ffprobe",
+        "inputHash": "7125bb1143f351883b77f0db14ec3bcb6fdd9f7f26523f845c2ae7539516a137",
+        "durationStatus": "measured",
+        "loudnessLufs": null,
+        "truePeakDbtp": null,
+        "onsetMs": null,
+        "tailMs": null,
+        "status": "metadata_only"
+      },
+      "lifecycleRoles": [
+        "transition_bridge"
+      ],
+      "material": "air",
+      "direction": "outward",
+      "intensity": "medium",
+      "semanticTags": [
+        "riser",
+        "build",
+        "transition"
+      ],
+      "rights": {
+        "state": "unknown",
+        "usage": "preview_only",
+        "sourceEvidence": null,
+        "licenseEvidence": null
+      }
+    },
+    {
+      "assetId": "riser_white_noise",
+      "sha256": "6bd3791cee1aa28532b65c4073360d0fd41ec7590106806e4ae32d1525c8e75e",
+      "objectKey": "RISERS/White Noise - Riser - (Nikko Hunt's S.D.Essentials).wav",
+      "durationMs": 5031,
+      "format": "wav",
+      "analysis": {
+        "provider": "ffprobe",
+        "inputHash": "6bd3791cee1aa28532b65c4073360d0fd41ec7590106806e4ae32d1525c8e75e",
+        "durationStatus": "measured",
+        "loudnessLufs": null,
+        "truePeakDbtp": null,
+        "onsetMs": null,
+        "tailMs": null,
+        "status": "metadata_only"
+      },
+      "lifecycleRoles": [
+        "transition_bridge"
+      ],
+      "material": "air",
+      "direction": "outward",
+      "intensity": "soft",
+      "semanticTags": [
+        "riser",
+        "build",
+        "transition"
+      ],
+      "rights": {
+        "state": "unknown",
+        "usage": "preview_only",
+        "sourceEvidence": null,
+        "licenseEvidence": null
+      }
+    },
+    {
+      "assetId": "snap_reverb",
+      "sha256": "a471aec7270131db59b09a8bcec402ee986191ccf5842848eb340f26da81f758",
+      "objectKey": "SNAP/soundreality-finger-snap-reverb-423222.mp3",
+      "durationMs": 8040,
+      "format": "mp3",
+      "analysis": {
+        "provider": "ffprobe",
+        "inputHash": "a471aec7270131db59b09a8bcec402ee986191ccf5842848eb340f26da81f758",
+        "durationStatus": "measured",
+        "loudnessLufs": null,
+        "truePeakDbtp": null,
+        "onsetMs": null,
+        "tailMs": null,
+        "status": "metadata_only"
+      },
+      "lifecycleRoles": [
+        "entry"
+      ],
+      "material": "organic",
+      "direction": "neutral",
+      "intensity": "soft",
+      "semanticTags": [
+        "snap",
+        "text",
+        "emphasis"
+      ],
+      "rights": {
+        "state": "unknown",
+        "usage": "preview_only",
+        "sourceEvidence": null,
+        "licenseEvidence": null
+      }
+    },
+    {
+      "assetId": "swish_jump",
+      "sha256": "8a4ec022adfaca6a7dfe154a444e3e57ad55c23f96d870cde663bdf0dca4df0d",
+      "objectKey": "SWOOSHES/ES_Jump Swish - SFX Producer.mp3",
+      "durationMs": 1200,
+      "format": "mp3",
+      "analysis": {
+        "provider": "ffprobe",
+        "inputHash": "8a4ec022adfaca6a7dfe154a444e3e57ad55c23f96d870cde663bdf0dca4df0d",
+        "durationStatus": "measured",
+        "loudnessLufs": null,
+        "truePeakDbtp": null,
+        "onsetMs": null,
+        "tailMs": null,
+        "status": "metadata_only"
+      },
+      "lifecycleRoles": [
+        "motion_follow",
+        "transition_bridge"
+      ],
+      "material": "air",
+      "direction": "left_to_right",
+      "intensity": "medium",
+      "semanticTags": [
+        "swish",
+        "motion",
+        "transition"
+      ],
+      "rights": {
+        "state": "unknown",
+        "usage": "preview_only",
+        "sourceEvidence": null,
+        "licenseEvidence": null
+      }
+    },
+    {
+      "assetId": "texture_atmos_01",
+      "sha256": "d1c8fe4f7ed9706a6d757c95deb5c39fff213a241c2511c2f7c2cffab8db5b85",
+      "objectKey": "ATMOS/Generdyn - ATMOS - 01.wav",
+      "durationMs": 15020,
+      "format": "wav",
+      "analysis": {
+        "provider": "ffprobe",
+        "inputHash": "d1c8fe4f7ed9706a6d757c95deb5c39fff213a241c2511c2f7c2cffab8db5b85",
+        "durationStatus": "measured",
+        "loudnessLufs": null,
+        "truePeakDbtp": null,
+        "onsetMs": null,
+        "tailMs": null,
+        "status": "metadata_only"
+      },
+      "lifecycleRoles": [
+        "motion_follow"
+      ],
+      "material": "texture",
+      "direction": "neutral",
+      "intensity": "soft",
+      "semanticTags": [
+        "texture",
+        "continuous",
+        "atmos"
+      ],
+      "rights": {
+        "state": "unknown",
+        "usage": "preview_only",
+        "sourceEvidence": null,
+        "licenseEvidence": null
+      }
+    },
+    {
+      "assetId": "texture_deep_rumble",
+      "sha256": "47a6ab1f02e888adeaf00fb20e4049264fdf0037725de75421159b5de382afc4",
+      "objectKey": "SOUNDSCAPES/Deep Rumble - Soundscapes - (Nikko Hunt's S.D.Essentials).wav",
+      "durationMs": 23907,
+      "format": "wav",
+      "analysis": {
+        "provider": "ffprobe",
+        "inputHash": "47a6ab1f02e888adeaf00fb20e4049264fdf0037725de75421159b5de382afc4",
+        "durationStatus": "measured",
+        "loudnessLufs": null,
+        "truePeakDbtp": null,
+        "onsetMs": null,
+        "tailMs": null,
+        "status": "metadata_only"
+      },
+      "lifecycleRoles": [
+        "motion_follow"
+      ],
+      "material": "sub",
+      "direction": "neutral",
+      "intensity": "soft",
+      "semanticTags": [
+        "texture",
+        "continuous",
+        "tension"
+      ],
+      "rights": {
+        "state": "unknown",
+        "usage": "preview_only",
+        "sourceEvidence": null,
+        "licenseEvidence": null
+      }
+    },
+    {
+      "assetId": "texture_keyboard_fast",
+      "sha256": "c4247454b0715816004956a3fc1674ec9f7b9c2c497170493ad5609c2662f515",
+      "objectKey": "TEXT/virtualzero-keyboard-typing-fast-371229.mp3",
+      "durationMs": 8046,
+      "format": "mp3",
+      "analysis": {
+        "provider": "ffprobe",
+        "inputHash": "c4247454b0715816004956a3fc1674ec9f7b9c2c497170493ad5609c2662f515",
+        "durationStatus": "measured",
+        "loudnessLufs": null,
+        "truePeakDbtp": null,
+        "onsetMs": null,
+        "tailMs": null,
+        "status": "metadata_only"
+      },
+      "lifecycleRoles": [
+        "motion_follow"
+      ],
+      "material": "texture",
+      "direction": "neutral",
+      "intensity": "medium",
+      "semanticTags": [
+        "typing",
+        "text",
+        "continuous"
+      ],
+      "rights": {
+        "state": "unknown",
+        "usage": "preview_only",
+        "sourceEvidence": null,
+        "licenseEvidence": null
+      }
+    },
+    {
+      "assetId": "texture_loop_01",
+      "sha256": "9f80329c07520e9e36a385e9fa98b0890bf1f9d0eab85f87193a31a4415730a0",
+      "objectKey": "LOOPS/Generdyn - INSTLoops - 01.wav",
+      "durationMs": 3750,
+      "format": "wav",
+      "analysis": {
+        "provider": "ffprobe",
+        "inputHash": "9f80329c07520e9e36a385e9fa98b0890bf1f9d0eab85f87193a31a4415730a0",
+        "durationStatus": "measured",
+        "loudnessLufs": null,
+        "truePeakDbtp": null,
+        "onsetMs": null,
+        "tailMs": null,
+        "status": "metadata_only"
+      },
+      "lifecycleRoles": [
+        "motion_follow"
+      ],
+      "material": "texture",
+      "direction": "neutral",
+      "intensity": "soft",
+      "semanticTags": [
+        "texture",
+        "continuous",
+        "bed"
+      ],
+      "rights": {
+        "state": "unknown",
+        "usage": "preview_only",
+        "sourceEvidence": null,
+        "licenseEvidence": null
+      }
+    },
+    {
+      "assetId": "texture_typewriter",
+      "sha256": "b3d717041fdc627ed3a714c842810297a46edd2789d43cf5ecb6b2b800668a8c",
+      "objectKey": "TEXT/type-writing-6834.mp3",
+      "durationMs": 23064,
+      "format": "mp3",
+      "analysis": {
+        "provider": "ffprobe",
+        "inputHash": "b3d717041fdc627ed3a714c842810297a46edd2789d43cf5ecb6b2b800668a8c",
+        "durationStatus": "measured",
+        "loudnessLufs": null,
+        "truePeakDbtp": null,
+        "onsetMs": null,
+        "tailMs": null,
+        "status": "metadata_only"
+      },
+      "lifecycleRoles": [
+        "motion_follow"
+      ],
+      "material": "texture",
+      "direction": "neutral",
+      "intensity": "soft",
+      "semanticTags": [
+        "typing",
+        "text",
+        "continuous"
+      ],
+      "rights": {
+        "state": "unknown",
+        "usage": "preview_only",
+        "sourceEvidence": null,
+        "licenseEvidence": null
+      }
+    },
+    {
+      "assetId": "ui_click_freesound",
+      "sha256": "fb4ab4c8590e47f5be4361551ad54705b0afe6f9f6acfc67e39ead37a19a4b1d",
+      "objectKey": "UI INTERFACE/freesound_community-ui-click-43196.mp3",
+      "durationMs": 552,
+      "format": "mp3",
+      "analysis": {
+        "provider": "ffprobe",
+        "inputHash": "fb4ab4c8590e47f5be4361551ad54705b0afe6f9f6acfc67e39ead37a19a4b1d",
+        "durationStatus": "measured",
+        "loudnessLufs": null,
+        "truePeakDbtp": null,
+        "onsetMs": null,
+        "tailMs": null,
+        "status": "metadata_only"
+      },
+      "lifecycleRoles": [
+        "entry",
+        "semantic_substitute"
+      ],
+      "material": "digital",
+      "direction": "neutral",
+      "intensity": "soft",
+      "semanticTags": [
+        "ui",
+        "click",
+        "text"
+      ],
+      "rights": {
+        "state": "unknown",
+        "usage": "preview_only",
+        "sourceEvidence": null,
+        "licenseEvidence": null
+      }
+    },
+    {
+      "assetId": "ui_click_gui_01",
+      "sha256": "33a5fe7b0bbc14848c93dd20bd3549899530afe1b6375767f6d26d7e31e7eac5",
+      "objectKey": "UI INTERFACE/Generdyn - GUI - 01.wav",
+      "durationMs": 4688,
+      "format": "wav",
+      "analysis": {
+        "provider": "ffprobe",
+        "inputHash": "33a5fe7b0bbc14848c93dd20bd3549899530afe1b6375767f6d26d7e31e7eac5",
+        "durationStatus": "measured",
+        "loudnessLufs": null,
+        "truePeakDbtp": null,
+        "onsetMs": null,
+        "tailMs": null,
+        "status": "metadata_only"
+      },
+      "lifecycleRoles": [
+        "entry"
+      ],
+      "material": "digital",
+      "direction": "neutral",
+      "intensity": "soft",
+      "semanticTags": [
+        "ui",
+        "click",
+        "select"
+      ],
+      "rights": {
+        "state": "unknown",
+        "usage": "preview_only",
+        "sourceEvidence": null,
+        "licenseEvidence": null
+      }
+    },
+    {
+      "assetId": "ui_click_gui_02",
+      "sha256": "db5c931407ecd39d3cbbfea58348d268ae647faf09f05ce8e14b58727941955a",
+      "objectKey": "UI INTERFACE/Generdyn - GUI - 02.wav",
+      "durationMs": 938,
+      "format": "wav",
+      "analysis": {
+        "provider": "ffprobe",
+        "inputHash": "db5c931407ecd39d3cbbfea58348d268ae647faf09f05ce8e14b58727941955a",
+        "durationStatus": "measured",
+        "loudnessLufs": null,
+        "truePeakDbtp": null,
+        "onsetMs": null,
+        "tailMs": null,
+        "status": "metadata_only"
+      },
+      "lifecycleRoles": [
+        "entry"
+      ],
+      "material": "digital",
+      "direction": "neutral",
+      "intensity": "medium",
+      "semanticTags": [
+        "ui",
+        "click",
+        "confirm"
+      ],
+      "rights": {
+        "state": "unknown",
+        "usage": "preview_only",
+        "sourceEvidence": null,
+        "licenseEvidence": null
+      }
+    },
+    {
+      "assetId": "whoosh_light",
+      "sha256": "fd907fe1c8fd0e1bebed443446c664c5695e6f4cf843e2d8ca04201cd97c67a9",
+      "objectKey": "WHOOSHES/Light - Whoosh - (Nikko Hunt's S.D.Essentials).wav",
+      "durationMs": 4000,
+      "format": "wav",
+      "analysis": {
+        "provider": "ffprobe",
+        "inputHash": "fd907fe1c8fd0e1bebed443446c664c5695e6f4cf843e2d8ca04201cd97c67a9",
+        "durationStatus": "measured",
+        "loudnessLufs": null,
+        "truePeakDbtp": null,
+        "onsetMs": null,
+        "tailMs": null,
+        "status": "metadata_only"
+      },
+      "lifecycleRoles": [
+        "motion_follow",
+        "transition_bridge"
+      ],
+      "material": "air",
+      "direction": "left_to_right",
+      "intensity": "soft",
+      "semanticTags": [
+        "whoosh",
+        "light",
+        "motion"
+      ],
+      "rights": {
+        "state": "unknown",
+        "usage": "preview_only",
+        "sourceEvidence": null,
+        "licenseEvidence": null
+      }
+    },
+    {
+      "assetId": "whoosh_low",
+      "sha256": "6c341372394442b57903a1395191fdfe5377e9013b38897e72eb7a2db2137a88",
+      "objectKey": "WHOOSHES/Low - Whoosh - (Nikko Hunt's S.D.Essentials).wav",
+      "durationMs": 7250,
+      "format": "wav",
+      "analysis": {
+        "provider": "ffprobe",
+        "inputHash": "6c341372394442b57903a1395191fdfe5377e9013b38897e72eb7a2db2137a88",
+        "durationStatus": "measured",
+        "loudnessLufs": null,
+        "truePeakDbtp": null,
+        "onsetMs": null,
+        "tailMs": null,
+        "status": "metadata_only"
+      },
+      "lifecycleRoles": [
+        "motion_follow",
+        "transition_bridge"
+      ],
+      "material": "sub",
+      "direction": "inward",
+      "intensity": "medium",
+      "semanticTags": [
+        "whoosh",
+        "low",
+        "transition"
+      ],
+      "rights": {
+        "state": "unknown",
+        "usage": "preview_only",
+        "sourceEvidence": null,
+        "licenseEvidence": null
+      }
+    },
+    {
+      "assetId": "whoosh_whip",
+      "sha256": "8ab035ecb50a309425703ae1e21e95b9324c0c8b1e9c1a434691cd62d207f845",
+      "objectKey": "WHOOSHES/Whip - Whoosh - (Nikko Hunt's S.D.Essentials).wav",
+      "durationMs": 7200,
+      "format": "wav",
+      "analysis": {
+        "provider": "ffprobe",
+        "inputHash": "8ab035ecb50a309425703ae1e21e95b9324c0c8b1e9c1a434691cd62d207f845",
+        "durationStatus": "measured",
+        "loudnessLufs": null,
+        "truePeakDbtp": null,
+        "onsetMs": null,
+        "tailMs": null,
+        "status": "metadata_only"
+      },
+      "lifecycleRoles": [
+        "motion_follow",
+        "transition_bridge"
+      ],
+      "material": "air",
+      "direction": "right_to_left",
+      "intensity": "medium",
+      "semanticTags": [
+        "whoosh",
+        "whip",
+        "motion"
+      ],
+      "rights": {
+        "state": "unknown",
+        "usage": "preview_only",
+        "sourceEvidence": null,
+        "licenseEvidence": null
+      }
+    }
+  ]
+}

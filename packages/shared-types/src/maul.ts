@@ -5,6 +5,7 @@ import {
   maulShortsTextChunkPlanV2CoreSchema,
   maulTextPlacementPlanCoreSchema,
 } from "./maul-text-placement.js";
+import {maulTextAnimationPlanCoreSchema} from "./maul-text-animation.js";
 import {
   joinShortsTextTokens,
   shortsTextChunkPlanSchema,
@@ -923,6 +924,10 @@ export const maulTextPlacementPlanPayloadSchema = maulPlanBaseSchema.and(
   maulTextPlacementPlanCoreSchema,
 );
 
+export const maulTextAnimationPlanPayloadSchema = maulPlanBaseSchema.and(
+  maulTextAnimationPlanCoreSchema,
+);
+
 export const maulObservationSnapshotPayloadSchema = maulPlanBaseSchema.extend({
   schemaVersion: z.literal("maul-observation-snapshot/v1"),
   facts: z.object({
@@ -1140,8 +1145,22 @@ const maulTypographyMotionPlanV2ObjectSchema = maulPlanBaseSchema.extend({
   ...maulTypographyMotionPlanCommonShape,
 });
 
+const maulTypographyMotionPlanV3ObjectSchema = maulPlanBaseSchema.extend({
+  schemaVersion: z.literal("maul-typography-motion-plan/v3"),
+  textChunkPlanArtifactId: idSchema,
+  textChunkPlanHash: z.string().regex(/^[a-f0-9]{64}$/i),
+  textPlacementPlanArtifactId: idSchema,
+  textPlacementPlanHash: z.string().regex(/^[a-f0-9]{64}$/i),
+  textAnimationPlanArtifactId: idSchema,
+  textAnimationPlanHash: z.string().regex(/^[a-f0-9]{64}$/i),
+  ...maulTypographyMotionPlanCommonShape,
+});
+
 const validateMaulTypographyMotionPlanV2 = (
-  plan: z.infer<typeof maulTypographyMotionPlanV2ObjectSchema>,
+  plan: {
+    editorialStatements: Array<unknown>;
+    editorialTextWithheldReason: string | null;
+  },
   ctx: z.RefinementCtx,
 ) => {
   if (
@@ -1166,10 +1185,16 @@ export const maulTypographyMotionPlanV2PayloadSchema =
     validateMaulTypographyMotionPlanV2,
   );
 
+export const maulTypographyMotionPlanV3PayloadSchema =
+  maulTypographyMotionPlanV3ObjectSchema.superRefine(
+    validateMaulTypographyMotionPlanV2,
+  );
+
 export const maulTypographyMotionPlanPayloadSchema = z
   .discriminatedUnion("schemaVersion", [
     maulTypographyMotionPlanV1ObjectSchema,
     maulTypographyMotionPlanV2ObjectSchema,
+    maulTypographyMotionPlanV3ObjectSchema,
   ])
   .superRefine((plan, ctx) => {
     if (plan.schemaVersion === "maul-typography-motion-plan/v1") {
@@ -1526,6 +1551,19 @@ export const maulPlanningArtifactIdsV2Schema = maulPlanningArtifactIdsSchema
   })
   .strict();
 
+export const maulPlanningArtifactIdsV3Schema =
+  maulPlanningArtifactIdsV2Schema.extend({
+    textAnimation: idSchema,
+  }).superRefine((artifactIds, ctx) => {
+    const ids = Object.values(artifactIds);
+    if (new Set(ids).size !== ids.length) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "V3 planning artifact IDs must be unique across all 17 slots.",
+      });
+    }
+  });
+
 const maulPlanningBundleCommonShape = {
   rendererReadiness: z.enum([
     "governed_with_explicit_fallbacks",
@@ -1543,6 +1581,12 @@ const maulPlanningBundleV1ObjectSchema = maulPlanBaseSchema.extend({
 const maulPlanningBundleV2ObjectSchema = maulPlanBaseSchema.extend({
   schemaVersion: z.literal("maul-planning-bundle/v2"),
   planArtifactIds: maulPlanningArtifactIdsV2Schema,
+  ...maulPlanningBundleCommonShape,
+});
+
+const maulPlanningBundleV3ObjectSchema = maulPlanBaseSchema.extend({
+  schemaVersion: z.literal("maul-planning-bundle/v3"),
+  planArtifactIds: maulPlanningArtifactIdsV3Schema,
   ...maulPlanningBundleCommonShape,
 });
 
@@ -1581,10 +1625,14 @@ export const maulPlanningBundleV1PayloadSchema =
 export const maulPlanningBundleV2PayloadSchema =
   maulPlanningBundleV2ObjectSchema.superRefine(validateMaulPlanningBundle);
 
+export const maulPlanningBundleV3PayloadSchema =
+  maulPlanningBundleV3ObjectSchema.superRefine(validateMaulPlanningBundle);
+
 export const maulPlanningBundlePayloadSchema = z
   .discriminatedUnion("schemaVersion", [
     maulPlanningBundleV1ObjectSchema,
     maulPlanningBundleV2ObjectSchema,
+    maulPlanningBundleV3ObjectSchema,
   ])
   .superRefine(validateMaulPlanningBundle);
 
@@ -1733,9 +1781,64 @@ const maulUnifiedShortRenderManifestV2ObjectSchema =
       .length(16),
   });
 
+const maulUnifiedShortRenderManifestV3ObjectSchema =
+  maulUnifiedShortRenderManifestV2ObjectSchema.extend({
+    schemaVersion: z.literal("maul-unified-short-render-manifest/v3"),
+    planArtifactIds: maulPlanningArtifactIdsV3Schema,
+    plans: z.object({
+      observationSnapshot: maulObservationSnapshotPayloadSchema,
+      candidateNarrative: maulCandidateNarrativePayloadSchema,
+      beatMap: maulEditorialBeatMapPayloadSchema,
+      typographyMotion: maulTypographyMotionPlanV3PayloadSchema,
+      camera: maulFramingCameraPlanPayloadSchema,
+      visual: maulVisualPlanPayloadSchema,
+      audio: maulDialogueAudioPlanPayloadSchema,
+      capabilitySelection: maulCapabilitySelectionPayloadSchema,
+      adapterDecision: maulAdapterDecisionPayloadSchema,
+      artDirection: maulArtDirectionPlanPayloadSchema,
+      contextAssembly: maulContextAssemblyPlanPayloadSchema,
+      shotIntentMatrix: maulShotIntentMatrixPayloadSchema,
+      textOpportunity: maulTextOpportunityPlanPayloadSchema,
+      revision: maulRevisionPlanPayloadSchema,
+      textChunk: maulTextChunkPlanPayloadSchema,
+      textPlacement: maulTextPlacementPlanPayloadSchema,
+      textAnimation: maulTextAnimationPlanPayloadSchema,
+    }),
+    planExecution: z
+      .array(
+        z.object({
+          planArtifactId: idSchema,
+          planType: z.enum([
+            "observation_snapshot",
+            "candidate_narrative",
+            "editorial_beat_map",
+            "typography_motion_plan",
+            "framing_camera_plan",
+            "visual_plan",
+            "dialogue_audio_plan",
+            "capability_selection",
+            "adapter_decision",
+            "art_direction_plan",
+            "context_assembly_plan",
+            "shot_intent_matrix",
+            "text_opportunity_plan",
+            "revision_plan",
+            "text_chunk_plan",
+            "text_placement_plan",
+            "text_animation_plan",
+          ]),
+          executionStatus: z.enum(["native", "governed_fallback"]),
+          nativeBranch: z.string().trim().min(1).nullable(),
+          fallback: z.string().trim().min(1).nullable(),
+        }),
+      )
+      .length(17),
+  });
+
 type MaulUnifiedShortRenderManifestCandidate =
   | z.infer<typeof maulUnifiedShortRenderManifestV1ObjectSchema>
-  | z.infer<typeof maulUnifiedShortRenderManifestV2ObjectSchema>;
+  | z.infer<typeof maulUnifiedShortRenderManifestV2ObjectSchema>
+  | z.infer<typeof maulUnifiedShortRenderManifestV3ObjectSchema>;
 
 const validateMaulUnifiedShortRenderManifest = (
   manifest: MaulUnifiedShortRenderManifestCandidate,
@@ -1773,10 +1876,14 @@ const validateMaulUnifiedShortRenderManifest = (
       text_opportunity_plan: manifest.planArtifactIds.textOpportunity,
       revision_plan: manifest.planArtifactIds.revision,
     };
-    if (manifest.schemaVersion === "maul-unified-short-render-manifest/v2") {
+    if (manifest.schemaVersion !== "maul-unified-short-render-manifest/v1") {
       expectedPlanIds.text_chunk_plan = manifest.planArtifactIds.textChunk;
       expectedPlanIds.text_placement_plan =
         manifest.planArtifactIds.textPlacement;
+    }
+    if (manifest.schemaVersion === "maul-unified-short-render-manifest/v3") {
+      expectedPlanIds.text_animation_plan =
+        manifest.planArtifactIds.textAnimation;
     }
     const executionTypes = new Set(
       manifest.planExecution.map((entry) => entry.planType),
@@ -1784,7 +1891,9 @@ const validateMaulUnifiedShortRenderManifest = (
     const expectedExecutionCount =
       manifest.schemaVersion === "maul-unified-short-render-manifest/v1"
         ? 14
-        : 16;
+        : manifest.schemaVersion === "maul-unified-short-render-manifest/v2"
+          ? 16
+          : 17;
     if (
       executionTypes.size !== expectedExecutionCount ||
       manifest.planExecution.some(
@@ -1798,7 +1907,7 @@ const validateMaulUnifiedShortRenderManifest = (
           "Manifest plan execution must cover each governed plan exactly once with its bundle artifact ID.",
       });
     }
-    if (manifest.schemaVersion === "maul-unified-short-render-manifest/v2") {
+    if (manifest.schemaVersion !== "maul-unified-short-render-manifest/v1") {
       const typography = manifest.plans.typographyMotion;
       const placement = manifest.plans.textPlacement;
       const chunkPlan = manifest.plans.textChunk;
@@ -1874,6 +1983,86 @@ const validateMaulUnifiedShortRenderManifest = (
         });
       }
     }
+    if (manifest.schemaVersion === "maul-unified-short-render-manifest/v3") {
+      const typography = manifest.plans.typographyMotion;
+      const animation = manifest.plans.textAnimation;
+      const placement = manifest.plans.textPlacement;
+      if (
+        typography.textAnimationPlanArtifactId !==
+          manifest.planArtifactIds.textAnimation ||
+        animation.textChunkPlanArtifactId !==
+          manifest.planArtifactIds.textChunk ||
+        animation.textPlacementPlanArtifactId !==
+          manifest.planArtifactIds.textPlacement ||
+        animation.treatmentGenomeArtifactId !==
+          typography.treatmentGenomeArtifactId ||
+        animation.textChunkPlanHash !== typography.textChunkPlanHash ||
+        animation.textPlacementPlanHash !== typography.textPlacementPlanHash ||
+        animation.outputDurationMs !== manifest.timeline.outputDurationMs
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["plans", "textAnimation"],
+          message:
+            "V3 animation artifact IDs and parent hashes must match Typography Motion, placement, chunk, treatment, and timeline references.",
+        });
+      }
+
+      const placementById = new Map(
+        placement.segments.map((segment) => [segment.segmentId, segment]),
+      );
+      animation.programs.forEach((program, programIndex) => {
+        const segment = placementById.get(program.target.placementSegmentId);
+        const targetTokenPositions = segment
+          ? program.target.tokenIds.map((tokenId) =>
+              segment.tokenIds.indexOf(tokenId),
+            )
+          : [];
+        const tokenReferencesMatch = segment
+          ? program.target.scope === "segment"
+            ? program.target.tokenIds.length === segment.tokenIds.length &&
+              program.target.tokenIds.every(
+                (tokenId, tokenIndex) =>
+                  tokenId === segment.tokenIds[tokenIndex],
+              )
+            : targetTokenPositions.every(
+                (position, tokenIndex) =>
+                  position >= 0 &&
+                  (tokenIndex === 0 ||
+                    position > (targetTokenPositions[tokenIndex - 1] ?? -1)),
+              )
+          : false;
+        if (
+          !segment ||
+          !tokenReferencesMatch ||
+          program.phases.entry.outputStartMs < segment.outputStartMs ||
+          program.phases.exit.outputEndMs > segment.outputEndMs
+        ) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["plans", "textAnimation", "programs", programIndex],
+            message:
+              "V3 animation placement segment token references must be exact for segment scope or an ordered token subset inside the governed interval.",
+          });
+        }
+      });
+      if (
+        placement.segments.some(
+          (segment) =>
+            !animation.programs.some(
+              (program) =>
+                program.target.placementSegmentId === segment.segmentId,
+            ),
+        )
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["plans", "textAnimation", "programs"],
+          message:
+            "V3 animation must govern every planned placement segment exactly once.",
+        });
+      }
+    }
     const base = manifest.plans.observationSnapshot;
     const planValues = Object.values(manifest.plans);
     const inconsistentPlan = planValues.some(
@@ -1935,10 +2124,20 @@ export const maulUnifiedShortRenderManifestV2Schema =
     validateMaulUnifiedShortRenderManifest,
   );
 
-export const maulUnifiedShortRenderManifestSchema = z
+export const maulUnifiedShortRenderManifestV3Schema =
+  maulUnifiedShortRenderManifestV3ObjectSchema.superRefine(
+    validateMaulUnifiedShortRenderManifest,
+  );
+
+export const maulUnifiedShortRenderManifestSchema: z.ZodType<
+  MaulUnifiedShortRenderManifestCandidate,
+  z.ZodTypeDef,
+  unknown
+> = z
   .discriminatedUnion("schemaVersion", [
     maulUnifiedShortRenderManifestV1ObjectSchema,
     maulUnifiedShortRenderManifestV2ObjectSchema,
+    maulUnifiedShortRenderManifestV3ObjectSchema,
   ])
   .superRefine(validateMaulUnifiedShortRenderManifest);
 
@@ -2456,6 +2655,7 @@ export const maulArtifactTypeSchema = z.enum([
   "editorial_beat_map",
   "text_chunk_plan",
   "text_placement_plan",
+  "text_animation_plan",
   "typography_motion_plan",
   "framing_camera_plan",
   "visual_plan",
@@ -2518,6 +2718,7 @@ type MaulArtifactPayloadByType = {
   editorial_beat_map: z.infer<typeof maulEditorialBeatMapPayloadSchema>;
   text_chunk_plan: z.infer<typeof maulTextChunkPlanPayloadSchema>;
   text_placement_plan: z.infer<typeof maulTextPlacementPlanPayloadSchema>;
+  text_animation_plan: z.infer<typeof maulTextAnimationPlanPayloadSchema>;
   typography_motion_plan: z.infer<
     typeof maulTypographyMotionPlanPayloadSchema
   >;
@@ -2589,6 +2790,10 @@ export const maulArtifactRecordSchema: z.ZodType<
     artifactRecord(
       z.literal("text_placement_plan"),
       maulTextPlacementPlanPayloadSchema,
+    ),
+    artifactRecord(
+      z.literal("text_animation_plan"),
+      maulTextAnimationPlanPayloadSchema,
     ),
     artifactRecord(
       z.literal("typography_motion_plan"),
@@ -2941,6 +3146,10 @@ export const maulArtifactCreateRequestSchema: z.ZodType<
       maulTextPlacementPlanPayloadSchema,
     ),
     artifactCreate(
+      z.literal("text_animation_plan"),
+      maulTextAnimationPlanPayloadSchema,
+    ),
+    artifactCreate(
       z.literal("typography_motion_plan"),
       maulTypographyMotionPlanPayloadSchema,
     ),
@@ -3065,11 +3274,17 @@ export type MaulTextChunkPlanPayload = z.infer<
 export type MaulTextPlacementPlanPayload = z.infer<
   typeof maulTextPlacementPlanPayloadSchema
 >;
+export type MaulTextAnimationPlanPayload = z.infer<
+  typeof maulTextAnimationPlanPayloadSchema
+>;
 export type MaulTypographyMotionPlanV1Payload = z.infer<
   typeof maulTypographyMotionPlanV1PayloadSchema
 >;
 export type MaulTypographyMotionPlanV2Payload = z.infer<
   typeof maulTypographyMotionPlanV2PayloadSchema
+>;
+export type MaulTypographyMotionPlanV3Payload = z.infer<
+  typeof maulTypographyMotionPlanV3PayloadSchema
 >;
 export type MaulTypographyMotionPlanPayload = z.infer<
   typeof maulTypographyMotionPlanPayloadSchema
@@ -3111,6 +3326,9 @@ export type MaulPlanningBundleV1Payload = z.infer<
 export type MaulPlanningBundleV2Payload = z.infer<
   typeof maulPlanningBundleV2PayloadSchema
 >;
+export type MaulPlanningBundleV3Payload = z.infer<
+  typeof maulPlanningBundleV3PayloadSchema
+>;
 export type MaulPlanningBundleRequest = z.infer<
   typeof maulPlanningBundleRequestSchema
 >;
@@ -3120,6 +3338,9 @@ export type MaulPlanningArtifactIdsV1 = z.infer<
 export type MaulPlanningArtifactIdsV2 = z.infer<
   typeof maulPlanningArtifactIdsV2Schema
 >;
+export type MaulPlanningArtifactIdsV3 = z.infer<
+  typeof maulPlanningArtifactIdsV3Schema
+>;
 export type MaulUnifiedShortRenderManifest = z.infer<
   typeof maulUnifiedShortRenderManifestSchema
 >;
@@ -3128,6 +3349,9 @@ export type MaulUnifiedShortRenderManifestV1 = z.infer<
 >;
 export type MaulUnifiedShortRenderManifestV2 = z.infer<
   typeof maulUnifiedShortRenderManifestV2Schema
+>;
+export type MaulUnifiedShortRenderManifestV3 = z.infer<
+  typeof maulUnifiedShortRenderManifestV3Schema
 >;
 export type MaulQualityTruthProof = z.infer<
   typeof maulQualityTruthProofSchema

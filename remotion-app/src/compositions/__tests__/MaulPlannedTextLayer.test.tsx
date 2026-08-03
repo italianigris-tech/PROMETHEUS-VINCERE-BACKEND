@@ -1,7 +1,10 @@
 import {renderToStaticMarkup} from "react-dom/server";
 import {describe, expect, it} from "vitest";
 
-import {MaulPlannedTextCard} from "../MaulPlannedTextLayer";
+import {
+  MaulPlannedTextCard,
+  resolveMaulTextAnimationTransform,
+} from "../MaulPlannedTextLayer";
 import {
   adaptMaulShortManifest,
   buildMaulPlannedSourceSequences,
@@ -119,6 +122,73 @@ const typographyMotion = {
     status: "eligible_loaded",
   },
 };
+
+const baseTransform = {
+  opacity: 1,
+  translateXPx: 0,
+  translateYPx: 0,
+  scale: 1,
+} as const;
+
+const animationProgram = (
+  treatment: "fade_rise" | "keyword_pop" | "continuous_push",
+) => ({
+  animationId: `animation_${treatment}`,
+  treatment,
+  target: {
+    scope: treatment === "keyword_pop" ? "tokens" : "segment",
+    placementSegmentId: "placement_a",
+    tokenIds: treatment === "keyword_pop" ? ["token_it"] : ["token_make", "token_it"],
+  },
+  phases: {
+    entry: {
+      outputStartMs: treatment === "fade_rise" ? 100 : 0,
+      outputEndMs: 200,
+      easing: {type: "linear"},
+      from:
+        treatment === "fade_rise"
+          ? {...baseTransform, opacity: 0, translateYPx: 28}
+          : treatment === "keyword_pop"
+            ? {...baseTransform, opacity: 0, scale: 0.9}
+            : {...baseTransform, translateXPx: 0},
+      to:
+        treatment === "keyword_pop"
+          ? {...baseTransform, scale: 1.2}
+          : treatment === "continuous_push"
+            ? {...baseTransform, translateXPx: 10}
+            : baseTransform,
+    },
+    hold: {
+      outputStartMs: 200,
+      outputEndMs: 600,
+      easing: {type: "linear"},
+      from:
+        treatment === "keyword_pop"
+          ? {...baseTransform, scale: 1.2}
+          : treatment === "continuous_push"
+            ? {...baseTransform, translateXPx: 10}
+            : baseTransform,
+      to:
+        treatment === "continuous_push"
+          ? {...baseTransform, translateXPx: 30}
+          : baseTransform,
+    },
+    exit: {
+      outputStartMs: 600,
+      outputEndMs: 800,
+      easing: {type: "linear"},
+      from:
+        treatment === "continuous_push"
+          ? {...baseTransform, translateXPx: 30}
+          : baseTransform,
+      to:
+        treatment === "continuous_push"
+          ? {...baseTransform, opacity: 0, translateXPx: 40}
+          : {...baseTransform, opacity: 0, translateYPx: -16},
+    },
+  },
+  rationale: "Frame-sampling fixture.",
+}) as const;
 
 const buildRecords = () =>
   buildMaulPlannedTextRecords({
@@ -420,6 +490,94 @@ describe("MAUL planned text renderer contract", () => {
     expect(markup).toContain(
       'data-maul-token-id="token_it" data-active="true"',
     );
+  });
+
+  it("samples fade-rise before entry and during its governed hold", () => {
+    const program = animationProgram("fade_rise");
+    const before = resolveMaulTextAnimationTransform({
+      program,
+      outputFrame: 0,
+      fps: 30,
+    });
+    const hold = resolveMaulTextAnimationTransform({
+      program,
+      outputFrame: 9,
+      fps: 30,
+    });
+
+    expect(before.opacity).toBe(0);
+    expect(before.translateYPx).toBe(28);
+    expect(hold.opacity).toBe(1);
+    expect(hold.translateYPx).toBe(0);
+  });
+
+  it("samples keyword scale at its peak and after it settles", () => {
+    const program = animationProgram("keyword_pop");
+    const peak = resolveMaulTextAnimationTransform({
+      program,
+      outputFrame: 6,
+      fps: 30,
+    });
+    const settled = resolveMaulTextAnimationTransform({
+      program,
+      outputFrame: 18,
+      fps: 30,
+    });
+
+    expect(peak.scale).toBeCloseTo(1.2, 5);
+    expect(settled.scale).toBeCloseTo(1, 5);
+  });
+
+  it("keeps continuous push monotonic across a Sequence boundary", () => {
+    const program = animationProgram("continuous_push");
+    const priorSequenceLastFrame = resolveMaulTextAnimationTransform({
+      program,
+      outputFrame: 14,
+      fps: 30,
+    });
+    const nextSequenceFirstFrame = resolveMaulTextAnimationTransform({
+      program,
+      outputFrame: 15 + 0,
+      fps: 30,
+    });
+
+    expect(nextSequenceFirstFrame.translateXPx).toBeGreaterThan(
+      priorSequenceLastFrame.translateXPx,
+    );
+  });
+
+  it("attaches the governed plan to its record and renders its transform", () => {
+    const program = animationProgram("fade_rise");
+    const record = buildMaulPlannedTextRecords({
+      textChunkPlan: textChunkPlan as never,
+      textPlacementPlan: textPlacementPlan as never,
+      typographyMotion: typographyMotion as never,
+      textAnimationPlan: {programs: [program]} as never,
+      output: {width: 1080, height: 1920},
+    })[0]!;
+    expect(record.animationProgram?.animationId).toBe("animation_fade_rise");
+
+    const markup = renderToStaticMarkup(
+      <MaulPlannedTextCard
+        absoluteTimeMs={0}
+        outputFrame={0}
+        fps={30}
+        record={record}
+        textColor="#ffffff"
+        accentColor="#ffcc00"
+      />,
+    );
+    expect(markup).toContain('data-text-animation-treatment="fade_rise"');
+    expect(markup).toContain("opacity:0");
+    expect(markup).toContain("translate3d(0px, 28px, 0)");
+  });
+
+  it("rejects malformed V3 instead of adapting it as V2 or legacy", () => {
+    expect(() =>
+      adaptMaulShortManifest({
+        schemaVersion: "maul-unified-short-render-manifest/v3",
+      } as never),
+    ).toThrow(/invalid or stale MAUL V3 render manifest/i);
   });
 
   it("assembles a parsed V2 manifest into one planned render model", () => {

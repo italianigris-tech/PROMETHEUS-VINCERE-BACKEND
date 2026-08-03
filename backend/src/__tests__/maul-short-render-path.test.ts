@@ -345,7 +345,7 @@ describe("MAUL complete short render path", () => {
     expect(planningBundle).toMatchObject({
       artifactType: "planning_bundle",
       payload: {
-        schemaVersion: "maul-planning-bundle/v2",
+        schemaVersion: "maul-planning-bundle/v3",
         rendererReadiness: "governed_with_explicit_fallbacks",
       },
     });
@@ -361,6 +361,7 @@ describe("MAUL complete short render path", () => {
       "observationSnapshot",
       "revision",
       "shotIntentMatrix",
+      "textAnimation",
       "textChunk",
       "textOpportunity",
       "textPlacement",
@@ -384,6 +385,7 @@ describe("MAUL complete short render path", () => {
       "observation_snapshot",
       "revision_plan",
       "shot_intent_matrix",
+      "text_animation_plan",
       "text_chunk_plan",
       "text_opportunity_plan",
       "text_placement_plan",
@@ -423,9 +425,10 @@ describe("MAUL complete short render path", () => {
     expect(plans.textPlacement.payload.status).toBe("planned");
     expect(plans.textPlacement.payload.segments.length).toBeGreaterThan(0);
     expect(plans.typographyMotion.payload).toMatchObject({
-      schemaVersion: "maul-typography-motion-plan/v2",
+      schemaVersion: "maul-typography-motion-plan/v3",
       textChunkPlanArtifactId: plans.textChunk.artifactId,
       textPlacementPlanArtifactId: plans.textPlacement.artifactId,
+      textAnimationPlanArtifactId: plans.textAnimation.artifactId,
       fontResolution: {
         selectedFamily: "DM Sans",
         selectedAssetId: "font_google_dm_sans_700",
@@ -434,6 +437,12 @@ describe("MAUL complete short render path", () => {
     });
     expect(plans.typographyMotion.payload.authority).toMatchObject({
       authorityClass: "deterministic",
+    });
+    expect(plans.textAnimation.payload).toMatchObject({
+      schemaVersion: "maul-text-animation-plan/v1",
+      treatmentGenomeArtifactId: treatment.artifactId,
+      textChunkPlanArtifactId: plans.textChunk.artifactId,
+      textPlacementPlanArtifactId: plans.textPlacement.artifactId,
     });
     expect(
       plans.textChunk.payload.chunks
@@ -470,6 +479,7 @@ describe("MAUL complete short render path", () => {
       "revision",
       "textChunk",
       "textPlacement",
+      "textAnimation",
     ]) {
       expect(plans[key].lineage.parentArtifactIds).toEqual(
         expect.arrayContaining([
@@ -497,7 +507,11 @@ describe("MAUL complete short render path", () => {
     expect(forgedManifest.json().error).toMatch(
       /manual|manifest compiler|governed runtime/i,
     );
-    for (const artifactType of ["text_chunk_plan", "text_placement_plan"]) {
+    for (const artifactType of [
+      "text_chunk_plan",
+      "text_placement_plan",
+      "text_animation_plan",
+    ]) {
       const forgedPlan = await context.app.inject({
         method: "POST",
         url: `/api/maul/projects/${project.id}/artifacts`,
@@ -692,18 +706,19 @@ describe("MAUL complete short render path", () => {
     expect(Object.keys(renderInput).sort()).toEqual(["manifest", "workRoot"]);
     expect(renderInput.manifest).toEqual(
       expect.objectContaining({
-        schemaVersion: "maul-unified-short-render-manifest/v2",
+        schemaVersion: "maul-unified-short-render-manifest/v3",
         rendererInputKind: "unified_short_render_manifest_only",
         planningBundleArtifactId: planningBundle.artifactId,
         output: { width: 1080, height: 1920, fps: 30, codec: "h264" },
         audio: expect.objectContaining({ planMode: "render_ready" }),
       }),
     );
-    expect(renderInput.manifest.planExecution).toHaveLength(16);
+    expect(renderInput.manifest.planExecution).toHaveLength(17);
     expect(renderInput.manifest.planExecution).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({planType: "text_chunk_plan", nativeBranch: "MaulShort.PlannedCaptionTokens.v1"}),
-        expect.objectContaining({planType: "text_placement_plan", nativeBranch: "MaulShort.PlannedPlacement.v1"}),
+        expect.objectContaining({planType: "text_chunk_plan", nativeBranch: "MaulPlannedTextLayer.stableTokens"}),
+        expect.objectContaining({planType: "text_placement_plan", nativeBranch: "MaulPlannedTextLayer.exactPlacement"}),
+        expect.objectContaining({planType: "text_animation_plan", nativeBranch: "MaulPlannedTextLayer.governedTransforms"}),
       ]),
     );
     expect(renderInput.manifest.planExecution).toSatisfy(

@@ -31,6 +31,15 @@ const baseProps = {
 };
 
 describe("MAUL Remotion short composition", () => {
+  it("leaves V3 audio to the backend master mux", async () => {
+    const module = await import("../MaulShort").catch(() => null);
+    expect(module).not.toBeNull();
+    if (!module) return;
+
+    expect(module.shouldMaulRemotionRenderAudio({schemaVersion: "maul-unified-short-render-manifest/v3"} as any)).toBe(false);
+    expect(module.shouldMaulRemotionRenderAudio({schemaVersion: "maul-unified-short-render-manifest/v2"} as any)).toBe(true);
+  });
+
   it("renders governed padded non-source regions", async () => {
     const module = await import("../MaulShort").catch(() => null);
     expect(module).not.toBeNull();
@@ -70,6 +79,70 @@ describe("MAUL Remotion short composition", () => {
       transform: "scale(1.1, 1.2)",
       transformOrigin: "45% 50%",
     });
+  });
+
+  it("keeps governed camera scale continuous across a source Sequence boundary", async () => {
+    const module = await import("../MaulShort").catch(() => null);
+    expect(module).not.toBeNull();
+    if (!module) return;
+
+    const event = {
+      outputStartMs: 0,
+      outputEndMs: 1000,
+      startScale: 1,
+      endScale: 1.12,
+    };
+    const priorGlobalFrame = module.toMaulManifestGlobalFrame({
+      sequenceFrom: 0,
+      sequenceFrame: 14,
+    });
+    const nextGlobalFrame = module.toMaulManifestGlobalFrame({
+      sequenceFrom: 15,
+      sequenceFrame: 0,
+    });
+    const before = module.resolveMaulCameraScale({
+      events: [event],
+      outputFrame: priorGlobalFrame,
+      fps: 30,
+    });
+    const after = module.resolveMaulCameraScale({
+      events: [event],
+      outputFrame: nextGlobalFrame,
+      fps: 30,
+    });
+
+    expect(nextGlobalFrame).toBe(15);
+    expect(after).toBeGreaterThan(before);
+    expect(after).toBeGreaterThan(
+      module.resolveMaulCameraScale({events: [event], outputFrame: 0, fps: 30}),
+    );
+  });
+
+  it("holds the preceding camera scale between governed events", async () => {
+    const module = await import("../MaulShort").catch(() => null);
+    expect(module).not.toBeNull();
+    if (!module) return;
+
+    expect(
+      module.resolveMaulCameraScale({
+        events: [
+          {
+            outputStartMs: 0,
+            outputEndMs: 1000,
+            startScale: 1,
+            endScale: 1.1,
+          },
+          {
+            outputStartMs: 2000,
+            outputEndMs: 3000,
+            startScale: 1.2,
+            endScale: 1.3,
+          },
+        ],
+        outputFrame: 45,
+        fps: 30,
+      }),
+    ).toBe(1.1);
   });
 
   it("uses dynamic 9:16 metadata and omits cut segments", async () => {

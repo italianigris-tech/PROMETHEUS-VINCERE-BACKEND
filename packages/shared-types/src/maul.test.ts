@@ -16,6 +16,9 @@ import {
   maulQualityTruthResultSchema,
   maulTextChunkPlanPayloadSchema,
   maulTextPlacementPlanPayloadSchema,
+  maulTextAnimationPlanPayloadSchema,
+  maulPlanningBundleV3PayloadSchema,
+  maulUnifiedShortRenderManifestV3Schema,
   maulTypographyMotionPlanPayloadSchema,
   maulTypographyMotionPlanV1PayloadSchema,
   maulTypographyMotionPlanV2PayloadSchema,
@@ -23,6 +26,7 @@ import {
   maulUnifiedShortRenderManifestV1Schema,
   maulUnifiedShortRenderManifestV2Schema,
 } from "./maul.js";
+import {maulTextAnimationPlanCoreSchema} from "./maul-text-animation.js";
 
 const createdAt = "2026-07-28T12:00:00.000Z";
 const sha = (character: string) => character.repeat(64);
@@ -285,6 +289,66 @@ const typographyV2 = {
   ...typographyPlanCommon,
 } as const;
 
+const textAnimationCore = {
+  schemaVersion: "maul-text-animation-plan/v1",
+  textChunkPlanArtifactId: "artifact_text_chunk",
+  textChunkPlanHash: sha("e"),
+  textPlacementPlanArtifactId: "artifact_text_placement",
+  textPlacementPlanHash: sha("7"),
+  treatmentGenomeArtifactId: "artifact_treatment",
+  treatmentGenomeHash: sha("8"),
+  outputDurationMs: 1000,
+  programs: [
+    {
+      animationId: "animation_segment_a",
+      treatment: "fade_rise",
+      target: {
+        scope: "segment",
+        placementSegmentId: "placement_segment_a",
+        tokenIds: ["token_a"],
+      },
+      phases: {
+        entry: {
+          outputStartMs: 0,
+          outputEndMs: 120,
+          easing: {type: "linear"},
+          from: {opacity: 0, translateXPx: 0, translateYPx: 24, scale: 1},
+          to: {opacity: 1, translateXPx: 0, translateYPx: 0, scale: 1},
+        },
+        hold: {
+          outputStartMs: 120,
+          outputEndMs: 700,
+          easing: {type: "linear"},
+          from: {opacity: 1, translateXPx: 0, translateYPx: 0, scale: 1},
+          to: {opacity: 1, translateXPx: 0, translateYPx: 0, scale: 1},
+        },
+        exit: {
+          outputStartMs: 700,
+          outputEndMs: 800,
+          easing: {type: "linear"},
+          from: {opacity: 1, translateXPx: 0, translateYPx: 0, scale: 1},
+          to: {opacity: 0, translateXPx: 0, translateYPx: -12, scale: 1},
+        },
+      },
+      rationale: "Fixture entry and exit.",
+    },
+  ],
+  inputHashes: {
+    textChunkPlan: sha("e"),
+    textPlacementPlan: sha("7"),
+    treatmentGenome: sha("8"),
+  },
+} as const;
+
+const textAnimationPayload = {...planBase, ...textAnimationCore} as const;
+
+const typographyV3 = {
+  ...typographyV2,
+  schemaVersion: "maul-typography-motion-plan/v3",
+  textAnimationPlanArtifactId: "artifact_text_animation",
+  textAnimationPlanHash: sha("9"),
+} as const;
+
 const planningArtifactIdsV1 = {
   observationSnapshot: "artifact_observation",
   candidateNarrative: "artifact_narrative",
@@ -308,6 +372,11 @@ const planningArtifactIdsV2 = {
   textPlacement: "artifact_text_placement",
 } as const;
 
+const planningArtifactIdsV3 = {
+  ...planningArtifactIdsV2,
+  textAnimation: "artifact_text_animation",
+} as const;
+
 const planningBundleV1 = {
   ...planBase,
   schemaVersion: "maul-planning-bundle/v1",
@@ -320,6 +389,14 @@ const planningBundleV2 = {
   ...planBase,
   schemaVersion: "maul-planning-bundle/v2",
   planArtifactIds: planningArtifactIdsV2,
+  rendererReadiness: "governed_with_explicit_fallbacks",
+  blockingReasons: [],
+} as const;
+
+const planningBundleV3 = {
+  ...planBase,
+  schemaVersion: "maul-planning-bundle/v3",
+  planArtifactIds: planningArtifactIdsV3,
   rendererReadiness: "governed_with_explicit_fallbacks",
   blockingReasons: [],
 } as const;
@@ -787,6 +864,27 @@ const manifestV2 = {
   ],
 } as const;
 
+const manifestV3 = {
+  ...manifestV2,
+  schemaVersion: "maul-unified-short-render-manifest/v3",
+  planArtifactIds: planningArtifactIdsV3,
+  plans: {
+    ...manifestV2.plans,
+    typographyMotion: typographyV3,
+    textAnimation: textAnimationPayload,
+  },
+  planExecution: [
+    ...manifestV2.planExecution,
+    {
+      planArtifactId: "artifact_text_animation",
+      planType: "text_animation_plan",
+      executionStatus: "native",
+      nativeBranch: "MaulShort.PlannedTextAnimation.v1",
+      fallback: null,
+    },
+  ],
+} as const;
+
 describe("MAUL shared contracts", () => {
   it("keeps canonical job identity and source ownership on the project", () => {
     const project = maulProjectSchema.parse({
@@ -1066,12 +1164,15 @@ describe("MAUL shared contracts", () => {
     expect(event.type).toBe("quality_truth_evaluated");
   });
 
-  it("registers standalone chunk and placement payloads as governed artifacts", () => {
+  it("registers standalone chunk, placement, and animation payloads as governed artifacts", () => {
     expect(maulArtifactTypeSchema.parse("text_chunk_plan")).toBe(
       "text_chunk_plan",
     );
     expect(maulArtifactTypeSchema.parse("text_placement_plan")).toBe(
       "text_placement_plan",
+    );
+    expect(maulArtifactTypeSchema.parse("text_animation_plan")).toBe(
+      "text_animation_plan",
     );
     expect(
       maulTextChunkPlanPayloadSchema.parse(textChunkPayload).chunks[0]!.chunkId,
@@ -1079,6 +1180,14 @@ describe("MAUL shared contracts", () => {
     expect(
       maulTextPlacementPlanPayloadSchema.parse(textPlacementPayload).segments[0]!
         .segmentId,
+    ).toBe("placement_segment_a");
+    expect(
+      maulTextAnimationPlanPayloadSchema.parse(textAnimationPayload).programs[0]!
+        .animationId,
+    ).toBe("animation_segment_a");
+    expect(
+      maulTextAnimationPlanCoreSchema.parse(textAnimationCore).programs[0]!
+        .target.placementSegmentId,
     ).toBe("placement_segment_a");
 
     const lineage = {
@@ -1110,6 +1219,15 @@ describe("MAUL shared contracts", () => {
       }).artifactType,
     ).toBe("text_placement_plan");
     expect(
+      maulArtifactRecordSchema.parse({
+        schemaVersion: "maul-artifact/v1",
+        artifactId: "artifact_text_animation",
+        artifactType: "text_animation_plan",
+        lineage,
+        payload: textAnimationPayload,
+      }).artifactType,
+    ).toBe("text_animation_plan");
+    expect(
       maulArtifactCreateRequestSchema.parse({
         artifactType: "text_chunk_plan",
         parentArtifactIds: ["artifact_timeline"],
@@ -1123,6 +1241,13 @@ describe("MAUL shared contracts", () => {
         payload: textPlacementPayload,
       }).artifactType,
     ).toBe("text_placement_plan");
+    expect(
+      maulArtifactCreateRequestSchema.parse({
+        artifactType: "text_animation_plan",
+        parentArtifactIds: ["artifact_text_placement"],
+        payload: textAnimationPayload,
+      }).artifactType,
+    ).toBe("text_animation_plan");
   });
 
   it("keeps Typography Motion V1 readable and adds standalone V2 references", () => {
@@ -1146,6 +1271,22 @@ describe("MAUL shared contracts", () => {
     ).toBe("maul-typography-motion-plan/v2");
   });
 
+  it("adds only the governed animation reference to Typography Motion V3", () => {
+    expect(
+      maulTypographyMotionPlanPayloadSchema.parse(typographyV1).schemaVersion,
+    ).toBe("maul-typography-motion-plan/v1");
+    expect(
+      maulTypographyMotionPlanPayloadSchema.parse(typographyV2).schemaVersion,
+    ).toBe("maul-typography-motion-plan/v2");
+    expect(
+      maulTypographyMotionPlanPayloadSchema.parse(typographyV3),
+    ).toMatchObject({
+      schemaVersion: "maul-typography-motion-plan/v3",
+      textAnimationPlanArtifactId: "artifact_text_animation",
+      textAnimationPlanHash: sha("9"),
+    });
+  });
+
   it("keeps the V1 14-plan bundle and governs exactly 16 V2 plan IDs", () => {
     const v1 = maulPlanningBundleV1PayloadSchema.parse(planningBundleV1);
     expect(Object.keys(v1.planArtifactIds)).toHaveLength(14);
@@ -1162,6 +1303,34 @@ describe("MAUL shared contracts", () => {
     expect(
       maulPlanningBundlePayloadSchema.parse(planningBundleV2).schemaVersion,
     ).toBe("maul-planning-bundle/v2");
+  });
+
+  it("keeps V1/V2 bundle readers exact and adds only text animation in V3", () => {
+    expect(
+      maulPlanningBundleV1PayloadSchema.parse(planningBundleV1)
+        .planArtifactIds,
+    ).toEqual(planningArtifactIdsV1);
+    expect(
+      maulPlanningBundleV2PayloadSchema.parse(planningBundleV2)
+        .planArtifactIds,
+    ).toEqual(planningArtifactIdsV2);
+
+    const v3 = maulPlanningBundleV3PayloadSchema.parse(planningBundleV3);
+    expect(Object.keys(v3.planArtifactIds)).toHaveLength(17);
+    expect(v3.planArtifactIds.textAnimation).toBe("artifact_text_animation");
+    expect(
+      maulPlanningBundlePayloadSchema.parse(planningBundleV3).schemaVersion,
+    ).toBe("maul-planning-bundle/v3");
+  });
+
+  it("requires every V3 planning slot to reference a distinct artifact", () => {
+    const aliased = structuredClone(planningBundleV3) as any;
+    aliased.planArtifactIds.textAnimation =
+      aliased.planArtifactIds.textPlacement;
+
+    expect(() => maulPlanningBundleV3PayloadSchema.parse(aliased)).toThrow(
+      /V3.*artifact IDs.*unique|unique.*V3.*artifact IDs/i,
+    );
   });
 
   it("keeps the V1 14-execution manifest and governs 16 unique V2 executions", () => {
@@ -1199,6 +1368,84 @@ describe("MAUL shared contracts", () => {
     expect(() =>
       maulUnifiedShortRenderManifestV2Schema.parse(tokenMismatch),
     ).toThrow(/placement.*chunk.*token|token.*placement.*chunk/i);
+  });
+
+  it("keeps V1/V2 manifest readers exact and validates V3 animation references", () => {
+    expect(
+      maulUnifiedShortRenderManifestV1Schema.parse(manifestV1).planExecution,
+    ).toHaveLength(14);
+    expect(
+      maulUnifiedShortRenderManifestV2Schema.parse(manifestV2).planExecution,
+    ).toHaveLength(16);
+
+    const v3 = maulUnifiedShortRenderManifestV3Schema.parse(manifestV3);
+    expect(v3.planExecution).toHaveLength(17);
+    expect(v3.plans.textAnimation.programs[0]?.treatment).toBe("fade_rise");
+    expect(
+      maulUnifiedShortRenderManifestSchema.parse(manifestV3).schemaVersion,
+    ).toBe("maul-unified-short-render-manifest/v3");
+
+    const staleToken = structuredClone(manifestV3);
+    staleToken.plans.textAnimation.programs[0].target.tokenIds = [
+      "token_missing",
+    ];
+    expect(() =>
+      maulUnifiedShortRenderManifestV3Schema.parse(staleToken),
+    ).toThrow(/animation.*placement.*token|token.*animation.*placement/i);
+
+    const partialSegment = structuredClone(manifestV3) as any;
+    const firstToken = partialSegment.plans.textChunk.tokens[0];
+    firstToken.sourceEndMs = 400;
+    firstToken.outputEndMs = 400;
+    firstToken.outputSpans[0].outputEndMs = 400;
+    partialSegment.plans.textChunk.tokens.push({
+      ...firstToken,
+      tokenId: "token_b",
+      transcriptWordIndex: 1,
+      text: "Now",
+      sourceStartMs: 400,
+      sourceEndMs: 800,
+      outputSpans: [{outputStartMs: 400, outputEndMs: 800}],
+      outputStartMs: 400,
+      outputEndMs: 800,
+    });
+    partialSegment.plans.textChunk.chunks[0].tokenIds = [
+      "token_a",
+      "token_b",
+    ];
+    partialSegment.plans.textChunk.chunks[0].text = "Proof Now";
+    partialSegment.plans.textPlacement.segments[0].tokenIds = [
+      "token_a",
+      "token_b",
+    ];
+    partialSegment.plans.textPlacement.segments[0].lines = [
+      {
+        lineId: "line_a",
+        tokenIds: ["token_a", "token_b"],
+        text: "Proof Now",
+      },
+    ];
+    expect(() =>
+      maulUnifiedShortRenderManifestV3Schema.parse(partialSegment),
+    ).toThrow(/segment.*token.*exact|exact.*segment.*token/i);
+
+    const reversedTokenSubset = structuredClone(partialSegment);
+    reversedTokenSubset.plans.textAnimation.programs[0].treatment =
+      "keyword_pop";
+    reversedTokenSubset.plans.textAnimation.programs[0].target.scope = "tokens";
+    reversedTokenSubset.plans.textAnimation.programs[0].target.tokenIds = [
+      "token_b",
+      "token_a",
+    ];
+    expect(() =>
+      maulUnifiedShortRenderManifestV3Schema.parse(reversedTokenSubset),
+    ).toThrow(/ordered.*token.*subset|token.*subset.*ordered/i);
+
+    const staleHash = structuredClone(manifestV3);
+    staleHash.plans.textAnimation.textPlacementPlanHash = sha("0");
+    expect(() =>
+      maulUnifiedShortRenderManifestV3Schema.parse(staleHash),
+    ).toThrow(/animation.*hash|hash.*animation/i);
   });
 
   it("requires placement-specific proof records in Quality Truth V2", () => {
