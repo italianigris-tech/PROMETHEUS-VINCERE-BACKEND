@@ -857,6 +857,24 @@ export const maulShortRenderRequestSchema = z.object({
     .default([]),
 });
 
+export const maulRenderShortOperationPayloadSchema = z.object({
+  timelineRequest: maulEditorialTimelineRequestSchema,
+  musicTrack: maulLicensedAudioAssetSchema.extend({
+    title: z.string().trim().min(1),
+    artist: z.string().trim().min(1),
+    durationSec: z.number().positive(),
+  }),
+  sfxAssets: z
+    .array(
+      maulLicensedAudioAssetSchema.extend({
+        eventType: z.string().trim().min(1),
+        sourceMs: z.number().int().nonnegative(),
+      }),
+    )
+    .default([]),
+  actualCostUsd: z.number().nonnegative(),
+});
+
 export const maulPlanExecutionStatusSchema = z.enum([
   "native",
   "governed_fallback",

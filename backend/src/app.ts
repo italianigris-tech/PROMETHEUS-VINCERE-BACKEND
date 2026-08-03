@@ -83,6 +83,7 @@ export type BackendAppContext = {
   queue: InProcessQueue;
   editSessions: EditSessionManager;
   maulProjects: MaulProjectService;
+  maulControlPlane: MaulDurableControlPlane;
   god: GodService;
   videoContexts: VideoContextService;
   executionTelemetry: ExecutionTelemetryBroker;
@@ -883,6 +884,7 @@ export const createBackendApp = async ({
     queue,
     editSessions,
     maulProjects,
+    maulControlPlane,
     god,
     videoContexts,
     executionTelemetry,
@@ -915,6 +917,7 @@ export const createBackendApp = async ({
     queue,
     editSessions,
     maulProjects,
+    maulControlPlane,
     god,
     videoContexts,
     executionTelemetry,

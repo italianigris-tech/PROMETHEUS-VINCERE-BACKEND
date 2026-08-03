@@ -235,6 +235,7 @@ export {
   maulOperationJobSchema,
   maulOperationJobStatusSchema,
   maulOperationJobSubmitSchema,
+  maulRenderShortOperationPayloadSchema,
   maulOperationSchema,
   maulOperationTelemetryEventSchema,
   maulOutcomeEventSchema,

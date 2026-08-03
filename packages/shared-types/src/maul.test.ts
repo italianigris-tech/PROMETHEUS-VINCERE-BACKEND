@@ -2,6 +2,7 @@ import {describe, expect, it} from "vitest";
 
 import {
   maulAuditEventSchema,
+  maulRenderShortOperationPayloadSchema,
   maulArtifactCreateRequestSchema,
   maulArtifactRecordSchema,
   maulArtifactTypeSchema,
@@ -30,6 +31,13 @@ import {maulTextAnimationPlanCoreSchema} from "./maul-text-animation.js";
 
 const createdAt = "2026-07-28T12:00:00.000Z";
 const sha = (character: string) => character.repeat(64);
+
+describe("MAUL worker operation payload", () => {
+  it("requires verified timeline evidence and licensed render audio", () => {
+    expect(maulRenderShortOperationPayloadSchema).toBeDefined();
+    expect(() => maulRenderShortOperationPayloadSchema.parse({})).toThrow();
+  });
+});
 
 const planBase = {
   sourceAssetId: "artifact_source",
