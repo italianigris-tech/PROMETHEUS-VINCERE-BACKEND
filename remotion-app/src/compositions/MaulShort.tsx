@@ -410,6 +410,11 @@ export const MAUL_SHORT_DEFAULT_PROPS: {
   },
 };
 
+// V3 excludes raw supplemental music/SFX; its governed master is supplied by the backend mux.
+export const shouldMaulRemotionRenderAudio = (
+  manifest: Pick<MaulUnifiedShortRenderManifest, "schemaVersion">,
+): boolean => manifest.schemaVersion !== "maul-unified-short-render-manifest/v3";
+
 type MaulCaptionToken = { text: string; fromMs: number; toMs: number };
 export const joinMaulCaptionTokens = (tokens: MaulCaptionToken[]) =>
   joinShortsTextTokens(tokens.map((token) => token.text));
@@ -743,6 +748,7 @@ export const MaulShort: React.FC<MaulShortProps> = ({ manifest }) => {
     asset: asset.storagePath,
   }));
   const audioPlanId = manifest.audio.planId;
+  const renderRemotionAudio = shouldMaulRemotionRenderAudio(manifest);
   const { fps } = useVideoConfig();
   const visualStyle = buildMaulVisualStyle(treatment.treatmentId);
   const legacySequences =
@@ -840,10 +846,10 @@ export const MaulShort: React.FC<MaulShortProps> = ({ manifest }) => {
           treatmentId={treatment.treatmentId}
         />
       )}
-      {musicAsset ? (
+      {renderRemotionAudio && musicAsset ? (
         <Audio src={staticFile(musicAsset)} loop volume={musicVolume} />
       ) : null}
-      {sfxAssets.map((sfx) => (
+      {renderRemotionAudio && sfxAssets.map((sfx) => (
         <Sequence
           key={sfx.id}
           from={Math.round((sfx.outputMs / 1000) * fps)}
