@@ -74,7 +74,25 @@ export type MaulShortProps = {
   manifest: MaulUnifiedShortRenderManifest;
 };
 
-export const buildMaulVisualStyle = (treatmentId: string) => {
+type MaulCreativeTreatment =
+  MaulUnifiedShortRenderManifest['plans']['artDirection']['creativeTreatment'];
+
+type MaulVisualStyle = {
+  background: string;
+  captionSurface: string;
+  captionText: string;
+  captionAccent: string;
+  captionShadow: string;
+  motionAmplitude: number;
+  captionY: number;
+  safeBottomPx: number;
+  maxCaptionWidth: number;
+  fontSize: number;
+  fontWeight: number;
+  sourceFilter?: string;
+};
+
+export const buildMaulVisualStyle = (treatmentId: string): MaulVisualStyle => {
   if (treatmentId === "premium_direct_response") {
     return {
       background: "#08070b",
@@ -119,6 +137,30 @@ export const buildMaulVisualStyle = (treatmentId: string) => {
     fontWeight: 760,
   } as const;
 };
+
+export const applyMaulCreativeTreatment = (
+  style: MaulVisualStyle,
+  treatment: MaulCreativeTreatment | undefined,
+): MaulVisualStyle =>
+  treatment
+    ? {
+        ...style,
+        captionText: treatment.palette.primary,
+        captionAccent: treatment.palette.accent,
+        sourceFilter:
+          treatment.palette.sourceTreatment === 'dark_warm_cool_contrast'
+            ? 'brightness(0.72) contrast(1.16) saturate(0.86) sepia(0.06)'
+            : treatment.palette.sourceTreatment === 'high_contrast_monochrome'
+              ? 'grayscale(1) brightness(0.76) contrast(1.2)'
+              : 'none',
+        motionAmplitude:
+          treatment.motionMode === 'static_editorial_hold'
+            ? 0
+            : treatment.motionMode === 'soft_scale_settle'
+              ? 0.012
+              : 0.006,
+      }
+    : style;
 
 export const buildMaulSourceSequences = (
   timeline: MaulEditorialTimelinePayload,
@@ -519,6 +561,7 @@ const SourceSegment: React.FC<{
   paddedNonSourceRegions?: MaulNormalizedBox[];
   background?: string;
   compositionIntervalId?: string;
+  sourceFilter?: string;
 }> = ({
   sourceAsset,
   trimBefore,
@@ -535,6 +578,7 @@ const SourceSegment: React.FC<{
   paddedNonSourceRegions = [],
   background = "#000000",
   compositionIntervalId,
+  sourceFilter = 'none',
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -578,6 +622,7 @@ const SourceSegment: React.FC<{
           top: `${sourceViewport.y * 100}%`,
           width: `${sourceViewport.width * 100}%`,
           height: `${sourceViewport.height * 100}%`,
+          filter: sourceFilter,
           overflow: "hidden",
         }}
       >
@@ -674,14 +719,19 @@ const MaulCaptionLayer: React.FC<{
   captionGroups: MaulCaptionGroup[];
   captionGroupsAreGoverned: boolean;
   treatmentId: string;
+  creativeTreatment?: MaulCreativeTreatment;
 }> = ({
   captions,
   captionGroups,
   captionGroupsAreGoverned,
   treatmentId,
+  creativeTreatment,
 }) => {
   const { fps } = useVideoConfig();
-  const visualStyle = buildMaulVisualStyle(treatmentId);
+  const visualStyle = applyMaulCreativeTreatment(
+    buildMaulVisualStyle(treatmentId),
+    creativeTreatment,
+  );
   const combineTokensWithinMilliseconds =
     treatmentId === "premium_direct_response"
       ? 850
@@ -750,7 +800,11 @@ export const MaulShort: React.FC<MaulShortProps> = ({ manifest }) => {
   const audioPlanId = manifest.audio.planId;
   const renderRemotionAudio = shouldMaulRemotionRenderAudio(manifest);
   const { fps } = useVideoConfig();
-  const visualStyle = buildMaulVisualStyle(treatment.treatmentId);
+  const creativeTreatment = manifest.plans?.artDirection?.creativeTreatment;
+  const visualStyle = applyMaulCreativeTreatment(
+    buildMaulVisualStyle(treatment.treatmentId),
+    creativeTreatment,
+  );
   const legacySequences =
     adaptedManifest.mode === "legacy"
       ? buildMaulSourceSequences(timeline, fps)
@@ -796,6 +850,7 @@ export const MaulShort: React.FC<MaulShortProps> = ({ manifest }) => {
             playbackRate={segment.playbackRate}
             cropCenterPercent={cropCenterPercent}
             motionAmplitude={visualStyle.motionAmplitude}
+            sourceFilter={visualStyle.sourceFilter}
             globalFrameOffset={segment.from}
             cameraEvents={undefined}
           />
@@ -815,6 +870,7 @@ export const MaulShort: React.FC<MaulShortProps> = ({ manifest }) => {
             cropCenterPercent={segment.cropCenterXPercent}
             cropCenterYPercent={segment.cropCenterYPercent}
             motionAmplitude={visualStyle.motionAmplitude}
+            sourceFilter={visualStyle.sourceFilter}
             globalFrameOffset={segment.from}
             cameraEvents={governedCameraEvents}
             compositionScale={segment.scale}
@@ -837,6 +893,7 @@ export const MaulShort: React.FC<MaulShortProps> = ({ manifest }) => {
           records={plannedModel.textRecords}
           textColor={visualStyle.captionText}
           accentColor={visualStyle.captionAccent}
+          creativeTreatment={creativeTreatment}
         />
       ) : (
         <MaulCaptionLayer
@@ -844,6 +901,7 @@ export const MaulShort: React.FC<MaulShortProps> = ({ manifest }) => {
           captionGroups={captionPlans.captionGroups}
           captionGroupsAreGoverned={captionPlans.captionGroupsAreGoverned}
           treatmentId={treatment.treatmentId}
+          creativeTreatment={creativeTreatment}
         />
       )}
       {renderRemotionAudio && musicAsset ? (

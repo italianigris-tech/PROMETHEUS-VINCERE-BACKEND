@@ -116,6 +116,11 @@ import {
 import {buildMaulPreviewSampleTimes} from "./render-preview.js";
 import type {ShortsTextChunkPlanner} from "./shorts-text-chunking-llm.js";
 
+import {
+  createUnavailableCreativeTreatmentPlanner,
+  type CreativeTreatmentPlanner,
+} from './creative-treatment-planner.js';
+
 export class MaulProjectNotFoundError extends Error {}
 export class MaulLineageConflictError extends Error {}
 
@@ -320,6 +325,8 @@ export class MaulProjectService {
       createUnavailableMaulTypographyProvider(
         "No configured renderer-verified typography measurement provider is available for this MAUL run.",
       ),
+    private readonly creativeTreatmentPlanner: CreativeTreatmentPlanner =
+      createUnavailableCreativeTreatmentPlanner(),
   ) {}
 
   public async initialize(): Promise<void> {
@@ -1242,7 +1249,29 @@ export class MaulProjectService {
       sourcePath: source.payload.storageKey,
       beats: editorialDirection.visualBeats,
     });
-    const scenePlacementInputs = sceneEvidenceToPlacementInputs(sceneEvidence);
+    const creativeTreatment = await this.creativeTreatmentPlanner.plan({
+      sourceProfile:
+        project.intake.sourceProfile.mode === 'single_speaker_podcast'
+          ? 'single_speaker_podcast'
+          : 'single_speaker_talking_head',
+      platform: project.intake.platform,
+      transcript: joinShortsTextTokens(candidateWords.map((word) => word.text)),
+      treatmentId: treatment.payload.treatmentId,
+      referenceTraits: referenceCorpus
+        .flatMap((reference) =>
+          reference.payload.approvedTraits
+            ? Object.values(reference.payload.approvedTraits).flatMap(
+                (traits) => traits,
+              )
+            : [],
+        )
+        .slice(0, 48),
+      sceneEvidenceStatus: sceneEvidence.status,
+    });
+    const scenePlacementInputs = sceneEvidenceToPlacementInputs(
+      sceneEvidence,
+      creativeTreatment.treatment.compositionDirection,
+    );
     const sharedParents = [
       source.artifactId,
       analysis.artifactId,
@@ -1255,6 +1284,30 @@ export class MaulProjectService {
       ...baselineArtDirection,
       ...editorialDirection.artDirection,
       authorityReceipt: editorialDirection.receipt,
+      creativeTreatment: creativeTreatment.treatment,
+      creativeTreatmentInference: {
+        status: creativeTreatment.status,
+        ...creativeTreatment.receipt,
+      },
+      paletteIntent: [
+        `Primary typography ${creativeTreatment.treatment.palette.primary}`,
+        `Accent typography ${creativeTreatment.treatment.palette.accent}`,
+        `Source treatment ${creativeTreatment.treatment.palette.sourceTreatment}`,
+      ],
+      typeRoles: [
+        {
+          role: 'PRIMARY',
+          intent: creativeTreatment.treatment.primaryTypeRole,
+        },
+        {
+          role: 'ACCENT',
+          intent: creativeTreatment.treatment.accentTypeRole,
+        },
+      ],
+      layoutAndNegativeSpaceLogic:
+        `${creativeTreatment.treatment.compositionDirection}; ${editorialDirection.artDirection.layoutAndNegativeSpaceLogic}`,
+      motionPhysics:
+        `${creativeTreatment.treatment.motionMode}; ${editorialDirection.artDirection.motionPhysics}`,
       visualBeats: editorialDirection.visualBeats,
       sceneEvidence:
         sceneEvidence.status === "available"

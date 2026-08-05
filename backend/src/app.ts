@@ -66,6 +66,11 @@ import {
 } from "./execution-telemetry";
 import {z} from "zod";
 
+import {
+  createCreativeTreatmentPlanner,
+  type CreativeTreatmentPlanner,
+} from './maul/creative-treatment-planner';
+
 const PATTERN_MEMORY_UPDATE_SCHEMA = z.object({
   patternId: z.string(),
   context: z.record(z.string(), z.unknown()),
@@ -108,6 +113,7 @@ export type BackendDependencies = PipelineDependencies & EditSessionDependencies
   maulSceneEvidenceProvider?: SceneEvidenceProvider;
   maulTypographyProvider?: MaulTypographyProvider;
   maulTextChunkPlanner?: ShortsTextChunkPlanner;
+  maulCreativeTreatmentPlanner?: CreativeTreatmentPlanner;
 };
 
 const parseCorsOrigins = (value: string): string[] => {
@@ -297,6 +303,20 @@ export const createBackendApp = async ({
           env.MAUL_CHUNKING_LLM_MAX_CONCURRENT_REQUESTS,
       },
     });
+  const maulCreativeTreatmentPlanner =
+    deps?.maulCreativeTreatmentPlanner ??
+    createCreativeTreatmentPlanner({
+      config: {
+        baseUrl: env.MAUL_CREATIVE_PLANNER_BASE_URL,
+        path: env.MAUL_CREATIVE_PLANNER_PATH,
+        apiKey: env.MAUL_CREATIVE_PLANNER_API_KEY,
+        model: env.MAUL_CREATIVE_PLANNER_MODEL,
+        reasoningEffort: env.MAUL_CREATIVE_PLANNER_REASONING_EFFORT,
+        temperature: env.MAUL_CREATIVE_PLANNER_TEMPERATURE,
+        maxOutputTokens: env.MAUL_CREATIVE_PLANNER_MAX_OUTPUT_TOKENS,
+        timeoutMs: env.MAUL_CREATIVE_PLANNER_TIMEOUT_MS,
+      },
+    });
   const maulProjects = new MaulProjectService(
     maulProjectStore,
     buildModelRoutingTable(env),
@@ -310,6 +330,7 @@ export const createBackendApp = async ({
     deps?.maulSceneEvidenceProvider,
     deps?.maulPerceptualTruthProvider,
     deps?.maulTypographyProvider,
+    maulCreativeTreatmentPlanner,
   );
   await maulProjects.initialize();
   const maulControlPlane = new MaulDurableControlPlane(env.STORAGE_DIR, maulProjects);

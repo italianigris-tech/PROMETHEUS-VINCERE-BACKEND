@@ -2,6 +2,7 @@ import {describe, expect, it} from "vitest";
 
 import {
   maulAuditEventSchema,
+  maulArtDirectionPlanPayloadSchema,
   maulRenderShortOperationPayloadSchema,
   maulArtifactCreateRequestSchema,
   maulArtifactRecordSchema,
@@ -32,6 +33,53 @@ import {maulTextAnimationPlanCoreSchema} from "./maul-text-animation.js";
 
 const createdAt = "2026-07-28T12:00:00.000Z";
 const sha = (character: string) => character.repeat(64);
+const creativeTreatmentPlanFixture = {
+  schemaVersion: 'maul-art-direction-plan/v1',
+  audienceIntent: 'Stop the scroll.',
+  emotionalTemperature: 'urgent_confident',
+  sourceRespectStance: 'Preserve source meaning.',
+  theme: 'Visual hook',
+  paletteIntent: ['ivory', 'amber'],
+  typeRoles: [
+    {role: 'primary', intent: 'neutral grotesk'},
+    {role: 'accent', intent: 'editorial italic'},
+  ],
+  layoutAndNegativeSpaceLogic: 'Subject-safe lockups.',
+  imageryAndBackgroundLanguage: 'Dark warm/cool contrast.',
+  cameraBehavior: 'Stable framing.',
+  motionPhysics: 'Restrained motion.',
+  annotationGrammar: 'No annotation.',
+  soundWorld: 'Source dialogue.',
+  motifArc: {introduction: 'Lockup.', development: 'Hinge.', recall: 'Return.'},
+  treatmentVariation: 'Vary hierarchy.',
+  explicitProhibitions: ['No bottom captions.'],
+  creativeTreatment: {
+    schemaVersion: 'maul-creative-treatment-proposal/v1',
+    profileId: 'aspire_visual_hook',
+    compositionDirection: 'subject_integrated',
+    primaryTypeRole: 'neutral_grotesk',
+    accentTypeRole: 'editorial_italic',
+    palette: {
+      primary: '#F7F3EA',
+      accent: '#F06424',
+      sourceTreatment: 'dark_warm_cool_contrast',
+    },
+    textDensity: 'medium',
+    emphasisMode: 'selective_accent_phrase',
+    motionMode: 'restrained_phrase_lockup',
+    rationale: ['Keep the speaker dominant.'],
+  },
+  creativeTreatmentInference: {
+    status: 'invoked',
+    provider: 'openai_compatible',
+    model: 'gpt-5.6-terra',
+    reasoningEffort: 'high',
+    requestHash: sha('7'),
+    responseHash: sha('8'),
+    inferenceReceiptId: 'maul_creative_receipt_a',
+    fallbackReason: null,
+  },
+} as const;
 
 describe("MAUL worker operation payload", () => {
   it("requires verified timeline evidence and licensed render audio", () => {
@@ -91,6 +139,23 @@ const planBase = {
     },
   ],
 } as const;
+
+describe('MAUL creative treatment contract', () => {
+  it('retains a bounded treatment and inference receipt', () => {
+    const result = maulArtDirectionPlanPayloadSchema.parse({
+      ...planBase,
+      ...creativeTreatmentPlanFixture,
+    });
+    expect(result.creativeTreatment.compositionDirection).toBe(
+      'subject_integrated',
+    );
+    expect(result.creativeTreatmentInference).toMatchObject({
+      status: 'invoked',
+      model: 'gpt-5.6-terra',
+      reasoningEffort: 'high',
+    });
+  });
+});
 
 const textChunkCore = {
   schemaVersion: "maul-shorts-text-chunk-plan/v2",

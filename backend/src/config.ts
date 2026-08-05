@@ -126,6 +126,30 @@ const envSchema = z.object({
     .positive()
     .max(20)
     .default(2),
+  MAUL_CREATIVE_PLANNER_BASE_URL: z
+    .string()
+    .default('https://codex-everywhere.com'),
+  MAUL_CREATIVE_PLANNER_PATH: z.string().default('/v1/chat/completions'),
+  MAUL_CREATIVE_PLANNER_API_KEY: z.string().default(''),
+  MAUL_CREATIVE_PLANNER_MODEL: z.string().default('gpt-5.6-terra'),
+  MAUL_CREATIVE_PLANNER_REASONING_EFFORT: z
+    .enum(['medium', 'high'])
+    .default('high'),
+  MAUL_CREATIVE_PLANNER_TEMPERATURE: z.coerce
+    .number()
+    .min(0)
+    .max(2)
+    .default(0.2),
+  MAUL_CREATIVE_PLANNER_MAX_OUTPUT_TOKENS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(1800),
+  MAUL_CREATIVE_PLANNER_TIMEOUT_MS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(60000),
   LOCAL_EMBEDDING_PYTHON_BIN: z.string().default("python"),
   LOCAL_EMBEDDING_MODEL_NAME: z.string().default("BAAI/bge-small-en-v1.5"),
   LOCAL_EMBEDDING_DIMENSIONS: z.coerce.number().int().positive().default(384),

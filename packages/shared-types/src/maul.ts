@@ -1380,6 +1380,76 @@ export const maulAdapterDecisionPayloadSchema = maulPlanBaseSchema.extend({
   silentIntentMutations: z.tuple([]),
 });
 
+export const maulCreativeTreatmentProposalSchema = z.object({
+  schemaVersion: z.literal('maul-creative-treatment-proposal/v1'),
+  profileId: z.literal('aspire_visual_hook'),
+  compositionDirection: z.enum([
+    'editorial_asymmetry',
+    'poster_hero',
+    'subject_integrated',
+    'restrained_minimal',
+  ]),
+  primaryTypeRole: z.enum(['neutral_grotesk', 'editorial_display']),
+  accentTypeRole: z.enum(['editorial_italic', 'neutral_grotesk']),
+  palette: z.object({
+    primary: z.string().regex(/^#[a-f0-9]{6}$/i),
+    accent: z.string().regex(/^#[a-f0-9]{6}$/i),
+    sourceTreatment: z.enum([
+      'dark_warm_cool_contrast',
+      'source_neutral',
+      'high_contrast_monochrome',
+    ]),
+  }),
+  textDensity: z.enum(['low', 'medium', 'high']),
+  emphasisMode: z.enum([
+    'selective_accent_phrase',
+    'scale_contrast',
+    'editorial_italic_hinge',
+  ]),
+  motionMode: z.enum([
+    'restrained_phrase_lockup',
+    'soft_scale_settle',
+    'static_editorial_hold',
+  ]),
+  rationale: z.array(z.string().trim().min(1)).min(1).max(6),
+}).strict();
+
+export const maulCreativeTreatmentInferenceSchema = z.object({
+  status: z.enum([
+    'invoked',
+    'skipped_missing_credentials',
+    'failed_request',
+    'failed_invalid_response',
+  ]),
+  provider: z.literal('openai_compatible'),
+  model: z.string().trim().min(1),
+  reasoningEffort: z.enum(['medium', 'high']),
+  requestHash: z.string().regex(/^[a-f0-9]{64}$/i).nullable(),
+  responseHash: z.string().regex(/^[a-f0-9]{64}$/i).nullable(),
+  inferenceReceiptId: idSchema.nullable(),
+  fallbackReason: z.string().trim().min(1).nullable(),
+}).superRefine((receipt, context) => {
+  if (receipt.status === 'invoked') {
+    if (!receipt.requestHash || !receipt.responseHash || !receipt.inferenceReceiptId) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Invoked creative treatment requires hashes and an inference receipt.',
+      });
+    }
+    if (receipt.fallbackReason !== null) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Invoked creative treatment cannot declare a fallback reason.',
+      });
+    }
+  } else if (!receipt.fallbackReason) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Creative treatment fallback requires a reason.',
+    });
+  }
+});
+
 export const maulArtDirectionPlanPayloadSchema = maulPlanBaseSchema.extend({
   schemaVersion: z.literal("maul-art-direction-plan/v1"),
   authorityReceipt: z
@@ -1391,6 +1461,32 @@ export const maulArtDirectionPlanPayloadSchema = maulPlanBaseSchema.extend({
     })
     .nullable()
     .default(null),
+  creativeTreatment: maulCreativeTreatmentProposalSchema.default({
+    schemaVersion: 'maul-creative-treatment-proposal/v1',
+    profileId: 'aspire_visual_hook',
+    compositionDirection: 'subject_integrated',
+    primaryTypeRole: 'neutral_grotesk',
+    accentTypeRole: 'editorial_italic',
+    palette: {
+      primary: '#F7F3EA',
+      accent: '#F06424',
+      sourceTreatment: 'dark_warm_cool_contrast',
+    },
+    textDensity: 'medium',
+    emphasisMode: 'selective_accent_phrase',
+    motionMode: 'restrained_phrase_lockup',
+    rationale: ['Legacy Aspire visual-hook fallback.'],
+  }),
+  creativeTreatmentInference: maulCreativeTreatmentInferenceSchema.default({
+    status: 'skipped_missing_credentials',
+    provider: 'openai_compatible',
+    model: 'unavailable',
+    reasoningEffort: 'high',
+    requestHash: null,
+    responseHash: null,
+    inferenceReceiptId: null,
+    fallbackReason: 'No creative-treatment planner ran for this legacy plan.',
+  }),
   visualBeats: z
     .array(
       z.object({

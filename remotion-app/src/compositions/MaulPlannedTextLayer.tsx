@@ -5,6 +5,7 @@ import {loadFont as loadGreatVibes} from "@remotion/google-fonts/GreatVibes";
 import {loadFont as loadPlayfairDisplay} from "@remotion/google-fonts/PlayfairDisplay";
 import {
   joinShortsTextTokens,
+  type MaulArtDirectionPlanPayload,
   type MaulTextAnimationProgram,
   type MaulTextAnimationTransform,
 } from "@prometheus/shared-types";
@@ -48,6 +49,8 @@ const {fontFamily: bebasNeueFamily} = loadBebasNeue("normal", cinematicFontOptio
 const {fontFamily: dmSerifDisplayFamily} = loadDMSerifDisplay("normal", cinematicFontOptions);
 const {fontFamily: greatVibesFamily} = loadGreatVibes("normal", cinematicFontOptions);
 const {fontFamily: playfairDisplayFamily} = loadPlayfairDisplay("normal", cinematicFontOptions);
+
+type MaulCreativeTreatment = MaulArtDirectionPlanPayload['creativeTreatment'];
 
 const renderedFamilyFor = (family: string): string => {
   switch (family) {
@@ -246,11 +249,22 @@ export const MaulPlannedTextCard: React.FC<{
   fps?: number;
   textColor: string;
   accentColor: string;
-}> = ({record, absoluteTimeMs, outputFrame, fps, textColor, accentColor}) => {
+  creativeTreatment?: MaulCreativeTreatment;
+}> = ({
+  record,
+  absoluteTimeMs,
+  outputFrame,
+  fps,
+  textColor,
+  accentColor,
+  creativeTreatment,
+}) => {
   const animationPrograms = record.animationPrograms?.length
     ? record.animationPrograms
     : record.animationProgram ? [record.animationProgram] : [];
-  const resolvedAnimations = outputFrame !== undefined && fps !== undefined
+  const resolvedAnimations =
+    creativeTreatment?.motionMode !== 'static_editorial_hold' &&
+    outputFrame !== undefined && fps !== undefined
     ? animationPrograms.map((program) => ({
         program,
         transform: resolveMaulTextAnimationTransform({program, outputFrame, fps}),
@@ -265,6 +279,7 @@ export const MaulPlannedTextCard: React.FC<{
   )?.treatment;
   if (
     requestedCinematicTreatment &&
+    !creativeTreatment &&
     outputFrame !== undefined &&
     fps !== undefined
   ) {
@@ -317,6 +332,11 @@ export const MaulPlannedTextCard: React.FC<{
       data-font-asset-id={record.font.assetId}
       data-font-profile-id={record.font.profileId}
       data-font-metrics-fingerprint={record.font.metricsFingerprint}
+      data-creative-treatment-profile={creativeTreatment?.profileId}
+      data-primary-type-role={creativeTreatment?.primaryTypeRole}
+      data-accent-type-role={creativeTreatment?.accentTypeRole}
+      data-emphasis-mode={creativeTreatment?.emphasisMode}
+      data-motion-mode={creativeTreatment?.motionMode}
       data-text-animation-treatment={animationPrograms.map((program) => program.treatment).join(",") || undefined}
       style={{
         position: "absolute",
@@ -330,7 +350,10 @@ export const MaulPlannedTextCard: React.FC<{
         justifyContent: "center",
         overflow: "hidden",
         color: textColor,
-        fontFamily: renderedFamilyFor(record.font.family),
+        fontFamily:
+          creativeTreatment?.primaryTypeRole === 'editorial_display'
+            ? playfairDisplayFamily
+            : renderedFamilyFor(record.font.family),
         fontSize: record.font.fontSizePx * record.font.hierarchyScale,
         fontWeight: record.font.weight,
         lineHeight: record.font.lineHeight,
@@ -363,6 +386,14 @@ export const MaulPlannedTextCard: React.FC<{
                   data-active={active}
                   style={{
                     color: active ? accentColor : textColor,
+                    ...(active &&
+                    creativeTreatment?.accentTypeRole === 'editorial_italic'
+                      ? {
+                          fontFamily: playfairDisplayFamily,
+                          fontStyle: 'italic',
+                          fontWeight: 700,
+                        }
+                      : {}),
                     ...(tokenAnimation
                       ? {display: "inline-block", ...animationStyle(tokenAnimation)}
                       : {}),
@@ -385,7 +416,15 @@ const TimedMaulPlannedTextCard: React.FC<{
   fps: number;
   textColor: string;
   accentColor: string;
-}> = ({record, outputFrame, fps, textColor, accentColor}) => {
+  creativeTreatment?: MaulCreativeTreatment;
+}> = ({
+  record,
+  outputFrame,
+  fps,
+  textColor,
+  accentColor,
+  creativeTreatment,
+}) => {
   return (
     <MaulPlannedTextCard
       record={record}
@@ -394,6 +433,7 @@ const TimedMaulPlannedTextCard: React.FC<{
       fps={fps}
       textColor={textColor}
       accentColor={accentColor}
+      creativeTreatment={creativeTreatment}
     />
   );
 };
@@ -402,7 +442,8 @@ export const MaulPlannedTextLayer: React.FC<{
   records: MaulPlannedTextRecord[];
   textColor: string;
   accentColor: string;
-}> = ({records, textColor, accentColor}) => {
+  creativeTreatment?: MaulCreativeTreatment;
+}> = ({records, textColor, accentColor, creativeTreatment}) => {
   const outputFrame = useCurrentFrame();
   const {fps} = useVideoConfig();
   return (
@@ -422,6 +463,7 @@ export const MaulPlannedTextLayer: React.FC<{
             fps={fps}
             textColor={textColor}
             accentColor={accentColor}
+            creativeTreatment={creativeTreatment}
           />
         </Sequence>
       ))}

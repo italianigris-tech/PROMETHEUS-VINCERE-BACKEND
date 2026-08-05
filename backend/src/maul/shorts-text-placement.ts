@@ -149,21 +149,24 @@ const CATALOG = {
 } as const;
 
 const SCORE_DIMENSION_WEIGHTS = {
-  readability: 0.28,
-  subjectRelationship: 0.22,
-  opticalBalance: 0.14,
-  semanticCompatibility: 0.16,
-  continuity: 0.12,
+  readability: 0.24,
+  subjectRelationship: 0.2,
+  opticalBalance: 0.13,
+  semanticCompatibility: 0.14,
+  creativeDirectionFit: 0.1,
+  continuity: 0.11,
   fallbackCost: 0.08,
 };
 
-const SCORE_POLICY = {
+const LEGACY_SCORE_POLICY = {
   policyId: "maul-placement-score-policy-v1",
   version: "1",
   dimensionWeights: SCORE_DIMENSION_WEIGHTS,
   beamWidth: 4,
   planningHorizonSegments: 3,
 } as const;
+
+const SCORE_POLICY = LEGACY_SCORE_POLICY;
 
 const boxesOverlap = (first: MaulNormalizedBox, second: MaulNormalizedBox) =>
   first.x < second.x + second.width &&
@@ -835,6 +838,9 @@ const buildCandidate = ({
         : family === "editorial"
           ? 0.9
           : 0.76,
+    creativeDirectionFit: composition.variantId.includes('creative_preferred')
+      ? 1
+      : 0.5,
     continuity: 0.8,
     fallbackCost: isCaptionSafeFallback ? 0.35 : 1,
   };

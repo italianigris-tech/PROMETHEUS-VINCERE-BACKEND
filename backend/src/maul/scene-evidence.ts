@@ -13,6 +13,8 @@ import type {
 import type {MaulCompositionPurpose} from "./temporal-composition.js";
 import {buildCompositionCandidates} from "./composition-candidates.js";
 
+import type {MaulCompositionDirection} from "./composition-candidates.js";
+
 export type SceneEvidenceVisualBeat = {
   beatId: string;
   startMs: number;
@@ -58,6 +60,7 @@ export type SceneEvidenceTimeline =
       reason: string;
     };
 
+
 export interface SceneEvidenceProvider {
   inspect(input: {
     sourcePath: string;
@@ -93,6 +96,7 @@ const envelopeFor = (box: MaulNormalizedBox): MaulNormalizedBox => ({
 
 export const sceneEvidenceToPlacementInputs = (
   evidence: SceneEvidenceTimeline,
+  preferredDirection?: MaulCompositionDirection,
 ): SceneEvidencePlacementInputs | null => {
   if (evidence.status !== "available" || evidence.holds.length === 0) {
     return null;
@@ -108,7 +112,9 @@ export const sceneEvidenceToPlacementInputs = (
         intervalId: `${hold.beatId}.${candidate.direction}.${region.regionId}`,
         sceneId: hold.sceneId,
         discontinuityId: hold.discontinuityId,
-        variantId: `scene_evidence.${candidate.direction}.${region.regionId}`,
+        variantId: `scene_evidence.${candidate.direction}.${region.regionId}${
+          candidate.direction === preferredDirection ? ".creative_preferred" : ""
+        }`,
         outputStartMs: hold.outputStartMs,
         outputEndMs: hold.outputEndMs,
         transformHash: transformHash({

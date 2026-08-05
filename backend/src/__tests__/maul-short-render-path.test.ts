@@ -228,6 +228,36 @@ describe("MAUL complete short render path", () => {
         }),
       ),
     };
+    const creativeTreatmentPlanner = {
+      plan: vi.fn(async () => ({
+        status: 'invoked',
+        treatment: {
+          schemaVersion: 'maul-creative-treatment-proposal/v1',
+          profileId: 'aspire_visual_hook',
+          compositionDirection: 'subject_integrated',
+          primaryTypeRole: 'neutral_grotesk',
+          accentTypeRole: 'editorial_italic',
+          palette: {
+            primary: '#F7F3EA',
+            accent: '#F06424',
+            sourceTreatment: 'dark_warm_cool_contrast',
+          },
+          textDensity: 'medium',
+          emphasisMode: 'selective_accent_phrase',
+          motionMode: 'restrained_phrase_lockup',
+          rationale: ['Keep the speaker dominant.'],
+        },
+        receipt: {
+          provider: 'openai_compatible',
+          model: 'gpt-5.6-terra',
+          reasoningEffort: 'high',
+          requestHash: 'd'.repeat(64),
+          responseHash: 'e'.repeat(64),
+          inferenceReceiptId: 'maul_creative_fixture',
+          fallbackReason: null,
+        },
+      })),
+    };
     const renderEngine = vi.fn(async (input: any) => ({
       bytes: renderedBytes,
       sha256: createHash("sha256").update(renderedBytes).digest("hex"),
@@ -257,6 +287,7 @@ describe("MAUL complete short render path", () => {
         maulRenderEngine: renderEngine,
         maulQualityTruthProofProvider: validQualityTruthProofProvider,
         maulTextChunkPlanner: textChunkPlanner,
+        maulCreativeTreatmentPlanner: creativeTreatmentPlanner,
         maulSceneEvidenceProvider: {
           inspect: vi.fn(async ({beats}: any) => ({
             status: "available",
@@ -502,6 +533,20 @@ describe("MAUL complete short render path", () => {
       version: "maul-joseph-editorial-director/v1",
       doctrineId: expect.any(String),
       inputHash: expect.stringMatching(/^[a-f0-9]{64}$/),
+    });
+    expect(creativeTreatmentPlanner.plan).toHaveBeenCalledOnce();
+    expect(plans.artDirection.payload.creativeTreatment).toMatchObject({
+      profileId: 'aspire_visual_hook',
+      compositionDirection: 'subject_integrated',
+      primaryTypeRole: 'neutral_grotesk',
+      accentTypeRole: 'editorial_italic',
+      palette: {primary: '#F7F3EA', accent: '#F06424'},
+    });
+    expect(plans.artDirection.payload.creativeTreatmentInference).toMatchObject({
+      status: 'invoked',
+      model: 'gpt-5.6-terra',
+      reasoningEffort: 'high',
+      inferenceReceiptId: 'maul_creative_fixture',
     });
     expect(plans.artDirection.payload.visualBeats).toEqual(
       expect.arrayContaining([
