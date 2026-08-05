@@ -535,7 +535,8 @@ export const buildUnverifiedMaulQualityTruthProof = (
                 compatibilityProfileId: segment.compatibility.profileId,
                 metricsFingerprint:
                   segment.compatibility.metricsFingerprint,
-                exactFontAssetId: "font_google_dm_sans_700",
+                exactFontAssetId:
+                  manifest.plans.typographyMotion.fontResolution.selectedAssetId,
                 compiledLegibilityPrimitive:
                   segment.minimumLegibilityPrimitive,
                 measuredBox: {

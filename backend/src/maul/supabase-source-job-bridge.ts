@@ -3,6 +3,7 @@ import path from "node:path";
 
 import type {BackendEnv} from "../config.js";
 import type {R2TransferService} from "../integrations/r2.js";
+import {sha256File} from "../utils/hash.js";
 import type {VideoContextService} from "../video-context/service.js";
 
 type JsonObject = Record<string, unknown>;
@@ -23,6 +24,7 @@ type SourceAsset = {
   original_filename: string | null;
   mime_type: string;
   size_bytes: number | string;
+  sha256?: string | null;
 };
 
 type Lease = {
@@ -204,6 +206,10 @@ export class SupabaseSourceJobBridge {
       const expectedSize = Number(lease.asset.size_bytes);
       if (!Number.isSafeInteger(expectedSize) || downloaded.sizeBytes !== expectedSize) {
         throw new Error("SOURCE_SIZE_MISMATCH: downloaded R2 bytes differ from the committed revision.");
+      }
+      const expectedSha256 = lease.asset.sha256?.trim().toLowerCase();
+      if (expectedSha256 && (await sha256File(downloaded.destinationPath)).toLowerCase() !== expectedSha256) {
+        throw new Error("SOURCE_SHA256_MISMATCH: downloaded R2 bytes differ from the committed revision.");
       }
 
       await this.heartbeat(lease, 3, "analyzing");

@@ -44,10 +44,21 @@ const cinematicFontOptions = {
   ignoreTooManyRequestsWarning: true,
 };
 
-loadBebasNeue("normal", cinematicFontOptions);
-loadDMSerifDisplay("normal", cinematicFontOptions);
-loadGreatVibes("normal", cinematicFontOptions);
-loadPlayfairDisplay("normal", cinematicFontOptions);
+const {fontFamily: bebasNeueFamily} = loadBebasNeue("normal", cinematicFontOptions);
+const {fontFamily: dmSerifDisplayFamily} = loadDMSerifDisplay("normal", cinematicFontOptions);
+const {fontFamily: greatVibesFamily} = loadGreatVibes("normal", cinematicFontOptions);
+const {fontFamily: playfairDisplayFamily} = loadPlayfairDisplay("normal", cinematicFontOptions);
+
+const renderedFamilyFor = (family: string): string => {
+  switch (family) {
+    case "DM Sans": return dmSansFamily;
+    case "Bebas Neue": return bebasNeueFamily;
+    case "DM Serif Display": return dmSerifDisplayFamily;
+    case "Great Vibes": return greatVibesFamily;
+    case "Playfair Display": return playfairDisplayFamily;
+    default: return family;
+  }
+};
 
 const MAUL_CINEMATIC_TREATMENT_IDS = new Set([
   "cinematic_text_preset",
@@ -319,7 +330,7 @@ export const MaulPlannedTextCard: React.FC<{
         justifyContent: "center",
         overflow: "hidden",
         color: textColor,
-        fontFamily: dmSansFamily,
+        fontFamily: renderedFamilyFor(record.font.family),
         fontSize: record.font.fontSizePx * record.font.hierarchyScale,
         fontWeight: record.font.weight,
         lineHeight: record.font.lineHeight,

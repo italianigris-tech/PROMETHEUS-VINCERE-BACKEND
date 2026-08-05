@@ -145,8 +145,8 @@ describe("MAUL Quality Truth gate", () => {
         typographyMotion: {
           ...manifest.plans.typographyMotion,
           fontResolution: {
-            selectedFamily: "DM Sans",
-            selectedAssetId: "font_google_dm_sans_700",
+            selectedFamily: "Playfair Display",
+            selectedAssetId: "font_google_playfair_display_700",
             status: "eligible_loaded",
           },
         },
@@ -154,7 +154,7 @@ describe("MAUL Quality Truth gate", () => {
           status: "planned",
           compatibilityProfiles: [
             {
-              profileId: "maul-compat-dm-sans-v1",
+              profileId: "maul-compat-playfair-editorial-v1",
               metrics: {fingerprint: "d".repeat(64)},
             },
           ],
@@ -177,7 +177,7 @@ describe("MAUL Quality Truth gate", () => {
               selectedCompositionVariantId: "primary.centered_v1",
               selectedTransformHash: "c".repeat(64),
               compatibility: {
-                profileId: "maul-compat-dm-sans-v1",
+                profileId: "maul-compat-playfair-editorial-v1",
                 metricsFingerprint: "d".repeat(64),
               },
               minimumLegibilityPrimitive: {kind: "none"},
@@ -191,8 +191,8 @@ describe("MAUL Quality Truth gate", () => {
       schemaVersion: "maul-quality-truth-proof/v2" as const,
       fontRuntime: {
         status: "eligible_loaded" as const,
-        family: "DM Sans",
-        assetId: "font_google_dm_sans_700",
+        family: "Playfair Display",
+        assetId: "font_google_playfair_display_700",
         evidenceId: "evidence_font_loaded",
       },
       cropAndMask: {
@@ -217,9 +217,9 @@ describe("MAUL Quality Truth gate", () => {
           compositionIntervalId: "composition_interval_a",
           compositionVariantId: "primary.centered_v1",
           compositionTransformHash: "c".repeat(64),
-          compatibilityProfileId: "maul-compat-dm-sans-v1" as const,
+          compatibilityProfileId: "maul-compat-playfair-editorial-v1" as const,
           metricsFingerprint: "d".repeat(64),
-          exactFontAssetId: "font_google_dm_sans_700" as const,
+          exactFontAssetId: "font_google_playfair_display_700" as const,
           compiledLegibilityPrimitive: {kind: "none"} as const,
           measuredBox: {leftPx: 160, topPx: 1180, rightPx: 920, bottomPx: 1400},
         },

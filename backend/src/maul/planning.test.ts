@@ -740,6 +740,16 @@ describe("MAUL V3 text animation planning", () => {
     expect(payloads.typographyMotion.schemaVersion).toBe(
       "maul-typography-motion-plan/v3",
     );
+    expect(payloads.typographyMotion.fontResolution).toMatchObject({
+      selectedFamily: "DM Sans",
+      selectedAssetId: "font_google_dm_sans_700",
+      status: "governed_fallback",
+    });
+    expect(payloads.typographyMotion.warnings).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/measured typography/i),
+      ]),
+    );
     expect(
       payloads.typographyMotion.motionPrograms[0]?.execution.nativeBranch,
     ).toBe(MAUL_V3_NATIVE_RENDER_BRANCHES.textAnimation);

@@ -1,4 +1,4 @@
-import React, {useMemo, useState} from "react";
+import React, {useEffect, useMemo, useState} from "react";
 
 import "./maul-review-surface.css";
 
@@ -20,6 +20,68 @@ type SubmitMaulFeedbackInput = {
   creatorId: string;
   payload: FeedbackPayload;
   fetchImpl?: typeof fetch;
+};
+
+export type MaulVisualDirectionOutcome =
+  | "ART_DIRECTED"
+  | "CONSTRAINED_ART_DIRECTED"
+  | "SAFE_CAPTION_FALLBACK"
+  | "PLACEMENT_UNRESOLVED"
+  | "VISUAL_EVIDENCE_UNAVAILABLE";
+
+export type MaulVisualDirectionStatus = {
+  outcome: MaulVisualDirectionOutcome;
+  reviewState: "approved" | "awaiting_human_review" | "blocked";
+  degradationReason: string;
+  preview: {artifactId: string} | null;
+  perceptualTruth: {payload: {failureLabels: string[]}} | null;
+  urls?: {preview?: string} | null;
+};
+
+export const visualDirectionPresentation = (
+  outcome: MaulVisualDirectionOutcome,
+): {label: string; artDirected: boolean} => {
+  if (outcome === "ART_DIRECTED") {
+    return {label: "Art directed", artDirected: true};
+  }
+  if (outcome === "CONSTRAINED_ART_DIRECTED") {
+    return {label: "Constrained art direction", artDirected: false};
+  }
+  if (outcome === "SAFE_CAPTION_FALLBACK") {
+    return {label: "Safe caption fallback", artDirected: false};
+  }
+  if (outcome === "PLACEMENT_UNRESOLVED") {
+    return {label: "Placement unresolved", artDirected: false};
+  }
+  return {label: "Visual evidence unavailable", artDirected: false};
+};
+
+export const fetchMaulVisualDirection = async ({
+  projectId,
+  candidateArtifactId,
+  tenantId,
+  creatorId,
+  fetchImpl = fetch,
+}: {
+  projectId: string;
+  candidateArtifactId: string;
+  tenantId: string;
+  creatorId: string;
+  fetchImpl?: typeof fetch;
+}): Promise<MaulVisualDirectionStatus> => {
+  const response = await fetchImpl(
+    `/api/maul/projects/${encodeURIComponent(projectId)}/visual-direction?candidateArtifactId=${encodeURIComponent(candidateArtifactId)}`,
+    {
+      headers: {
+        "x-maul-tenant-id": tenantId,
+        "x-maul-creator-id": creatorId,
+      },
+    },
+  );
+  if (!response.ok) {
+    throw new Error(`Visual direction lookup failed (${response.status}).`);
+  }
+  return response.json() as Promise<MaulVisualDirectionStatus>;
 };
 
 export const submitMaulFeedback = async ({
@@ -80,7 +142,9 @@ const queryValue = (key: string, fallback: string): string => {
   return new URLSearchParams(window.location.search).get(key) || fallback;
 };
 
-export const MaulReviewSurface: React.FC = () => {
+export const MaulReviewSurface: React.FC<{
+  visualDirection?: MaulVisualDirectionStatus | null;
+}> = ({visualDirection: initialVisualDirection = null}) => {
   const [projectId, setProjectId] = useState(() => queryValue("project", "project_1"));
   const [tenantId, setTenantId] = useState(() => queryValue("tenant", "tenant_1"));
   const [creatorId, setCreatorId] = useState(() => queryValue("creator", "creator_1"));
@@ -93,11 +157,38 @@ export const MaulReviewSurface: React.FC = () => {
   const [failureClasses, setFailureClasses] = useState<string[]>([]);
   const [status, setStatus] = useState("Ready for a human decision.");
   const [submitting, setSubmitting] = useState(false);
+  const [visualDirection, setVisualDirection] = useState<MaulVisualDirectionStatus | null>(
+    initialVisualDirection,
+  );
 
   const activeTreatment = useMemo(
     () => TREATMENTS.find((treatment) => treatment.id === treatmentId) ?? TREATMENTS[2],
     [treatmentId]
   );
+
+  useEffect(() => {
+    if (initialVisualDirection || !projectId || !subjectArtifactId) return;
+    let current = true;
+    void fetchMaulVisualDirection({
+      projectId,
+      candidateArtifactId: subjectArtifactId,
+      tenantId,
+      creatorId,
+    })
+      .then((result) => {
+        if (current) setVisualDirection(result);
+      })
+      .catch(() => {
+        if (current) setVisualDirection(null);
+      });
+    return () => {
+      current = false;
+    };
+  }, [creatorId, initialVisualDirection, projectId, subjectArtifactId, tenantId]);
+
+  const directionPresentation = visualDirection
+    ? visualDirectionPresentation(visualDirection.outcome)
+    : null;
 
   const toggleFailure = (failure: string): void => {
     setFailureClasses((current) => current.includes(failure)
@@ -141,6 +232,32 @@ export const MaulReviewSurface: React.FC = () => {
           Compare the three treatment policies, name what failed, and make the creator's preference explicit.
         </p>
       </header>
+
+      {visualDirection && directionPresentation ? (
+        <section className="maul-review__direction" aria-label="Visual direction status">
+          <div>
+            <p className="maul-review__step">Rendered-frame truth</p>
+            <h2 data-maul-placement-outcome={visualDirection.outcome}>
+              {directionPresentation.label}
+            </h2>
+            <p>{visualDirection.degradationReason}</p>
+          </div>
+          <div className="maul-review__direction-meta">
+            <span>{visualDirection.reviewState.replaceAll("_", " ")}</span>
+            {visualDirection.perceptualTruth?.payload.failureLabels.map((label) => (
+              <code key={label}>{label}</code>
+            ))}
+          </div>
+          {visualDirection.preview && visualDirection.urls?.preview ? (
+            <video
+              className="maul-review__preview"
+              controls
+              preload="metadata"
+              src={visualDirection.urls.preview}
+            />
+          ) : null}
+        </section>
+      ) : null}
 
       <section className="maul-review__section" aria-labelledby="treatments-title">
         <div className="maul-review__section-heading">

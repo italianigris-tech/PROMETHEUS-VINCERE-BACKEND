@@ -3,6 +3,7 @@ import {describe, expect, it} from "vitest";
 
 import {MaulPlannedTextCard} from "../MaulPlannedTextLayer";
 import type {MaulPlannedTextRecord} from "../maul-short-manifest-adapter";
+import type {MaulTextAnimationProgram} from "@prometheus/shared-types";
 
 const identityTransform = {
   opacity: 1,
@@ -11,7 +12,7 @@ const identityTransform = {
   scale: 1,
 } as const;
 
-const cinematicProgram = {
+const cinematicProgram: MaulTextAnimationProgram = {
   animationId: "animation_make_it_happen",
   treatment: "cinematic_text_preset_7",
   target: {
@@ -43,7 +44,7 @@ const cinematicProgram = {
     },
   },
   rationale: "A named cinematic three-word lockup requested by the MAUL plan.",
-} as const;
+};
 
 const threeWordCinematicRecord: MaulPlannedTextRecord = {
   segmentId: "placement_make_it_happen",

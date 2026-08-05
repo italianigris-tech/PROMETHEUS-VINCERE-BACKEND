@@ -1,7 +1,72 @@
 import {
   maulRuntimeContractsSchema,
+  type MaulPlacementOutcome,
   type MaulRuntimeContracts,
 } from "@prometheus/shared-types";
+
+export type MaulVisualDirectionReleaseResult = {
+  corpusCaseId: string;
+  sourceEvidenceStatus: "verified" | "pending" | "rejected";
+  placementOutcome: MaulPlacementOutcome;
+  referenceParityClaimed: boolean;
+  minCompositionHoldMs: number;
+  finalFontVerified: boolean;
+  perceptualStatus: "pass" | "blocked" | "unavailable";
+  blindedReview: {completed: boolean; candidateWon: boolean};
+};
+
+export type MaulVisualDirectionLaunchGate = {
+  launchEligible: boolean;
+  blindedPreference: number;
+  blockers: string[];
+};
+
+export const evaluateVisualDirectionLaunchGate = (
+  results: readonly MaulVisualDirectionReleaseResult[],
+): MaulVisualDirectionLaunchGate => {
+  const blockers = new Set<string>();
+  if (results.length !== 30) blockers.add("held_out_corpus_incomplete");
+  if (new Set(results.map((result) => result.corpusCaseId)).size !== results.length) {
+    blockers.add("held_out_corpus_duplicate_case");
+  }
+  if (results.some((result) => result.sourceEvidenceStatus !== "verified")) {
+    blockers.add("source_evidence_unverified");
+  }
+  if (results.some((result) =>
+    result.placementOutcome === "SAFE_CAPTION_FALLBACK" &&
+    result.referenceParityClaimed,
+  )) {
+    blockers.add("fallback_reference_parity_claim");
+  }
+  if (results.some((result) => result.minCompositionHoldMs < 850)) {
+    blockers.add("composition_hold_below_perceptual_minimum");
+  }
+  if (results.some((result) => !result.finalFontVerified)) {
+    blockers.add("final_font_unverified");
+  }
+  if (results.some((result) =>
+    result.placementOutcome === "ART_DIRECTED" &&
+    result.perceptualStatus !== "pass",
+  )) {
+    blockers.add("art_direction_without_perceptual_truth");
+  }
+  if (results.some((result) => !result.blindedReview.completed)) {
+    blockers.add("blinded_review_incomplete");
+  }
+  const completedReviews = results.filter((result) => result.blindedReview.completed);
+  const blindedPreference = completedReviews.length === 0
+    ? 0
+    : completedReviews.filter((result) => result.blindedReview.candidateWon).length /
+      completedReviews.length;
+  if (blindedPreference < 0.8) {
+    blockers.add("blinded_preference_below_80_percent");
+  }
+  return {
+    launchEligible: blockers.size === 0,
+    blindedPreference: Number(blindedPreference.toFixed(3)),
+    blockers: [...blockers].sort(),
+  };
+};
 
 export const MAUL_RUNTIME_CONTRACTS: MaulRuntimeContracts =
   maulRuntimeContractsSchema.parse({

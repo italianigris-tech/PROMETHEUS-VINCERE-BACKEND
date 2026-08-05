@@ -15,6 +15,7 @@ import {
   maulQualityTruthProofSchema,
   maulQualityTruthProofV2Schema,
   maulQualityTruthResultSchema,
+  maulCreativeResultSchema,
   maulTextChunkPlanPayloadSchema,
   maulTextPlacementPlanPayloadSchema,
   maulTextAnimationPlanPayloadSchema,
@@ -36,6 +37,34 @@ describe("MAUL worker operation payload", () => {
   it("requires verified timeline evidence and licensed render audio", () => {
     expect(maulRenderShortOperationPayloadSchema).toBeDefined();
     expect(() => maulRenderShortOperationPayloadSchema.parse({})).toThrow();
+  });
+});
+
+describe("MAUL creative outcome contracts", () => {
+  it("rejects a reference-parity claim for a safe caption fallback", () => {
+    expect(() => maulCreativeResultSchema.parse({
+      schemaVersion: "maul-creative-result/v1",
+      placementOutcome: "SAFE_CAPTION_FALLBACK",
+      structuralStatus: "pass",
+      perceptualStatus: "pass",
+      humanReviewStatus: "approved",
+      referenceParityClaimed: true,
+      failureLabels: [],
+      evidenceArtifactIds: ["artifact_structural"],
+    })).toThrow(/reference parity/i);
+  });
+
+  it("requires perceptual proof and human approval for an art-directed claim", () => {
+    expect(() => maulCreativeResultSchema.parse({
+      schemaVersion: "maul-creative-result/v1",
+      placementOutcome: "ART_DIRECTED",
+      structuralStatus: "pass",
+      perceptualStatus: "unavailable",
+      humanReviewStatus: "approved",
+      referenceParityClaimed: false,
+      failureLabels: [],
+      evidenceArtifactIds: ["artifact_structural"],
+    })).toThrow(/perceptual/i);
   });
 });
 
@@ -1549,10 +1578,20 @@ describe("MAUL shared contracts", () => {
       maulQualityTruthProofV2Schema.parse(missingMeasuredBox),
     ).toThrow(/measured|required/i);
 
-    const wrongRuntimeFont = structuredClone(proofV2);
-    wrongRuntimeFont.fontRuntime.family = "Arial";
-    expect(() => maulQualityTruthProofV2Schema.parse(wrongRuntimeFont)).toThrow(
-      /DM Sans|pinned.*font/i,
-    );
+    const alternateGovernedRuntimeFont = structuredClone(proofV2);
+    alternateGovernedRuntimeFont.fontRuntime.family = "Playfair Display";
+    alternateGovernedRuntimeFont.fontRuntime.assetId =
+      "font_google_playfair_display_700";
+    alternateGovernedRuntimeFont.placementSegments[0].compatibilityProfileId =
+      "maul-compat-playfair-editorial-v1";
+    alternateGovernedRuntimeFont.placementSegments[0].exactFontAssetId =
+      "font_google_playfair_display_700";
+    expect(
+      maulQualityTruthProofV2Schema.parse(alternateGovernedRuntimeFont)
+        .fontRuntime,
+    ).toMatchObject({
+      family: "Playfair Display",
+      assetId: "font_google_playfair_display_700",
+    });
   });
 });

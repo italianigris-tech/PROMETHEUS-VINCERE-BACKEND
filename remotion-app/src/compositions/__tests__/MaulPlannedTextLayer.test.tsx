@@ -47,6 +47,13 @@ const textPlacementPlan = {
     {
       profileId: "maul-compat-dm-sans-v1",
       family: "DM Sans",
+      approvedFontAssets: [
+        {
+          assetId: "font_google_dm_sans_700",
+          family: "DM Sans",
+          weights: [500, 700, 800],
+        },
+      ],
       loadedFallback: {
         assetId: "font_google_dm_sans_700",
         family: "DM Sans",
@@ -120,6 +127,7 @@ const typographyMotion = {
     selectedFamily: "DM Sans",
     selectedAssetId: "font_google_dm_sans_700",
     status: "eligible_loaded",
+    reason: "The governed renderer asset was selected and loaded.",
   },
 };
 
@@ -239,6 +247,66 @@ describe("MAUL planned text renderer contract", () => {
         hierarchyScale: 1,
       },
     });
+  });
+
+  it("preserves a measured governed non-DM font selection", () => {
+    const placement = structuredClone(textPlacementPlan);
+    placement.compatibilityProfiles[0] = {
+      profileId: "maul-compat-playfair-editorial-v1",
+      family: "Playfair Display",
+      approvedFontAssets: [
+        {
+          assetId: "font_google_playfair_display_700",
+          family: "Playfair Display",
+          weights: [400, 700, 900],
+        },
+      ],
+      loadedFallback: {
+        assetId: "font_google_playfair_display_700",
+        family: "Playfair Display",
+        weight: 700,
+      },
+      metrics: {fingerprint: sha("p")},
+    } as never;
+    placement.segments[0]!.compatibility.profileId =
+      "maul-compat-playfair-editorial-v1" as never;
+    placement.segments[0]!.compatibility.metricsFingerprint = sha("p");
+    const motion = structuredClone(typographyMotion);
+    motion.fontResolution.selectedFamily = "Playfair Display";
+    motion.fontResolution.selectedAssetId = "font_google_playfair_display_700";
+
+    expect(
+      buildMaulPlannedTextRecords({
+        textChunkPlan: textChunkPlan as never,
+        textPlacementPlan: placement as never,
+        typographyMotion: motion as never,
+        output: {width: 1080, height: 1920},
+      })[0]?.font,
+    ).toMatchObject({
+      family: "Playfair Display",
+      assetId: "font_google_playfair_display_700",
+      weight: 700,
+    });
+  });
+
+  it("renders an explicit safe-caption fallback without promoting its font status", () => {
+    const placement = structuredClone(textPlacementPlan);
+    placement.segments[0]!.fallbackCode = "caption_safe_fallback";
+    placement.segments[0]!.fallbackReason =
+      "Source-pixel typography measurement is unavailable.";
+    const motion = structuredClone(typographyMotion);
+    motion.fontResolution.status = "governed_fallback";
+    motion.fontResolution.reason =
+      "Measured typography is unavailable; render the disclosed safe caption only.";
+
+    expect(
+      buildMaulPlannedTextRecords({
+        textChunkPlan: textChunkPlan as never,
+        textPlacementPlan: placement as never,
+        typographyMotion: motion as never,
+        output: {width: 1080, height: 1920},
+      })[0]?.fallbackCode,
+    ).toBe("caption_safe_fallback");
   });
 
   it("compiles the selected minimum-legibility primitive", () => {
@@ -454,7 +522,7 @@ describe("MAUL planned text renderer contract", () => {
       (fixture) => {
         fixture.typographyMotion.fontResolution.selectedFamily = "Arial";
       },
-      /DM Sans/i,
+      /governed measured font/i,
     );
   });
 

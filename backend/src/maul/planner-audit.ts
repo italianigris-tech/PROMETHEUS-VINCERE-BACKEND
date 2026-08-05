@@ -127,10 +127,10 @@ export const buildMaulPlannerAuditPayload = ({
       provider: "local-deterministic",
       model: "joseph-seeded-governed-search",
       reason:
-        "Joseph exposes richer deterministic seeded planning, but the current MAUL candidate path did not invoke it.",
+        "This candidate-scoring audit is emitted before Joseph planning. Joseph invocation, when a planning bundle is created, is recorded on the subsequent Art Direction artifact rather than fabricated here.",
       decisionFields: [],
       limitations: [
-        "No Joseph parity may be claimed until doctrine-to-render traceability proves the shared seam.",
+        "Candidate eligibility is not Joseph execution. Inspect the planning bundle Art Direction receipt for doctrine-to-render lineage.",
       ],
       inferenceReceipt: null,
     },

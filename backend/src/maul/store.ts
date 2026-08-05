@@ -73,6 +73,26 @@ export class MaulProjectStore {
     return path.join(this.exportDir(projectId), `${fileId}.json`);
   }
 
+  public previewDir(projectId: string): string {
+    return path.join(this.projectDir(projectId), "previews");
+  }
+
+  public previewBytesPath(projectId: string, fileId: string): string {
+    return path.join(this.previewDir(projectId), `${fileId}.mp4`);
+  }
+
+  public previewMetadataPath(projectId: string, fileId: string): string {
+    return path.join(this.previewDir(projectId), `${fileId}.json`);
+  }
+
+  public previewFramePath(
+    projectId: string,
+    fileId: string,
+    frameId: string,
+  ): string {
+    return path.join(this.previewDir(projectId), `${fileId}.${frameId}.png`);
+  }
+
   public thumbnailDir(projectId: string): string {
     return path.join(this.projectDir(projectId), "thumbnails");
   }
@@ -288,6 +308,89 @@ export class MaulProjectStore {
       sizeBytes: metadata.sizeBytes,
       sha256: metadata.sha256,
       bytes
+    };
+  }
+
+  public async writePreviewFile({
+    projectId,
+    fileId,
+    bytes,
+    sha256,
+    frames,
+  }: {
+    projectId: string;
+    fileId: string;
+    bytes: Buffer;
+    sha256: string;
+    frames: Array<{
+      frameId: string;
+      outputMs: number;
+      bytes: Buffer;
+      sha256: string;
+    }>;
+  }): Promise<void> {
+    await mkdir(this.previewDir(projectId), {recursive: true});
+    await writeFile(this.previewBytesPath(projectId, fileId), bytes);
+    await Promise.all(
+      frames.map((frame) =>
+        writeFile(
+          this.previewFramePath(projectId, fileId, frame.frameId),
+          frame.bytes,
+        ),
+      ),
+    );
+    await writeJson(this.previewMetadataPath(projectId, fileId), {
+      fileId,
+      contentType: "video/mp4",
+      sizeBytes: bytes.length,
+      sha256,
+      frames: frames.map((frame) => ({
+        frameId: frame.frameId,
+        outputMs: frame.outputMs,
+        contentType: "image/png",
+        sizeBytes: frame.bytes.length,
+        sha256: frame.sha256,
+      })),
+    });
+  }
+
+  public async readPreviewFile(projectId: string, fileId: string): Promise<{
+    contentType: "video/mp4";
+    sizeBytes: number;
+    sha256: string;
+    bytes: Buffer;
+  }> {
+    const metadata = JSON.parse(
+      await readFile(this.previewMetadataPath(projectId, fileId), "utf8"),
+    ) as Record<string, unknown>;
+    if (
+      metadata.fileId !== fileId ||
+      metadata.contentType !== "video/mp4" ||
+      typeof metadata.sizeBytes !== "number" ||
+      typeof metadata.sha256 !== "string"
+    ) {
+      throw new Error(`Invalid MAUL preview file metadata for ${fileId}.`);
+    }
+    const bytes = await readFile(this.previewBytesPath(projectId, fileId));
+    if (bytes.length !== metadata.sizeBytes) {
+      throw new Error(`MAUL preview file ${fileId} failed its size integrity check.`);
+    }
+    return {
+      contentType: "video/mp4",
+      sizeBytes: metadata.sizeBytes,
+      sha256: metadata.sha256,
+      bytes,
+    };
+  }
+
+  public async readPreviewFrame(
+    projectId: string,
+    fileId: string,
+    frameId: string,
+  ): Promise<{contentType: "image/png"; bytes: Buffer}> {
+    return {
+      contentType: "image/png",
+      bytes: await readFile(this.previewFramePath(projectId, fileId, frameId)),
     };
   }
 

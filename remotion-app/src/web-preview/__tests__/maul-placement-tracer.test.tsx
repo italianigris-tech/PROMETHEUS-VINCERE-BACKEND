@@ -115,6 +115,14 @@ describe("MAUL placement tracer", () => {
       expect(markup).toContain(
         `data-expected-fallback="${fixture.fallbackCode ?? "none"}"`,
       );
+      expect(markup).toContain('data-maul-tracer-outcome="FIXTURE_ONLY"');
+      expect(markup).toContain(
+        `data-maul-tracer-simulated-outcome="${fixture.fallbackCode ? "SAFE_CAPTION_FALLBACK" : "SUBJECT_AWARE_LAYOUT"}"`,
+      );
+      expect(markup).toContain('data-maul-tracer-hold-ms="1000"');
+      expect(markup).toContain('data-maul-tracer-font-asset="font_google_dm_sans_700"');
+      expect(markup).toContain('data-maul-tracer-evidence="fixture_only"');
     }
+    expect(markup).not.toContain('data-maul-tracer-outcome="ART_DIRECTED"');
   });
 });

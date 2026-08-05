@@ -1,4 +1,5 @@
 import {
+  isMaulRendererFontCatalogEntry,
   joinShortsTextTokens,
   maulUnifiedShortRenderManifestV2Schema,
   maulUnifiedShortRenderManifestV3Schema,
@@ -315,9 +316,9 @@ export type MaulPlannedTextRecord = {
   font: {
     profileId: string;
     metricsFingerprint: string;
-    family: "DM Sans";
-    assetId: "font_google_dm_sans_700";
-    weight: 700;
+    family: string;
+    assetId: string;
+    weight: number;
     fontSizePx: number;
     lineHeight: number;
     hierarchyScale: number;
@@ -450,21 +451,37 @@ export const buildMaulPlannedTextRecords = ({
     const profile = textPlacementPlan.compatibilityProfiles.find(
       (candidate) => candidate.profileId === segment.compatibility.profileId,
     );
+    const selectedAsset = profile?.approvedFontAssets.find(
+      (asset) => asset.assetId === typographyMotion.fontResolution.selectedAssetId,
+    );
+    const declaredSafeCaptionFallback =
+      segment.fallbackCode === "caption_safe_fallback" &&
+      typographyMotion.fontResolution.status === "governed_fallback";
     if (
       !profile ||
-      profile.family !== "DM Sans" ||
-      profile.loadedFallback.family !== "DM Sans" ||
-      profile.loadedFallback.assetId !== "font_google_dm_sans_700" ||
-      profile.loadedFallback.weight !== 700 ||
-      profile.metrics.fingerprint !==
-        segment.compatibility.metricsFingerprint ||
-      typographyMotion.fontResolution.selectedFamily !== "DM Sans" ||
-      typographyMotion.fontResolution.selectedAssetId !==
-        "font_google_dm_sans_700" ||
-      typographyMotion.fontResolution.status !== "eligible_loaded"
+      !selectedAsset ||
+      selectedAsset.family !== profile.family ||
+      profile.loadedFallback.family !== profile.family ||
+      profile.loadedFallback.assetId !== selectedAsset.assetId ||
+      !selectedAsset.weights.includes(profile.loadedFallback.weight) ||
+      profile.metrics.fingerprint !== segment.compatibility.metricsFingerprint ||
+      typographyMotion.fontResolution.selectedFamily !== profile.family ||
+      (typographyMotion.fontResolution.status !== "eligible_loaded" &&
+        !declaredSafeCaptionFallback)
     ) {
       throw new Error(
-        `Placement ${segment.segmentId} does not resolve to pinned DM Sans metrics.`,
+        `Placement ${segment.segmentId} does not resolve to its governed measured font profile.`,
+      );
+    }
+    if (
+      !isMaulRendererFontCatalogEntry({
+        assetId: selectedAsset.assetId,
+        family: profile.loadedFallback.family,
+        weight: profile.loadedFallback.weight,
+      })
+    ) {
+      throw new Error(
+        `Placement ${segment.segmentId} selects a font unavailable in the MAUL renderer.`,
       );
     }
 

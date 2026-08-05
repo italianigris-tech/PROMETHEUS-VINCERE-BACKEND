@@ -148,6 +148,13 @@ export const MaulPlacementTracer: React.FC = () => (
         <article
           key={fixture.probeId}
           data-maul-placement-probe={fixture.probeId}
+          data-maul-tracer-outcome="FIXTURE_ONLY"
+          data-maul-tracer-simulated-outcome={
+            fixture.fallbackCode ? "SAFE_CAPTION_FALLBACK" : "SUBJECT_AWARE_LAYOUT"
+          }
+          data-maul-tracer-hold-ms="1000"
+          data-maul-tracer-font-asset="font_google_dm_sans_700"
+          data-maul-tracer-evidence="fixture_only"
           data-expected-family={fixture.family}
           data-expected-fallback={fixture.fallbackCode ?? "none"}
           data-expected-box-x={fixture.box.x}
@@ -177,6 +184,22 @@ export const MaulPlacementTracer: React.FC = () => (
               f{fixture.frame} / {fixture.family}
             </code>
           </header>
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 5,
+              marginBottom: 8,
+              color: "#4e5559",
+              fontSize: 10,
+            }}
+          >
+            <code>FIXTURE_ONLY</code>
+            <code>{fixture.fallbackCode ? "SAFE_CAPTION_FALLBACK" : "SUBJECT_AWARE_LAYOUT"}</code>
+            <code>hold 1000ms</code>
+            <code>font_google_dm_sans_700</code>
+            <code>fixture_only</code>
+          </div>
           <div
             data-maul-tracer-player-shell={fixture.probeId}
             style={{

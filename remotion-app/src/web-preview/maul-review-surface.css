@@ -32,6 +32,55 @@
   border-bottom: 1px solid var(--maul-border);
 }
 
+.maul-review__direction {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 0.45fr);
+  gap: 20px;
+  width: min(1180px, 100%);
+  margin: 0 auto;
+  padding: 28px 0;
+  border-bottom: 1px solid var(--maul-border);
+}
+
+.maul-review__direction h2 {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.1;
+}
+
+.maul-review__direction p:last-child {
+  max-width: 680px;
+  margin: 10px 0 0;
+  color: var(--maul-muted);
+  line-height: 1.5;
+}
+
+.maul-review__direction-meta {
+  display: flex;
+  align-content: start;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.maul-review__direction-meta span,
+.maul-review__direction-meta code {
+  min-height: 28px;
+  border: 1px solid var(--maul-border);
+  border-radius: 3px;
+  padding: 6px 8px;
+  color: var(--maul-muted);
+  font: 700 11px/1.3 ui-monospace, SFMono-Regular, Consolas, monospace;
+  text-transform: uppercase;
+}
+
+.maul-review__preview {
+  grid-column: 1 / -1;
+  width: min(100%, 360px);
+  aspect-ratio: 9 / 16;
+  background: #000;
+}
+
 .maul-review__eyebrow,
 .maul-review__step {
   margin: 0 0 12px;
@@ -310,6 +359,10 @@
 
   .maul-review__treatment-grid,
   .maul-review__identity-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .maul-review__direction {
     grid-template-columns: 1fr;
   }
 

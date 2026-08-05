@@ -34,6 +34,9 @@ import {MaulProjectService} from "./maul/service";
 import type {MaulShortRenderEngine} from "./maul/render-engine";
 import type {MaulThumbnailGenerator} from "./maul/thumbnail-generator";
 import type {MaulQualityTruthProofProvider} from "./maul/quality-truth";
+import type {MaulPerceptualTruthProvider} from "./maul/perceptual-truth";
+import type {SceneEvidenceProvider} from "./maul/scene-evidence";
+import type {MaulTypographyProvider} from "./maul/typography-layout";
 import {
   createShortsTextChunkPlanner,
   type ShortsTextChunkPlanner,
@@ -101,6 +104,9 @@ export type BackendDependencies = PipelineDependencies & EditSessionDependencies
   maulRenderEngine?: MaulShortRenderEngine;
   maulThumbnailGenerator?: MaulThumbnailGenerator;
   maulQualityTruthProofProvider?: MaulQualityTruthProofProvider;
+  maulPerceptualTruthProvider?: MaulPerceptualTruthProvider;
+  maulSceneEvidenceProvider?: SceneEvidenceProvider;
+  maulTypographyProvider?: MaulTypographyProvider;
   maulTextChunkPlanner?: ShortsTextChunkPlanner;
 };
 
@@ -299,7 +305,11 @@ export const createBackendApp = async ({
     deps?.maulRenderEngine,
     deps?.maulThumbnailGenerator,
     deps?.maulQualityTruthProofProvider,
-    maulTextChunkPlanner
+    maulTextChunkPlanner,
+    undefined,
+    deps?.maulSceneEvidenceProvider,
+    deps?.maulPerceptualTruthProvider,
+    deps?.maulTypographyProvider,
   );
   await maulProjects.initialize();
   const maulControlPlane = new MaulDurableControlPlane(env.STORAGE_DIR, maulProjects);

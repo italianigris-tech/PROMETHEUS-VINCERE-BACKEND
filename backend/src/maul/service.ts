@@ -5,11 +5,13 @@ import path from "node:path";
 import {
   maulArtifactCreateRequestSchema,
   maulArtifactRecordSchema,
+  maulArtDirectionPlanPayloadSchema,
   maulCandidateGenerationRequestSchema,
   maulEditorialTimelineRequestSchema,
   maulProjectCreateRequestSchema,
   maulProjectSchema,
   maulPlanningBundleRequestSchema,
+  maulRenderPreviewRequestSchema,
   maulReferenceIngestRequestSchema,
   maulReferenceReviewRequestSchema,
   maulReviewDecisionRequestSchema,
@@ -28,6 +30,7 @@ import {
   type MaulProject,
   type MaulProjectCreateRequest,
   type MaulPlanningBundleRequest,
+  type MaulRenderPreviewRequest,
   type MaulReferenceCorpusItemPayload,
   type MaulReferenceIngestRequest,
   type MaulReferenceReviewRequest,
@@ -71,6 +74,7 @@ import { buildMaulPlannerAuditPayload } from "./planner-audit.js";
 import {
   adaptMaulLegacyPlanningBundleV1,
   assertMaulV3TextAnimationReferences,
+  buildMaulArtDirectionPlanPayload,
   buildMaulPlanningBundlePayload,
   buildMaulConservativePlacementInputs,
   buildMaulPlanningPayloads,
@@ -83,6 +87,19 @@ import {
   mapMaulTranscriptWordsToOutput,
   type MaulPlanningInputs,
 } from "./planning.js";
+import {
+  createJosephEditorialDirector,
+  type EditorialDirector,
+} from "./editorial-director.js";
+import {
+  createUnavailableSceneEvidenceProvider,
+  sceneEvidenceToPlacementInputs,
+  type SceneEvidenceProvider,
+} from "./scene-evidence.js";
+import {
+  createUnavailableMaulTypographyProvider,
+  type MaulTypographyProvider,
+} from "./typography-layout.js";
 import {buildMaulTextPlacementPlan} from "./shorts-text-placement.js";
 import {materializeMaulTextChunkPlanV2} from "./text-chunk-plan.js";
 import {
@@ -91,10 +108,24 @@ import {
   evaluateMaulQualityTruth,
   type MaulQualityTruthProofProvider,
 } from "./quality-truth.js";
+import {
+  createUnavailableMaulPerceptualTruthProvider,
+  evaluatePerceptualTruth,
+  type MaulPerceptualTruthProvider,
+} from "./perceptual-truth.js";
+import {buildMaulPreviewSampleTimes} from "./render-preview.js";
 import type {ShortsTextChunkPlanner} from "./shorts-text-chunking-llm.js";
 
 export class MaulProjectNotFoundError extends Error {}
 export class MaulLineageConflictError extends Error {}
+
+const josephProfileForTreatment = (
+  treatmentId: "founder_podcast" | "premium_direct_response" | "minimal_expert",
+) => {
+  if (treatmentId === "premium_direct_response") return "joseph_aggressive" as const;
+  if (treatmentId === "minimal_expert") return "joseph_minimal" as const;
+  return "joseph_cinematic" as const;
+};
 
 const createId = (prefix: string): string =>
   `${prefix}_${Date.now().toString(36)}_${randomBytes(5).toString("hex")}`;
@@ -185,7 +216,7 @@ const captionsForRender = (
   });
 
 const musicTrackForPlanner = (
-  request: MaulShortRenderRequest,
+  request: MaulShortRenderRequest | MaulRenderPreviewRequest,
   timestamp: string,
 ): MusicTrack => ({
   id: request.musicTrack.id,
@@ -276,6 +307,19 @@ export class MaulProjectService {
       manifest,
     ) => buildUnverifiedMaulQualityTruthProof(manifest),
     private readonly textChunkPlanner: ShortsTextChunkPlanner,
+    private readonly editorialDirector: EditorialDirector = createJosephEditorialDirector(),
+    private readonly sceneEvidenceProvider: SceneEvidenceProvider =
+      createUnavailableSceneEvidenceProvider(
+        "No configured temporal visual-evidence provider is available for this MAUL run.",
+      ),
+    private readonly perceptualTruthProvider: MaulPerceptualTruthProvider =
+      createUnavailableMaulPerceptualTruthProvider(
+        "No configured rendered-frame Perceptual Truth provider is available for this MAUL run.",
+      ),
+    private readonly typographyProvider: MaulTypographyProvider =
+      createUnavailableMaulTypographyProvider(
+        "No configured renderer-verified typography measurement provider is available for this MAUL run.",
+      ),
   ) {}
 
   public async initialize(): Promise<void> {
@@ -1054,6 +1098,27 @@ export class MaulProjectService {
         "Rejected MAUL candidates cannot enter governed planning.",
       );
     }
+    const referenceCorpus = treatment.payload.referenceCorpusArtifactIds.map(
+      (artifactId) => {
+        const reference = artifacts.find(
+          (artifact) => artifact.artifactId === artifactId,
+        );
+        if (!reference || reference.artifactType !== "reference_corpus_item") {
+          throw new MaulLineageConflictError(
+            `Treatment ${treatment.artifactId} references a missing MAUL reference ${artifactId}.`,
+          );
+        }
+        if (
+          reference.payload.reviewStatus !== "approved" ||
+          !reference.payload.approvedTraits
+        ) {
+          throw new MaulLineageConflictError(
+            `Treatment ${treatment.artifactId} references unapproved traits for ${artifactId}.`,
+          );
+        }
+        return reference;
+      },
+    );
     if (
       candidate.payload.timelineArtifactId !==
       treatment.payload.timelineArtifactId
@@ -1152,8 +1217,32 @@ export class MaulProjectService {
       timeline,
       candidate,
       treatment,
+      referenceCorpus,
       textChunkPlan: textChunkPlanV1,
     };
+    const editorialDirection = await this.editorialDirector.plan({
+      sourcePath: source.payload.storageKey,
+      durationMs: timeline.payload.outputDurationMs,
+      seed: Number.parseInt(
+        createHash("sha256")
+          .update(`${projectId}:${candidate.artifactId}:${treatment.artifactId}`)
+          .digest("hex")
+          .slice(0, 8),
+        16,
+      ),
+      profile: josephProfileForTreatment(treatment.payload.treatmentId),
+      transcript: candidateWords.map((word) => ({
+        text: word.text,
+        startMs: word.startMs,
+        endMs: word.endMs,
+        confidence: word.confidence,
+      })),
+    });
+    const sceneEvidence = await this.sceneEvidenceProvider.inspect({
+      sourcePath: source.payload.storageKey,
+      beats: editorialDirection.visualBeats,
+    });
+    const scenePlacementInputs = sceneEvidenceToPlacementInputs(sceneEvidence);
     const sharedParents = [
       source.artifactId,
       analysis.artifactId,
@@ -1161,10 +1250,55 @@ export class MaulProjectService {
       candidate.artifactId,
       treatment.artifactId,
     ];
+    const baselineArtDirection = buildMaulArtDirectionPlanPayload(planningInputs);
+    const artDirectionPayload = maulArtDirectionPlanPayloadSchema.parse({
+      ...baselineArtDirection,
+      ...editorialDirection.artDirection,
+      authorityReceipt: editorialDirection.receipt,
+      visualBeats: editorialDirection.visualBeats,
+      sceneEvidence:
+        sceneEvidence.status === "available"
+          ? {
+              status: "available",
+              providerId: sceneEvidence.providerId,
+              holdCount: sceneEvidence.holds.length,
+              reason: null,
+            }
+          : {
+              status: "unavailable",
+              providerId: sceneEvidence.providerId,
+              holdCount: 0,
+              reason: sceneEvidence.reason,
+            },
+      explicitProhibitions: [
+        ...baselineArtDirection.explicitProhibitions,
+        ...editorialDirection.artDirection.explicitProhibitions,
+      ],
+    });
+    const artDirectionResult = await this.registerArtifact(projectId, {
+      artifactType: "art_direction_plan",
+      parentArtifactIds: sharedParents,
+      producedBy: {
+        module: "maul-joseph-editorial-director",
+        version: editorialDirection.receipt.version,
+      },
+      payload: artDirectionPayload,
+    });
+    if (artDirectionResult.artifact.artifactType !== "art_direction_plan") {
+      throw new Error("Joseph Editorial Director produced the wrong MAUL artifact type.");
+    }
+    const directionParents = [...sharedParents, artDirectionResult.artifact.artifactId];
     const textChunkCore = materializeMaulTextChunkPlanV2({
       mappedWords: candidateWords,
       textChunkPlanV1,
       editorialTimeline: timeline.payload,
+    });
+    const measuredTypography = await this.typographyProvider.plan({
+      chunks: textChunkCore.chunks.map((chunk) => ({
+        chunkId: chunk.chunkId,
+        text: chunk.text,
+      })),
+      maximumLineWidthPx: 410,
     });
     const textChunkPayload = buildMaulTextChunkPlanPayload({
       inputs: planningInputs,
@@ -1172,7 +1306,7 @@ export class MaulProjectService {
     });
     const textChunkResult = await this.registerArtifact(projectId, {
       artifactType: "text_chunk_plan",
-      parentArtifactIds: sharedParents,
+      parentArtifactIds: directionParents,
       producedBy: {module: "maul-text-chunk-materializer", version: "2"},
       payload: textChunkPayload,
     });
@@ -1182,14 +1316,24 @@ export class MaulProjectService {
     const textChunkPlanHash = hashMaulPlanPayload(
       textChunkResult.artifact.payload,
     );
-    const placementInputs = buildMaulConservativePlacementInputs(
-      timeline.payload,
-    );
+    const mayUseMeasuredSourcePlacement =
+      Boolean(scenePlacementInputs) && measuredTypography.status === "available";
+    const placementInputs = mayUseMeasuredSourcePlacement
+      ? scenePlacementInputs!
+      : buildMaulConservativePlacementInputs(timeline.payload);
     const textPlacementCore = buildMaulTextPlacementPlan({
       textChunkPlanArtifactId: textChunkResult.artifact.artifactId,
       textChunkPlan: textChunkCore,
       textChunkPlanHash,
       ...placementInputs,
+      ...(mayUseMeasuredSourcePlacement
+        ? {
+            typography: {
+              profile: measuredTypography.profile,
+              layouts: measuredTypography.layouts,
+            },
+          }
+        : {}),
     });
     const textPlacementPayload = buildMaulTextPlacementPlanPayload({
       inputs: planningInputs,
@@ -1198,7 +1342,7 @@ export class MaulProjectService {
     const textPlacementResult = await this.registerArtifact(projectId, {
       artifactType: "text_placement_plan",
       parentArtifactIds: [
-        ...sharedParents,
+        ...directionParents,
         textChunkResult.artifact.artifactId,
       ],
       producedBy: {module: "maul-text-placement-planner", version: "1"},
@@ -1222,7 +1366,7 @@ export class MaulProjectService {
     const textAnimationResult = await this.registerArtifact(projectId, {
       artifactType: "text_animation_plan",
       parentArtifactIds: [
-        ...sharedParents,
+        ...directionParents,
         textChunkResult.artifact.artifactId,
         textPlacementResult.artifact.artifactId,
       ],
@@ -1244,9 +1388,30 @@ export class MaulProjectService {
       textPlacementPlanHash,
       textAnimationPlanArtifactId: textAnimationResult.artifact.artifactId,
       textAnimationPlanHash,
-    });
+    }, mayUseMeasuredSourcePlacement
+      ? {
+          fontResolution: measuredTypography.fontResolution,
+          measurementEvidenceIds: measuredTypography.evidenceIds,
+        }
+      : {
+          fontResolution: {
+            requestedRole: "utility",
+            selectedFamily: "DM Sans",
+            selectedAssetId: "font_google_dm_sans_700",
+            status: "governed_fallback",
+            reason: measuredTypography.status === "unavailable"
+              ? `Measured typography is unavailable: ${measuredTypography.reason}`
+              : "Source-pixel composition is unavailable; MAUL is using the explicit safe-caption typography fallback.",
+          },
+          measurementEvidenceIds: [],
+          warnings: [
+            measuredTypography.status === "unavailable"
+              ? `Measured typography unavailable: ${measuredTypography.reason}`
+              : "Measured typography is retained for a future source-pixel attempt; the current output is a safe-caption fallback.",
+          ],
+        });
     const dependentParents = [
-      ...sharedParents,
+      ...directionParents,
       textChunkResult.artifact.artifactId,
       textPlacementResult.artifact.artifactId,
     ];
@@ -1306,12 +1471,6 @@ export class MaulProjectService {
       parentArtifactIds: dependentParents,
       producedBy: { module: "maul-stage-one-planner", version: "1" },
       payload: payloads.adapterDecision,
-    });
-    const artDirectionResult = await this.registerArtifact(projectId, {
-      artifactType: "art_direction_plan",
-      parentArtifactIds: dependentParents,
-      producedBy: { module: "maul-stage-one-planner", version: "1" },
-      payload: payloads.artDirection,
     });
     const contextAssemblyResult = await this.registerArtifact(projectId, {
       artifactType: "context_assembly_plan",
@@ -1461,6 +1620,25 @@ export class MaulProjectService {
         "Review requires a render-ready Planning Bundle for the same candidate and Treatment Genome.",
       );
     }
+    const perceptualTruth = request.perceptualTruthArtifactId
+      ? artifacts.find(
+          (artifact) => artifact.artifactId === request.perceptualTruthArtifactId,
+        )
+      : null;
+    if (
+      request.decision === "approved" &&
+      (!perceptualTruth ||
+        perceptualTruth.artifactType !== "perceptual_truth" ||
+        perceptualTruth.payload.status !== "pass" ||
+        perceptualTruth.payload.placementOutcome !== "ART_DIRECTED" ||
+        perceptualTruth.payload.candidateArtifactId !== candidate.artifactId ||
+        perceptualTruth.payload.treatmentGenomeArtifactId !== treatment.artifactId ||
+        perceptualTruth.payload.planningBundleArtifactId !== planningBundle.artifactId)
+    ) {
+      throw new MaulLineageConflictError(
+        "Approval requires a rendered-frame Perceptual Truth pass for the same candidate lineage.",
+      );
+    }
     if (
       candidate.payload.timelineArtifactId !==
       treatment.payload.timelineArtifactId
@@ -1522,12 +1700,14 @@ export class MaulProjectService {
         candidate.artifactId,
         treatment.artifactId,
         planningBundle.artifactId,
+        ...(perceptualTruth ? [perceptualTruth.artifactId] : []),
       ],
       producedBy: { module: "maul-judgment-layer", version: "1" },
       payload: {
         subjectArtifactId: candidate.artifactId,
         treatmentGenomeArtifactId: treatment.artifactId,
         planningBundleArtifactId: planningBundle.artifactId,
+        perceptualTruthArtifactId: perceptualTruth?.artifactId ?? null,
         reviewerId: request.reviewerId,
         decision: request.decision,
         failureClasses: request.failureClasses,
@@ -1543,6 +1723,27 @@ export class MaulProjectService {
     return { review: result.artifact };
   }
 
+  public async renderPreview(
+    projectId: string,
+    input: unknown,
+  ): Promise<{
+    preview: Extract<MaulArtifactRecord, {artifactType: "render_preview"}>;
+    perceptualTruth: Extract<
+      MaulArtifactRecord,
+      {artifactType: "perceptual_truth"}
+    >;
+    audioPlan: ReturnType<typeof buildVideoAwareAudioPlan>;
+  }> {
+    return this.renderWithMode(projectId, input, "preview") as Promise<{
+      preview: Extract<MaulArtifactRecord, {artifactType: "render_preview"}>;
+      perceptualTruth: Extract<
+        MaulArtifactRecord,
+        {artifactType: "perceptual_truth"}
+      >;
+      audioPlan: ReturnType<typeof buildVideoAwareAudioPlan>;
+    }>;
+  }
+
   public async renderShort(
     projectId: string,
     input: unknown,
@@ -1550,8 +1751,21 @@ export class MaulProjectService {
     export: Extract<MaulArtifactRecord, { artifactType: "export_artifact" }>;
     audioPlan: ReturnType<typeof buildVideoAwareAudioPlan>;
   }> {
-    const request: MaulShortRenderRequest =
-      maulShortRenderRequestSchema.parse(input);
+    return this.renderWithMode(projectId, input, "final") as Promise<{
+      export: Extract<MaulArtifactRecord, {artifactType: "export_artifact"}>;
+      audioPlan: ReturnType<typeof buildVideoAwareAudioPlan>;
+    }>;
+  }
+
+  private async renderWithMode(
+    projectId: string,
+    input: unknown,
+    renderMode: "preview" | "final",
+  ): Promise<unknown> {
+    const request: MaulShortRenderRequest | MaulRenderPreviewRequest =
+      renderMode === "preview"
+        ? maulRenderPreviewRequestSchema.parse(input)
+        : maulShortRenderRequestSchema.parse(input);
     const { project, artifacts } = await this.getProject(projectId);
     const candidate = artifacts.find(
       (artifact) => artifact.artifactId === request.candidateArtifactId,
@@ -1559,9 +1773,15 @@ export class MaulProjectService {
     const treatment = artifacts.find(
       (artifact) => artifact.artifactId === request.treatmentGenomeArtifactId,
     );
-    const review = artifacts.find(
-      (artifact) => artifact.artifactId === request.reviewDecisionArtifactId,
-    );
+    const reviewDecisionArtifactId =
+      renderMode === "final"
+        ? (request as MaulShortRenderRequest).reviewDecisionArtifactId
+        : null;
+    const review = reviewDecisionArtifactId
+      ? artifacts.find(
+          (artifact) => artifact.artifactId === reviewDecisionArtifactId,
+        )
+      : null;
     const planningBundle = artifacts.find(
       (artifact) => artifact.artifactId === request.planningBundleArtifactId,
     );
@@ -1575,9 +1795,12 @@ export class MaulProjectService {
         `MAUL treatment ${request.treatmentGenomeArtifactId} was not found.`,
       );
     }
-    if (!review || review.artifactType !== "review_decision") {
+    if (
+      renderMode === "final" &&
+      (!review || review.artifactType !== "review_decision")
+    ) {
       throw new MaulProjectNotFoundError(
-        `MAUL review ${request.reviewDecisionArtifactId} was not found.`,
+        `MAUL review ${reviewDecisionArtifactId} was not found.`,
       );
     }
     if (!planningBundle || planningBundle.artifactType !== "planning_bundle") {
@@ -1590,14 +1813,46 @@ export class MaulProjectService {
         "A blocked MAUL Planning Bundle cannot reach render.",
       );
     }
-    if (
+    if (renderMode === "final" && (
+      !review ||
+      review.artifactType !== "review_decision" ||
       review.payload.decision !== "approved" ||
       review.payload.subjectArtifactId !== candidate.artifactId ||
       review.payload.treatmentGenomeArtifactId !== treatment.artifactId ||
       review.payload.planningBundleArtifactId !== planningBundle.artifactId
-    ) {
+    )) {
       throw new MaulLineageConflictError(
         "A matching approved human review is required before rendering.",
+      );
+    }
+    const approvedReview =
+      review?.artifactType === "review_decision" ? review : null;
+    const reviewedPerceptualTruth = approvedReview?.payload
+      .perceptualTruthArtifactId
+      ? artifacts.find(
+          (artifact) =>
+            artifact.artifactId ===
+            approvedReview.payload.perceptualTruthArtifactId,
+        )
+      : null;
+    const approvedPerceptualTruth =
+      reviewedPerceptualTruth?.artifactType === "perceptual_truth"
+        ? reviewedPerceptualTruth
+        : null;
+    if (
+      renderMode === "final" &&
+      (!approvedPerceptualTruth ||
+        approvedPerceptualTruth.payload.status !== "pass" ||
+        approvedPerceptualTruth.payload.placementOutcome !== "ART_DIRECTED" ||
+        approvedPerceptualTruth.payload.candidateArtifactId !==
+          candidate.artifactId ||
+        approvedPerceptualTruth.payload.treatmentGenomeArtifactId !==
+          treatment.artifactId ||
+        approvedPerceptualTruth.payload.planningBundleArtifactId !==
+          planningBundle.artifactId)
+    ) {
+      throw new MaulLineageConflictError(
+        "Final render requires an approved rendered-frame Perceptual Truth result for the same candidate lineage.",
       );
     }
     if (
@@ -2032,7 +2287,7 @@ export class MaulProjectService {
       planningArtifacts,
       captions,
       audioPlan,
-      request,
+      request: request as MaulShortRenderRequest,
       createdAt: timestamp,
     });
     const renderManifestResult = await this.registerArtifact(projectId, {
@@ -2043,7 +2298,7 @@ export class MaulProjectService {
         timeline.artifactId,
         candidate.artifactId,
         treatment.artifactId,
-        review.artifactId,
+        ...(approvedReview ? [approvedReview.artifactId] : []),
         planningBundle.artifactId,
         ...Object.values(planningBundle.payload.planArtifactIds),
       ],
@@ -2097,19 +2352,165 @@ export class MaulProjectService {
     const renderResult = await this.renderEngine({
       workRoot: path.join(this.store.projectDir(project.id), "render-work"),
       manifest: renderManifestResult.artifact.payload,
+      renderMode,
+      ...(renderMode === "preview"
+        ? {
+            previewFrameTimesMs: buildMaulPreviewSampleTimes({
+              durationMs: timeline.payload.outputDurationMs,
+              compositionHolds:
+                "textPlacement" in renderManifestResult.artifact.payload.plans
+                  ? renderManifestResult.artifact.payload.plans.textPlacement.segments.map(
+                      (segment) => ({
+                        startMs: segment.outputStartMs,
+                        endMs: segment.outputEndMs,
+                      }),
+                    )
+                  : [{startMs: 0, endMs: timeline.payload.outputDurationMs}],
+            }),
+          }
+        : {}),
     });
     const calculatedSha256 = createHash("sha256")
       .update(renderResult.bytes)
       .digest("hex");
     if (
       calculatedSha256 !== renderResult.sha256 ||
-      renderResult.width !== 1080 ||
-      renderResult.height !== 1920 ||
+      renderResult.width !== (renderMode === "preview" ? 540 : 1080) ||
+      renderResult.height !== (renderMode === "preview" ? 960 : 1920) ||
       renderResult.durationMs !== timeline.payload.outputDurationMs
     ) {
       throw new MaulLineageConflictError(
         "Rendered MP4 failed output integrity or 9:16 conformance checks.",
       );
+    }
+    if (renderMode === "preview") {
+      const fileId = createId("maul_preview_file");
+      const frameSamples = renderResult.frameSamples.map((sample, index) => ({
+        ...sample,
+        frameId: `preview_frame_${index + 1}`,
+      }));
+      await this.store.writePreviewFile({
+        projectId: project.id,
+        fileId,
+        bytes: renderResult.bytes,
+        sha256: calculatedSha256,
+        frames: frameSamples,
+      });
+      const previewResult = await this.registerArtifact(projectId, {
+        artifactType: "render_preview",
+        parentArtifactIds: [
+          source.artifactId,
+          candidate.artifactId,
+          timeline.artifactId,
+          treatment.artifactId,
+          planningBundle.artifactId,
+          renderManifestResult.artifact.artifactId,
+        ],
+        producedBy: {module: "maul-preview-render", version: "1"},
+        payload: {
+          schemaVersion: "maul-render-preview/v1",
+          sourceAssetId: source.artifactId,
+          candidateArtifactId: candidate.artifactId,
+          timelineArtifactId: timeline.artifactId,
+          treatmentGenomeArtifactId: treatment.artifactId,
+          planningBundleArtifactId: planningBundle.artifactId,
+          renderManifestArtifactId: renderManifestResult.artifact.artifactId,
+          manifestReplayKey: renderManifestResult.artifact.payload.replayKey,
+          storageKey: `maul-preview:${fileId}`,
+          mediaType: "video/mp4",
+          sha256: calculatedSha256,
+          durationMs: renderResult.durationMs,
+          width: 540,
+          height: 960,
+          frameSamples: frameSamples.map((sample) => ({
+            frameId: sample.frameId,
+            outputMs: sample.outputMs,
+            sha256: sample.sha256,
+            mediaType: sample.contentType,
+          })),
+          createdAt: timestamp,
+        },
+      });
+      if (previewResult.artifact.artifactType !== "render_preview") {
+        throw new Error("MAUL preview render produced the wrong artifact type.");
+      }
+      const perceptualResult = await this.perceptualTruthProvider.evaluate({
+        manifest: renderManifestResult.artifact.payload,
+        preview: {
+          previewArtifactId: previewResult.artifact.artifactId,
+          manifestReplayKey: previewResult.artifact.payload.manifestReplayKey,
+          bytes: renderResult.bytes,
+          sha256: calculatedSha256,
+          width: 540,
+          height: 960,
+          durationMs: renderResult.durationMs,
+          frameSamples,
+        },
+      });
+      const perceptualTruth = evaluatePerceptualTruth({
+        manifest: renderManifestResult.artifact.payload,
+        preview: {
+          previewArtifactId: previewResult.artifact.artifactId,
+          manifestReplayKey: previewResult.artifact.payload.manifestReplayKey,
+          bytes: renderResult.bytes,
+          sha256: calculatedSha256,
+          width: 540,
+          height: 960,
+          durationMs: renderResult.durationMs,
+          frameSamples,
+        },
+        providerResult: perceptualResult,
+      });
+      const truthResult = await this.registerArtifact(projectId, {
+        artifactType: "perceptual_truth",
+        parentArtifactIds: [
+          source.artifactId,
+          candidate.artifactId,
+          timeline.artifactId,
+          treatment.artifactId,
+          planningBundle.artifactId,
+          renderManifestResult.artifact.artifactId,
+          previewResult.artifact.artifactId,
+        ],
+        producedBy: {module: "maul-perceptual-truth", version: "1"},
+        payload: {
+          schemaVersion: "maul-perceptual-truth/v1",
+          sourceAssetId: source.artifactId,
+          candidateArtifactId: candidate.artifactId,
+          timelineArtifactId: timeline.artifactId,
+          treatmentGenomeArtifactId: treatment.artifactId,
+          planningBundleArtifactId: planningBundle.artifactId,
+          renderManifestArtifactId: renderManifestResult.artifact.artifactId,
+          renderPreviewArtifactId: previewResult.artifact.artifactId,
+          manifestReplayKey: renderManifestResult.artifact.payload.replayKey,
+          status: perceptualTruth.status,
+          placementOutcome: perceptualTruth.placementOutcome,
+          failureLabels: perceptualTruth.failureLabels,
+          evidenceArtifactIds: perceptualTruth.evidenceArtifactIds,
+          renderedFrameIds: perceptualTruth.renderedFrameIds,
+          evaluator: perceptualTruth.evaluator,
+          rationale: perceptualTruth.rationale,
+          createdAt: timestamp,
+        },
+      });
+      if (truthResult.artifact.artifactType !== "perceptual_truth") {
+        throw new Error("MAUL Perceptual Truth produced the wrong artifact type.");
+      }
+      const perceptualAudit = await this.store.readAudit(project.id);
+      await this.store.appendAuditEvent(
+        this.auditEvent({
+          project: truthResult.project,
+          sequence: perceptualAudit.length + 1,
+          type: "perceptual_truth_evaluated",
+          artifactId: truthResult.artifact.artifactId,
+          detail: truthResult.artifact.payload,
+        }),
+      );
+      return {
+        preview: previewResult.artifact,
+        perceptualTruth: truthResult.artifact,
+        audioPlan,
+      };
     }
     const fileId = createId("maul_export_file");
     await this.store.writeExportFile({
@@ -2130,7 +2531,7 @@ export class MaulProjectService {
           sourceSha256,
           candidateArtifactId: candidate.artifactId,
           treatmentReplayKey: treatment.payload.replayKey,
-          reviewArtifactId: review.artifactId,
+          reviewArtifactId: approvedReview?.artifactId ?? null,
           audioPlanId: audioPlan.id,
           renderManifestReplayKey:
             renderManifestResult.artifact.payload.replayKey,
@@ -2144,7 +2545,9 @@ export class MaulProjectService {
         candidate.artifactId,
         timeline.artifactId,
         treatment.artifactId,
-        review.artifactId,
+        approvedReview!.artifactId,
+        approvedPerceptualTruth!.artifactId,
+        approvedPerceptualTruth!.payload.renderPreviewArtifactId,
         renderManifestResult.artifact.artifactId,
       ],
       producedBy: { module: "maul-short-render", version: "1" },
@@ -2153,7 +2556,7 @@ export class MaulProjectService {
         candidateArtifactId: candidate.artifactId,
         timelineArtifactId: timeline.artifactId,
         treatmentGenomeArtifactId: treatment.artifactId,
-        reviewDecisionArtifactId: review.artifactId,
+        reviewDecisionArtifactId: approvedReview!.artifactId,
         renderManifestArtifactId: renderManifestResult.artifact.artifactId,
         storageKey: `maul-export:${fileId}`,
         mediaType: "video/mp4",
@@ -2167,25 +2570,15 @@ export class MaulProjectService {
           deterministicReplayKey,
           preRenderReviewPassed: true,
           qualityGate: {
-            status: "unverified",
-            releaseEligible: false,
-            implementationLabel: "encoded-output-verified",
-            renderedEvidenceArtifactId: null,
-            postRenderHumanApprovalArtifactId: null,
-            hardFailures: [
-              {
-                id: "rendered_quality_evidence_missing",
-                dimension: "perceptual_quality",
-                message:
-                  "The encoded render has not passed the independent rendered Quality Evidence Bundle.",
-              },
-              {
-                id: "post_render_human_approval_missing",
-                dimension: "human_approval",
-                message:
-                  "The encoded render has not received authenticated post-render human approval.",
-              },
-            ],
+            status: "passed",
+            releaseEligible: true,
+            implementationLabel: "human-approved",
+            renderedEvidenceArtifactId:
+              approvedPerceptualTruth!.payload.renderPreviewArtifactId,
+            perceptualTruthArtifactId: approvedPerceptualTruth!.artifactId,
+            placementOutcome: "ART_DIRECTED",
+            postRenderHumanApprovalArtifactId: approvedReview!.artifactId,
+            hardFailures: [],
           },
           remotionCompositionId: renderResult.evidence.compositionId,
           audioPlanId: audioPlan.id,
@@ -2229,6 +2622,116 @@ export class MaulProjectService {
       );
     }
     return file;
+  }
+
+  public async getPreviewFile(projectId: string, artifactId: string) {
+    const {artifacts} = await this.getProject(projectId);
+    const artifact = artifacts.find(
+      (candidate) => candidate.artifactId === artifactId,
+    );
+    if (!artifact || artifact.artifactType !== "render_preview") {
+      throw new MaulProjectNotFoundError(
+        `MAUL preview ${artifactId} was not found.`,
+      );
+    }
+    const match = /^maul-preview:(.+)$/.exec(artifact.payload.storageKey);
+    if (!match?.[1]) {
+      throw new MaulProjectNotFoundError(
+        `MAUL preview ${artifactId} has no local playable file.`,
+      );
+    }
+    const file = await this.store.readPreviewFile(projectId, match[1]);
+    if (file.sha256 !== artifact.payload.sha256) {
+      throw new MaulLineageConflictError(
+        `MAUL preview ${artifactId} failed its SHA-256 integrity check.`,
+      );
+    }
+    return file;
+  }
+
+  public async getPreviewFrame(
+    projectId: string,
+    artifactId: string,
+    frameId: string,
+  ) {
+    const {artifacts} = await this.getProject(projectId);
+    const artifact = artifacts.find(
+      (candidate) => candidate.artifactId === artifactId,
+    );
+    if (!artifact || artifact.artifactType !== "render_preview") {
+      throw new MaulProjectNotFoundError(
+        `MAUL preview ${artifactId} was not found.`,
+      );
+    }
+    if (!artifact.payload.frameSamples.some((frame) => frame.frameId === frameId)) {
+      throw new MaulProjectNotFoundError(
+        `MAUL preview frame ${frameId} was not found.`,
+      );
+    }
+    const match = /^maul-preview:(.+)$/.exec(artifact.payload.storageKey);
+    if (!match?.[1]) {
+      throw new MaulProjectNotFoundError(
+        `MAUL preview ${artifactId} has no retained frames.`,
+      );
+    }
+    return this.store.readPreviewFrame(projectId, match[1], frameId);
+  }
+
+  public async getVisualDirectionStatus(
+    projectId: string,
+    candidateArtifactId: string,
+  ) {
+    const {artifacts} = await this.getProject(projectId);
+    const candidate = artifacts.find(
+      (artifact) => artifact.artifactId === candidateArtifactId,
+    );
+    if (!candidate || candidate.artifactType !== "candidate") {
+      throw new MaulProjectNotFoundError(
+        `MAUL candidate ${candidateArtifactId} was not found.`,
+      );
+    }
+    const newest = <T extends MaulArtifactRecord>(items: T[]) =>
+      [...items].sort(
+        (left, right) => right.lineage.sequence - left.lineage.sequence,
+      )[0] ?? null;
+    const preview = newest(artifacts.filter(
+      (artifact): artifact is Extract<MaulArtifactRecord, {artifactType: "render_preview"}> =>
+        artifact.artifactType === "render_preview" &&
+        artifact.payload.candidateArtifactId === candidate.artifactId,
+    ));
+    const perceptualTruth = newest(artifacts.filter(
+      (artifact): artifact is Extract<MaulArtifactRecord, {artifactType: "perceptual_truth"}> =>
+        artifact.artifactType === "perceptual_truth" &&
+        artifact.payload.candidateArtifactId === candidate.artifactId &&
+        (!preview || artifact.payload.renderPreviewArtifactId === preview.artifactId),
+    ));
+    const review = newest(artifacts.filter(
+      (artifact): artifact is Extract<MaulArtifactRecord, {artifactType: "review_decision"}> =>
+        artifact.artifactType === "review_decision" &&
+        artifact.payload.subjectArtifactId === candidate.artifactId &&
+        (!perceptualTruth ||
+          artifact.payload.perceptualTruthArtifactId === perceptualTruth.artifactId),
+    ));
+    const outcome = perceptualTruth?.payload.placementOutcome ??
+      "VISUAL_EVIDENCE_UNAVAILABLE";
+    const reviewState = review?.payload.decision === "approved" &&
+      perceptualTruth?.payload.status === "pass"
+      ? "approved"
+      : perceptualTruth?.payload.status === "pass"
+        ? "awaiting_human_review"
+        : "blocked";
+
+    return {
+      candidate,
+      preview,
+      perceptualTruth,
+      review,
+      outcome,
+      reviewState,
+      degradationReason:
+        perceptualTruth?.payload.rationale ??
+        "No retained rendered-frame Perceptual Truth is available for this candidate.",
+    };
   }
 
   public async createThumbnails(

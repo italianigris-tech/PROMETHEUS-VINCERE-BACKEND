@@ -137,7 +137,8 @@ const validQualityTruthProofProvider = async (manifest: any) => {
             compositionTransformHash: segment.selectedTransformHash,
             compatibilityProfileId: segment.compatibility.profileId,
             metricsFingerprint: segment.compatibility.metricsFingerprint,
-            exactFontAssetId: "font_google_dm_sans_700",
+            exactFontAssetId:
+              manifest.plans.typographyMotion.fontResolution.selectedAssetId,
             compiledLegibilityPrimitive: segment.minimumLegibilityPrimitive,
             measuredBox: {
               leftPx: envelope.x * manifest.output.width + 1,
@@ -231,14 +232,24 @@ describe("MAUL complete short render path", () => {
       bytes: renderedBytes,
       sha256: createHash("sha256").update(renderedBytes).digest("hex"),
       durationMs: input.manifest.timeline.outputDurationMs,
-      width: 1080,
-      height: 1920,
+      width: input.renderMode === "preview" ? 540 : 1080,
+      height: input.renderMode === "preview" ? 960 : 1920,
       evidence: {
         compositionId: "MaulShort",
         renderer: "remotion",
         sourceMappingPreserved: true,
         audioMixed: true,
       },
+      frameSamples: input.renderMode === "preview"
+        ? [{
+            outputMs: 900,
+            bytes: Buffer.from("rendered-frame-pixels"),
+            sha256: createHash("sha256")
+              .update("rendered-frame-pixels")
+              .digest("hex"),
+            contentType: "image/png",
+          }]
+        : [],
     }));
     const context = await createTestApp({
       storageDir: tempDir,
@@ -246,6 +257,94 @@ describe("MAUL complete short render path", () => {
         maulRenderEngine: renderEngine,
         maulQualityTruthProofProvider: validQualityTruthProofProvider,
         maulTextChunkPlanner: textChunkPlanner,
+        maulSceneEvidenceProvider: {
+          inspect: vi.fn(async ({beats}: any) => ({
+            status: "available",
+            providerId: "fixture_scene_evidence",
+            providerVersion: "v1",
+            holds: [{
+              beatId: beats[0].beatId,
+              sceneId: "fixture_scene",
+              discontinuityId: "fixture_discontinuity",
+              outputStartMs: 0,
+              outputEndMs: 3250,
+              sourceFrameIds: ["fixture_frame"],
+              subject: {
+                trackingState: "tracked",
+                box: {x: 0.08, y: 0.08, width: 0.32, height: 0.72},
+              },
+              existingTextRegions: [],
+              opportunities: [{
+                regionId: "fixture_negative_space",
+                box: {x: 0.52, y: 0.18, width: 0.38, height: 0.22},
+                negativeSpace: 0.92,
+                readability: 0.9,
+                clutter: 0.08,
+                faceInterference: 0,
+                temporalStability: 0.94,
+              }],
+            }],
+          })),
+        },
+        maulPerceptualTruthProvider: {
+          evaluate: vi.fn(async ({preview}: any) => ({
+            status: "pass",
+            failureLabels: [],
+            evidenceIds: preview.frameSamples.map((frame: any) => frame.frameId),
+            receipt: {
+              authorityClass: "invoked_model",
+              provider: "fixture_vision_critic",
+              model: "fixture-v1",
+              inferenceReceiptId: "fixture_receipt",
+            },
+          })),
+        },
+        maulTypographyProvider: {
+          plan: vi.fn(async ({chunks}: any) => ({
+            status: "available",
+            profile: {
+              profileId: "maul-measured-playfair-editorial-v1",
+              family: "Playfair Display",
+              approvedFontAssets: [{
+                assetId: "font_google_playfair_display_700",
+                family: "Playfair Display",
+                weights: [400, 700, 900],
+              }],
+              loadedFallback: {
+                assetId: "font_google_playfair_display_700",
+                family: "Playfair Display",
+                weight: 700,
+              },
+              metrics: {
+                fingerprint: "c".repeat(64),
+                maxGlyphWidthEm: 0.82,
+                maxLineHeightEm: 1.18,
+                minimumFontSizePx: 48,
+                maximumFontSizePx: 88,
+                minimumLineHeight: 1,
+                maximumLineHeight: 1.2,
+              },
+            },
+            fontResolution: {
+              requestedRole: "editorial",
+              selectedFamily: "Playfair Display",
+              selectedAssetId: "font_google_playfair_display_700",
+              status: "eligible_loaded",
+              reason: "Fixture measurement provider proved Playfair Display.",
+            },
+            layouts: chunks.map((chunk: any) => ({
+              chunkId: chunk.chunkId,
+              fontSizePx: 72,
+              lines: [{
+                text: chunk.text,
+                widthPx: 360,
+                measurementId: `measurement_${chunk.chunkId}`,
+              }],
+              measurementIds: [`measurement_${chunk.chunkId}`],
+            })),
+            evidenceIds: chunks.map((chunk: any) => `measurement_${chunk.chunkId}`),
+          })),
+        },
       } as any,
     });
     const projectResponse = await context.app.inject({
@@ -398,6 +497,23 @@ describe("MAUL complete short render path", () => {
         "No unlicensed evidence, B-roll, music, or SFX.",
       ]),
     );
+    expect(plans.artDirection.payload.authorityReceipt).toMatchObject({
+      directorId: "joseph",
+      version: "maul-joseph-editorial-director/v1",
+      doctrineId: expect.any(String),
+      inputHash: expect.stringMatching(/^[a-f0-9]{64}$/),
+    });
+    expect(plans.artDirection.payload.visualBeats).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({startMs: 0, purpose: "HOOK"}),
+      ]),
+    );
+    expect(plans.artDirection.payload.sceneEvidence).toEqual({
+      status: "available",
+      providerId: "fixture_scene_evidence",
+      holdCount: 1,
+      reason: null,
+    });
     expect(plans.contextAssembly.payload.omissionReports).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ effect: "degraded_authority" }),
@@ -430,8 +546,8 @@ describe("MAUL complete short render path", () => {
       textPlacementPlanArtifactId: plans.textPlacement.artifactId,
       textAnimationPlanArtifactId: plans.textAnimation.artifactId,
       fontResolution: {
-        selectedFamily: "DM Sans",
-        selectedAssetId: "font_google_dm_sans_700",
+        selectedFamily: "Playfair Display",
+        selectedAssetId: "font_google_playfair_display_700",
         status: "eligible_loaded",
       },
     });
@@ -493,6 +609,11 @@ describe("MAUL complete short render path", () => {
         plans[key].artifactId,
       );
     }
+    for (const key of ["textChunk", "textPlacement", "textAnimation", "camera", "audio"]) {
+      expect(plans[key].lineage.parentArtifactIds).toContain(
+        plans.artDirection.artifactId,
+      );
+    }
 
     const forgedManifest = await context.app.inject({
       method: "POST",
@@ -535,7 +656,7 @@ describe("MAUL complete short render path", () => {
     });
     expect(beforeReview.statusCode).toBeGreaterThanOrEqual(400);
 
-    const reviewResponse = await context.app.inject({
+    const prematureReview = await context.app.inject({
       method: "POST",
       url: `/api/maul/projects/${project.id}/reviews`,
       payload: {
@@ -546,6 +667,86 @@ describe("MAUL complete short render path", () => {
         decision: "approved",
         failureClasses: [],
         rationale: "Source-grounded, legible, and ready.",
+        rubricScores: {
+          editorial_clarity: 96,
+          source_fidelity: 100,
+          pacing_fit: 92,
+          visual_hierarchy: 94,
+          accessibility: 96,
+        },
+      },
+    });
+    expect(prematureReview.statusCode).toBe(409);
+    expect(prematureReview.json().error).toMatch(/perceptual truth/i);
+
+    const previewResponse = await context.app.inject({
+      method: "POST",
+      url: `/api/maul/projects/${project.id}/previews`,
+      payload: {
+        candidateArtifactId: candidate.artifactId,
+        treatmentGenomeArtifactId: treatment.artifactId,
+        planningBundleArtifactId: planningBundle.artifactId,
+        musicTrack: licensedMusicTrack(),
+        sfxAssets: [licensedSfx()],
+      },
+    });
+    expect(previewResponse.statusCode, previewResponse.body).toBe(201);
+    expect(previewResponse.json().preview.payload).toMatchObject({
+      width: 540,
+      height: 960,
+      frameSamples: [expect.objectContaining({mediaType: "image/png"})],
+    });
+    expect(previewResponse.json().perceptualTruth.payload).toMatchObject({
+      status: "pass",
+      placementOutcome: "ART_DIRECTED",
+      failureLabels: [],
+    });
+
+    const preview = previewResponse.json().preview;
+    const previewFile = await context.app.inject({
+      method: "GET",
+      url: `/api/maul/projects/${project.id}/previews/${preview.artifactId}/file`,
+    });
+    expect(previewFile.statusCode).toBe(200);
+    expect(previewFile.headers["content-type"]).toContain("video/mp4");
+    expect(previewFile.body).toBe(renderedBytes.toString());
+
+    const frameId = preview.payload.frameSamples[0].frameId;
+    const previewFrame = await context.app.inject({
+      method: "GET",
+      url: `/api/maul/projects/${project.id}/previews/${preview.artifactId}/frames/${frameId}`,
+    });
+    expect(previewFrame.statusCode).toBe(200);
+    expect(previewFrame.headers["content-type"]).toContain("image/png");
+    expect(previewFrame.body).toBe("rendered-frame-pixels");
+
+    const visualDirection = await context.app.inject({
+      method: "GET",
+      url: `/api/maul/projects/${project.id}/visual-direction?candidateArtifactId=${candidate.artifactId}`,
+    });
+    expect(visualDirection.statusCode).toBe(200);
+    expect(visualDirection.json()).toMatchObject({
+      outcome: "ART_DIRECTED",
+      reviewState: "awaiting_human_review",
+      preview: expect.objectContaining({artifactId: preview.artifactId}),
+      perceptualTruth: expect.objectContaining({
+        artifactId: previewResponse.json().perceptualTruth.artifactId,
+      }),
+    });
+
+    const reviewResponse = await context.app.inject({
+      method: "POST",
+      url: `/api/maul/projects/${project.id}/reviews`,
+      payload: {
+        candidateArtifactId: candidate.artifactId,
+        treatmentGenomeArtifactId: treatment.artifactId,
+        planningBundleArtifactId: planningBundle.artifactId,
+        perceptualTruthArtifactId:
+          previewResponse.json().perceptualTruth.artifactId,
+        reviewerId: "reviewer_human",
+        decision: "approved",
+        failureClasses: [],
+        rationale: "Rendered-frame evidence is coherent and intentional.",
         rubricScores: {
           editorial_clarity: 96,
           source_fidelity: 100,
@@ -685,7 +886,7 @@ describe("MAUL complete short render path", () => {
     });
     expect(staleRender.statusCode).toBe(409);
     expect(staleRender.json().error).toMatch(/hash|stale|mismatch/i);
-    expect(renderEngine).not.toHaveBeenCalled();
+    expect(renderEngine).toHaveBeenCalledOnce();
     await writeFile(textChunkPlanPath, `${originalTextChunkPlanRecord}\n`, "utf8");
 
     const renderResponse = await context.app.inject({
@@ -700,10 +901,11 @@ describe("MAUL complete short render path", () => {
         sfxAssets: [licensedSfx()],
       },
     });
-    expect(renderResponse.statusCode).toBe(201);
-    expect(renderEngine).toHaveBeenCalledOnce();
-    const renderInput = renderEngine.mock.calls[0]?.[0];
-    expect(Object.keys(renderInput).sort()).toEqual(["manifest", "workRoot"]);
+    expect(renderResponse.statusCode, renderResponse.body).toBe(201);
+    expect(renderEngine).toHaveBeenCalledTimes(2);
+    const renderInput = renderEngine.mock.calls[1]?.[0];
+    expect(Object.keys(renderInput).sort()).toEqual(["manifest", "renderMode", "workRoot"]);
+    expect(renderInput.renderMode).toBe("final");
     expect(renderInput.manifest).toEqual(
       expect.objectContaining({
         schemaVersion: "maul-unified-short-render-manifest/v3",
@@ -744,15 +946,15 @@ describe("MAUL complete short render path", () => {
     );
     expect(exported.payload.evidence.qualityGate).toEqual(
       expect.objectContaining({
-        status: "unverified",
-        releaseEligible: false,
-        implementationLabel: "encoded-output-verified",
-        renderedEvidenceArtifactId: null,
-        postRenderHumanApprovalArtifactId: null,
-        hardFailures: expect.arrayContaining([
-          expect.objectContaining({ id: "rendered_quality_evidence_missing" }),
-          expect.objectContaining({ id: "post_render_human_approval_missing" }),
-        ]),
+        status: "passed",
+        releaseEligible: true,
+        implementationLabel: "human-approved",
+        renderedEvidenceArtifactId: previewResponse.json().preview.artifactId,
+        perceptualTruthArtifactId:
+          previewResponse.json().perceptualTruth.artifactId,
+        placementOutcome: "ART_DIRECTED",
+        postRenderHumanApprovalArtifactId: review.artifactId,
+        hardFailures: [],
       }),
     );
     expect(exported.payload.evidence).not.toHaveProperty(
@@ -814,8 +1016,7 @@ describe("MAUL complete short render path", () => {
         "x-maul-creator-id": "creator_render",
       },
     });
-    expect(download.statusCode).toBe(409);
-    expect(download.json().error).toMatch(/quality evidence|release gate/i);
+    expect(download.statusCode).toBe(200);
 
     const audit = await context.app.inject({
       method: "GET",
@@ -829,6 +1030,14 @@ describe("MAUL complete short render path", () => {
     expect(audit.json().events).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ type: "project_created" }),
+        expect.objectContaining({
+          type: "perceptual_truth_evaluated",
+          artifactId: previewResponse.json().perceptualTruth.artifactId,
+          detail: expect.objectContaining({
+            status: "pass",
+            placementOutcome: "ART_DIRECTED",
+          }),
+        }),
         expect.objectContaining({
           type: "artifact_registered",
           artifactId: exported.artifactId,
@@ -870,7 +1079,7 @@ describe("MAUL complete short render path", () => {
     });
     expect(unsafe.statusCode).toBeGreaterThanOrEqual(400);
     expect(unsafe.json().error).toMatch(/licensed|export-safe|verified/i);
-    expect(renderEngine).toHaveBeenCalledOnce();
+    expect(renderEngine).toHaveBeenCalledTimes(2);
 
     await context.app.close();
   }, 60_000);

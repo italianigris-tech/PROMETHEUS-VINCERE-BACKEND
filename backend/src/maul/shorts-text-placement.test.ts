@@ -79,6 +79,8 @@ const composition = ({
   outputEndMs = 1000,
   transformHash = sha("d"),
   paddedNonSourceRegions = [],
+  compositionDirection = null,
+  textAnchor = null,
 }: Partial<MaulOutputCompositionInterval> = {}): MaulOutputCompositionInterval => ({
   intervalId,
   sceneId,
@@ -93,6 +95,8 @@ const composition = ({
       ? [{x: 0, y: 0.3, width: 1, height: 0.7}]
       : [{x: 0, y: 0, width: 1, height: 1}],
   paddedNonSourceRegions,
+  compositionDirection,
+  textAnchor,
   crop: {x: 0, y: 0, width: 1, height: 1},
   scale: {x: 1, y: 1},
 });
@@ -242,6 +246,183 @@ describe("MAUL scene-aware text placement", () => {
     expect(plan.segments[1]!.box).toEqual(plan.segments[0]!.box);
     expect(plan.segments[1]!.selectedCompositionVariantId).toBe(
       plan.segments[0]!.selectedCompositionVariantId,
+    );
+  });
+
+  it("keeps rapid token timing inside one stable composition hold", () => {
+    const chunkPlan = makeChunkPlan();
+    const tokens = Array.from({length: 8}, (_, index) => ({
+      ...chunkPlan.tokens[0]!,
+      tokenId: `token_${index + 1}`,
+      transcriptWordIndex: index,
+      text: `Word${index + 1}`,
+      sourceStartMs: index * 125,
+      sourceEndMs: (index + 1) * 125,
+      outputSpans: [{outputStartMs: index * 125, outputEndMs: (index + 1) * 125}],
+      outputStartMs: index * 125,
+      outputEndMs: (index + 1) * 125,
+    }));
+    chunkPlan.tokens = tokens;
+    chunkPlan.chunks = [{
+      ...chunkPlan.chunks[0]!,
+      tokenIds: tokens.map((token) => token.tokenId),
+      text: tokens.map((token) => token.text).join(" "),
+      emphasis: {
+        tokenIds: [tokens[0]!.tokenId],
+        text: tokens[0]!.text,
+        level: "key",
+      },
+    }];
+
+    const plan = buildMaulTextPlacementPlan({
+      textChunkPlanArtifactId: "artifact_text_chunk",
+      textChunkPlan: chunkPlan,
+      compositionIntervals: [composition()],
+      observationIntervals: [
+        observation({trackingState: "absent_confirmed"}),
+      ],
+    });
+
+    expect(plan.status).toBe("planned");
+    expect(plan.segments).toHaveLength(1);
+    expect(plan.segments[0]).toMatchObject({
+      outputStartMs: 0,
+      outputEndMs: 1000,
+      tokenIds: tokens.map((token) => token.tokenId),
+    });
+  });
+
+  it("uses semantic line breaks for a measured scene opportunity instead of rejecting it", () => {
+    const chunkPlan = makeChunkPlan();
+    const words = ["This", "claim", "matters.", "Here", "is"];
+    chunkPlan.tokens = words.map((text, index) => ({
+      ...chunkPlan.tokens[0]!,
+      tokenId: `scene_token_${index + 1}`,
+      transcriptWordIndex: index,
+      text,
+      sourceStartMs: index * 200,
+      sourceEndMs: (index + 1) * 200,
+      outputSpans: [{outputStartMs: index * 200, outputEndMs: (index + 1) * 200}],
+      outputStartMs: index * 200,
+      outputEndMs: (index + 1) * 200,
+    }));
+    chunkPlan.chunks = [{
+      ...chunkPlan.chunks[0]!,
+      tokenIds: chunkPlan.tokens.map((token) => token.tokenId),
+      text: words.join(" "),
+      emphasis: {
+        tokenIds: ["scene_token_2"],
+        text: "claim",
+        level: "hero",
+      },
+    }];
+
+    const plan = buildMaulTextPlacementPlan({
+      textChunkPlanArtifactId: "artifact_text_chunk",
+      textChunkPlan: chunkPlan,
+      compositionIntervals: [
+        composition({
+          intervalId: "scene_opportunity",
+          variantId: "scene_evidence.editorial_asymmetry.negative_space_right",
+          compositionDirection: "editorial_asymmetry",
+          textAnchor: {
+            box: {x: 0.52, y: 0.18, width: 0.38, height: 0.22},
+            maximumEnvelope: {x: 0.5, y: 0.16, width: 0.42, height: 0.26},
+            alignment: "left",
+          },
+        }),
+      ],
+      observationIntervals: [
+        observation({
+          subjectBox: {x: 0.08, y: 0.08, width: 0.32, height: 0.72},
+        }),
+      ],
+    });
+
+    expect(plan.status).toBe("planned");
+    expect(plan.segments[0]!.lines.map((line) => line.text)).toEqual([
+      "This claim",
+      "matters.",
+      "Here is",
+    ]);
+  });
+
+  it("uses supplied measured font geometry for source-pixel placement", () => {
+    const measuredProfile = {
+      profileId: "maul-measured-playfair-editorial-v1",
+      family: "Playfair Display",
+      approvedFontAssets: [{
+        assetId: "font_playfair_700",
+        family: "Playfair Display",
+        weights: [700],
+      }],
+      loadedFallback: {
+        assetId: "font_playfair_700",
+        family: "Playfair Display",
+        weight: 700,
+      },
+      metrics: {
+        fingerprint: sha("e"),
+        maxGlyphWidthEm: 0.82,
+        maxLineHeightEm: 1.18,
+        minimumFontSizePx: 48,
+        maximumFontSizePx: 88,
+        minimumLineHeight: 1,
+        maximumLineHeight: 1.2,
+      },
+    };
+    const plan = buildMaulTextPlacementPlan({
+      textChunkPlanArtifactId: "artifact_text_chunk",
+      textChunkPlan: makeChunkPlan(),
+      compositionIntervals: [
+        composition({
+          intervalId: "measured_scene_opportunity",
+          variantId: "scene_evidence.editorial_asymmetry.measurement",
+          compositionDirection: "editorial_asymmetry",
+          textAnchor: {
+            box: {x: 0.52, y: 0.18, width: 0.38, height: 0.22},
+            maximumEnvelope: {x: 0.5, y: 0.16, width: 0.42, height: 0.26},
+            alignment: "left",
+          },
+        }),
+      ],
+      observationIntervals: [
+        observation({subjectBox: {x: 0.08, y: 0.08, width: 0.32, height: 0.72}}),
+      ],
+      typography: {
+        profile: measuredProfile,
+        layouts: [{
+          chunkId: "chunk_across",
+          fontSizePx: 72,
+          lines: [{
+            text: "Across",
+            widthPx: 210,
+            measurementId: "measurement_across_playfair",
+          }],
+          measurementIds: ["measurement_across_playfair"],
+        }],
+      },
+    });
+
+    expect(plan).toMatchObject({
+      status: "planned",
+      compatibilityProfiles: [expect.objectContaining({
+        profileId: "maul-measured-playfair-editorial-v1",
+        family: "Playfair Display",
+      })],
+      segments: [expect.objectContaining({
+        compatibility: expect.objectContaining({
+          profileId: "maul-measured-playfair-editorial-v1",
+          metricsFingerprint: sha("e"),
+        }),
+      })],
+    });
+    expect(plan.segments[0]?.hardGates).toContainEqual(
+      expect.objectContaining({
+        gateId: "measured_font_geometry",
+        status: "pass",
+        evidenceId: "measurement_across_playfair",
+      }),
     );
   });
 

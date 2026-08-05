@@ -4,7 +4,6 @@ import {
   MAUL_TEXT_ANIMATION_TREATMENTS,
   maulReferenceCorpusItemPayloadSchema,
   maulReferenceTraitsSchema,
-  type MaulPlacementObservationInterval,
   type MaulShortsTextChunkPlanV2Core,
   type MaulTextAnimationProgram,
   type MaulTextAnimationTreatment,
@@ -14,7 +13,10 @@ import {
   buildMaulConservativePlacementInputs,
   buildMaulTextAnimationPlanPayload,
 } from "./planning.js";
-import {buildMaulTextPlacementPlan} from "./shorts-text-placement.js";
+import {
+  buildMaulTextPlacementPlan,
+  type MaulPlacementObservationInterval,
+} from "./shorts-text-placement.js";
 
 const sha = (character: string) => character.repeat(64);
 

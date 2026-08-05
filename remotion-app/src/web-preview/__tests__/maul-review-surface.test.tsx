@@ -2,7 +2,11 @@ import React from "react";
 import {renderToStaticMarkup} from "react-dom/server";
 import {describe, expect, it, vi} from "vitest";
 
-import {MaulReviewSurface, submitMaulFeedback} from "../MaulReviewSurface";
+import {
+  MaulReviewSurface,
+  submitMaulFeedback,
+  visualDirectionPresentation,
+} from "../MaulReviewSurface";
 import {resolveWebPreviewRootRoute, shouldPreloadWebPreviewFonts} from "../sandbox-data";
 
 describe("MAUL Review Surface", () => {
@@ -54,5 +58,29 @@ describe("MAUL Review Surface", () => {
         })
       })
     );
+  });
+
+  it("discloses a safe caption fallback without calling it art directed", () => {
+    const presentation = visualDirectionPresentation("SAFE_CAPTION_FALLBACK");
+    expect(presentation).toMatchObject({
+      label: "Safe caption fallback",
+      artDirected: false,
+    });
+    const markup = renderToStaticMarkup(
+      <MaulReviewSurface
+        visualDirection={{
+          outcome: "SAFE_CAPTION_FALLBACK",
+          reviewState: "blocked",
+          degradationReason: "Visual evidence is unavailable.",
+          preview: null,
+          perceptualTruth: {
+            payload: {failureLabels: ["GENERIC_BOTTOM_CAPTION"]},
+          },
+        }}
+      />,
+    );
+    expect(markup).toContain("Safe caption fallback");
+    expect(markup).toContain("GENERIC_BOTTOM_CAPTION");
+    expect(markup).not.toContain("Art directed");
   });
 });

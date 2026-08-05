@@ -1596,6 +1596,7 @@ const renderScriptBigSmallBlurProgram: ProgramRenderer = (ctx) => {
         transform={`translate(${groupShakeX} ${groupShakeY}) translate(${primaryCenterXText} ${layout.primaryY}) scale(${groupScale.toFixed(4)}) translate(${inversePrimaryCenterXText} ${-layout.primaryY})`}
       >
         <text
+          data-font-role="accent"
           x={layout.scriptX + scriptXOffset}
           y={layout.scriptY}
           fill="rgba(255,255,255,0.76)"
@@ -1608,6 +1609,7 @@ const renderScriptBigSmallBlurProgram: ProgramRenderer = (ctx) => {
           {layout.script.text}
         </text>
         <text
+          data-font-role="display"
           x={layout.primaryX}
           y={layout.primaryY}
           fill="rgba(255,255,255,0.22)"
@@ -1632,6 +1634,7 @@ const renderScriptBigSmallBlurProgram: ProgramRenderer = (ctx) => {
           const y = layout.primaryY + yOffset;
           return (
             <text
+              data-font-role="display"
               key={`${ctx.chunk.id}-p7-${index}`}
               x={x}
               y={y}
@@ -1648,6 +1651,7 @@ const renderScriptBigSmallBlurProgram: ProgramRenderer = (ctx) => {
           );
         })}
         <text
+          data-font-role="support"
           x={layout.secondaryX}
           y={layout.secondaryY + secondaryYOffset}
           fill="#fff"

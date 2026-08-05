@@ -7,11 +7,13 @@ import {
   type MaulOutputCompositionInterval,
   type MaulShortsTextChunkPlanV2Core,
   type MaulTextChunkV2,
+  type MaulTypographyCompatibilityProfile,
   type MaulTextPlacementPlanCore,
   type MaulTextPlacementSegment,
 } from "@prometheus/shared-types";
 
 import {hashMaulPlanPayload} from "./text-chunk-plan.js";
+import type {MaulMeasuredTypographyLayout} from "./typography-layout.js";
 
 export type MaulPlacementFamily = "measured" | "editorial" | "personal";
 
@@ -197,6 +199,11 @@ type PlacementCandidate = {
   segment: MaulTextPlacementSegment;
 };
 
+export type MaulPlacementTypography = {
+  profile: MaulTypographyCompatibilityProfile;
+  layouts: readonly MaulMeasuredTypographyLayout[];
+};
+
 const stableId = (prefix: string, value: unknown) =>
   `${prefix}_${hashMaulPlanPayload(value).slice(0, 24)}`;
 
@@ -218,28 +225,11 @@ const buildLayoutNodes = ({
   timelineIntervals: readonly MaulPlacementTimelineInterval[];
   geometryResetOutputMs: readonly number[];
 }): LayoutNode[] => {
-  const tokenById = new Map(
-    chunkPlan.tokens.map((token) => [token.tokenId, token]),
-  );
-
   return chunkPlan.chunks.flatMap((chunk) => {
     const boundaries = sortedUniqueBoundaries([
       chunk.outputStartMs,
       chunk.outputEndMs,
-      ...chunk.tokenIds.flatMap((tokenId) => {
-        const token = tokenById.get(tokenId);
-        return token
-          ? token.outputSpans.flatMap((span) => [
-              span.outputStartMs,
-              span.outputEndMs,
-            ])
-          : [];
-      }),
       ...compositionIntervals.flatMap((interval) => [
-        interval.outputStartMs,
-        interval.outputEndMs,
-      ]),
-      ...observationIntervals.flatMap((interval) => [
         interval.outputStartMs,
         interval.outputEndMs,
       ]),
@@ -338,33 +328,166 @@ const resolveObservation = ({
     : observation;
 };
 
+const lineBreakWords = new Set([
+  "a",
+  "an",
+  "and",
+  "as",
+  "at",
+  "but",
+  "by",
+  "for",
+  "from",
+  "in",
+  "of",
+  "on",
+  "or",
+  "the",
+  "to",
+  "with",
+]);
+
+const allLinePartitions = (
+  tokenIds: readonly string[],
+  maximumLines: number,
+): string[][][] => {
+  const partitions: string[][][] = [];
+  const visit = (start: number, lines: string[][]): void => {
+    if (start === tokenIds.length) {
+      partitions.push(lines);
+      return;
+    }
+    if (lines.length === maximumLines) return;
+    for (let end = start + 1; end <= tokenIds.length; end += 1) {
+      visit(end, [...lines, [...tokenIds.slice(start, end)]]);
+    }
+  };
+  visit(0, []);
+  return partitions;
+};
+
+const lineBreakPenalty = (lines: Array<{text: string}>): number =>
+  lines.reduce((penalty, line, index) => {
+    const words = line.text.toLowerCase().split(/\s+/u).filter(Boolean);
+    const first = words[0] ?? "";
+    const last = words.at(-1) ?? "";
+    return penalty +
+      (index > 0 && lineBreakWords.has(first) ? 3 : 0) +
+      (index < lines.length - 1 && lineBreakWords.has(last) ? 3 : 0) +
+      (words.length === 1 && lineBreakWords.has(first) ? 5 : 0);
+  }, 0);
+
 const partitionLines = ({
   family,
   tokenIds,
   textByTokenId,
   segmentId,
+  maximumLines,
+  geometry,
+  fontSizePx,
+  lineHeight,
+  paddingXPx,
+  paddingYPx,
+  measuredLayout,
 }: {
   family: MaulPlacementFamily;
   tokenIds: readonly string[];
   textByTokenId: ReadonlyMap<string, string>;
   segmentId: string;
+  maximumLines: number;
+  geometry: MaulNormalizedBox;
+  fontSizePx: number;
+  lineHeight: number;
+  paddingXPx: number;
+  paddingYPx: number;
+  measuredLayout?: MaulMeasuredTypographyLayout;
 }) => {
-  const maximumFirstLine =
-    family === "editorial" ? Math.ceil(tokenIds.length / 2) : 4;
-  const partitions =
-    tokenIds.length <= maximumFirstLine
-      ? [tokenIds]
-      : [
-          tokenIds.slice(0, Math.ceil(tokenIds.length / 2)),
-          tokenIds.slice(Math.ceil(tokenIds.length / 2)),
-        ];
-  return partitions.map((lineTokenIds, index) => ({
-    lineId: `${segmentId}_line_${index + 1}`,
-    tokenIds: [...lineTokenIds],
-    text: joinShortsTextTokens(
-      lineTokenIds.map((tokenId) => textByTokenId.get(tokenId) ?? ""),
-    ),
-  }));
+  if (measuredLayout) {
+    let tokenCursor = 0;
+    const measuredLines = measuredLayout.lines.map((line, index) => {
+      const lineTokenIds: string[] = [];
+      let matchedText = "";
+      while (tokenCursor < tokenIds.length) {
+        const tokenId = tokenIds[tokenCursor]!;
+        const tokenText = textByTokenId.get(tokenId) ?? "";
+        const nextText = joinShortsTextTokens([matchedText, tokenText]);
+        if (nextText.trim() === line.text.trim()) {
+          lineTokenIds.push(tokenId);
+          tokenCursor += 1;
+          matchedText = nextText;
+          break;
+        }
+        if (nextText.length > line.text.trim().length) return null;
+        lineTokenIds.push(tokenId);
+        tokenCursor += 1;
+        matchedText = nextText;
+      }
+      if (matchedText.trim() !== line.text.trim()) return null;
+      return {
+        lineId: `${segmentId}_line_${index + 1}`,
+        tokenIds: lineTokenIds,
+        text: line.text,
+        measuredWidthPx: line.widthPx * fontSizePx / measuredLayout.fontSizePx,
+      };
+    });
+    if (
+      measuredLines.some((line) => line === null) ||
+      tokenCursor !== tokenIds.length ||
+      measuredLines.length > maximumLines
+    ) {
+      return null;
+    }
+    const lines = measuredLines as Array<{
+      lineId: string;
+      tokenIds: string[];
+      text: string;
+      measuredWidthPx: number;
+    }>;
+    if (!linesFit({
+      lines,
+      box: geometry,
+      fontSizePx,
+      lineHeight,
+      paddingXPx,
+      paddingYPx,
+      measuredWidthsPx: lines.map((line) => line.measuredWidthPx),
+    })) return null;
+    return lines.map(({measuredWidthPx: _measuredWidthPx, ...line}) => line);
+  }
+  const candidates = allLinePartitions(tokenIds, maximumLines)
+    .map((partition) => partition.map((lineTokenIds, index) => ({
+      lineId: `${segmentId}_line_${index + 1}`,
+      tokenIds: [...lineTokenIds],
+      text: joinShortsTextTokens(
+        lineTokenIds.map((tokenId) => textByTokenId.get(tokenId) ?? ""),
+      ),
+    })))
+    .filter((lines) => linesFit({
+      lines,
+      box: geometry,
+      fontSizePx,
+      lineHeight,
+      paddingXPx,
+      paddingYPx,
+    }));
+  if (candidates.length === 0) return null;
+
+  return candidates.sort((left, right) => {
+    const widths = (lines: typeof left) => lines.map((line) => line.text.length);
+    const score = (lines: typeof left) => {
+      const values = widths(lines);
+      const widest = Math.max(...values);
+      const narrowest = Math.min(...values);
+      return (widest === 0 ? 0 : (narrowest / widest) * 2) -
+        lineBreakPenalty(lines) -
+        (lines.length - 1) * 0.05;
+    };
+    const delta = score(right) - score(left);
+    if (delta !== 0) return delta;
+    return left.map((line) => line.text).join("\0").localeCompare(
+      right.map((line) => line.text).join("\0"),
+    );
+  })[0]!;
 };
 
 const geometryForFamily = ({
@@ -413,6 +536,17 @@ const geometryForFamily = ({
   };
 };
 
+const familyForCompositionDirection = (
+  direction: MaulOutputCompositionInterval["compositionDirection"],
+): MaulPlacementFamily | null => {
+  if (direction === "poster_hero") return "measured";
+  if (direction === "restrained_minimal") return "personal";
+  if (direction === "editorial_asymmetry" || direction === "subject_integrated") {
+    return "editorial";
+  }
+  return null;
+};
+
 const linesFit = ({
   lines,
   box,
@@ -420,6 +554,7 @@ const linesFit = ({
   lineHeight,
   paddingXPx,
   paddingYPx,
+  measuredWidthsPx,
 }: {
   lines: Array<{text: string}>;
   box: MaulNormalizedBox;
@@ -427,26 +562,27 @@ const linesFit = ({
   lineHeight: number;
   paddingXPx: number;
   paddingYPx: number;
+  measuredWidthsPx?: readonly number[];
 }) => {
   const availableWidthPx =
     box.width * PLATFORM_PROFILE.output.width - paddingXPx * 2;
   const availableHeightPx =
     box.height * PLATFORM_PROFILE.output.height - paddingYPx * 2;
-  const longestWordWidthPx = Math.max(
-    ...lines.flatMap((line) =>
-      line.text.split(/\s+/u).map(
-        (word) =>
-          word.length *
-          fontSizePx *
-          COMPATIBILITY_METRICS.maxGlyphWidthEm,
-      ),
-    ),
-  );
-  const longestLineWidthPx = Math.max(
-    ...lines.map(
-      (line) => line.text.length * fontSizePx * 0.55,
-    ),
-  );
+  const longestWordWidthPx = measuredWidthsPx
+    ? Math.max(...measuredWidthsPx)
+    : Math.max(
+        ...lines.flatMap((line) =>
+          line.text.split(/\s+/u).map(
+            (word) =>
+              word.length *
+              fontSizePx *
+              COMPATIBILITY_METRICS.maxGlyphWidthEm,
+          ),
+        ),
+      );
+  const longestLineWidthPx = measuredWidthsPx
+    ? Math.max(...measuredWidthsPx)
+    : Math.max(...lines.map((line) => line.text.length * fontSizePx * 0.55));
   const requiredHeightPx = lines.length * fontSizePx * lineHeight;
   return (
     longestWordWidthPx <= availableWidthPx &&
@@ -480,17 +616,23 @@ const buildCandidate = ({
   observation,
   family,
   textByTokenId,
+  typography,
 }: {
   node: LayoutNode;
   composition: MaulOutputCompositionInterval;
   observation: MaulPlacementObservationInterval | null;
   family: MaulPlacementFamily;
   textByTokenId: ReadonlyMap<string, string>;
+  typography?: MaulPlacementTypography;
 }): PlacementCandidate | null => {
   const isCaptionSafeFallback = composition.variantId.includes(
     "caption_safe_fallback",
   );
   if (isCaptionSafeFallback && family !== "personal") return null;
+  const directionFamily = familyForCompositionDirection(
+    composition.compositionDirection,
+  );
+  if (directionFamily && family !== directionFamily) return null;
 
   const subjectIsKnown =
     observation?.trackingState === "tracked" ||
@@ -507,6 +649,7 @@ const buildCandidate = ({
   if (
     family === "editorial" &&
     subjectBox &&
+    !composition.textAnchor &&
     Math.abs(subjectBox.x + subjectBox.width / 2 - 0.5) < 0.08
   ) {
     return null;
@@ -517,20 +660,19 @@ const buildCandidate = ({
         maximumEnvelope: fallbackBand!,
         alignment: "center" as const,
       }
-    : geometryForFamily({family, subjectBox});
+    : composition.textAnchor ?? geometryForFamily({family, subjectBox});
   const segmentId = stableId("placement_segment", {
     chunkId: node.chunk.chunkId,
     discontinuityId: composition.discontinuityId,
     outputStartMs: node.outputStartMs,
     outputEndMs: node.outputEndMs,
   });
-  const lines = partitionLines({
-    family,
-    tokenIds: node.chunk.tokenIds,
-    textByTokenId,
-    segmentId,
-  });
-  const nominalFontSizePx = isCaptionSafeFallback
+  const measuredLayout = typography?.layouts.find(
+    (layout) => layout.chunkId === node.chunk.chunkId,
+  );
+  if (typography && !measuredLayout) return null;
+  const profile = typography?.profile ?? MAUL_TYPOGRAPHY_COMPATIBILITY_PROFILE;
+  const preferredNominalFontSizePx = isCaptionSafeFallback
     ? 48
     : family === "measured"
       ? 72
@@ -538,7 +680,6 @@ const buildCandidate = ({
         ? 68
         : 64;
   const hierarchyScale = family === "editorial" ? 1.08 : 1;
-  const effectiveFontSizePx = nominalFontSizePx * hierarchyScale;
   const lineHeight = 1.1;
   const variantId = isCaptionSafeFallback
     ? "caption_safe_fallback.padded_band_v1"
@@ -568,6 +709,34 @@ const buildCandidate = ({
     minimumLegibilityPrimitive.kind === "solid_plate"
       ? minimumLegibilityPrimitive.paddingYPx
       : 0;
+  const candidateFontSizes = composition.textAnchor && !isCaptionSafeFallback
+    ? [preferredNominalFontSizePx, 64, 56, 48]
+        .map((size) => Math.min(profile.metrics.maximumFontSizePx, size) * hierarchyScale)
+    : [preferredNominalFontSizePx * hierarchyScale];
+  let effectiveFontSizePx = candidateFontSizes[0]!;
+  let lines: ReturnType<typeof partitionLines> = null;
+  for (const fontSizePx of candidateFontSizes) {
+    const candidateLines = partitionLines({
+      family,
+      tokenIds: node.chunk.tokenIds,
+      textByTokenId,
+      segmentId,
+      maximumLines: composition.textAnchor && !isCaptionSafeFallback ? 3 : 2,
+      geometry: geometry.box,
+      fontSizePx,
+      lineHeight,
+      paddingXPx,
+      paddingYPx,
+      measuredLayout,
+    });
+    if (candidateLines) {
+      effectiveFontSizePx = fontSizePx;
+      lines = candidateLines;
+      break;
+    }
+  }
+  if (!lines) return null;
+  const nominalFontSizePx = effectiveFontSizePx / hierarchyScale;
   const hardGates = [
     gate(
       "exact_token_sequence",
@@ -584,23 +753,33 @@ const buildCandidate = ({
     ),
     gate(
       "typography_compatibility",
-      effectiveFontSizePx >= COMPATIBILITY_METRICS.minimumFontSizePx &&
-        effectiveFontSizePx <= COMPATIBILITY_METRICS.maximumFontSizePx,
-      COMPATIBILITY_FINGERPRINT,
-      "Pinned DM Sans metrics cover the selected effective typography.",
+      effectiveFontSizePx >= profile.metrics.minimumFontSizePx &&
+        effectiveFontSizePx <= profile.metrics.maximumFontSizePx,
+      profile.metrics.fingerprint,
+      `Measured ${profile.family} metrics cover the selected effective typography.`,
     ),
+    ...(typography && measuredLayout
+      ? [gate(
+          "measured_font_geometry",
+          measuredLayout.measurementIds.length > 0,
+          measuredLayout.measurementIds[0] ?? null,
+          `Final placement uses measured ${profile.family} line geometry.`,
+        )]
+      : []),
     gate(
       "minimum_readable_fit",
-      linesFit({
-        lines,
-        box: geometry.box,
-        fontSizePx: effectiveFontSizePx,
-        lineHeight,
-        paddingXPx,
-        paddingYPx,
-      }),
-      COMPATIBILITY_FINGERPRINT,
-      "Worst-case glyph and line metrics fit the selected box.",
+      measuredLayout
+        ? true
+        : linesFit({
+            lines,
+            box: geometry.box,
+            fontSizePx: effectiveFontSizePx,
+            lineHeight,
+            paddingXPx,
+            paddingYPx,
+          }),
+      measuredLayout?.measurementIds[0] ?? profile.metrics.fingerprint,
+      "Measured or governed glyph and line metrics fit the selected box.",
     ),
     gate(
       "cut_evidence",
@@ -689,8 +868,8 @@ const buildCandidate = ({
       maximumEnvelope: geometry.maximumEnvelope,
       alignment: geometry.alignment,
       compatibility: {
-        profileId: "maul-compat-dm-sans-v1",
-        metricsFingerprint: COMPATIBILITY_FINGERPRINT,
+        profileId: profile.profileId,
+        metricsFingerprint: profile.metrics.fingerprint,
         nominalFontSizePx,
         lineHeight,
         hierarchyScale,
@@ -805,6 +984,7 @@ export const buildMaulTextPlacementPlan = ({
   geometryResetOutputMs = [],
   candidateFamilyOrder = ["measured", "editorial", "personal"],
   textChunkPlanHash: governedTextChunkPlanHash,
+  typography,
 }: {
   textChunkPlanArtifactId: string;
   textChunkPlan: MaulShortsTextChunkPlanV2Core;
@@ -815,6 +995,7 @@ export const buildMaulTextPlacementPlan = ({
   geometryResetOutputMs?: readonly number[];
   candidateFamilyOrder?: readonly MaulPlacementFamily[];
   textChunkPlanHash?: string;
+  typography?: MaulPlacementTypography;
 }): MaulTextPlacementPlanCore => {
   const textChunkPlan = maulShortsTextChunkPlanV2CoreSchema.parse(inputChunkPlan);
   const compositionIntervals = [...inputCompositionIntervals].sort(
@@ -890,6 +1071,7 @@ export const buildMaulTextPlacementPlan = ({
             observation,
             family,
             textByTokenId,
+            typography,
           });
           return candidate ? [candidate] : [];
         });
@@ -907,8 +1089,10 @@ export const buildMaulTextPlacementPlan = ({
     governedTextChunkPlanHash ?? hashMaulPlanPayload(textChunkPlan);
   const outputCompositionTrackHash = hashMaulPlanPayload(compositionIntervals);
   const platformProfileHash = hashMaulPlanPayload(PLATFORM_PROFILE);
+  const selectedTypographyProfile =
+    typography?.profile ?? MAUL_TYPOGRAPHY_COMPATIBILITY_PROFILE;
   const compatibilityProfileHash = hashMaulPlanPayload(
-    MAUL_TYPOGRAPHY_COMPATIBILITY_PROFILE,
+    selectedTypographyProfile,
   );
   const status = selected ? ("planned" as const) : ("blocked" as const);
 
@@ -930,7 +1114,7 @@ export const buildMaulTextPlacementPlan = ({
       planningHorizonSegments: SCORE_POLICY.planningHorizonSegments,
     },
     platformProfile: PLATFORM_PROFILE,
-    compatibilityProfiles: [MAUL_TYPOGRAPHY_COMPATIBILITY_PROFILE],
+    compatibilityProfiles: [selectedTypographyProfile],
     compositionIntervals,
     status,
     blockingReason: selected

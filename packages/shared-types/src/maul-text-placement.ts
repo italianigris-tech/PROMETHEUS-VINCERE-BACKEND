@@ -410,21 +410,21 @@ export const maulShortsTextChunkPlanV2CoreSchema = z
   });
 
 export const maulTypographyCompatibilityProfileSchema = z.object({
-  profileId: z.literal("maul-compat-dm-sans-v1"),
-  family: z.literal("DM Sans"),
+  profileId: idSchema,
+  family: z.string().trim().min(1),
   approvedFontAssets: z
     .array(
       z.object({
-        assetId: z.literal("font_google_dm_sans_700"),
-        family: z.literal("DM Sans"),
-        weights: z.tuple([z.literal(500), z.literal(700), z.literal(800)]),
+        assetId: idSchema,
+        family: z.string().trim().min(1),
+        weights: z.array(z.number().int().positive()).min(1),
       }),
     )
-    .length(1),
+    .min(1),
   loadedFallback: z.object({
-    assetId: z.literal("font_google_dm_sans_700"),
-    family: z.literal("DM Sans"),
-    weight: z.literal(700),
+    assetId: idSchema,
+    family: z.string().trim().min(1),
+    weight: z.number().int().positive(),
   }),
   metrics: z
     .object({
@@ -462,6 +462,23 @@ export const maulOutputCompositionIntervalSchema = z
     sourceViewport: maulNormalizedBoxSchema,
     sourceOccupancy: z.array(maulNormalizedBoxSchema).min(1),
     paddedNonSourceRegions: z.array(maulNormalizedBoxSchema),
+    compositionDirection: z
+      .enum([
+        "editorial_asymmetry",
+        "poster_hero",
+        "subject_integrated",
+        "restrained_minimal",
+      ])
+      .nullable()
+      .default(null),
+    textAnchor: z
+      .object({
+        box: maulNormalizedBoxSchema,
+        maximumEnvelope: maulNormalizedBoxSchema,
+        alignment: z.enum(["left", "center", "right"]),
+      })
+      .nullable()
+      .default(null),
     crop: maulNormalizedBoxSchema,
     scale: z.object({
       x: z.number().positive(),
@@ -546,7 +563,7 @@ export const maulTextPlacementSegmentSchema = z
     maximumEnvelope: maulNormalizedBoxSchema,
     alignment: z.enum(["left", "center", "right"]),
     compatibility: z.object({
-      profileId: z.literal("maul-compat-dm-sans-v1"),
+      profileId: idSchema,
       metricsFingerprint: sha256Schema,
       nominalFontSizePx: z.number().positive(),
       lineHeight: z.number().positive(),
@@ -698,8 +715,8 @@ export const maulTextPlacementPlanCoreSchema = z
       safeRegion: maulNormalizedBoxSchema,
     }),
     compatibilityProfiles: z
-      .array(maulTypographyCompatibilityProfileSchema)
-      .length(1),
+    .array(maulTypographyCompatibilityProfileSchema)
+      .min(1),
     compositionIntervals: z
       .array(maulOutputCompositionIntervalSchema)
       .min(1),

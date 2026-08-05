@@ -13,8 +13,6 @@ type WorkerProjects = Pick<
   | "createTreatmentCatalog"
   | "createCandidates"
   | "createPlanningBundle"
-  | "reviewCandidate"
-  | "renderShort"
 >;
 
 export class MaulWorkerExecutor {
@@ -63,33 +61,13 @@ export class MaulWorkerExecutor {
         candidateArtifactId: candidate.artifactId,
         treatmentGenomeArtifactId: treatment.artifactId,
       });
-      const rubricScores = Object.fromEntries(
-        treatment.payload.judgmentLayer.rubric.map((dimension) => [dimension.id, 100]),
-      );
-      const {review} = await this.input.projects.reviewCandidate(job.projectId, {
-        candidateArtifactId: candidate.artifactId,
-        treatmentGenomeArtifactId: treatment.artifactId,
-        planningBundleArtifactId: planningBundle.artifactId,
-        reviewerId: "maul_worker_automation",
-        decision: "approved",
-        failureClasses: [],
-        rationale: "Automated approval explicitly authorized for leased MAUL execution.",
-        rubricScores,
-      });
-      const {export: rendered} = await this.input.projects.renderShort(job.projectId, {
-        candidateArtifactId: candidate.artifactId,
-        treatmentGenomeArtifactId: treatment.artifactId,
-        planningBundleArtifactId: planningBundle.artifactId,
-        reviewDecisionArtifactId: review.artifactId,
-        musicTrack: payload.musicTrack,
-        sfxAssets: payload.sfxAssets,
-      });
       return this.input.control.complete(job.id, {
         leaseToken: job.leaseToken!,
         actualCostUsd: payload.actualCostUsd,
         result: {
-          exportArtifactId: rendered.artifactId,
-          qualityTruthStatus: "passed",
+          planningBundleArtifactId: planningBundle.artifactId,
+          status: "awaiting_perceptual_review",
+          qualityTruthStatus: "not_evaluated",
         },
       });
     } catch (error) {

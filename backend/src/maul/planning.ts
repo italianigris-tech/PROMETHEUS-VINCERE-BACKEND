@@ -78,6 +78,10 @@ type TreatmentArtifact = Extract<
   MaulArtifactRecord,
   { artifactType: "treatment_genome" }
 >;
+type ReferenceCorpusArtifact = Extract<
+  MaulArtifactRecord,
+  { artifactType: "reference_corpus_item" }
+>;
 type TextChunkPlanArtifact = Extract<
   MaulArtifactRecord,
   {artifactType: "text_chunk_plan"}
@@ -94,7 +98,20 @@ export type MaulPlanningInputs = {
   timeline: TimelineArtifact;
   candidate: CandidateArtifact;
   treatment: TreatmentArtifact;
+  referenceCorpus?: ReferenceCorpusArtifact[];
   textChunkPlan: ShortsTextChunkPlan | null;
+};
+
+export type MaulTypographyPlanningResolution = {
+  fontResolution: {
+    requestedRole: "display" | "editorial" | "utility";
+    selectedFamily: string;
+    selectedAssetId: string | null;
+    status: "eligible_loaded" | "governed_fallback" | "blocked";
+    reason: string;
+  };
+  measurementEvidenceIds: string[];
+  warnings?: string[];
 };
 
 const stableHash = hashMaulPlanPayload;
@@ -181,7 +198,7 @@ const identityTransform = {
   scale: 1,
 } as const;
 
-const MAUL_CORE_TREATMENTS: readonly MaulTextAnimationTreatment[] = ["keyword_pop", "two_word_stagger_punch", "two_word_focus_pivot", "three_word_tall_blade", "four_word_outline_whip", "hormozi_word_lock_snap", "cinematic_text_preset_5", "cinematic_text_preset_8", "cinematic_text_preset_11", "letter-float-overshoot", "depth-pop-letter", "impact-punch", "glitch-stabilize", "single-word-elastic-emphasis", "pulse-emphasis", "highlight-word", "blur-underline", "core-replaceable-word", "cursor-highlight-text-animation", "main-word-inside-a-glow-box", "text-underlining-effect", "word-cross-out"];
+const MAUL_CORE_TREATMENTS: readonly MaulTextAnimationTreatment[] = ["keyword_pop", "two_word_stagger_punch", "two_word_focus_pivot", "three_word_tall_blade", "three_word_script_glide", "four_word_outline_whip", "hormozi_word_lock_snap", "cinematic_text_preset_5", "cinematic_text_preset_8", "cinematic_text_preset_11", "letter-float-overshoot", "depth-pop-letter", "impact-punch", "glitch-stabilize", "single-word-elastic-emphasis", "pulse-emphasis", "highlight-word", "blur-underline", "core-replaceable-word", "cursor-highlight-text-animation", "main-word-inside-a-glow-box", "text-underlining-effect", "word-cross-out"];
 const MAUL_SUPPORTING_TREATMENTS = MAUL_TEXT_ANIMATION_TREATMENTS.filter((treatment) => !MAUL_CORE_TREATMENTS.includes(treatment));
 const selectEditorialTreatment = ({candidates, seed}: {candidates: readonly MaulTextAnimationTreatment[]; seed: string}): MaulTextAnimationTreatment => {
   if (candidates.length === 0) {
@@ -190,12 +207,74 @@ const selectEditorialTreatment = ({candidates, seed}: {candidates: readonly Maul
   return candidates[Number.parseInt(stableHash(seed).slice(0, 8), 16) % candidates.length]!;
 };
 
+const treatmentsForWordCount = ({
+  candidates,
+  wordCount,
+}: {
+  candidates: readonly MaulTextAnimationTreatment[];
+  wordCount: number;
+}): readonly MaulTextAnimationTreatment[] => {
+  const prefix =
+    wordCount === 1
+      ? "generic_single_word"
+      : wordCount === 2
+        ? "two_word_"
+        : wordCount === 3
+          ? "three_word_"
+          : wordCount === 4
+            ? "four_word_"
+            : "six_word_";
+  const compatible = candidates.filter((candidate) =>
+    prefix === "generic_single_word"
+      ? candidate === "generic_single_word" || candidate === "single-word-elastic-emphasis"
+      : candidate.startsWith(prefix),
+  );
+  return compatible.length > 0 ? compatible : candidates;
+};
+
+const referenceTraitText = (inputs: MaulPlanningInputs): string =>
+  (inputs.referenceCorpus ?? [])
+    .flatMap((reference) => [
+      ...(reference.payload.approvedTraits?.typography ?? []),
+      ...(reference.payload.approvedTraits?.motion ?? []),
+      ...(reference.payload.approvedTraits?.captions ?? []),
+    ])
+    .join(" ")
+    .toLowerCase();
+
+const preferredReferenceTreatment = ({
+  inputs,
+  wordCount,
+  candidates,
+}: {
+  inputs: MaulPlanningInputs;
+  wordCount: number;
+  candidates: readonly MaulTextAnimationTreatment[];
+}): MaulTextAnimationTreatment | null => {
+  if (wordCount !== 3) return null;
+  const traits = referenceTraitText(inputs);
+  if (/script|calligraph/.test(traits) && candidates.includes("three_word_script_glide")) {
+    return "three_word_script_glide";
+  }
+  if (/tall|condensed|blade/.test(traits) && candidates.includes("three_word_tall_blade")) {
+    return "three_word_tall_blade";
+  }
+  return null;
+};
+
 const animationTransforms = (treatment: MaulTextAnimationTreatment) => {
+  const treatmentIndex = MAUL_TEXT_ANIMATION_TREATMENTS.indexOf(treatment);
+  if (treatmentIndex < 0) {
+    throw new Error(`MAUL animation treatment ${treatment} is not registered.`);
+  }
+  const signature = treatmentIndex + 1;
+  const xDistance = 10 + signature * 3;
+  const yDistance = 8 + signature * 2;
+  const entryScale = 0.78 + (signature % 9) * 0.02;
+  const peakScale = 1.03 + (signature % 8) * 0.015;
+  const exitScale = 0.97 + (signature % 7) * 0.005;
   const lower = treatment.toLowerCase();
-  if (
-    treatment === "keyword_pop" ||
-    /pop|punch|impact|elastic|emphasis|highlight|underline|glow|cross-out|cursor|lock/.test(lower)
-  ) {
+  if (treatment === "keyword_pop") {
     return {
       entry: {
         from: {...identityTransform, opacity: 0, scale: 0.92},
@@ -211,10 +290,7 @@ const animationTransforms = (treatment: MaulTextAnimationTreatment) => {
       },
     };
   }
-  if (
-    treatment === "continuous_push" ||
-    /push|slide|drift|arc|orbit|wave|parallax|sweep|ladder|rain/.test(lower)
-  ) {
+  if (treatment === "continuous_push") {
     return {
       entry: {
         from: {...identityTransform, opacity: 0, translateXPx: -18},
@@ -235,15 +311,53 @@ const animationTransforms = (treatment: MaulTextAnimationTreatment) => {
       },
     };
   }
+
+  // Every registered treatment has a distinct renderer-visible transform program.
+  // The treatment-specific signature prevents labels from collapsing to aliases.
+  if (/push|slide|drift|arc|orbit|wave|parallax|sweep|ladder|rain/.test(lower)) {
+    return {
+      entry: {
+        from: {...identityTransform, opacity: 0, translateXPx: -xDistance, scale: entryScale},
+        to: {...identityTransform, translateXPx: -Math.round(xDistance / 3), scale: peakScale},
+      },
+      hold: {
+        from: {...identityTransform, translateXPx: -Math.round(xDistance / 3), scale: peakScale},
+        to: {...identityTransform, translateXPx: xDistance, scale: 1 + (signature % 4) * 0.01},
+      },
+      exit: {
+        from: {...identityTransform, translateXPx: xDistance, scale: 1 + (signature % 4) * 0.01},
+        to: {...identityTransform, opacity: 0, translateXPx: xDistance + 12, scale: exitScale},
+      },
+    };
+  }
+  if (/pop|punch|impact|elastic|emphasis|highlight|underline|glow|cross-out|cursor|lock/.test(lower)) {
+    return {
+      entry: {
+        from: {...identityTransform, opacity: 0, translateYPx: yDistance, scale: entryScale},
+        to: {...identityTransform, translateYPx: -Math.round(yDistance / 4), scale: 1 + (signature % 9) * 0.02},
+      },
+      hold: {
+        from: {...identityTransform, translateYPx: -Math.round(yDistance / 4), scale: 1 + (signature % 9) * 0.02},
+        to: {...identityTransform, translateXPx: signature, scale: peakScale},
+      },
+      exit: {
+        from: {...identityTransform, translateXPx: signature, scale: peakScale},
+        to: {...identityTransform, opacity: 0, translateYPx: -yDistance, scale: exitScale},
+      },
+    };
+  }
   return {
     entry: {
-      from: {...identityTransform, opacity: 0, translateYPx: 28},
-      to: identityTransform,
+      from: {...identityTransform, opacity: 0, translateXPx: signature, translateYPx: yDistance, scale: entryScale},
+      to: {...identityTransform, translateXPx: -signature, scale: peakScale},
     },
-    hold: {from: identityTransform, to: identityTransform},
+    hold: {
+      from: {...identityTransform, translateXPx: -signature, scale: peakScale},
+      to: {...identityTransform, translateYPx: signature, scale: 1 + (signature % 3) * 0.01},
+    },
     exit: {
-      from: identityTransform,
-      to: {...identityTransform, opacity: 0, translateYPx: -16},
+      from: {...identityTransform, translateYPx: signature, scale: 1 + (signature % 3) * 0.01},
+      to: {...identityTransform, opacity: 0, translateXPx: signature, translateYPx: -yDistance, scale: exitScale},
     },
   };
 };
@@ -269,8 +383,18 @@ export const buildMaulTextAnimationPlanPayload = ({
   let previousSupportingTreatment: MaulTextAnimationTreatment | null = null;
   const programs = textPlacementPlan.payload.segments.map((segment) => {
     const durationMs = segment.outputEndMs - segment.outputStartMs;
-    const selectedTreatment = treatment ?? selectEditorialTreatment({
+    const chunk = chunkById.get(segment.chunkId);
+    if (!chunk) {
+      throw new Error(
+        `Placement ${segment.segmentId} references missing chunk ${segment.chunkId}.`,
+      );
+    }
+    const supportingCandidates = treatmentsForWordCount({
       candidates: MAUL_SUPPORTING_TREATMENTS.filter((candidate) => candidate !== previousSupportingTreatment),
+      wordCount: segment.tokenIds.length,
+    });
+    const selectedTreatment = treatment ?? selectEditorialTreatment({
+      candidates: supportingCandidates,
       seed: `${selectionSeed ?? inputs.project.id}:${segment.segmentId}:supporting`,
     });
     previousSupportingTreatment = selectedTreatment;
@@ -286,12 +410,6 @@ export const buildMaulTextAnimationPlanPayload = ({
     if (entryEndMs >= exitStartMs) {
       throw new Error(
         `Placement ${segment.segmentId} cannot fit non-overlapping animation phases.`,
-      );
-    }
-    const chunk = chunkById.get(segment.chunkId);
-    if (!chunk) {
-      throw new Error(
-        `Placement ${segment.segmentId} references missing chunk ${segment.chunkId}.`,
       );
     }
     const tokenIds =
@@ -352,8 +470,16 @@ export const buildMaulTextAnimationPlanPayload = ({
     const segment = textPlacementPlan.payload.segments.find((candidate) => candidate.segmentId === program.target.placementSegmentId);
     const coreTokenIds = segment ? chunkById.get(segment.chunkId)?.emphasis.tokenIds ?? [] : [];
     if (!segment || coreTokenIds.length === 0) return [program];
-    const coreTreatment = selectEditorialTreatment({
+    const coreCandidates = treatmentsForWordCount({
       candidates: MAUL_CORE_TREATMENTS.filter((candidate) => candidate !== previousCoreTreatment),
+      wordCount: segment.tokenIds.length,
+    });
+    const coreTreatment = preferredReferenceTreatment({
+      inputs,
+      wordCount: segment.tokenIds.length,
+      candidates: coreCandidates,
+    }) ?? selectEditorialTreatment({
+      candidates: coreCandidates,
       seed: `${selectionSeed ?? inputs.project.id}:${segment.segmentId}:core`,
     });
     previousCoreTreatment = coreTreatment;
@@ -600,6 +726,7 @@ export const mapMaulTranscriptWordsToOutput = ({
 
 export const buildMaulConservativePlacementInputs = (
   timeline: TimelineArtifact["payload"],
+  observedIntervals: readonly MaulPlacementObservationInterval[] = [],
 ): {
   compositionIntervals: MaulTextPlacementPlanCore["compositionIntervals"];
   observationIntervals: MaulPlacementObservationInterval[];
@@ -609,6 +736,17 @@ export const buildMaulConservativePlacementInputs = (
   const keptIntervals = timeline.timestampMap.filter(
     (segment) => segment.mode !== "cut",
   );
+  const observationFor = (sceneId: string, segment: (typeof keptIntervals)[number]) =>
+    observedIntervals.find(
+      (observation) =>
+        observation.sceneId === sceneId &&
+        observation.outputStartMs <= segment.outputStartMs &&
+        observation.outputEndMs >= segment.outputEndMs &&
+        observation.cutEvidenceStatus === "known" &&
+        (observation.trackingState === "tracked" ||
+          observation.trackingState === "held" ||
+          observation.trackingState === "absent_confirmed"),
+    ) ?? null;
   const compositionIntervals = keptIntervals.map((segment, index) => {
     const cropTrack = timeline.speakerCropTracks.find(
       (track) =>
@@ -617,6 +755,18 @@ export const buildMaulConservativePlacementInputs = (
     );
     const sceneId = `maul_scene_${index + 1}`;
     const discontinuityId = `maul_discontinuity_${index + 1}`;
+    const observation = observationFor(sceneId, segment);
+    const subjectBox = observation?.subjectBox ?? null;
+    const subjectCenter = subjectBox ? subjectBox.x + subjectBox.width / 2 : 0.5;
+    const hasKnownSourceEvidence = Boolean(observation);
+    const textBox = hasKnownSourceEvidence
+      ? {
+          x: subjectCenter <= 0.5 ? 0.52 : 0.08,
+          y: 0.18,
+          width: 0.4,
+          height: 0.26,
+        }
+      : null;
     const transform = {
       sceneId,
       discontinuityId,
@@ -625,44 +775,130 @@ export const buildMaulConservativePlacementInputs = (
       outputStartMs: segment.outputStartMs,
       outputEndMs: segment.outputEndMs,
       crop: cropTrack?.crop ?? {x: 0, y: 0, width: 1, height: 1},
-      paddingMode: "caption_safe_non_source_band",
+      paddingMode: hasKnownSourceEvidence
+        ? "governed_subject_relative_source_placement"
+        : "caption_safe_non_source_band",
     };
     return {
-      intervalId: `maul_caption_safe_interval_${index + 1}`,
+      intervalId: hasKnownSourceEvidence
+        ? `maul_observed_subject_interval_${index + 1}`
+        : `maul_caption_safe_interval_${index + 1}`,
       sceneId,
       discontinuityId,
-      variantId: "caption_safe_fallback",
+      variantId: hasKnownSourceEvidence
+        ? "governed_observation.editorial_asymmetry"
+        : "caption_safe_fallback",
       outputStartMs: segment.outputStartMs,
       outputEndMs: segment.outputEndMs,
       transformHash: hashMaulPlanPayload(transform),
       sourceViewport: {x: 0, y: 0, width: 1, height: 1},
       sourceOccupancy: [{x: 0, y: 0, width: 1, height: 0.72}],
-      paddedNonSourceRegions: [fallbackBand],
+      paddedNonSourceRegions: hasKnownSourceEvidence ? [] : [fallbackBand],
+      compositionDirection: hasKnownSourceEvidence
+        ? ("editorial_asymmetry" as const)
+        : null,
+      textAnchor: textBox
+        ? {
+            box: textBox,
+            maximumEnvelope: {
+              x: textBox.x - 0.02,
+              y: textBox.y - 0.02,
+              width: textBox.width + 0.04,
+              height: textBox.height + 0.04,
+            },
+            alignment: subjectCenter <= 0.5 ? ("left" as const) : ("right" as const),
+          }
+        : null,
       crop: transform.crop,
       scale: {x: 1, y: 1},
     };
   });
   return {
     compositionIntervals,
-    observationIntervals: compositionIntervals.map((interval) => ({
-      evidenceId: `${interval.intervalId}_unknown_evidence`,
-      sceneId: interval.sceneId,
-      outputStartMs: interval.outputStartMs,
-      outputEndMs: interval.outputEndMs,
-      trackingState: "unknown",
-      subjectBox: null,
-      cutEvidenceStatus: "unknown",
-      existingTextRegions: [],
-    })),
+    observationIntervals: compositionIntervals.map((interval) =>
+      observedIntervals.find(
+        (observation) =>
+          observation.sceneId === interval.sceneId &&
+          observation.outputStartMs <= interval.outputStartMs &&
+          observation.outputEndMs >= interval.outputEndMs,
+      ) ?? {
+        evidenceId: `${interval.intervalId}_unknown_evidence`,
+        sceneId: interval.sceneId,
+        outputStartMs: interval.outputStartMs,
+        outputEndMs: interval.outputEndMs,
+        trackingState: "unknown" as const,
+        subjectBox: null,
+        cutEvidenceStatus: "unknown" as const,
+        existingTextRegions: [],
+      },
+    ),
     geometryResetOutputMs: keptIntervals
       .slice(1)
       .map((segment) => segment.outputStartMs),
   };
 };
 
+export const buildMaulArtDirectionPlanPayload = (
+  inputs: MaulPlanningInputs,
+) => maulArtDirectionPlanPayloadSchema.parse({
+  ...basePlan(inputs, "maul-art-direction-plan/v1"),
+  schemaVersion: "maul-art-direction-plan/v1",
+  audienceIntent: `Help ${inputs.project.intake.platform} viewers understand the selected idea immediately while preserving the speaker's authority.`,
+  emotionalTemperature:
+    inputs.treatment.payload.treatmentId === "premium_direct_response"
+      ? "urgent_confident"
+      : inputs.treatment.payload.treatmentId === "founder_podcast"
+        ? "warm_intimate"
+        : "calm_authoritative",
+  sourceRespectStance:
+    "Treat the principal speaker as the factual and visual anchor; never manufacture emotion, claims, or evidence.",
+  theme: `${inputs.treatment.payload.catalogEntryName}: one clear idea moving from hook to earned payoff.`,
+  paletteIntent: [
+    "Warm neutral source image",
+    "High-contrast ivory typography",
+    "Restrained amber accent reserved for hierarchy",
+  ],
+  typeRoles: [
+    {
+      role: "dialogue_caption",
+      intent: "Fast, legible transcription that remains subordinate to the speaker.",
+    },
+    {
+      role: "editorial_hero",
+      intent: "Withheld until a governed editorial-writing capability can support it.",
+    },
+    {role: "utility", intent: "Quiet provenance and platform-safe information only."},
+  ],
+  layoutAndNegativeSpaceLogic:
+    "Keep the speaker in the dominant portrait field and reserve a stable lower-third safe region; never fill negative space merely to create activity.",
+  imageryAndBackgroundLanguage:
+    "Use only authoritative source pixels in this pass, with restrained tonal shaping and no unlicensed B-roll or reference-image pixels.",
+  cameraBehavior:
+    "Continuous, motivated portrait reframing with small pushes at rhetorical turns and settled motion through protected pauses.",
+  motionPhysics:
+    "Critically damped caption entry, continuous camera state, and no decorative overshoot that competes with speech.",
+  annotationGrammar:
+    "Annotations are unavailable and therefore withheld; any future mark must point to source-supported evidence.",
+  soundWorld:
+    "Dialogue-first mix with restrained licensed music and sparse event-specific SFX only when a verified timing intent exists.",
+  motifArc: {
+    introduction: "Introduce the amber accent once as the hook establishes the idea.",
+    development: "Reduce the accent while the speaker carries proof and context.",
+    recall: "Return the same accent at the payoff without adding a new motif.",
+  },
+  treatmentVariation: `Apply the ${inputs.treatment.payload.treatmentId} treatment through governed framing, pacing, audio, and hierarchy inputs, not through silent intent changes.`,
+  explicitProhibitions: [
+    "No reference-image pixels in the render.",
+    "No unlicensed evidence, B-roll, music, or SFX.",
+    "No kinetic typography spam or word-by-word novelty motion.",
+    "No unsupported factual, emotional, or causal claim.",
+  ],
+});
+
 export const buildMaulPlanningPayloads = (
   inputs: MaulPlanningInputs,
   v2References?: MaulPlanningV2References | MaulPlanningV3References,
+  typographyResolution?: MaulTypographyPlanningResolution,
 ) => {
   const isV3 =
     v2References !== undefined &&
@@ -836,15 +1072,18 @@ export const buildMaulPlanningPayloads = (
           schemaVersion: "maul-typography-motion-plan/v3",
           ...v2References,
           ...typographyCommon,
-          fontResolution: {
+          fontResolution: typographyResolution?.fontResolution ?? {
             requestedRole: "utility",
             selectedFamily: "DM Sans",
             selectedAssetId: "font_google_dm_sans_700",
-            status: "eligible_loaded",
+            status: "governed_fallback",
             reason:
-              "Pinned DM Sans asset matches the governed placement compatibility profile.",
+              "Measured typography is unavailable; the explicit safe-caption fallback blocks art-directed output.",
           },
-          warnings: [],
+          measurementEvidenceIds: typographyResolution?.measurementEvidenceIds ?? [],
+          warnings: typographyResolution?.warnings ?? [
+            "Measured typography is unavailable; this plan cannot claim art-directed output.",
+          ],
         }
       : v2References
       ? {
@@ -852,15 +1091,18 @@ export const buildMaulPlanningPayloads = (
           schemaVersion: "maul-typography-motion-plan/v2",
           ...v2References,
           ...typographyCommon,
-          fontResolution: {
+          fontResolution: typographyResolution?.fontResolution ?? {
             requestedRole: "utility",
             selectedFamily: "DM Sans",
             selectedAssetId: "font_google_dm_sans_700",
-            status: "eligible_loaded",
+            status: "governed_fallback",
             reason:
-              "Pinned DM Sans asset matches the governed placement compatibility profile.",
+              "Measured typography is unavailable; the explicit safe-caption fallback blocks art-directed output.",
           },
-          warnings: [],
+          measurementEvidenceIds: typographyResolution?.measurementEvidenceIds ?? [],
+          warnings: typographyResolution?.warnings ?? [
+            "Measured typography is unavailable; this plan cannot claim art-directed output.",
+          ],
         }
       : {
           ...basePlan(inputs, "maul-typography-motion-plan/v1"),
@@ -893,6 +1135,7 @@ export const buildMaulPlanningPayloads = (
             reason:
               "The Stage 4 eligible font runtime bridge is not yet connected; fallback is explicit and blocks a cinematic release label.",
           },
+          measurementEvidenceIds: [],
           warnings: [
             "Eligible custom-font loading and measured final-pixel typography are not yet available.",
           ],
@@ -1051,68 +1294,7 @@ export const buildMaulPlanningPayloads = (
     ],
     silentIntentMutations: [],
   });
-  const artDirection = maulArtDirectionPlanPayloadSchema.parse({
-    ...basePlan(inputs, "maul-art-direction-plan/v1"),
-    schemaVersion: "maul-art-direction-plan/v1",
-    audienceIntent: `Help ${inputs.project.intake.platform} viewers understand the selected idea immediately while preserving the speaker's authority.`,
-    emotionalTemperature:
-      inputs.treatment.payload.treatmentId === "premium_direct_response"
-        ? "urgent_confident"
-        : inputs.treatment.payload.treatmentId === "founder_podcast"
-          ? "warm_intimate"
-          : "calm_authoritative",
-    sourceRespectStance:
-      "Treat the principal speaker as the factual and visual anchor; never manufacture emotion, claims, or evidence.",
-    theme: `${inputs.treatment.payload.catalogEntryName}: one clear idea moving from hook to earned payoff.`,
-    paletteIntent: [
-      "Warm neutral source image",
-      "High-contrast ivory typography",
-      "Restrained amber accent reserved for hierarchy",
-    ],
-    typeRoles: [
-      {
-        role: "dialogue_caption",
-        intent:
-          "Fast, legible transcription that remains subordinate to the speaker.",
-      },
-      {
-        role: "editorial_hero",
-        intent:
-          "Withheld until a governed editorial-writing capability can support it.",
-      },
-      {
-        role: "utility",
-        intent: "Quiet provenance and platform-safe information only.",
-      },
-    ],
-    layoutAndNegativeSpaceLogic:
-      "Keep the speaker in the dominant portrait field and reserve a stable lower-third safe region; never fill negative space merely to create activity.",
-    imageryAndBackgroundLanguage:
-      "Use only authoritative source pixels in this pass, with restrained tonal shaping and no unlicensed B-roll or reference-image pixels.",
-    cameraBehavior:
-      "Continuous, motivated portrait reframing with small pushes at rhetorical turns and settled motion through protected pauses.",
-    motionPhysics:
-      "Critically damped caption entry, continuous camera state, and no decorative overshoot that competes with speech.",
-    annotationGrammar:
-      "Annotations are unavailable and therefore withheld; any future mark must point to source-supported evidence.",
-    soundWorld:
-      "Dialogue-first mix with restrained licensed music and sparse event-specific SFX only when a verified timing intent exists.",
-    motifArc: {
-      introduction:
-        "Introduce the amber accent once as the hook establishes the idea.",
-      development:
-        "Reduce the accent while the speaker carries proof and context.",
-      recall:
-        "Return the same accent at the payoff without adding a new motif.",
-    },
-    treatmentVariation: `Apply the ${inputs.treatment.payload.treatmentId} treatment through governed framing, pacing, audio, and hierarchy inputs, not through silent intent changes.`,
-    explicitProhibitions: [
-      "No reference-image pixels in the render.",
-      "No unlicensed evidence, B-roll, music, or SFX.",
-      "No kinetic typography spam or word-by-word novelty motion.",
-      "No unsupported factual, emotional, or causal claim.",
-    ],
-  });
+  const artDirection = buildMaulArtDirectionPlanPayload(inputs);
   const candidateStartMs = inputs.candidate.payload.sourceStartMs;
   const candidateEndMs = inputs.candidate.payload.sourceEndMs;
   const precedingWords = inputs.analysis.payload.transcript.words.filter(
@@ -1440,6 +1622,8 @@ export const adaptMaulLegacyPlanningBundleV1 = ({
         sourceViewport: {x: 0, y: 0, width: 1, height: 1},
         sourceOccupancy: [{x: 0, y: 0, width: 1, height: 0.72}],
         paddedNonSourceRegions: [fallbackBand],
+        compositionDirection: null,
+        textAnchor: null,
         crop: {x: 0, y: 0, width: 1, height: 1},
         scale: {x: 1, y: 1},
       },

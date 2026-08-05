@@ -17,6 +17,15 @@ export type MaulRenderCaption = {
 export type MaulShortRenderEngineInput = {
   workRoot: string;
   manifest: MaulUnifiedShortRenderManifest;
+  renderMode: "preview" | "final";
+  previewFrameTimesMs?: number[];
+};
+
+export type MaulRenderedFrameSample = {
+  outputMs: number;
+  bytes: Buffer;
+  sha256: string;
+  contentType: "image/png";
 };
 
 export type MaulShortRenderEngineResult = {
@@ -31,6 +40,7 @@ export type MaulShortRenderEngineResult = {
     sourceMappingPreserved: boolean;
     audioMixed: boolean;
   };
+  frameSamples: MaulRenderedFrameSample[];
 };
 
 export type MaulShortRenderEngine = (
@@ -62,6 +72,49 @@ const runRemotion = async ({
       }
     );
   });
+};
+
+const extractPreviewFrame = async ({
+  outputPath,
+  framePath,
+  outputMs,
+}: {
+  outputPath: string;
+  framePath: string;
+  outputMs: number;
+}): Promise<Buffer> => {
+  await new Promise<void>((resolve, reject) => {
+    execFile(
+      "ffmpeg",
+      [
+        "-ss",
+        (outputMs / 1000).toFixed(3),
+        "-i",
+        outputPath,
+        "-frames:v",
+        "1",
+        "-y",
+        framePath,
+      ],
+      {windowsHide: true, timeout: 60_000, maxBuffer: 8 * 1024 * 1024},
+      (error, _stdout, stderr) => {
+        if (error) {
+          reject(
+            new Error(
+              `MAUL preview frame extraction failed: ${stderr.trim() || error.message}`,
+            ),
+          );
+          return;
+        }
+        resolve();
+      },
+    );
+  });
+  const bytes = await readFile(framePath);
+  if (bytes.length === 0) {
+    throw new Error("MAUL preview frame extraction produced an empty PNG.");
+  }
+  return bytes;
 };
 
 export const renderMaulShortLocally: MaulShortRenderEngine = async (input) => {
@@ -134,25 +187,45 @@ export const renderMaulShortLocally: MaulShortRenderEngine = async (input) => {
         `--props=${propsPath}`,
         "--codec=h264",
         "--audio-codec=aac",
-        "--overwrite"
+        "--overwrite",
+        ...(input.renderMode === "preview" ? ["--scale=0.5"] : []),
       ]
     });
     const bytes = await readFile(outputPath);
     if (bytes.length === 0) {
       throw new Error("MAUL Remotion render produced an empty MP4.");
     }
+    const frameSamples = input.renderMode === "preview"
+      ? await Promise.all((input.previewFrameTimesMs ?? []).map(async (outputMs, index) => {
+          const bytes = await extractPreviewFrame({
+            outputPath,
+            framePath: path.join(workDir, `preview-frame-${index}.png`),
+            outputMs,
+          });
+          return {
+            outputMs,
+            bytes,
+            sha256: createHash("sha256").update(bytes).digest("hex"),
+            contentType: "image/png" as const,
+          };
+        }))
+      : [];
+    if (input.renderMode === "preview" && frameSamples.length === 0) {
+      throw new Error("MAUL perceptual preview requires one or more extracted frame samples.");
+    }
     return {
       bytes,
       sha256: createHash("sha256").update(bytes).digest("hex"),
       durationMs: input.manifest.timeline.outputDurationMs,
-      width: input.manifest.output.width,
-      height: input.manifest.output.height,
+      width: input.renderMode === "preview" ? 540 : input.manifest.output.width,
+      height: input.renderMode === "preview" ? 960 : input.manifest.output.height,
       evidence: {
         compositionId: "MaulShort",
         renderer: "remotion",
         sourceMappingPreserved: true,
         audioMixed: true
-      }
+      },
+      frameSamples,
     };
   } finally {
     await rm(publicStageDir, {recursive: true, force: true});

@@ -1,5 +1,40 @@
 import { z } from "zod";
 
+/**
+ * Exact Google-font assets loaded by the MAUL planned-text Remotion composition.
+ * Matching a family name is insufficient: the renderer must load the selected
+ * asset at the planned weight.
+ */
+export const MAUL_RENDERER_FONT_CATALOG = [
+  {assetId: "font_google_dm_sans_700", family: "DM Sans", weight: 700},
+  {
+    assetId: "font_google_playfair_display_700",
+    family: "Playfair Display",
+    weight: 700,
+  },
+  {assetId: "font_google_bebas_neue_400", family: "Bebas Neue", weight: 400},
+  {
+    assetId: "font_google_dm_serif_display_400",
+    family: "DM Serif Display",
+    weight: 400,
+  },
+  {assetId: "font_google_great_vibes_400", family: "Great Vibes", weight: 400},
+] as const;
+
+export type MaulRendererFontCatalogEntry =
+  (typeof MAUL_RENDERER_FONT_CATALOG)[number];
+
+export const isMaulRendererFontCatalogEntry = (input: {
+  assetId: string;
+  family: string;
+  weight: number;
+}): boolean => MAUL_RENDERER_FONT_CATALOG.some(
+  (font) =>
+    font.assetId === input.assetId &&
+    font.family === input.family &&
+    font.weight === input.weight,
+);
+
 import {
   maulMinimumLegibilityPrimitiveSchema,
   maulShortsTextChunkPlanV2CoreSchema,
@@ -821,6 +856,7 @@ export const maulReviewDecisionRequestSchema = z.object({
   candidateArtifactId: idSchema,
   treatmentGenomeArtifactId: idSchema,
   planningBundleArtifactId: idSchema,
+  perceptualTruthArtifactId: idSchema.nullable().optional().default(null),
   reviewerId: idSchema,
   decision: z.enum(["approved", "rejected", "changes_requested"]),
   failureClasses: z.array(idSchema).default([]),
@@ -1059,6 +1095,10 @@ export const maulEditorialBeatMapPayloadSchema = maulPlanBaseSchema.extend({
   }),
 });
 
+export const maulRenderPreviewRequestSchema = maulShortRenderRequestSchema.omit({
+  reviewDecisionArtifactId: true,
+});
+
 const maulTypographyMotionPlanCommonShape = {
   captionGroups: z.array(
     z.object({
@@ -1085,6 +1125,7 @@ const maulTypographyMotionPlanCommonShape = {
     status: z.enum(["eligible_loaded", "governed_fallback", "blocked"]),
     reason: z.string().trim().min(1),
   }),
+  measurementEvidenceIds: z.array(idSchema).default([]),
   motionPrograms: z.array(
     z.object({
       capabilityId: idSchema,
@@ -1341,6 +1382,47 @@ export const maulAdapterDecisionPayloadSchema = maulPlanBaseSchema.extend({
 
 export const maulArtDirectionPlanPayloadSchema = maulPlanBaseSchema.extend({
   schemaVersion: z.literal("maul-art-direction-plan/v1"),
+  authorityReceipt: z
+    .object({
+      directorId: z.literal("joseph"),
+      version: z.literal("maul-joseph-editorial-director/v1"),
+      doctrineId: z.string().trim().min(1),
+      inputHash: z.string().regex(/^[a-f0-9]{64}$/i),
+    })
+    .nullable()
+    .default(null),
+  visualBeats: z
+    .array(
+      z.object({
+        beatId: idSchema,
+        startMs: z.number().int().nonnegative(),
+        endMs: z.number().int().positive(),
+        purpose: z.enum([
+          "HOOK",
+          "SETUP",
+          "TENSION",
+          "REVEAL",
+          "ESCALATION",
+          "PAYOFF",
+        ]),
+      }).refine((beat) => beat.endMs > beat.startMs, {
+        message: "Visual beats require positive duration.",
+      }),
+    )
+    .default([]),
+  sceneEvidence: z
+    .object({
+      status: z.enum(["available", "unavailable"]),
+      providerId: z.string().trim().min(1),
+      holdCount: z.number().int().nonnegative(),
+      reason: z.string().trim().min(1).nullable(),
+    })
+    .default({
+      status: "unavailable",
+      providerId: "unavailable",
+      holdCount: 0,
+      reason: "No visual evidence provider ran for this legacy plan.",
+    }),
   audienceIntent: z.string().trim().min(1),
   emotionalTemperature: z.enum([
     "warm_intimate",
@@ -2265,9 +2347,9 @@ const maulQualityTruthProofV2ObjectSchema = z.object({
       compositionIntervalId: idSchema,
       compositionVariantId: idSchema,
       compositionTransformHash: z.string().regex(/^[a-f0-9]{64}$/i),
-      compatibilityProfileId: z.literal("maul-compat-dm-sans-v1"),
+      compatibilityProfileId: idSchema,
       metricsFingerprint: z.string().regex(/^[a-f0-9]{64}$/i),
-      exactFontAssetId: z.literal("font_google_dm_sans_700"),
+      exactFontAssetId: maulQualityTruthEvidenceIdSchema,
       compiledLegibilityPrimitive: maulMinimumLegibilityPrimitiveSchema,
       measuredBox: z
         .object({
@@ -2328,15 +2410,16 @@ const validateMaulQualityTruthProof = (
     }
     if (
       proof.schemaVersion === "maul-quality-truth-proof/v2" &&
-      proof.fontRuntime.status === "eligible_loaded" &&
-      (proof.fontRuntime.family !== "DM Sans" ||
-        proof.fontRuntime.assetId !== "font_google_dm_sans_700")
+      proof.placementSegments.some(
+        (segment) =>
+          segment.status === "verified" && !segment.exactFontAssetId,
+      )
     ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ["fontRuntime"],
+        path: ["placementSegments"],
         message:
-          "Quality Truth V2 requires the pinned DM Sans runtime font asset.",
+          "Verified placement proof requires an exact rendered font asset ID.",
       });
     }
 };
@@ -2381,6 +2464,165 @@ export const maulQualityTruthResultSchema = z
         code: z.ZodIssueCode.custom,
         message:
           "Quality Truth pass requires zero failures; blocked requires failures.",
+      });
+    }
+  });
+
+export const maulPlacementOutcomeSchema = z.enum([
+  "ART_DIRECTED",
+  "CONSTRAINED_ART_DIRECTED",
+  "SAFE_CAPTION_FALLBACK",
+  "PLACEMENT_UNRESOLVED",
+  "VISUAL_EVIDENCE_UNAVAILABLE",
+]);
+
+export const maulPerceptualFailureLabelSchema = z.enum([
+  "GENERIC_BOTTOM_CAPTION",
+  "EXCESSIVE_BLACK_PLATE",
+  "SINGLE_FONT_MONOTONY",
+  "FLICKERING_LAYOUT",
+  "UNREADABLE_HOLD",
+  "AWKWARD_LINE_BREAK",
+  "SUBJECT_OBSTRUCTION",
+  "WEAK_HIERARCHY",
+  "REFERENCE_TRAIT_MISSING",
+  "ANIMATION_IMPERCEPTIBLE",
+  "TEMPLATED_APPEARANCE",
+]);
+
+export const maulCreativeResultSchema = z
+  .object({
+    schemaVersion: z.literal("maul-creative-result/v1"),
+    placementOutcome: maulPlacementOutcomeSchema,
+    structuralStatus: z.enum(["pass", "blocked"]),
+    perceptualStatus: z.enum(["pass", "blocked", "unavailable"]),
+    humanReviewStatus: z.enum(["approved", "rejected", "pending"]),
+    referenceParityClaimed: z.boolean(),
+    failureLabels: z.array(maulPerceptualFailureLabelSchema),
+    evidenceArtifactIds: z.array(idSchema),
+  })
+  .superRefine((result, ctx) => {
+    const artDirected = result.placementOutcome === "ART_DIRECTED";
+    if (
+      artDirected &&
+      (result.structuralStatus !== "pass" ||
+        result.perceptualStatus !== "pass" ||
+        result.humanReviewStatus !== "approved")
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "ART_DIRECTED requires structural pass, perceptual pass, and approved human review.",
+      });
+    }
+    if (
+      result.referenceParityClaimed &&
+      (!artDirected ||
+        result.structuralStatus !== "pass" ||
+        result.perceptualStatus !== "pass" ||
+        result.humanReviewStatus !== "approved")
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "Reference parity may be claimed only by an approved ART_DIRECTED result with structural and perceptual proof.",
+      });
+    }
+  });
+
+const maulPerceptualEvaluatorReceiptSchema = z.object({
+  authorityClass: z.enum(["invoked_model", "unavailable"]),
+  provider: z.string().trim().min(1).nullable(),
+  model: z.string().trim().min(1).nullable(),
+  inferenceReceiptId: idSchema.nullable(),
+});
+
+export const maulRenderPreviewPayloadSchema = z.object({
+  schemaVersion: z.literal("maul-render-preview/v1"),
+  sourceAssetId: idSchema,
+  candidateArtifactId: idSchema,
+  timelineArtifactId: idSchema,
+  treatmentGenomeArtifactId: idSchema,
+  planningBundleArtifactId: idSchema,
+  renderManifestArtifactId: idSchema,
+  manifestReplayKey: z.string().regex(/^[a-f0-9]{64}$/i),
+  storageKey: z.string().trim().min(1),
+  mediaType: z.literal("video/mp4"),
+  sha256: z.string().regex(/^[a-f0-9]{64}$/i),
+  durationMs: z.number().int().positive(),
+  width: z.literal(540),
+  height: z.literal(960),
+  frameSamples: z.array(
+    z.object({
+      frameId: idSchema,
+      outputMs: z.number().int().nonnegative(),
+      sha256: z.string().regex(/^[a-f0-9]{64}$/i),
+      mediaType: z.literal("image/png"),
+    }),
+  ).min(1),
+  createdAt: isoDateSchema,
+});
+
+export const maulPerceptualTruthPayloadSchema = z
+  .object({
+    schemaVersion: z.literal("maul-perceptual-truth/v1"),
+    sourceAssetId: idSchema,
+    candidateArtifactId: idSchema,
+    timelineArtifactId: idSchema,
+    treatmentGenomeArtifactId: idSchema,
+    planningBundleArtifactId: idSchema,
+    renderManifestArtifactId: idSchema,
+    renderPreviewArtifactId: idSchema,
+    manifestReplayKey: z.string().regex(/^[a-f0-9]{64}$/i),
+    status: z.enum(["pass", "blocked", "unavailable"]),
+    placementOutcome: maulPlacementOutcomeSchema,
+    failureLabels: z.array(maulPerceptualFailureLabelSchema),
+    evidenceArtifactIds: z.array(idSchema),
+    renderedFrameIds: z.array(idSchema).min(1),
+    evaluator: maulPerceptualEvaluatorReceiptSchema,
+    rationale: z.string().trim().min(1),
+    createdAt: isoDateSchema,
+  })
+  .superRefine((truth, ctx) => {
+    const evaluatorInvoked =
+      truth.evaluator.authorityClass === "invoked_model" &&
+      truth.evaluator.provider !== null &&
+      truth.evaluator.model !== null &&
+      truth.evaluator.inferenceReceiptId !== null;
+    if (
+      truth.status === "pass" &&
+      (!evaluatorInvoked ||
+        truth.failureLabels.length > 0 ||
+        !["ART_DIRECTED", "CONSTRAINED_ART_DIRECTED"].includes(
+          truth.placementOutcome,
+        ) ||
+        truth.evidenceArtifactIds.length === 0)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "Perceptual Truth pass requires invoked rendered-frame evaluation, evidence, no failures, and an art-directed outcome.",
+      });
+    }
+    if (
+      truth.status === "unavailable" &&
+      truth.evaluator.authorityClass !== "unavailable"
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["evaluator"],
+        message: "Unavailable Perceptual Truth requires an unavailable evaluator receipt.",
+      });
+    }
+    if (
+      ["SAFE_CAPTION_FALLBACK", "PLACEMENT_UNRESOLVED", "VISUAL_EVIDENCE_UNAVAILABLE"].includes(
+        truth.placementOutcome,
+      ) &&
+      truth.status === "pass"
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Fallback, unresolved, and missing-evidence outcomes cannot pass Perceptual Truth.",
       });
     }
   });
@@ -2478,6 +2720,7 @@ export const maulReviewDecisionPayloadSchema = z.object({
   subjectArtifactId: idSchema,
   treatmentGenomeArtifactId: idSchema.nullable(),
   planningBundleArtifactId: idSchema.nullable().optional().default(null),
+  perceptualTruthArtifactId: idSchema.nullable().optional().default(null),
   reviewerId: idSchema,
   decision: z.enum(["approved", "rejected", "changes_requested"]),
   failureClasses: z.array(z.string().trim().min(1)),
@@ -2596,6 +2839,10 @@ export const maulExportQualityGateSchema = z
     releaseEligible: z.boolean(),
     implementationLabel: maulImplementationLabelSchema,
     renderedEvidenceArtifactId: idSchema.nullable(),
+    perceptualTruthArtifactId: idSchema.nullable().optional().default(null),
+    placementOutcome: maulPlacementOutcomeSchema
+      .optional()
+      .default("PLACEMENT_UNRESOLVED"),
     postRenderHumanApprovalArtifactId: idSchema.nullable(),
     hardFailures: z.array(
       z.object({
@@ -2608,8 +2855,10 @@ export const maulExportQualityGateSchema = z
   .superRefine((gate, ctx) => {
     const hasReleaseEvidence =
       gate.renderedEvidenceArtifactId !== null &&
+      gate.perceptualTruthArtifactId !== null &&
       gate.postRenderHumanApprovalArtifactId !== null &&
-      gate.hardFailures.length === 0;
+      gate.hardFailures.length === 0 &&
+      gate.placementOutcome === "ART_DIRECTED";
     if (
       gate.status === "passed" &&
       (!gate.releaseEligible || !hasReleaseEvidence)
@@ -2617,7 +2866,7 @@ export const maulExportQualityGateSchema = z
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message:
-          "A passed MAUL release gate requires rendered evidence, post-render human approval, and zero hard failures.",
+          "A passed MAUL release gate requires Perceptual Truth, rendered evidence, post-render human approval, an ART_DIRECTED outcome, and zero hard failures.",
       });
     }
     if (gate.status !== "passed" && gate.releaseEligible) {
@@ -2687,6 +2936,8 @@ export const maulArtifactTypeSchema = z.enum([
   "revision_plan",
   "planning_bundle",
   "render_manifest",
+  "render_preview",
+  "perceptual_truth",
   "quality_evidence_bundle",
   "treatment_genome",
   "reference_corpus_item",
@@ -2754,6 +3005,8 @@ type MaulArtifactPayloadByType = {
   revision_plan: z.infer<typeof maulRevisionPlanPayloadSchema>;
   planning_bundle: z.infer<typeof maulPlanningBundlePayloadSchema>;
   render_manifest: z.infer<typeof maulUnifiedShortRenderManifestSchema>;
+  render_preview: z.infer<typeof maulRenderPreviewPayloadSchema>;
+  perceptual_truth: z.infer<typeof maulPerceptualTruthPayloadSchema>;
   quality_evidence_bundle: z.infer<
     typeof maulQualityEvidenceBundlePayloadSchema
   >;
@@ -2858,6 +3111,11 @@ export const maulArtifactRecordSchema: z.ZodType<
     artifactRecord(
       z.literal("render_manifest"),
       maulUnifiedShortRenderManifestSchema,
+    ),
+    artifactRecord(z.literal("render_preview"), maulRenderPreviewPayloadSchema),
+    artifactRecord(
+      z.literal("perceptual_truth"),
+      maulPerceptualTruthPayloadSchema,
     ),
     artifactRecord(
       z.literal("quality_evidence_bundle"),
@@ -3213,6 +3471,11 @@ export const maulArtifactCreateRequestSchema: z.ZodType<
       z.literal("render_manifest"),
       maulUnifiedShortRenderManifestSchema,
     ),
+    artifactCreate(z.literal("render_preview"), maulRenderPreviewPayloadSchema),
+    artifactCreate(
+      z.literal("perceptual_truth"),
+      maulPerceptualTruthPayloadSchema,
+    ),
     artifactCreate(
       z.literal("quality_evidence_bundle"),
       maulQualityEvidenceBundlePayloadSchema,
@@ -3257,6 +3520,7 @@ export const maulAuditEventSchema = z.object({
     "project_resumed",
     "project_status_changed",
     "quality_truth_evaluated",
+    "perceptual_truth_evaluated",
   ]),
   artifactId: idSchema.nullable(),
   detail: z.record(z.unknown()),
@@ -3383,6 +3647,17 @@ export type MaulQualityTruthProofV2 = z.infer<
 export type MaulQualityTruthResult = z.infer<
   typeof maulQualityTruthResultSchema
 >;
+export type MaulPlacementOutcome = z.infer<typeof maulPlacementOutcomeSchema>;
+export type MaulPerceptualFailureLabel = z.infer<
+  typeof maulPerceptualFailureLabelSchema
+>;
+export type MaulCreativeResult = z.infer<typeof maulCreativeResultSchema>;
+export type MaulRenderPreviewPayload = z.infer<
+  typeof maulRenderPreviewPayloadSchema
+>;
+export type MaulPerceptualTruthPayload = z.infer<
+  typeof maulPerceptualTruthPayloadSchema
+>;
 export type MaulQualityEvidenceBundlePayload = z.infer<
   typeof maulQualityEvidenceBundlePayloadSchema
 >;
@@ -3419,6 +3694,9 @@ export type MaulReviewDecisionRequest = z.infer<
 >;
 export type MaulShortRenderRequest = z.infer<
   typeof maulShortRenderRequestSchema
+>;
+export type MaulRenderPreviewRequest = z.infer<
+  typeof maulRenderPreviewRequestSchema
 >;
 export type MaulThumbnailDirectionPayload = z.infer<
   typeof maulThumbnailDirectionPayloadSchema

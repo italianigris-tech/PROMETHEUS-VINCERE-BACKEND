@@ -48,6 +48,8 @@ const GOVERNED_RUNTIME_ONLY_ARTIFACT_TYPES = new Set([
   "revision_plan",
   "planning_bundle",
   "render_manifest",
+  "render_preview",
+  "perceptual_truth",
   "quality_evidence_bundle",
 ]);
 
@@ -342,6 +344,98 @@ export const registerMaulProjectRoutes = (
       return errorBody(error);
     }
   });
+
+  app.post("/api/maul/projects/:projectId/previews", async (req, reply) => {
+    try {
+      const { projectId } = req.params as { projectId: string };
+      const result = await projects.renderPreview(projectId, req.body);
+      reply.code(201);
+      return result;
+    } catch (error) {
+      reply.code(statusForError(error));
+      return errorBody(error);
+    }
+  });
+
+  app.get(
+    "/api/maul/projects/:projectId/previews/:artifactId/file",
+    async (req, reply) => {
+      try {
+        const {projectId, artifactId} = req.params as {
+          projectId: string;
+          artifactId: string;
+        };
+        const file = await projects.getPreviewFile(projectId, artifactId);
+        reply.header("Content-Type", file.contentType);
+        reply.header("Content-Length", String(file.sizeBytes));
+        reply.header("Content-Disposition", "inline");
+        return reply.send(file.bytes);
+      } catch (error) {
+        reply.code(statusForError(error));
+        return errorBody(error);
+      }
+    },
+  );
+
+  app.get(
+    "/api/maul/projects/:projectId/previews/:artifactId/frames/:frameId",
+    async (req, reply) => {
+      try {
+        const {projectId, artifactId, frameId} = req.params as {
+          projectId: string;
+          artifactId: string;
+          frameId: string;
+        };
+        const frame = await projects.getPreviewFrame(
+          projectId,
+          artifactId,
+          frameId,
+        );
+        reply.header("Content-Type", frame.contentType);
+        return reply.send(frame.bytes);
+      } catch (error) {
+        reply.code(statusForError(error));
+        return errorBody(error);
+      }
+    },
+  );
+
+  app.get(
+    "/api/maul/projects/:projectId/visual-direction",
+    async (req, reply) => {
+      try {
+        const {projectId} = req.params as {projectId: string};
+        const {candidateArtifactId} = req.query as {
+          candidateArtifactId?: string;
+        };
+        if (!candidateArtifactId) {
+          throw new MaulProjectNotFoundError(
+            "Visual direction status requires candidateArtifactId.",
+          );
+        }
+        const status = await projects.getVisualDirectionStatus(
+          projectId,
+          candidateArtifactId,
+        );
+        return {
+          ...status,
+          urls: status.preview
+            ? {
+                preview: `/api/maul/projects/${projectId}/previews/${status.preview.artifactId}/file`,
+                frames: status.preview.payload.frameSamples.map((frame) => ({
+                  frameId: frame.frameId,
+                  outputMs: frame.outputMs,
+                  url: `/api/maul/projects/${projectId}/previews/${status.preview!.artifactId}/frames/${frame.frameId}`,
+                })),
+              }
+            : null,
+        };
+      } catch (error) {
+        reply.code(statusForError(error));
+        return errorBody(error);
+      }
+    },
+  );
 
   app.post("/api/maul/projects/:projectId/renders", async (req, reply) => {
     try {
