@@ -1,7 +1,11 @@
 import {describe, expect, it} from "vitest";
+import path from "node:path";
 
 import {
+  createDefaultMaulTypographyProvider,
+  createFontkitTypographyMeasurementProvider,
   createMeasuredMaulTypographyProvider,
+  createRoleAwareMaulTypographyProvider,
   resolveTypographyLayout,
 } from "./typography-layout.js";
 
@@ -149,5 +153,113 @@ describe("MAUL typography layout", () => {
         measurementId: "measurement_unused",
       }),
     })).toThrow(/renderer/i);
+  });
+
+  it("measures deterministic glyph geometry from the exact governed font binary", async () => {
+    const measure = createFontkitTypographyMeasurementProvider({
+      fontPath: path.resolve(
+        "..",
+        "remotion-app",
+        "public",
+        "fonts",
+        "hero",
+        "cinzel-bold-f33b1b30736a.otf",
+      ),
+      fontAssetId: "font_fixture_cinzel_bold",
+    });
+    const font = {
+      ...fonts[0],
+      assetId: "font_fixture_cinzel_bold",
+      family: "Cinzel Bold",
+    };
+
+    const short = await measure({text: "Build", font, fontSizePx: 72});
+    const repeated = await measure({text: "Build", font, fontSizePx: 72});
+    const long = await measure({
+      text: "Build something lasting",
+      font,
+      fontSizePx: 72,
+    });
+
+    expect(short).toMatchObject({
+      status: "measured",
+      measurementId: expect.stringMatching(/^font_measurement_[a-f0-9]{64}$/),
+    });
+    expect(repeated).toEqual(short);
+    expect(long.status).toBe("measured");
+    if (short.status === "measured" && long.status === "measured") {
+      expect(short.widthPx).toBeGreaterThan(0);
+      expect(long.widthPx).toBeGreaterThan(short.widthPx);
+    }
+  });
+
+  it("routes Terra's primary type role to the matching measured provider", async () => {
+    const selected: string[] = [];
+    const provider = createRoleAwareMaulTypographyProvider({
+      editorialDisplay: {
+        plan: async () => {
+          selected.push("editorial_display");
+          return {status: "unavailable", reason: "editorial fixture"};
+        },
+      },
+      neutralGrotesk: {
+        plan: async () => {
+          selected.push("neutral_grotesk");
+          return {status: "unavailable", reason: "grotesk fixture"};
+        },
+      },
+    });
+
+    await provider.plan({
+      chunks: [{chunkId: "chunk_hook", text: "Prove the point"}],
+      maximumLineWidthPx: 410,
+      primaryTypeRole: "neutral_grotesk",
+    });
+
+    expect(selected).toEqual(["neutral_grotesk"]);
+  });
+
+  it("provides binary-backed DM Sans and Playfair measurement by default", async () => {
+    const provider = createDefaultMaulTypographyProvider();
+    const chunks = [{chunkId: "chunk_hook", text: "Prove it now"}];
+    const neutral = await provider.plan({
+      chunks,
+      maximumLineWidthPx: 410,
+      primaryTypeRole: "neutral_grotesk",
+    });
+    const editorial = await provider.plan({
+      chunks,
+      maximumLineWidthPx: 410,
+      primaryTypeRole: "editorial_display",
+    });
+
+    expect(
+      neutral.status,
+      neutral.status === "unavailable" ? neutral.reason : undefined,
+    ).toBe("available");
+    expect(
+      editorial.status,
+      editorial.status === "unavailable" ? editorial.reason : undefined,
+    ).toBe("available");
+    expect(neutral).toMatchObject({
+      status: "available",
+      fontResolution: {
+        selectedFamily: "DM Sans",
+        selectedAssetId: "font_google_dm_sans_700",
+      },
+      evidenceIds: expect.arrayContaining([
+        expect.stringMatching(/^font_measurement_[a-f0-9]{64}$/),
+      ]),
+    });
+    expect(editorial).toMatchObject({
+      status: "available",
+      fontResolution: {
+        selectedFamily: "Playfair Display",
+        selectedAssetId: "font_google_playfair_display_700",
+      },
+      evidenceIds: expect.arrayContaining([
+        expect.stringMatching(/^font_measurement_[a-f0-9]{64}$/),
+      ]),
+    });
   });
 });

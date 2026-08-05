@@ -69,6 +69,7 @@
     "@react-three/fiber": "^8.15.0",
     "@remotion/captions": "^4.0.428",
     "@remotion/cli": "^4.0.120",
+    "@remotion/fonts": "4.0.428",
     "@remotion/google-fonts": "^4.0.428",
     "@remotion/media": "^4.0.428",
     "@remotion/player": "^4.0.428",

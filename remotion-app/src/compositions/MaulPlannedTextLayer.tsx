@@ -1,8 +1,4 @@
-import {loadFont as loadDMSans} from "@remotion/google-fonts/DMSans";
-import {loadFont as loadBebasNeue} from "@remotion/google-fonts/BebasNeue";
-import {loadFont as loadDMSerifDisplay} from "@remotion/google-fonts/DMSerifDisplay";
-import {loadFont as loadGreatVibes} from "@remotion/google-fonts/GreatVibes";
-import {loadFont as loadPlayfairDisplay} from "@remotion/google-fonts/PlayfairDisplay";
+import {loadFont as loadLocalFont} from "@remotion/fonts";
 import {
   joinShortsTextTokens,
   type MaulArtDirectionPlanPayload,
@@ -13,6 +9,7 @@ import React from "react";
 import {
   Easing,
   Sequence,
+  staticFile,
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
@@ -34,21 +31,47 @@ import {
   type MaulPlannedTextToken,
 } from "./maul-short-manifest-adapter";
 
-const {fontFamily: dmSansFamily} = loadDMSans("normal", {
-  weights: ["500", "700", "800"],
-  subsets: ["latin"],
-  ignoreTooManyRequestsWarning: true,
-});
+const dmSansFamily = "DM Sans";
+const playfairDisplayFamily = "Playfair Display";
+const bebasNeueFamily = "Bebas Neue";
+const dmSerifDisplayFamily = "DM Serif Display";
+const greatVibesFamily = "Great Vibes";
 
-const cinematicFontOptions = {
-  subsets: ["latin"] as ("latin")[],
-  ignoreTooManyRequestsWarning: true,
-};
-
-const {fontFamily: bebasNeueFamily} = loadBebasNeue("normal", cinematicFontOptions);
-const {fontFamily: dmSerifDisplayFamily} = loadDMSerifDisplay("normal", cinematicFontOptions);
-const {fontFamily: greatVibesFamily} = loadGreatVibes("normal", cinematicFontOptions);
-const {fontFamily: playfairDisplayFamily} = loadPlayfairDisplay("normal", cinematicFontOptions);
+if (typeof FontFace !== "undefined") {
+  void Promise.all([
+    loadLocalFont({
+      family: dmSansFamily,
+      url: staticFile("fonts/maul/dm-sans-700.woff2"),
+      weight: "700",
+    }),
+    loadLocalFont({
+      family: playfairDisplayFamily,
+      url: staticFile("fonts/maul/playfair-display-700.woff2"),
+      weight: "700",
+    }),
+    loadLocalFont({
+      family: playfairDisplayFamily,
+      url: staticFile("fonts/maul/playfair-display-italic-700.woff2"),
+      weight: "700",
+      style: "italic",
+    }),
+    loadLocalFont({
+      family: bebasNeueFamily,
+      url: staticFile("fonts/maul/bebas-neue-400.woff2"),
+      weight: "400",
+    }),
+    loadLocalFont({
+      family: dmSerifDisplayFamily,
+      url: staticFile("fonts/maul/dm-serif-display-400.woff2"),
+      weight: "400",
+    }),
+    loadLocalFont({
+      family: greatVibesFamily,
+      url: staticFile("fonts/maul/great-vibes-400.ttf"),
+      weight: "400",
+    }),
+  ]);
+}
 
 type MaulCreativeTreatment = MaulArtDirectionPlanPayload['creativeTreatment'];
 

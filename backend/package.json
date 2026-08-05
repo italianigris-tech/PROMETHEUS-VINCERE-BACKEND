@@ -30,10 +30,12 @@
     "@fastify/multipart": "^8.3.1",
     "@fastify/websocket": "^10.0.1",
     "@prometheus/shared-types": "*",
+    "@types/fontkit": "^2.0.9",
     "@zilliz/milvus2-sdk-node": "^2.6.13",
     "adm-zip": "^0.5.17",
     "dotenv": "^17.4.2",
     "fastify": "^4.29.1",
+    "fontkit": "^2.0.4",
     "zod": "^4.3.6"
   },
   "devDependencies": {

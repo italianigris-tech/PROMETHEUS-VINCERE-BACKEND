@@ -92,12 +92,12 @@ import {
   type EditorialDirector,
 } from "./editorial-director.js";
 import {
-  createUnavailableSceneEvidenceProvider,
+  createSpeakerTrackSceneEvidenceProvider,
   sceneEvidenceToPlacementInputs,
   type SceneEvidenceProvider,
 } from "./scene-evidence.js";
 import {
-  createUnavailableMaulTypographyProvider,
+  createDefaultMaulTypographyProvider,
   type MaulTypographyProvider,
 } from "./typography-layout.js";
 import {buildMaulTextPlacementPlan} from "./shorts-text-placement.js";
@@ -314,17 +314,13 @@ export class MaulProjectService {
     private readonly textChunkPlanner: ShortsTextChunkPlanner,
     private readonly editorialDirector: EditorialDirector = createJosephEditorialDirector(),
     private readonly sceneEvidenceProvider: SceneEvidenceProvider =
-      createUnavailableSceneEvidenceProvider(
-        "No configured temporal visual-evidence provider is available for this MAUL run.",
-      ),
+      createSpeakerTrackSceneEvidenceProvider(),
     private readonly perceptualTruthProvider: MaulPerceptualTruthProvider =
       createUnavailableMaulPerceptualTruthProvider(
         "No configured rendered-frame Perceptual Truth provider is available for this MAUL run.",
       ),
     private readonly typographyProvider: MaulTypographyProvider =
-      createUnavailableMaulTypographyProvider(
-        "No configured renderer-verified typography measurement provider is available for this MAUL run.",
-      ),
+      createDefaultMaulTypographyProvider(),
     private readonly creativeTreatmentPlanner: CreativeTreatmentPlanner =
       createUnavailableCreativeTreatmentPlanner(),
   ) {}
@@ -1248,6 +1244,9 @@ export class MaulProjectService {
     const sceneEvidence = await this.sceneEvidenceProvider.inspect({
       sourcePath: source.payload.storageKey,
       beats: editorialDirection.visualBeats,
+      speakerTracks: analysis.payload.speakerTracks,
+      timestampMap: timeline.payload.timestampMap,
+      speakerCropTracks: timeline.payload.speakerCropTracks,
     });
     const creativeTreatment = await this.creativeTreatmentPlanner.plan({
       sourceProfile:
@@ -1352,6 +1351,7 @@ export class MaulProjectService {
         text: chunk.text,
       })),
       maximumLineWidthPx: 410,
+      primaryTypeRole: creativeTreatment.treatment.primaryTypeRole,
     });
     const textChunkPayload = buildMaulTextChunkPlanPayload({
       inputs: planningInputs,

@@ -281,6 +281,34 @@ describe("MAUL complete short render path", () => {
           }]
         : [],
     }));
+    const sceneEvidenceInspect = vi.fn(async ({beats}: any) => ({
+      status: "available",
+      providerId: "fixture_scene_evidence",
+      providerVersion: "v1",
+      holds: [{
+        beatId: beats[0].beatId,
+        sceneId: "fixture_scene",
+        discontinuityId: "fixture_discontinuity",
+        outputStartMs: 0,
+        outputEndMs: 3250,
+        sourceFrameIds: ["fixture_frame"],
+        sourceCrop: {x: 0.3418, y: 0, width: 0.3164, height: 1},
+        subject: {
+          trackingState: "tracked",
+          box: {x: 0.08, y: 0.08, width: 0.32, height: 0.72},
+        },
+        existingTextRegions: [],
+        opportunities: [{
+          regionId: "fixture_negative_space",
+          box: {x: 0.52, y: 0.18, width: 0.38, height: 0.22},
+          negativeSpace: 0.92,
+          readability: 0.9,
+          clutter: 0.08,
+          faceInterference: 0,
+          temporalStability: 0.94,
+        }],
+      }],
+    }));
     const context = await createTestApp({
       storageDir: tempDir,
       deps: {
@@ -289,33 +317,7 @@ describe("MAUL complete short render path", () => {
         maulTextChunkPlanner: textChunkPlanner,
         maulCreativeTreatmentPlanner: creativeTreatmentPlanner,
         maulSceneEvidenceProvider: {
-          inspect: vi.fn(async ({beats}: any) => ({
-            status: "available",
-            providerId: "fixture_scene_evidence",
-            providerVersion: "v1",
-            holds: [{
-              beatId: beats[0].beatId,
-              sceneId: "fixture_scene",
-              discontinuityId: "fixture_discontinuity",
-              outputStartMs: 0,
-              outputEndMs: 3250,
-              sourceFrameIds: ["fixture_frame"],
-              subject: {
-                trackingState: "tracked",
-                box: {x: 0.08, y: 0.08, width: 0.32, height: 0.72},
-              },
-              existingTextRegions: [],
-              opportunities: [{
-                regionId: "fixture_negative_space",
-                box: {x: 0.52, y: 0.18, width: 0.38, height: 0.22},
-                negativeSpace: 0.92,
-                readability: 0.9,
-                clutter: 0.08,
-                faceInterference: 0,
-                temporalStability: 0.94,
-              }],
-            }],
-          })),
+          inspect: sceneEvidenceInspect,
         },
         maulPerceptualTruthProvider: {
           evaluate: vi.fn(async ({preview}: any) => ({
@@ -331,8 +333,10 @@ describe("MAUL complete short render path", () => {
           })),
         },
         maulTypographyProvider: {
-          plan: vi.fn(async ({chunks}: any) => ({
-            status: "available",
+          plan: vi.fn(async ({chunks, primaryTypeRole}: any) => {
+            expect(primaryTypeRole).toBe("neutral_grotesk");
+            return {
+              status: "available",
             profile: {
               profileId: "maul-measured-playfair-editorial-v1",
               family: "Playfair Display",
@@ -373,8 +377,9 @@ describe("MAUL complete short render path", () => {
               }],
               measurementIds: [`measurement_${chunk.chunkId}`],
             })),
-            evidenceIds: chunks.map((chunk: any) => `measurement_${chunk.chunkId}`),
-          })),
+              evidenceIds: chunks.map((chunk: any) => `measurement_${chunk.chunkId}`),
+            };
+          }),
         },
       } as any,
     });
@@ -453,6 +458,14 @@ describe("MAUL complete short render path", () => {
     });
     expect(planningResponse.statusCode, planningResponse.body).toBe(201);
     const planningBundle = planningResponse.json().planningBundle;
+    expect(sceneEvidenceInspect).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sourcePath,
+        speakerTracks: [],
+        timestampMap: timeline.payload.timestampMap,
+        speakerCropTracks: timeline.payload.speakerCropTracks,
+      }),
+    );
     expect(textChunkPlanner.plan).toHaveBeenCalledWith(
       expect.objectContaining({
         videoDurationMs: 3250,
