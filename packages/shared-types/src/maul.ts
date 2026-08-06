@@ -12,6 +12,11 @@ export const MAUL_RENDERER_FONT_CATALOG = [
     family: "Playfair Display",
     weight: 700,
   },
+  {
+    assetId: "font_google_playfair_display_italic_700",
+    family: "Playfair Display",
+    weight: 700,
+  },
   {assetId: "font_google_bebas_neue_400", family: "Bebas Neue", weight: 400},
   {
     assetId: "font_google_dm_serif_display_400",
@@ -34,6 +39,29 @@ export const isMaulRendererFontCatalogEntry = (input: {
     font.family === input.family &&
     font.weight === input.weight,
 );
+
+/**
+ * A font receipt binds planner measurement to the precise browser asset that
+ * Remotion must load. Family-name matching is deliberately insufficient.
+ */
+export const maulResolvedFontAssetSchema = z.object({
+  assetId: z.string().trim().min(1),
+  family: z.string().trim().min(1),
+  cssFamily: z.string().trim().min(1),
+  weight: z.number().int().min(1).max(1000),
+  style: z.enum(["normal", "italic", "oblique"]),
+  browserUrl: z.string().trim().regex(/^\//, "browserUrl must be root-relative"),
+  localFilePath: z.string().trim().min(1),
+  localFileSha256: z.string().regex(/^[a-f0-9]{64}$/i),
+  format: z.enum(["ttf", "otf", "woff", "woff2"]),
+  source: z.enum(["bundled", "hydrated_library", "zilliz_materialized"]),
+  license: z.object({
+    status: z.enum(["cleared", "bundled"]),
+    evidence: z.array(z.string().trim().min(1)).min(1),
+  }),
+});
+
+export type MaulResolvedFontAsset = z.infer<typeof maulResolvedFontAssetSchema>;
 
 import {
   maulMinimumLegibilityPrimitiveSchema,
@@ -1122,6 +1150,8 @@ const maulTypographyMotionPlanCommonShape = {
     requestedRole: z.enum(["display", "editorial", "utility"]),
     selectedFamily: z.string().trim().min(1),
     selectedAssetId: idSchema.nullable(),
+    selectedAsset: maulResolvedFontAssetSchema.nullable().default(null),
+    accentAsset: maulResolvedFontAssetSchema.nullable().default(null),
     status: z.enum(["eligible_loaded", "governed_fallback", "blocked"]),
     reason: z.string().trim().min(1),
   }),
@@ -1450,6 +1480,26 @@ export const maulCreativeTreatmentInferenceSchema = z.object({
   }
 });
 
+export const maulReferenceEditorialRhythmProgramSchema = z.object({
+  schemaVersion: z.literal('maul-reference-editorial-rhythm/v1'),
+  fontSystemId: z.enum([
+    'grotesk_editorial_hinge',
+    'condensed_kinetic_hinge',
+    'serif_editorial_hinge',
+  ]),
+  traitReceipt: z.array(z.enum([
+    'cut_led_tempo',
+    'deliberate_readable_holds',
+    'editorial_serif_hinge',
+    'phrase_hierarchy',
+    'semantic_hinge_emphasis',
+  ])).max(5),
+}).strict();
+
+export type MaulReferenceEditorialRhythmProgram = z.infer<
+  typeof maulReferenceEditorialRhythmProgramSchema
+>;
+
 export const maulArtDirectionPlanPayloadSchema = maulPlanBaseSchema.extend({
   schemaVersion: z.literal("maul-art-direction-plan/v1"),
   authorityReceipt: z
@@ -1486,6 +1536,11 @@ export const maulArtDirectionPlanPayloadSchema = maulPlanBaseSchema.extend({
     responseHash: null,
     inferenceReceiptId: null,
     fallbackReason: 'No creative-treatment planner ran for this legacy plan.',
+  }),
+  referenceEditorialRhythm: maulReferenceEditorialRhythmProgramSchema.default({
+    schemaVersion: 'maul-reference-editorial-rhythm/v1',
+    fontSystemId: 'grotesk_editorial_hinge',
+    traitReceipt: [],
   }),
   visualBeats: z
     .array(

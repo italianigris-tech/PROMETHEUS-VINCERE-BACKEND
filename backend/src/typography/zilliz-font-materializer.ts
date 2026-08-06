@@ -1,5 +1,6 @@
 import path from "node:path";
-import {copyFile, mkdir, rm, stat, writeFile} from "node:fs/promises";
+import {createHash} from "node:crypto";
+import {mkdir, readFile, rm, stat, writeFile} from "node:fs/promises";
 
 import AdmZip from "adm-zip";
 
@@ -10,6 +11,7 @@ export type MaterializedRetrievedFontAsset = {
   filePath: string;
   browserUrl: string;
   format: "ttf" | "otf" | "woff" | "woff2";
+  sha256: string;
 };
 
 const fontFilePattern = /\.(ttf|otf|woff|woff2)$/i;
@@ -60,6 +62,44 @@ const inferRemoteFileName = (sourceUrl: string): string => {
   }
 };
 
+const sha256 = (bytes: Buffer): string =>
+  createHash("sha256").update(bytes).digest("hex");
+
+const materializeFontBytes = async ({
+  bytes,
+  fileName,
+  sourceLabel,
+  targetRootDir,
+  servePath,
+}: {
+  bytes: Buffer;
+  fileName: string;
+  sourceLabel: string;
+  targetRootDir: string;
+  servePath: string;
+}): Promise<MaterializedRetrievedFontAsset> => {
+  const format = inferFontFormat(fileName);
+  const contentHash = sha256(bytes);
+  const targetDir = path.join(targetRootDir, contentHash);
+  const outputPath = path.join(targetDir, fileName);
+
+  await mkdir(targetDir, {recursive: true});
+  await writeFile(outputPath, bytes);
+  await assertMaterializedFontExists(outputPath, sourceLabel);
+
+  return {
+    fileName,
+    filePath: normalizePosixPath(outputPath),
+    browserUrl: buildBrowserUrl({
+      familyDir: contentHash,
+      fileName,
+      servePath,
+    }),
+    format,
+    sha256: contentHash,
+  };
+};
+
 export const resetRetrievedFontsDir = async (targetRootDir = resolveRetrievedFontsDir()): Promise<void> => {
   await rm(targetRootDir, {recursive: true, force: true});
   await mkdir(targetRootDir, {recursive: true});
@@ -76,26 +116,15 @@ export const materializeLocalFontAsset = async ({
   targetRootDir?: string;
   servePath?: string;
 }): Promise<MaterializedRetrievedFontAsset> => {
-  const familyDir = sanitizeFontPathSegment(family);
   const fileName = path.basename(filePath);
-  const format = inferFontFormat(fileName);
-  const targetDir = path.join(targetRootDir, familyDir);
-  const outputPath = path.join(targetDir, fileName);
-
-  await mkdir(targetDir, {recursive: true});
-  await copyFile(filePath, outputPath);
-  await assertMaterializedFontExists(outputPath, filePath);
-
-  return {
+  void family;
+  return materializeFontBytes({
+    bytes: await readFile(filePath),
     fileName,
-    filePath: normalizePosixPath(outputPath),
-    browserUrl: buildBrowserUrl({
-      familyDir,
-      fileName,
-      servePath
-    }),
-    format
-  };
+    sourceLabel: filePath,
+    targetRootDir,
+    servePath,
+  });
 };
 
 export const materializeRetrievedFontAsset = async ({
@@ -117,10 +146,7 @@ export const materializeRetrievedFontAsset = async ({
   }
 
   const buffer = Buffer.from(await response.arrayBuffer());
-  const familyDir = sanitizeFontPathSegment(family);
-  const targetDir = path.join(targetRootDir, familyDir);
-  await rm(targetDir, {recursive: true, force: true});
-  await mkdir(targetDir, {recursive: true});
+  void family;
 
   const isZipArchive = sourceUrl.toLowerCase().endsWith(".zip") || buffer.subarray(0, 4).toString("hex") === "504b0304";
 
@@ -134,20 +160,13 @@ export const materializeRetrievedFontAsset = async ({
 
     const materializedEntries = await Promise.all(entries.map(async (entry) => {
       const fileName = path.basename(entry.entryName);
-      const outputPath = path.join(targetDir, fileName);
-      await writeFile(outputPath, entry.getData());
-      await assertMaterializedFontExists(outputPath, `${sourceUrl}#${entry.entryName}`);
-
-      return {
+      return materializeFontBytes({
+        bytes: entry.getData(),
         fileName,
-        filePath: normalizePosixPath(outputPath),
-        browserUrl: buildBrowserUrl({
-          familyDir,
-          fileName,
-          servePath
-        }),
-        format: inferFontFormat(fileName)
-      } satisfies MaterializedRetrievedFontAsset;
+        sourceLabel: `${sourceUrl}#${entry.entryName}`,
+        targetRootDir,
+        servePath,
+      });
     }));
 
     return materializedEntries.sort((left, right) => left.fileName.localeCompare(right.fileName));
@@ -155,19 +174,11 @@ export const materializeRetrievedFontAsset = async ({
 
   const sourceFileName = inferRemoteFileName(sourceUrl);
   const normalizedFileName = fontFilePattern.test(sourceFileName) ? sourceFileName : `${sourceFileName}.ttf`;
-  const format = inferFontFormat(normalizedFileName);
-  const outputPath = path.join(targetDir, normalizedFileName);
-  await writeFile(outputPath, buffer);
-  await assertMaterializedFontExists(outputPath, sourceUrl);
-
-  return [{
+  return [await materializeFontBytes({
+    bytes: buffer,
     fileName: normalizedFileName,
-    filePath: normalizePosixPath(outputPath),
-    browserUrl: buildBrowserUrl({
-      familyDir,
-      fileName: normalizedFileName,
-      servePath
-    }),
-    format
-  }];
+    sourceLabel: sourceUrl,
+    targetRootDir,
+    servePath,
+  })];
 };

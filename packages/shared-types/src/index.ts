@@ -103,6 +103,13 @@ export {
 } from "./shorts-text-chunking.js";
 
 export {
+  maulEditorialLockupSchema,
+  maulEditorialLockupTokenStyleSchema,
+  type MaulEditorialLockup,
+  type MaulEditorialLockupTokenStyle,
+} from "./maul-editorial-lockup.js";
+
+export {
   maulMinimumLegibilityPrimitiveSchema,
   maulNormalizedBoxSchema,
   maulOutputCompositionIntervalSchema,
@@ -165,6 +172,7 @@ export {
 export {
   MAUL_RENDERER_FONT_CATALOG,
   isMaulRendererFontCatalogEntry,
+  maulResolvedFontAssetSchema,
   maulAnalysisPayloadSchema,
   maulArtifactCreateRequestSchema,
   maulArtifactLineageSchema,
@@ -277,6 +285,7 @@ export {
   maulTreatmentCatalogRequestSchema,
   maulTreatmentIdSchema,
   type MaulArtifactCreateRequest,
+  type MaulResolvedFontAsset,
   type MaulArtifactLineage,
   type MaulArtifactRecord,
   type MaulArtifactType,

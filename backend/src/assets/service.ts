@@ -353,6 +353,14 @@ export class AssetRetrievalService {
     return embedding ?? [];
   }
 
+  /** Shares the configured embedding contract with the font-intelligence collection. */
+  public async embedTypographyQuery(queryText: string): Promise<number[]> {
+    if (!this.env.ASSET_MILVUS_ENABLED) {
+      throw new Error("ASSET_MILVUS_ENABLED=false");
+    }
+    return this.embedQueryText(queryText);
+  }
+
   private buildFilter(request: AssetRetrievalRequest): string | undefined {
     const filters: string[] = [];
 

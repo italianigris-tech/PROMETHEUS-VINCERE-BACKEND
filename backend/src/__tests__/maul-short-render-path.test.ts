@@ -1,10 +1,13 @@
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { materializeShortsTextChunkProposal } from "../maul/shorts-text-chunking";
+import { createResolvedMaulTypographyProvider } from "../maul/typography-layout";
+import { loadHydratedMaulFontAssets } from "../maul/zilliz-font-assets";
 import { cleanupTempDir, createTestApp, makeTempDir } from "./test-utils";
 
 const sourceBytes = Buffer.from("maul-test-source-video");
@@ -238,8 +241,8 @@ describe("MAUL complete short render path", () => {
           primaryTypeRole: 'neutral_grotesk',
           accentTypeRole: 'editorial_italic',
           palette: {
-            primary: '#F7F3EA',
-            accent: '#F06424',
+            primary: '#00E5FF',
+            accent: '#F4F1E8',
             sourceTreatment: 'dark_warm_cool_contrast',
           },
           textDensity: 'medium',
@@ -300,7 +303,7 @@ describe("MAUL complete short render path", () => {
         existingTextRegions: [],
         opportunities: [{
           regionId: "fixture_negative_space",
-          box: {x: 0.52, y: 0.18, width: 0.38, height: 0.22},
+          box: {x: 0.48, y: 0.36, width: 0.44, height: 0.28},
           negativeSpace: 0.92,
           readability: 0.9,
           clutter: 0.08,
@@ -309,6 +312,42 @@ describe("MAUL complete short render path", () => {
         }],
       }],
     }));
+    const hydratedFonts = loadHydratedMaulFontAssets();
+    const hydratedPrimary = hydratedFonts.find(
+      (font) => font.assetId === "font_almera_baa51ed42a1d",
+    );
+    if (!hydratedPrimary) {
+      throw new Error("The MAUL render-path proof requires a hydrated Almera primary binary.");
+    }
+    const greatVibesPath = path.resolve(
+      process.cwd(),
+      "../remotion-app/public/fonts/maul/great-vibes-400.ttf",
+    );
+    const greatVibes = {
+      assetId: "font_google_great_vibes_400",
+      family: "Great Vibes",
+      cssFamily: "Great Vibes",
+      weight: 400,
+      style: "normal" as const,
+      browserUrl: "/fonts/maul/great-vibes-400.ttf",
+      localFilePath: greatVibesPath,
+      localFileSha256: createHash("sha256").update(readFileSync(greatVibesPath)).digest("hex"),
+      format: "ttf" as const,
+      source: "bundled" as const,
+      license: {
+        status: "bundled" as const,
+        evidence: ["Bundled MAUL renderer font catalog."],
+      },
+    };
+    const measuredTypographyProvider = createResolvedMaulTypographyProvider({
+      primary: hydratedPrimary,
+      accent: greatVibes,
+    });
+    const measuredTypographyPlan = vi.fn(async (input: any) => {
+      expect(input.primaryTypeRole).toBe("neutral_grotesk");
+      expect(input.fontSystemId).toBe("grotesk_editorial_hinge");
+      return measuredTypographyProvider.plan(input);
+    });
     const context = await createTestApp({
       storageDir: tempDir,
       deps: {
@@ -332,55 +371,7 @@ describe("MAUL complete short render path", () => {
             },
           })),
         },
-        maulTypographyProvider: {
-          plan: vi.fn(async ({chunks, primaryTypeRole}: any) => {
-            expect(primaryTypeRole).toBe("neutral_grotesk");
-            return {
-              status: "available",
-            profile: {
-              profileId: "maul-measured-playfair-editorial-v1",
-              family: "Playfair Display",
-              approvedFontAssets: [{
-                assetId: "font_google_playfair_display_700",
-                family: "Playfair Display",
-                weights: [400, 700, 900],
-              }],
-              loadedFallback: {
-                assetId: "font_google_playfair_display_700",
-                family: "Playfair Display",
-                weight: 700,
-              },
-              metrics: {
-                fingerprint: "c".repeat(64),
-                maxGlyphWidthEm: 0.82,
-                maxLineHeightEm: 1.18,
-                minimumFontSizePx: 48,
-                maximumFontSizePx: 88,
-                minimumLineHeight: 1,
-                maximumLineHeight: 1.2,
-              },
-            },
-            fontResolution: {
-              requestedRole: "editorial",
-              selectedFamily: "Playfair Display",
-              selectedAssetId: "font_google_playfair_display_700",
-              status: "eligible_loaded",
-              reason: "Fixture measurement provider proved Playfair Display.",
-            },
-            layouts: chunks.map((chunk: any) => ({
-              chunkId: chunk.chunkId,
-              fontSizePx: 72,
-              lines: [{
-                text: chunk.text,
-                widthPx: 360,
-                measurementId: `measurement_${chunk.chunkId}`,
-              }],
-              measurementIds: [`measurement_${chunk.chunkId}`],
-            })),
-              evidenceIds: chunks.map((chunk: any) => `measurement_${chunk.chunkId}`),
-            };
-          }),
-        },
+        maulTypographyProvider: {plan: measuredTypographyPlan},
       } as any,
     });
     const projectResponse = await context.app.inject({
@@ -553,13 +544,18 @@ describe("MAUL complete short render path", () => {
       compositionDirection: 'subject_integrated',
       primaryTypeRole: 'neutral_grotesk',
       accentTypeRole: 'editorial_italic',
-      palette: {primary: '#F7F3EA', accent: '#F06424'},
+      palette: {primary: '#00E5FF', accent: '#F4F1E8'},
     });
     expect(plans.artDirection.payload.creativeTreatmentInference).toMatchObject({
       status: 'invoked',
       model: 'gpt-5.6-terra',
       reasoningEffort: 'high',
       inferenceReceiptId: 'maul_creative_fixture',
+    });
+    expect(plans.artDirection.payload.referenceEditorialRhythm).toEqual({
+      schemaVersion: "maul-reference-editorial-rhythm/v1",
+      fontSystemId: "grotesk_editorial_hinge",
+      traitReceipt: [],
     });
     expect(plans.artDirection.payload.visualBeats).toEqual(
       expect.arrayContaining([
@@ -598,14 +594,37 @@ describe("MAUL complete short render path", () => {
     );
     expect(plans.textPlacement.payload.status).toBe("planned");
     expect(plans.textPlacement.payload.segments.length).toBeGreaterThan(0);
+    expect(
+      plans.textPlacement.payload.segments.every((segment: any) =>
+        segment.editorialLockup?.choreography?.tokenOrder.join("|") ===
+          segment.tokenIds.join("|"),
+      ),
+    ).toBe(true);
+    expect(
+      plans.textPlacement.payload.segments.some(
+        (segment: any) => segment.editorialLockup?.overlap?.enabled === true,
+      ),
+    ).toBe(true);
+    expect(
+      plans.textAnimation.payload.programs.filter(
+        (program: any) => program.target.scope === "segment",
+      ).map((program: any) => program.treatment),
+    ).toEqual([
+      "documentary-soft-lock",
+      "documentary-soft-lock",
+    ]);
     expect(plans.typographyMotion.payload).toMatchObject({
       schemaVersion: "maul-typography-motion-plan/v3",
       textChunkPlanArtifactId: plans.textChunk.artifactId,
       textPlacementPlanArtifactId: plans.textPlacement.artifactId,
       textAnimationPlanArtifactId: plans.textAnimation.artifactId,
       fontResolution: {
-        selectedFamily: "Playfair Display",
-        selectedAssetId: "font_google_playfair_display_700",
+        selectedFamily: "Almera",
+        selectedAssetId: "font_almera_baa51ed42a1d",
+        accentAsset: expect.objectContaining({
+          assetId: "font_google_great_vibes_400",
+          style: "normal",
+        }),
         status: "eligible_loaded",
       },
     });

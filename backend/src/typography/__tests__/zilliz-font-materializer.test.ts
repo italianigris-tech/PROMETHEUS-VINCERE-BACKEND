@@ -26,13 +26,13 @@ describe("zilliz font materializer", () => {
       });
 
       expect(results).toHaveLength(2);
-      expect(results[0]?.browserUrl).toMatch(/^\/fonts\/retrieved\/aesthetic\//);
-      const boldPath = path.join(tempRoot, "aesthetic", "Aesthetic-Bold.ttf");
-      const regularPath = path.join(tempRoot, "aesthetic", "Aesthetic-Regular.ttf");
-      await expect(stat(boldPath)).resolves.toBeDefined();
-      await expect(stat(regularPath)).resolves.toBeDefined();
-      expect(await readFile(boldPath, "utf8")).toBe("bold-font");
-      expect(results.some((entry) => entry.browserUrl === "/fonts/retrieved/aesthetic/Aesthetic-Bold.ttf")).toBe(true);
+      expect(results[0]?.browserUrl).toMatch(/^\/fonts\/retrieved\/[a-f0-9]{64}\//);
+      const bold = results.find((entry) => entry.fileName === "Aesthetic-Bold.ttf");
+      const regular = results.find((entry) => entry.fileName === "Aesthetic-Regular.ttf");
+      await expect(stat(bold!.filePath)).resolves.toBeDefined();
+      await expect(stat(regular!.filePath)).resolves.toBeDefined();
+      expect(await readFile(bold!.filePath, "utf8")).toBe("bold-font");
+      expect(bold?.browserUrl).toMatch(/^\/fonts\/retrieved\/[a-f0-9]{64}\/Aesthetic-Bold\.ttf$/);
     } finally {
       await rm(tempRoot, {recursive: true, force: true});
     }
@@ -57,8 +57,8 @@ describe("zilliz font materializer", () => {
       });
 
       expect(results.map((result) => result.format).sort()).toEqual(["otf", "woff2"]);
-      await expect(stat(path.join(tempRoot, "ageya", "Ageya-Regular.otf"))).resolves.toBeDefined();
-      await expect(stat(path.join(tempRoot, "ageya", "Ageya-Regular.woff2"))).resolves.toBeDefined();
+      await expect(stat(results.find((entry) => entry.fileName === "Ageya-Regular.otf")!.filePath)).resolves.toBeDefined();
+      await expect(stat(results.find((entry) => entry.fileName === "Ageya-Regular.woff2")!.filePath)).resolves.toBeDefined();
     } finally {
       await rm(tempRoot, {recursive: true, force: true});
     }
@@ -81,10 +81,37 @@ describe("zilliz font materializer", () => {
       });
 
       expect(results).toHaveLength(1);
-      expect(results[0]?.browserUrl).toBe("/fonts/retrieved/ageya/Ageya-Regular.ttf");
-      const outputPath = path.join(tempRoot, "ageya", "Ageya-Regular.ttf");
-      await expect(stat(outputPath)).resolves.toBeDefined();
-      expect(await readFile(outputPath, "utf8")).toBe("ttf-font");
+      expect(results[0]?.browserUrl).toMatch(/^\/fonts\/retrieved\/[a-f0-9]{64}\/Ageya-Regular\.ttf$/);
+      await expect(stat(results[0]!.filePath)).resolves.toBeDefined();
+      expect(await readFile(results[0]!.filePath, "utf8")).toBe("ttf-font");
+    } finally {
+      await rm(tempRoot, {recursive: true, force: true});
+    }
+  });
+
+  it("uses a content-hashed public path so two sources cannot overwrite a planned font", async () => {
+    const tempRoot = await mkdtemp(path.join(os.tmpdir(), "zilliz-font-materializer-hash-"));
+    try {
+      const {materializeRetrievedFontAsset} = await import("../zilliz-font-materializer");
+      const first = await materializeRetrievedFontAsset({
+        family: "Editorial",
+        sourceUrl: "https://r2.example.com/Editorial-Regular.ttf",
+        targetRootDir: tempRoot,
+        fetchImpl: async () => new Response(Buffer.from("first-font-binary")),
+      });
+      const second = await materializeRetrievedFontAsset({
+        family: "Editorial",
+        sourceUrl: "https://r2.example.com/Editorial-Regular.ttf",
+        targetRootDir: tempRoot,
+        fetchImpl: async () => new Response(Buffer.from("second-font-binary")),
+      });
+
+      expect(first[0]?.browserUrl).toMatch(/^\/fonts\/retrieved\/[a-f0-9]{64}\//);
+      expect(second[0]?.browserUrl).toMatch(/^\/fonts\/retrieved\/[a-f0-9]{64}\//);
+      expect(first[0]?.browserUrl).not.toBe(second[0]?.browserUrl);
+      expect(first[0]?.sha256).toMatch(/^[a-f0-9]{64}$/);
+      expect(await readFile(first[0]!.filePath, "utf8")).toBe("first-font-binary");
+      expect(await readFile(second[0]!.filePath, "utf8")).toBe("second-font-binary");
     } finally {
       await rm(tempRoot, {recursive: true, force: true});
     }

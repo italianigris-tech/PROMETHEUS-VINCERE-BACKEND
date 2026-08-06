@@ -105,7 +105,8 @@ describe("pipeline integration", () => {
                 fileName: "Aesthetic-Regular.ttf",
                 filePath: "C:\\tmp\\retrieved\\aesthetic\\Aesthetic-Regular.ttf",
                 browserUrl: "/fonts/retrieved/aesthetic/Aesthetic-Regular.ttf",
-                format: "ttf"
+                format: "ttf",
+                sha256: "a".repeat(64)
               }
             ],
             score: 0.97,
@@ -122,7 +123,8 @@ describe("pipeline integration", () => {
                 fileName: "Ageya-Regular.ttf",
                 filePath: "C:\\tmp\\retrieved\\ageya\\Ageya-Regular.ttf",
                 browserUrl: "/fonts/retrieved/ageya/Ageya-Regular.ttf",
-                format: "ttf"
+                format: "ttf",
+                sha256: "b".repeat(64)
               }
             ],
             score: 0.91,

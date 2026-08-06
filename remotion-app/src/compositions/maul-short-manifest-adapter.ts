@@ -4,8 +4,10 @@ import {
   maulUnifiedShortRenderManifestV2Schema,
   maulUnifiedShortRenderManifestV3Schema,
   type MaulEditorialTimelinePayload,
+  type MaulEditorialLockup,
   type MaulMinimumLegibilityPrimitive,
   type MaulNormalizedBox,
+  type MaulResolvedFontAsset,
   type MaulOutputCompositionInterval,
   type MaulStableTextTokenV2,
   type MaulTextChunkPlanPayload,
@@ -309,6 +311,7 @@ export type MaulPlannedTextRecord = {
   variantId: string;
   fallbackCode: string | null;
   fallbackReason: string | null;
+  editorialLockup?: MaulEditorialLockup;
   alignment: MaulTextPlacementSegment["alignment"];
   minimumLegibilityPrimitive: MaulMinimumLegibilityPrimitive;
   animationProgram?: MaulTextAnimationProgram | null;
@@ -322,7 +325,15 @@ export type MaulPlannedTextRecord = {
     fontSizePx: number;
     lineHeight: number;
     hierarchyScale: number;
+    cssFamily?: string;
+    browserUrl?: string;
+    localFileSha256?: string;
+    format?: MaulResolvedFontAsset["format"];
+    source?: MaulResolvedFontAsset["source"];
+    style?: MaulResolvedFontAsset["style"];
+    license?: MaulResolvedFontAsset["license"];
   };
+  accentFont?: MaulResolvedFontAsset;
   lines: Array<{
     lineId: string;
     text: string;
@@ -454,6 +465,15 @@ export const buildMaulPlannedTextRecords = ({
     const selectedAsset = profile?.approvedFontAssets.find(
       (asset) => asset.assetId === typographyMotion.fontResolution.selectedAssetId,
     );
+    const selectedResolvedAsset = typographyMotion.fontResolution.selectedAsset;
+    const accentResolvedAsset = typographyMotion.fontResolution.accentAsset;
+    const resolvedAssetMatches = Boolean(
+      selectedResolvedAsset &&
+      selectedAsset &&
+      selectedResolvedAsset.assetId === selectedAsset.assetId &&
+      selectedResolvedAsset.family === profile?.family &&
+      selectedResolvedAsset.weight === profile?.loadedFallback.weight,
+    );
     const declaredSafeCaptionFallback =
       segment.fallbackCode === "caption_safe_fallback" &&
       typographyMotion.fontResolution.status === "governed_fallback";
@@ -474,6 +494,7 @@ export const buildMaulPlannedTextRecords = ({
       );
     }
     if (
+      !resolvedAssetMatches &&
       !isMaulRendererFontCatalogEntry({
         assetId: selectedAsset.assetId,
         family: profile.loadedFallback.family,
@@ -485,6 +506,53 @@ export const buildMaulPlannedTextRecords = ({
       );
     }
 
+    if (segment.editorialLockup) {
+      const lockupReceiptByRole = new Map([
+        [
+          "primary",
+          {
+            assetId: selectedResolvedAsset?.assetId ?? profile.loadedFallback.assetId,
+            family: selectedResolvedAsset?.family ?? profile.loadedFallback.family,
+            weight: selectedResolvedAsset?.weight ?? profile.loadedFallback.weight,
+            style: selectedResolvedAsset?.style ??
+              (profile.loadedFallback.assetId.includes("_italic_")
+                ? "italic"
+                : "normal"),
+          },
+        ],
+        ...(accentResolvedAsset
+          ? [[
+              "accent",
+              {
+                assetId: accentResolvedAsset.assetId,
+                family: accentResolvedAsset.family,
+                weight: accentResolvedAsset.weight,
+                style: accentResolvedAsset.style,
+              },
+            ] as const]
+          : []),
+      ]);
+      if (segment.editorialLockup.accentTokenIds.length > 0 && !accentResolvedAsset) {
+        throw new Error(
+          `Placement ${segment.segmentId} editorial lockup has no resolved accent font receipt.`,
+        );
+      }
+      for (const style of segment.editorialLockup.tokenStyles) {
+        const receipt = lockupReceiptByRole.get(style.role);
+        if (
+          !receipt ||
+          style.fontAssetId !== receipt.assetId ||
+          style.fontFamily !== receipt.family ||
+          style.fontWeight !== receipt.weight ||
+          style.fontStyle !== receipt.style
+        ) {
+          throw new Error(
+            `Placement ${segment.segmentId} editorial lockup font receipt does not match its resolved ${style.role} font.`,
+          );
+        }
+      }
+    }
+
     return {
       segmentId: segment.segmentId,
       outputStartMs: segment.outputStartMs,
@@ -494,6 +562,7 @@ export const buildMaulPlannedTextRecords = ({
       variantId: segment.variantId,
       fallbackCode: segment.fallbackCode,
       fallbackReason: segment.fallbackReason,
+      editorialLockup: segment.editorialLockup,
       alignment: segment.alignment,
       minimumLegibilityPrimitive: segment.minimumLegibilityPrimitive,
       animationProgram,
@@ -507,7 +576,19 @@ export const buildMaulPlannedTextRecords = ({
         fontSizePx: segment.compatibility.nominalFontSizePx,
         lineHeight: segment.compatibility.lineHeight,
         hierarchyScale: segment.compatibility.hierarchyScale,
+        ...(selectedResolvedAsset
+          ? {
+              cssFamily: selectedResolvedAsset.cssFamily,
+              browserUrl: selectedResolvedAsset.browserUrl,
+              localFileSha256: selectedResolvedAsset.localFileSha256,
+              format: selectedResolvedAsset.format,
+              source: selectedResolvedAsset.source,
+              style: selectedResolvedAsset.style,
+              license: selectedResolvedAsset.license,
+            }
+          : {}),
       },
+      accentFont: typographyMotion.fontResolution.accentAsset ?? undefined,
       lines: segment.lines.map((line) => ({
         lineId: line.lineId,
         text: line.text,

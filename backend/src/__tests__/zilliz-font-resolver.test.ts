@@ -52,7 +52,8 @@ describe("zilliz-font-resolver", () => {
       fileName: `${family}.ttf`,
       filePath: `C:\\tmp\\retrieved\\${family}\\${family}.ttf`,
       browserUrl: `/fonts/retrieved/${family}/${family}.ttf`,
-      format: "ttf" as const
+      format: "ttf" as const,
+      sha256: "a".repeat(64)
     }]);
 
     const resolved = await resolveFontsByVibe("luxury restraint with contextual empathy", 2, {
@@ -97,7 +98,8 @@ describe("zilliz-font-resolver", () => {
         fileName: `${family}.ttf`,
         filePath: `C:\\tmp\\retrieved\\${family}\\${family}.ttf`,
         browserUrl: `/fonts/retrieved/${family}/${family}.ttf`,
-        format: "ttf" as const
+        format: "ttf" as const,
+        sha256: "b".repeat(64)
       }]
     });
 
@@ -122,7 +124,7 @@ describe("zilliz-font-resolver", () => {
       expect(materialized).toBeDefined();
       expect(materialized!.filePath).not.toContain("\\");
       expect(materialized!.browserUrl).not.toContain("\\");
-      expect(materialized!.browserUrl).toBe("/fonts/retrieved/Canela-Regular/Canela-Regular.ttf");
+      expect(materialized!.browserUrl).toMatch(/^\/fonts\/retrieved\/[a-f0-9]{64}\/Canela-Regular\.ttf$/);
       expect(existsSync(materialized!.filePath)).toBe(true);
     } finally {
       await rm(root, {recursive: true, force: true});

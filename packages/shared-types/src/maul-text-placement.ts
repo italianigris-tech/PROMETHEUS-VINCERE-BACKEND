@@ -1,4 +1,5 @@
 import {z} from "zod";
+import {maulEditorialLockupSchema} from "./maul-editorial-lockup.js";
 
 import {
   joinShortsTextTokens,
@@ -597,6 +598,7 @@ export const maulTextPlacementSegmentSchema = z
     confidence: confidenceSchema,
     fallbackCode: idSchema.nullable(),
     fallbackReason: z.string().trim().min(1).nullable(),
+    editorialLockup: maulEditorialLockupSchema.optional(),
   })
   .superRefine((segment, ctx) => {
     if (segment.outputEndMs <= segment.outputStartMs) {
@@ -671,6 +673,22 @@ export const maulTextPlacementSegmentSchema = z
         code: z.ZodIssueCode.custom,
         path: ["fallbackReason"],
         message: "Placement fallback codes require matching reasons.",
+      });
+    }
+
+    if (
+      segment.editorialLockup &&
+      (segment.editorialLockup.choreography.tokenOrder.length !==
+        segment.tokenIds.length ||
+        segment.editorialLockup.choreography.tokenOrder.some(
+          (tokenId, index) => tokenId !== segment.tokenIds[index],
+        ))
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["editorialLockup", "choreography", "tokenOrder"],
+        message:
+          "Editorial lockup choreography must match the placement token order exactly.",
       });
     }
   });

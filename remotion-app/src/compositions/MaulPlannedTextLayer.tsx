@@ -2,6 +2,8 @@ import {loadFont as loadLocalFont} from "@remotion/fonts";
 import {
   joinShortsTextTokens,
   type MaulArtDirectionPlanPayload,
+  type MaulEditorialLockup,
+  type MaulEditorialLockupTokenStyle,
   type MaulTextAnimationProgram,
   type MaulTextAnimationTransform,
 } from "@prometheus/shared-types";
@@ -74,6 +76,35 @@ if (typeof FontFace !== "undefined") {
 }
 
 type MaulCreativeTreatment = MaulArtDirectionPlanPayload['creativeTreatment'];
+type MaulReferenceEditorialRhythm =
+  MaulArtDirectionPlanPayload['referenceEditorialRhythm'];
+
+const MAUL_FONT_ASSETS = {
+  "font_google_dm_sans_700": {
+    family: dmSansFamily,
+    weight: 700,
+  },
+  "font_google_playfair_display_700": {
+    family: playfairDisplayFamily,
+    weight: 700,
+  },
+  "font_google_playfair_display_italic_700": {
+    family: playfairDisplayFamily,
+    weight: 700,
+  },
+  "font_google_bebas_neue_400": {
+    family: bebasNeueFamily,
+    weight: 400,
+  },
+  "font_google_dm_serif_display_400": {
+    family: dmSerifDisplayFamily,
+    weight: 400,
+  },
+  "font_google_great_vibes_400": {
+    family: greatVibesFamily,
+    weight: 400,
+  },
+} as const;
 
 const renderedFamilyFor = (family: string): string => {
   switch (family) {
@@ -84,6 +115,98 @@ const renderedFamilyFor = (family: string): string => {
     case "Playfair Display": return playfairDisplayFamily;
     default: return family;
   }
+};
+
+const renderedFontFor = ({
+  assetId,
+  family,
+  cssFamily,
+  weight,
+  style,
+  browserUrl,
+}: {
+  assetId: string;
+  family: string;
+  cssFamily?: string;
+  weight?: number;
+  style?: "normal" | "italic" | "oblique";
+  browserUrl?: string;
+}) => {
+  if (cssFamily && browserUrl && weight) {
+    return {assetId, family: cssFamily, weight, style: style ?? "normal", browserUrl};
+  }
+  const bundled = MAUL_FONT_ASSETS[assetId as keyof typeof MAUL_FONT_ASSETS];
+  if (bundled) {
+    return {assetId, ...bundled, style: style ?? "normal" as const};
+  }
+  return {
+    assetId,
+    family: renderedFamilyFor(family),
+    weight: weight,
+    style: style ?? "normal",
+    browserUrl,
+  };
+};
+
+const accentFontFor = (
+  record: MaulPlannedTextRecord,
+  rhythm: MaulReferenceEditorialRhythm | undefined,
+) => {
+  if (record.accentFont) {
+    return renderedFontFor({
+      assetId: record.accentFont.assetId,
+      family: record.accentFont.family,
+      cssFamily: record.accentFont.cssFamily,
+      weight: record.accentFont.weight,
+      style: record.accentFont.style,
+      browserUrl: record.accentFont.browserUrl,
+    });
+  }
+  if (rhythm?.fontSystemId === "serif_editorial_hinge") {
+    return renderedFontFor({
+      assetId: "font_google_great_vibes_400",
+      ...MAUL_FONT_ASSETS.font_google_great_vibes_400,
+    });
+  }
+  return renderedFontFor({
+    assetId: "font_google_playfair_display_italic_700",
+    ...MAUL_FONT_ASSETS.font_google_playfair_display_italic_700,
+    style: "italic",
+  });
+};
+
+const loadedPlannedFontKeys = new Set<string>();
+
+export const resolveMaulFontBrowserUrl = (
+  browserUrl: string,
+  resolveStaticAsset: (assetPath: string) => string = staticFile,
+): string => /^(https?:)?\/\//iu.test(browserUrl)
+  ? browserUrl
+  : resolveStaticAsset(browserUrl.replace(/^\/+/, ""));
+
+const ensurePlannedFontLoaded = ({
+  assetId,
+  family,
+  weight,
+  style,
+  browserUrl,
+}: {
+  assetId: string;
+  family: string;
+  weight?: number;
+  style?: "normal" | "italic" | "oblique";
+  browserUrl?: string;
+}): void => {
+  if (typeof FontFace === "undefined" || !browserUrl || !weight) return;
+  const key = `${assetId}:${browserUrl}:${weight}:${style ?? "normal"}`;
+  if (loadedPlannedFontKeys.has(key)) return;
+  loadedPlannedFontKeys.add(key);
+  void loadLocalFont({
+    family,
+    url: resolveMaulFontBrowserUrl(browserUrl),
+    weight: String(weight),
+    style: style ?? "normal",
+  });
 };
 
 const MAUL_CINEMATIC_TREATMENT_IDS = new Set([
@@ -265,6 +388,79 @@ const animationStyle = (transform: MaulTextAnimationTransform) => ({
   transformOrigin: "center center",
 });
 
+const lockupStyleFor = (
+  lockup: MaulEditorialLockup | undefined,
+  tokenId: string,
+): MaulEditorialLockupTokenStyle | undefined =>
+  lockup?.tokenStyles.find((style) => style.tokenId === tokenId);
+
+export const resolveMaulEditorialWordTransform = ({
+  lockup,
+  tokenId,
+  absoluteTimeMs,
+  segmentStartMs,
+  fontSizePx,
+}: {
+  lockup: MaulEditorialLockup;
+  tokenId: string;
+  absoluteTimeMs: number;
+  segmentStartMs: number;
+  fontSizePx: number;
+}) => {
+  const orderIndex = lockup.choreography.tokenOrder.indexOf(tokenId);
+  const style = lockupStyleFor(lockup, tokenId);
+  if (orderIndex < 0 || !style) return null;
+  const revealStart = segmentStartMs + orderIndex * lockup.choreography.staggerMs;
+  const revealEnd = revealStart + lockup.choreography.entryDurationMs;
+  const progress = Math.max(
+    0,
+    Math.min(1, (absoluteTimeMs - revealStart) / Math.max(1, revealEnd - revealStart)),
+  );
+  const overlapOffsetXPx =
+    lockup.overlap.enabled && style.role === "accent"
+      ? -fontSizePx * lockup.overlap.ratio
+      : 0;
+  return {
+    opacity: style.opacity * progress,
+    translateXPx: style.offsetXPx + overlapOffsetXPx + (1 - progress) * -22,
+    translateYPx: style.offsetYPx + (1 - progress) * 10,
+    scale: style.fontSizeScale * (0.94 + progress * 0.06),
+    rotationDeg: style.rotationDeg,
+  };
+};
+
+export type MaulEditorialWordTransform = {
+  opacity: number;
+  translateXPx: number;
+  translateYPx: number;
+  scale: number;
+  rotationDeg: number;
+};
+
+export const composeMaulTextTransforms = ({
+  editorial,
+  animation,
+}: {
+  editorial: MaulEditorialWordTransform | null;
+  animation: MaulTextAnimationTransform | null;
+}): MaulEditorialWordTransform | null => {
+  if (!editorial && !animation) return null;
+  if (!editorial) {
+    return {
+      ...animation!,
+      rotationDeg: 0,
+    };
+  }
+  if (!animation) return editorial;
+  return {
+    opacity: editorial.opacity * animation.opacity,
+    translateXPx: editorial.translateXPx + animation.translateXPx,
+    translateYPx: editorial.translateYPx + animation.translateYPx,
+    scale: editorial.scale * animation.scale,
+    rotationDeg: editorial.rotationDeg,
+  };
+};
+
 export const MaulPlannedTextCard: React.FC<{
   record: MaulPlannedTextRecord;
   absoluteTimeMs: number;
@@ -273,6 +469,7 @@ export const MaulPlannedTextCard: React.FC<{
   textColor: string;
   accentColor: string;
   creativeTreatment?: MaulCreativeTreatment;
+  referenceEditorialRhythm?: MaulReferenceEditorialRhythm;
 }> = ({
   record,
   absoluteTimeMs,
@@ -281,6 +478,7 @@ export const MaulPlannedTextCard: React.FC<{
   textColor,
   accentColor,
   creativeTreatment,
+  referenceEditorialRhythm,
 }) => {
   const animationPrograms = record.animationPrograms?.length
     ? record.animationPrograms
@@ -341,6 +539,10 @@ export const MaulPlannedTextCard: React.FC<{
   const primitive = compileMaulLegibilityPrimitive(
     record.minimumLegibilityPrimitive,
   );
+  const primaryFont = renderedFontFor(record.font);
+  const accentFont = accentFontFor(record, referenceEditorialRhythm);
+  ensurePlannedFontLoaded(primaryFont);
+  ensurePlannedFontLoaded(accentFont);
   const segmentAnimation = resolvedAnimations.find(
     ({program}) => program.target.scope === "segment",
   )?.transform ?? null;
@@ -355,11 +557,19 @@ export const MaulPlannedTextCard: React.FC<{
       data-font-asset-id={record.font.assetId}
       data-font-profile-id={record.font.profileId}
       data-font-metrics-fingerprint={record.font.metricsFingerprint}
+      data-primary-font-asset-id={record.font.assetId}
+      data-primary-font-url={primaryFont.browserUrl}
+      data-accent-font-asset-id={accentFont.assetId}
+      data-accent-font-url={accentFont.browserUrl}
+      data-reference-editorial-font-system={referenceEditorialRhythm?.fontSystemId}
       data-creative-treatment-profile={creativeTreatment?.profileId}
       data-primary-type-role={creativeTreatment?.primaryTypeRole}
       data-accent-type-role={creativeTreatment?.accentTypeRole}
       data-emphasis-mode={creativeTreatment?.emphasisMode}
       data-motion-mode={creativeTreatment?.motionMode}
+      data-editorial-lockup-mode={record.editorialLockup?.mode}
+      data-editorial-overlap-ratio={record.editorialLockup?.overlap.ratio}
+      data-editorial-choreography={record.editorialLockup?.choreography.mode}
       data-text-animation-treatment={animationPrograms.map((program) => program.treatment).join(",") || undefined}
       style={{
         position: "absolute",
@@ -371,12 +581,9 @@ export const MaulPlannedTextCard: React.FC<{
         display: "flex",
         flexDirection: "column",
         justifyContent: "center",
-        overflow: "hidden",
+        overflow: record.editorialLockup?.overlap.enabled ? "visible" : "hidden",
         color: textColor,
-        fontFamily:
-          creativeTreatment?.primaryTypeRole === 'editorial_display'
-            ? playfairDisplayFamily
-            : renderedFamilyFor(record.font.family),
+        fontFamily: primaryFont.family,
         fontSize: record.font.fontSizePx * record.font.hierarchyScale,
         fontWeight: record.font.weight,
         lineHeight: record.font.lineHeight,
@@ -388,7 +595,11 @@ export const MaulPlannedTextCard: React.FC<{
       }}
     >
       {record.lines.map((line) => (
-        <div key={line.lineId} data-maul-line-id={line.lineId}>
+        <div
+          key={line.lineId}
+          data-maul-line-id={line.lineId}
+          style={{whiteSpace: "nowrap"}}
+        >
           {line.tokens.map((token, tokenIndex) => {
             const active = token.outputSpans.some(
               (span) =>
@@ -398,6 +609,23 @@ export const MaulPlannedTextCard: React.FC<{
             const tokenAnimation = resolvedAnimations.find(({program}) =>
               program.target.scope === "tokens" && program.target.tokenIds.includes(token.tokenId),
             )?.transform ?? null;
+            const editorialStyle = lockupStyleFor(record.editorialLockup, token.tokenId);
+            const editorialTransform = record.editorialLockup
+              ? resolveMaulEditorialWordTransform({
+                  lockup: record.editorialLockup,
+                  tokenId: token.tokenId,
+                  absoluteTimeMs,
+                  segmentStartMs: record.outputStartMs,
+                  fontSizePx: record.font.fontSizePx * record.font.hierarchyScale,
+                })
+              : null;
+            const tokenFont = editorialStyle?.role === "accent"
+              ? accentFont
+              : primaryFont;
+            const composedTokenTransform = composeMaulTextTransforms({
+              editorial: editorialTransform,
+              animation: tokenAnimation,
+            });
             return (
               <React.Fragment key={token.tokenId}>
                 {tokenIndex > 0 &&
@@ -407,18 +635,29 @@ export const MaulPlannedTextCard: React.FC<{
                 <span
                   data-maul-token-id={token.tokenId}
                   data-active={active}
+                  data-editorial-token-role={editorialStyle?.role}
+                  data-editorial-font-asset-id={editorialStyle?.fontAssetId}
                   style={{
-                    color: active ? accentColor : textColor,
-                    ...(active &&
-                    creativeTreatment?.accentTypeRole === 'editorial_italic'
+                    color: editorialStyle?.role === "accent" || active
+                      ? accentColor
+                      : textColor,
+                    ...(editorialStyle?.role === "accent" || (active &&
+                    creativeTreatment?.accentTypeRole === 'editorial_italic')
                       ? {
-                          fontFamily: playfairDisplayFamily,
-                          fontStyle: 'italic',
-                          fontWeight: 700,
+                          fontFamily: tokenFont.family,
+                          fontStyle: tokenFont.style,
+                          fontWeight: tokenFont.weight,
                         }
                       : {}),
-                    ...(tokenAnimation
-                      ? {display: "inline-block", ...animationStyle(tokenAnimation)}
+                    ...(composedTokenTransform
+                      ? {
+                          display: "inline-block",
+                          opacity: composedTokenTransform.opacity,
+                          transform: `translate3d(${composedTokenTransform.translateXPx}px, ${composedTokenTransform.translateYPx}px, 0) scale(${composedTokenTransform.scale}) rotate(${composedTokenTransform.rotationDeg}deg)`,
+                          transformOrigin: "left center",
+                          position: "relative",
+                          zIndex: editorialStyle?.zIndex,
+                        }
                       : {}),
                   }}
                 >
@@ -440,6 +679,7 @@ const TimedMaulPlannedTextCard: React.FC<{
   textColor: string;
   accentColor: string;
   creativeTreatment?: MaulCreativeTreatment;
+  referenceEditorialRhythm?: MaulReferenceEditorialRhythm;
 }> = ({
   record,
   outputFrame,
@@ -447,6 +687,7 @@ const TimedMaulPlannedTextCard: React.FC<{
   textColor,
   accentColor,
   creativeTreatment,
+  referenceEditorialRhythm,
 }) => {
   return (
     <MaulPlannedTextCard
@@ -457,6 +698,7 @@ const TimedMaulPlannedTextCard: React.FC<{
       textColor={textColor}
       accentColor={accentColor}
       creativeTreatment={creativeTreatment}
+      referenceEditorialRhythm={referenceEditorialRhythm}
     />
   );
 };
@@ -466,7 +708,8 @@ export const MaulPlannedTextLayer: React.FC<{
   textColor: string;
   accentColor: string;
   creativeTreatment?: MaulCreativeTreatment;
-}> = ({records, textColor, accentColor, creativeTreatment}) => {
+  referenceEditorialRhythm?: MaulReferenceEditorialRhythm;
+}> = ({records, textColor, accentColor, creativeTreatment, referenceEditorialRhythm}) => {
   const outputFrame = useCurrentFrame();
   const {fps} = useVideoConfig();
   return (
@@ -487,6 +730,7 @@ export const MaulPlannedTextLayer: React.FC<{
             textColor={textColor}
             accentColor={accentColor}
             creativeTreatment={creativeTreatment}
+            referenceEditorialRhythm={referenceEditorialRhythm}
           />
         </Sequence>
       ))}

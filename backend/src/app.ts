@@ -1,5 +1,5 @@
 import {createReadStream} from "node:fs";
-import {stat} from "node:fs/promises";
+import {mkdir, stat} from "node:fs/promises";
 import path from "node:path";
 
 import Fastify, {type FastifyInstance} from "fastify";
@@ -37,6 +37,7 @@ import type {MaulQualityTruthProofProvider} from "./maul/quality-truth";
 import type {MaulPerceptualTruthProvider} from "./maul/perceptual-truth";
 import type {SceneEvidenceProvider} from "./maul/scene-evidence";
 import type {MaulTypographyProvider} from "./maul/typography-layout";
+import {createZillizMaulTypographyProvider} from "./maul/zilliz-font-assets";
 import {
   createShortsTextChunkPlanner,
   type ShortsTextChunkPlanner,
@@ -58,7 +59,6 @@ import {registerMusicCatalogRoutes} from "./music/routes";
 import {createSignedMusicPreviewUrl, type MusicPreviewUrlSigner} from "./music/catalog/r2-preview-url-signer";
 import {FONT_SERVE_PATH, resolveRetrievedFontsDir} from "./config/font-assets";
 import {ZillizHealthMonitor} from "./health/zilliz-keepalive";
-import {resetRetrievedFontsDir} from "./typography/zilliz-font-materializer";
 import {
   buildExecutionVisibility,
   ExecutionTelemetryBroker,
@@ -229,7 +229,9 @@ export const createBackendApp = async ({
     bodyLimit: env.MAX_UPLOAD_FILE_SIZE_BYTES
   });
   const retrievedFontsDir = resolveRetrievedFontsDir(env.REMOTION_ASSETS_DIR);
-  await resetRetrievedFontsDir(retrievedFontsDir);
+  // Content-addressed font assets are immutable and are referenced by persisted
+  // MAUL manifests. Startup may create the cache but must never invalidate it.
+  await mkdir(retrievedFontsDir, {recursive: true});
   const zillizHealthMonitor = new ZillizHealthMonitor(env);
   zillizHealthMonitor.start();
   app.addHook("onClose", async () => {
@@ -329,7 +331,7 @@ export const createBackendApp = async ({
     undefined,
     deps?.maulSceneEvidenceProvider,
     deps?.maulPerceptualTruthProvider,
-    deps?.maulTypographyProvider,
+    deps?.maulTypographyProvider ?? createZillizMaulTypographyProvider(env),
     maulCreativeTreatmentPlanner,
   );
   await maulProjects.initialize();

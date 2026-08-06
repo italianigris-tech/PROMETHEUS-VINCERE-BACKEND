@@ -29,4 +29,23 @@ describe("MAUL composition candidates", () => {
     expect(candidates.every((candidate) => candidate.box.x >= 0.04)).toBe(true);
     expect(candidates.every((candidate) => candidate.box.x + candidate.box.width <= 0.96)).toBe(true);
   });
+
+  it("gives the subject-integrated editorial direction enough width and vertical rhythm for a phrase lockup", () => {
+    const candidate = buildCompositionCandidates({
+      subjectBox: {x: 0.08, y: 0.1, width: 0.32, height: 0.72},
+      opportunity: {
+        regionId: "negative_space_right",
+        box: {x: 0.52, y: 0.18, width: 0.38, height: 0.22},
+        negativeSpace: 0.92,
+        readability: 0.9,
+        clutter: 0.08,
+        faceInterference: 0,
+        temporalStability: 0.94,
+      },
+      purpose: "HOOK",
+    }).find((entry) => entry.direction === "subject_integrated");
+
+    expect(candidate?.box.width).toBeGreaterThanOrEqual(0.34);
+    expect(candidate?.box.height).toBeGreaterThanOrEqual(0.16);
+  });
 });

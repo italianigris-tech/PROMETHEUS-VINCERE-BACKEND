@@ -87,6 +87,11 @@ const envSchema = z.object({
   MILVUS_COLLECTION: z.string().default("prometheus_creative_assets"),
   MILVUS_COLLECTION_ASSETS: z.string().default("unified_motion_graphics_assets"),
   MILVUS_COLLECTION_FONTS: z.string().default("prometheus_fonts"),
+  FONT_INTELLIGENCE_MILVUS_COLLECTION: z.string().default("prometheus_typography_fonts"),
+  FONT_INTELLIGENCE_EMBEDDING_PROVIDER: z.enum(["openai", "local-test", "local-hf", "bge-m3-local"]).default("local-hf"),
+  FONT_INTELLIGENCE_EMBEDDING_MODEL: z.string().default("BAAI/bge-small-en-v1.5"),
+  FONT_INTELLIGENCE_EMBEDDING_DIMENSIONS: z.coerce.number().int().positive().default(384),
+  FONT_INTELLIGENCE_EMBEDDING_API_KEY: z.string().default(""),
   EMBEDDING_PROVIDER: z.enum(["openai", "local-test", "local-hf", "bge-m3-local"]).default("local-hf"),
   EMBEDDING_MODEL: z.string().default("BAAI/bge-small-en-v1.5"),
   EMBEDDING_DIMENSIONS: z.coerce.number().int().positive().default(384),
@@ -263,7 +268,11 @@ const loadDotenvFallbacks = (): void => {
         "LOCAL_EMBEDDING_DIMENSIONS",
         "BGE_M3_LOCAL_MODEL_NAME",
         "MILVUS_DATABASE",
-        "MILVUS_COLLECTION_ASSETS"
+        "MILVUS_COLLECTION_ASSETS",
+        "FONT_INTELLIGENCE_MILVUS_COLLECTION",
+        "FONT_INTELLIGENCE_EMBEDDING_PROVIDER",
+        "FONT_INTELLIGENCE_EMBEDDING_MODEL",
+        "FONT_INTELLIGENCE_EMBEDDING_DIMENSIONS"
       ] as const;
       const mismatches = comparedKeys
         .filter((key) => backendLocal[key] && remotionLocal[key] && backendLocal[key] !== remotionLocal[key])

@@ -7,9 +7,15 @@ import {openSync, type Font, type FontCollection} from "fontkit";
 
 import {
   isMaulRendererFontCatalogEntry,
+  maulResolvedFontAssetSchema,
   maulTypographyCompatibilityProfileSchema,
+  type MaulResolvedFontAsset,
   type MaulTypographyCompatibilityProfile,
 } from "@prometheus/shared-types";
+
+import {
+  type MaulEditorialFontSystemId,
+} from "./reference-editorial-rhythm.js";
 
 export type GovernedTypographyRole =
   | "EDITORIAL_DISPLAY"
@@ -26,7 +32,51 @@ export type GovernedTypographyFont = {
   browserUrl: string;
   licensed: boolean;
   rendererVerified: boolean;
+  asset?: MaulResolvedFontAsset;
 };
+
+export type MaulResolvedFontAssetInput = Omit<
+  MaulResolvedFontAsset,
+  "localFileSha256"
+> & {
+  localFileSha256?: string;
+};
+
+const resolveExactFontAsset = (
+  input: MaulResolvedFontAssetInput,
+): MaulResolvedFontAsset => {
+  const bytes = readFileSync(input.localFilePath);
+  const localFileSha256 = createHash("sha256").update(bytes).digest("hex");
+  if (input.localFileSha256 && input.localFileSha256 !== localFileSha256) {
+    throw new Error(
+      `MAUL font asset ${input.assetId} hash does not match ${input.localFilePath}.`,
+    );
+  }
+  const loaded = openSync(input.localFilePath);
+  if (isFontCollection(loaded)) {
+    throw new Error(
+      `MAUL font asset ${input.assetId} is a collection and does not name an explicit face.`,
+    );
+  }
+  return maulResolvedFontAssetSchema.parse({...input, localFileSha256});
+};
+
+const fontFromResolvedAsset = ({
+  role,
+  asset,
+}: {
+  role: GovernedTypographyRole;
+  asset: MaulResolvedFontAsset;
+}): GovernedTypographyFont => ({
+  role,
+  assetId: asset.assetId,
+  family: asset.family,
+  weight: asset.weight,
+  browserUrl: asset.browserUrl,
+  licensed: asset.license.status === "cleared" || asset.license.status === "bundled",
+  rendererVerified: true,
+  asset,
+});
 
 export type TypographyMeasurementProvider = (input: {
   text: string;
@@ -148,6 +198,8 @@ export type MaulTypographyPlan =
         selectedAssetId: string;
         status: "eligible_loaded";
         reason: string;
+        selectedAsset?: MaulResolvedFontAsset | null;
+        accentAsset?: MaulResolvedFontAsset | null;
       };
       layouts: MaulMeasuredTypographyLayout[];
       evidenceIds: string[];
@@ -161,6 +213,7 @@ export type MaulTypographyPlanInput = {
   chunks: Array<{chunkId: string; text: string}>;
   maximumLineWidthPx: number;
   primaryTypeRole?: "editorial_display" | "neutral_grotesk";
+  fontSystemId?: MaulEditorialFontSystemId;
 };
 
 export interface MaulTypographyProvider {
@@ -349,7 +402,12 @@ export const createMeasuredMaulTypographyProvider = ({
     throw new Error("Measured MAUL typography profile must prove the selected primary font.");
   }
   for (const font of fontRoles) {
-    if (!isMaulRendererFontCatalogEntry(font)) {
+    const resolvedAssetMatches = font.asset &&
+      font.asset.assetId === font.assetId &&
+      font.asset.family === font.family &&
+      font.asset.weight === font.weight &&
+      font.asset.browserUrl === font.browserUrl;
+    if (!isMaulRendererFontCatalogEntry(font) && !resolvedAssetMatches) {
       throw new Error(
         `MAUL renderer cannot execute the governed font ${font.family} (${font.assetId}, ${font.weight}).`,
       );
@@ -385,6 +443,8 @@ export const createMeasuredMaulTypographyProvider = ({
               primaryFontRole === "EDITORIAL_DISPLAY" ? "editorial" : "utility",
             selectedFamily: selectedFont.family,
             selectedAssetId: selectedFont.assetId,
+            selectedAsset: selectedFont.asset ?? null,
+            accentAsset: fontRoles.find((font) => font.assetId !== selectedFont.assetId)?.asset ?? null,
             status: "eligible_loaded",
             reason: `Measured ${selectedFont.family} geometry was selected from a renderer-verified governed pair.`,
           },
@@ -397,6 +457,71 @@ export const createMeasuredMaulTypographyProvider = ({
           reason: error instanceof Error ? error.message : String(error),
         };
       }
+    },
+  };
+};
+
+/**
+ * Builds MAUL measurement from a planner-selected binary. The descriptor is
+ * persisted so the browser renderer has no opportunity to substitute by name.
+ */
+export const createResolvedMaulTypographyProvider = ({
+  primary,
+  accent,
+}: {
+  primary: MaulResolvedFontAssetInput;
+  accent: MaulResolvedFontAssetInput;
+}): MaulTypographyProvider => {
+  const primaryAsset = resolveExactFontAsset(primary);
+  const accentAsset = resolveExactFontAsset(accent);
+  const editorialDisplay = fontFromResolvedAsset({
+    role: "EDITORIAL_DISPLAY",
+    asset: primaryAsset,
+  });
+  const neutralGrotesk = {
+    ...fontFromResolvedAsset({
+      role: "EDITORIAL_DISPLAY",
+      asset: primaryAsset,
+    }),
+    role: "NEUTRAL_GROTESK",
+  } satisfies GovernedTypographyFont;
+  const fontRoles = [editorialDisplay, neutralGrotesk];
+  const primaryProfile = profileForRendererFont({
+    profileId: `maul-measured-${primaryAsset.assetId}-v1`,
+    font: editorialDisplay,
+    fontPath: primaryAsset.localFilePath,
+  });
+  const primaryMeasure = createFontkitTypographyMeasurementProvider({
+    fontPath: primaryAsset.localFilePath,
+    fontAssetId: primaryAsset.assetId,
+  });
+
+  const provider = createRoleAwareMaulTypographyProvider({
+    editorialDisplay: createMeasuredMaulTypographyProvider({
+      fontRoles,
+      profile: primaryProfile,
+      measure: primaryMeasure,
+      primaryFontRole: "EDITORIAL_DISPLAY",
+    }),
+    neutralGrotesk: createMeasuredMaulTypographyProvider({
+      fontRoles,
+      profile: primaryProfile,
+      measure: primaryMeasure,
+      primaryFontRole: "NEUTRAL_GROTESK",
+    }),
+  });
+  return {
+    async plan(input) {
+      const plan = await provider.plan(input);
+      return plan.status === "available"
+        ? {
+            ...plan,
+            fontResolution: {
+              ...plan.fontResolution,
+              accentAsset,
+            },
+          }
+        : plan;
     },
   };
 };
@@ -475,6 +600,69 @@ export const createDefaultMaulTypographyProvider = (): MaulTypographyProvider =>
       fontRoot,
       "playfair-display-700.woff2",
     );
+    const bebasPath = path.join(fontRoot, "bebas-neue-400.woff2");
+    const dmSerifPath = path.join(fontRoot, "dm-serif-display-400.woff2");
+    const playfairItalicPath = path.join(
+      fontRoot,
+      "playfair-display-italic-700.woff2",
+    );
+    const greatVibesPath = path.join(fontRoot, "great-vibes-400.ttf");
+    const bundledAsset = ({
+      assetId,
+      family,
+      cssFamily,
+      weight,
+      style,
+      browserUrl,
+      localFilePath,
+      format,
+    }: {
+      assetId: string;
+      family: string;
+      cssFamily: string;
+      weight: number;
+      style: "normal" | "italic";
+      browserUrl: string;
+      localFilePath: string;
+      format: "ttf" | "woff2";
+    }): MaulResolvedFontAsset => maulResolvedFontAssetSchema.parse({
+      assetId,
+      family,
+      cssFamily,
+      weight,
+      style,
+      browserUrl,
+      localFilePath,
+      localFileSha256: createHash("sha256")
+        .update(readFileSync(localFilePath))
+        .digest("hex"),
+      format,
+      source: "bundled",
+      license: {
+        status: "bundled",
+        evidence: ["Bundled MAUL renderer font catalog."],
+      },
+    });
+    const playfairItalicAsset = bundledAsset({
+      assetId: "font_google_playfair_display_italic_700",
+      family: "Playfair Display",
+      cssFamily: "Playfair Display",
+      weight: 700,
+      style: "italic",
+      browserUrl: "/fonts/maul/playfair-display-italic-700.woff2",
+      localFilePath: playfairItalicPath,
+      format: "woff2",
+    });
+    const greatVibesAsset = bundledAsset({
+      assetId: "font_google_great_vibes_400",
+      family: "Great Vibes",
+      cssFamily: "Great Vibes",
+      weight: 400,
+      style: "normal",
+      browserUrl: "/fonts/maul/great-vibes-400.ttf",
+      localFilePath: greatVibesPath,
+      format: "ttf",
+    });
     const playfair: GovernedTypographyFont = {
       role: "EDITORIAL_DISPLAY",
       assetId: "font_google_playfair_display_700",
@@ -493,35 +681,114 @@ export const createDefaultMaulTypographyProvider = (): MaulTypographyProvider =>
       licensed: true,
       rendererVerified: true,
     };
-    const fontRoles = [playfair, dmSans];
-    return createRoleAwareMaulTypographyProvider({
-      editorialDisplay: createMeasuredMaulTypographyProvider({
-        fontRoles,
-        profile: profileForRendererFont({
-          profileId: "maul-measured-playfair-display-local-v1",
-          font: playfair,
-          fontPath: playfairPath,
+    const bebas: GovernedTypographyFont = {
+      role: "EDITORIAL_DISPLAY",
+      assetId: "font_google_bebas_neue_400",
+      family: "Bebas Neue",
+      weight: 400,
+      browserUrl: "/fonts/maul/bebas-neue-400.woff2",
+      licensed: true,
+      rendererVerified: true,
+    };
+    const dmSerif: GovernedTypographyFont = {
+      role: "EDITORIAL_DISPLAY",
+      assetId: "font_google_dm_serif_display_400",
+      family: "DM Serif Display",
+      weight: 400,
+      browserUrl: "/fonts/maul/dm-serif-display-400.woff2",
+      licensed: true,
+      rendererVerified: true,
+    };
+    const createSystemProvider = ({
+      display,
+      displayPath,
+      profileId,
+      accentAsset,
+    }: {
+      display: GovernedTypographyFont;
+      displayPath: string;
+      profileId: string;
+      accentAsset: MaulResolvedFontAsset;
+    }): MaulTypographyProvider => {
+      const fontRoles = [display, dmSans];
+      const provider = createRoleAwareMaulTypographyProvider({
+        editorialDisplay: createMeasuredMaulTypographyProvider({
+          fontRoles,
+          profile: profileForRendererFont({
+            profileId,
+            font: display,
+            fontPath: displayPath,
+          }),
+          measure: createFontkitTypographyMeasurementProvider({
+            fontPath: displayPath,
+            fontAssetId: display.assetId,
+          }),
+          primaryFontRole: "EDITORIAL_DISPLAY",
         }),
-        measure: createFontkitTypographyMeasurementProvider({
-          fontPath: playfairPath,
-          fontAssetId: playfair.assetId,
+        neutralGrotesk: createMeasuredMaulTypographyProvider({
+          fontRoles,
+          profile: profileForRendererFont({
+            profileId: "maul-measured-dm-sans-local-v1",
+            font: dmSans,
+            fontPath: dmSansPath,
+          }),
+          measure: createFontkitTypographyMeasurementProvider({
+            fontPath: dmSansPath,
+            fontAssetId: dmSans.assetId,
+          }),
+          primaryFontRole: "NEUTRAL_GROTESK",
         }),
-        primaryFontRole: "EDITORIAL_DISPLAY",
+      });
+      return {
+        async plan(input) {
+          const plan = await provider.plan(input);
+          return plan.status === "available"
+            ? {
+                ...plan,
+                fontResolution: {
+                  ...plan.fontResolution,
+                  accentAsset,
+                },
+              }
+            : plan;
+        },
+      };
+    };
+    const systems: Record<MaulEditorialFontSystemId, MaulTypographyProvider> = {
+      grotesk_editorial_hinge: createSystemProvider({
+        display: playfair,
+        displayPath: playfairPath,
+        profileId: "maul-measured-playfair-display-local-v1",
+        accentAsset: greatVibesAsset,
       }),
-      neutralGrotesk: createMeasuredMaulTypographyProvider({
-        fontRoles,
-        profile: profileForRendererFont({
-          profileId: "maul-measured-dm-sans-local-v1",
-          font: dmSans,
-          fontPath: dmSansPath,
-        }),
-        measure: createFontkitTypographyMeasurementProvider({
-          fontPath: dmSansPath,
-          fontAssetId: dmSans.assetId,
-        }),
-        primaryFontRole: "NEUTRAL_GROTESK",
+      condensed_kinetic_hinge: createSystemProvider({
+        display: bebas,
+        displayPath: bebasPath,
+        profileId: "maul-measured-bebas-neue-local-v1",
+        accentAsset: playfairItalicAsset,
       }),
-    });
+      serif_editorial_hinge: createSystemProvider({
+        display: dmSerif,
+        displayPath: dmSerifPath,
+        profileId: "maul-measured-dm-serif-display-local-v1",
+        accentAsset: greatVibesAsset,
+      }),
+    };
+    return {
+      async plan(input) {
+        const fontSystemId = input.fontSystemId ?? "grotesk_editorial_hinge";
+        const provider = systems[fontSystemId];
+        if (!provider) {
+          return {
+            status: "unavailable",
+            reason:
+              "MAUL font system " + fontSystemId +
+              " is not backed by the renderer catalog and local font binaries.",
+          };
+        }
+        return provider.plan(input);
+      },
+    };
   } catch (error) {
     return createUnavailableMaulTypographyProvider(
       "Default renderer font measurement is unavailable: " +

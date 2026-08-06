@@ -5,6 +5,7 @@ import {
   createDefaultMaulTypographyProvider,
   createFontkitTypographyMeasurementProvider,
   createMeasuredMaulTypographyProvider,
+  createResolvedMaulTypographyProvider,
   createRoleAwareMaulTypographyProvider,
   resolveTypographyLayout,
 } from "./typography-layout.js";
@@ -162,15 +163,15 @@ describe("MAUL typography layout", () => {
         "remotion-app",
         "public",
         "fonts",
-        "hero",
-        "cinzel-bold-f33b1b30736a.otf",
+        "maul",
+        "dm-sans-700.woff2",
       ),
-      fontAssetId: "font_fixture_cinzel_bold",
+      fontAssetId: "font_google_dm_sans_700",
     });
     const font = {
       ...fonts[0],
-      assetId: "font_fixture_cinzel_bold",
-      family: "Cinzel Bold",
+      assetId: "font_google_dm_sans_700",
+      family: "DM Sans",
     };
 
     const short = await measure({text: "Build", font, fontSizePx: 72});
@@ -246,6 +247,10 @@ describe("MAUL typography layout", () => {
       fontResolution: {
         selectedFamily: "DM Sans",
         selectedAssetId: "font_google_dm_sans_700",
+        accentAsset: {
+          assetId: "font_google_great_vibes_400",
+          family: "Great Vibes",
+        },
       },
       evidenceIds: expect.arrayContaining([
         expect.stringMatching(/^font_measurement_[a-f0-9]{64}$/),
@@ -260,6 +265,174 @@ describe("MAUL typography layout", () => {
       evidenceIds: expect.arrayContaining([
         expect.stringMatching(/^font_measurement_[a-f0-9]{64}$/),
       ]),
+    });
+  });
+
+  it("measures the selected renderer-safe editorial font system from its exact binary", async () => {
+    const provider = createDefaultMaulTypographyProvider();
+
+    const plan = await provider.plan({
+      chunks: [{chunkId: "chunk_hook", text: "Build the future"}],
+      maximumLineWidthPx: 410,
+      primaryTypeRole: "editorial_display",
+      fontSystemId: "condensed_kinetic_hinge",
+    });
+
+    expect(
+      plan.status,
+      plan.status === "unavailable" ? plan.reason : undefined,
+    ).toBe("available");
+    expect(plan).toMatchObject({
+      status: "available",
+      fontResolution: {
+        selectedFamily: "Bebas Neue",
+        selectedAssetId: "font_google_bebas_neue_400",
+        status: "eligible_loaded",
+        accentAsset: {
+          assetId: "font_google_playfair_display_italic_700",
+          browserUrl: "/fonts/maul/playfair-display-italic-700.woff2",
+          style: "italic",
+          source: "bundled",
+          localFileSha256: expect.stringMatching(/^[a-f0-9]{64}$/),
+        },
+      },
+    });
+  });
+
+  it("refuses a font system that is not backed by the MAUL renderer catalog", async () => {
+    const provider = createDefaultMaulTypographyProvider();
+
+    const plan = await provider.plan({
+      chunks: [{chunkId: "chunk_hook", text: "No phantom font"}],
+      maximumLineWidthPx: 410,
+      primaryTypeRole: "editorial_display",
+      fontSystemId: "unhydrated_library_font" as any,
+    });
+
+    expect(plan).toMatchObject({
+      status: "unavailable",
+      reason: expect.stringMatching(/font system|renderer/i),
+    });
+  });
+
+  it("measures and persists the exact hydrated-library asset selected for MAUL", async () => {
+    const frauncesPath = path.resolve(
+      "..",
+      "remotion-app",
+      "public",
+      "fonts",
+      "maul",
+      "dm-serif-display-400.woff2",
+    );
+    const provider = createResolvedMaulTypographyProvider({
+      primary: {
+        assetId: "font_fraunces_regular_test",
+        family: "Fraunces",
+        cssFamily: "PrometheusFraunces",
+        weight: 400,
+        style: "normal",
+        browserUrl: "/fonts/library/fraunces/fraunces-regular.ttf",
+        localFilePath: frauncesPath,
+        format: "ttf",
+        source: "hydrated_library",
+        license: {
+          status: "cleared",
+          evidence: ["test-fixture"],
+        },
+      },
+      accent: {
+        assetId: "font_dm_sans_test",
+        family: "DM Sans",
+        cssFamily: "DM Sans",
+        weight: 700,
+        style: "normal",
+        browserUrl: "/fonts/maul/dm-sans-700.woff2",
+        localFilePath: path.resolve("..", "remotion-app", "public", "fonts", "maul", "dm-sans-700.woff2"),
+        format: "woff2",
+        source: "bundled",
+        license: {
+          status: "cleared",
+          evidence: ["bundled-fixture"],
+        },
+      },
+    });
+
+    const plan = await provider.plan({
+      chunks: [{chunkId: "chunk_hook", text: "Make the hinge land"}],
+      maximumLineWidthPx: 410,
+      primaryTypeRole: "editorial_display",
+    });
+
+    expect(plan).toMatchObject({
+      status: "available",
+      fontResolution: {
+        selectedAsset: {
+          assetId: "font_fraunces_regular_test",
+          browserUrl: "/fonts/library/fraunces/fraunces-regular.ttf",
+          source: "hydrated_library",
+          localFileSha256: expect.stringMatching(/^[a-f0-9]{64}$/),
+        },
+      },
+    });
+  });
+
+  it("keeps the resolved primary face primary when treatment requests neutral grotesk", async () => {
+    const primaryPath = path.resolve(
+      "..",
+      "remotion-app",
+      "public",
+      "fonts",
+      "maul",
+      "dm-serif-display-400.woff2",
+    );
+    const accentPath = path.resolve(
+      "..",
+      "remotion-app",
+      "public",
+      "fonts",
+      "maul",
+      "great-vibes-400.ttf",
+    );
+    const provider = createResolvedMaulTypographyProvider({
+      primary: {
+        assetId: "font_dynamic_primary",
+        family: "Dynamic Display",
+        cssFamily: "PrometheusDynamicDisplay",
+        weight: 400,
+        style: "normal",
+        browserUrl: "/fonts/library/dynamic/display.woff2",
+        localFilePath: primaryPath,
+        format: "woff2",
+        source: "hydrated_library",
+        license: {status: "cleared", evidence: ["primary-fixture"]},
+      },
+      accent: {
+        assetId: "font_dynamic_script",
+        family: "Dynamic Script",
+        cssFamily: "PrometheusDynamicScript",
+        weight: 400,
+        style: "normal",
+        browserUrl: "/fonts/library/dynamic/script.ttf",
+        localFilePath: accentPath,
+        format: "ttf",
+        source: "hydrated_library",
+        license: {status: "cleared", evidence: ["accent-fixture"]},
+      },
+    });
+
+    const plan = await provider.plan({
+      chunks: [{chunkId: "chunk_hook", text: "Primary stays primary"}],
+      maximumLineWidthPx: 500,
+      primaryTypeRole: "neutral_grotesk",
+    });
+
+    expect(plan).toMatchObject({
+      status: "available",
+      fontResolution: {
+        selectedAssetId: "font_dynamic_primary",
+        selectedAsset: {assetId: "font_dynamic_primary"},
+        accentAsset: {assetId: "font_dynamic_script"},
+      },
     });
   });
 });

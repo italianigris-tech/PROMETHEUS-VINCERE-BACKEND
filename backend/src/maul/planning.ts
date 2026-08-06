@@ -38,6 +38,8 @@ import {
   type ShortsTextChunkPlan,
 } from "@prometheus/shared-types";
 
+import type {ReferenceEditorialRhythm} from "./reference-editorial-rhythm.js";
+
 import type { VideoAwareAudioPlan } from "../music/index.js";
 import type { MaulRenderCaption } from "./render-engine.js";
 import {
@@ -367,6 +369,7 @@ export const buildMaulTextAnimationPlanPayload = ({
   textChunkPlan,
   textPlacementPlan,
   treatment,
+  referenceEditorialRhythm,
   selectionSeed,
   outputDurationMs,
 }: {
@@ -374,11 +377,18 @@ export const buildMaulTextAnimationPlanPayload = ({
   textChunkPlan: TextChunkPlanArtifact;
   textPlacementPlan: TextPlacementPlanArtifact;
   treatment?: MaulTextAnimationTreatment;
+  referenceEditorialRhythm?: ReferenceEditorialRhythm;
   selectionSeed?: string;
   outputDurationMs: number;
 }): MaulTextAnimationPlanPayload => {
   const chunkById = new Map(
     textChunkPlan.payload.chunks.map((chunk) => [chunk.chunkId, chunk]),
+  );
+  const rhythmBySegmentId = new Map(
+    referenceEditorialRhythm?.segments.map((segment) => [
+      segment.segmentId,
+      segment,
+    ]) ?? [],
   );
   let previousSupportingTreatment: MaulTextAnimationTreatment | null = null;
   const programs = textPlacementPlan.payload.segments.map((segment) => {
@@ -389,11 +399,19 @@ export const buildMaulTextAnimationPlanPayload = ({
         `Placement ${segment.segmentId} references missing chunk ${segment.chunkId}.`,
       );
     }
+    const rhythmSegment = referenceEditorialRhythm
+      ? rhythmBySegmentId.get(segment.segmentId)
+      : undefined;
+    if (referenceEditorialRhythm && !rhythmSegment) {
+      throw new Error(
+        `Reference editorial rhythm does not cover placement ${segment.segmentId}.`,
+      );
+    }
     const supportingCandidates = treatmentsForWordCount({
       candidates: MAUL_SUPPORTING_TREATMENTS.filter((candidate) => candidate !== previousSupportingTreatment),
       wordCount: segment.tokenIds.length,
     });
-    const selectedTreatment = treatment ?? selectEditorialTreatment({
+    const selectedTreatment = rhythmSegment?.treatment ?? treatment ?? selectEditorialTreatment({
       candidates: supportingCandidates,
       seed: `${selectionSeed ?? inputs.project.id}:${segment.segmentId}:supporting`,
     });
@@ -403,8 +421,9 @@ export const buildMaulTextAnimationPlanPayload = ({
         `Placement ${segment.segmentId} is too short for explicit entry, hold, and exit intervals.`,
       );
     }
-    const entryDurationMs = Math.max(1, Math.floor(durationMs * 0.2));
-    const exitDurationMs = Math.max(1, Math.floor(durationMs * 0.2));
+    const phaseRatio = rhythmSegment?.preserveReadableHold ? 0.15 : 0.2;
+    const entryDurationMs = Math.max(1, Math.floor(durationMs * phaseRatio));
+    const exitDurationMs = Math.max(1, Math.floor(durationMs * phaseRatio));
     const entryEndMs = segment.outputStartMs + entryDurationMs;
     const exitStartMs = segment.outputEndMs - exitDurationMs;
     if (entryEndMs >= exitStartMs) {
@@ -462,11 +481,13 @@ export const buildMaulTextAnimationPlanPayload = ({
           ...transforms.exit,
         },
       },
-      rationale: `Execute the governed ${selectedTreatment} treatment without changing placement or token geometry.`,
+      rationale: rhythmSegment
+        ? `Execute the reference-derived ${selectedTreatment} rhythm without changing placement or token geometry.`
+        : `Execute the governed ${selectedTreatment} treatment without changing placement or token geometry.`,
     };
   });
   let previousCoreTreatment: MaulTextAnimationTreatment | null = null;
-  const editorialPrograms = treatment ? programs : programs.flatMap((program) => {
+  const editorialPrograms = treatment || referenceEditorialRhythm ? programs : programs.flatMap((program) => {
     const segment = textPlacementPlan.payload.segments.find((candidate) => candidate.segmentId === program.target.placementSegmentId);
     const coreTokenIds = segment ? chunkById.get(segment.chunkId)?.emphasis.tokenIds ?? [] : [];
     if (!segment || coreTokenIds.length === 0) return [program];

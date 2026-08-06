@@ -894,6 +894,9 @@ export const MaulShort: React.FC<MaulShortProps> = ({ manifest }) => {
           textColor={visualStyle.captionText}
           accentColor={visualStyle.captionAccent}
           creativeTreatment={creativeTreatment}
+          referenceEditorialRhythm={
+            manifest.plans?.artDirection?.referenceEditorialRhythm
+          }
         />
       ) : (
         <MaulCaptionLayer

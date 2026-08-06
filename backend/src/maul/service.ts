@@ -34,6 +34,7 @@ import {
   type MaulReferenceCorpusItemPayload,
   type MaulReferenceIngestRequest,
   type MaulReferenceReviewRequest,
+  type MaulResolvedFontAsset,
   type MaulReviewDecisionRequest,
   type MaulShortRenderRequest,
   type MaulThumbnailGenerationRequest,
@@ -120,6 +121,11 @@ import {
   createUnavailableCreativeTreatmentPlanner,
   type CreativeTreatmentPlanner,
 } from './creative-treatment-planner.js';
+import {deriveReferenceEditorialRhythm} from "./reference-editorial-rhythm.js";
+import {
+  applyMaulEditorialLockups,
+  buildMaulEditorialFontPair,
+} from "./editorial-lockup.js";
 
 export class MaulProjectNotFoundError extends Error {}
 export class MaulLineageConflictError extends Error {}
@@ -1248,6 +1254,17 @@ export class MaulProjectService {
       timestampMap: timeline.payload.timestampMap,
       speakerCropTracks: timeline.payload.speakerCropTracks,
     });
+    const referenceTraits = referenceCorpus
+      .flatMap((reference) =>
+        reference.payload.approvedTraits
+          ? Object.values(reference.payload.approvedTraits).flatMap(
+              (traits) => traits,
+            )
+          : [],
+      )
+      .slice(0, 48);
+    const editorialRhythmSeed =
+      `${projectId}:${timeline.artifactId}:reference-editorial-v1`;
     const creativeTreatment = await this.creativeTreatmentPlanner.plan({
       sourceProfile:
         project.intake.sourceProfile.mode === 'single_speaker_podcast'
@@ -1256,16 +1273,14 @@ export class MaulProjectService {
       platform: project.intake.platform,
       transcript: joinShortsTextTokens(candidateWords.map((word) => word.text)),
       treatmentId: treatment.payload.treatmentId,
-      referenceTraits: referenceCorpus
-        .flatMap((reference) =>
-          reference.payload.approvedTraits
-            ? Object.values(reference.payload.approvedTraits).flatMap(
-                (traits) => traits,
-              )
-            : [],
-        )
-        .slice(0, 48),
+      referenceTraits,
       sceneEvidenceStatus: sceneEvidence.status,
+    });
+    const referenceEditorialDirection = deriveReferenceEditorialRhythm({
+      referenceTraits,
+      primaryTypeRole: creativeTreatment.treatment.primaryTypeRole,
+      selectionSeed: editorialRhythmSeed,
+      segments: [],
     });
     const scenePlacementInputs = sceneEvidenceToPlacementInputs(
       sceneEvidence,
@@ -1287,6 +1302,11 @@ export class MaulProjectService {
       creativeTreatmentInference: {
         status: creativeTreatment.status,
         ...creativeTreatment.receipt,
+      },
+      referenceEditorialRhythm: {
+        schemaVersion: referenceEditorialDirection.schemaVersion,
+        fontSystemId: referenceEditorialDirection.fontSystemId,
+        traitReceipt: referenceEditorialDirection.traitReceipt,
       },
       paletteIntent: [
         `Primary typography ${creativeTreatment.treatment.palette.primary}`,
@@ -1352,6 +1372,7 @@ export class MaulProjectService {
       })),
       maximumLineWidthPx: 410,
       primaryTypeRole: creativeTreatment.treatment.primaryTypeRole,
+      fontSystemId: referenceEditorialDirection.fontSystemId,
     });
     const textChunkPayload = buildMaulTextChunkPlanPayload({
       inputs: planningInputs,
@@ -1388,9 +1409,63 @@ export class MaulProjectService {
           }
         : {}),
     });
+    const referenceEditorialRhythm = deriveReferenceEditorialRhythm({
+      referenceTraits,
+      primaryTypeRole: creativeTreatment.treatment.primaryTypeRole,
+      selectionSeed: editorialRhythmSeed,
+      segments: textChunkCore.chunks.map((chunk) => ({
+        segmentId: textPlacementCore.segments.find(
+          (segment) => segment.chunkId === chunk.chunkId,
+        )?.segmentId ?? chunk.chunkId,
+        semanticRole: chunk.semanticRole,
+        emphasisLevel: chunk.emphasis.level,
+        wordCount: chunk.tokenIds.length,
+        outputStartMs: chunk.outputStartMs,
+        outputEndMs: chunk.outputEndMs,
+        holdAcrossProtectedPause: chunk.holdAcrossProtectedPause,
+      })),
+    });
+    const fontResolution = measuredTypography.status === "available"
+      ? measuredTypography.fontResolution as typeof measuredTypography.fontResolution & {
+          selectedAsset?: MaulResolvedFontAsset | null;
+          accentAsset?: MaulResolvedFontAsset | null;
+        }
+      : null;
+    const primaryFont = measuredTypography.status === "available"
+      ? {
+          assetId: measuredTypography.fontResolution.selectedAssetId,
+          family: measuredTypography.fontResolution.selectedFamily,
+          weight: measuredTypography.profile.loadedFallback.weight,
+          style: fontResolution?.selectedAsset?.style ?? "normal" as const,
+        }
+      : {
+          assetId: "font_google_dm_sans_700",
+          family: "DM Sans",
+          weight: 700,
+          style: "normal" as const,
+        };
+    const lockupFontPair = measuredTypography.status === "available" && fontResolution
+      ? buildMaulEditorialFontPair({
+          fontResolution,
+          fallbackPrimary: primaryFont,
+        })
+      : {primary: primaryFont, accent: null};
+    const editorialPlacementSegments = applyMaulEditorialLockups({
+      placementPlan: textPlacementCore,
+      textChunkPlan: textChunkCore,
+      rhythm: referenceEditorialRhythm,
+      primaryFont: lockupFontPair.primary,
+      accentFont: lockupFontPair.accent,
+      referenceTraits,
+      selectionSeed: `${editorialRhythmSeed}:lockup`,
+    }).segments;
+    const textPlacementCoreWithLockups = {
+      ...textPlacementCore,
+      segments: editorialPlacementSegments,
+    };
     const textPlacementPayload = buildMaulTextPlacementPlanPayload({
       inputs: planningInputs,
-      core: textPlacementCore,
+      core: textPlacementCoreWithLockups,
     });
     const textPlacementResult = await this.registerArtifact(projectId, {
       artifactType: "text_placement_plan",
@@ -1401,18 +1476,20 @@ export class MaulProjectService {
       producedBy: {module: "maul-text-placement-planner", version: "1"},
       payload: textPlacementPayload,
     });
-    if (textPlacementResult.artifact.artifactType !== "text_placement_plan") {
+    const textPlacementArtifact = textPlacementResult.artifact;
+    if (textPlacementArtifact.artifactType !== "text_placement_plan") {
       throw new Error(
         "MAUL planner produced the wrong text placement artifact type.",
       );
     }
     const textPlacementPlanHash = hashMaulPlanPayload(
-      textPlacementResult.artifact.payload,
+      textPlacementArtifact.payload,
     );
     const textAnimationPayload = buildMaulTextAnimationPlanPayload({
       inputs: planningInputs,
       textChunkPlan: textChunkResult.artifact,
-      textPlacementPlan: textPlacementResult.artifact,
+      textPlacementPlan: textPlacementArtifact,
+      referenceEditorialRhythm,
       selectionSeed: `${projectId}:${timeline.artifactId}:editorial-text-v1`,
       outputDurationMs: timeline.payload.outputDurationMs,
     });
@@ -1550,6 +1627,9 @@ export class MaulProjectService {
       payload: payloads.revision,
     });
     if (
+      textChunkResult.artifact.artifactType !== "text_chunk_plan" ||
+      textPlacementResult.artifact.artifactType !== "text_placement_plan" ||
+      textAnimationResult.artifact.artifactType !== "text_animation_plan" ||
       observationResult.artifact.artifactType !== "observation_snapshot" ||
       narrativeResult.artifact.artifactType !== "candidate_narrative" ||
       beatMapResult.artifact.artifactType !== "editorial_beat_map" ||

@@ -315,7 +315,7 @@ describe("MAUL V3 text animation planning", () => {
     candidate: {artifactId: "artifact_candidate"},
     treatment: treatmentArtifact,
     textChunkPlan: null,
-  } as never;
+  } as any;
   const textChunkPlan = {
     tokens: [
       {tokenId: "token_a"},
@@ -339,7 +339,13 @@ describe("MAUL V3 text animation planning", () => {
         outputEndMs: 1100,
       },
     ],
-  } as never;
+  } as {segments: Array<{
+    segmentId: string;
+    chunkId: string;
+    tokenIds: string[];
+    outputStartMs: number;
+    outputEndMs: number;
+  }>};
   const textChunkPlanHash = hashMaulPlanPayload(textChunkPlan);
   const textPlacementPlanHash = hashMaulPlanPayload(textPlacementPlan);
   const textChunkArtifact = {
@@ -456,6 +462,84 @@ describe("MAUL V3 text animation planning", () => {
       },
     });
     expect(first.programs[1]!.treatment).not.toBe(first.programs[0]!.treatment);
+  });
+
+  it("compiles a reference editorial program into the planned segment rhythm", () => {
+    const referenceChunks = structuredClone(textChunkPlan) as any;
+    referenceChunks.chunks.push({
+      ...referenceChunks.chunks[0],
+      chunkId: "chunk_b",
+      text: "Then prove it",
+      outputStartMs: 1_600,
+      outputEndMs: 3_400,
+      emphasis: {
+        tokenIds: ["token_b"],
+        text: "prove",
+        level: "key",
+      },
+    });
+    const referencePlacements = {
+      segments: [
+        {
+          ...textPlacementPlan.segments[0],
+          outputStartMs: 0,
+          outputEndMs: 1_600,
+        },
+        {
+          ...textPlacementPlan.segments[0],
+          segmentId: "placement_b",
+          chunkId: "chunk_b",
+          outputStartMs: 1_600,
+          outputEndMs: 3_400,
+        },
+      ],
+    } as any;
+
+    const plan = buildMaulTextAnimationPlanPayload({
+      inputs,
+      textChunkPlan: {artifactId: "artifact_reference_chunks", payload: referenceChunks} as any,
+      textPlacementPlan: {
+        artifactId: "artifact_reference_placements",
+        payload: referencePlacements,
+      } as any,
+      referenceEditorialRhythm: {
+        schemaVersion: "maul-reference-editorial-rhythm/v1",
+        fontSystemId: "condensed_kinetic_hinge",
+        traitReceipt: ["deliberate_readable_holds", "phrase_hierarchy"],
+        segments: [
+          {
+            segmentId: "placement_a",
+            treatment: "two_word_cinematic_pair",
+            preserveReadableHold: false,
+          },
+          {
+            segmentId: "placement_b",
+            treatment: "cinematic_focus_lock",
+            preserveReadableHold: true,
+          },
+        ],
+      },
+      selectionSeed: "reference-editorial-planning-test",
+      outputDurationMs: 3_400,
+    });
+
+    const segmentPrograms = plan.programs.filter(
+      (program) => program.target.scope === "segment",
+    );
+    expect(segmentPrograms).toEqual([
+      expect.objectContaining({
+        target: expect.objectContaining({placementSegmentId: "placement_a"}),
+        treatment: "two_word_cinematic_pair",
+      }),
+      expect.objectContaining({
+        target: expect.objectContaining({placementSegmentId: "placement_b"}),
+        treatment: "cinematic_focus_lock",
+      }),
+    ]);
+    expect(
+      segmentPrograms[1]!.phases.hold.outputEndMs -
+        segmentPrograms[1]!.phases.hold.outputStartMs,
+    ).toBeGreaterThanOrEqual(1_000);
   });
 
   it("builds the 17-artifact V3 bundle without registering audio treatment", () => {

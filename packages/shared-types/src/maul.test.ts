@@ -1,6 +1,7 @@
 import {describe, expect, it} from "vitest";
 
 import {
+  MAUL_RENDERER_FONT_CATALOG,
   maulAuditEventSchema,
   maulArtDirectionPlanPayloadSchema,
   maulRenderShortOperationPayloadSchema,
@@ -154,6 +155,40 @@ describe('MAUL creative treatment contract', () => {
       model: 'gpt-5.6-terra',
       reasoningEffort: 'high',
     });
+  });
+
+  it('persists only renderer-safe reference editorial rhythm programs', () => {
+    const rhythm = {
+      schemaVersion: 'maul-reference-editorial-rhythm/v1',
+      fontSystemId: 'condensed_kinetic_hinge',
+      traitReceipt: [
+        'cut_led_tempo',
+        'deliberate_readable_holds',
+        'editorial_serif_hinge',
+        'phrase_hierarchy',
+        'semantic_hinge_emphasis',
+      ],
+    } as const;
+    const result = maulArtDirectionPlanPayloadSchema.parse({
+      ...planBase,
+      ...creativeTreatmentPlanFixture,
+      referenceEditorialRhythm: rhythm,
+    });
+
+    expect(result.referenceEditorialRhythm).toEqual(rhythm);
+    expect(MAUL_RENDERER_FONT_CATALOG).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        assetId: 'font_google_playfair_display_italic_700',
+        family: 'Playfair Display',
+        weight: 700,
+      }),
+    ]));
+
+    expect(() => maulArtDirectionPlanPayloadSchema.parse({
+      ...planBase,
+      ...creativeTreatmentPlanFixture,
+      referenceEditorialRhythm: {...rhythm, fontSystemId: 'unhydrated-library-font'},
+    })).toThrow(/fontSystemId|invalid/i);
   });
 });
 

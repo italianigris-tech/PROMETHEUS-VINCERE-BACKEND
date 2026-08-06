@@ -3,6 +3,9 @@ import {describe, expect, it} from "vitest";
 
 import {
   MaulPlannedTextCard,
+  composeMaulTextTransforms,
+  resolveMaulEditorialWordTransform,
+  resolveMaulFontBrowserUrl,
   resolveMaulTextAnimationTransform,
 } from "../MaulPlannedTextLayer";
 import {
@@ -116,6 +119,55 @@ const textPlacementPlan = {
       hardGates: [{gateId: "exact", status: "pass"}],
       fallbackCode: "fallback_known",
       fallbackReason: "Known governed fallback.",
+      editorialLockup: {
+        schemaVersion: "maul-editorial-lockup/v1",
+        mode: "script_tag_overlap",
+        primaryTokenIds: ["token_make"],
+        accentTokenIds: ["token_it"],
+        tokenStyles: [
+          {
+            tokenId: "token_make",
+            role: "primary",
+            fontAssetId: "font_google_dm_sans_700",
+            fontFamily: "DM Sans",
+            fontStyle: "normal",
+            fontWeight: 700,
+            offsetXPx: 0,
+            offsetYPx: 0,
+            fontSizeScale: 1,
+            rotationDeg: 0,
+            zIndex: 1,
+            opacity: 1,
+          },
+          {
+            tokenId: "token_it",
+            role: "accent",
+            fontAssetId: "font_google_playfair_display_italic_700",
+            fontFamily: "Playfair Display",
+            fontStyle: "italic",
+            fontWeight: 700,
+            offsetXPx: -18,
+            offsetYPx: 5,
+            fontSizeScale: 0.82,
+            rotationDeg: -3,
+            zIndex: 2,
+            opacity: 1,
+          },
+        ],
+        overlap: {
+          enabled: true,
+          ratio: 0.22,
+          direction: "accent_over_primary",
+          rationale: "The accent hinge crosses the primary word.",
+        },
+        choreography: {
+          mode: "forward_word_reveal",
+          tokenOrder: ["token_make", "token_it"],
+          staggerMs: 72,
+          entryDurationMs: 150,
+        },
+        rationale: "Editorial lockup fixture.",
+      },
     },
   ],
 };
@@ -126,6 +178,19 @@ const typographyMotion = {
   fontResolution: {
     selectedFamily: "DM Sans",
     selectedAssetId: "font_google_dm_sans_700",
+    accentAsset: {
+      assetId: "font_google_playfair_display_italic_700",
+      family: "Playfair Display",
+      cssFamily: "Playfair Display",
+      weight: 700,
+      style: "italic",
+      browserUrl: "/fonts/maul/playfair-display-italic-700.woff2",
+      localFilePath: "/fonts/maul/playfair-display-italic-700.woff2",
+      localFileSha256: sha("i"),
+      format: "woff2",
+      source: "bundled",
+      license: {status: "bundled", evidence: ["Bundled MAUL font"]},
+    },
     status: "eligible_loaded",
     reason: "The governed renderer asset was selected and loaded.",
   },
@@ -207,6 +272,19 @@ const buildRecords = () =>
   });
 
 describe("MAUL planned text renderer contract", () => {
+  it("routes root-relative font receipts through the Remotion public asset resolver", () => {
+    const resolveStaticAsset = (assetPath: string) => `remotion-static://${assetPath}`;
+
+    expect(resolveMaulFontBrowserUrl(
+      "/fonts/library/aesthetic/aesthetic.woff2",
+      resolveStaticAsset,
+    )).toBe("remotion-static://fonts/library/aesthetic/aesthetic.woff2");
+    expect(resolveMaulFontBrowserUrl(
+      "https://cdn.example.com/aesthetic.woff2",
+      resolveStaticAsset,
+    )).toBe("https://cdn.example.com/aesthetic.woff2");
+  });
+
   it("converts normalized placement geometry to output pixels", () => {
     expect(
       toMaulPixelBox(
@@ -246,6 +324,11 @@ describe("MAUL planned text renderer contract", () => {
         lineHeight: 1.1,
         hierarchyScale: 1,
       },
+      editorialLockup: expect.objectContaining({
+        mode: "script_tag_overlap",
+        overlap: expect.objectContaining({enabled: true}),
+        choreography: expect.objectContaining({mode: "forward_word_reveal"}),
+      }),
     });
   });
 
@@ -271,6 +354,12 @@ describe("MAUL planned text renderer contract", () => {
     placement.segments[0]!.compatibility.profileId =
       "maul-compat-playfair-editorial-v1" as never;
     placement.segments[0]!.compatibility.metricsFingerprint = sha("p");
+    Object.assign(placement.segments[0]!.editorialLockup!.tokenStyles[0]!, {
+      fontAssetId: "font_google_playfair_display_700",
+      fontFamily: "Playfair Display",
+      fontStyle: "normal",
+      fontWeight: 700,
+    });
     const motion = structuredClone(typographyMotion);
     motion.fontResolution.selectedFamily = "Playfair Display";
     motion.fontResolution.selectedAssetId = "font_google_playfair_display_700";
@@ -286,6 +375,62 @@ describe("MAUL planned text renderer contract", () => {
       family: "Playfair Display",
       assetId: "font_google_playfair_display_700",
       weight: 700,
+    });
+  });
+
+  it("carries a planned hydrated font descriptor through to the renderer record", () => {
+    const placement = structuredClone(textPlacementPlan);
+    placement.compatibilityProfiles[0] = {
+      profileId: "maul-compat-fraunces-v1",
+      family: "Fraunces",
+      approvedFontAssets: [{
+        assetId: "font_fraunces_regular_test",
+        family: "Fraunces",
+        weights: [400],
+      }],
+      loadedFallback: {
+        assetId: "font_fraunces_regular_test",
+        family: "Fraunces",
+        weight: 400,
+      },
+      metrics: {fingerprint: sha("r")},
+    } as never;
+    placement.segments[0]!.compatibility.profileId = "maul-compat-fraunces-v1" as never;
+    placement.segments[0]!.compatibility.metricsFingerprint = sha("r");
+    const motion = structuredClone(typographyMotion) as any;
+    motion.fontResolution.selectedFamily = "Fraunces";
+    motion.fontResolution.selectedAssetId = "font_fraunces_regular_test";
+    motion.fontResolution.selectedAsset = {
+      assetId: "font_fraunces_regular_test",
+      family: "Fraunces",
+      cssFamily: "PrometheusFraunces",
+      weight: 400,
+      style: "normal",
+      browserUrl: "/fonts/library/fraunces/fraunces-regular.ttf",
+      localFilePath: "/render/fonts/library/fraunces/fraunces-regular.ttf",
+      localFileSha256: sha("f"),
+      format: "ttf",
+      source: "hydrated_library",
+      license: {status: "cleared", evidence: ["font license record"]},
+    };
+    Object.assign(placement.segments[0]!.editorialLockup!.tokenStyles[0]!, {
+      fontAssetId: "font_fraunces_regular_test",
+      fontFamily: "Fraunces",
+      fontStyle: "normal",
+      fontWeight: 400,
+    });
+
+    expect(buildMaulPlannedTextRecords({
+      textChunkPlan: textChunkPlan as never,
+      textPlacementPlan: placement as never,
+      typographyMotion: motion,
+      output: {width: 1080, height: 1920},
+    })[0]?.font).toMatchObject({
+      assetId: "font_fraunces_regular_test",
+      family: "Fraunces",
+      browserUrl: "/fonts/library/fraunces/fraunces-regular.ttf",
+      cssFamily: "PrometheusFraunces",
+      localFileSha256: sha("f"),
     });
   });
 
@@ -361,6 +506,109 @@ describe("MAUL planned text renderer contract", () => {
         textShadow:
           "3px 4px 5px color-mix(in srgb, #000000 60%, transparent)",
       },
+    });
+  });
+
+  it("executes the planned lockup mode, accent pairing, and forward word reveal", () => {
+    const record = buildRecords()[0]!;
+    const markup = renderToStaticMarkup(
+      <MaulPlannedTextCard
+        record={record}
+        absoluteTimeMs={0}
+        outputFrame={0}
+        fps={30}
+        textColor="#ffffff"
+        accentColor="#f06424"
+      />,
+    );
+
+    expect(markup).toContain('data-editorial-lockup-mode="script_tag_overlap"');
+    expect(markup).toContain('data-editorial-overlap-ratio="0.22"');
+    expect(markup).toContain('data-editorial-choreography="forward_word_reveal"');
+    expect(markup).toContain('font-family:Playfair Display');
+    expect(markup).toContain('font-style:italic');
+    expect(markup).toContain('white-space:nowrap');
+    expect(markup).toContain('opacity:0');
+  });
+
+  it("composes editorial offsets with planned animation instead of overwriting either transform", () => {
+    const composed = composeMaulTextTransforms({
+      editorial: {
+        opacity: 0.8,
+        translateXPx: -18,
+        translateYPx: 5,
+        scale: 0.82,
+        rotationDeg: -3,
+      },
+      animation: {
+        opacity: 0.5,
+        translateXPx: 12,
+        translateYPx: -4,
+        scale: 1.2,
+      },
+    });
+    expect(composed).toMatchObject({
+      opacity: 0.4,
+      translateXPx: -6,
+      translateYPx: 1,
+      rotationDeg: -3,
+    });
+    expect(composed?.scale).toBeCloseTo(0.984, 12);
+  });
+
+  it("uses the lockup overlap ratio in responsive geometry and keeps accent color by layer", () => {
+    const record = buildRecords()[0]!;
+    const transform = resolveMaulEditorialWordTransform({
+      lockup: record.editorialLockup!,
+      tokenId: "token_it",
+      absoluteTimeMs: 350,
+      segmentStartMs: record.outputStartMs,
+      fontSizePx: record.font.fontSizePx,
+    });
+    const separatedLockup = structuredClone(record.editorialLockup!);
+    separatedLockup.overlap.ratio = 0;
+    const separatedTransform = resolveMaulEditorialWordTransform({
+      lockup: separatedLockup,
+      tokenId: "token_it",
+      absoluteTimeMs: 350,
+      segmentStartMs: record.outputStartMs,
+      fontSizePx: record.font.fontSizePx,
+    });
+    const markup = renderToStaticMarkup(
+      <MaulPlannedTextCard
+        record={record}
+        absoluteTimeMs={0}
+        textColor="#ffffff"
+        accentColor="#00e5ff"
+      />,
+    );
+
+    expect(transform?.translateXPx).toBeLessThan(separatedTransform?.translateXPx ?? 0);
+    const accentTokenStart = markup.indexOf('data-maul-token-id="token_it"');
+    expect(markup.slice(accentTokenStart, accentTokenStart + 500)).toContain("color:#00e5ff");
+  });
+
+  it("rejects a lockup whose primary or accent asset is not the resolved receipt", () => {
+    const expectRejected = (mutate: (fixture: any) => void) => {
+      const fixture = {
+        textChunkPlan: structuredClone(textChunkPlan),
+        textPlacementPlan: structuredClone(textPlacementPlan),
+        typographyMotion: structuredClone(typographyMotion),
+      };
+      mutate(fixture);
+      expect(() => buildMaulPlannedTextRecords({
+        ...fixture,
+        output: {width: 1080, height: 1920},
+      } as never)).toThrow(/editorial lockup.*font receipt|font receipt.*lockup/i);
+    };
+
+    expectRejected((fixture) => {
+      fixture.textPlacementPlan.segments[0].editorialLockup.tokenStyles[0].fontAssetId =
+        "font_wrong_primary";
+    });
+    expectRejected((fixture) => {
+      fixture.textPlacementPlan.segments[0].editorialLockup.tokenStyles[1].fontAssetId =
+        "font_wrong_accent";
     });
   });
 
@@ -558,6 +806,85 @@ describe("MAUL planned text renderer contract", () => {
     expect(markup).toContain(
       'data-maul-token-id="token_it" data-active="true"',
     );
+  });
+
+  it("renders the planned font system instead of forcing an editorial-display fallback", () => {
+    const record = structuredClone(buildRecords()[0]!) as any;
+    record.font = {
+      ...record.font,
+      profileId: "maul-measured-bebas-neue-local-v1",
+      family: "Bebas Neue",
+      assetId: "font_google_bebas_neue_400",
+      weight: 400,
+    };
+
+    const markup = renderToStaticMarkup(
+      <MaulPlannedTextCard
+        absoluteTimeMs={350}
+        record={record}
+        textColor="#ffffff"
+        accentColor="#ffcc00"
+        creativeTreatment={{
+          schemaVersion: "maul-creative-treatment-proposal/v1",
+          profileId: "aspire_visual_hook",
+          compositionDirection: "subject_integrated",
+          primaryTypeRole: "editorial_display",
+          accentTypeRole: "editorial_italic",
+          palette: {
+            primary: "#ffffff",
+            accent: "#ffcc00",
+            sourceTreatment: "source_neutral",
+          },
+          textDensity: "medium",
+          emphasisMode: "editorial_italic_hinge",
+          motionMode: "restrained_phrase_lockup",
+          rationale: ["Renderer fixture."],
+        }}
+        referenceEditorialRhythm={{
+          schemaVersion: "maul-reference-editorial-rhythm/v1",
+          fontSystemId: "condensed_kinetic_hinge",
+          traitReceipt: ["phrase_hierarchy", "editorial_serif_hinge"],
+        }}
+      />,
+    );
+
+    expect(markup).toContain(
+      'data-primary-font-asset-id="font_google_bebas_neue_400"',
+    );
+    expect(markup).toContain(
+      'data-accent-font-asset-id="font_google_playfair_display_italic_700"',
+    );
+    expect(markup).toContain("font-family:Bebas Neue");
+    expect(markup).toContain("font-family:Playfair Display");
+  });
+
+  it("renders a planned dynamic font URL instead of a static catalog fallback", () => {
+    const record = structuredClone(buildRecords()[0]!) as any;
+    record.font = {
+      ...record.font,
+      family: "Fraunces",
+      assetId: "font_fraunces_regular_test",
+      weight: 400,
+      cssFamily: "PrometheusFraunces",
+      browserUrl: "/fonts/library/fraunces/fraunces-regular.ttf",
+      localFileSha256: sha("f"),
+      format: "ttf",
+      source: "hydrated_library",
+      license: {status: "cleared", evidence: ["font license record"]},
+    };
+
+    const markup = renderToStaticMarkup(
+      <MaulPlannedTextCard
+        absoluteTimeMs={350}
+        record={record}
+        textColor="#ffffff"
+        accentColor="#ffcc00"
+      />,
+    );
+
+    expect(markup).toContain('data-primary-font-asset-id="font_fraunces_regular_test"');
+    expect(markup).toContain('data-primary-font-url="/fonts/library/fraunces/fraunces-regular.ttf"');
+    expect(markup).toContain("font-family:PrometheusFraunces");
   });
 
   it("samples fade-rise before entry and during its governed hold", () => {

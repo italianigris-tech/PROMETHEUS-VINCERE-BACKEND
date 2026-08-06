@@ -36,13 +36,13 @@ export class ZillizHealthMonitor {
     this.client = this.useHttpMilvus
       ? new HttpClient({
           endpoint: resolveHttpMilvusEndpoint(this.env.MILVUS_ADDRESS),
-          token: this.env.MILVUS_TOKEN || undefined,
+          token: this.env.MILVUS_TOKEN || this.env.ZILLIZ_API_KEY || undefined,
           database: this.env.MILVUS_DATABASE || undefined,
           timeout: 10000
         })
       : new MilvusClient({
           address: this.env.MILVUS_ADDRESS,
-          token: this.env.MILVUS_TOKEN || undefined,
+          token: this.env.MILVUS_TOKEN || this.env.ZILLIZ_API_KEY || undefined,
           database: this.env.MILVUS_DATABASE || undefined,
           ssl: isHttpMilvusAddress(this.env.MILVUS_ADDRESS)
         });
@@ -64,12 +64,12 @@ export class ZillizHealthMonitor {
       const client = this.getClient();
       if (this.useHttpMilvus) {
         await (client as HttpClient).hasCollection({
-          collectionName: this.env.MILVUS_COLLECTION_FONTS,
+          collectionName: this.env.FONT_INTELLIGENCE_MILVUS_COLLECTION,
           dbName: this.env.MILVUS_DATABASE
         });
       } else {
         await (client as MilvusClient).hasCollection({
-          collection_name: this.env.MILVUS_COLLECTION_FONTS
+          collection_name: this.env.FONT_INTELLIGENCE_MILVUS_COLLECTION
         });
       }
 

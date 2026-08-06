@@ -335,6 +335,69 @@ describe("MAUL text placement core contract", () => {
     );
   });
 
+  it("requires editorial lockup choreography to match placement token order", () => {
+    const withLockup = clone(placementCore) as any;
+    withLockup.segments[0].editorialLockup = {
+      schemaVersion: "maul-editorial-lockup/v1",
+      mode: "script_tag_overlap",
+      primaryTokenIds: ["token_a"],
+      accentTokenIds: ["token_b"],
+      tokenStyles: [
+        {
+          tokenId: "token_a",
+          role: "primary",
+          fontAssetId: "font_google_dm_sans_700",
+          fontFamily: "DM Sans",
+          fontStyle: "normal",
+          fontWeight: 700,
+          offsetXPx: 0,
+          offsetYPx: 0,
+          fontSizeScale: 1,
+          rotationDeg: 0,
+          zIndex: 1,
+          opacity: 1,
+        },
+        {
+          tokenId: "token_b",
+          role: "accent",
+          fontAssetId: "font_google_playfair_display_italic_700",
+          fontFamily: "Playfair Display",
+          fontStyle: "italic",
+          fontWeight: 700,
+          offsetXPx: -18,
+          offsetYPx: 5,
+          fontSizeScale: 0.82,
+          rotationDeg: -3,
+          zIndex: 2,
+          opacity: 1,
+        },
+      ],
+      overlap: {
+        enabled: true,
+        ratio: 0.22,
+        direction: "accent_over_primary",
+        rationale: "The accent hinge crosses the display phrase.",
+      },
+      choreography: {
+        mode: "forward_word_reveal",
+        tokenOrder: ["token_a", "token_b"],
+        staggerMs: 72,
+        entryDurationMs: 150,
+      },
+      rationale: "The lockup follows the governed placement token sequence.",
+    };
+
+    expect(maulTextPlacementPlanCoreSchema.parse(withLockup)).toBeDefined();
+
+    withLockup.segments[0].editorialLockup.choreography.tokenOrder = [
+      "token_b",
+      "token_a",
+    ];
+    expect(() => maulTextPlacementPlanCoreSchema.parse(withLockup)).toThrow(
+      /lockup.*token.*order|token.*order.*lockup/i,
+    );
+  });
+
   it("rejects hierarchy-scaled typography outside its profile", () => {
     const invalid = clone(placementCore);
     invalid.compatibilityProfiles[0].metrics.maximumFontSizePx = 72;

@@ -92,10 +92,10 @@ export const buildCompositionCandidates = ({
     {
       direction: "subject_integrated",
       box: safeBox({
-        x: box.x + box.width * 0.08,
+        x: box.x + box.width * 0.04,
         y: box.y + box.height * 0.46,
-        width: Math.max(0.18, box.width * 0.78),
-        height: Math.max(0.12, box.height * 0.3),
+        width: Math.max(0.18, box.width * 0.92),
+        height: Math.max(0.18, box.height * 0.38),
       }),
       alignment: align,
       hierarchy: "EDITORIAL",
