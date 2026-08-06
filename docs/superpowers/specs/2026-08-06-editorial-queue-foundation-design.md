@@ -6,7 +6,7 @@ Provide a launch-safe asynchronous task foundation for Prometheus editorial jobs
 
 ## Architecture
 
-The queue is an execution adapter, not the source of truth. A typed queue port accepts a stable job envelope and emits lifecycle events. `InProcessQueue` remains the local/test adapter. `BullMqQueue` is selected when a Redis URL is configured and uses BullMQ for delivery, retries, backoff, concurrency, and stalled-job recovery. Job state and artifacts continue to be persisted by the existing repository and telemetry layers.
+The queue is an execution adapter, not the source of truth. A typed queue port accepts a stable job envelope and emits lifecycle events. `InProcessQueue` remains the local/test adapter. `BullMqQueue` is selected explicitly with `JOB_QUEUE_DRIVER=bullmq` and a Redis URL, and uses BullMQ for delivery, retries, backoff, concurrency, and stalled-job recovery. Job state and artifacts continue to be persisted by the existing repository and telemetry layers.
 
 Every queued task carries a job id, kind, correlation id, idempotency key, attempt metadata, and an opaque payload. Queue adapters must reject a bounded backlog, expose idle/drain behavior for tests, and make cancellation explicit. BullMQ failures are surfaced as retryable infrastructure errors; they must never mark a persisted job complete or failed without the coordinator doing so.
 
