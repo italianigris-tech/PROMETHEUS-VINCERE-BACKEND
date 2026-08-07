@@ -1082,6 +1082,10 @@ export class MaulProjectService {
         MaulArtifactRecord,
         { artifactType: "text_placement_plan" }
       >;
+      textAnimation: Extract<
+        MaulArtifactRecord,
+        { artifactType: "text_animation_plan" }
+      >;
     };
   }> {
     const request: MaulPlanningBundleRequest =

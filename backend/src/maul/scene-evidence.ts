@@ -31,6 +31,7 @@ export type SceneOpportunityRegion = {
   readability: number;
   clutter: number;
   faceInterference: number;
+  overlapPolicy?: "avoid_subject" | "controlled_overlap";
   temporalStability: number;
 };
 
@@ -357,6 +358,11 @@ export const sceneEvidenceToPlacementInputs = (
           box: candidate.box,
           maximumEnvelope: envelopeFor(candidate.box),
           alignment: candidate.alignment,
+          subjectInteraction: {
+            policy: region.overlapPolicy ?? "avoid_subject",
+            faceInterference: region.faceInterference,
+            evidenceIds: hold.sourceFrameIds,
+          },
         },
         crop: hold.sourceCrop,
         scale: {x: 1, y: 1},

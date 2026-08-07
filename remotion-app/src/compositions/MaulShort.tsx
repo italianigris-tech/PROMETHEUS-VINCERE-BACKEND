@@ -72,7 +72,14 @@ export const buildMaulPlannedSourceVideoStyle = ({
 
 export type MaulShortProps = {
   manifest: MaulUnifiedShortRenderManifest;
+  observationMode?: MaulShortObservationMode;
 };
+
+export type MaulShortObservationMode = "creative" | "typography_suppressed";
+
+export const shouldRenderMaulTypography = (
+  observationMode: MaulShortObservationMode | undefined,
+): boolean => observationMode !== "typography_suppressed";
 
 type MaulCreativeTreatment =
   MaulUnifiedShortRenderManifest['plans']['artDirection']['creativeTreatment'];
@@ -783,7 +790,10 @@ const MaulCaptionLayer: React.FC<{
   );
 };
 
-export const MaulShort: React.FC<MaulShortProps> = ({ manifest }) => {
+export const MaulShort: React.FC<MaulShortProps> = ({
+  manifest,
+  observationMode = "creative",
+}) => {
   const adaptedManifest = useMemo(
     () => adaptMaulShortManifest(manifest),
     [manifest],
@@ -888,25 +898,29 @@ export const MaulShort: React.FC<MaulShortProps> = ({ manifest }) => {
             "linear-gradient(180deg, rgba(0,0,0,0.02) 45%, rgba(0,0,0,0.42) 100%)",
         }}
       />
-      {plannedModel ? (
-        <MaulPlannedTextLayer
-          records={plannedModel.textRecords}
-          textColor={visualStyle.captionText}
-          accentColor={visualStyle.captionAccent}
-          creativeTreatment={creativeTreatment}
-          referenceEditorialRhythm={
-            manifest.plans?.artDirection?.referenceEditorialRhythm
-          }
-        />
-      ) : (
-        <MaulCaptionLayer
-          captions={captions}
-          captionGroups={captionPlans.captionGroups}
-          captionGroupsAreGoverned={captionPlans.captionGroupsAreGoverned}
-          treatmentId={treatment.treatmentId}
-          creativeTreatment={creativeTreatment}
-        />
-      )}
+      {shouldRenderMaulTypography(observationMode)
+        ? plannedModel
+          ? (
+              <MaulPlannedTextLayer
+                records={plannedModel.textRecords}
+                textColor={visualStyle.captionText}
+                accentColor={visualStyle.captionAccent}
+                creativeTreatment={creativeTreatment}
+                referenceEditorialRhythm={
+                  manifest.plans?.artDirection?.referenceEditorialRhythm
+                }
+              />
+            )
+          : (
+              <MaulCaptionLayer
+                captions={captions}
+                captionGroups={captionPlans.captionGroups}
+                captionGroupsAreGoverned={captionPlans.captionGroupsAreGoverned}
+                treatmentId={treatment.treatmentId}
+                creativeTreatment={creativeTreatment}
+              />
+            )
+        : null}
       {renderRemotionAudio && musicAsset ? (
         <Audio src={staticFile(musicAsset)} loop volume={musicVolume} />
       ) : null}

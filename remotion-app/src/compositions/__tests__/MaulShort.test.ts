@@ -40,6 +40,16 @@ describe("MAUL Remotion short composition", () => {
     expect(module.shouldMaulRemotionRenderAudio({schemaVersion: "maul-unified-short-render-manifest/v2"} as any)).toBe(true);
   });
 
+  it("suppresses only typography for canonical observation controls", async () => {
+    const module = await import("../MaulShort").catch(() => null);
+    expect(module).not.toBeNull();
+    if (!module) return;
+
+    expect(module.shouldRenderMaulTypography("creative")).toBe(true);
+    expect(module.shouldRenderMaulTypography("typography_suppressed")).toBe(false);
+    expect(module.shouldRenderMaulTypography(undefined)).toBe(true);
+  });
+
   it("renders governed padded non-source regions", async () => {
     const module = await import("../MaulShort").catch(() => null);
     expect(module).not.toBeNull();

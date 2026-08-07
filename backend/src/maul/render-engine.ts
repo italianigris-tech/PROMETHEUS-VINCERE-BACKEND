@@ -21,7 +21,10 @@ export type MaulShortRenderEngineInput = {
   manifest: MaulUnifiedShortRenderManifest;
   renderMode: "preview" | "final";
   previewFrameTimesMs?: number[];
+  observationMode?: MaulShortObservationMode;
 };
+
+export type MaulShortObservationMode = "creative" | "typography_suppressed";
 
 export type MaulRenderedFrameSample = {
   outputMs: number;
@@ -41,6 +44,7 @@ export type MaulShortRenderEngineResult = {
     renderer: "remotion";
     sourceMappingPreserved: boolean;
     audioMixed: boolean;
+    observationMode: MaulShortObservationMode;
   };
   frameSamples: MaulRenderedFrameSample[];
 };
@@ -130,6 +134,7 @@ const extractRenderedFrame = async ({
 };
 
 export const renderMaulShortLocally: MaulShortRenderEngine = async (input) => {
+  const observationMode = input.observationMode ?? "creative";
   const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
   const remotionRoot = path.join(repoRoot, "remotion-app");
   const publicStageRoot = path.join(remotionRoot, "public", ".maul-renders");
@@ -176,7 +181,7 @@ export const renderMaulShortLocally: MaulShortRenderEngine = async (input) => {
     };
     await writeFile(
       propsPath,
-      JSON.stringify({manifest: runtimeManifest}),
+      JSON.stringify({manifest: runtimeManifest, observationMode}),
       "utf8"
     );
 
@@ -245,7 +250,8 @@ export const renderMaulShortLocally: MaulShortRenderEngine = async (input) => {
         compositionId: "MaulShort",
         renderer: "remotion",
         sourceMappingPreserved: true,
-        audioMixed: true
+        audioMixed: true,
+        observationMode,
       },
       frameSamples,
     };

@@ -48,6 +48,10 @@ _Avoid_: mutable candidate, render manifest transport, claimed pixel result
 The independently measured physical result of canonical rendering, derived from retained frames plus runtime receipts with per-measurement provenance.
 _Avoid_: renderer self-report, copied manifest values, aesthetic verdict
 
+**Typography Observation Control**:
+A timestamp-matched `MaulShort` render of the same manifest, source treatment, camera path, timing, and encoding with only planned and legacy typography layers suppressed. Creative-versus-control pixel deltas isolate rendered typography for Observed Composition.
+_Avoid_: raw carrier frame, second renderer, source-only subtraction
+
 **Composition Fingerprint**:
 A versioned, provenance-bearing projection of either a Declared Composition or an Observed Composition used for comparison, retrieval, and evaluation. Every value identifies whether it is declared or observed.
 _Avoid_: Pattern Memory snapshot hash, mixed intent-and-reality vector, beauty score

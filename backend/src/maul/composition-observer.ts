@@ -98,7 +98,7 @@ const blockedObservation = ({
 };
 
 type FrameMeasurement = {
-  evidenceId: string;
+  evidenceIds: [string, string];
   width: number;
   height: number;
   changedCount: number;
@@ -110,13 +110,13 @@ type FrameMeasurement = {
 
 const measureFrame = ({
   rendered,
-  source,
+  control,
   subjectMask,
   semanticRegions,
   threshold,
 }: {
   rendered: CompositionFrameSample;
-  source: CompositionFrameSample;
+  control: CompositionFrameSample;
   subjectMask: {width: number; height: number; alpha: Buffer; sha256: string} | null;
   semanticRegions: SemanticRegion[];
   threshold: number;
@@ -124,13 +124,13 @@ const measureFrame = ({
   if (createHash("sha256").update(rendered.bytes).digest("hex") !== rendered.sha256) {
     throw new Error(`Rendered frame ${rendered.outputMs} hash does not match retained bytes.`);
   }
-  if (createHash("sha256").update(source.bytes).digest("hex") !== source.sha256) {
-    throw new Error(`Source frame ${source.outputMs} hash does not match retained bytes.`);
+  if (createHash("sha256").update(control.bytes).digest("hex") !== control.sha256) {
+    throw new Error(`Typography-suppressed frame ${control.outputMs} hash does not match retained bytes.`);
   }
   const renderedPng = decodeRgbaPng(rendered.bytes);
-  const sourcePng = decodeRgbaPng(source.bytes);
-  if (renderedPng.width !== sourcePng.width || renderedPng.height !== sourcePng.height) {
-    throw new Error("Rendered and source-grounded control frame geometry differs.");
+  const controlPng = decodeRgbaPng(control.bytes);
+  if (renderedPng.width !== controlPng.width || renderedPng.height !== controlPng.height) {
+    throw new Error("Rendered and typography-suppressed control frame geometry differs.");
   }
   const {width, height} = renderedPng;
   if (subjectMask && (
@@ -153,10 +153,10 @@ const measureFrame = ({
   for (let pixelIndex = 0; pixelIndex < width * height; pixelIndex += 1) {
     const offset = pixelIndex * 4;
     const difference = Math.max(
-      Math.abs(renderedPng.pixels[offset]! - sourcePng.pixels[offset]!),
-      Math.abs(renderedPng.pixels[offset + 1]! - sourcePng.pixels[offset + 1]!),
-      Math.abs(renderedPng.pixels[offset + 2]! - sourcePng.pixels[offset + 2]!),
-      Math.abs(renderedPng.pixels[offset + 3]! - sourcePng.pixels[offset + 3]!),
+      Math.abs(renderedPng.pixels[offset]! - controlPng.pixels[offset]!),
+      Math.abs(renderedPng.pixels[offset + 1]! - controlPng.pixels[offset + 1]!),
+      Math.abs(renderedPng.pixels[offset + 2]! - controlPng.pixels[offset + 2]!),
+      Math.abs(renderedPng.pixels[offset + 3]! - controlPng.pixels[offset + 3]!),
     );
     if (difference < threshold) continue;
     changed[pixelIndex] = 1;
@@ -197,7 +197,10 @@ const measureFrame = ({
   }
   if (currentArea > 0) lineAreas.push(currentArea);
   return {
-    evidenceId: `frame:${rendered.outputMs}:${rendered.sha256}`,
+    evidenceIds: [
+      `frame:${rendered.outputMs}:${rendered.sha256}`,
+      `typography-control:${control.outputMs}:${control.sha256}`,
+    ],
     width,
     height,
     changedCount,
@@ -212,7 +215,7 @@ export const observeRenderedComposition = ({
   observationId,
   declarationId,
   renderedFrames,
-  sourceFrames,
+  typographySuppressedFrames,
   subjectMask,
   semanticRegions,
   fontCapabilityEvidence,
@@ -221,7 +224,7 @@ export const observeRenderedComposition = ({
   observationId: string;
   declarationId: string;
   renderedFrames: CompositionFrameSample[];
-  sourceFrames: CompositionFrameSample[];
+  typographySuppressedFrames: CompositionFrameSample[];
   subjectMask: {width: number; height: number; alpha: Buffer; sha256: string} | null;
   semanticRegions: SemanticRegion[];
   fontCapabilityEvidence: {
@@ -233,20 +236,30 @@ export const observeRenderedComposition = ({
   } | null;
   differenceThreshold?: number;
 }): ObservedComposition => {
-  const sourceByTime = new Map(sourceFrames.map((frame) => [frame.outputMs, frame]));
-  if (renderedFrames.length === 0 || sourceFrames.length === 0) {
+  const controlByTime = new Map(
+    typographySuppressedFrames.map((frame) => [frame.outputMs, frame]),
+  );
+  if (renderedFrames.length === 0 || typographySuppressedFrames.length === 0) {
     return blockedObservation({
       observationId,
       declarationId,
-      failures: ["Rendered observation requires source-grounded control frames."],
+      failures: ["Rendered observation requires timestamp-matched typography-suppressed control frames."],
     });
   }
   let frames: FrameMeasurement[];
   try {
     frames = renderedFrames.map((rendered) => {
-      const source = sourceByTime.get(rendered.outputMs);
-      if (!source) throw new Error(`No source-grounded control exists at ${rendered.outputMs} ms.`);
-      return measureFrame({rendered, source, subjectMask, semanticRegions, threshold: differenceThreshold});
+      const control = controlByTime.get(rendered.outputMs);
+      if (!control) {
+        throw new Error(`No typography-suppressed control exists at ${rendered.outputMs} ms.`);
+      }
+      return measureFrame({
+        rendered,
+        control,
+        subjectMask,
+        semanticRegions,
+        threshold: differenceThreshold,
+      });
     });
   } catch (error) {
     return blockedObservation({
@@ -256,7 +269,8 @@ export const observeRenderedComposition = ({
     });
   }
   const first = frames[0]!;
-  const allEvidenceIds = frames.map((frame) => frame.evidenceId);
+  const allEvidenceIds = frames.flatMap((frame) => frame.evidenceIds);
+  const firstEvidenceIds = [...first.evidenceIds];
   const lineAreas = [...first.lineAreas].sort((left, right) => right - left);
   const centers = frames.map((frame) => ({
     x: (frame.bounds.leftPx + frame.bounds.rightPx) / 2 / frame.width,
@@ -278,20 +292,20 @@ export const observeRenderedComposition = ({
       frames.reduce((sum, frame) => sum + frame.changedCount, 0))
     : null;
   const measurements: ObservedComposition["measurements"] = {
-    textBounds: {status: "observed", value: first.bounds, evidenceIds: [first.evidenceId]},
-    lineCount: {status: "observed", value: first.lineAreas.length, evidenceIds: [first.evidenceId]},
+    textBounds: {status: "observed", value: first.bounds, evidenceIds: firstEvidenceIds},
+    lineCount: {status: "observed", value: first.lineAreas.length, evidenceIds: firstEvidenceIds},
     hierarchyAreaRatio: {
       status: "observed",
       value: rounded(lineAreas.length >= 2 ? lineAreas[0]! / lineAreas[1]! : 1),
-      evidenceIds: [first.evidenceId],
+      evidenceIds: firstEvidenceIds,
     },
     subjectIntersectionRatio: subjectIntersection === null
       ? unobserved("No source-grounded subject mask was supplied.")
-      : {status: "observed", value: subjectIntersection, evidenceIds: [first.evidenceId, `mask:${subjectMask!.sha256}`]},
+      : {status: "observed", value: subjectIntersection, evidenceIds: [...firstEvidenceIds, `mask:${subjectMask!.sha256}`]},
     criticalIntersectionRatio: criticalIntersection === null
       ? unobserved("No critical semantic regions were supplied.")
-      : {status: "observed", value: criticalIntersection, evidenceIds: [first.evidenceId]},
-    treatmentVisibility: {status: "observed", value: first.changedCount > 0, evidenceIds: [first.evidenceId]},
+      : {status: "observed", value: criticalIntersection, evidenceIds: firstEvidenceIds},
+    treatmentVisibility: {status: "observed", value: first.changedCount > 0, evidenceIds: firstEvidenceIds},
     temporalStability: temporalStability === null
       ? unobserved("At least two retained frames are required for temporal stability.")
       : {status: "observed", value: temporalStability, evidenceIds: allEvidenceIds},
@@ -303,7 +317,7 @@ export const observeRenderedComposition = ({
             family: fontCapabilityEvidence.family,
             sha256: fontCapabilityEvidence.sha256,
           },
-          evidenceIds: [fontCapabilityEvidence.evidenceId, first.evidenceId],
+          evidenceIds: [fontCapabilityEvidence.evidenceId, ...firstEvidenceIds],
         }
       : unobserved("No independent font capability evidence was supplied."),
     depthMode: unobserved("Rendered RGB pixels do not independently prove layer z-order."),

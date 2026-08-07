@@ -381,6 +381,13 @@ export const buildMaulTextAnimationPlanPayload = ({
   selectionSeed?: string;
   outputDurationMs: number;
 }): MaulTextAnimationPlanPayload => {
+  if (textPlacementPlan.payload.status === "blocked") {
+    throw new Error(
+      `Text placement is blocked: ${
+        textPlacementPlan.payload.blockingReason ?? "unknown_placement_failure"
+      }`,
+    );
+  }
   const chunkById = new Map(
     textChunkPlan.payload.chunks.map((chunk) => [chunk.chunkId, chunk]),
   );

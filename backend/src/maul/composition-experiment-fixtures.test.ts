@@ -124,7 +124,7 @@ describe("composition experiment fixtures", () => {
       providerId: "maul_fixture_scene_a_alpha",
       providerVersion: "1",
       holds: [{
-        beatId: "beat_a",
+        beatId: "scene_a_static_hold",
         sourceFrameIds: [
           "alpha:440b5718f9d14c6ccbaca39ba4053215bd1ce771427bfd5bbb7e22a83acec796",
         ],
@@ -147,5 +147,35 @@ describe("composition experiment fixtures", () => {
     if (sceneB.status !== "available") throw new Error("Expected Scene B evidence.");
     expect(sceneB.holds[0]?.sourceFrameIds).toHaveLength(3);
     expect(sceneB.holds[0]?.opportunities[0]?.box.x).toBeGreaterThan(0.3);
+  });
+
+  it("keeps the static Scene A evidence continuous across editorial beats", async () => {
+    const provider = createCompositionExperimentSceneEvidenceProvider({
+      fixtureId: "scene_a_matted_lady_hierarchy_v1",
+      repoRoot,
+    });
+
+    const evidence = await provider.inspect({
+      sourcePath: "carrier-is-transport-only.mp4",
+      beats: [
+        {beatId: "hook", startMs: 0, endMs: 2_000, purpose: "HOOK"},
+        {beatId: "payoff", startMs: 2_000, endMs: 4_000, purpose: "PAYOFF"},
+      ],
+    });
+
+    expect(evidence).toMatchObject({
+      status: "available",
+      holds: [
+        {
+          beatId: "scene_a_static_hold",
+          sceneId: "scene_a_static",
+          discontinuityId: "scene_a_static_alpha",
+          outputStartMs: 0,
+          outputEndMs: 4_000,
+        },
+      ],
+    });
+    if (evidence.status !== "available") throw new Error("Expected Scene A evidence.");
+    expect(evidence.holds).toHaveLength(1);
   });
 });

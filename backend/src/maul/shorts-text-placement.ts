@@ -798,11 +798,19 @@ const buildCandidate = ({
         ? Boolean(
             fallbackBand && boxContains(fallbackBand, geometry.maximumEnvelope),
           )
-        : !subjectBox || !boxesOverlap(geometry.maximumEnvelope, subjectBox),
-      observation?.evidenceId ?? composition.intervalId,
+        : !subjectBox ||
+          !boxesOverlap(geometry.maximumEnvelope, subjectBox) ||
+          (composition.textAnchor?.subjectInteraction?.policy ===
+            "controlled_overlap" &&
+            composition.textAnchor.subjectInteraction.faceInterference === 0),
+      composition.textAnchor?.subjectInteraction?.evidenceIds[0] ??
+        observation?.evidenceId ??
+        composition.intervalId,
       isCaptionSafeFallback
         ? "Text lies wholly inside a compiled non-source band."
-        : "Maximum envelope clears known subject occupancy.",
+        : !subjectBox || !boxesOverlap(geometry.maximumEnvelope, subjectBox)
+          ? "Maximum envelope clears known subject occupancy."
+          : "Controlled overlap is explicitly authorized by measured face-clearance evidence.",
     ),
     gate(
       "existing_text_clearance",

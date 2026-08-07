@@ -54,22 +54,22 @@ export const decodeRgbaPng = (bytes: Buffer): DecodedRgbaPng => {
     width <= 0 ||
     height <= 0 ||
     bitDepth !== 8 ||
-    colorType !== 6 ||
+    (colorType !== 2 && colorType !== 6) ||
     interlace !== 0 ||
     imageData.length === 0
   ) {
     throw new Error(
-      "PNG evidence must be non-interlaced 8-bit RGBA with image data.",
+      "PNG evidence must be non-interlaced 8-bit RGB or RGBA with image data.",
     );
   }
 
-  const bytesPerPixel = 4;
+  const bytesPerPixel = colorType === 6 ? 4 : 3;
   const rowLength = width * bytesPerPixel;
   const inflated = inflateSync(Buffer.concat(imageData));
   if (inflated.length !== height * (rowLength + 1)) {
-    throw new Error("PNG inflated byte length does not match its RGBA geometry.");
+    throw new Error("PNG inflated byte length does not match its pixel geometry.");
   }
-  const pixels = Buffer.alloc(width * height * bytesPerPixel);
+  const decoded = Buffer.alloc(width * height * bytesPerPixel);
   let inputOffset = 0;
   for (let y = 0; y < height; y += 1) {
     const filter = inflated[inputOffset++]!;
@@ -77,10 +77,10 @@ export const decodeRgbaPng = (bytes: Buffer): DecodedRgbaPng => {
     const priorRowStart = outputRowStart - rowLength;
     for (let x = 0; x < rowLength; x += 1) {
       const raw = inflated[inputOffset++]!;
-      const left = x >= bytesPerPixel ? pixels[outputRowStart + x - bytesPerPixel]! : 0;
-      const above = y > 0 ? pixels[priorRowStart + x]! : 0;
+      const left = x >= bytesPerPixel ? decoded[outputRowStart + x - bytesPerPixel]! : 0;
+      const above = y > 0 ? decoded[priorRowStart + x]! : 0;
       const upperLeft = y > 0 && x >= bytesPerPixel
-        ? pixels[priorRowStart + x - bytesPerPixel]!
+        ? decoded[priorRowStart + x - bytesPerPixel]!
         : 0;
       let reconstructed: number;
       switch (filter) {
@@ -102,8 +102,14 @@ export const decodeRgbaPng = (bytes: Buffer): DecodedRgbaPng => {
         default:
           throw new Error(`PNG row ${y} uses unsupported filter ${filter}.`);
       }
-      pixels[outputRowStart + x] = reconstructed & 0xff;
+      decoded[outputRowStart + x] = reconstructed & 0xff;
     }
+  }
+  if (bytesPerPixel === 4) return {width, height, pixels: decoded};
+  const pixels = Buffer.alloc(width * height * 4);
+  for (let pixelIndex = 0; pixelIndex < width * height; pixelIndex += 1) {
+    decoded.copy(pixels, pixelIndex * 4, pixelIndex * 3, pixelIndex * 3 + 3);
+    pixels[pixelIndex * 4 + 3] = 255;
   }
   return {width, height, pixels};
 };

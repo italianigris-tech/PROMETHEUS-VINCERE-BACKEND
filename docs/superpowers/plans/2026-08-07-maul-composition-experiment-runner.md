@@ -4,7 +4,7 @@
 
 **Goal:** Deliver one real 9:16 causal experiment in which Scene A produces a baseline and a dependency-closed semantic-hierarchy repair through the existing MAUL manifest compiler and canonical `MaulShort` Remotion renderer, independent pixel observation distinguishes declared intent from rendered reality, a human can submit a blinded A/B/tie judgment, and that experiment-only evidence can be ablated on held-out Scene B without entering production Pattern Memory.
 
-**Architecture:** Add one narrow `CompositionExperimentRunner` coordinator around existing MAUL authorities. Fixture evidence supplies immutable scene facts; Semantic Typography Tree and repair modules produce hierarchy intent; `MaulProjectService` exposes manifest-only compilation through its existing compiler; `renderMaulShortLocally` remains the canonical renderer; a new observer measures retained pixels and immutable source evidence; review and retrieval adapters retain raw experiment evidence without becoming an evaluator or memory authority.
+**Architecture:** Add one narrow `CompositionExperimentRunner` coordinator around existing MAUL authorities. Fixture evidence supplies immutable scene facts; Semantic Typography Tree and repair modules produce hierarchy intent; `MaulProjectService` exposes manifest-only compilation through its existing compiler; `renderMaulShortLocally` remains the canonical renderer; each condition also renders a timestamp-matched `typography_suppressed` control through the same manifest and `MaulShort` path; the observer measures their pixel delta; review and retrieval adapters retain raw experiment evidence without becoming an evaluator or memory authority.
 
 **Tech Stack:** TypeScript, Zod, Vitest, existing MAUL project/store/planning modules, Remotion `MaulShort`, repository-owned Remotion FFmpeg/FFprobe, Node crypto/fs, fontkit, JSON experiment artifacts.
 
@@ -19,7 +19,12 @@
 - The baseline and repair share source, scene evidence, treatment, font assets, placement family, color, motion family, seed, and render budget. Only semantic hierarchy plus its declared dependency closure may differ.
 - Manifest compilation uses `compileMaulUnifiedShortRenderManifest` through `MaulProjectService`; the runner does not assemble a parallel manifest.
 - Canonical rendering uses `renderMaulShortLocally` and Remotion composition `MaulShort`.
+- Canonical observation controls use that same manifest, renderer, source treatment, camera path, timing, and sample times; only planned and legacy typography layers are suppressed.
 - Observed values come from retained PNG pixels or explicit independent runtime probes. Missing proof remains `unobserved`.
+- Opportunity-level controlled-overlap evidence must reach the placement hard gate; a broad subject box cannot override explicit zero-face-interference evidence.
+- Editorial beat boundaries do not create scene discontinuities without an explicit source, camera, tracking, or scene change.
+- Blocked placement fails before animation construction with its original reason.
+- Retained non-interlaced 8-bit RGB and RGBA PNGs are accepted and normalized for observation.
 - Existing pre-render Quality Truth compatibility data is never accepted as Observed Composition.
 - Review inference never receives winner identity, verdict, or post-review labels. Ties and `no_meaningful_preference` are first-class.
 - Scene A evidence remains `experiment_only`; one result cannot be promoted into `backend/src/pattern-memory`.
@@ -142,7 +147,9 @@
 - [ ] Write a failing test proving observed text bounds, occupancy, connected regions, subject intersection, hierarchy area ratio, and temporal stability are measured from decoded retained-frame pixels.
 - [ ] Write a failing test proving the observer cannot fill an absent font, mask, treatment, or motion measurement from the declaration or manifest.
 - [ ] Add final-render frame retention at requested sample times; retain the same PNG evidence contract currently available only in preview mode.
-- [ ] Decode retained PNGs through repository FFmpeg to raw RGB and compare them with immutable/source-grounded frame evidence using explicit thresholds and provenance.
+- [ ] Add `creative` and `typography_suppressed` modes to the canonical `MaulShort` render input; suppression must preserve source/camera/treatment execution while omitting planned and legacy text.
+- [ ] Render timestamp-matched control frames from the same manifest and compare them with creative frames using explicit thresholds and provenance; immutable carrier frames remain fixture evidence, not typography controls.
+- [ ] Decode non-interlaced 8-bit RGB and RGBA retained PNGs and normalize both to RGBA before measurement.
 - [ ] Compute normalized text-region geometry, alpha-mask intersection, critical/protected/flexible overlap, observed hierarchy area ratio, frame-to-frame trajectory, and unobserved fields.
 - [ ] Add an independent font capability probe using the exact verified font asset and browser/canvas or fontkit geometry. Treat it as capability evidence; actual render identity remains inferred or `unobserved` unless pixel/runtime evidence supports it.
 - [ ] Build a structured Fidelity Report with categorical failures first, numeric deltas second, and no opaque score that can hide a hard mismatch.
@@ -174,14 +181,14 @@
 - Create: `scripts/maul-composition-experiment.ts`
 - Modify: `package.json` or `backend/package.json` only if a script alias materially improves repeatability.
 
-- [ ] Write a failing integration test with fake renderer/observer adapters proving the runner coordinates baseline -> declaration -> manifest -> render -> observation -> fidelity -> repair -> new declaration -> render -> observation -> blinded package.
+- [ ] Write a failing integration test with fake renderer/observer adapters proving the runner coordinates baseline -> declaration -> manifest -> creative render -> typography-suppressed control render -> observation -> fidelity -> repair -> new declaration -> both renders -> observation -> blinded package.
 - [ ] Assert the runner records every causal artifact and Decision Ledger event, uses one renderer and observer version, and does not act as their authority.
 - [ ] Assert baseline and repair differ only in hierarchy and the declared dependency closure after normalization.
 - [ ] Implement deterministic Scene A carrier and silent-track materialization with repository FFmpeg; preserve original alpha evidence separately.
 - [ ] Use one MAUL project/candidate/treatment and two planning bundles under the same source and seed so unrelated planning choices remain stable.
-- [ ] Compile both manifests with `compileRenderManifest`, render at 1080x1920 through `renderMaulShortLocally`, retain 1 s, 2 s, and 3 s frames, observe, and emit Fidelity Reports.
+- [ ] Compile both manifests with `compileRenderManifest`; for each, render creative and typography-suppressed 1080x1920 outputs through `renderMaulShortLocally`, retain matching 1 s, 2 s, and 3 s frames, observe their pixel delta, and emit Fidelity Reports.
 - [ ] Generate a blinded review package containing side-by-side stills and both MP4s under ignored `artifacts/maul-composition-experiment/scene-a/`.
-- [ ] Emit `trace.json`, `capability-coverage.json`, declarations, manifests, observed compositions, fidelity reports, repair ledger, and review package with hashes.
+- [ ] Emit `trace.json`, `capability-coverage.json`, declarations, manifests, creative/control MP4s and frame hashes, observed compositions, fidelity reports, repair ledger, and review package with hashes.
 - [ ] Re-run the runner integration test and backend typecheck.
 - [ ] Commit: `feat(maul): run causal composition experiment`
 
@@ -215,8 +222,8 @@
 - [ ] Run backend typecheck and the full backend test suite.
 - [ ] Run relevant shared-types and Remotion tests plus both typechecks.
 - [ ] Run `npx tsx scripts/maul-composition-experiment.ts prepare --fixture scene_a_matted_lady_hierarchy_v1`.
-- [ ] Verify exact source hash, output 1080x1920, four-second duration, `MaulShort` composition receipt, nonempty retained PNGs, alpha-derived mask evidence, and no accepted `test-matte.mp4` lineage.
-- [ ] Inspect baseline and repair at 1 s, 2 s, and 3 s; use pixel checks to reject blank, unchanged, clipped, overlapping-critical-region, or treatment-bypassed output.
+- [ ] Verify exact source hash, output 1080x1920, four-second duration, `MaulShort` composition receipts for both modes, nonempty timestamp-matched RGB/RGBA retained PNGs, alpha-derived mask evidence, and no accepted `test-matte.mp4` lineage.
+- [ ] Inspect baseline and repair at 1 s, 2 s, and 3 s; compare each against its same-manifest typography-suppressed control and reject blank, pixel-identical, clipped, overlapping-critical-region, treatment-bypassed, or full-frame false-positive observation.
 - [ ] Verify every Declared field is observed, inferred with named evidence, or explicitly `unobserved`; no manifest-copy proof is accepted.
 - [ ] Present the randomized Scene A A/B/tie package for real human judgment and record the response with `scripts/maul-composition-review.ts`.
 - [ ] Run Scene B retrieval-disabled and retrieval-enabled conditions only after Scene A review evidence exists and the sidecar overlay remains approved.
@@ -250,7 +257,7 @@ npm test
 npm run typecheck
 
 cd ../../remotion-app
-npm test -- src/compositions/__tests__/MaulPlannedTextLayer.test.tsx src/compositions/__tests__/MaulCinematicLaunchContract.test.tsx
+npm test -- src/compositions/__tests__/MaulShort.test.ts src/compositions/__tests__/MaulPlannedTextLayer.test.tsx src/compositions/__tests__/MaulCinematicLaunchContract.test.tsx
 npm run typecheck
 
 cd ..

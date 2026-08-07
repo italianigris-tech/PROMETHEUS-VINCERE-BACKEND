@@ -54,7 +54,7 @@ describe("Observed Composition", () => {
         sha256: createHash("sha256").update(bytes).digest("hex"),
         contentType: "image/png",
       }],
-      sourceFrames: [],
+      typographySuppressedFrames: [],
       subjectMask: null,
       semanticRegions: [],
       fontCapabilityEvidence: null,
@@ -62,7 +62,7 @@ describe("Observed Composition", () => {
 
     expect(observed.status).toBe("blocked");
     expect(observed.failures).toEqual(expect.arrayContaining([
-      expect.stringMatching(/invalid signature|source-grounded control/i),
+      expect.stringMatching(/invalid signature|typography-suppressed control/i),
     ]));
     expect(observed.measurements.textBounds.status).toBe("unobserved");
   });
@@ -84,7 +84,7 @@ describe("Observed Composition", () => {
       observationId: "observed_valid",
       declarationId: "declared_valid",
       renderedFrames: [sample(1000, rendered), sample(3000, rendered)],
-      sourceFrames: [sample(1000, source), sample(3000, source)],
+      typographySuppressedFrames: [sample(1000, source), sample(3000, source)],
       subjectMask: {width: 24, height: 24, alpha, sha256: "a".repeat(64)},
       semanticRegions: [
         {class: "critical", label: "eyes", box: {x: 0, y: 0, width: 0.5, height: 0.1}},
@@ -105,6 +105,14 @@ describe("Observed Composition", () => {
       status: "observed",
       value: {leftPx: 2, topPx: 3, rightPx: 20, bottomPx: 18},
     });
+    expect(observed.frameEvidenceIds).toEqual(expect.arrayContaining([
+      `frame:1000:${rendered.sha256}`,
+      `typography-control:1000:${source.sha256}`,
+    ]));
+    expect(observed.measurements.textBounds.evidenceIds).toEqual(expect.arrayContaining([
+      `frame:1000:${rendered.sha256}`,
+      `typography-control:1000:${source.sha256}`,
+    ]));
     expect(observed.measurements.lineCount).toMatchObject({status: "observed", value: 2});
     if (
       observed.measurements.hierarchyAreaRatio.status === "unobserved" ||
@@ -132,7 +140,7 @@ describe("Observed Composition", () => {
       observationId: "observed_sparse",
       declarationId: "declared_with_rich_intent",
       renderedFrames: [sample(1000, rendered)],
-      sourceFrames: [sample(1000, source)],
+      typographySuppressedFrames: [sample(1000, source)],
       subjectMask: null,
       semanticRegions: [],
       fontCapabilityEvidence: null,

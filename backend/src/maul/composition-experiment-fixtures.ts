@@ -279,16 +279,18 @@ const sceneAProvider = (repoRoot: string): SceneEvidenceProvider => ({
   async inspect(input): Promise<SceneEvidenceTimeline> {
     const alpha = await deriveSceneAAlphaEvidence({repoRoot});
     const subjectBox = mapSceneASubjectBoxToOutput(alpha.subjectBox);
+    const startMs = Math.min(...input.beats.map((beat) => beat.startMs));
+    const endMs = Math.max(...input.beats.map((beat) => beat.endMs));
     return {
       status: "available",
       providerId: "maul_fixture_scene_a_alpha",
       providerVersion: "1",
-      holds: input.beats.map((beat, index) => ({
-        beatId: beat.beatId,
-        sceneId: `scene_a_${index + 1}`,
+      holds: [{
+        beatId: "scene_a_static_hold",
+        sceneId: "scene_a_static",
         discontinuityId: "scene_a_static_alpha",
-        outputStartMs: beat.startMs,
-        outputEndMs: beat.endMs,
+        outputStartMs: startMs,
+        outputEndMs: endMs,
         sourceFrameIds: [`alpha:${alpha.alphaSha256}`],
         sourceCrop: {x: 0, y: 0, width: 1, height: 1},
         subject: {trackingState: "tracked", box: subjectBox},
@@ -301,6 +303,7 @@ const sceneAProvider = (repoRoot: string): SceneEvidenceProvider => ({
             readability: 0.72,
             clutter: 0.22,
             faceInterference: 0,
+            overlapPolicy: "controlled_overlap",
             temporalStability: 1,
           },
           {
@@ -310,10 +313,11 @@ const sceneAProvider = (repoRoot: string): SceneEvidenceProvider => ({
             readability: 0.68,
             clutter: 0.24,
             faceInterference: 0,
+            overlapPolicy: "controlled_overlap",
             temporalStability: 1,
           },
         ],
-      })),
+      }],
     };
   },
 });

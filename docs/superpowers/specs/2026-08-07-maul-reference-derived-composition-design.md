@@ -52,8 +52,9 @@ Produce a representative, end-to-end 9:16 composition path that:
 5. freezes each selected realization as a Declared Composition, realizes it
    through one canonical render manifest and one Remotion execution path, and
    retains actual frame samples;
-6. independently derives an Observed Composition from those frames and runtime
-   receipts rather than copying manifest or renderer claims;
+6. independently derives an Observed Composition by comparing retained creative
+   frames with timestamp-matched, typography-suppressed frames rendered from the
+   same manifest, source treatment, camera path, timing, and canonical renderer;
 7. emits a structured Fidelity Report proving whether fonts, shaped bounds,
    placement, depth, treatment, and motion reached pixels;
 8. captures a randomized, blinded same-scene A/B/tie review with per-candidate
@@ -177,6 +178,35 @@ into a carrier before observation. It remains a diagnostic legacy harness until
 adapted; none of its self-authored `verified` fields count as Observed Composition
 or review evidence. Repository-owned media-tool resolution, canonical frame
 retention, and independent pixel observation are therefore Stage 0 gates.
+
+### Acceptance-derived causal invariants
+
+The first real Scene A run exposed the following implementation invariants. They
+are part of the experiment contract, not optional tuning:
+
+1. Opportunity-level scene evidence, including overlap policy, face
+   interference, and evidence IDs, must survive unchanged into the placement
+   hard gate. A broad subject bounding box cannot veto explicitly authorized
+   `controlled_overlap` when independent evidence reports zero face interference;
+   it can veto overlap when that evidence is missing or contradictory.
+2. Editorial beat boundaries are not scene discontinuities. Adjacent beats over
+   one static or continuously tracked shot must share one stable composition
+   interval unless source, camera, subject tracking, or another explicit scene
+   discontinuity changes.
+3. A blocked placement artifact must terminate planning with its original reason
+   before animation schema construction. Downstream modules may not replace that
+   cause with a secondary validation error.
+4. Retained 8-bit non-interlaced RGB and RGBA PNGs are both valid pixel evidence;
+   RGB inputs are normalized to opaque RGBA before measurement.
+5. Raw carrier/source-frame subtraction is not valid typography observation when
+   the canonical renderer applies source grading, camera transforms, overlays, or
+   temporal treatment. Each condition must render a timestamp-matched
+   `typography_suppressed` control through the same `MaulShort` manifest and
+   renderer path, changing only typography visibility.
+6. Creative and control MP4s, sampled frames, modes, hashes, and paths must appear
+   in the Decision Ledger and experiment trace. A missing control, mismatched
+   timestamp, different manifest, different renderer, or pixel-identical control
+   blocks observation rather than manufacturing bounds.
 
 ## Optimization Objectives
 
@@ -617,14 +647,23 @@ manifest validation failure or explicit governed fallback that remains visible i
 the Decision Ledger and Fidelity Report. Silent default substitutions are
 prohibited.
 
+For pixel observation, the same `MaulShort` module supports one non-creative
+execution mode: `typography_suppressed`. This mode preserves source media,
+source treatment, crop, camera transform, timing, overlays, encoding, and audio,
+while omitting both planned and legacy typography layers. It is an observation
+control of the canonical renderer, not a second renderer or realization path.
+
 ### Observed Composition and Composition Fingerprints
 
 The Observed Composition is the physical reality measured after canonical
 rendering. An observation module independent from candidate generation and
-manifest compilation derives it from retained frame pixels, browser/canvas
-measurements, font-load receipts, and renderer/runtime diagnostics. Each value
-records its evidence source and confidence. Runtime telemetry can corroborate an
-observation but cannot certify its own requested output.
+manifest compilation derives typography pixels from timestamp-matched creative
+and `typography_suppressed` frame pairs, plus browser/canvas measurements,
+font-load receipts, and renderer/runtime diagnostics. Each value records both
+frame hashes and its confidence. Runtime telemetry can corroborate an
+observation but cannot certify its own requested output. Immutable carrier
+frames remain source/fixture evidence; they are not typography controls after
+render-time grading or camera motion.
 
 Observed fields include actual loaded font identity, glyph and layer bounds,
 line breaks, z-order/mask evidence, subject/text intersections, contrast,
@@ -863,6 +902,13 @@ percentage. Valid modes include `front`, `behind-subject`, `integrated`, and
 clear z-order evidence. A controlled overlap may use shoulder/torso/hair regions
 when readability, intentionality, and temporal stability are positive. Eyes,
 mouth, and primary gestures remain hard constraints by default.
+
+The placement hard gate consumes the opportunity's semantic overlap evidence,
+not only the coarse subject box. `controlled_overlap` requires explicit evidence
+IDs and zero face interference. A full-frame or conservative subject box remains
+a fallback constraint when semantic evidence is absent, but cannot erase more
+specific verified evidence. Any blocked placement exits before animation
+planning and preserves its originating failure reason.
 
 The system must inspect a candidate over the composition interval, not only at a
 single attractive frame. It rejects a placement whose safe region disappears,
@@ -1189,12 +1235,14 @@ Each workstream uses test-first development with these proof levels:
    brief/observations through candidate search to capability verification, a
    canonical manifest, independent Observed Composition, Fidelity Report, visual
    evidence, justification, and ledger.
-6. **Observation and fidelity tests:** sampled frames and runtime receipts verify
+6. **Observation and fidelity tests:** sampled creative frames and timestamp-
+   matched `typography_suppressed` frames from the same canonical manifest verify
    text bounds, font-loading signature, mask/depth application, line breaks,
-   transform position, and treatment visibility. The observer must leave required
+   transform position, and treatment visibility. Tests cover RGB and RGBA PNG
+   evidence, reject raw carrier subtraction when renderer treatment differs, and
+   require control artifacts in the trace. The observer must leave required
    values `unobserved` when proof is absent, and arbitrary frame bytes cannot
-   satisfy a fidelity pass. These tests deliberately detect the known problem
-   where a selected treatment is bypassed at render time.
+   satisfy a fidelity pass.
 7. **Preference leakage tests:** inference accepts unordered candidate features
    and scene context but no winner ID, verdict, or post-review failure label;
    swapping A/B presentation preserves predictions; unseen labels cannot produce
@@ -1229,6 +1277,7 @@ difference does not hide a semantic regression.
 | Candidate count creates unacceptable render cost | Use analytical and low-cost raster pruning, record prune loss, and increase budgets only when evidence justifies it. |
 | Evaluation rewards a hack or reference imitation | Require originality constraints, held-out sources, human review, and failure-taxonomy audit. |
 | A renderer path silently changes output | Fail Fidelity Report tests and block reference-quality claims until the field-to-pixel trace is restored. |
+| Carrier subtraction attributes grading or camera motion to typography | Render a timestamp-matched typography-suppressed control from the same manifest through canonical `MaulShort`; persist and hash both paths. |
 | Observer copies manifest or renderer self-report | Require independent frame/runtime measurement, per-field provenance, and `unobserved` values when proof is absent. |
 | Fidelity scalar hides a categorical mismatch | Rank structured hard failures before optional scalar summaries; block on critical mismatches. |
 | Semantic tree overcommits to one interpretation | Preserve competing hierarchy hypotheses with confidence until candidate selection. |
