@@ -98,6 +98,7 @@ import {
   type SceneEvidenceProvider,
 } from "./scene-evidence.js";
 import {
+  createFontkitEditorialTokenMeasurementProvider,
   createDefaultMaulTypographyProvider,
   type MaulTypographyProvider,
 } from "./typography-layout.js";
@@ -1482,6 +1483,11 @@ export class MaulProjectService {
           fallbackPrimary: primaryFont,
         })
       : {primary: primaryFont, accent: null};
+    const editorialTokenMeasure = fontResolution?.selectedAsset && fontResolution.accentAsset
+      ? createFontkitEditorialTokenMeasurementProvider({
+          assets: [fontResolution.selectedAsset, fontResolution.accentAsset],
+        })
+      : undefined;
     const editorialPlacementSegments = applyMaulEditorialLockups({
       placementPlan: textPlacementCore,
       textChunkPlan: textChunkCore,
@@ -1491,6 +1497,8 @@ export class MaulProjectService {
       referenceTraits,
       selectionSeed: `${editorialRhythmSeed}:lockup`,
       semanticHierarchyRolesByChunkId,
+      output: {widthPx: 1080, heightPx: 1920},
+      measureToken: editorialTokenMeasure,
     }).segments;
     const textPlacementCoreWithLockups = {
       ...textPlacementCore,

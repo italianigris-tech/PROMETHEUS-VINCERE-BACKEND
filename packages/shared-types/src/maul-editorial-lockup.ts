@@ -18,13 +18,26 @@ export const maulEditorialLockupTokenStyleSchema = z.object({
 }).strict();
 
 export const maulEditorialLockupSchema = z.object({
-  schemaVersion: z.literal("maul-editorial-lockup/v1"),
+  schemaVersion: z.enum([
+    "maul-editorial-lockup/v1",
+    "maul-editorial-lockup/v2",
+  ]),
   mode: z.enum([
     "single_line_hinge",
     "script_tag_overlap",
     "stacked_phrase",
     "word_ladder",
   ]),
+  referenceGrammarId: z.enum([
+    "stacked_support_hero",
+    "inline_italic_hinge",
+    "inline_mixed_word_splice",
+    "script_over_foundation",
+    "annotated_keyword",
+    "quiet_luxury",
+    "poster_stack",
+  ]).optional(),
+  caseMode: z.enum(["source_preserving", "display_allowed"]).optional(),
   primaryTokenIds: z.array(idSchema).min(1).max(8),
   accentTokenIds: z.array(idSchema).max(8),
   tokenStyles: z.array(maulEditorialLockupTokenStyleSchema).min(1).max(8),
@@ -35,13 +48,63 @@ export const maulEditorialLockupSchema = z.object({
     rationale: idSchema,
   }).strict(),
   choreography: z.object({
-    mode: z.literal("forward_word_reveal"),
+    mode: z.enum([
+      "forward_word_reveal",
+      "position_locked_word_reveal",
+      "position_locked_letter_reveal",
+    ]),
     tokenOrder: z.array(idSchema).min(1).max(8),
     staggerMs: z.number().int().min(0).max(500),
     entryDurationMs: z.number().int().positive().max(1000),
+    localRevealEnvelope: z.object({
+      maxTranslateXPx: z.number().min(0).max(256),
+      maxTranslateYPx: z.number().min(0).max(256),
+      maxScaleDelta: z.number().min(0).max(1),
+      annotationPaddingPx: z.number().min(0).max(128),
+    }).strict().optional(),
   }).strict(),
+  placement: z.object({
+    mode: z.literal("position_locked"),
+    anchor: z.literal("word_box"),
+    finalTransformIdentity: z.literal(true),
+  }).strict().optional(),
+  annotations: z.array(z.object({
+    annotationId: idSchema,
+    kind: z.enum([
+      "underline",
+      "circle",
+      "highlight",
+      "strike_through",
+      "arrow",
+    ]),
+    tokenIds: z.array(idSchema).min(1).max(8),
+    paddingPx: z.number().min(0).max(128),
+  }).strict()).max(3).optional(),
   rationale: idSchema,
 }).strict().superRefine((lockup, ctx) => {
+  if (lockup.schemaVersion === "maul-editorial-lockup/v2") {
+    if (!lockup.referenceGrammarId || !lockup.caseMode) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["referenceGrammarId"],
+        message: "V2 editorial lockups require a reference grammar and case policy.",
+      });
+    }
+    if (!lockup.placement) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["placement"],
+        message: "V2 editorial lockups require a position-locked placement contract.",
+      });
+    }
+    if (!lockup.choreography.localRevealEnvelope) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["choreography", "localRevealEnvelope"],
+        message: "V2 editorial lockups require a bounded local reveal envelope.",
+      });
+    }
+  }
   const styleIds = lockup.tokenStyles.map((style) => style.tokenId);
   const allTokenIds = [...lockup.primaryTokenIds, ...lockup.accentTokenIds];
   if (new Set(styleIds).size !== styleIds.length) {
@@ -94,7 +157,27 @@ export const maulEditorialLockupSchema = z.object({
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ["choreography", "tokenOrder"],
-      message: "Forward word choreography must cover each lockup token exactly once.",
+      message: "Editorial lockup choreography must cover each token exactly once.",
+    });
+  }
+  const annotations = lockup.annotations ?? [];
+  annotations.forEach((annotation, index) => {
+    if (annotation.tokenIds.some((tokenId) => !allTokenIds.includes(tokenId))) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["annotations", index, "tokenIds"],
+        message: "Every annotation token must belong to the lockup.",
+      });
+    }
+  });
+  if (
+    lockup.referenceGrammarId !== "poster_stack" &&
+    annotations.length > 1
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["annotations"],
+      message: "Only one annotation is permitted outside the poster grammar.",
     });
   }
   if (!lockup.overlap.enabled && lockup.overlap.ratio !== 0) {

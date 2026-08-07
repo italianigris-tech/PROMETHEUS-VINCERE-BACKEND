@@ -91,6 +91,48 @@ const isFontCollection = (
   input: Font | FontCollection,
 ): input is FontCollection => input.type === "TTC" || input.type === "DFont";
 
+export const createFontkitEditorialTokenMeasurementProvider = ({
+  assets,
+}: {
+  assets: readonly MaulResolvedFontAsset[];
+}) => {
+  const assetById = new Map(assets.map((asset) => [asset.assetId, asset]));
+  const fontById = new Map<string, Font>();
+  return ({
+    text,
+    font,
+    fontSizePx,
+  }: {
+    tokenId: string;
+    text: string;
+    font: {assetId: string};
+    fontSizePx: number;
+  }): {widthPx: number; heightPx: number} => {
+    const asset = assetById.get(font.assetId);
+    if (!asset) {
+      throw new Error(`MAUL editorial measurement has no exact asset for ${font.assetId}.`);
+    }
+    let loaded = fontById.get(asset.assetId);
+    if (!loaded) {
+      const opened = openSync(asset.localFilePath);
+      if (isFontCollection(opened)) {
+        throw new Error(`MAUL editorial measurement requires an explicit face: ${asset.assetId}.`);
+      }
+      loaded = opened;
+      fontById.set(asset.assetId, loaded);
+    }
+    const scale = fontSizePx / Math.max(1, loaded.unitsPerEm);
+    const run = loaded.layout(text);
+    return {
+      widthPx: run.positions.reduce(
+        (total, position) => total + position.xAdvance,
+        0,
+      ) * scale,
+      heightPx: (loaded.ascent - loaded.descent) * scale,
+    };
+  };
+};
+
 export const createFontkitTypographyMeasurementProvider = ({
   fontPath,
   fontAssetId,

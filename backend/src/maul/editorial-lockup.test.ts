@@ -21,7 +21,7 @@ const accentFont = {
 };
 
 describe("MAUL editorial lockup planner", () => {
-  it("plans a dynamic script/display hinge with sanctioned overlap and forward word order", () => {
+  it("plans a measured script/display hinge with sanctioned overlap and locked word order", () => {
     const lockup = buildMaulEditorialLockup({
       segment: {
         segmentId: "segment_hero",
@@ -42,7 +42,7 @@ describe("MAUL editorial lockup planner", () => {
       mode: "script_tag_overlap",
       overlap: {enabled: true, direction: "accent_over_primary"},
       choreography: {
-        mode: "forward_word_reveal",
+        mode: "position_locked_word_reveal",
         tokenOrder: ["token_build", "token_your", "token_legacy"],
       },
     });
@@ -57,11 +57,12 @@ describe("MAUL editorial lockup planner", () => {
     });
     const accentStyle = lockup.tokenStyles.find((style) => style.tokenId === "token_legacy")!;
     const primaryStyle = lockup.tokenStyles.find((style) => style.tokenId === "token_build")!;
-    expect(accentStyle.fontSizeScale).toBeGreaterThanOrEqual(1.6);
+    expect(accentStyle.fontSizeScale).toBeGreaterThan(1);
+    expect(accentStyle.fontSizeScale).toBeLessThanOrEqual(1.18);
     expect(accentStyle.fontSizeScale).toBeGreaterThan(primaryStyle.fontSizeScale);
-    expect(primaryStyle.fontSizeScale).toBeGreaterThanOrEqual(1.2);
-    expect(accentStyle.offsetYPx).toBeGreaterThanOrEqual(36);
-    expect(lockup.overlap.ratio).toBeGreaterThanOrEqual(0.28);
+    expect(primaryStyle.fontSizeScale).toBe(1);
+    expect(accentStyle.rotationDeg).toBe(0);
+    expect(lockup.overlap.ratio).toBeLessThanOrEqual(0.14);
   });
 
   it("keeps a missing accent receipt from creating an unreceipted lockup layer", () => {
@@ -154,11 +155,20 @@ describe("MAUL editorial lockup planner", () => {
         segmentId: "segment_hero",
         chunkId: "chunk_hero",
         tokenIds: ["token_build", "token_legacy"],
+        lines: [{lineId: "line_hero", tokenIds: ["token_build", "token_legacy"], text: "Build legacy"}],
+        box: {x: 0.2, y: 0.6, width: 0.6, height: 0.12},
+        maximumEnvelope: {x: 0.18, y: 0.58, width: 0.64, height: 0.16},
+        alignment: "center",
+        compatibility: {nominalFontSizePx: 72, hierarchyScale: 1, lineHeight: 1.1},
         outputStartMs: 0,
         outputEndMs: 1200,
       }],
     } as never;
     const chunks = {
+      tokens: [
+        {tokenId: "token_build", text: "Build"},
+        {tokenId: "token_legacy", text: "legacy"},
+      ],
       chunks: [{
         chunkId: "chunk_hero",
         tokenIds: ["token_build", "token_legacy"],
@@ -184,11 +194,18 @@ describe("MAUL editorial lockup planner", () => {
       accentFont,
       referenceTraits: ["editorial serif hinge"],
       selectionSeed: "seed_c",
+      output: {widthPx: 1080, heightPx: 1920},
+      measureToken: ({font}) => font.assetId === accentFont.assetId
+        ? {widthPx: 240, heightPx: 90}
+        : {widthPx: 180, heightPx: 84},
     });
 
     expect(result.segments[0]?.editorialLockup).toMatchObject({
       mode: "script_tag_overlap",
-      choreography: {tokenOrder: ["token_build", "token_legacy"]},
+      choreography: {
+        mode: "position_locked_word_reveal",
+        tokenOrder: ["token_build", "token_legacy"],
+      },
     });
   });
 });
