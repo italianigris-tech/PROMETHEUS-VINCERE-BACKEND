@@ -1,0 +1,119 @@
+{
+  "schemaVersion": "maul-composition-experiment-scene-map/v1",
+  "fixtureId": "scene_b_joseph_open_field_v1",
+  "sourceSha256": "b6f0210efc00a3696ac259db528be6160aaa4441dd327bb193a488cfd00eb6d4",
+  "crop": {
+    "x": 625,
+    "y": 0,
+    "width": 405,
+    "height": 720
+  },
+  "cropSha256": "f90ecbe47f04b7a5bfd6c7252056611e6c875638aef46ea9cb38b5d46ea73572",
+  "annotations": [
+    {
+      "sourceMs": 7000,
+      "frameSha256": "e2b670905d42a822e0acb9e1e027d090d87b952faffc8a5b3a9c540caa145104",
+      "provenance": {
+        "kind": "immutable_source_crop_frame",
+        "extractor": "remotion_bundled_ffmpeg",
+        "outputGeometry": {"width": 540, "height": 960}
+      },
+      "review": {
+        "status": "approved",
+        "reviewerKind": "independent_visual_review",
+        "reviewerId": "codex_fixture_review_2026_08_07",
+        "reviewedAt": "2026-08-07T08:00:00.000Z"
+      },
+      "regions": {
+        "critical": [
+          {"label": "eyes", "x": 0.012, "y": 0.178, "width": 0.275, "height": 0.06},
+          {"label": "mouth", "x": 0.075, "y": 0.278, "width": 0.19, "height": 0.06}
+        ],
+        "protected": [
+          {"label": "face_contour", "x": 0, "y": 0.105, "width": 0.325, "height": 0.33},
+          {"label": "microphone", "x": 0, "y": 0.365, "width": 0.175, "height": 0.31},
+          {"label": "laptop", "x": 0, "y": 0.645, "width": 0.55, "height": 0.31},
+          {"label": "primary_hand", "x": 0.49, "y": 0.79, "width": 0.16, "height": 0.15}
+        ],
+        "flexible": [
+          {"label": "torso_clothing", "x": 0.14, "y": 0.4, "width": 0.62, "height": 0.42},
+          {"label": "right_arm", "x": 0.57, "y": 0.51, "width": 0.25, "height": 0.31}
+        ],
+        "free": [
+          {"label": "upper_right_background", "x": 0.36, "y": 0.055, "width": 0.56, "height": 0.31},
+          {"label": "right_background_gutter", "x": 0.79, "y": 0.37, "width": 0.13, "height": 0.27}
+        ]
+      }
+    },
+    {
+      "sourceMs": 9000,
+      "frameSha256": "b3196d7894b9ad576aa7ac41c6d44dbbf9c2f73b2699c01d99e835f2570702ed",
+      "provenance": {
+        "kind": "immutable_source_crop_frame",
+        "extractor": "remotion_bundled_ffmpeg",
+        "outputGeometry": {"width": 540, "height": 960}
+      },
+      "review": {
+        "status": "approved",
+        "reviewerKind": "independent_visual_review",
+        "reviewerId": "codex_fixture_review_2026_08_07",
+        "reviewedAt": "2026-08-07T08:00:00.000Z"
+      },
+      "regions": {
+        "critical": [
+          {"label": "eyes", "x": 0.015, "y": 0.18, "width": 0.28, "height": 0.06},
+          {"label": "mouth", "x": 0.07, "y": 0.285, "width": 0.2, "height": 0.06}
+        ],
+        "protected": [
+          {"label": "face_contour", "x": 0, "y": 0.108, "width": 0.33, "height": 0.33},
+          {"label": "microphone", "x": 0, "y": 0.37, "width": 0.17, "height": 0.29},
+          {"label": "laptop", "x": 0, "y": 0.64, "width": 0.55, "height": 0.31},
+          {"label": "primary_hand", "x": 0.49, "y": 0.79, "width": 0.16, "height": 0.15}
+        ],
+        "flexible": [
+          {"label": "torso_clothing", "x": 0.13, "y": 0.405, "width": 0.63, "height": 0.42},
+          {"label": "right_arm", "x": 0.57, "y": 0.51, "width": 0.25, "height": 0.31}
+        ],
+        "free": [
+          {"label": "upper_right_background", "x": 0.37, "y": 0.055, "width": 0.55, "height": 0.31},
+          {"label": "right_background_gutter", "x": 0.79, "y": 0.37, "width": 0.13, "height": 0.27}
+        ]
+      }
+    },
+    {
+      "sourceMs": 11000,
+      "frameSha256": "268fbaf0863f2ac2f965c9371b119b569600742c8f08943bbd9eb7d97735c4f6",
+      "provenance": {
+        "kind": "immutable_source_crop_frame",
+        "extractor": "remotion_bundled_ffmpeg",
+        "outputGeometry": {"width": 540, "height": 960}
+      },
+      "review": {
+        "status": "approved",
+        "reviewerKind": "independent_visual_review",
+        "reviewerId": "codex_fixture_review_2026_08_07",
+        "reviewedAt": "2026-08-07T08:00:00.000Z"
+      },
+      "regions": {
+        "critical": [
+          {"label": "eyes", "x": 0.045, "y": 0.18, "width": 0.29, "height": 0.06},
+          {"label": "mouth", "x": 0.095, "y": 0.285, "width": 0.21, "height": 0.06}
+        ],
+        "protected": [
+          {"label": "face_contour", "x": 0.01, "y": 0.105, "width": 0.36, "height": 0.335},
+          {"label": "microphone", "x": 0, "y": 0.37, "width": 0.17, "height": 0.29},
+          {"label": "laptop", "x": 0, "y": 0.64, "width": 0.55, "height": 0.31},
+          {"label": "primary_hand", "x": 0.49, "y": 0.79, "width": 0.16, "height": 0.15}
+        ],
+        "flexible": [
+          {"label": "torso_clothing", "x": 0.14, "y": 0.405, "width": 0.64, "height": 0.42},
+          {"label": "right_arm", "x": 0.59, "y": 0.51, "width": 0.23, "height": 0.31}
+        ],
+        "free": [
+          {"label": "upper_right_background", "x": 0.4, "y": 0.055, "width": 0.52, "height": 0.31},
+          {"label": "right_background_gutter", "x": 0.81, "y": 0.37, "width": 0.11, "height": 0.27}
+        ]
+      }
+    }
+  ]
+}

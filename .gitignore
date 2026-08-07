@@ -27,6 +27,7 @@ out-runtime/
 .logs/
 test-results/
 artifacts/full-render/
+artifacts/maul-composition-experiment/
 tmp/
 tmp-live/
 tmp-sound-debug/
