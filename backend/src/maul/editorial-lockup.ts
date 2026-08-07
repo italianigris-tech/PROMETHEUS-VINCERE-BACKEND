@@ -397,7 +397,7 @@ export const buildMaulEditorialLockup = (
         maxTranslateXPx: 0,
         maxTranslateYPx: 0,
         maxScaleDelta: 0.04,
-        annotationPaddingPx: 0,
+        annotationPaddingPx: 12,
       },
     },
     placement: {

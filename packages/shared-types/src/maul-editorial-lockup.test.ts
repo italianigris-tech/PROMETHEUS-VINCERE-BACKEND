@@ -52,6 +52,29 @@ const base = {
   rationale: "A display word carries the phrase while the italic hinge arrives forward by word.",
 } as const;
 
+const v2 = {
+  ...base,
+  schemaVersion: "maul-editorial-lockup/v2",
+  referenceGrammarId: "inline_italic_hinge",
+  caseMode: "source_preserving",
+  choreography: {
+    ...base.choreography,
+    mode: "position_locked_word_reveal",
+    localRevealEnvelope: {
+      maxTranslateXPx: 0,
+      maxTranslateYPx: 0,
+      maxScaleDelta: 0.04,
+      annotationPaddingPx: 12,
+    },
+  },
+  placement: {
+    mode: "position_locked",
+    anchor: "word_box",
+    finalTransformIdentity: true,
+  },
+  annotations: [],
+} as const;
+
 describe("MAUL editorial lockup contract", () => {
   it("accepts an intentional script/display overlap with a forward word reveal", () => {
     expect(maulEditorialLockupSchema.parse(base)).toEqual(base);
@@ -79,5 +102,36 @@ describe("MAUL editorial lockup contract", () => {
         base.tokenStyles[1],
       ],
     })).toThrow(/role.*layer|layer.*role/i);
+  });
+
+  it("accepts a V2 reference grammar with a position-locked reveal", () => {
+    expect(maulEditorialLockupSchema.parse(v2)).toEqual(v2);
+  });
+
+  it("requires V2 placement and local reveal envelope contracts", () => {
+    const missingPlacement = {...v2, placement: undefined};
+    expect(() => maulEditorialLockupSchema.parse(missingPlacement)).toThrow(
+      /position-locked placement|placement/i,
+    );
+
+    const missingEnvelope = {
+      ...v2,
+      choreography: {...v2.choreography, localRevealEnvelope: undefined},
+    };
+    expect(() => maulEditorialLockupSchema.parse(missingEnvelope)).toThrow(
+      /local reveal envelope|reveal envelope/i,
+    );
+  });
+
+  it("keeps annotations attached to tokens inside the lockup", () => {
+    expect(() => maulEditorialLockupSchema.parse({
+      ...v2,
+      annotations: [{
+        annotationId: "annotation_missing",
+        kind: "circle",
+        tokenIds: ["token_missing"],
+        paddingPx: 8,
+      }],
+    })).toThrow(/annotation token.*belong|belong.*lockup/i);
   });
 });

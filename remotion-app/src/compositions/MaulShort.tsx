@@ -841,7 +841,10 @@ export const MaulShort: React.FC<MaulShortProps> = ({
     adaptedManifest.mode === "planned"
       ? buildMaulPlannedRenderModel(adaptedManifest.manifest)
       : null;
-  const visualTrack = manifest.plans.visual.visualTrack;
+  const visualTrack =
+    adaptedManifest.mode === "planned"
+      ? adaptedManifest.manifest.plans.visual.visualTrack
+      : undefined;
   const textSuppressionRanges = buildMaulTextSuppressionRanges(visualTrack);
   const governedCameraEvents =
     adaptedManifest.mode === "planned" &&
@@ -956,7 +959,7 @@ export const MaulShort: React.FC<MaulShortProps> = ({
               />
             )
         : null}
-      {renderRemotionAudio && musicAsset ? (
+      {renderRemotionAudio && manifest.audio.musicTrack.renderSafe && musicAsset ? (
         <Audio src={staticFile(musicAsset)} loop volume={musicVolume} />
       ) : null}
       {renderRemotionAudio && sfxAssets.map((sfx) => (

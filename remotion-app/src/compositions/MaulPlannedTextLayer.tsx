@@ -422,9 +422,9 @@ export const resolveMaulEditorialWordTransform = ({
       : 0;
   return {
     opacity: style.opacity * progress,
-    translateXPx: style.offsetXPx + overlapOffsetXPx + (1 - progress) * -22,
-    translateYPx: style.offsetYPx + (1 - progress) * 10,
-    scale: style.fontSizeScale * (0.94 + progress * 0.06),
+    translateXPx: style.offsetXPx + overlapOffsetXPx,
+    translateYPx: style.offsetYPx,
+    scale: style.fontSizeScale,
     rotationDeg: style.rotationDeg,
   };
 };
@@ -464,6 +464,130 @@ export const composeMaulTextTransforms = ({
     scale: editorial.scale * animation.scale,
     rotationDeg: editorial.rotationDeg,
   };
+};
+
+const clampUnit = (value: number): number => Math.max(0, Math.min(1, value));
+
+const localRevealStyle = ({
+  program,
+  tokenIndex,
+  letterIndex,
+  absoluteTimeMs,
+}: {
+  program: MaulTextAnimationProgram;
+  tokenIndex: number;
+  letterIndex: number;
+  absoluteTimeMs: number;
+}): React.CSSProperties => {
+  const reveal = program.localReveal;
+  if (!reveal) return {};
+  const revealStartMs =
+    program.phases.entry.outputStartMs +
+    Math.max(0, tokenIndex) * reveal.tokenStaggerMs +
+    Math.max(0, letterIndex) * reveal.letterStaggerMs;
+  const progress = clampUnit(
+    (absoluteTimeMs - revealStartMs) / Math.max(1, reveal.durationMs),
+  );
+  const eased = 1 - Math.pow(1 - progress, 3);
+  const remaining = 1 - eased;
+  const scale = reveal.startScale + (1 - reveal.startScale) * eased;
+  return {
+    opacity: eased,
+    transform: `scale(${scale})`,
+    transformOrigin: "left center",
+    ...(reveal.primitive === "blur" || reveal.primitive === "blur_tracking"
+      ? {filter: `blur(${(reveal.blurPx * remaining).toFixed(3)}px)`}
+      : {}),
+    ...(reveal.primitive === "clip"
+      ? {clipPath: `inset(0 ${(remaining * 100).toFixed(3)}% 0 0)`}
+      : {}),
+    ...(reveal.primitive === "blur_tracking"
+      ? {letterSpacing: `${(-reveal.trackingEm * remaining).toFixed(4)}em`}
+      : {}),
+  };
+};
+
+const PositionLockedTokenText: React.FC<{
+  token: MaulPlannedTextToken;
+  program: MaulTextAnimationProgram;
+  absoluteTimeMs: number;
+}> = ({token, program, absoluteTimeMs}) => {
+  const reveal = program.localReveal!;
+  const tokenIndex = Math.max(0, program.target.tokenIds.indexOf(token.tokenId));
+  const letters = Array.from(token.text);
+  return (
+    <>
+      <span
+        data-maul-reserved-token-geometry="true"
+        aria-hidden="true"
+        style={{visibility: "hidden"}}
+      >
+        {token.text}
+      </span>
+      <span
+        aria-hidden="true"
+        style={{position: "absolute", inset: 0, whiteSpace: "nowrap"}}
+      >
+        {reveal.unit === "letter" ? letters.map((letter, letterIndex) => (
+          <span
+            key={`${token.tokenId}:${letterIndex}`}
+            data-maul-letter-index={letterIndex}
+            style={{
+              display: "inline-block",
+              ...localRevealStyle({
+                program,
+                tokenIndex,
+                letterIndex,
+                absoluteTimeMs,
+              }),
+            }}
+          >
+            {letter}
+          </span>
+        )) : (
+          <span style={{
+            display: "inline-block",
+            ...localRevealStyle({
+              program,
+              tokenIndex,
+              letterIndex: 0,
+              absoluteTimeMs,
+            }),
+          }}>
+            {token.text}
+          </span>
+        )}
+      </span>
+    </>
+  );
+};
+
+const annotationStyle = ({
+  kind,
+  paddingPx,
+}: {
+  kind: NonNullable<MaulEditorialLockup["annotations"]>[number]["kind"];
+  paddingPx: number;
+}): React.CSSProperties => {
+  const inset = -paddingPx;
+  const common: React.CSSProperties = {
+    position: "absolute",
+    pointerEvents: "none",
+    boxSizing: "border-box",
+  };
+  if (kind === "circle") {
+    return {...common, inset, border: "2px solid currentColor", borderRadius: "50%"};
+  }
+  if (kind === "highlight") {
+    return {...common, inset, backgroundColor: "currentColor", opacity: 0.16, zIndex: -1};
+  }
+  if (kind === "strike_through") {
+    return {...common, left: inset, right: inset, top: "50%", borderTop: "2px solid currentColor"};
+  }
+  if (kind === "arrow") {
+    return {...common, right: inset, bottom: inset, width: 18, borderTop: "2px solid currentColor", transform: "rotate(-35deg)", transformOrigin: "right center"};
+  }
+  return {...common, left: inset, right: inset, bottom: inset, borderBottom: "2px solid currentColor"};
 };
 
 export const MaulPlannedTextCard: React.FC<{
@@ -620,9 +744,13 @@ export const MaulPlannedTextCard: React.FC<{
                 span.outputStartMs <= absoluteTimeMs &&
                 span.outputEndMs > absoluteTimeMs,
             );
-            const tokenAnimation = resolvedAnimations.find(({program}) =>
+            const resolvedTokenAnimation = resolvedAnimations.find(({program}) =>
               program.target.scope === "tokens" && program.target.tokenIds.includes(token.tokenId),
-            )?.transform ?? null;
+            );
+            const tokenAnimation = resolvedTokenAnimation?.transform ?? null;
+            const localRevealProgram = resolvedTokenAnimation?.program.localReveal
+              ? resolvedTokenAnimation.program
+              : null;
             const editorialStyle = lockupStyleFor(record.editorialLockup, token.tokenId);
             const editorialTransform = record.editorialLockup
               ? resolveMaulEditorialWordTransform({
@@ -640,6 +768,9 @@ export const MaulPlannedTextCard: React.FC<{
               editorial: editorialTransform,
               animation: tokenAnimation,
             });
+            const annotations = (record.editorialLockup?.annotations ?? []).filter(
+              (annotation) => annotation.tokenIds.includes(token.tokenId),
+            );
             return (
               <React.Fragment key={token.tokenId}>
                 {tokenIndex > 0 &&
@@ -649,6 +780,7 @@ export const MaulPlannedTextCard: React.FC<{
                 <span
                   data-maul-token-id={token.tokenId}
                   data-active={active}
+                  data-maul-reveal-unit={localRevealProgram?.localReveal?.unit}
                   data-editorial-token-role={editorialStyle?.role}
                   data-editorial-font-asset-id={editorialStyle?.fontAssetId}
                   style={{
@@ -672,10 +804,30 @@ export const MaulPlannedTextCard: React.FC<{
                           position: "relative",
                           zIndex: editorialStyle?.zIndex,
                         }
+                      : annotations.length > 0
+                        ? {position: "relative", display: "inline-block"}
                       : {}),
                   }}
                 >
-                  {token.text}
+                  {localRevealProgram ? (
+                    <PositionLockedTokenText
+                      token={token}
+                      program={localRevealProgram}
+                      absoluteTimeMs={absoluteTimeMs}
+                    />
+                  ) : token.text}
+                  {annotations.map((annotation) => (
+                    <span
+                      key={annotation.annotationId}
+                      aria-hidden="true"
+                      data-maul-annotation-kind={annotation.kind}
+                      data-maul-annotation-token-id={token.tokenId}
+                      style={annotationStyle({
+                        kind: annotation.kind,
+                        paddingPx: annotation.paddingPx,
+                      })}
+                    />
+                  ))}
                 </span>
               </React.Fragment>
             );

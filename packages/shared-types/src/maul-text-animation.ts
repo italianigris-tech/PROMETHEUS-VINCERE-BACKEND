@@ -7,6 +7,8 @@ export const MAUL_TEXT_ANIMATION_TREATMENTS = [
   "fade_rise",
   "keyword_pop",
   "continuous_push",
+  "position_locked_word_reveal",
+  "position_locked_letter_reveal",
   "softSlideLeft", "softSlideRight", "arcRise", "dropSettle", "whipIn", "parallaxCross",
   "agentic_split_rise", "interesting_blur_lift", "cinematic_focus_lock", "generic_single_word", "two_word_cinematic_pair", "two_word_stagger_punch", "two_word_arc_sweep", "two_word_dual_rise", "two_word_focus_pivot", "three_word_serif_orbit", "three_word_tall_blade", "three_word_script_glide", "three_word_ref_lockup", "three_word_ref_last_punch", "three_word_ref_through_column", "three_word_ref_script_tag", "three_word_ref_dream_big_now_v1", "three_word_ref_your_master_mind_v1", "three_word_ref_take_action_now_v1", "three_word_ref_build_legacy_your_v1", "four_word_banner_drift", "four_word_split_stagger", "four_word_serif_pivot", "four_word_outline_whip", "six_word_quad_duo_depth", "two_word_script_caption_lock", "hormozi_word_lock_snap",
   "cinematic_text_preset", "cinematic_text_preset_1", "cinematic_text_preset_2", "cinematic_text_preset_3", "cinematic_text_preset_4", "cinematic_text_preset_5", "cinematic_text_preset_6", "cinematic_text_preset_7", "cinematic_text_preset_8", "cinematic_text_preset_9", "cinematic_text_preset_10", "cinematic_text_preset_11",
@@ -17,6 +19,24 @@ export const MAUL_TEXT_ANIMATION_TREATMENTS = [
 export const maulTextAnimationTreatmentSchema = z.enum(
   MAUL_TEXT_ANIMATION_TREATMENTS,
 );
+
+export const maulPositionLockedRevealSchema = z.object({
+  unit: z.enum(["word", "letter"]),
+  primitive: z.enum([
+    "opacity",
+    "clip",
+    "blur",
+    "blur_tracking",
+    "scale_focus",
+  ]),
+  sourceTreatment: maulTextAnimationTreatmentSchema,
+  tokenStaggerMs: z.number().int().min(0).max(500),
+  letterStaggerMs: z.number().int().min(0).max(120),
+  durationMs: z.number().int().positive().max(1000),
+  blurPx: z.number().min(0).max(24),
+  trackingEm: z.number().min(0).max(0.3),
+  startScale: z.number().min(0.8).max(1),
+}).strict();
 
 export const maulTextAnimationEasingSchema = z.discriminatedUnion("type", [
   z.object({type: z.literal("linear")}).strict(),
@@ -73,6 +93,7 @@ export const maulTextAnimationProgramSchema = z
         tokenIds: z.array(idSchema).min(1),
       })
       .strict(),
+    localReveal: maulPositionLockedRevealSchema.optional(),
     phases: z
       .object({
         entry: maulTextAnimationPhaseSchema,
@@ -90,6 +111,58 @@ export const maulTextAnimationProgramSchema = z
         path: ["target", "tokenIds"],
         message: "Animation token references must be unique.",
       });
+    }
+
+    const lockedTreatment =
+      program.treatment === "position_locked_word_reveal" ||
+      program.treatment === "position_locked_letter_reveal";
+    if (lockedTreatment) {
+      if (program.target.scope !== "tokens" || !program.localReveal) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["localReveal"],
+          message: "Position-locked reveals require a token target and local reveal policy.",
+        });
+      }
+      const expectedUnit = program.treatment === "position_locked_letter_reveal"
+        ? "letter"
+        : "word";
+      if (program.localReveal && program.localReveal.unit !== expectedUnit) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["localReveal", "unit"],
+          message: "Position-locked reveal treatment and unit must match.",
+        });
+      }
+      const transforms = [
+        program.phases.entry.from,
+        program.phases.entry.to,
+        program.phases.hold.from,
+        program.phases.hold.to,
+        program.phases.exit.from,
+        program.phases.exit.to,
+      ];
+      if (transforms.some((transform) =>
+        transform.translateXPx !== 0 || transform.translateYPx !== 0
+      )) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["phases"],
+          message: "Position-locked reveal programs cannot translate token anchors.",
+        });
+      }
+      if (
+        program.phases.hold.from.opacity !== 1 ||
+        program.phases.hold.to.opacity !== 1 ||
+        program.phases.hold.from.scale !== 1 ||
+        program.phases.hold.to.scale !== 1
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["phases", "hold"],
+          message: "Position-locked reveal holds require identity geometry and full opacity.",
+        });
+      }
     }
 
     if (
@@ -194,6 +267,9 @@ export type MaulTextAnimationTreatment = z.infer<
 >;
 export type MaulTextAnimationEasing = z.infer<
   typeof maulTextAnimationEasingSchema
+>;
+export type MaulPositionLockedReveal = z.infer<
+  typeof maulPositionLockedRevealSchema
 >;
 export type MaulTextAnimationTransform = z.infer<
   typeof maulTextAnimationTransformSchema

@@ -204,8 +204,11 @@ const identityTransform = {
   scale: 1,
 } as const;
 
-const MAUL_CORE_TREATMENTS: readonly MaulTextAnimationTreatment[] = ["keyword_pop", "two_word_stagger_punch", "two_word_focus_pivot", "three_word_tall_blade", "three_word_script_glide", "four_word_outline_whip", "hormozi_word_lock_snap", "cinematic_text_preset_5", "cinematic_text_preset_8", "cinematic_text_preset_11", "letter-float-overshoot", "depth-pop-letter", "impact-punch", "glitch-stabilize", "single-word-elastic-emphasis", "pulse-emphasis", "highlight-word", "blur-underline", "core-replaceable-word", "cursor-highlight-text-animation", "main-word-inside-a-glow-box", "text-underlining-effect", "word-cross-out"];
-const MAUL_SUPPORTING_TREATMENTS = MAUL_TEXT_ANIMATION_TREATMENTS.filter((treatment) => !MAUL_CORE_TREATMENTS.includes(treatment));
+const MAUL_POSITION_LOCKED_SOURCE_TREATMENTS = MAUL_TEXT_ANIMATION_TREATMENTS.filter(
+  (treatment) =>
+    treatment !== "position_locked_word_reveal" &&
+    treatment !== "position_locked_letter_reveal",
+);
 const selectEditorialTreatment = ({candidates, seed}: {candidates: readonly MaulTextAnimationTreatment[]; seed: string}): MaulTextAnimationTreatment => {
   if (candidates.length === 0) {
     throw new Error("MAUL animation selection requires at least one treatment.");
@@ -238,135 +241,62 @@ const treatmentsForWordCount = ({
   return compatible.length > 0 ? compatible : candidates;
 };
 
-const referenceTraitText = (inputs: MaulPlanningInputs): string =>
-  (inputs.referenceCorpus ?? [])
-    .flatMap((reference) => [
-      ...(reference.payload.approvedTraits?.typography ?? []),
-      ...(reference.payload.approvedTraits?.motion ?? []),
-      ...(reference.payload.approvedTraits?.captions ?? []),
-    ])
-    .join(" ")
-    .toLowerCase();
-
-const preferredReferenceTreatment = ({
-  inputs,
-  wordCount,
-  candidates,
+const positionLockedRevealFor = ({
+  sourceTreatment,
+  choreographyMode,
+  tokenCount,
+  entryDurationMs,
 }: {
-  inputs: MaulPlanningInputs;
-  wordCount: number;
-  candidates: readonly MaulTextAnimationTreatment[];
-}): MaulTextAnimationTreatment | null => {
-  if (wordCount !== 3) return null;
-  const traits = referenceTraitText(inputs);
-  if (/script|calligraph/.test(traits) && candidates.includes("three_word_script_glide")) {
-    return "three_word_script_glide";
-  }
-  if (/tall|condensed|blade/.test(traits) && candidates.includes("three_word_tall_blade")) {
-    return "three_word_tall_blade";
-  }
-  return null;
-};
-
-const animationTransforms = (treatment: MaulTextAnimationTreatment) => {
-  const treatmentIndex = MAUL_TEXT_ANIMATION_TREATMENTS.indexOf(treatment);
-  if (treatmentIndex < 0) {
-    throw new Error(`MAUL animation treatment ${treatment} is not registered.`);
-  }
-  const signature = treatmentIndex + 1;
-  const xDistance = 10 + signature * 3;
-  const yDistance = 8 + signature * 2;
-  const entryScale = 0.78 + (signature % 9) * 0.02;
-  const peakScale = 1.03 + (signature % 8) * 0.015;
-  const exitScale = 0.97 + (signature % 7) * 0.005;
-  const lower = treatment.toLowerCase();
-  if (treatment === "keyword_pop") {
-    return {
-      entry: {
-        from: {...identityTransform, opacity: 0, scale: 0.92},
-        to: {...identityTransform, scale: 1.14},
-      },
-      hold: {
-        from: {...identityTransform, scale: 1.14},
-        to: identityTransform,
-      },
-      exit: {
-        from: identityTransform,
-        to: {...identityTransform, opacity: 0, scale: 0.98},
-      },
-    };
-  }
-  if (treatment === "continuous_push") {
-    return {
-      entry: {
-        from: {...identityTransform, opacity: 0, translateXPx: -18},
-        to: {...identityTransform, translateXPx: -12, scale: 1.005},
-      },
-      hold: {
-        from: {...identityTransform, translateXPx: -12, scale: 1.005},
-        to: {...identityTransform, translateXPx: 12, scale: 1.02},
-      },
-      exit: {
-        from: {...identityTransform, translateXPx: 12, scale: 1.02},
-        to: {
-          ...identityTransform,
-          opacity: 0,
-          translateXPx: 18,
-          scale: 1.025,
-        },
-      },
-    };
-  }
-
-  // Every registered treatment has a distinct renderer-visible transform program.
-  // The treatment-specific signature prevents labels from collapsing to aliases.
-  if (/push|slide|drift|arc|orbit|wave|parallax|sweep|ladder|rain/.test(lower)) {
-    return {
-      entry: {
-        from: {...identityTransform, opacity: 0, translateXPx: -xDistance, scale: entryScale},
-        to: {...identityTransform, translateXPx: -Math.round(xDistance / 3), scale: peakScale},
-      },
-      hold: {
-        from: {...identityTransform, translateXPx: -Math.round(xDistance / 3), scale: peakScale},
-        to: {...identityTransform, translateXPx: xDistance, scale: 1 + (signature % 4) * 0.01},
-      },
-      exit: {
-        from: {...identityTransform, translateXPx: xDistance, scale: 1 + (signature % 4) * 0.01},
-        to: {...identityTransform, opacity: 0, translateXPx: xDistance + 12, scale: exitScale},
-      },
-    };
-  }
-  if (/pop|punch|impact|elastic|emphasis|highlight|underline|glow|cross-out|cursor|lock/.test(lower)) {
-    return {
-      entry: {
-        from: {...identityTransform, opacity: 0, translateYPx: yDistance, scale: entryScale},
-        to: {...identityTransform, translateYPx: -Math.round(yDistance / 4), scale: 1 + (signature % 9) * 0.02},
-      },
-      hold: {
-        from: {...identityTransform, translateYPx: -Math.round(yDistance / 4), scale: 1 + (signature % 9) * 0.02},
-        to: {...identityTransform, translateXPx: signature, scale: peakScale},
-      },
-      exit: {
-        from: {...identityTransform, translateXPx: signature, scale: peakScale},
-        to: {...identityTransform, opacity: 0, translateYPx: -yDistance, scale: exitScale},
-      },
-    };
-  }
+  sourceTreatment: MaulTextAnimationTreatment;
+  choreographyMode?: string;
+  tokenCount: number;
+  entryDurationMs: number;
+}) => {
+  const treatment = sourceTreatment.toLowerCase();
+  const unit =
+    choreographyMode === "position_locked_letter_reveal" ||
+    sourceTreatment === "position_locked_letter_reveal" ||
+    /letter|tracking|typewriter|scramble|shimmer|rain/.test(treatment)
+      ? "letter" as const
+      : "word" as const;
+  const primitive = /tracking|compression|typewriter|scramble/.test(treatment)
+    ? "blur_tracking" as const
+    : /blur|focus|whisper|depth|bloom/.test(treatment)
+      ? "blur" as const
+      : /mask|slit|crop|underline|highlight|sweep|push|slide|drift|arc|orbit|parallax/.test(treatment)
+        ? "clip" as const
+        : /pop|punch|impact|elastic|emphasis|lock/.test(treatment)
+          ? "scale_focus" as const
+          : "opacity" as const;
+  const safeTokenCount = Math.max(1, tokenCount);
+  const tokenStaggerMs = safeTokenCount === 1
+    ? 0
+    : Math.min(
+        unit === "letter" ? 52 : 72,
+        Math.max(0, Math.floor((entryDurationMs - 1) / (safeTokenCount - 1))),
+      );
+  const durationMs = Math.max(
+    1,
+    entryDurationMs - tokenStaggerMs * (safeTokenCount - 1),
+  );
   return {
-    entry: {
-      from: {...identityTransform, opacity: 0, translateXPx: signature, translateYPx: yDistance, scale: entryScale},
-      to: {...identityTransform, translateXPx: -signature, scale: peakScale},
-    },
-    hold: {
-      from: {...identityTransform, translateXPx: -signature, scale: peakScale},
-      to: {...identityTransform, translateYPx: signature, scale: 1 + (signature % 3) * 0.01},
-    },
-    exit: {
-      from: {...identityTransform, translateYPx: signature, scale: 1 + (signature % 3) * 0.01},
-      to: {...identityTransform, opacity: 0, translateXPx: signature, translateYPx: -yDistance, scale: exitScale},
-    },
+    unit,
+    primitive,
+    sourceTreatment,
+    tokenStaggerMs,
+    letterStaggerMs: unit === "letter" ? Math.min(24, Math.floor(durationMs / 4)) : 0,
+    durationMs,
+    blurPx: primitive === "blur" || primitive === "blur_tracking" ? 8 : 0,
+    trackingEm: primitive === "blur_tracking" ? 0.08 : 0,
+    startScale: primitive === "scale_focus" ? 0.94 : unit === "letter" ? 0.98 : 1,
   };
 };
+
+const positionLockedTransforms = {
+  entry: {from: identityTransform, to: identityTransform},
+  hold: {from: identityTransform, to: identityTransform},
+  exit: {from: identityTransform, to: {...identityTransform, opacity: 0}},
+} as const;
 
 export const buildMaulTextAnimationPlanPayload = ({
   inputs,
@@ -419,7 +349,9 @@ export const buildMaulTextAnimationPlanPayload = ({
       );
     }
     const supportingCandidates = treatmentsForWordCount({
-      candidates: MAUL_SUPPORTING_TREATMENTS.filter((candidate) => candidate !== previousSupportingTreatment),
+      candidates: MAUL_POSITION_LOCKED_SOURCE_TREATMENTS.filter(
+        (candidate) => candidate !== previousSupportingTreatment,
+      ),
       wordCount: segment.tokenIds.length,
     });
     const selectedTreatment = rhythmSegment?.treatment ?? treatment ?? selectEditorialTreatment({
@@ -442,14 +374,22 @@ export const buildMaulTextAnimationPlanPayload = ({
         `Placement ${segment.segmentId} cannot fit non-overlapping animation phases.`,
       );
     }
-    const tokenIds =
-      selectedTreatment === "keyword_pop" ? chunk.emphasis.tokenIds : segment.tokenIds;
+    const tokenIds = segment.tokenIds;
     if (tokenIds.length === 0) {
       throw new Error(
         `Animation ${segment.segmentId} has no stable target tokens.`,
       );
     }
-    const transforms = animationTransforms(selectedTreatment);
+    const localReveal = positionLockedRevealFor({
+      sourceTreatment: selectedTreatment,
+      choreographyMode: segment.editorialLockup?.choreography.mode,
+      tokenCount: tokenIds.length,
+      entryDurationMs,
+    });
+    const lockedTreatment = localReveal.unit === "letter"
+      ? "position_locked_letter_reveal" as const
+      : "position_locked_word_reveal" as const;
+    const transforms = positionLockedTransforms;
     const entryEasing = {
       type: "cubic_bezier" as const,
       x1: 0.16,
@@ -466,12 +406,13 @@ export const buildMaulTextAnimationPlanPayload = ({
     };
     return {
       animationId: `maul_text_animation_${segment.segmentId}`,
-      treatment: selectedTreatment,
+      treatment: lockedTreatment,
       target: {
-        scope: selectedTreatment === "keyword_pop" ? ("tokens" as const) : ("segment" as const),
+        scope: "tokens" as const,
         placementSegmentId: segment.segmentId,
         tokenIds,
       },
+      localReveal,
       phases: {
         entry: {
           outputStartMs: segment.outputStartMs,
@@ -493,41 +434,11 @@ export const buildMaulTextAnimationPlanPayload = ({
         },
       },
       rationale: rhythmSegment
-        ? `Execute the reference-derived ${selectedTreatment} rhythm without changing placement or token geometry.`
-        : `Execute the governed ${selectedTreatment} treatment without changing placement or token geometry.`,
+        ? `Resolve the reference-derived ${selectedTreatment} rhythm inside fixed ${localReveal.unit} boxes.`
+        : `Resolve the governed ${selectedTreatment} treatment inside fixed ${localReveal.unit} boxes.`,
     };
   });
-  let previousCoreTreatment: MaulTextAnimationTreatment | null = null;
-  const editorialPrograms = treatment || referenceEditorialRhythm ? programs : programs.flatMap((program) => {
-    const segment = textPlacementPlan.payload.segments.find((candidate) => candidate.segmentId === program.target.placementSegmentId);
-    const coreTokenIds = segment ? chunkById.get(segment.chunkId)?.emphasis.tokenIds ?? [] : [];
-    if (!segment || coreTokenIds.length === 0) return [program];
-    const coreCandidates = treatmentsForWordCount({
-      candidates: MAUL_CORE_TREATMENTS.filter((candidate) => candidate !== previousCoreTreatment),
-      wordCount: segment.tokenIds.length,
-    });
-    const coreTreatment = preferredReferenceTreatment({
-      inputs,
-      wordCount: segment.tokenIds.length,
-      candidates: coreCandidates,
-    }) ?? selectEditorialTreatment({
-      candidates: coreCandidates,
-      seed: `${selectionSeed ?? inputs.project.id}:${segment.segmentId}:core`,
-    });
-    previousCoreTreatment = coreTreatment;
-    const coreTransforms = animationTransforms(coreTreatment);
-    return [program, {
-      animationId: `${program.animationId}_core`,
-      treatment: coreTreatment,
-      target: {scope: "tokens" as const, placementSegmentId: segment.segmentId, tokenIds: coreTokenIds},
-      phases: {
-        entry: {...program.phases.entry, ...coreTransforms.entry},
-        hold: {...program.phases.hold, ...coreTransforms.hold},
-        exit: {...program.phases.exit, ...coreTransforms.exit},
-      },
-      rationale: `Layer restrained ${coreTreatment} emphasis over supporting ${program.treatment} motion.`,
-    }];
-  });
+  const editorialPrograms = programs;
   const references = {
     textChunkPlanArtifactId: textChunkPlan.artifactId,
     textChunkPlanHash: stableHash(textChunkPlan.payload),

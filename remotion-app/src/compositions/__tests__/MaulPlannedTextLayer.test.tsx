@@ -588,6 +588,91 @@ describe("MAUL planned text renderer contract", () => {
     expect(markup.slice(accentTokenStart, accentTokenStart + 500)).toContain("color:#00e5ff");
   });
 
+  it("keeps each word anchor fixed while the local reveal changes opacity", () => {
+    const lockup = buildRecords()[0]!.editorialLockup!;
+    const entry = resolveMaulEditorialWordTransform({
+      lockup,
+      tokenId: "token_it",
+      absoluteTimeMs: 80,
+      segmentStartMs: 0,
+      fontSizePx: 72,
+    });
+    const hold = resolveMaulEditorialWordTransform({
+      lockup,
+      tokenId: "token_it",
+      absoluteTimeMs: 600,
+      segmentStartMs: 0,
+      fontSizePx: 72,
+    });
+
+    expect(entry?.opacity).toBeLessThan(hold?.opacity ?? 0);
+    expect(entry?.translateXPx).toBe(hold?.translateXPx);
+    expect(entry?.translateYPx).toBe(hold?.translateYPx);
+  });
+
+  it("reserves final token geometry while revealing letters locally", () => {
+    const record = buildRecords()[0]!;
+    record.animationPrograms = [{
+      ...animationProgram("fade_rise"),
+      treatment: "position_locked_letter_reveal",
+      target: {
+        scope: "tokens",
+        placementSegmentId: record.segmentId,
+        tokenIds: ["token_make", "token_it"],
+      },
+      localReveal: {
+        unit: "letter",
+        primitive: "blur_tracking",
+        sourceTreatment: "tracking-collapse",
+        tokenStaggerMs: 48,
+        letterStaggerMs: 18,
+        durationMs: 180,
+        blurPx: 8,
+        trackingEm: 0.08,
+        startScale: 0.96,
+      },
+    } as never];
+
+    const markup = renderToStaticMarkup(
+      <MaulPlannedTextCard
+        record={record}
+        absoluteTimeMs={80}
+        outputFrame={2}
+        fps={30}
+        textColor="#ffffff"
+        accentColor="#d8c7a1"
+      />,
+    );
+
+    expect(markup).toContain('data-maul-reveal-unit="letter"');
+    expect(markup).toContain('data-maul-reserved-token-geometry="true"');
+    expect(markup).toContain('data-maul-letter-index="0"');
+  });
+
+  it("renders an annotation inside its attached token span", () => {
+    const record = buildRecords()[0]!;
+    record.editorialLockup = {
+      ...record.editorialLockup!,
+      annotations: [{
+        annotationId: "annotation_it",
+        kind: "circle",
+        tokenIds: ["token_it"],
+        paddingPx: 6,
+      }],
+    } as never;
+    const markup = renderToStaticMarkup(
+      <MaulPlannedTextCard
+        record={record}
+        absoluteTimeMs={600}
+        textColor="#ffffff"
+        accentColor="#d8c7a1"
+      />,
+    );
+
+    expect(markup).toContain('data-maul-annotation-kind="circle"');
+    expect(markup).toContain('data-maul-annotation-token-id="token_it"');
+  });
+
   it("rejects a lockup whose primary or accent asset is not the resolved receipt", () => {
     const expectRejected = (mutate: (fixture: any) => void) => {
       const fixture = {

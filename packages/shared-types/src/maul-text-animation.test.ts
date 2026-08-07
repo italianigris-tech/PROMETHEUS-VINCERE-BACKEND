@@ -73,6 +73,8 @@ describe("MAUL text animation core contract", () => {
       "fade_rise", "keyword_pop", "continuous_push", "softSlideRight",
       "two_word_cinematic_pair", "cinematic_text_preset_11",
       "word-rise-blur-resolve", "word-cross-out",
+      "position_locked_word_reveal",
+      "position_locked_letter_reveal",
     ]));
     expect(maulTextAnimationTreatmentSchema.options.length).toBeGreaterThan(3);
     expect(() => maulTextAnimationTreatmentSchema.parse("spring")).toThrow();
@@ -85,6 +87,34 @@ describe("MAUL text animation core contract", () => {
       scope: "segment",
       placementSegmentId: "placement_segment_a",
       tokenIds: ["token_a", "token_b"],
+    });
+  });
+
+  it("accepts a bounded position-locked letter reveal primitive", () => {
+    const plan = clone(animationPlan) as any;
+    plan.programs[0].treatment = "position_locked_letter_reveal";
+    plan.programs[0].target.scope = "tokens";
+    plan.programs[0].localReveal = {
+      unit: "letter",
+      primitive: "blur_tracking",
+      sourceTreatment: "tracking-collapse",
+      tokenStaggerMs: 48,
+      letterStaggerMs: 18,
+      durationMs: 180,
+      blurPx: 8,
+      trackingEm: 0.08,
+      startScale: 0.96,
+    };
+    for (const phase of Object.values(plan.programs[0].phases) as any[]) {
+      phase.from.translateXPx = 0;
+      phase.from.translateYPx = 0;
+      phase.to.translateXPx = 0;
+      phase.to.translateYPx = 0;
+    }
+
+    expect(maulTextAnimationPlanCoreSchema.parse(plan).programs[0]?.localReveal).toMatchObject({
+      unit: "letter",
+      primitive: "blur_tracking",
     });
   });
 

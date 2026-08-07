@@ -63,6 +63,8 @@ describe("MAUL editorial lockup planner", () => {
     expect(primaryStyle.fontSizeScale).toBe(1);
     expect(accentStyle.rotationDeg).toBe(0);
     expect(lockup.overlap.ratio).toBeLessThanOrEqual(0.14);
+    expect(lockup.choreography.localRevealEnvelope?.annotationPaddingPx)
+      .toBeGreaterThanOrEqual(8);
   });
 
   it("keeps a missing accent receipt from creating an unreceipted lockup layer", () => {
@@ -196,7 +198,7 @@ describe("MAUL editorial lockup planner", () => {
       selectionSeed: "seed_c",
       output: {widthPx: 1080, heightPx: 1920},
       measureToken: ({font}) => font.assetId === accentFont.assetId
-        ? {widthPx: 240, heightPx: 90}
+        ? {widthPx: 560, heightPx: 90}
         : {widthPx: 180, heightPx: 84},
     });
 
@@ -207,5 +209,9 @@ describe("MAUL editorial lockup planner", () => {
         tokenOrder: ["token_build", "token_legacy"],
       },
     });
+    expect(result.segments[0]!.maximumEnvelope.width)
+      .toBeGreaterThan(result.segments[0]!.box.width);
+    expect(result.segments[0]!.maximumEnvelope.x)
+      .toBeLessThan(result.segments[0]!.box.x);
   });
 });

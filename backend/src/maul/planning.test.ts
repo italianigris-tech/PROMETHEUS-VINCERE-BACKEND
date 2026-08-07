@@ -384,7 +384,7 @@ describe("MAUL V3 text animation planning", () => {
   });
 
   it.each(["fade_rise", "keyword_pop", "continuous_push"] as const)(
-    "builds an explicit %s entry, hold, and exit program",
+    "adapts %s into an explicit position-locked entry, hold, and exit program",
     (treatment) => {
       const plan = buildMaulTextAnimationPlanPayload({
         inputs,
@@ -402,11 +402,15 @@ describe("MAUL V3 text animation planning", () => {
         textPlacementPlanHash,
       });
       expect(plan.programs[0]).toMatchObject({
-        treatment,
+        treatment: "position_locked_word_reveal",
         target: {
           placementSegmentId: "placement_a",
-          tokenIds: treatment === "keyword_pop" ? ["token_b"] : ["token_a", "token_b"],
-          scope: treatment === "keyword_pop" ? "tokens" : "segment",
+          tokenIds: ["token_a", "token_b"],
+          scope: "tokens",
+        },
+        localReveal: {
+          unit: "word",
+          sourceTreatment: treatment,
         },
       });
       expect([
@@ -421,7 +425,32 @@ describe("MAUL V3 text animation planning", () => {
     },
   );
 
-  it("makes keyword scale peak then settle and continuous push monotonic", () => {
+  it("emits token-scoped position-locked programs with identity holds", () => {
+    const plan = buildMaulTextAnimationPlanPayload({
+      inputs,
+      textChunkPlan: textChunkArtifact,
+      textPlacementPlan: textPlacementArtifact,
+      selectionSeed: "position-locked-red-fixture",
+      outputDurationMs: 1200,
+    });
+
+    expect(plan.programs.every((program) => program.target.scope === "tokens")).toBe(true);
+    expect(plan.programs.every((program) =>
+      program.treatment === "position_locked_word_reveal" ||
+      program.treatment === "position_locked_letter_reveal"
+    )).toBe(true);
+    expect(plan.programs.every((program) => program.localReveal?.sourceTreatment)).toBe(true);
+    expect(plan.programs.every((program) => program.localReveal?.durationMs)).toBe(true);
+    expect(plan.programs.every((program) =>
+      program.phases.hold.from.translateXPx === 0 &&
+      program.phases.hold.from.translateYPx === 0 &&
+      program.phases.hold.to.translateXPx === 0 &&
+      program.phases.hold.to.translateYPx === 0 &&
+      program.phases.hold.to.scale === 1
+    )).toBe(true);
+  });
+
+  it("adapts scale and travel references into bounded local primitives", () => {
     const keyword = buildMaulTextAnimationPlanPayload({
       inputs,
       textChunkPlan: textChunkArtifact,
@@ -429,8 +458,11 @@ describe("MAUL V3 text animation planning", () => {
       treatment: "keyword_pop",
       outputDurationMs: 1200,
     }).programs[0]!;
-    expect(keyword.phases.entry.to.scale).toBeGreaterThan(1);
-    expect(keyword.phases.hold.to.scale).toBe(1);
+    expect(keyword.localReveal).toMatchObject({
+      sourceTreatment: "keyword_pop",
+      primitive: "scale_focus",
+    });
+    expect(keyword.localReveal?.startScale).toBeLessThan(1);
 
     const push = buildMaulTextAnimationPlanPayload({
       inputs,
@@ -439,21 +471,17 @@ describe("MAUL V3 text animation planning", () => {
       treatment: "continuous_push",
       outputDurationMs: 1200,
     }).programs[0]!;
+    expect(push.localReveal?.sourceTreatment).toBe("continuous_push");
     expect([
       push.phases.entry.from.translateXPx,
       push.phases.entry.to.translateXPx,
       push.phases.hold.to.translateXPx,
       push.phases.exit.to.translateXPx,
-    ]).toEqual([...[
-      push.phases.entry.from.translateXPx,
-      push.phases.entry.to.translateXPx,
-      push.phases.hold.to.translateXPx,
-      push.phases.exit.to.translateXPx,
-    ]].sort((left, right) => left - right));
+    ]).toEqual([0, 0, 0, 0]);
   });
 
 
-  it("gives the core word a restrained second treatment without breaking its supporting phrase", () => {
+  it("collapses supporting and core motion into one deterministic local program", () => {
     const options = {
       inputs,
       textChunkPlan: textChunkArtifact,
@@ -466,22 +494,15 @@ describe("MAUL V3 text animation planning", () => {
     const second = buildMaulTextAnimationPlanPayload(options);
 
     expect(first.programs).toEqual(second.programs);
-    expect(first.programs).toHaveLength(2);
+    expect(first.programs).toHaveLength(1);
     expect(first.programs[0]).toMatchObject({
       target: {
         placementSegmentId: "placement_a",
-        scope: "segment",
+        scope: "tokens",
         tokenIds: ["token_a", "token_b"],
       },
+      localReveal: expect.objectContaining({sourceTreatment: expect.any(String)}),
     });
-    expect(first.programs[1]).toMatchObject({
-      target: {
-        placementSegmentId: "placement_a",
-        scope: "tokens",
-        tokenIds: ["token_b"],
-      },
-    });
-    expect(first.programs[1]!.treatment).not.toBe(first.programs[0]!.treatment);
   });
 
   it("compiles a reference editorial program into the planned segment rhythm", () => {
@@ -543,22 +564,21 @@ describe("MAUL V3 text animation planning", () => {
       outputDurationMs: 3_400,
     });
 
-    const segmentPrograms = plan.programs.filter(
-      (program) => program.target.scope === "segment",
-    );
-    expect(segmentPrograms).toEqual([
+    expect(plan.programs).toEqual([
       expect.objectContaining({
         target: expect.objectContaining({placementSegmentId: "placement_a"}),
-        treatment: "two_word_cinematic_pair",
+        treatment: "position_locked_word_reveal",
+        localReveal: expect.objectContaining({sourceTreatment: "two_word_cinematic_pair"}),
       }),
       expect.objectContaining({
         target: expect.objectContaining({placementSegmentId: "placement_b"}),
-        treatment: "cinematic_focus_lock",
+        treatment: "position_locked_word_reveal",
+        localReveal: expect.objectContaining({sourceTreatment: "cinematic_focus_lock"}),
       }),
     ]);
     expect(
-      segmentPrograms[1]!.phases.hold.outputEndMs -
-        segmentPrograms[1]!.phases.hold.outputStartMs,
+      plan.programs[1]!.phases.hold.outputEndMs -
+        plan.programs[1]!.phases.hold.outputStartMs,
     ).toBeGreaterThanOrEqual(1_000);
   });
 
