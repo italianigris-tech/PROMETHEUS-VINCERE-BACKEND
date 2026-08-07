@@ -8,6 +8,10 @@ import type {MaulResolvedFontAsset} from "@prometheus/shared-types";
 
 import type {BackendEnv} from "../config.js";
 import {
+  rankMaulFontPairs,
+  type MaulFontPairRankingResult,
+} from "./font-pair-ranking.js";
+import {
   createDefaultMaulTypographyProvider,
   createResolvedMaulTypographyProvider,
   type MaulTypographyPlan,
@@ -44,6 +48,13 @@ export type ZillizMaulFontCandidate = {
 export type ResolvedMaulFontPair = {
   primary: MaulResolvedFontAsset;
   accent: MaulResolvedFontAsset;
+  rankingReceipt?: {
+    evaluatedPairCount: number;
+    catalogCount: number;
+    hydratedCount: number;
+    status: MaulFontPairRankingResult["status"];
+    score: MaulFontPairRankingResult["score"];
+  };
 };
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
@@ -151,6 +162,21 @@ export const loadMaulFontRoleBuckets = ({
       return assetId && roleBuckets.length > 0 ? [[assetId, roleBuckets]] : [];
     }),
   );
+};
+
+export const loadMaulFontCatalogCount = ({
+  taxonomyPath = defaultFontRoleTaxonomyPath,
+}: {
+  taxonomyPath?: string;
+} = {}): number => {
+  if (!existsSync(taxonomyPath)) {
+    throw new Error("MAUL font role taxonomy is unavailable: " + taxonomyPath);
+  }
+  const parsed = JSON.parse(readFileSync(taxonomyPath, "utf8")) as unknown;
+  if (!Array.isArray(parsed)) {
+    throw new Error("MAUL font role taxonomy must be an array: " + taxonomyPath);
+  }
+  return parsed.length;
 };
 
 export const loadHydratedMaulFontAssets = ({
@@ -385,7 +411,7 @@ export class ZillizMaulFontAssetResolver {
         ...(typeof hit.primary_role === "string" ? [hit.primary_role] : []),
       ].map((role) => role.trim()).filter(Boolean),
     })).filter((candidate) => candidate.assetId.length > 0);
-    const candidates = [...rawCandidates.reduce((byId, candidate) => {
+    const retrievedCandidates = [...rawCandidates.reduce((byId, candidate) => {
       const previous = byId.get(candidate.assetId);
       if (!previous || candidate.score > previous.score) {
         byId.set(candidate.assetId, candidate);
@@ -393,12 +419,36 @@ export class ZillizMaulFontAssetResolver {
       return byId;
     }, new Map<string, ZillizMaulFontCandidate>()).values()];
     const roleBucketsByAssetId = loadMaulFontRoleBuckets();
-
-    return selectHydratedMaulFontPair({
-      candidates,
-      hydratedAssets: loadHydratedMaulFontAssets({roleBucketsByAssetId}),
-      roleBucketsByAssetId,
+    const hydratedAssets = loadHydratedMaulFontAssets({roleBucketsByAssetId});
+    const retrievedById = new Map(
+      retrievedCandidates.map((candidate) => [candidate.assetId, candidate]),
+    );
+    const candidates = hydratedAssets.map((asset): ZillizMaulFontCandidate => {
+      const retrieved = retrievedById.get(asset.assetId);
+      return retrieved ?? {
+        assetId: asset.assetId,
+        score: 0,
+        needsManualLicenseReview: false,
+        roleBuckets: roleBucketsByAssetId.get(asset.assetId) ?? [],
+      };
     });
+    const ranking = rankMaulFontPairs({
+      candidates,
+      hydratedAssets,
+      roleBucketsByAssetId,
+      requiredText: input.chunks.map((chunk) => chunk.text).join(" "),
+      catalogCount: loadMaulFontCatalogCount(),
+    });
+    return {
+      ...ranking.pair,
+      rankingReceipt: {
+        evaluatedPairCount: ranking.evaluatedPairCount,
+        catalogCount: ranking.catalogCount,
+        hydratedCount: ranking.hydratedCount,
+        status: ranking.status,
+        score: ranking.score,
+      },
+    };
   }
 }
 
@@ -414,7 +464,22 @@ export const createZillizMaulTypographyProvider = (
       }
       try {
         const pair = await resolver.resolve(input);
-        return createResolvedMaulTypographyProvider(pair).plan(input);
+        const plan = await createResolvedMaulTypographyProvider(pair).plan(input);
+        if (plan.status === "unavailable" || !pair.rankingReceipt) return plan;
+        return {
+          ...plan,
+          fontResolution: {
+            ...plan.fontResolution,
+            reason:
+              plan.fontResolution.reason + " Ranked " +
+              pair.rankingReceipt.evaluatedPairCount +
+              " governed pairs across " +
+              pair.rankingReceipt.hydratedCount +
+              " hydrated/license-cleared faces from a classified catalog of " +
+              pair.rankingReceipt.catalogCount +
+              " (" + pair.rankingReceipt.status + ").",
+          },
+        };
       } catch (error) {
         return {
           status: "unavailable",

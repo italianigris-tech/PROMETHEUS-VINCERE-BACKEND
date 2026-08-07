@@ -2,6 +2,7 @@ import {describe, expect, it} from "vitest";
 
 import * as zillizFontAssets from "./zilliz-font-assets.js";
 import {
+  loadMaulFontCatalogCount,
   loadHydratedMaulFontAssets,
   selectHydratedMaulFontPair,
 } from "./zilliz-font-assets.js";
@@ -9,6 +10,11 @@ import {
 const sha = (character: string) => character.repeat(64);
 
 describe("Zilliz MAUL font assets", () => {
+  it("reports the complete classified catalog independently from hydration", () => {
+    expect(loadMaulFontCatalogCount()).toBe(577);
+    expect(loadHydratedMaulFontAssets().length).toBeLessThan(577);
+  });
+
   it("selects only live candidates whose exact hydrated binaries are cleared for rendering", () => {
     const pair = selectHydratedMaulFontPair({
       candidates: [
