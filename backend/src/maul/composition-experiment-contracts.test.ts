@@ -11,6 +11,7 @@ const validInput = (): DeclaredCompositionInput => ({
   fixtureId: "scene_a_matted_lady_hierarchy_v1",
   sourceGroup: "matted_lady_static_5951e646",
   sourceSha256: "a".repeat(64),
+  output: {width: 1080, height: 1920, fps: 30, durationMs: 4000},
   causalLineage: {
     fixtureEvidenceIds: ["alpha:440b5718"],
     referenceObservationIds: ["yuan_123923", "yuan_123954", "yuan_124054"],

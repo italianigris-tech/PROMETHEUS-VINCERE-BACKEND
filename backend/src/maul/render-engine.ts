@@ -51,6 +51,14 @@ export type MaulShortRenderEngine = (
 
 const executableName = process.platform === "win32" ? "remotion.cmd" : "remotion";
 
+export const shouldRetainMaulFrameSamples = ({
+  renderMode: _renderMode,
+  sampleTimesMs,
+}: {
+  renderMode: "preview" | "final";
+  sampleTimesMs: number[];
+}): boolean => sampleTimesMs.length > 0;
+
 const runRemotion = async ({
   executable,
   args,
@@ -76,7 +84,7 @@ const runRemotion = async ({
   });
 };
 
-const extractPreviewFrame = async ({
+const extractRenderedFrame = async ({
   ffmpegPath,
   outputPath,
   framePath,
@@ -105,7 +113,7 @@ const extractPreviewFrame = async ({
         if (error) {
           reject(
             new Error(
-              `MAUL preview frame extraction failed: ${stderr.trim() || error.message}`,
+              `MAUL rendered frame extraction failed: ${stderr.trim() || error.message}`,
             ),
           );
           return;
@@ -116,7 +124,7 @@ const extractPreviewFrame = async ({
   });
   const bytes = await readFile(framePath);
   if (bytes.length === 0) {
-    throw new Error("MAUL preview frame extraction produced an empty PNG.");
+    throw new Error("MAUL rendered frame extraction produced an empty PNG.");
   }
   return bytes;
 };
@@ -199,14 +207,17 @@ export const renderMaulShortLocally: MaulShortRenderEngine = async (input) => {
     if (bytes.length === 0) {
       throw new Error("MAUL Remotion render produced an empty MP4.");
     }
-    const frameSamples = input.renderMode === "preview"
+    const frameSamples = shouldRetainMaulFrameSamples({
+      renderMode: input.renderMode,
+      sampleTimesMs: input.previewFrameTimesMs ?? [],
+    })
       ? await (async () => {
           const ffmpeg = await resolveRepositoryMediaTool({tool: "ffmpeg", repoRoot});
           if (ffmpeg.status !== "available") {
             throw new Error(`MAUL preview frame extraction is unavailable: ${ffmpeg.reason}`);
           }
           return Promise.all((input.previewFrameTimesMs ?? []).map(async (outputMs, index) => {
-          const bytes = await extractPreviewFrame({
+          const bytes = await extractRenderedFrame({
             ffmpegPath: ffmpeg.executablePath,
             outputPath,
             framePath: path.join(workDir, `preview-frame-${index}.png`),

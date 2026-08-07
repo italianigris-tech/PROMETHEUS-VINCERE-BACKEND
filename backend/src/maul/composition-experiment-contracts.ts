@@ -16,6 +16,12 @@ const declaredCompositionSchema = z.object({
   fixtureId: z.string().min(1),
   sourceGroup: z.string().min(1),
   sourceSha256: sha256Schema,
+  output: z.object({
+    width: z.number().int().positive(),
+    height: z.number().int().positive(),
+    fps: z.number().positive(),
+    durationMs: z.number().int().positive(),
+  }).strict(),
   causalLineage: z.object({
     fixtureEvidenceIds: z.array(z.string().min(1)).min(1),
     referenceObservationIds: z.array(z.string().min(1)).min(1),

@@ -1,4 +1,4 @@
-import {inflateSync} from "node:zlib";
+import {deflateSync, inflateSync} from "node:zlib";
 
 export type DecodedRgbaPng = {
   width: number;
@@ -106,4 +106,61 @@ export const decodeRgbaPng = (bytes: Buffer): DecodedRgbaPng => {
     }
   }
   return {width, height, pixels};
+};
+
+const crcTable = Array.from({length: 256}, (_value, tableIndex) => {
+  let current = tableIndex;
+  for (let bit = 0; bit < 8; bit += 1) {
+    current = (current & 1) !== 0
+      ? 0xedb88320 ^ (current >>> 1)
+      : current >>> 1;
+  }
+  return current >>> 0;
+});
+
+const crc32 = (bytes: Buffer): number => {
+  let crc = 0xffffffff;
+  for (const byte of bytes) crc = crcTable[(crc ^ byte) & 0xff]! ^ (crc >>> 8);
+  return (crc ^ 0xffffffff) >>> 0;
+};
+
+const pngChunk = (type: string, data: Buffer): Buffer => {
+  const typeBytes = Buffer.from(type, "ascii");
+  const chunk = Buffer.alloc(12 + data.length);
+  chunk.writeUInt32BE(data.length, 0);
+  typeBytes.copy(chunk, 4);
+  data.copy(chunk, 8);
+  chunk.writeUInt32BE(crc32(Buffer.concat([typeBytes, data])), 8 + data.length);
+  return chunk;
+};
+
+export const encodeRgbaPng = ({
+  width,
+  height,
+  pixels,
+}: DecodedRgbaPng): Buffer => {
+  if (width <= 0 || height <= 0 || pixels.length !== width * height * 4) {
+    throw new Error("RGBA PNG encoding requires positive geometry and exactly four bytes per pixel.");
+  }
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(width, 0);
+  ihdr.writeUInt32BE(height, 4);
+  ihdr[8] = 8;
+  ihdr[9] = 6;
+  ihdr[10] = 0;
+  ihdr[11] = 0;
+  ihdr[12] = 0;
+  const rowLength = width * 4;
+  const raw = Buffer.alloc(height * (rowLength + 1));
+  for (let y = 0; y < height; y += 1) {
+    const targetOffset = y * (rowLength + 1);
+    raw[targetOffset] = 0;
+    pixels.copy(raw, targetOffset + 1, y * rowLength, (y + 1) * rowLength);
+  }
+  return Buffer.concat([
+    PNG_SIGNATURE,
+    pngChunk("IHDR", ihdr),
+    pngChunk("IDAT", deflateSync(raw)),
+    pngChunk("IEND", Buffer.alloc(0)),
+  ]);
 };
