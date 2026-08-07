@@ -1,6 +1,6 @@
 # MAUL Reference-Derived 9:16 Composition Design
 
-**Status:** Approved architecture, pending written-spec review
+**Status:** Approved architecture, closed-loop experiment revision pending written-spec review
 
 **Date:** 2026-08-07
 
@@ -30,6 +30,10 @@ the default MAUL path remains a six-font catalog.
 This design creates the first complete, auditable vertical slice for 9:16
 talking-head and reference-like short-form composition. It makes renderer or
 wiring failures observable and separately measurable from artistic quality.
+Its first research milestone is deliberately narrower than "make cinematic
+videos": prove that MAUL can detect one rendered mistake, produce one controlled
+repair, prove what changed, capture whether reviewers preferred it, and reuse
+that evidence on a held-out comparable scene.
 
 ## Scope
 
@@ -41,16 +45,22 @@ Produce a representative, end-to-end 9:16 composition path that:
    assets, adapters, datasets, tests, and render features were considered;
 2. accepts an approved reference-derived brief and a temporally analyzed source
    scene;
-3. searches multiple typography, hierarchy, placement, overlap, and motion
-   alternatives from an eligible verified font inventory;
-4. realizes the winning alternative through one canonical render manifest and
-   one Remotion execution path;
-5. performs capability verification before manifest compilation and produces a
-   render-fidelity report proving that selected decisions reached
-   pixels; and
-6. produces a visual-evidence and evaluation report that identifies the first
-   failure node and performs a bounded dimension-specific repair when the result
-   is poor.
+3. preserves at least two evidence-backed Semantic Typography Tree hypotheses
+   until a Treatment Genome selects one;
+4. produces a baseline and one semantic-hierarchy repair while freezing unrelated
+   dimensions and recomputing the complete Repair Dependency Closure;
+5. freezes each selected realization as a Declared Composition, realizes it
+   through one canonical render manifest and one Remotion execution path, and
+   retains actual frame samples;
+6. independently derives an Observed Composition from those frames and runtime
+   receipts rather than copying manifest or renderer claims;
+7. emits a structured Fidelity Report proving whether fonts, shaped bounds,
+   placement, depth, treatment, and motion reached pixels;
+8. captures a randomized, blinded same-scene A/B/tie review with per-candidate
+   failure dimensions and reviewer confidence; and
+9. records the result as experiment-only evidence, then runs a retrieval-enabled
+   versus retrieval-disabled comparison on a held-out comparable scene under the same seed,
+   candidate budget, renderer, and review protocol.
 
 The sprint must include the supplied matted talking-head asset because it is a
 known stress case for the existing rectangular placement solver. It must also
@@ -79,6 +89,11 @@ it is not rewritten inside the first vertical implementation.
   readability, scene interaction, and review evidence determine placement.
 - Replacing Remotion. Remotion remains the canonical execution renderer.
 - Automatic promotion of every reviewed render into reusable knowledge.
+- Learned creative-state embeddings before sufficient independent reviewed
+  Declared/Observed/Preference/Mutation/Outcome records exist.
+- Treating renderer telemetry as independent observation, or treating one
+  aggregate fidelity percentage as permission to hide a categorical mismatch.
+- Treating one successful local repair as evidence of transferable learning.
 - Scanning a production source checkout on every render. Repository discovery is
   a build/CI concern; runtime selection consumes a versioned registry and checks
   live provider/asset availability.
@@ -120,13 +135,17 @@ of general cinematic parity.
 | Constraint soundness | Scene evidence, collision checks, contrast/readability checks, temporal checks | The candidate obeyed defined safety and legibility rules. |
 | Reference-grammar adherence | Reference-analysis provenance and measured relation to grammar distributions | The candidate follows specified original visual-language traits. |
 | Comparative quality | Blinded, randomized human comparison against a declared baseline | Reviewers preferred this system under this protocol. |
+| Local repair | A declared baseline and dependency-closed mutation on the same scene, independently observed and blindly compared | The bounded repair improved this case under this protocol. |
+| Transferable learning | Evidence-retrieval-enabled versus retrieval-disabled ablation on held-out source groups with identical seed, budget, renderer, and reviewer pool | Retrieved evidence improved comparable unseen cases under this protocol. |
 | General Q1/Yuan-class quality | Held-out source-level review across representative strata with confidence intervals | The result supports a bounded style-class claim. |
 
-No fixed confidence percentage is a measured result until the last two rows have
-real review evidence. Earlier 70-85% architecture estimates are engineering
-priors about plausibility, not product-quality facts. The dashboard must show
-the claim, independent source count, reviewer count, reviewer agreement,
-stratification, confidence interval, and exclusions beside every score.
+No fixed confidence percentage is a measured result for comparative quality,
+local repair, transferable learning, or general Q1/Yuan-class quality until the
+corresponding row has real review evidence. Earlier 70-85% architecture estimates
+are engineering priors about plausibility, not product-quality facts. The
+dashboard must show the claim, independent source count, reviewer count,
+reviewer agreement, stratification, confidence interval, and exclusions beside
+every score.
 
 ## Core Architectural Principle
 
@@ -145,6 +164,8 @@ Repository declarations + catalogs + adapters + tests + datasets
                               v
 Reference Corpus -> Reference Analysis -> Reference Grammar
                                                |
+Transcript -> Semantic Typography Tree         |
+                    |                          |
 Composition Brief + Observation Model -> Scene Representation
                                                |
                                                v
@@ -163,6 +184,9 @@ Composition Brief + Observation Model -> Scene Representation
                                   Visual Realization (implementation)
                                                |
                                                v
+                                  Declared Composition (frozen truth)
+                                               |
+                                               v
                                   Capability Verification
                                                |
                                                v
@@ -171,20 +195,32 @@ Composition Brief + Observation Model -> Scene Representation
                                                v
                                   Canonical Remotion Renderer
                                                |
+                                               v
+                         Independent Render Observation
+                                               |
+                                               v
+                                  Observed Composition (pixel truth)
+                                               |
                           +--------------------+---------------------+
                           v                                          v
-                   Render Fidelity                            Visual Evidence
+              Structured Fidelity Report                      Visual Evidence
                           |                                          |
                           +--------------------+---------------------+
                                                v
                                        Evaluation Report
                                                |
-                         requested/observed diff + weakest-dimension diagnosis
+                      weakest-dimension diagnosis + dependency closure
                                                |
-                                bounded repair or convergence stop
+                             bounded repair or convergence stop
                                                |
                                                v
-                            Human Review -> Knowledge Extraction -> Pattern Memory
+                 Blinded A/B/tie Review -> Reviewed Composition Evidence
+                                               |
+                                               v
+                   Held-out retrieval-enabled vs retrieval-disabled ablation
+                                               |
+                                               v
+                 Knowledge Extraction -> eligible Pattern Memory promotion
 ```
 
 An append-only **Decision Ledger** is emitted beside every transition. Artifacts
@@ -202,8 +238,16 @@ can be discovered yet ineligible for a job because its binary, provider,
 evidence, format support, rights state, or renderer adapter is unavailable.
 Conversely, a runtime component cannot claim a capability merely because a file
 or planned registry entry exists. The registry records what is declared;
-Capability Verification records what can execute now; Render Fidelity records
+Capability Verification records what can execute now; the Fidelity Report records
 what actually reached pixels.
+
+The creative path also separates proposal, declaration, and observation. A
+Composition Candidate and Visual Realization remain mutable search artifacts. A
+selected realization is frozen as a Declared Composition before compilation.
+The UnifiedRenderManifest is transport for that declaration, not a second source
+of creative truth. After rendering, an independent observation module produces
+the Observed Composition. Neither the renderer nor the manifest compiler may
+populate observed values by echoing requested values.
 
 ## Artifact Ownership and Contracts
 
@@ -395,6 +439,21 @@ The representation classifies overlap targets semantically:
 | Flexible | shoulders, torso, hair, clothing | Candidate search may use controlled overlap and foreground depth modes. |
 | Free | background or stable empty space | Preferred for clarity, but not the sole acceptable target. |
 
+### Semantic Typography Tree
+
+The Semantic Typography Tree is the language-to-hierarchy artifact consumed by
+composition search. It preserves phrase and token roles such as `hero`,
+`support`, `accent`, and `tail`, with rhetorical evidence, acoustic evidence,
+transcript confidence, local context, source spans, and an explicit confidence
+for each assignment. It does not select a font, line break, coordinate, effect,
+or renderer primitive.
+
+Ambiguous language produces competing tree hypotheses instead of false certainty.
+For example, `CINEMATIC` may be a hero token while `STRONG CINEMATIC` remains an
+eligible hero phrase. Candidate generation may test both under the same scene and
+budget. The Decision Ledger records which tree a Treatment Genome selected and
+why. No heuristic may silently collapse the tree to "last emphasized token."
+
 ### Composition Candidate
 
 A Composition Candidate is a scene-specific intent hypothesis, not renderer
@@ -432,6 +491,20 @@ animation curves, timing, and renderer parameters. A candidate can produce
 multiple realizations. Realization must preserve the candidate's intent or
 return a diagnostic stating which constraint prevented it.
 
+### Declared Composition
+
+The Declared Composition is the immutable selected Visual Realization: the exact
+creative hypothesis MAUL claims it will render. It records the selected Semantic
+Typography Tree, verified font asset IDs and hashes, shaped glyph geometry, line
+breaks, placement and overlap topology, z-order and masks, treatment primitives,
+motion trajectories, expected sampled-frame measurements, source Candidate and
+Realization IDs, and all policy/model/configuration versions.
+
+Freezing occurs before manifest compilation. The Manifest Compiler can translate
+the declaration but cannot revise it. Any unsupported or changed field blocks or
+creates a new Declared Composition with explicit lineage; it cannot be silently
+substituted in the manifest or renderer.
+
 ### Capability Verification
 
 Immediately before manifest compilation, Capability Verification resolves every
@@ -463,17 +536,45 @@ Remotion executes the manifest. It has no creative authority. It receives
 explicit, renderer-safe font assets; frame geometry; layer order; masks; and
 animation parameters. Missing or unsupported capabilities return an explicit
 manifest validation failure or explicit governed fallback that remains visible in
-the Decision Ledger and Render Fidelity report. Silent default substitutions are
+the Decision Ledger and Fidelity Report. Silent default substitutions are
 prohibited.
 
-### Render Fidelity
+### Observed Composition and Composition Fingerprints
 
-Render Fidelity proves execution correctness, independently of aesthetics. It
-records the manifest hash, font-file and embedded-family verification, shaped
-text bounds, applied transform/mask/gradient/z-order evidence, expected versus
-observed primitive bounds, sampled-frame checks, and explicit fallback state.
-Tests must prove each claimed manifest field has a visible or measurable renderer
-effect. A change that only updates a TypeScript object is not render fidelity.
+The Observed Composition is the physical reality measured after canonical
+rendering. An observation module independent from candidate generation and
+manifest compilation derives it from retained frame pixels, browser/canvas
+measurements, font-load receipts, and renderer/runtime diagnostics. Each value
+records its evidence source and confidence. Runtime telemetry can corroborate an
+observation but cannot certify its own requested output.
+
+Observed fields include actual loaded font identity, glyph and layer bounds,
+line breaks, z-order/mask evidence, subject/text intersections, contrast,
+rendered treatment visibility, frame-to-frame trajectories, motion distance, and
+temporal stability. Missing evidence remains `unobserved`; it is never filled
+from the Declared Composition.
+
+A Composition Fingerprint is a versioned projection of one composition used for
+comparison and retrieval. Declared and observed fingerprints use the same
+dimension names where possible but remain distinct and carry `declared` or
+`observed` provenance per value. A fingerprint is neither a beauty score nor the
+existing Pattern Memory snapshot hash.
+
+### Fidelity Report
+
+The Fidelity Report proves execution correctness by comparing the Declared
+Composition with the Observed Composition independently of aesthetics. Its
+primary output is a structured diff: missing font or hash, line-break mismatch,
+glyph-bound delta, placement delta, mask/z-order mismatch, absent treatment,
+trajectory delta, timing delta, and unobserved required field. Categorical hard
+failures remain visible even if optional scalar summaries are also emitted; one
+average score cannot hide an eye collision or wrong font.
+
+The report also records the declaration, manifest, output, frame, observer,
+renderer, and font hashes plus explicit fallback state. Tests must prove each
+claimed declaration field has a visible or independently measurable effect. A
+change that only updates a TypeScript object or renderer-authored receipt is not
+fidelity proof.
 
 ### Visual Evidence and Evaluation Report
 
@@ -484,6 +585,12 @@ and sequence consistency. The Evaluation Report consumes that evidence in
 stages, retains score components and reasons, and returns diagnoses that can
 target a search dimension rather than discard an entire candidate blindly.
 
+Visual evaluation consumes Observed Composition and Visual Evidence. It may use
+the Declared Composition to diagnose causality, but it may not score intended
+values as if they were visible. Fidelity failures are repaired before aesthetic
+evidence enters preference learning; otherwise the system would learn that a
+good declaration caused pixels the renderer never produced.
+
 ### Decision Ledger, Knowledge Extraction, and Pattern Memory
 
 Ledger entries contain input artifact IDs, action, output artifact IDs, policy or
@@ -491,17 +598,85 @@ model version, evidence IDs, scores, comparison set, decision reason, and
 fallback/degraded state. Example: reject a realization because a primary gesture
 mask at 0.96 confidence is occluded by 41% under `OverlapPolicy v3.2`.
 
-Human review does not automatically alter future policy. Knowledge Extraction
-clusters reviewed results, checks repeatability and reviewer agreement, and
-records a bounded finding with provenance. Only those validated findings may be
-promoted into Pattern Memory or the Typography Knowledge Base. This prevents
-isolated preference noise from becoming a permanent rule.
+Human review does not automatically alter future policy. The first review
+artifact is **Reviewed Composition Evidence**: it retains randomized A/B/tie
+assignment, candidate-independent failure labels, reviewer confidence, source
+group, declared and observed fingerprints, and mutation lineage. Knowledge
+Extraction clusters reviewed results, checks repeatability and reviewer
+agreement, and records a bounded finding with provenance.
+
+The existing reusable `backend/src/pattern-memory` store is the Pattern Memory
+promotion authority for this experiment because it already preserves context,
+outcome, human approval, and before/after fingerprints. The MAUL-specific
+`backend/src/maul/learning.ts` treatment aggregate remains a compatibility
+capture adapter until its evidence model and consumers are migrated; it is not a
+second Pattern Memory authority. A job that retrieves Pattern Memory must copy
+the selected entry, snapshot hash, and reason into its own Decision Ledger.
+
+Only validated findings may be promoted into Pattern Memory or the Typography
+Knowledge Base. One local success is evidence, not a reusable rule. Promotion
+requires repeated comparable observations, explicit reviewer agreement and
+confidence, no unresolved fidelity failure, and a source-grouped provenance
+record. This prevents isolated preference noise from becoming a permanent rule.
+
+### Composition Experiment Runner
+
+The Composition Experiment Runner is the first causal vertical slice and the
+only new coordinating authority authorized by this specification. It runs a
+named 9:16 fixture through existing Adapters in this order:
+
+```text
+named scene
+  -> baseline Semantic Typography Tree
+  -> baseline Visual Realization
+  -> Declared Composition
+  -> canonical render
+  -> independent Observed Composition + Fidelity Report
+  -> semantic-hierarchy mutation
+  -> Repair Dependency Closure
+  -> repaired Declared Composition and canonical render
+  -> independent observation
+  -> blinded A/B/tie review
+  -> Reviewed Composition Evidence
+  -> experiment-only evidence retrieval on held-out scene
+  -> Knowledge Extraction and eligible Pattern Memory promotion
+```
+
+The Runner does not become a second Top-Level Planner, renderer, evaluator, or
+memory store. Its Interface coordinates causal IDs, fixed seed and budget,
+baseline/mutation lineage, frozen dimensions, observed evidence, review state,
+and held-out ablation metadata. Existing Modules remain authoritative for their
+domains and are used through Adapters where a real variation exists.
+
+The held-out ablation may retrieve raw Scene A evidence only under an explicit
+`experiment_only` eligibility state. That evidence cannot influence ordinary
+production planning or masquerade as promoted Pattern Memory. Knowledge
+Extraction considers promotion only after the held-out result joins sufficient
+source-grouped repetitions under the promotion policy.
+
+### Preference leakage controls
+
+Preference inference receives two unordered candidate feature bundles, their
+scene context, intent, and observed fingerprints. It does not receive winner or
+loser IDs, verdicts, failure labels, review order, or any field derived from the
+ground-truth decision. The evaluator joins its prediction to the withheld review
+label only after inference.
+
+The review protocol supports `A`, `B`, and `no_meaningful_preference`, randomizes
+left/right presentation, and records reviewer confidence. Failure dimensions are
+assigned independently to each candidate. A regression test must prove that
+swapping presentation order preserves the prediction and that unseen failure
+labels cannot make a model appear correct through a labeled-winner fallback.
+The first slice does not need to train an automated preference predictor; it must
+establish this leakage-safe feature/ground-truth split so human evidence and any
+later predictor use the same trustworthy seam.
 
 ### Creative Justification
 
 Creative Justification is a human-readable, structured projection of the
-Composition Candidate, Visual Realization, Capability Coverage Plan, Evaluation
-Report, and Decision Ledger. It is not free-form reasoning and cannot create a
+Composition Candidate, Visual Realization, Declared Composition, Observed
+Composition, Capability Coverage Plan, Evaluation Report, and Decision Ledger.
+It is not free-form reasoning and cannot create a
 new fact. For every visible decision it names the selected value, influencing
 evidence, policy/grammar record, alternatives considered, constraint trade-off,
 and confidence. Example: a hero scale is attributed to semantic-salience
@@ -648,7 +823,7 @@ Evaluation stages are ordered by cost:
 1. artifact integrity, source/rights state, and manifest schema;
 2. hard semantic constraints and temporal collision checks;
 3. geometry, contrast, readability, and typography measurements;
-4. render-fidelity checks on canonical frames;
+4. Fidelity Report checks on canonical frames;
 5. perceptual/style-grammar evaluation;
 6. human pairwise editorial ranking where required;
 7. sequence-level consistency for multi-moment outputs.
@@ -661,12 +836,15 @@ erase a negative report.
 
 The **Creative Convergence Loop** preserves dimensions that already pass their
 quality and confidence floors, identifies the weakest mutable dimension, and
-resamples only that dimension plus explicitly dependent variables. For example,
-weak hierarchy may change role assignment, scale, and line breaks while freezing
-a verified placement; weak motion may change timing/curves while freezing
-typography and geometry. Every iteration records parent realization, frozen and
-resampled dimensions, diagnosis, score-vector delta, render cost, and whether a
-previously passing dimension regressed.
+computes the Repair Dependency Closure before mutation. It resamples the target
+dimension and every transitively invalidated dimension while freezing unrelated
+ones. For example, a font or hierarchy mutation invalidates shaping, line breaks,
+glyph bounds, collision checks, and balance; placement remains frozen only if the
+recomputed geometry still satisfies its constraints. Weak motion may change
+timing and curves while preserving typography but must revalidate temporal
+collision and contrast. Every iteration records parent realization, dependency
+graph version, frozen and recomputed dimensions, diagnosis, score-vector delta,
+render cost, and whether a previously passing dimension regressed.
 
 Convergence stops when one of these conditions is met: all required floors pass
 and no Pareto-improving candidate is found; the configured iteration/render-cost
@@ -683,6 +861,27 @@ changing creative intent. If creative fields must change, the result returns to
 candidate evaluation as a new realization instead of being silently patched in
 the renderer.
 
+### Minimal repair and transfer experiment
+
+The first experiment has two source-group-separated parts:
+
+1. **Local repair:** on Scene A, render a baseline Declared Composition, derive
+   its Observed Composition, diagnose `hierarchy_weak`, mutate only semantic
+   hierarchy plus its Repair Dependency Closure, render again, and collect a
+   blinded A/B/tie judgment.
+2. **Held-out reuse:** on comparable Scene B, run one retrieval-disabled and one
+   retrieval-enabled planning condition with the same source inputs, seed,
+   candidate and render budgets, renderer and observer versions, and review
+   protocol. The retrieval-enabled condition may retrieve Scene A evidence in
+   `experiment_only` state but cannot change any other experimental variable.
+
+Local repair proves only that one controlled intervention improved Scene A.
+Transferable learning requires the retrieval-enabled condition to improve held-out
+preference across source-grouped repetitions. One Scene B win is retained as
+evidence but cannot be promoted as a general rule. The experiment report includes
+all candidates, retrieval traces, declared/observed fingerprints, fidelity
+status, review labels, ties, confidence, and exclusions.
+
 ## Canonical Render and Failure Accountability
 
 The first vertical slice has one canonical creative route. The current fixed SVG
@@ -692,10 +891,15 @@ current condition that causes a cinematic SVG branch to run only when
 `creativeTreatment` is absent must be replaced by an explicit manifest-selected
 adapter policy with fidelity tests.
 
-Every manifest field that affects presentation must have all four links:
+Every presentation decision must have all six links:
 
 ```text
-intent field -> realization value -> manifest value -> observed render evidence
+candidate intent
+  -> realization value
+  -> frozen Declared Composition
+  -> manifest value
+  -> independently measured Observed Composition
+  -> Fidelity Report diff
 ```
 
 The basic accountable failure map is:
@@ -725,24 +929,35 @@ The immediate gate is passed only when all conditions hold:
    font, renderer, policy, prompt, dataset, reference, fixture, and test
    capabilities, with a structured reason for every plausible capability not
    selected.
-2. A matted full-frame talking-head case and an open-background case both have
-   a complete artifact chain and Decision Ledger.
-3. At least three phrase geometries (short hero, multi-word hook, longer
-   statement) are evaluated against each case where the transcript permits.
-4. The search produces more than one eligible realization; a single
-   deterministic default does not satisfy the gate.
-5. Each final manifest field used by the winning result has pre-render
-   capability verification and render-fidelity
-   evidence, including font, line breaks, placement, depth/mask state,
-   treatment, and motion.
-6. The full-frame talking-head output either uses a valid controlled-overlap or
+2. A matted full-frame talking-head Scene A and source-group-separated comparable
+   Scene B both have a complete artifact chain and Decision Ledger.
+3. The Scene A transcript produces at least two Semantic Typography Tree
+   hypotheses with evidence and confidence; the selected tree survives into the
+   Declared Composition.
+4. Scene A produces a baseline and one semantic-hierarchy repair. The repair
+   records its dependency closure, preserves unrelated dimensions, and generates
+   a new declaration instead of mutating render output in place.
+5. Every baseline, repair, retrieval-disabled, and retrieval-enabled render has an
+   independently derived Observed Composition. Arbitrary mocked frame bytes or
+   renderer-authored receipts cannot satisfy this gate.
+6. Each presentation field used by a result has pre-render capability
+   verification and a structured Fidelity Report covering font, line breaks,
+   glyph bounds, placement, depth/mask state, treatment, and motion. No hard
+   mismatch is hidden by an aggregate score.
+7. The full-frame talking-head output either uses a valid controlled-overlap or
    returns an explainable `no-safe-realization` result. It may not pretend that a
    coarse rectangle is safe.
-7. The requested-versus-observed diff is empty or a bounded fidelity repair is
-   recorded; a creative convergence iteration preserves passing dimensions and
-   resamples only the diagnosed weak dimension.
-8. The report clearly separates fidelity success from visual-quality result and
-   names the next limiting component.
+8. Scene A review is randomized and blinded, supports A/B/tie, and records
+   candidate-independent failure dimensions and reviewer confidence. Preference
+   inference receives no winner metadata or post-review failure labels.
+9. Raw review evidence is preserved separately from promoted Pattern Memory.
+   Promotion is blocked for unresolved fidelity failures and isolated outcomes.
+10. Scene B runs retrieval-disabled and retrieval-enabled conditions with identical
+    seed, candidate budget, render budget, renderer, observer, and review protocol;
+    retrieval and any resulting decision delta are fully traceable.
+11. The report clearly separates local repair, held-out reuse, fidelity success,
+    visual-quality result, and the next limiting module. It makes no transfer or
+    Q1/Yuan parity claim from one held-out comparison.
 
 ### Reference-quality validation program
 
@@ -756,6 +971,9 @@ not provide three independent editorial universes. Validation must:
 - stratify by scene archetype: tight talking head, microphone/gesture, open
   background, multiple subjects, camera movement, and high clutter;
 - compare against a declared baseline using randomized, blinded pairwise review;
+- include a tie/no-meaningful-preference outcome and randomize presentation side;
+- keep inference inputs free of winner identity, verdict-derived fields, and
+  post-review failure labels, joining ground truth only after prediction;
 - collect at least three independent reviewers per comparison and record
   disagreement;
 - report source-clustered preference estimates and confidence intervals rather
@@ -784,16 +1002,18 @@ cases as named, replayable acceptance fixtures. Establish a single command that
 emits the capability report, full artifact chain, and human-inspectable trace for
 one case.
 
-### Workstream 1: Authoritative artifacts and ledger
+### Workstream 1: Semantic hierarchy and declared/observed artifacts
 
 Define versioned shared contracts for Reference Analysis/Grammar, Composition
-Brief, Observation Model, Scene Representation, Composition Candidate, Visual
-Realization, render fidelity, visual evidence, evaluation report, and ledger
-entries, plus Capability Definition, Demand, Coverage Plan, Verification, and
-Creative Justification. Add validation and fixture builders. Update domain
-documentation so capability authority, Observation Model migration, treatment
-intent, and render evidence have one vocabulary. This workstream is complete
-only when every edge rejects missing provenance or a silent fallback.
+Brief, Observation Model, Scene Representation, Semantic Typography Tree,
+Composition Candidate, Visual Realization, Declared Composition, Observed
+Composition, Composition Fingerprint, Fidelity Report, visual evidence,
+evaluation report, and ledger entries, plus Capability Definition, Demand,
+Coverage Plan, Verification, and Creative Justification. Add validation and
+fixture builders. Update domain documentation so language-to-hierarchy evidence,
+declared intent, observed reality, and render evidence have one vocabulary. This
+workstream is complete only when every edge rejects missing provenance or a
+silent fallback.
 
 ### Workstream 2: Canonical manifest and renderer fidelity
 
@@ -803,28 +1023,40 @@ realization adapters. Eliminate the known creative-treatment SVG bypass and add
 field-to-pixel contract tests. This is the workstream that prevents a good plan
 from disappearing during render.
 
-### Workstream 3: Font Asset Registry and Typography Knowledge Base
+### Workstream 3: Composition Experiment Runner and reviewed evidence
+
+Build the first Composition Experiment Runner over one mutation dimension:
+semantic hierarchy. Add independent frame/runtime observation, structured
+Declared-versus-Observed Fidelity Report generation, randomized blinded A/B/tie
+review, leakage-safe preference inference inputs, dependency-closed mutation,
+raw Reviewed Composition Evidence, and validated promotion into the existing
+Pattern Memory authority. Add the Scene A local-repair and Scene B held-out
+retrieval-ablation fixtures before broadening the search space. Scene A evidence
+is `experiment_only` until promotion criteria pass. No learned embedding
+or population optimizer is part of this workstream.
+
+### Workstream 4: Font Asset Registry and Typography Knowledge Base
 
 Inventory all configured production font assets, prove loading/measurement, and
 expose exclusions. Split intrinsic metrics, expert priors, typography evidence,
 and pair evidence. Migrate current default font systems into low-weight priors.
 Implement deterministic exact phrase shaping and role-aware pair-search input.
 
-### Workstream 4: Temporal scene topology and controlled overlap
+### Workstream 5: Temporal scene topology and controlled overlap
 
 Replace the rectangle-only decision surface with a temporal observation/scene
 representation. Add semantic masks, confidence, stability, depth capability,
 and glyph-level intersection APIs. Implement hard critical-region constraints
 and bounded flexible-region overlap/depth modes.
 
-### Workstream 5: 9:16 composition grammar and realization adapters
+### Workstream 6: 9:16 composition grammar and realization adapters
 
 Encode reference-derived, parameterized composition families for phrase geometry
 and editorial intent. Make the current 12 SVG programs reusable treatment/motion
 adapters rather than fixed placements. Each adapter declares capabilities,
 required evidence, and how it maps every realization parameter to render fields.
 
-### Workstream 6: Hierarchical search and diagnostic evaluation
+### Workstream 7: Hierarchical search and diagnostic evaluation
 
 Implement candidate generation, staged pruning, configured budgets, progressive
 rendering, weakest-dimension convergence, requested-versus-observed fidelity
@@ -833,14 +1065,14 @@ Ledger entries. The first evaluation provider can be deterministic and
 rubric-based; art-direction claims remain blocked until a configured perceptual
 provider and human review evidence exist.
 
-### Workstream 7: Corpus operations, review, and confidence dashboard
+### Workstream 8: Corpus operations, review, and confidence dashboard
 
 Build reference-analysis records, grammar provenance, Typography Evaluation
 Corpus records, blinded pairwise review surfaces, knowledge extraction rules,
 and source-level confidence reporting. No learned score is promoted without a
 defined dataset, reviewer protocol, and leakage control.
 
-### Workstream 8: Landscape transfer
+### Workstream 9: Landscape transfer
 
 After the vertical slice passes its gates, add a landscape scene adapter and
 renderer adapter that consume the same brief, candidate, realization, manifest,
@@ -848,9 +1080,10 @@ evidence, and ledger contracts. Only format-specific grammar and render
 capabilities may differ. Joseph does not receive a separate untraceable creative
 authority.
 
-Workstreams 0-2 are prerequisites for all quality claims. Workstreams 3-6
-form the first usable vertical slice. Workstream 7 turns an engineering result
-into a confidence-backed product claim. Workstream 8 is intentionally delayed.
+Workstreams 0-3 are prerequisites for any learning or quality claim.
+Workstreams 4-7 broaden the first usable vertical slice. Workstream 8 turns an
+engineering result into a confidence-backed product claim. Workstream 9 is
+intentionally delayed.
 
 ## Testing Strategy
 
@@ -873,15 +1106,27 @@ Each workstream uses test-first development with these proof levels:
    cannot modify a frozen creative dimension.
 5. **Integration tests:** a fixed fixture flows from capability demand and
    brief/observations through candidate search to capability verification, a
-   canonical manifest, render-fidelity record, visual evidence, justification,
-   and ledger.
-6. **Pixel/render tests:** sampled frames verify text bounds, font-loading
-   signature, mask/depth application, line breaks, transform position, and
-   treatment visibility. These tests deliberately detect the known problem where
-   a selected treatment is bypassed at render time.
-7. **Acceptance/review tests:** named matted-head and open-background fixtures
-   produce multiple candidates, explain all pruning, and distinguish a graceful
-   no-safe-realization outcome from a placement error.
+   canonical manifest, independent Observed Composition, Fidelity Report, visual
+   evidence, justification, and ledger.
+6. **Observation and fidelity tests:** sampled frames and runtime receipts verify
+   text bounds, font-loading signature, mask/depth application, line breaks,
+   transform position, and treatment visibility. The observer must leave required
+   values `unobserved` when proof is absent, and arbitrary frame bytes cannot
+   satisfy a fidelity pass. These tests deliberately detect the known problem
+   where a selected treatment is bypassed at render time.
+7. **Preference leakage tests:** inference accepts unordered candidate features
+   and scene context but no winner ID, verdict, or post-review failure label;
+   swapping A/B presentation preserves predictions; unseen labels cannot produce
+   a correct result by defaulting to a labeled winner; ties remain ties.
+8. **Repair and transfer tests:** a hierarchy mutation recomputes its dependency
+   closure, preserves unrelated dimensions, records before/after fingerprints,
+   and renders a new declaration. A held-out fixture proves retrieval-enabled and
+   retrieval-disabled runs use equal seed/budget/provider versions and differ only
+   by the permitted retrieval evidence.
+9. **Acceptance/review tests:** named matted-head and open-background fixtures
+   produce multiple candidates, explain all pruning, distinguish a graceful
+   no-safe-realization outcome from a placement error, and retain raw review
+   evidence separately from promoted Pattern Memory.
 
 Visual snapshots are supporting evidence, not the sole assertion. Assertions
 must use named geometry, font, mask, and manifest evidence so a minor raster
@@ -900,7 +1145,13 @@ difference does not hide a semantic regression.
 | No stable placement exists for a full-frame subject | Return `no-safe-realization` with evidence or use only explicitly permitted controlled overlap; never fabricate safe space. |
 | Candidate count creates unacceptable render cost | Use analytical and low-cost raster pruning, record prune loss, and increase budgets only when evidence justifies it. |
 | Evaluation rewards a hack or reference imitation | Require originality constraints, held-out sources, human review, and failure-taxonomy audit. |
-| A renderer path silently changes output | Fail render-fidelity tests and block reference-quality claims until the field-to-pixel trace is restored. |
+| A renderer path silently changes output | Fail Fidelity Report tests and block reference-quality claims until the field-to-pixel trace is restored. |
+| Observer copies manifest or renderer self-report | Require independent frame/runtime measurement, per-field provenance, and `unobserved` values when proof is absent. |
+| Fidelity scalar hides a categorical mismatch | Rank structured hard failures before optional scalar summaries; block on critical mismatches. |
+| Semantic tree overcommits to one interpretation | Preserve competing hierarchy hypotheses with confidence until candidate selection. |
+| Repair changes coupled dimensions without accounting for them | Compute and record Repair Dependency Closure; freeze only dimensions outside the closure. |
+| Pairwise review leaks labels into inference | Separate feature payload from withheld ground truth and test order swaps, ties, and unseen labels. |
+| Pattern Memory overfits one successful repair | Require source-grouped repetition, reviewer agreement, and promotion provenance before reuse. |
 | Few reference videos create false statistical confidence | Treat corpus as discovery evidence, expand independent sources, and label all confidence as bounded. |
 
 ## Definition of Done for the First Slice
@@ -912,16 +1163,24 @@ open one trace, and determine:
    unavailable, and why no duplicate implementation was introduced;
 2. which reference facts and grammar records influenced its composition;
 3. which temporal scene evidence made each placement/overlap decision legal;
-4. which verified font assets and pair evidence were searched and why the winner
+4. which Semantic Typography Tree hypotheses were considered, with evidence and
+   confidence, and which one was selected;
+5. which verified font assets and pair evidence were searched and why the winner
    was chosen;
-5. how candidate intent became exact shaped geometry, style, depth, and motion;
-6. what exact manifest the renderer executed and proof that it did so;
-7. whether the output failed capability verification, render fidelity, hard
-   constraints, visual quality,
-   or insufficient evidence; and
-8. which dimensions were frozen or resampled during convergence and whether any
-   fidelity repair changed the requested output; and
-9. whether any validated human feedback was promoted into reusable knowledge.
+6. how candidate intent became exact shaped geometry, style, depth, and motion;
+7. what exact Declared Composition and manifest the renderer executed;
+8. what independently measured Observed Composition reached pixels, including
+   what remained unobserved;
+9. whether the Fidelity Report found a categorical or measured mismatch;
+10. whether the output failed capability verification, hard constraints, visual
+    quality, or insufficient evidence;
+11. which dimensions were frozen or recomputed during convergence, including the
+    Repair Dependency Closure;
+12. which blinded A/B/tie review evidence was captured without leakage;
+13. whether any validated human feedback was promoted into reusable Pattern
+    Memory; and
+14. whether the held-out retrieval ablation supports transfer, without claiming
+    Q1/Yuan style-class equivalence.
 
 The system may then make a narrow, honest claim: it has a causally connected,
 render-verified, scene-aware vertical typography path. It cannot claim Q1/Yuan
