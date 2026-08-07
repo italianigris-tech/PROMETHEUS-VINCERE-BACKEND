@@ -50,6 +50,7 @@ describe("MAUL scene evidence", () => {
               readability: 0.91,
               clutter: 0.08,
               faceInterference: 0,
+              overlapPolicy: "controlled_overlap",
               temporalStability: 0.94,
             },
           ],
@@ -68,6 +69,13 @@ describe("MAUL scene evidence", () => {
         expect.objectContaining({
           variantId: "scene_evidence.editorial_asymmetry.negative_space_right",
           paddedNonSourceRegions: [],
+          textAnchor: expect.objectContaining({
+            subjectInteraction: {
+              policy: "controlled_overlap",
+              faceInterference: 0,
+              evidenceIds: ["frame_0001", "frame_0018"],
+            },
+          }),
         }),
       ]),
     });

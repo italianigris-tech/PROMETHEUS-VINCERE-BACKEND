@@ -477,6 +477,13 @@ export const maulOutputCompositionIntervalSchema = z
         box: maulNormalizedBoxSchema,
         maximumEnvelope: maulNormalizedBoxSchema,
         alignment: z.enum(["left", "center", "right"]),
+        subjectInteraction: z
+          .object({
+            policy: z.enum(["avoid_subject", "controlled_overlap"]),
+            faceInterference: confidenceSchema,
+            evidenceIds: z.array(idSchema).min(1),
+          })
+          .optional(),
       })
       .nullable()
       .default(null),

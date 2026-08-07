@@ -36,6 +36,42 @@ _Avoid_: arbitrary doctrine mutation, full doctrine search
 A deterministic artifact of scene facts, sequence facts, and production constraints that the planner is not allowed to rewrite.
 _Avoid_: planner output, doctrine branch, candidate shortlist
 
+**Semantic Typography Tree**:
+A source-grounded set of one or more phrase-hierarchy hypotheses that assigns hero, support, accent, and tail roles with evidence and confidence before font, geometry, or treatment realization.
+_Avoid_: final line layout, font choice, one hardcoded emphasized token
+
+**Declared Composition**:
+The immutable selected visual realization that records exactly what MAUL attempted to render, including semantic roles, font assets, shaped geometry, placement, depth, treatment, motion, expected measurements, and causal lineage.
+_Avoid_: mutable candidate, render manifest transport, claimed pixel result
+
+**Observed Composition**:
+The independently measured physical result of canonical rendering, derived from retained frames plus runtime receipts with per-measurement provenance.
+_Avoid_: renderer self-report, copied manifest values, aesthetic verdict
+
+**Typography Observation Control**:
+A timestamp-matched `MaulShort` render of the same manifest, source treatment, camera path, timing, and encoding with only planned and legacy typography layers suppressed. Creative-versus-control pixel deltas isolate rendered typography for Observed Composition.
+_Avoid_: raw carrier frame, second renderer, source-only subtraction
+
+**Composition Fingerprint**:
+A versioned, provenance-bearing projection of either a Declared Composition or an Observed Composition used for comparison, retrieval, and evaluation. Every value identifies whether it is declared or observed.
+_Avoid_: Pattern Memory snapshot hash, mixed intent-and-reality vector, beauty score
+
+**Fidelity Report**:
+The structured Declared Composition versus Observed Composition diff that records categorical invariant failures and exact measurement deltas before any aggregate summaries.
+_Avoid_: aesthetic score, renderer success receipt, one opaque percentage
+
+**Repair Dependency Closure**:
+The complete set of downstream creative dimensions invalidated by a proposed mutation and therefore required to be recomputed and revalidated while unrelated dimensions remain frozen.
+_Avoid_: regenerate everything, pretend coupled typography changes are isolated
+
+**Reviewed Composition Evidence**:
+A randomized and blinded same-scene A/B/tie judgment containing candidate-independent failure dimensions, reviewer confidence, source grouping, declared and observed fingerprints, and mutation provenance.
+_Avoid_: absolute treatment rating, winner metadata supplied to inference, automatically promoted policy
+
+**Composition Experiment Runner**:
+The narrow orchestration module for the first causal learning experiment: render a declared baseline, observe it independently, apply one dependency-closed repair, capture blinded preference, preserve evidence, and test retrieval on a held-out comparable scene.
+_Avoid_: second Top-Level Planner, renderer, general self-improving system
+
 **Planning Snapshot**:
 An interpretive artifact built from the Observation Snapshot that defines doctrine branches, genome search space, and escalation intent.
 _Avoid_: raw scene facts, final decision plan
@@ -61,7 +97,7 @@ The first named evaluator failure classes: boring-under-editing, chaotic-over-ed
 _Avoid_: generic badness, unlabeled taste failure
 
 **Review Surface**:
-The lightweight preview-side human review workflow that captures pairwise winner choice, failure classes, sequence verdict, and an optional note.
+The lightweight preview-side human review workflow that captures randomized and blinded A/B/tie choice, candidate-independent failure classes, reviewer confidence, sequence verdict, and an optional note.
 _Avoid_: passive inference only, heavyweight annotation suite
 
 **Short-Form Intelligence**:
@@ -175,6 +211,13 @@ _Avoid_: prompt parser, user override, hidden architecture switch
 - **Creator Taste Memory** stores creator-specific preference priors across runs
 - The **Quality-Diversity Archive** stores strong **Treatment Genomes** across diverse behavior cells
 - The **Observation Snapshot** provides the factual input to the **Planning Snapshot**
+- A **Semantic Typography Tree** preserves language-to-hierarchy hypotheses before a **Treatment Genome** selects a realization
+- A selected realization is frozen as a **Declared Composition** before manifest compilation
+- Canonical rendering is independently measured as an **Observed Composition**
+- A **Fidelity Report** compares declared and observed fingerprints without treating renderer telemetry as pixel proof
+- A mutation recomputes its **Repair Dependency Closure** and freezes unrelated passing dimensions
+- **Reviewed Composition Evidence** remains raw evidence until validated knowledge is promoted into **Pattern Memory**
+- The **Composition Experiment Runner** coordinates the first repair-and-held-out-reuse experiment through existing adapters
 - The **Planning Snapshot** defines the search space for the **Top-Level Planner**
 - The **Top-Level Planner** uses an **Adaptive Planning Horizon** rather than a fixed full-video search
 - The **Quality-Diversity Archive** preserves strong **Treatment Genomes** across chosen **Archive Dimensions**
@@ -231,5 +274,9 @@ _Avoid_: prompt parser, user override, hidden architecture switch
 - planner decisions could have become impossible to inspect — resolved: emit a first-class **Planner Audit**.
 - "PlannerAudit" was being used for both rich planner trace and flat backend scoring summary - resolved: reserve **Planner Audit** for the rich trace and call the backend artifact **Candidate Score Summary**.
 - renderer fallback behavior could have silently ignored planner-selected primitive fields - resolved: introduce the **Manifest Compiler** and protect it with **Render Contract Tests**.
+- composition intent and rendered reality could have been represented by one self-certified artifact - resolved: freeze a **Declared Composition**, independently measure an **Observed Composition**, and compare them in a **Fidelity Report**.
+- "composition fingerprint" could have been confused with a Pattern Memory snapshot hash or a beauty score - resolved: it is a provenance-bearing projection of one declared or observed composition only.
+- "change one dimension" could have hidden typography and geometry coupling - resolved: every mutation recomputes its **Repair Dependency Closure** while unrelated dimensions stay frozen.
+- MAUL absolute feedback, Joseph pairwise review, and Pattern Memory could have become competing learning authorities - resolved: preserve raw judgments as **Reviewed Composition Evidence** and promote only validated findings into the existing reusable **Pattern Memory** authority.
 - "upload intake" was being used for both browser/R2 upload authority and MAUL analysis intake - resolved: the **Upload Authority** ends at the **Canonical Source Asset** commit; MAUL starts with a **Source Analysis Job**.
 - R2 object events could have been mistaken for project commands - resolved: an object event is reconciliation evidence only and cannot select a project's **Canonical Source Asset**.

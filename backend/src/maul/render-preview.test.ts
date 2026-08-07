@@ -1,8 +1,19 @@
 import {describe, expect, it} from "vitest";
 
 import {buildMaulPreviewSampleTimes} from "./render-preview.js";
+import {shouldRetainMaulFrameSamples} from "./render-engine.js";
 
 describe("MAUL render preview sampling", () => {
+  it("retains requested frame evidence for final renders as well as previews", () => {
+    expect(shouldRetainMaulFrameSamples({
+      renderMode: "final",
+      sampleTimesMs: [1000, 2000, 3000],
+    })).toBe(true);
+    expect(shouldRetainMaulFrameSamples({
+      renderMode: "final",
+      sampleTimesMs: [],
+    })).toBe(false);
+  });
   it("samples real frame times across the complete candidate hold without oversampling one token boundary", () => {
     expect(
       buildMaulPreviewSampleTimes({

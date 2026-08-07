@@ -100,6 +100,33 @@ describe("MAUL editorial lockup planner", () => {
     expect(lockup.primaryTokenIds).toEqual(["token_build", "token_legacy"]);
   });
 
+  it("uses explicit semantic hierarchy roles ahead of emphasis ordering", () => {
+    const lockup = buildMaulEditorialLockup({
+      segment: {
+        segmentId: "segment_explicit_hierarchy",
+        tokenIds: ["token_move", "token_now", "token_gently"],
+        emphasisTokenIds: ["token_gently"],
+        semanticHierarchyRoles: {
+          token_move: "support",
+          token_now: "hero",
+          token_gently: "tail",
+        },
+        outputStartMs: 1000,
+        outputEndMs: 2600,
+        semanticRole: "hero",
+        emphasisLevel: "hero",
+        holdAcrossProtectedPause: false,
+      },
+      primaryFont,
+      accentFont,
+      selectionSeed: "seed_explicit_hierarchy",
+      referenceTraits: ["semantic hinge emphasis", "editorial serif hinge"],
+    });
+
+    expect(lockup.accentTokenIds).toEqual(["token_now"]);
+    expect(lockup.primaryTokenIds).toEqual(["token_move", "token_gently"]);
+  });
+
   it("disables overlap when a segment is too short to compose safely", () => {
     const lockup = buildMaulEditorialLockup({
       segment: {

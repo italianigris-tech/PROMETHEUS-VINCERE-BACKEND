@@ -103,6 +103,7 @@ import {
 } from "./typography-layout.js";
 import {buildMaulTextPlacementPlan} from "./shorts-text-placement.js";
 import {materializeMaulTextChunkPlanV2} from "./text-chunk-plan.js";
+import {bindSemanticTypographyRolesToMaterializedChunks} from "./semantic-typography-tree.js";
 import {
   buildUnavailableMaulQualityTruthResult,
   buildUnverifiedMaulQualityTruthProof,
@@ -1081,6 +1082,10 @@ export class MaulProjectService {
         MaulArtifactRecord,
         { artifactType: "text_placement_plan" }
       >;
+      textAnimation: Extract<
+        MaulArtifactRecord,
+        { artifactType: "text_animation_plan" }
+      >;
     };
   }> {
     const request: MaulPlanningBundleRequest =
@@ -1365,6 +1370,12 @@ export class MaulProjectService {
       textChunkPlanV1,
       editorialTimeline: timeline.payload,
     });
+    const semanticHierarchyRolesByChunkId = textChunkPlanV1.semanticTypography
+      ? bindSemanticTypographyRolesToMaterializedChunks({
+          binding: textChunkPlanV1.semanticTypography,
+          textChunkPlan: textChunkCore,
+        })
+      : undefined;
     const measuredTypography = await this.typographyProvider.plan({
       chunks: textChunkCore.chunks.map((chunk) => ({
         chunkId: chunk.chunkId,
@@ -1458,6 +1469,7 @@ export class MaulProjectService {
       accentFont: lockupFontPair.accent,
       referenceTraits,
       selectionSeed: `${editorialRhythmSeed}:lockup`,
+      semanticHierarchyRolesByChunkId,
     }).segments;
     const textPlacementCoreWithLockups = {
       ...textPlacementCore,
@@ -1877,6 +1889,17 @@ export class MaulProjectService {
     }>;
   }
 
+  public async compileRenderManifest(
+    projectId: string,
+    input: unknown,
+  ): Promise<{
+    renderManifest: Extract<MaulArtifactRecord, {artifactType: "render_manifest"}>;
+  }> {
+    return this.renderWithMode(projectId, input, "manifest_only") as Promise<{
+      renderManifest: Extract<MaulArtifactRecord, {artifactType: "render_manifest"}>;
+    }>;
+  }
+
   public async renderShort(
     projectId: string,
     input: unknown,
@@ -1893,12 +1916,12 @@ export class MaulProjectService {
   private async renderWithMode(
     projectId: string,
     input: unknown,
-    renderMode: "preview" | "final",
+    renderMode: "manifest_only" | "preview" | "final",
   ): Promise<unknown> {
     const request: MaulShortRenderRequest | MaulRenderPreviewRequest =
-      renderMode === "preview"
-        ? maulRenderPreviewRequestSchema.parse(input)
-        : maulShortRenderRequestSchema.parse(input);
+      renderMode === "final"
+        ? maulShortRenderRequestSchema.parse(input)
+        : maulRenderPreviewRequestSchema.parse(input);
     const { project, artifacts } = await this.getProject(projectId);
     const candidate = artifacts.find(
       (artifact) => artifact.artifactId === request.candidateArtifactId,
@@ -2442,6 +2465,9 @@ export class MaulProjectService {
       throw new Error(
         "MAUL Manifest Compiler produced an unexpected artifact type.",
       );
+    }
+    if (renderMode === "manifest_only") {
+      return {renderManifest: renderManifestResult.artifact};
     }
     let proofOutcome:
       | { available: true; proof: Awaited<ReturnType<MaulQualityTruthProofProvider>> }

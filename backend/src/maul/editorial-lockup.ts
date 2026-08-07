@@ -56,6 +56,7 @@ type EditorialLockupInput = {
     segmentId: string;
     tokenIds: readonly string[];
     emphasisTokenIds?: readonly string[];
+    semanticHierarchyRoles?: Readonly<Record<string, "hero" | "support" | "accent" | "tail">>;
     outputStartMs: number;
     outputEndMs: number;
     semanticRole: string;
@@ -123,8 +124,13 @@ export const buildMaulEditorialLockup = (
   const preferredAccentTokenId = input.segment.emphasisTokenIds
     ?.filter((tokenId) => input.segment.tokenIds.includes(tokenId))
     .at(-1);
+  const explicitHierarchyTokenId = input.segment.tokenIds.find((tokenId) =>
+    input.segment.semanticHierarchyRoles?.[tokenId] === "hero",
+  ) ?? input.segment.tokenIds.find((tokenId) =>
+    input.segment.semanticHierarchyRoles?.[tokenId] === "accent",
+  );
   const accentTokenId = canComposeOverlap
-    ? preferredAccentTokenId ?? input.segment.tokenIds[input.segment.tokenIds.length - 1]!
+    ? explicitHierarchyTokenId ?? preferredAccentTokenId ?? input.segment.tokenIds[input.segment.tokenIds.length - 1]!
     : null;
   const primaryTokenIds = accentTokenId
     ? input.segment.tokenIds.filter((tokenId) => tokenId !== accentTokenId)
@@ -199,6 +205,7 @@ export const applyMaulEditorialLockups = ({
   accentFont,
   referenceTraits,
   selectionSeed,
+  semanticHierarchyRolesByChunkId,
 }: {
   placementPlan: Pick<MaulTextPlacementPlanCore, "segments">;
   textChunkPlan: Pick<MaulShortsTextChunkPlanV2Core, "chunks">;
@@ -207,6 +214,9 @@ export const applyMaulEditorialLockups = ({
   accentFont: LockupFont | null | undefined;
   referenceTraits: readonly string[];
   selectionSeed: string;
+  semanticHierarchyRolesByChunkId?: Readonly<
+    Record<string, Readonly<Record<string, "hero" | "support" | "accent" | "tail">>>
+  >;
 }): Pick<MaulTextPlacementPlanCore, "segments"> => {
   const chunkById = new Map(textChunkPlan.chunks.map((chunk) => [chunk.chunkId, chunk]));
   const rhythmBySegmentId = new Map(rhythm.segments.map((segment) => [segment.segmentId, segment]));
@@ -222,6 +232,7 @@ export const applyMaulEditorialLockups = ({
           segmentId: segment.segmentId,
           tokenIds: segment.tokenIds,
           emphasisTokenIds: chunk.emphasis.tokenIds,
+          semanticHierarchyRoles: semanticHierarchyRolesByChunkId?.[chunk.chunkId],
           outputStartMs: segment.outputStartMs,
           outputEndMs: segment.outputEndMs,
           semanticRole: chunk.semanticRole,

@@ -363,6 +363,26 @@ describe("MAUL V3 text animation planning", () => {
     textPlacementPlanHash,
   };
 
+  it("reports blocked placement before animation schema construction", () => {
+    const blockedPlacementArtifact = {
+      artifactId: "artifact_text_placement_blocked",
+      payload: {
+        status: "blocked",
+        blockingReason: "blocked_no_readable_dialogue_candidate",
+        segments: [],
+      },
+    } as any;
+
+    expect(() => buildMaulTextAnimationPlanPayload({
+      inputs,
+      textChunkPlan: textChunkArtifact,
+      textPlacementPlan: blockedPlacementArtifact,
+      outputDurationMs: 1200,
+    })).toThrow(
+      "Text placement is blocked: blocked_no_readable_dialogue_candidate",
+    );
+  });
+
   it.each(["fade_rise", "keyword_pop", "continuous_push"] as const)(
     "builds an explicit %s entry, hold, and exit program",
     (treatment) => {

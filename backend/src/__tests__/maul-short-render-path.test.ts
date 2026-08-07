@@ -197,8 +197,8 @@ describe("MAUL complete short render path", () => {
 
   it("blocks the thin baseline and holds a proven render until post-render approval", async () => {
     const textChunkPlanner = {
-      plan: vi.fn(async (request: any) =>
-        materializeShortsTextChunkProposal({
+      plan: vi.fn(async (request: any) => ({
+        ...materializeShortsTextChunkProposal({
           request,
           proposal: {
             schemaVersion: "maul-shorts-text-chunk-proposal/v1",
@@ -229,7 +229,24 @@ describe("MAUL complete short render path", () => {
             fallbackReason: null,
           },
         }),
-      ),
+        semanticTypography: {
+          schemaVersion: "maul-semantic-typography-plan-binding/v1",
+          treeId: "render_path_semantic_tree",
+          hypothesisId: "render_path_word_zero_hero",
+          selectedBy: "render_path_test",
+          rolesByWordIndex: {
+            0: "hero",
+            1: "support",
+            2: "support",
+            3: "support",
+            4: "support",
+            5: "support",
+            6: "support",
+            7: "support",
+            8: "support",
+          },
+        },
+      })),
     };
     const creativeTreatmentPlanner = {
       plan: vi.fn(async () => ({
@@ -348,28 +365,30 @@ describe("MAUL complete short render path", () => {
       expect(input.fontSystemId).toBe("grotesk_editorial_hinge");
       return measuredTypographyProvider.plan(input);
     });
+    const qualityTruthProofProvider = vi.fn(validQualityTruthProofProvider);
+    const perceptualTruthEvaluate = vi.fn(async ({preview}: any) => ({
+      status: "pass",
+      failureLabels: [],
+      evidenceIds: preview.frameSamples.map((frame: any) => frame.frameId),
+      receipt: {
+        authorityClass: "invoked_model",
+        provider: "fixture_vision_critic",
+        model: "fixture-v1",
+        inferenceReceiptId: "fixture_receipt",
+      },
+    }));
     const context = await createTestApp({
       storageDir: tempDir,
       deps: {
         maulRenderEngine: renderEngine,
-        maulQualityTruthProofProvider: validQualityTruthProofProvider,
+        maulQualityTruthProofProvider: qualityTruthProofProvider,
         maulTextChunkPlanner: textChunkPlanner,
         maulCreativeTreatmentPlanner: creativeTreatmentPlanner,
         maulSceneEvidenceProvider: {
           inspect: sceneEvidenceInspect,
         },
         maulPerceptualTruthProvider: {
-          evaluate: vi.fn(async ({preview}: any) => ({
-            status: "pass",
-            failureLabels: [],
-            evidenceIds: preview.frameSamples.map((frame: any) => frame.frameId),
-            receipt: {
-              authorityClass: "invoked_model",
-              provider: "fixture_vision_critic",
-              model: "fixture-v1",
-              inferenceReceiptId: "fixture_receipt",
-            },
-          })),
+          evaluate: perceptualTruthEvaluate,
         },
         maulTypographyProvider: {plan: measuredTypographyPlan},
       } as any,
@@ -637,6 +656,9 @@ describe("MAUL complete short render path", () => {
       textChunkPlanArtifactId: plans.textChunk.artifactId,
       textPlacementPlanArtifactId: plans.textPlacement.artifactId,
     });
+    expect(plans.textPlacement.payload.segments[0]?.editorialLockup?.accentTokenIds).toEqual([
+      plans.textChunk.payload.tokens[0]?.tokenId,
+    ]);
     expect(
       plans.textChunk.payload.chunks
         .map((chunk: any) => chunk.text)
@@ -691,6 +713,34 @@ describe("MAUL complete short render path", () => {
         plans.artDirection.artifactId,
       );
     }
+
+    const manifestOnly = await context.maulProjects.compileRenderManifest(
+      project.id,
+      {
+        candidateArtifactId: candidate.artifactId,
+        treatmentGenomeArtifactId: treatment.artifactId,
+        planningBundleArtifactId: planningBundle.artifactId,
+        musicTrack: licensedMusicTrack(),
+        sfxAssets: [licensedSfx()],
+      },
+    );
+    expect(manifestOnly.renderManifest).toMatchObject({
+      artifactType: "render_manifest",
+      payload: {
+        schemaVersion: "maul-unified-short-render-manifest/v3",
+        planningBundleArtifactId: planningBundle.artifactId,
+        rendererInputKind: "unified_short_render_manifest_only",
+      },
+    });
+    expect(renderEngine).not.toHaveBeenCalled();
+    expect(qualityTruthProofProvider).not.toHaveBeenCalled();
+    expect(perceptualTruthEvaluate).not.toHaveBeenCalled();
+    const afterManifestOnly = await context.maulProjects.getProject(project.id);
+    expect(
+      afterManifestOnly.artifacts.filter(
+        (artifact: any) => artifact.artifactType === "render_manifest",
+      ),
+    ).toHaveLength(1);
 
     const forgedManifest = await context.app.inject({
       method: "POST",

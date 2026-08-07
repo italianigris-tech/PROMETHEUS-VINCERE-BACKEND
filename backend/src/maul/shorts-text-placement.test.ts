@@ -513,6 +513,47 @@ describe("MAUL scene-aware text placement", () => {
     );
   });
 
+  it("permits only evidence-backed controlled overlap for an anchored composition", () => {
+    const plan = buildMaulTextPlacementPlan({
+      textChunkPlanArtifactId: "artifact_text_chunk",
+      textChunkPlan: makeChunkPlan(),
+      compositionIntervals: [
+        composition({
+          intervalId: "controlled_overlap",
+          variantId: "scene_evidence.subject_integrated.flexible_hair",
+          compositionDirection: "subject_integrated",
+          textAnchor: {
+            box: {x: 0.62, y: 0.18, width: 0.28, height: 0.2},
+            maximumEnvelope: {x: 0.6, y: 0.16, width: 0.32, height: 0.24},
+            alignment: "left",
+            ...({
+              subjectInteraction: {
+                policy: "controlled_overlap",
+                faceInterference: 0,
+                evidenceIds: ["alpha_frame_0001"],
+              },
+            } as Record<string, unknown>),
+          },
+        }),
+      ],
+      observationIntervals: [
+        observation({
+          subjectBox: {x: 0, y: 0.08, width: 1, height: 0.92},
+        }),
+      ],
+    });
+
+    expect(plan.status).toBe("planned");
+    expect(plan.segments).toHaveLength(1);
+    expect(plan.segments[0]?.hardGates).toContainEqual(
+      expect.objectContaining({
+        gateId: "subject_clearance",
+        status: "pass",
+        evidenceId: "alpha_frame_0001",
+      }),
+    );
+  });
+
   it("uses a stable tie-break independent of candidate family iteration", () => {
     const input = {
       textChunkPlanArtifactId: "artifact_text_chunk",
