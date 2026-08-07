@@ -6,6 +6,8 @@ import {fileURLToPath} from "node:url";
 
 import type {MaulUnifiedShortRenderManifest} from "@prometheus/shared-types";
 
+import {resolveRepositoryMediaTool} from "./repository-media-tools.js";
+
 export type MaulRenderCaption = {
   text: string;
   startMs: number;
@@ -75,17 +77,19 @@ const runRemotion = async ({
 };
 
 const extractPreviewFrame = async ({
+  ffmpegPath,
   outputPath,
   framePath,
   outputMs,
 }: {
+  ffmpegPath: string;
   outputPath: string;
   framePath: string;
   outputMs: number;
 }): Promise<Buffer> => {
   await new Promise<void>((resolve, reject) => {
     execFile(
-      "ffmpeg",
+      ffmpegPath,
       [
         "-ss",
         (outputMs / 1000).toFixed(3),
@@ -196,8 +200,14 @@ export const renderMaulShortLocally: MaulShortRenderEngine = async (input) => {
       throw new Error("MAUL Remotion render produced an empty MP4.");
     }
     const frameSamples = input.renderMode === "preview"
-      ? await Promise.all((input.previewFrameTimesMs ?? []).map(async (outputMs, index) => {
+      ? await (async () => {
+          const ffmpeg = await resolveRepositoryMediaTool({tool: "ffmpeg", repoRoot});
+          if (ffmpeg.status !== "available") {
+            throw new Error(`MAUL preview frame extraction is unavailable: ${ffmpeg.reason}`);
+          }
+          return Promise.all((input.previewFrameTimesMs ?? []).map(async (outputMs, index) => {
           const bytes = await extractPreviewFrame({
+            ffmpegPath: ffmpeg.executablePath,
             outputPath,
             framePath: path.join(workDir, `preview-frame-${index}.png`),
             outputMs,
@@ -208,7 +218,8 @@ export const renderMaulShortLocally: MaulShortRenderEngine = async (input) => {
             sha256: createHash("sha256").update(bytes).digest("hex"),
             contentType: "image/png" as const,
           };
-        }))
+          }));
+        })()
       : [];
     if (input.renderMode === "preview" && frameSamples.length === 0) {
       throw new Error("MAUL perceptual preview requires one or more extracted frame samples.");
