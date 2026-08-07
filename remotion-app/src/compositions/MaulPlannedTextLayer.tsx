@@ -437,6 +437,11 @@ export type MaulEditorialWordTransform = {
   rotationDeg: number;
 };
 
+export type MaulTextSuppressionRange = {
+  outputStartMs: number;
+  outputEndMs: number;
+};
+
 export const composeMaulTextTransforms = ({
   editorial,
   animation,
@@ -470,6 +475,7 @@ export const MaulPlannedTextCard: React.FC<{
   accentColor: string;
   creativeTreatment?: MaulCreativeTreatment;
   referenceEditorialRhythm?: MaulReferenceEditorialRhythm;
+  suppressedOutputRanges?: readonly MaulTextSuppressionRange[];
 }> = ({
   record,
   absoluteTimeMs,
@@ -479,7 +485,15 @@ export const MaulPlannedTextCard: React.FC<{
   accentColor,
   creativeTreatment,
   referenceEditorialRhythm,
+  suppressedOutputRanges = [],
 }) => {
+  if (suppressedOutputRanges.some(
+    (range) =>
+      range.outputStartMs <= absoluteTimeMs &&
+      range.outputEndMs > absoluteTimeMs,
+  )) {
+    return null;
+  }
   const animationPrograms = record.animationPrograms?.length
     ? record.animationPrograms
     : record.animationProgram ? [record.animationProgram] : [];
@@ -680,6 +694,7 @@ const TimedMaulPlannedTextCard: React.FC<{
   accentColor: string;
   creativeTreatment?: MaulCreativeTreatment;
   referenceEditorialRhythm?: MaulReferenceEditorialRhythm;
+  suppressedOutputRanges?: readonly MaulTextSuppressionRange[];
 }> = ({
   record,
   outputFrame,
@@ -688,6 +703,7 @@ const TimedMaulPlannedTextCard: React.FC<{
   accentColor,
   creativeTreatment,
   referenceEditorialRhythm,
+  suppressedOutputRanges,
 }) => {
   return (
     <MaulPlannedTextCard
@@ -699,6 +715,7 @@ const TimedMaulPlannedTextCard: React.FC<{
       accentColor={accentColor}
       creativeTreatment={creativeTreatment}
       referenceEditorialRhythm={referenceEditorialRhythm}
+      suppressedOutputRanges={suppressedOutputRanges}
     />
   );
 };
@@ -709,7 +726,8 @@ export const MaulPlannedTextLayer: React.FC<{
   accentColor: string;
   creativeTreatment?: MaulCreativeTreatment;
   referenceEditorialRhythm?: MaulReferenceEditorialRhythm;
-}> = ({records, textColor, accentColor, creativeTreatment, referenceEditorialRhythm}) => {
+  suppressedOutputRanges?: readonly MaulTextSuppressionRange[];
+}> = ({records, textColor, accentColor, creativeTreatment, referenceEditorialRhythm, suppressedOutputRanges}) => {
   const outputFrame = useCurrentFrame();
   const {fps} = useVideoConfig();
   return (
@@ -731,6 +749,7 @@ export const MaulPlannedTextLayer: React.FC<{
             accentColor={accentColor}
             creativeTreatment={creativeTreatment}
             referenceEditorialRhythm={referenceEditorialRhythm}
+            suppressedOutputRanges={suppressedOutputRanges}
           />
         </Sequence>
       ))}

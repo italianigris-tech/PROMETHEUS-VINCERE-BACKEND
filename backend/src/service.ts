@@ -9,7 +9,7 @@ import {z} from "zod";
 
 import type {BackendEnv} from "./config";
 import {FileJobRepository} from "./repository";
-import {InProcessQueue, QueueBacklogLimitError} from "./queue";
+import {QueueBacklogLimitError, type JobQueue} from "./queue";
 import {
   createInitialJobRecord,
   type PipelineDependencies,
@@ -43,6 +43,7 @@ import {
 } from "./schemas";
 import type {MotionPlanArtifact} from "./motion-plan";
 import {createJobId} from "./utils/ids";
+import {asyncJobEnvelopeSchema} from "@prometheus/shared-types";
 
 const JOB_REQUEST_PAYLOAD_SCHEMA = jobRequestPayloadSchema.partial();
 const VIRAL_CLIP_REQUEST_SCHEMA = generateViralClipsRequestBaseSchema.partial();
@@ -116,7 +117,7 @@ const writeMultipartFileToDisk = async (part: {file: NodeJS.ReadableStream & {tr
 
 export class BackendService {
   public readonly repository: FileJobRepository;
-  public readonly queue: InProcessQueue;
+  public readonly queue: JobQueue;
   public readonly env: BackendEnv;
   public readonly deps: PipelineDependencies;
 
@@ -127,7 +128,7 @@ export class BackendService {
     deps
   }: {
     repository: FileJobRepository;
-    queue: InProcessQueue;
+    queue: JobQueue;
     env: BackendEnv;
     deps: PipelineDependencies;
   }) {
@@ -135,6 +136,10 @@ export class BackendService {
     this.queue = queue;
     this.env = env;
     this.deps = deps;
+    this.queue.registerHandler("pipeline", async (envelope) => {
+      const request = normalizedJobRequestSchema.parse(envelope.payload.request);
+      await this.runQueuedPipeline(request);
+    });
   }
 
   public async initialize(): Promise<void> {
@@ -168,6 +173,20 @@ export class BackendService {
       })
     );
     this.deps.executionTelemetry?.recordStageTransition(failedJob, note);
+  }
+
+  private async runQueuedPipeline(request: NormalizedJobRequest): Promise<void> {
+    try {
+      await processJobPipeline({
+        request,
+        repository: this.repository,
+        env: this.env,
+        deps: this.deps
+      });
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      await this.failJob(request.job_id, reason, reason);
+    }
   }
 
   private async reconcileStaleJobs(): Promise<void> {
@@ -391,19 +410,14 @@ export class BackendService {
     this.deps.executionTelemetry?.recordJobCreated(jobRecord);
 
     try {
-      this.queue.enqueue(async () => {
-        try {
-          await processJobPipeline({
-            request,
-            repository: this.repository,
-            env: this.env,
-            deps: this.deps
-          });
-        } catch (error) {
-          const reason = error instanceof Error ? error.message : String(error);
-          await this.failJob(request.job_id, reason, reason);
-        }
-      });
+      await this.queue.enqueueEnvelope(asyncJobEnvelopeSchema.parse({
+        jobId: request.job_id,
+        kind: "pipeline",
+        correlationId: request.job_id,
+        idempotencyKey: `pipeline:${request.job_id}`,
+        requestedAt: nowIso(this.deps),
+        payload: {request}
+      }));
     } catch (error) {
       if (error instanceof QueueBacklogLimitError) {
         await this.failJob(

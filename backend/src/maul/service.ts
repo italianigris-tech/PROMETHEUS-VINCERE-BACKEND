@@ -1091,6 +1091,26 @@ export class MaulProjectService {
     const request: MaulPlanningBundleRequest =
       maulPlanningBundleRequestSchema.parse(input);
     const { project, artifacts } = await this.getProject(projectId);
+    if (request.visualAssetPack) {
+      if (
+        request.visualAssetPack.projectId !== project.id ||
+        request.visualAssetPack.rootSourceAssetId !== project.rootSourceAssetId ||
+        request.visualAssetPack.sourceAssetId !== project.rootSourceAssetId
+      ) {
+        throw new MaulLineageConflictError(
+          "The visual asset pack must belong to the MAUL project and canonical source.",
+        );
+      }
+      for (const asset of request.visualAssetPack.assets) {
+        const bytes = await readFile(path.resolve(asset.storagePath));
+        const actualSha256 = createHash("sha256").update(bytes).digest("hex");
+        if (actualSha256 !== asset.sha256.toLowerCase()) {
+          throw new MaulLineageConflictError(
+            `Visual asset ${asset.assetId} failed authoritative SHA-256 verification.`,
+          );
+        }
+      }
+    }
     const candidate = artifacts.find(
       (artifact) => artifact.artifactId === request.candidateArtifactId,
     );
@@ -1233,6 +1253,7 @@ export class MaulProjectService {
       treatment,
       referenceCorpus,
       textChunkPlan: textChunkPlanV1,
+      visualAssetPack: request.visualAssetPack,
     };
     const editorialDirection = await this.editorialDirector.plan({
       sourcePath: source.payload.storageKey,

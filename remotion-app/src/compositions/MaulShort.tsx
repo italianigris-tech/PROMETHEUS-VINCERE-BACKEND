@@ -25,6 +25,7 @@ import {
 } from "remotion";
 
 import {MaulPlannedTextLayer} from "./MaulPlannedTextLayer";
+import {MaulVisualTrack} from "./MaulVisualTrack";
 import {
   adaptMaulShortManifest,
   buildMaulPlannedRenderModel,
@@ -459,10 +460,27 @@ export const MAUL_SHORT_DEFAULT_PROPS: {
   },
 };
 
-// V3 excludes raw supplemental music/SFX; its governed master is supplied by the backend mux.
+// MAUL renders the governed source dialogue and licensed mix in this composition.
 export const shouldMaulRemotionRenderAudio = (
   manifest: Pick<MaulUnifiedShortRenderManifest, "schemaVersion">,
-): boolean => manifest.schemaVersion !== "maul-unified-short-render-manifest/v3";
+): boolean => Boolean(manifest.schemaVersion);
+
+const MAUL_TEXT_SUPPRESSING_VISUAL_MODES = new Set([
+  "evidence_image",
+  "split_proof",
+  "editorial_graphic",
+]);
+
+export const buildMaulTextSuppressionRanges = (track: {
+  intervals: readonly {
+    mode: string;
+    outputStartMs: number;
+    outputEndMs: number;
+  }[];
+} | null | undefined) =>
+  track?.intervals
+    .filter((interval) => MAUL_TEXT_SUPPRESSING_VISUAL_MODES.has(interval.mode))
+    .map(({outputStartMs, outputEndMs}) => ({outputStartMs, outputEndMs})) ?? [];
 
 type MaulCaptionToken = { text: string; fromMs: number; toMs: number };
 export const joinMaulCaptionTokens = (tokens: MaulCaptionToken[]) =>
@@ -823,6 +841,8 @@ export const MaulShort: React.FC<MaulShortProps> = ({
     adaptedManifest.mode === "planned"
       ? buildMaulPlannedRenderModel(adaptedManifest.manifest)
       : null;
+  const visualTrack = manifest.plans.visual.visualTrack;
+  const textSuppressionRanges = buildMaulTextSuppressionRanges(visualTrack);
   const governedCameraEvents =
     adaptedManifest.mode === "planned" &&
     adaptedManifest.manifest.schemaVersion ===
@@ -866,7 +886,22 @@ export const MaulShort: React.FC<MaulShortProps> = ({
           />
         </Sequence>
       ))}
-      {plannedModel?.sourceSequences.map((segment) => (
+      {visualTrack ? <MaulVisualTrack track={visualTrack} /> : null}
+      {visualTrack && plannedModel?.sourceSequences.map((segment) => (
+        <Sequence
+          key={`dialogue-${segment.compositionIntervalId}-${segment.from}`}
+          from={segment.from}
+          durationInFrames={segment.durationInFrames}
+        >
+          <Audio
+            src={staticFile(sourceAsset)}
+            trimBefore={segment.trimBefore}
+            trimAfter={segment.trimAfter}
+            playbackRate={segment.playbackRate}
+          />
+        </Sequence>
+      ))}
+      {!visualTrack && plannedModel?.sourceSequences.map((segment) => (
         <Sequence
           key={`${segment.compositionIntervalId}-${segment.from}`}
           from={segment.from}

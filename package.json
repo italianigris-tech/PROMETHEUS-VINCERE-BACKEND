@@ -3,6 +3,10 @@
     "packages/*",
     "backend"
   ],
+  "scripts": {
+    "test:maul": "npm --workspace @prometheus/shared-types run build && npm --workspace @prometheus/backend test -- src/maul src/__tests__/maul-short-render-path.test.ts",
+    "typecheck:maul": "npm --workspace @prometheus/shared-types run build && npm --workspace @prometheus/backend run typecheck && npm --prefix remotion-app run typecheck"
+  },
   "devDependencies": {
     "vitest": "^3.1.4"
   }

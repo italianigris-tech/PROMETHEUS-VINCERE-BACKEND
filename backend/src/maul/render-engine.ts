@@ -4,7 +4,10 @@ import {copyFile, mkdir, mkdtemp, readFile, rm, writeFile} from "node:fs/promise
 import path from "node:path";
 import {fileURLToPath} from "node:url";
 
-import type {MaulUnifiedShortRenderManifest} from "@prometheus/shared-types";
+import {
+  maulUnifiedShortRenderManifestSchema,
+  type MaulUnifiedShortRenderManifest,
+} from "@prometheus/shared-types";
 
 import {resolveRepositoryMediaTool} from "./repository-media-tools.js";
 
@@ -156,6 +159,22 @@ export const renderMaulShortLocally: MaulShortRenderEngine = async (input) => {
   try {
     await copyFile(input.manifest.source.storagePath, stagedSource);
     await copyFile(input.manifest.audio.musicTrack.storagePath, stagedMusic);
+    const visualTrack = input.manifest.plans.visual.visualTrack;
+    const stagedVisualAssets = visualTrack
+      ? await Promise.all(visualTrack.assets.map(async (asset, index) => {
+          const bytes = await readFile(asset.storagePath);
+          const actualSha256 = createHash("sha256").update(bytes).digest("hex");
+          if (actualSha256 !== asset.sha256.toLowerCase()) {
+            throw new Error(`Visual asset ${asset.assetId} failed render-time SHA-256 verification.`);
+          }
+          const filename = `visual-${index}${path.extname(asset.storagePath) || (asset.mediaKind === "image" ? ".png" : ".mp4")}`;
+          await copyFile(asset.storagePath, path.join(publicStageDir, filename));
+          return {
+            ...asset,
+            storagePath: `.maul-renders/${stageName}/${filename}`,
+          };
+        }))
+      : null;
     const stagedSfx = await Promise.all(input.manifest.audio.sfxAssets.map(async (asset, index) => {
       const filename = `sfx-${index}${path.extname(asset.storagePath) || ".wav"}`;
       await copyFile(asset.storagePath, path.join(publicStageDir, filename));
@@ -164,7 +183,7 @@ export const renderMaulShortLocally: MaulShortRenderEngine = async (input) => {
         storagePath: `.maul-renders/${stageName}/${filename}`
       };
     }));
-    const runtimeManifest: MaulUnifiedShortRenderManifest = {
+    const runtimeManifest: MaulUnifiedShortRenderManifest = maulUnifiedShortRenderManifestSchema.parse({
       ...input.manifest,
       source: {
         ...input.manifest.source,
@@ -177,8 +196,20 @@ export const renderMaulShortLocally: MaulShortRenderEngine = async (input) => {
           storagePath: `.maul-renders/${stageName}/${path.basename(stagedMusic)}`
         },
         sfxAssets: stagedSfx
-      }
-    };
+      },
+      plans: stagedVisualAssets
+        ? {
+            ...input.manifest.plans,
+            visual: {
+              ...input.manifest.plans.visual,
+              visualTrack: {
+                ...visualTrack!,
+                assets: stagedVisualAssets,
+              },
+            },
+          }
+        : input.manifest.plans,
+    });
     await writeFile(
       propsPath,
       JSON.stringify({manifest: runtimeManifest, observationMode}),

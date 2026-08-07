@@ -32,6 +32,10 @@ import {
   MaulShort,
   MAUL_SHORT_DEFAULT_PROPS
 } from "./compositions/MaulShort";
+import {
+  MaulCinematicSvgPrototype,
+  MAUL_CINEMATIC_SVG_PROTOTYPE_DURATION,
+} from "./compositions/MaulCinematicSvgPrototype";
 
 const importMetaEnv = typeof import.meta !== "undefined" ? import.meta.env : undefined;
 const envCaptionProfileId =
@@ -51,7 +55,8 @@ const KNOWN_STUDIO_COMPOSITION_IDS = new Set([
   "TargetFocusZoomShowcase",
   "CinematicPiPShowcase",
   "JosephEdit",
-  "MaulShort"
+  "MaulShort",
+  "MaulCinematicSvgPrototype"
 ]);
 const reelPreset = getPresentationPreset("reel");
 const longFormPreset = getPresentationPreset("long-form");
@@ -299,6 +304,14 @@ export const RemotionRoot: React.FC = () => {
         fps={30}
         durationInFrames={30}
         defaultProps={MAUL_SHORT_DEFAULT_PROPS}
+      />
+      <Composition
+        id="MaulCinematicSvgPrototype"
+        component={MaulCinematicSvgPrototype}
+        width={1080}
+        height={1920}
+        fps={30}
+        durationInFrames={MAUL_CINEMATIC_SVG_PROTOTYPE_DURATION}
       />
       <Composition
         id="JosephEdit"

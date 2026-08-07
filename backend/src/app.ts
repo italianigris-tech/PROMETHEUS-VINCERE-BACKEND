@@ -9,7 +9,7 @@ import cors from "@fastify/cors";
 import {loadEnv, type BackendEnv} from "./config";
 import {METADATA_CATALOG_ENTRIES, METADATA_GROUPS} from "./metadata-catalog";
 import {FileJobRepository} from "./repository";
-import {InProcessQueue, QueueBacklogLimitError} from "./queue";
+import {InProcessQueue, QueueBacklogLimitError, QueueConfigurationError, type JobQueue} from "./queue";
 import {BackendService} from "./service";
 import type {PipelineDependencies} from "./pipeline";
 import type {FallbackEvent, JobStage} from "./schemas";
@@ -89,7 +89,7 @@ export type BackendAppContext = {
   app: FastifyInstance;
   service: BackendService;
   repository: FileJobRepository;
-  queue: InProcessQueue;
+  queue: JobQueue;
   editSessions: EditSessionManager;
   maulProjects: MaulProjectService;
   maulControlPlane: MaulDurableControlPlane;
@@ -147,7 +147,7 @@ const publicStageForJob = (stage: JobStage): string => {
 };
 
 const requestStatusCodeForError = (error: unknown): number => {
-  return error instanceof QueueBacklogLimitError ? 503 : 400;
+  return error instanceof QueueBacklogLimitError || error instanceof QueueConfigurationError ? 503 : 400;
 };
 
 const FONT_CONTENT_TYPES: Record<string, string> = {
@@ -232,6 +232,26 @@ export const createBackendApp = async ({
   // Content-addressed font assets are immutable and are referenced by persisted
   // MAUL manifests. Startup may create the cache but must never invalidate it.
   await mkdir(retrievedFontsDir, {recursive: true});
+  const repository = new FileJobRepository(env.STORAGE_DIR);
+  const queue: JobQueue = env.JOB_QUEUE_DRIVER === "bullmq"
+    ? await (async () => {
+      if (!env.REDIS_URL.trim()) {
+        throw new QueueConfigurationError("JOB_QUEUE_DRIVER=bullmq requires REDIS_URL to be configured.");
+      }
+      const {BullMqQueue} = await import("./bullmq-queue");
+      const queue = new BullMqQueue({
+        redisUrl: env.REDIS_URL,
+        prefix: env.JOB_QUEUE_PREFIX,
+        concurrency: env.JOB_QUEUE_CONCURRENCY,
+        maxPending: env.JOB_QUEUE_MAX_PENDING,
+        attempts: env.JOB_QUEUE_ATTEMPTS,
+        backoffMs: env.JOB_QUEUE_BACKOFF_MS,
+        timeoutMs: env.JOB_QUEUE_TIMEOUT_MS
+      });
+      await queue.ready();
+      return queue;
+    })()
+    : new InProcessQueue(env.JOB_QUEUE_CONCURRENCY, env.JOB_QUEUE_MAX_PENDING, env.JOB_QUEUE_TIMEOUT_MS);
   const zillizHealthMonitor = new ZillizHealthMonitor(env);
   zillizHealthMonitor.start();
   app.addHook("onClose", async () => {
@@ -261,8 +281,9 @@ export const createBackendApp = async ({
     }
   });
 
-  const repository = new FileJobRepository(env.STORAGE_DIR);
-  const queue = new InProcessQueue(env.JOB_QUEUE_CONCURRENCY, env.JOB_QUEUE_MAX_PENDING);
+  app.addHook("onClose", async () => {
+    await queue.close(env.JOB_QUEUE_SHUTDOWN_GRACE_MS);
+  });
   const executionTelemetry = deps?.executionTelemetry instanceof ExecutionTelemetryBroker
     ? deps.executionTelemetry
     : new ExecutionTelemetryBroker();
@@ -954,6 +975,9 @@ export const createBackendApp = async ({
     maulProjects,
     maulLearning
   );
+
+  const startableQueue = queue as JobQueue & {start?: () => void};
+  startableQueue.start?.();
 
   return {
     app,

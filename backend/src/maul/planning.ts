@@ -28,6 +28,8 @@ import {
   type MaulProject,
   type MaulShortRenderRequest,
   type MaulUnifiedShortRenderManifest,
+  type MaulVisualAssetPack,
+  type MaulVisualTrack,
   type MaulShortsTextChunkPlanV2Core,
   type MaulTextChunkPlanPayload,
   type MaulTextAnimationPlanPayload,
@@ -52,6 +54,7 @@ import {
   buildMaulTextPlacementPlan,
   type MaulPlacementObservationInterval,
 } from "./shorts-text-placement.js";
+import {buildMaulVisualTrack} from "./visual-track.js";
 
 export {hashMaulPlanPayload} from "./text-chunk-plan.js";
 
@@ -102,6 +105,7 @@ export type MaulPlanningInputs = {
   treatment: TreatmentArtifact;
   referenceCorpus?: ReferenceCorpusArtifact[];
   textChunkPlan: ShortsTextChunkPlan | null;
+  visualAssetPack?: MaulVisualAssetPack | null;
 };
 
 export type MaulTypographyPlanningResolution = {
@@ -1213,9 +1217,32 @@ export const buildMaulPlanningPayloads = (
       : "Legacy and V2 renderers retain local per-sequence motion without a global continuity claim.",
     maxScale: inputs.treatment.payload.rendererInputs.framing.maxPunchInScale,
   });
+  const visualTrack = inputs.visualAssetPack
+    ? buildMaulVisualTrack({
+        projectId: inputs.project.id,
+        rootSourceAssetId: inputs.source.payload.sha256 ? inputs.source.artifactId : inputs.project.rootSourceAssetId,
+        sourceAssetId: inputs.source.artifactId,
+        outputDurationMs: inputs.timeline.payload.outputDurationMs,
+        beats: beatRecords.map((beat) => ({
+          beatId: beat.beatId,
+          outputStartMs: beat.outputStartMs,
+          outputEndMs: beat.outputEndMs,
+          sourceStartMs: beat.sourceStartMs,
+          sourceEndMs: beat.sourceEndMs,
+          role: beat.role,
+          spokenIdea: beat.spokenIdea,
+          protectedPause: beat.protectedPause,
+        })),
+        assets: inputs.visualAssetPack.assets,
+        treatment: {
+          maxInsertsPerMinute: inputs.treatment.payload.rendererInputs.bRoll.maxInsertsPerMinute,
+        },
+      })
+    : null;
   const visual = maulVisualPlanPayloadSchema.parse({
     ...basePlan(inputs, "maul-visual-plan/v1"),
     schemaVersion: "maul-visual-plan/v1",
+    ...(visualTrack ? {visualTrack} : {}),
     scenes: [
       {
         sceneId: "maul_scene_speaker_source",
@@ -1233,9 +1260,9 @@ export const buildMaulPlanningPayloads = (
         ),
       },
     ],
-    neededButUnavailable: [
-      "No governed evidence/B-roll retrieval result exists for this deterministic planning pass.",
-    ],
+    neededButUnavailable: visualTrack
+      ? []
+      : ["No governed evidence/B-roll retrieval result exists for this deterministic planning pass."],
     warnings: [
       "Speaker-only visual mode is an explicit restrained fallback, not evidence of cinematic visual planning.",
     ],

@@ -808,6 +808,22 @@ describe("MAUL planned text renderer contract", () => {
     );
   });
 
+  it("withholds planned text during a declared editorial-graphic interval", () => {
+    const markup = renderToStaticMarkup(
+      <MaulPlannedTextCard
+        {...({
+          absoluteTimeMs: 350,
+          record: buildRecords()[0]!,
+          textColor: "#ffffff",
+          accentColor: "#ffcc00",
+          suppressedOutputRanges: [{outputStartMs: 300, outputEndMs: 500}],
+        } as any)}
+      />,
+    );
+
+    expect(markup).toBe("");
+  });
+
   it("renders the planned font system instead of forcing an editorial-display fallback", () => {
     const record = structuredClone(buildRecords()[0]!) as any;
     record.font = {

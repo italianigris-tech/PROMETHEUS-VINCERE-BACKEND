@@ -5,7 +5,8 @@ import type {FastifyInstance} from "fastify";
 import {z} from "zod";
 
 import type {BackendEnv} from "./config";
-import {QueueBacklogLimitError, type InProcessQueue} from "./queue";
+import {QueueBacklogLimitError, QueueConfigurationError, type JobQueue} from "./queue";
+import {asyncJobEnvelopeSchema} from "@prometheus/shared-types";
 import {editTypographyStyleIdSchema} from "./edit-sessions/types";
 import type {EditSessionManager} from "./edit-sessions/service";
 import type {EditSessionStore} from "./edit-sessions/store";
@@ -67,7 +68,7 @@ const buildSessionUrls = (sessionId: string): {
 
 const createProcessErrorResponse = (error: unknown): {statusCode: number; body: {error: string}} => {
   const message = error instanceof Error ? error.message : String(error);
-  const statusCode = error instanceof QueueBacklogLimitError || /not configured/i.test(message) ? 503 : 400;
+  const statusCode = error instanceof QueueBacklogLimitError || error instanceof QueueConfigurationError || /not configured/i.test(message) ? 503 : 400;
   return {
     statusCode,
     body: {
@@ -99,6 +100,113 @@ const writeJosephFailureEvidence = async ({
   return evidencePath;
 };
 
+type QueuedProcessPayload = {
+  sessionId: string;
+  input: z.infer<typeof processRequestSchema>;
+  bucket: string;
+  publicMediaUrl: string | null;
+};
+
+const queuedProcessPayloadSchema = z.object({
+  sessionId: z.string().trim().min(1),
+  input: processRequestSchema,
+  bucket: z.string().trim().min(1),
+  publicMediaUrl: z.string().trim().nullable()
+});
+
+const processQueuedUpload = async ({
+  payload,
+  editSessions,
+  editSessionStore,
+  r2Service,
+  josephUploadPipeline
+}: {
+  payload: QueuedProcessPayload;
+  editSessions: EditSessionManager;
+  editSessionStore: EditSessionStore;
+  r2Service: R2TransferService;
+  josephUploadPipeline: JosephUploadPipeline;
+}): Promise<void> => {
+  const {sessionId, input, bucket, publicMediaUrl} = payload;
+  try {
+    await editSessionStore.ensureSessionWorkspace(sessionId);
+    const sourceFileName = sanitizeFileName(input.filename ?? path.basename(input.key));
+    const destinationPath = path.join(editSessionStore.sourceDir(sessionId), sourceFileName);
+
+    await r2Service.downloadObject({bucket, key: input.key, destinationPath});
+    const completed = await editSessions.completeUpload(sessionId, {
+      mediaUrl: publicMediaUrl ?? undefined,
+      storageKey: input.key,
+      sourcePath: destinationPath,
+      sourceFilename: input.filename ?? sourceFileName,
+      metadata: {
+        ...input.metadata,
+        source: "r2",
+        r2Bucket: bucket,
+        r2Key: input.key,
+        r2UserId: input.userId ?? null,
+        r2ContentType: input.contentType ?? null,
+        r2MediaUrl: publicMediaUrl
+      },
+      autoStartPreview: input.autoStartPreview ?? true
+    });
+
+    if (isJosephProfile(input.josephProfile)) {
+      try {
+        const result = await josephUploadPipeline.createRenderJob({
+          sessionId,
+          sourcePath: destinationPath,
+          sourceFilename: input.filename ?? sourceFileName,
+          sourceDurationMs: completed.sourceDurationMs,
+          sourceWidth: completed.sourceWidth,
+          sourceHeight: completed.sourceHeight,
+          sourceFps: completed.sourceFps,
+          profile: input.josephProfile,
+          promptText: input.promptText,
+          retryIndex: input.retryIndex,
+          matteUrl: input.matteUrl,
+          matteFilePath: input.matteFilePath,
+        });
+
+        await editSessions.mergeSessionMetadata(sessionId, {
+          josephProfile: input.josephProfile,
+          josephRenderJobId: result.renderJobId,
+          josephReplayLedgerEntryId: result.replayLedgerEntryId,
+          josephEvidencePath: result.evidencePath,
+          josephVariationKey: result.variationKey,
+          josephManifestPath: result.studioManifestPath ?? null,
+          josephStudioManifestPath: result.studioManifestPath ?? null,
+          josephStudioManifestUrl: result.studioManifestUrl ?? null,
+        }, {
+          status: "render_pending",
+          renderStatus: "render_pending",
+          renderProgress: 0,
+        });
+      } catch (error) {
+        const failureEvidencePath = await writeJosephFailureEvidence({
+          editSessionStore,
+          sessionId,
+          error,
+        });
+        await editSessions.mergeSessionMetadata(sessionId, {
+          josephProfile: input.josephProfile,
+          josephFailureTags: ["orchestrator_failed"],
+          josephFailureEvidencePath: failureEvidencePath,
+        });
+        await editSessions.failSession(sessionId, {
+          errorCode: "joseph_orchestrator_failed",
+          errorMessage: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+  } catch (error) {
+    await editSessions.failSession(sessionId, {
+      errorCode: "r2_process_failed",
+      errorMessage: error instanceof Error ? error.message : String(error)
+    });
+  }
+};
+
 export const registerUploadRoutes = async (
   app: FastifyInstance,
   {
@@ -110,13 +218,24 @@ export const registerUploadRoutes = async (
     josephUploadPipeline = createJosephUploadPipeline({storageDir: env.STORAGE_DIR})
   }: {
     env: BackendEnv;
-    queue: InProcessQueue;
+    queue: JobQueue;
     editSessions: EditSessionManager;
     editSessionStore: EditSessionStore;
     r2Service: R2TransferService;
     josephUploadPipeline?: JosephUploadPipeline;
   }
 ): Promise<void> => {
+  queue.registerHandler("r2-upload-process", async (envelope) => {
+    const payload = queuedProcessPayloadSchema.parse(envelope.payload);
+    await processQueuedUpload({
+      payload,
+      editSessions,
+      editSessionStore,
+      r2Service,
+      josephUploadPipeline
+    });
+  });
+
   app.post("/api/upload-url", async (req, reply) => {
     try {
       const input = uploadUrlRequestSchema.parse((req.body ?? {}) as UploadUrlRequest);
@@ -162,92 +281,19 @@ export const registerUploadRoutes = async (
       });
 
       try {
-        queue.enqueue(async () => {
-          try {
-            await editSessionStore.ensureSessionWorkspace(session.id);
-            const sourceFileName = sanitizeFileName(input.filename ?? path.basename(input.key));
-            const destinationPath = path.join(editSessionStore.sourceDir(session.id), sourceFileName);
-
-            await r2Service.downloadObject({
-              bucket,
-              key: input.key,
-              destinationPath
-            });
-
-            const completed = await editSessions.completeUpload(session.id, {
-              mediaUrl: publicMediaUrl ?? undefined,
-              storageKey: input.key,
-              sourcePath: destinationPath,
-              sourceFilename: input.filename ?? sourceFileName,
-              metadata: {
-                ...input.metadata,
-                source: "r2",
-                r2Bucket: bucket,
-                r2Key: input.key,
-                r2UserId: input.userId ?? null,
-                r2ContentType: input.contentType ?? null,
-                r2MediaUrl: publicMediaUrl
-              },
-              autoStartPreview: input.autoStartPreview ?? true
-            });
-
-            // Joseph is selected explicitly at upload completion with `josephProfile`.
-            // Non-Joseph uploads keep the existing edit-session preview path unchanged.
-            if (isJosephProfile(input.josephProfile)) {
-              try {
-                const result = await josephUploadPipeline.createRenderJob({
-                  sessionId: session.id,
-                  sourcePath: destinationPath,
-                  sourceFilename: input.filename ?? sourceFileName,
-                  sourceDurationMs: completed.sourceDurationMs,
-                  sourceWidth: completed.sourceWidth,
-                  sourceHeight: completed.sourceHeight,
-                  sourceFps: completed.sourceFps,
-                  profile: input.josephProfile,
-                  promptText: input.promptText,
-                  retryIndex: input.retryIndex,
-                  matteUrl: input.matteUrl,
-                  matteFilePath: input.matteFilePath,
-                });
-
-                await editSessions.mergeSessionMetadata(session.id, {
-                  josephProfile: input.josephProfile,
-                  josephRenderJobId: result.renderJobId,
-                  josephReplayLedgerEntryId: result.replayLedgerEntryId,
-                  josephEvidencePath: result.evidencePath,
-                  josephVariationKey: result.variationKey,
-                  josephManifestPath: result.studioManifestPath ?? null,
-                  josephStudioManifestPath: result.studioManifestPath ?? null,
-                  josephStudioManifestUrl: result.studioManifestUrl ?? null,
-                }, {
-                  status: "render_pending",
-                  renderStatus: "render_pending",
-                  renderProgress: 0,
-                });
-              } catch (error) {
-                const failureEvidencePath = await writeJosephFailureEvidence({
-                  editSessionStore,
-                  sessionId: session.id,
-                  error,
-                });
-                await editSessions.mergeSessionMetadata(session.id, {
-                  josephProfile: input.josephProfile,
-                  josephFailureTags: ["orchestrator_failed"],
-                  josephFailureEvidencePath: failureEvidencePath,
-                });
-                await editSessions.failSession(session.id, {
-                  errorCode: "joseph_orchestrator_failed",
-                  errorMessage: error instanceof Error ? error.message : String(error),
-                });
-              }
-            }
-          } catch (error) {
-            await editSessions.failSession(session.id, {
-              errorCode: "r2_process_failed",
-              errorMessage: error instanceof Error ? error.message : String(error)
-            });
+        await queue.enqueueEnvelope(asyncJobEnvelopeSchema.parse({
+          jobId: `r2-upload:${session.id}`,
+          kind: "r2-upload-process",
+          correlationId: session.id,
+          idempotencyKey: `r2-upload:${session.id}`,
+          requestedAt: new Date().toISOString(),
+          payload: {
+            sessionId: session.id,
+            input,
+            bucket,
+            publicMediaUrl
           }
-        });
+        }));
       } catch (error) {
         await editSessions.failSession(session.id, {
           errorCode: "queue_backlog_limit",

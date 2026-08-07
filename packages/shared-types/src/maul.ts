@@ -65,6 +65,7 @@ export type MaulResolvedFontAsset = z.infer<typeof maulResolvedFontAssetSchema>;
 
 import {
   maulMinimumLegibilityPrimitiveSchema,
+  maulNormalizedBoxSchema,
   maulShortsTextChunkPlanV2CoreSchema,
   maulTextPlacementPlanCoreSchema,
 } from "./maul-text-placement.js";
@@ -211,6 +212,236 @@ export const maulSourceAssetPayloadSchema = z.object({
   hasAudio: z.boolean(),
   hasVideo: z.boolean(),
 });
+
+const maulVisualAssetRoleSchema = z.enum([
+  "speaker_hero",
+  "b_roll",
+  "evidence_image",
+  "split_proof",
+  "editorial_graphic",
+  "quiet_hold",
+]);
+
+const maulVisualAssetSchema = z
+  .object({
+    assetId: idSchema,
+    projectId: idSchema,
+    rootSourceAssetId: idSchema,
+    mediaKind: z.enum(["video", "image"]),
+    storagePath: z.string().trim().min(1),
+    sha256: z.string().regex(/^[a-f0-9]{64}$/i),
+    width: z.number().int().positive(),
+    height: z.number().int().positive(),
+    durationMs: z.number().int().positive().nullable(),
+    rights: z.object({
+      verified: z.boolean(),
+      receiptId: idSchema.nullable(),
+    }),
+    provenance: z.object({
+      kind: z.enum(["source", "project_owned", "licensed", "brand", "reference_corpus"]),
+      provenanceReceiptId: idSchema.nullable(),
+    }),
+    permittedRoles: z.array(maulVisualAssetRoleSchema).min(1),
+  })
+  .superRefine((asset, ctx) => {
+    if (!asset.rights.verified || !asset.rights.receiptId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["rights"],
+        message: "Visual assets require verified rights and a receipt.",
+      });
+    }
+    if (asset.provenance.kind !== "source" && !asset.provenance.provenanceReceiptId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["provenance", "provenanceReceiptId"],
+        message: "Non-source visual assets require a provenance receipt.",
+      });
+    }
+  });
+
+export const maulVisualAssetPackSchema = z
+  .object({
+    schemaVersion: z.literal("maul-visual-asset-pack/v1"),
+    projectId: idSchema,
+    rootSourceAssetId: idSchema,
+    sourceAssetId: idSchema,
+    assets: z.array(maulVisualAssetSchema).min(1),
+  })
+  .superRefine((pack, ctx) => {
+    const ids = pack.assets.map((asset) => asset.assetId);
+    if (new Set(ids).size !== ids.length) {
+      ctx.addIssue({code: z.ZodIssueCode.custom, path: ["assets"], message: "Visual asset IDs must be unique."});
+    }
+    const source = pack.assets.find((asset) => asset.assetId === pack.sourceAssetId);
+    if (!source || source.mediaKind !== "video" || source.provenance.kind !== "source") {
+      ctx.addIssue({code: z.ZodIssueCode.custom, path: ["sourceAssetId"], message: "Visual asset pack requires its canonical source video."});
+    }
+    if (source && source.assetId !== pack.rootSourceAssetId) {
+      ctx.addIssue({code: z.ZodIssueCode.custom, path: ["sourceAssetId"], message: "Visual asset pack sourceAssetId must equal rootSourceAssetId."});
+    }
+    for (const [index, asset] of pack.assets.entries()) {
+      if (asset.projectId !== pack.projectId || asset.rootSourceAssetId !== pack.rootSourceAssetId) {
+        ctx.addIssue({code: z.ZodIssueCode.custom, path: ["assets", index], message: "Visual assets must share project lineage."});
+      }
+      if (asset.provenance.kind === "reference_corpus") {
+        ctx.addIssue({code: z.ZodIssueCode.custom, path: ["assets", index], message: "Reference-corpus media cannot enter a visual asset pack."});
+      }
+      if (asset.provenance.kind === "source" && asset.assetId !== pack.sourceAssetId) {
+        ctx.addIssue({code: z.ZodIssueCode.custom, path: ["assets", index], message: "Only the canonical source may use source provenance."});
+      }
+    }
+  });
+
+const maulVisualTransitionSchema = z.object({
+  type: z.enum(["hard_cut", "fade", "directional_reveal"]),
+  durationMs: z.number().int().nonnegative().max(500),
+});
+
+const maulVisualIntervalSchema = z.object({
+  intervalId: idSchema,
+  outputStartMs: z.number().int().nonnegative(),
+  outputEndMs: z.number().int().positive(),
+  sourceStartMs: z.number().int().nonnegative().nullable().optional().default(null),
+  sourceEndMs: z.number().int().positive().nullable().optional().default(null),
+  mode: maulVisualAssetRoleSchema,
+  assetId: idSchema.nullable(),
+  secondaryAssetId: idSchema.nullable(),
+  crop: maulNormalizedBoxSchema,
+  graphic: z
+    .object({
+      headline: z.string().trim().min(1),
+      detail: z.string().trim().min(1),
+      accentColor: z.string().regex(/^#[a-f0-9]{6}$/i),
+    })
+    .optional(),
+  purpose: z.string().trim().min(1),
+  evidenceRationale: z.string().trim().min(1),
+  transition: maulVisualTransitionSchema,
+}).superRefine((interval, ctx) => {
+  if (interval.outputEndMs <= interval.outputStartMs) {
+    ctx.addIssue({code: z.ZodIssueCode.custom, path: ["outputEndMs"], message: "Visual intervals require positive duration."});
+  }
+  const isSourceBacked =
+    interval.mode === "speaker_hero" ||
+    interval.mode === "quiet_hold" ||
+    interval.mode === "split_proof";
+  if (
+    isSourceBacked &&
+    (interval.sourceStartMs === null ||
+      interval.sourceEndMs === null ||
+      interval.sourceEndMs <= interval.sourceStartMs)
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["sourceStartMs"],
+      message: "Source-backed visual intervals require a positive source range.",
+    });
+  }
+  if (interval.mode === "editorial_graphic" && interval.assetId !== null) {
+    ctx.addIssue({code: z.ZodIssueCode.custom, path: ["assetId"], message: "Editorial graphics are manifest data, not arbitrary media."});
+  }
+  if (interval.mode === "editorial_graphic" && !interval.graphic) {
+    ctx.addIssue({code: z.ZodIssueCode.custom, path: ["graphic"], message: "Editorial graphics require governed manifest data."});
+  }
+  if (interval.mode === "split_proof" && !interval.secondaryAssetId) {
+    ctx.addIssue({code: z.ZodIssueCode.custom, path: ["secondaryAssetId"], message: "Split proof requires a secondary evidence asset."});
+  }
+});
+
+export const maulVisualTrackSchema = z
+  .object({
+    schemaVersion: z.literal("maul-visual-track/v1"),
+    projectId: idSchema,
+    rootSourceAssetId: idSchema,
+    sourceAssetId: idSchema,
+    outputDurationMs: z.number().int().positive(),
+    assets: z.array(maulVisualAssetSchema).min(1),
+    intervals: z.array(maulVisualIntervalSchema).min(1),
+  })
+  .superRefine((track, ctx) => {
+    const assetPack = maulVisualAssetPackSchema.safeParse({
+      schemaVersion: "maul-visual-asset-pack/v1",
+      projectId: track.projectId,
+      rootSourceAssetId: track.rootSourceAssetId,
+      sourceAssetId: track.sourceAssetId,
+      assets: track.assets,
+    });
+    if (!assetPack.success) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["assets"],
+        message: `Visual asset lineage/provenance is invalid: ${assetPack.error.issues[0]?.message ?? "asset pack rejected"}`,
+      });
+    }
+    const assetIds = new Set(track.assets.map((asset) => asset.assetId));
+    let previousEnd = 0;
+    for (const [index, interval] of track.intervals.entries()) {
+      if (interval.outputStartMs !== previousEnd) {
+        ctx.addIssue({code: z.ZodIssueCode.custom, path: ["intervals", index], message: "Visual intervals must cover the output contiguously without gaps or overlap."});
+      }
+      if (interval.outputEndMs > track.outputDurationMs) {
+        ctx.addIssue({code: z.ZodIssueCode.custom, path: ["intervals", index], message: "Visual interval exceeds output duration."});
+      }
+      if (interval.assetId && !assetIds.has(interval.assetId)) {
+        ctx.addIssue({code: z.ZodIssueCode.custom, path: ["intervals", index, "assetId"], message: "Visual interval references an undeclared asset."});
+      }
+      if (interval.secondaryAssetId && !assetIds.has(interval.secondaryAssetId)) {
+        ctx.addIssue({code: z.ZodIssueCode.custom, path: ["intervals", index, "secondaryAssetId"], message: "Visual interval references an undeclared secondary asset."});
+      }
+      previousEnd = interval.outputEndMs;
+    }
+    if (previousEnd !== track.outputDurationMs) {
+      ctx.addIssue({code: z.ZodIssueCode.custom, path: ["intervals"], message: "Visual intervals must cover the complete output duration."});
+    }
+    const assetById = new Map(track.assets.map((asset) => [asset.assetId, asset]));
+    for (const [index, interval] of track.intervals.entries()) {
+      const primary = interval.assetId ? assetById.get(interval.assetId) : undefined;
+      const secondary = interval.secondaryAssetId ? assetById.get(interval.secondaryAssetId) : undefined;
+      if (interval.mode === "b_roll" && primary?.mediaKind !== "video") {
+        ctx.addIssue({code: z.ZodIssueCode.custom, path: ["intervals", index], message: "B-roll intervals require video media."});
+      }
+      if (interval.mode === "evidence_image" && primary?.mediaKind !== "image") {
+        ctx.addIssue({code: z.ZodIssueCode.custom, path: ["intervals", index], message: "Evidence intervals require image media."});
+      }
+      if (interval.mode === "split_proof" && (primary?.assetId !== track.sourceAssetId || secondary?.mediaKind !== "image")) {
+        ctx.addIssue({code: z.ZodIssueCode.custom, path: ["intervals", index], message: "Split proof requires the canonical speaker source and an evidence image."});
+      }
+      if (
+        (interval.mode === "speaker_hero" || interval.mode === "quiet_hold") &&
+        primary?.assetId !== track.sourceAssetId
+      ) {
+        ctx.addIssue({code: z.ZodIssueCode.custom, path: ["intervals", index], message: "Speaker and quiet-hold intervals require the canonical source."});
+      }
+      if (
+        interval.mode === "b_roll" &&
+        (primary?.durationMs === null ||
+          (primary?.durationMs ?? 0) < interval.outputEndMs - interval.outputStartMs)
+      ) {
+        ctx.addIssue({code: z.ZodIssueCode.custom, path: ["intervals", index], message: "B-roll requires a measured duration that covers its output interval."});
+      }
+      if (
+        primary?.assetId === track.sourceAssetId &&
+        interval.sourceEndMs !== null &&
+        primary.durationMs !== null &&
+        interval.sourceEndMs > primary.durationMs
+      ) {
+        ctx.addIssue({code: z.ZodIssueCode.custom, path: ["intervals", index], message: "Source-backed visual interval exceeds source duration."});
+      }
+      if (primary && (!primary.rights.verified || !primary.rights.receiptId)) {
+        ctx.addIssue({code: z.ZodIssueCode.custom, path: ["intervals", index], message: "Selected visual assets require verified rights."});
+      }
+      if (secondary && (!secondary.rights.verified || !secondary.rights.receiptId)) {
+        ctx.addIssue({code: z.ZodIssueCode.custom, path: ["intervals", index], message: "Selected secondary visual assets require verified rights."});
+      }
+      if (primary && !primary.permittedRoles.includes(interval.mode)) {
+        ctx.addIssue({code: z.ZodIssueCode.custom, path: ["intervals", index], message: "Selected asset is not permitted for this visual role."});
+      }
+      if (secondary && !secondary.permittedRoles.includes(interval.mode)) {
+        ctx.addIssue({code: z.ZodIssueCode.custom, path: ["intervals", index], message: "Selected secondary asset is not permitted for this visual role."});
+      }
+    }
+  });
 
 export const maulTranscriptWordSchema = z
   .object({
@@ -1317,6 +1548,7 @@ export const maulFramingCameraPlanPayloadSchema = maulPlanBaseSchema.extend({
 
 export const maulVisualPlanPayloadSchema = maulPlanBaseSchema.extend({
   schemaVersion: z.literal("maul-visual-plan/v1"),
+  visualTrack: maulVisualTrackSchema.optional(),
   scenes: z
     .array(
       z.object({
@@ -1890,6 +2122,7 @@ export const maulPlanningBundlePayloadSchema = z
 export const maulPlanningBundleRequestSchema = z.object({
   candidateArtifactId: idSchema,
   treatmentGenomeArtifactId: idSchema,
+  visualAssetPack: maulVisualAssetPackSchema.nullable().optional().default(null),
 });
 
 const maulUnifiedShortRenderManifestV1ObjectSchema = z.object({
@@ -3726,6 +3959,8 @@ export type MaulFramingCameraPlanPayload = z.infer<
   typeof maulFramingCameraPlanPayloadSchema
 >;
 export type MaulVisualPlanPayload = z.infer<typeof maulVisualPlanPayloadSchema>;
+export type MaulVisualAssetPack = z.infer<typeof maulVisualAssetPackSchema>;
+export type MaulVisualTrack = z.infer<typeof maulVisualTrackSchema>;
 export type MaulDialogueAudioPlanPayload = z.infer<
   typeof maulDialogueAudioPlanPayloadSchema
 >;

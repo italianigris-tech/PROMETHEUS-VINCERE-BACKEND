@@ -178,16 +178,22 @@ describe("MAUL complete short render path", () => {
   let sourcePath: string;
   let musicPath: string;
   let sfxPath: string;
+  let bRollPath: string;
+  let evidencePath: string;
 
   beforeEach(async () => {
     tempDir = await makeTempDir();
     sourcePath = path.join(tempDir, "source.mp4");
     musicPath = path.join(tempDir, "licensed-music.wav");
     sfxPath = path.join(tempDir, "licensed-hit.wav");
+    bRollPath = path.join(tempDir, "approved-b-roll.mp4");
+    evidencePath = path.join(tempDir, "approved-evidence.png");
     await Promise.all([
       writeFile(sourcePath, sourceBytes),
       writeFile(musicPath, "music"),
       writeFile(sfxPath, "sfx"),
+      writeFile(bRollPath, "approved-b-roll"),
+      writeFile(evidencePath, "approved-evidence"),
     ]);
   });
 
@@ -278,29 +284,35 @@ describe("MAUL complete short render path", () => {
         },
       })),
     };
-    const renderEngine = vi.fn(async (input: any) => ({
-      bytes: renderedBytes,
-      sha256: createHash("sha256").update(renderedBytes).digest("hex"),
-      durationMs: input.manifest.timeline.outputDurationMs,
-      width: input.renderMode === "preview" ? 540 : 1080,
-      height: input.renderMode === "preview" ? 960 : 1920,
-      evidence: {
-        compositionId: "MaulShort",
-        renderer: "remotion",
-        sourceMappingPreserved: true,
-        audioMixed: true,
-      },
-      frameSamples: input.renderMode === "preview"
-        ? [{
-            outputMs: 900,
-            bytes: Buffer.from("rendered-frame-pixels"),
-            sha256: createHash("sha256")
-              .update("rendered-frame-pixels")
-              .digest("hex"),
-            contentType: "image/png",
-          }]
-        : [],
-    }));
+    const renderEngine = vi.fn(async (input: any) => {
+      const capturePath = process.env.MAUL_CAPTURE_MANIFEST_PATH;
+      if (capturePath) {
+        await writeFile(capturePath, `${JSON.stringify(input.manifest, null, 2)}\n`, "utf8");
+      }
+      return {
+        bytes: renderedBytes,
+        sha256: createHash("sha256").update(renderedBytes).digest("hex"),
+        durationMs: input.manifest.timeline.outputDurationMs,
+        width: input.renderMode === "preview" ? 540 : 1080,
+        height: input.renderMode === "preview" ? 960 : 1920,
+        evidence: {
+          compositionId: "MaulShort",
+          renderer: "remotion",
+          sourceMappingPreserved: true,
+          audioMixed: true,
+        },
+        frameSamples: input.renderMode === "preview"
+          ? [{
+              outputMs: 900,
+              bytes: Buffer.from("rendered-frame-pixels"),
+              sha256: createHash("sha256")
+                .update("rendered-frame-pixels")
+                .digest("hex"),
+              contentType: "image/png",
+            }]
+          : [],
+      };
+    });
     const sceneEvidenceInspect = vi.fn(async ({beats}: any) => ({
       status: "available",
       providerId: "fixture_scene_evidence",
@@ -458,12 +470,63 @@ describe("MAUL complete short render path", () => {
       new Date(candidate.lineage.createdAt).getTime() -
         new Date(project.createdAt).getTime(),
     ).toBeLessThan(120_000);
+    const visualAssetPack = {
+      schemaVersion: "maul-visual-asset-pack/v1",
+      projectId: project.id,
+      rootSourceAssetId: project.rootSourceAssetId,
+      sourceAssetId: project.rootSourceAssetId,
+      assets: [
+        {
+          assetId: project.rootSourceAssetId,
+          projectId: project.id,
+          rootSourceAssetId: project.rootSourceAssetId,
+          mediaKind: "video",
+          storagePath: sourcePath,
+          sha256: createHash("sha256").update(sourceBytes).digest("hex"),
+          width: 1920,
+          height: 1080,
+          durationMs: 60_000,
+          rights: {verified: true, receiptId: "receipt_source"},
+          provenance: {kind: "source", provenanceReceiptId: null},
+          permittedRoles: ["speaker_hero", "quiet_hold", "split_proof"],
+        },
+        {
+          assetId: "asset_b_roll",
+          projectId: project.id,
+          rootSourceAssetId: project.rootSourceAssetId,
+          mediaKind: "video",
+          storagePath: bRollPath,
+          sha256: createHash("sha256").update("approved-b-roll").digest("hex"),
+          width: 1080,
+          height: 1920,
+          durationMs: 4_000,
+          rights: {verified: true, receiptId: "receipt_b_roll"},
+          provenance: {kind: "project_owned", provenanceReceiptId: "receipt_b_roll"},
+          permittedRoles: ["b_roll"],
+        },
+        {
+          assetId: "asset_evidence",
+          projectId: project.id,
+          rootSourceAssetId: project.rootSourceAssetId,
+          mediaKind: "image",
+          storagePath: evidencePath,
+          sha256: createHash("sha256").update("approved-evidence").digest("hex"),
+          width: 1600,
+          height: 900,
+          durationMs: null,
+          rights: {verified: true, receiptId: "receipt_evidence"},
+          provenance: {kind: "project_owned", provenanceReceiptId: "receipt_evidence"},
+          permittedRoles: ["evidence_image", "split_proof"],
+        },
+      ],
+    };
     const planningResponse = await context.app.inject({
       method: "POST",
       url: `/api/maul/projects/${project.id}/planning-bundles`,
       payload: {
         candidateArtifactId: candidate.artifactId,
         treatmentGenomeArtifactId: treatment.artifactId,
+        visualAssetPack,
       },
     });
     expect(planningResponse.statusCode, planningResponse.body).toBe(201);
@@ -522,6 +585,38 @@ describe("MAUL complete short render path", () => {
       "visual",
     ]);
     const plans = planningResponse.json().plans;
+    expect(plans.visual.payload.visualTrack).toMatchObject({
+      schemaVersion: "maul-visual-track/v1",
+      projectId: project.id,
+      rootSourceAssetId: project.rootSourceAssetId,
+      sourceAssetId: project.rootSourceAssetId,
+      assets: expect.arrayContaining([
+        expect.objectContaining({assetId: "asset_b_roll", mediaKind: "video"}),
+        expect.objectContaining({assetId: "asset_evidence", mediaKind: "image"}),
+      ]),
+      intervals: expect.arrayContaining([
+        expect.objectContaining({mode: "speaker_hero", assetId: project.rootSourceAssetId}),
+        expect.objectContaining({mode: "b_roll", assetId: "asset_b_roll"}),
+      ]),
+    });
+    const tamperedPackResponse = await context.app.inject({
+      method: "POST",
+      url: `/api/maul/projects/${project.id}/planning-bundles`,
+      payload: {
+        candidateArtifactId: candidate.artifactId,
+        treatmentGenomeArtifactId: treatment.artifactId,
+        visualAssetPack: {
+          ...visualAssetPack,
+          assets: visualAssetPack.assets.map((asset) =>
+            asset.assetId === "asset_b_roll"
+              ? {...asset, sha256: "0".repeat(64)}
+              : asset,
+          ),
+        },
+      },
+    });
+    expect(tamperedPackResponse.statusCode).toBe(409);
+    expect(tamperedPackResponse.json().error).toMatch(/SHA-256|hash/i);
     expect(
       Object.values(plans)
         .map((plan: any) => plan.artifactType)

@@ -29,8 +29,11 @@ import {
   maulUnifiedShortRenderManifestSchema,
   maulUnifiedShortRenderManifestV1Schema,
   maulUnifiedShortRenderManifestV2Schema,
+  maulVisualAssetPackSchema,
+  maulVisualTrackSchema,
 } from "./maul.js";
 import {maulTextAnimationPlanCoreSchema} from "./maul-text-animation.js";
+import * as runtimeSharedTypes from "../dist/index.js";
 
 const createdAt = "2026-07-28T12:00:00.000Z";
 const sha = (character: string) => character.repeat(64);
@@ -86,6 +89,186 @@ describe("MAUL worker operation payload", () => {
   it("requires verified timeline evidence and licensed render audio", () => {
     expect(maulRenderShortOperationPayloadSchema).toBeDefined();
     expect(() => maulRenderShortOperationPayloadSchema.parse({})).toThrow();
+  });
+});
+
+describe("MAUL governed visual track contracts", () => {
+  const sourceAsset = {
+    assetId: "source_asset",
+    projectId: "project_a",
+    rootSourceAssetId: "source_asset",
+    mediaKind: "video",
+    storagePath: "uploads/source.mp4",
+    sha256: "a".repeat(64),
+    width: 1920,
+    height: 1080,
+    durationMs: 20_000,
+    rights: {verified: true, receiptId: "source_receipt"},
+    provenance: {kind: "source", provenanceReceiptId: null},
+    permittedRoles: ["speaker_hero", "quiet_hold", "split_proof"],
+  };
+  const bRoll = {
+    ...sourceAsset,
+    assetId: "b_roll_a",
+    storagePath: "approved/b-roll.mp4",
+    sha256: "b".repeat(64),
+    width: 1080,
+    height: 1920,
+    provenance: {kind: "project_owned", provenanceReceiptId: "b_roll_receipt"},
+    permittedRoles: ["b_roll"],
+  };
+  const evidence = {
+    ...sourceAsset,
+    assetId: "evidence_a",
+    mediaKind: "image",
+    storagePath: "approved/evidence.png",
+    sha256: "c".repeat(64),
+    width: 1600,
+    height: 900,
+    durationMs: null,
+    provenance: {kind: "licensed", provenanceReceiptId: "evidence_receipt"},
+    permittedRoles: ["evidence_image", "split_proof"],
+  };
+
+  it("requires governed asset rights and lineage", () => {
+    expect(
+      maulVisualAssetPackSchema.parse({
+        schemaVersion: "maul-visual-asset-pack/v1",
+        projectId: "project_a",
+        rootSourceAssetId: "source_asset",
+        sourceAssetId: "source_asset",
+        assets: [sourceAsset, bRoll, evidence],
+      }).assets,
+    ).toHaveLength(3);
+
+    expect(() =>
+      maulVisualAssetPackSchema.parse({
+        schemaVersion: "maul-visual-asset-pack/v1",
+        projectId: "project_a",
+        rootSourceAssetId: "source_asset",
+        sourceAssetId: "source_asset",
+        assets: [{...bRoll, rights: {verified: false, receiptId: null}}],
+      }),
+    ).toThrow(/source|asset|lineage/i);
+  });
+
+  it("rejects overlapping, unsafe, and incompatible visual intervals", () => {
+    const base = {
+      schemaVersion: "maul-visual-track/v1",
+      projectId: "project_a",
+      rootSourceAssetId: "source_asset",
+      sourceAssetId: "source_asset",
+      outputDurationMs: 10_000,
+      assets: [sourceAsset, bRoll, evidence],
+    };
+    expect(() =>
+      maulVisualTrackSchema.parse({
+        ...base,
+        intervals: [
+          {
+            intervalId: "a",
+            outputStartMs: 0,
+            outputEndMs: 6_000,
+            mode: "b_roll",
+            assetId: "b_roll_a",
+            secondaryAssetId: null,
+            crop: {x: 0, y: 0, width: 1, height: 1},
+            purpose: "Show the approved coverage.",
+            evidenceRationale: "Directly supports the proof beat.",
+            transition: {type: "hard_cut", durationMs: 0},
+          },
+          {
+            intervalId: "b",
+            outputStartMs: 5_000,
+            outputEndMs: 10_000,
+            mode: "evidence_image",
+            assetId: "b_roll_a",
+            secondaryAssetId: null,
+            crop: {x: 0, y: 0, width: 1.1, height: 1},
+            purpose: "Invalid evidence.",
+            evidenceRationale: "Invalid.",
+            transition: {type: "hard_cut", durationMs: 0},
+          },
+        ],
+      }),
+    ).toThrow(/overlap|crop|media/i);
+  });
+
+  it("rejects direct tracks containing foreign or reference-corpus assets", () => {
+    expect(() =>
+      maulVisualTrackSchema.parse({
+        schemaVersion: "maul-visual-track/v1",
+        projectId: "project_a",
+        rootSourceAssetId: "source_asset",
+        sourceAssetId: "source_asset",
+        outputDurationMs: 1_000,
+        assets: [
+          sourceAsset,
+          {
+            ...evidence,
+            assetId: "reference_pixels",
+            projectId: "other_project",
+            provenance: {
+              kind: "reference_corpus",
+              provenanceReceiptId: "reference_receipt",
+            },
+            permittedRoles: ["evidence_image"],
+          },
+        ],
+        intervals: [
+          {
+            intervalId: "reference_interval",
+            outputStartMs: 0,
+            outputEndMs: 1_000,
+            mode: "evidence_image",
+            assetId: "reference_pixels",
+            secondaryAssetId: null,
+            crop: {x: 0, y: 0, width: 1, height: 1},
+            purpose: "Invalid reference pixels.",
+            evidenceRationale: "Must be blocked.",
+            transition: {type: "hard_cut", durationMs: 0},
+          },
+        ],
+      }),
+    ).toThrow(/lineage|reference/i);
+  });
+
+  it("requires canonical source identity and measured B-roll duration", () => {
+    expect(() =>
+      maulVisualAssetPackSchema.parse({
+        schemaVersion: "maul-visual-asset-pack/v1",
+        projectId: "project_a",
+        rootSourceAssetId: "source_asset",
+        sourceAssetId: "alternate_source",
+        assets: [
+          {...sourceAsset, assetId: "alternate_source"},
+          {...bRoll, durationMs: null},
+        ],
+      }),
+    ).toThrow(/canonical|source/i);
+
+    expect(() =>
+      maulVisualTrackSchema.parse({
+        schemaVersion: "maul-visual-track/v1",
+        projectId: "project_a",
+        rootSourceAssetId: "source_asset",
+        sourceAssetId: "source_asset",
+        outputDurationMs: 1_000,
+        assets: [sourceAsset, {...bRoll, durationMs: null}],
+        intervals: [{
+          intervalId: "broll_interval",
+          outputStartMs: 0,
+          outputEndMs: 1_000,
+          mode: "b_roll",
+          assetId: "b_roll_a",
+          secondaryAssetId: null,
+          crop: {x: 0, y: 0, width: 1, height: 1},
+          purpose: "B-roll duration must be known.",
+          evidenceRationale: "Must be blocked.",
+          transition: {type: "hard_cut", durationMs: 0},
+        }],
+      }),
+    ).toThrow(/duration/i);
   });
 });
 
@@ -1023,6 +1206,10 @@ const manifestV3 = {
 } as const;
 
 describe("MAUL shared contracts", () => {
+  it("keeps the package runtime entry point in parity with source exports", () => {
+    expect(typeof runtimeSharedTypes.maulResolvedFontAssetSchema).toBe("object");
+    expect(runtimeSharedTypes.maulResolvedFontAssetSchema.safeParse({}).success).toBe(false);
+  });
   it("keeps canonical job identity and source ownership on the project", () => {
     const project = maulProjectSchema.parse({
       schemaVersion: "maul-project/v1",

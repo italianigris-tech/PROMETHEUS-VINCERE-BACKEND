@@ -33,6 +33,7 @@
     "@types/fontkit": "^2.0.9",
     "@zilliz/milvus2-sdk-node": "^2.6.13",
     "adm-zip": "^0.5.17",
+    "bullmq": "^5.81.3",
     "dotenv": "^17.4.2",
     "fastify": "^4.29.1",
     "fontkit": "^2.0.4",

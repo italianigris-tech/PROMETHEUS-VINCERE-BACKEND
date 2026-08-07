@@ -205,6 +205,8 @@ export {
   maulTypographyMotionPlanV3PayloadSchema,
   maulFramingCameraPlanPayloadSchema,
   maulVisualPlanPayloadSchema,
+  maulVisualAssetPackSchema,
+  maulVisualTrackSchema,
   maulDialogueAudioPlanPayloadSchema,
   maulCapabilitySelectionPayloadSchema,
   maulAdapterDecisionPayloadSchema,
@@ -304,6 +306,8 @@ export {
   type MaulTypographyMotionPlanV3Payload,
   type MaulFramingCameraPlanPayload,
   type MaulVisualPlanPayload,
+  type MaulVisualAssetPack,
+  type MaulVisualTrack,
   type MaulDialogueAudioPlanPayload,
   type MaulCapabilitySelectionPayload,
   type MaulAdapterDecisionPayload,
@@ -372,6 +376,21 @@ export {
   type AssetResolver,
   type MediaReference,
 } from "./asset-resolver.js";
+
+export {
+  asyncJobEnvelopeSchema,
+  asyncJobEventSchema,
+  asyncJobEventTypeSchema,
+  asyncJobKindSchema,
+  asyncJobQueueOptionsSchema,
+  asyncJobStatusSchema,
+  type AsyncJobEnvelope,
+  type AsyncJobEvent,
+  type AsyncJobEventType,
+  type AsyncJobKind,
+  type AsyncJobQueueOptions,
+  type AsyncJobStatus
+} from "./async-jobs.js";
 
 export {
   WordSchema,

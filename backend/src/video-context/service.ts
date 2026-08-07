@@ -5,10 +5,11 @@ import {pipeline as streamPipeline} from "node:stream/promises";
 
 import type {FastifyRequest} from "fastify";
 import {z} from "zod";
+import {asyncJobEnvelopeSchema} from "@prometheus/shared-types";
 
 import type {BackendEnv} from "../config";
 import {FileJobRepository} from "../repository";
-import {InProcessQueue, QueueBacklogLimitError} from "../queue";
+import {QueueBacklogLimitError, type JobQueue} from "../queue";
 import {extractAudioChunkWithFfmpeg} from "./audio";
 import type {VideoContextWorkerDependencies, VideoContextWorkerHost} from "./worker";
 import {ProgressiveVideoContextWorker} from "./worker";
@@ -162,11 +163,15 @@ export class VideoContextService implements VideoContextWorkerHost {
   public constructor(
     public readonly env: BackendEnv,
     public readonly repository: FileJobRepository,
-    private readonly queue: InProcessQueue,
+    private readonly queue: JobQueue,
     private readonly store: VideoContextStore,
     public readonly deps: VideoContextServiceDependencies = {}
   ) {
     this.worker = new ProgressiveVideoContextWorker(this);
+    this.queue.registerHandler("video-context", async (envelope) => {
+      const videoId = z.string().trim().min(1).parse(envelope.payload.videoId);
+      await this.worker.run(videoId);
+    });
   }
 
   public async initialize(): Promise<void> {
@@ -243,9 +248,14 @@ export class VideoContextService implements VideoContextWorkerHost {
     });
 
     try {
-      this.queue.enqueue(async () => {
-        await this.worker.run(videoId);
-      });
+      await this.queue.enqueueEnvelope(asyncJobEnvelopeSchema.parse({
+        jobId: `video-context:${videoId}`,
+        kind: "video-context",
+        correlationId: videoId,
+        idempotencyKey: `video-context:${videoId}`,
+        requestedAt: nowIso(this.deps),
+        payload: {videoId}
+      }));
     } catch (error) {
       if (error instanceof QueueBacklogLimitError) {
         await this.updateSnapshot(videoId, (snapshot) => ({
@@ -294,9 +304,14 @@ export class VideoContextService implements VideoContextWorkerHost {
       capabilities: initialSnapshot.staticContext.capabilities
     });
     try {
-      this.queue.enqueue(async () => {
-        await this.worker.run(videoId);
-      });
+      await this.queue.enqueueEnvelope(asyncJobEnvelopeSchema.parse({
+        jobId: `video-context:${videoId}`,
+        kind: "video-context",
+        correlationId: videoId,
+        idempotencyKey: `video-context:${videoId}`,
+        requestedAt: nowIso(this.deps),
+        payload: {videoId}
+      }));
     } catch (error) {
       if (error instanceof QueueBacklogLimitError) {
         await this.updateSnapshot(videoId, (snapshot) => ({

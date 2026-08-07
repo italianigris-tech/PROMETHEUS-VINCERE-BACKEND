@@ -31,12 +31,12 @@ const baseProps = {
 };
 
 describe("MAUL Remotion short composition", () => {
-  it("leaves V3 audio to the backend master mux", async () => {
+  it("renders V3 audio because this render path has no backend master mux", async () => {
     const module = await import("../MaulShort").catch(() => null);
     expect(module).not.toBeNull();
     if (!module) return;
 
-    expect(module.shouldMaulRemotionRenderAudio({schemaVersion: "maul-unified-short-render-manifest/v3"} as any)).toBe(false);
+    expect(module.shouldMaulRemotionRenderAudio({schemaVersion: "maul-unified-short-render-manifest/v3"} as any)).toBe(true);
     expect(module.shouldMaulRemotionRenderAudio({schemaVersion: "maul-unified-short-render-manifest/v2"} as any)).toBe(true);
   });
 
