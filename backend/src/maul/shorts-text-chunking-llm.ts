@@ -12,6 +12,7 @@ import {
   materializeShortsTextChunkProposal,
   shortsTextChunkProposalSchema,
 } from "./shorts-text-chunking.js";
+import type {SemanticTypographyBoundChunkPlan} from "./semantic-typography-tree.js";
 
 type FetchLike = typeof fetch;
 
@@ -39,7 +40,7 @@ export type ShortsTextChunkPlannerConfig = {
 };
 
 export type ShortsTextChunkPlanner = {
-  plan: (request: ShortsTextChunkingRequest) => Promise<ShortsTextChunkPlan>;
+  plan: (request: ShortsTextChunkingRequest) => Promise<SemanticTypographyBoundChunkPlan>;
 };
 
 const responseEnvelopeSchema = z.object({

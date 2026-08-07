@@ -3,6 +3,10 @@ import {createHash} from "node:crypto";
 import {z} from "zod";
 
 import {
+  type MaulShortsTextChunkPlanV2Core,
+  type ShortsTextChunkPlan,
+} from "@prometheus/shared-types";
+import {
   shortsTextChunkProposalSchema,
   type ShortsTextChunkProposal,
 } from "./shorts-text-chunking.js";
@@ -65,6 +69,19 @@ export type SemanticTypographySelection = {
   hypothesisId: string;
   selectedBy: string;
   rolesByTokenId: Record<string, SemanticTypographyRole>;
+};
+
+const semanticTypographyPlanBindingSchema = z.object({
+  schemaVersion: z.literal("maul-semantic-typography-plan-binding/v1"),
+  treeId: z.string().min(1),
+  hypothesisId: z.string().min(1),
+  selectedBy: z.string().min(1),
+  rolesByWordIndex: z.record(z.string().regex(/^\d+$/), roleSchema),
+}).strict();
+
+export type SemanticTypographyPlanBinding = z.infer<typeof semanticTypographyPlanBindingSchema>;
+export type SemanticTypographyBoundChunkPlan = ShortsTextChunkPlan & {
+  semanticTypography?: SemanticTypographyPlanBinding;
 };
 
 type BuildTreeInput = {
@@ -262,6 +279,7 @@ export const semanticTypographySelectionToChunkProposal = ({
     heroTokenIds: string[];
     selectedBy: string;
   };
+  planBinding: SemanticTypographyPlanBinding;
 } => {
   const emphasizedTokens = selection.tree.tokens.filter((token) => {
     const role = selection.rolesByTokenId[token.tokenId];
@@ -287,5 +305,47 @@ export const semanticTypographySelectionToChunkProposal = ({
       heroTokenIds: emphasizedTokens.map((token) => token.tokenId),
       selectedBy: selection.selectedBy,
     },
+    planBinding: semanticTypographyPlanBindingSchema.parse({
+      schemaVersion: "maul-semantic-typography-plan-binding/v1",
+      treeId: selection.tree.treeId,
+      hypothesisId: selection.hypothesisId,
+      selectedBy: selection.selectedBy,
+      rolesByWordIndex: Object.fromEntries(
+        selection.tree.tokens.map((token) => [
+          String(token.index),
+          selection.rolesByTokenId[token.tokenId] ?? "support",
+        ]),
+      ),
+    }),
   };
+};
+
+export const bindSemanticTypographyRolesToMaterializedChunks = ({
+  binding: inputBinding,
+  textChunkPlan,
+}: {
+  binding: SemanticTypographyPlanBinding;
+  textChunkPlan: Pick<MaulShortsTextChunkPlanV2Core, "tokens" | "chunks">;
+}): Record<string, Record<string, SemanticTypographyRole>> => {
+  const binding = semanticTypographyPlanBindingSchema.parse(inputBinding);
+  const tokenIndexById = new Map(
+    textChunkPlan.tokens.map((token, index) => [token.tokenId, index]),
+  );
+  for (const wordIndex of Object.keys(binding.rolesByWordIndex).map(Number)) {
+    if (wordIndex >= textChunkPlan.tokens.length) {
+      throw new Error(
+        `Semantic Typography Plan Binding ${binding.hypothesisId} references absent word ${wordIndex}.`,
+      );
+    }
+  }
+  return Object.fromEntries(textChunkPlan.chunks.map((chunk) => [
+    chunk.chunkId,
+    Object.fromEntries(chunk.tokenIds.map((tokenId) => {
+      const wordIndex = tokenIndexById.get(tokenId);
+      if (wordIndex === undefined) {
+        throw new Error(`Semantic Typography Plan Binding cannot resolve token ${tokenId}.`);
+      }
+      return [tokenId, binding.rolesByWordIndex[String(wordIndex)] ?? "support"];
+    })),
+  ]));
 };

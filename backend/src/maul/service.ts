@@ -103,6 +103,7 @@ import {
 } from "./typography-layout.js";
 import {buildMaulTextPlacementPlan} from "./shorts-text-placement.js";
 import {materializeMaulTextChunkPlanV2} from "./text-chunk-plan.js";
+import {bindSemanticTypographyRolesToMaterializedChunks} from "./semantic-typography-tree.js";
 import {
   buildUnavailableMaulQualityTruthResult,
   buildUnverifiedMaulQualityTruthProof,
@@ -1365,6 +1366,12 @@ export class MaulProjectService {
       textChunkPlanV1,
       editorialTimeline: timeline.payload,
     });
+    const semanticHierarchyRolesByChunkId = textChunkPlanV1.semanticTypography
+      ? bindSemanticTypographyRolesToMaterializedChunks({
+          binding: textChunkPlanV1.semanticTypography,
+          textChunkPlan: textChunkCore,
+        })
+      : undefined;
     const measuredTypography = await this.typographyProvider.plan({
       chunks: textChunkCore.chunks.map((chunk) => ({
         chunkId: chunk.chunkId,
@@ -1458,6 +1465,7 @@ export class MaulProjectService {
       accentFont: lockupFontPair.accent,
       referenceTraits,
       selectionSeed: `${editorialRhythmSeed}:lockup`,
+      semanticHierarchyRolesByChunkId,
     }).segments;
     const textPlacementCoreWithLockups = {
       ...textPlacementCore,

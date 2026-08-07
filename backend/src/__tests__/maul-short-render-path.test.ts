@@ -197,8 +197,8 @@ describe("MAUL complete short render path", () => {
 
   it("blocks the thin baseline and holds a proven render until post-render approval", async () => {
     const textChunkPlanner = {
-      plan: vi.fn(async (request: any) =>
-        materializeShortsTextChunkProposal({
+      plan: vi.fn(async (request: any) => ({
+        ...materializeShortsTextChunkProposal({
           request,
           proposal: {
             schemaVersion: "maul-shorts-text-chunk-proposal/v1",
@@ -229,7 +229,24 @@ describe("MAUL complete short render path", () => {
             fallbackReason: null,
           },
         }),
-      ),
+        semanticTypography: {
+          schemaVersion: "maul-semantic-typography-plan-binding/v1",
+          treeId: "render_path_semantic_tree",
+          hypothesisId: "render_path_word_zero_hero",
+          selectedBy: "render_path_test",
+          rolesByWordIndex: {
+            0: "hero",
+            1: "support",
+            2: "support",
+            3: "support",
+            4: "support",
+            5: "support",
+            6: "support",
+            7: "support",
+            8: "support",
+          },
+        },
+      })),
     };
     const creativeTreatmentPlanner = {
       plan: vi.fn(async () => ({
@@ -639,6 +656,9 @@ describe("MAUL complete short render path", () => {
       textChunkPlanArtifactId: plans.textChunk.artifactId,
       textPlacementPlanArtifactId: plans.textPlacement.artifactId,
     });
+    expect(plans.textPlacement.payload.segments[0]?.editorialLockup?.accentTokenIds).toEqual([
+      plans.textChunk.payload.tokens[0]?.tokenId,
+    ]);
     expect(
       plans.textChunk.payload.chunks
         .map((chunk: any) => chunk.text)
