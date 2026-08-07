@@ -100,6 +100,84 @@ it is not rewritten inside the first vertical implementation.
 - Maximizing the number of capabilities used. Premium restraint can require one
   excellent treatment instead of many mediocre effects.
 
+### Bound experiment fixtures and baseline truth
+
+The first experiment uses two named, source-group-separated fixtures. These are
+part of the experiment contract, not illustrative suggestions. A run that
+substitutes another source, time range, crop, phrase, or scene map is a different
+experiment and receives a different fixture ID.
+
+| Field | Scene A: dense matted subject | Scene B: held-out open field |
+| --- | --- | --- |
+| Fixture ID | `scene_a_matted_lady_hierarchy_v1` | `scene_b_joseph_open_field_v1` |
+| Source group | `matted_lady_static_5951e646` | `joseph_raw_b6f0210e` |
+| Immutable source | `THE matted LADY TALKING HEAD MAUL TESTING.png` | `remotion-app/public/uploads/raw_male_joseph_proof_v1/MALE-Head-Video-Raw.mp4` |
+| SHA-256 | `5951e646c36a284751a7b1f9f4d04c694c1d2bcd9487e24147a7631de5b5be7b` | `b6f0210efc00a3696ac259db528be6160aaa4441dd327bb193a488cfd00eb6d4` |
+| Source geometry | 375x666 RGBA PNG | 1280x720 H.264, 30000/1001 fps |
+| Source interval | static, held for 4,000 ms | 7,000-11,000 ms |
+| 9:16 realization | aspect-preserving bottom-center scale onto 1080x1920; no alpha flattening before scene-map derivation | source crop `(x=625, y=0, width=405, height=720)`, scaled to 1080x1920 |
+| Phrase | `MAKE IDEAS MATTER` | `BUILD LASTING AUTHORITY` |
+| Semantic family | action/support + subject/support + abstract-result/hero | action/support + modifier/support + abstract-result/hero |
+| Experimental role | local baseline and one hierarchy repair | retrieval-disabled versus Scene-A-evidence-enabled ablation |
+
+Scene A's source alpha channel is the independent gold subject mask. It must be
+scaled with the same declared image transform, but it must be read from the
+immutable PNG rather than reconstructed from rendered RGB pixels or copied from
+placement geometry. The carrier background is fixed at `#08070b`, output is
+1080x1920 at 30 fps, and audio is intentionally absent from the four-second
+micro-experiment. If an existing MAUL intake seam requires audio or video, an
+Adapter may materialize deterministic carrier media, but the carrier is transport
+and cannot replace the RGBA source or its alpha evidence in the trace.
+
+Scene B uses a source-grounded off-center crop whose 7, 9, and 11 second frame
+samples visibly retain the speaker and microphone on the left while exposing a
+materially larger field on the right. Its gold semantic scene map is stored at
+`backend/src/maul/fixtures/composition-experiment-scenes.json`. That sidecar must
+contain independently reviewed normalized `critical`, `protected`, `flexible`,
+and `free` regions for all three sample times, source/crop hashes, annotation
+provenance, and reviewer status. The Scene B fixture remains `blocked` until that
+record exists, validates against the bound source and crop, and passes a visual
+overlay review. This deliberate gold-map dependency isolates the composition
+hypothesis from learned scene-analysis error in the first experiment; learned
+segmentation is evaluated separately later.
+
+`remotion-app/public/test-matte.mp4` is explicitly ineligible for either scene.
+Inspection found a static, coarse rectangular luma mask across 7, 9, and 11
+seconds while the Joseph subject moves; it has 1,834 frames versus the source's
+1,831 and approximately 100 ms more video duration. The current
+`remotion-app/src/data/video.matte.json` also reports `status: "missing"` with
+null alpha and foreground sources. No registry or Adapter may relabel this asset
+as verified matte evidence.
+
+The hierarchy prior for this micro-experiment is seeded by three immutable
+reference observations, not by copying their words, fonts, or exact coordinates:
+
+| Reference | SHA-256 | Retained observation |
+| --- | --- | --- |
+| `Yuan Prometheus Screenshots/Screenshot_20260802_123923_Samsung Browser.jpg` | `52b8153cbf471e8e65f448f8e75d0fe665bc5727665fb50a8b6b45dab45870e7` | a small support phrase precedes a much larger semantic anchor |
+| `Yuan Prometheus Screenshots/Screenshot_20260802_123954_Samsung Browser.jpg` | `19c2be76ca5e95522f78502d4706ee392d5af7ed3c8ec6a89a0a6639799bddd4` | support and hero roles use contrasting typographic voices inside one lockup |
+| `Yuan Prometheus Screenshots/Screenshot_20260802_124054_Samsung Browser.jpg` | `d4d55f91cd9c32cd3f825e49ed837017c4b2ebadde27cf60a1154fc628c82e32` | the final semantic phrase carries dominant scale while remaining subject-integrated |
+
+These three observations justify testing a two-level support/hero hypothesis.
+They do not estimate a population distribution, prove a font pairing, or grant a
+Q1/Yuan-quality claim. The baseline and repaired realization retain the same
+font assets, treatment, motion family, color, source transform, and render budget.
+Changing the Semantic Typography Tree invalidates shaping, line breaks, glyph
+bounds, collision checks, and balance through Repair Dependency Closure; it does
+not authorize unrelated style mutation.
+
+The legacy executable baseline is
+`scripts/maul-static-image-placement-demo.ts`. On 2026-08-07 its exact invocation,
+`npx tsx scripts/maul-static-image-placement-demo.ts`, failed reproducibly with
+`spawn ffmpeg ENOENT` before producing a render. Even where global FFmpeg exists,
+that script cannot satisfy this experiment: it creates quality proof from
+manifest values, declares `maskingRequired: false`, supplies empty speaker and
+shot evidence, assigns its own 90/100 review scores, and flattens the alpha source
+into a carrier before observation. It remains a diagnostic legacy harness until
+adapted; none of its self-authored `verified` fields count as Observed Composition
+or review evidence. Repository-owned media-tool resolution, canonical frame
+retention, and independent pixel observation are therefore Stage 0 gates.
+
 ## Optimization Objectives
 
 MAUL has two related but distinct objectives:
@@ -929,8 +1007,11 @@ The immediate gate is passed only when all conditions hold:
    font, renderer, policy, prompt, dataset, reference, fixture, and test
    capabilities, with a structured reason for every plausible capability not
    selected.
-2. A matted full-frame talking-head Scene A and source-group-separated comparable
-   Scene B both have a complete artifact chain and Decision Ledger.
+2. The exact bound Scene A and Scene B source hashes, phrases, transforms, and
+   source groups validate. Scene A's alpha-derived gold mask and Scene B's
+   independently reviewed three-sample semantic scene map both have a complete
+   artifact chain and Decision Ledger; the ineligible `test-matte.mp4` is never
+   accepted as evidence.
 3. The Scene A transcript produces at least two Semantic Typography Tree
    hypotheses with evidence and confidence; the selected tree survives into the
    Declared Composition.
@@ -1123,10 +1204,12 @@ Each workstream uses test-first development with these proof levels:
    and renders a new declaration. A held-out fixture proves retrieval-enabled and
    retrieval-disabled runs use equal seed/budget/provider versions and differ only
    by the permitted retrieval evidence.
-9. **Acceptance/review tests:** named matted-head and open-background fixtures
-   produce multiple candidates, explain all pruning, distinguish a graceful
-   no-safe-realization outcome from a placement error, and retain raw review
-   evidence separately from promoted Pattern Memory.
+9. **Acceptance/review tests:** `scene_a_matted_lady_hierarchy_v1` and
+   `scene_b_joseph_open_field_v1` validate their bound source hashes and
+   transforms, produce multiple candidates, explain all pruning, distinguish a
+   graceful no-safe-realization outcome from a placement error, and retain raw
+   review evidence separately from promoted Pattern Memory. A negative fixture
+   proves the static `test-matte.mp4` cannot satisfy either scene-map contract.
 
 Visual snapshots are supporting evidence, not the sole assertion. Assertions
 must use named geometry, font, mask, and manifest evidence so a minor raster
