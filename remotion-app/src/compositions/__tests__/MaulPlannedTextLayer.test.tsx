@@ -279,10 +279,29 @@ describe("MAUL planned text renderer contract", () => {
       "/fonts/library/aesthetic/aesthetic.woff2",
       resolveStaticAsset,
     )).toBe("remotion-static://fonts/library/aesthetic/aesthetic.woff2");
-    expect(resolveMaulFontBrowserUrl(
+    expect(() => resolveMaulFontBrowserUrl(
       "https://cdn.example.com/aesthetic.woff2",
       resolveStaticAsset,
-    )).toBe("https://cdn.example.com/aesthetic.woff2");
+    )).toThrow(/offline.*root-relative/i);
+  });
+
+  it("enforces source-preserving case at the rendered token boundary", () => {
+    const record = structuredClone(buildRecords()[0]!) as any;
+    record.lines[1].tokens[0].text = "without";
+    record.editorialLockup.caseMode = "source_preserving";
+
+    const markup = renderToStaticMarkup(
+      <MaulPlannedTextCard
+        record={record}
+        absoluteTimeMs={600}
+        textColor="#ffffff"
+        accentColor="#d8c7a1"
+      />,
+    );
+
+    expect(markup).toContain('data-maul-case-mode="source_preserving"');
+    expect(markup).toContain("text-transform:none");
+    expect(markup).toContain(">without<");
   });
 
   it("converts normalized placement geometry to output pixels", () => {
@@ -936,6 +955,7 @@ describe("MAUL planned text renderer contract", () => {
             accent: "#ffcc00",
             sourceTreatment: "source_neutral",
           },
+          sourceTreatmentProfileId: null,
           textDensity: "medium",
           emphasisMode: "editorial_italic_hinge",
           motionMode: "restrained_phrase_lockup",

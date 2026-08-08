@@ -93,15 +93,18 @@ describe("repository media tools", () => {
   it("names global PATH resolution as a degraded fallback", async () => {
     const repoRoot = await mkdtemp(path.join(os.tmpdir(), "maul-media-tools-"));
     const pathDir = path.join(repoRoot, "path-bin");
-    const globalFfprobe = path.join(pathDir, "ffprobe");
+    const globalFfprobe = path.join(
+      pathDir,
+      process.platform === "win32" ? "ffprobe.exe" : "ffprobe",
+    );
     await makeExecutable(globalFfprobe);
 
     const receipt = await resolveRepositoryMediaTool({
       tool: "ffprobe",
       repoRoot,
       configuredPath: null,
-      platform: "linux",
-      arch: "x64",
+      platform: process.platform,
+      arch: process.arch,
       pathValue: pathDir,
     });
 

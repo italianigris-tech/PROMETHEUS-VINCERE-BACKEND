@@ -136,6 +136,13 @@ describe("Declared Composition contracts", () => {
     expect(Object.isFrozen(first.typography)).toBe(true);
   });
 
+  it("records containment when planned placement is a text container rather than shaped glyph bounds", () => {
+    const input = validInput();
+    input.placement.comparisonMode = "containment";
+
+    expect(freezeDeclaredComposition(input).placement.comparisonMode).toBe("containment");
+  });
+
   it("rejects unverified fonts, unsupported adapters, and silent fallbacks", () => {
     const unverifiedFont = validInput();
     unverifiedFont.typography.roles[0]!.font.status = "unverified";

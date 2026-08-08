@@ -124,6 +124,7 @@ import {
   type CreativeTreatmentPlanner,
 } from './creative-treatment-planner.js';
 import {deriveReferenceEditorialRhythm} from "./reference-editorial-rhythm.js";
+import {buildMaulPlanningSelectionSeed} from "./planning-selection-seed.js";
 import {
   applyMaulEditorialLockups,
   buildMaulEditorialFontPair,
@@ -1256,14 +1257,20 @@ export class MaulProjectService {
       textChunkPlan: textChunkPlanV1,
       visualAssetPack: request.visualAssetPack,
     };
+    const planningSelectionSeed = buildMaulPlanningSelectionSeed({
+      sourceSha256: source.payload.sha256,
+      treatmentId: treatment.payload.treatmentId,
+      candidateWords: candidateWords.map((word) => ({
+        text: word.text,
+        startMs: word.startMs,
+        endMs: word.endMs,
+      })),
+    });
     const editorialDirection = await this.editorialDirector.plan({
       sourcePath: source.payload.storageKey,
       durationMs: timeline.payload.outputDurationMs,
       seed: Number.parseInt(
-        createHash("sha256")
-          .update(`${projectId}:${candidate.artifactId}:${treatment.artifactId}`)
-          .digest("hex")
-          .slice(0, 8),
+        planningSelectionSeed.slice(0, 8),
         16,
       ),
       profile: josephProfileForTreatment(treatment.payload.treatmentId),
@@ -1290,8 +1297,7 @@ export class MaulProjectService {
           : [],
       )
       .slice(0, 48);
-    const editorialRhythmSeed =
-      `${projectId}:${timeline.artifactId}:reference-editorial-v1`;
+    const editorialRhythmSeed = `${planningSelectionSeed}:reference-editorial-v1`;
     const creativeTreatment = await this.creativeTreatmentPlanner.plan({
       sourceProfile:
         project.intake.sourceProfile.mode === 'single_speaker_podcast'
@@ -1531,7 +1537,7 @@ export class MaulProjectService {
       textChunkPlan: textChunkResult.artifact,
       textPlacementPlan: textPlacementArtifact,
       referenceEditorialRhythm,
-      selectionSeed: `${projectId}:${timeline.artifactId}:editorial-text-v1`,
+      selectionSeed: `${planningSelectionSeed}:editorial-text-v1`,
       outputDurationMs: timeline.payload.outputDurationMs,
     });
     const textAnimationResult = await this.registerArtifact(projectId, {

@@ -241,6 +241,36 @@ const treatmentsForWordCount = ({
   return compatible.length > 0 ? compatible : candidates;
 };
 
+const referenceTraitText = (inputs: MaulPlanningInputs): string =>
+  (inputs.referenceCorpus ?? [])
+    .flatMap((reference) => [
+      ...(reference.payload.approvedTraits?.typography ?? []),
+      ...(reference.payload.approvedTraits?.motion ?? []),
+      ...(reference.payload.approvedTraits?.captions ?? []),
+    ])
+    .join(" ")
+    .toLowerCase();
+
+const preferredReferenceTreatment = ({
+  inputs,
+  wordCount,
+  candidates,
+}: {
+  inputs: MaulPlanningInputs;
+  wordCount: number;
+  candidates: readonly MaulTextAnimationTreatment[];
+}): MaulTextAnimationTreatment | null => {
+  if (wordCount !== 3) return null;
+  const traits = referenceTraitText(inputs);
+  if (/script|calligraph/.test(traits) && candidates.includes("three_word_script_glide")) {
+    return "three_word_script_glide";
+  }
+  if (/tall|condensed|blade/.test(traits) && candidates.includes("three_word_tall_blade")) {
+    return "three_word_tall_blade";
+  }
+  return null;
+};
+
 const positionLockedRevealFor = ({
   sourceTreatment,
   choreographyMode,
@@ -354,10 +384,16 @@ export const buildMaulTextAnimationPlanPayload = ({
       ),
       wordCount: segment.tokenIds.length,
     });
-    const selectedTreatment = rhythmSegment?.treatment ?? treatment ?? selectEditorialTreatment({
-      candidates: supportingCandidates,
-      seed: `${selectionSeed ?? inputs.project.id}:${segment.segmentId}:supporting`,
-    });
+    const selectedTreatment = rhythmSegment?.treatment ?? treatment ??
+      preferredReferenceTreatment({
+        inputs,
+        wordCount: segment.tokenIds.length,
+        candidates: supportingCandidates,
+      }) ??
+      selectEditorialTreatment({
+        candidates: supportingCandidates,
+        seed: `${selectionSeed ?? inputs.project.id}:${segment.segmentId}:supporting`,
+      });
     previousSupportingTreatment = selectedTreatment;
     if (durationMs < 3) {
       throw new Error(

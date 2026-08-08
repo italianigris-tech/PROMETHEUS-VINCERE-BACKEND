@@ -721,8 +721,8 @@ describe("MAUL complete short render path", () => {
     ).toBe(true);
     expect(
       plans.textAnimation.payload.programs.filter(
-        (program: any) => program.target.scope === "segment",
-      ).map((program: any) => program.treatment),
+        (program: any) => program.target.scope === "tokens",
+      ).map((program: any) => program.localReveal?.sourceTreatment),
     ).toEqual([
       "documentary-soft-lock",
       "documentary-soft-lock",

@@ -253,9 +253,13 @@ describe("MAUL cinematic planning launch contract (RED)", () => {
       (program) => program.target.scope === "tokens",
     );
 
-    expect(twoWordCore?.treatment).toMatch(/^two_word_/);
-    expect(threeWordCore?.treatment).toMatch(/^three_word_/);
-    expect(threeWordCore?.treatment).not.toBe(twoWordCore?.treatment);
+    expect(twoWordCore?.treatment).toBe("position_locked_word_reveal");
+    expect(threeWordCore?.treatment).toBe("position_locked_word_reveal");
+    expect(twoWordCore?.localReveal?.sourceTreatment).toMatch(/^two_word_/);
+    expect(threeWordCore?.localReveal?.sourceTreatment).toMatch(/^three_word_/);
+    expect(threeWordCore?.localReveal?.sourceTreatment).not.toBe(
+      twoWordCore?.localReveal?.sourceTreatment,
+    );
   });
 
   it("requires every named treatment to have a distinct executable capability fingerprint", () => {
@@ -292,11 +296,11 @@ describe("MAUL cinematic planning launch contract (RED)", () => {
     const scriptTreatments = planAnimation({
       wordCount: 3,
       approvedReference: scriptReference,
-    }).programs.map((program) => program.treatment);
+    }).programs.map((program) => program.localReveal?.sourceTreatment);
     const tallBladeTreatments = planAnimation({
       wordCount: 3,
       approvedReference: tallBladeReference,
-    }).programs.map((program) => program.treatment);
+    }).programs.map((program) => program.localReveal?.sourceTreatment);
 
     expect(scriptTreatments).toContain("three_word_script_glide");
     expect(tallBladeTreatments).toContain("three_word_tall_blade");

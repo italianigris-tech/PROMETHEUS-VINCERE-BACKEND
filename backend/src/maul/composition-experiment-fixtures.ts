@@ -16,6 +16,70 @@ const sha256 = (value: Buffer | string): string =>
 const sha256File = async (filePath: string): Promise<string> =>
   sha256(await readFile(filePath));
 
+export const REFERENCE_TYPOGRAPHY_PARAGRAPH =
+  "In today’s market, speed is everything. But moving fast without a clear strategy is just running in circles. True business growth isn't about doing more things; it’s about doing the right things with absolute focus. You need to look at your data, understand your customer's deepest pain points, and eliminate the friction in your processes. When you align your team around a single, massive goal, momentum follows automatically. Stop guessing what works. Build a system that guarantees it.";
+
+export const REFERENCE_TYPOGRAPHY_TRANSCRIPT_DURATION_MS = 24_000;
+
+const referenceTypographyChunks = [
+  "speed is everything",
+  "clear strategy",
+  "running in circles",
+  "true business growth",
+  "absolute focus",
+  "deepest pain points",
+  "eliminate the friction",
+  "align your team",
+  "massive goal",
+  "stop guessing",
+  "build a system",
+  "guarantees it",
+] as const;
+
+export const buildReferenceTypographyParagraph = () => ({
+  text: REFERENCE_TYPOGRAPHY_PARAGRAPH,
+  chunks: referenceTypographyChunks.map((text, index) => ({
+    chunkId: `reference_typography_chunk_${String(index + 1).padStart(2, "0")}`,
+    text,
+  })),
+});
+
+export const buildReferenceTypographyTranscript = ({
+  durationMs = REFERENCE_TYPOGRAPHY_TRANSCRIPT_DURATION_MS,
+}: {
+  durationMs?: number;
+} = {}) => {
+  const text = REFERENCE_TYPOGRAPHY_PARAGRAPH;
+  const tokens = text.split(/\s+/u).filter(Boolean);
+  if (!Number.isInteger(durationMs) || durationMs < tokens.length) {
+    throw new Error(
+      `Reference typography transcript duration must be an integer of at least ${tokens.length}ms.`,
+    );
+  }
+  const weights = tokens.map((token) => Math.max(1, [...token].filter((character) => /[\p{L}\p{N}]/u.test(character)).length));
+  const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+  let accumulatedWeight = 0;
+  let startMs = 0;
+  const words = tokens.map((word, index) => {
+    accumulatedWeight += weights[index]!;
+    const endMs = index === tokens.length - 1
+      ? durationMs
+      : Math.max(startMs + 1, Math.round((accumulatedWeight / totalWeight) * durationMs));
+    const timedWord = {text: word, startMs, endMs, confidence: 1};
+    startMs = endMs;
+    return timedWord;
+  });
+  return {
+    text,
+    durationMs,
+    transcript: {
+      language: "en" as const,
+      text,
+      words,
+    },
+  };
+};
+
 export const COMPOSITION_EXPERIMENT_FIXTURES = {
   sceneA: {
     fixtureId: "scene_a_matted_lady_hierarchy_v1",

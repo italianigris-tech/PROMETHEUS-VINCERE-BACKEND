@@ -50,6 +50,42 @@ describe("MAUL Remotion short composition", () => {
     expect(module.shouldRenderMaulTypography(undefined)).toBe(true);
   });
 
+  it("declares subject_focus_grade_v1 in the canonical source treatment layer", async () => {
+    const module = await import("../MaulShort").catch(() => null);
+    expect(module).not.toBeNull();
+    if (!module) return;
+
+    const markup = renderToStaticMarkup(
+      React.createElement(module.MaulSourceTreatment, {
+        profileId: "subject_focus_grade_v1",
+      }),
+    );
+
+    expect(markup).toContain('data-maul-source-treatment="subject_focus_grade_v1"');
+    expect(markup).toContain("radial-gradient");
+  });
+
+  it("renders the source grade only when its profile is declared and not suppressed for observation", async () => {
+    const module = await import("../MaulShort").catch(() => null);
+    expect(module).not.toBeNull();
+    if (!module) return;
+
+    const declaredTreatment = {
+      compositionDirection: "subject_integrated",
+      sourceTreatmentProfileId: "subject_focus_grade_v1",
+    } as Parameters<typeof module.resolveMaulSourceTreatmentProfileId>[0];
+    const undeclaredTreatment = {
+      compositionDirection: "subject_integrated",
+      sourceTreatmentProfileId: null,
+    } as Parameters<typeof module.resolveMaulSourceTreatmentProfileId>[0];
+
+    expect(module.resolveMaulSourceTreatmentProfileId(declaredTreatment)).toBe(
+      "subject_focus_grade_v1",
+    );
+    expect(module.resolveMaulSourceTreatmentProfileId(undeclaredTreatment)).toBeNull();
+    expect(module.shouldRenderMaulSourceTreatment("source_treatment_suppressed")).toBe(false);
+  }, 30_000);
+
   it("renders governed padded non-source regions", async () => {
     const module = await import("../MaulShort").catch(() => null);
     expect(module).not.toBeNull();

@@ -52,6 +52,7 @@ const declaredCompositionSchema = z.object({
   }).strict(),
   placement: z.object({
     box: boxSchema,
+    comparisonMode: z.enum(["exact_bounds", "containment"]).default("exact_bounds"),
     depthMode: z.enum(["front", "behind_subject", "integrated", "avoid_subject"]),
     sceneEvidenceIds: z.array(z.string().min(1)).min(1),
   }).strict(),

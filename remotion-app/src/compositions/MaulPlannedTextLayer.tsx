@@ -180,9 +180,15 @@ const loadedPlannedFontKeys = new Set<string>();
 export const resolveMaulFontBrowserUrl = (
   browserUrl: string,
   resolveStaticAsset: (assetPath: string) => string = staticFile,
-): string => /^(https?:)?\/\//iu.test(browserUrl)
-  ? browserUrl
-  : resolveStaticAsset(browserUrl.replace(/^\/+/, ""));
+): string => {
+  if (/^(https?:)?\/\//iu.test(browserUrl)) {
+    throw new Error("MAUL renderer only accepts offline root-relative font assets.");
+  }
+  if (!browserUrl.startsWith("/")) {
+    throw new Error("MAUL renderer requires root-relative font assets.");
+  }
+  return resolveStaticAsset(browserUrl.replace(/^\/+/, ""));
+};
 
 const ensurePlannedFontLoaded = ({
   assetId,
@@ -706,6 +712,7 @@ export const MaulPlannedTextCard: React.FC<{
       data-emphasis-mode={creativeTreatment?.emphasisMode}
       data-motion-mode={creativeTreatment?.motionMode}
       data-editorial-lockup-mode={record.editorialLockup?.mode}
+      data-maul-case-mode={record.editorialLockup?.caseMode}
       data-editorial-overlap-ratio={record.editorialLockup?.overlap.ratio}
       data-editorial-choreography={record.editorialLockup?.choreography.mode}
       data-text-animation-treatment={animationPrograms.map((program) => program.treatment).join(",") || undefined}
@@ -729,6 +736,9 @@ export const MaulPlannedTextCard: React.FC<{
         textAlign: record.alignment,
         ...primitive.containerStyle,
         ...primitive.textStyle,
+        ...(record.editorialLockup?.caseMode === "source_preserving"
+          ? {textTransform: "none" as const}
+          : {}),
         ...(segmentAnimation ? animationStyle(segmentAnimation) : {}),
       }}
     >

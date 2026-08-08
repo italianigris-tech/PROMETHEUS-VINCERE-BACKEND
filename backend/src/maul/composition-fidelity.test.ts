@@ -80,4 +80,26 @@ describe("Composition Fidelity Report", () => {
       "treatment_not_visible",
     ]);
   });
+
+  it("accepts glyph bounds contained by a declared planned-text container", () => {
+    const containmentDeclaration = structuredClone(declaration) as any;
+    containmentDeclaration.placement.comparisonMode = "containment";
+    const containmentObserved = structuredClone(observed) as any;
+    containmentObserved.measurements.textBounds.value = {
+      leftPx: 66,
+      topPx: 70,
+      rightPx: 84,
+      bottomPx: 88,
+    };
+
+    const report = buildCompositionFidelityReport({
+      reportId: "fidelity_containment",
+      declaration: containmentDeclaration,
+      observed: containmentObserved,
+      manifestSha256: "c".repeat(64),
+      rendererReceipt: {renderer: "remotion", compositionId: "MaulShort"},
+    });
+
+    expect(report.fields.placement).toMatchObject({status: "match"});
+  });
 });

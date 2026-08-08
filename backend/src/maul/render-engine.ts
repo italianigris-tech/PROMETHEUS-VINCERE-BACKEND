@@ -25,9 +25,14 @@ export type MaulShortRenderEngineInput = {
   renderMode: "preview" | "final";
   previewFrameTimesMs?: number[];
   observationMode?: MaulShortObservationMode;
+  renderConcurrency?: number;
+  frameRange?: {startFrame: number; endFrame: number};
 };
 
-export type MaulShortObservationMode = "creative" | "typography_suppressed";
+export type MaulShortObservationMode =
+  | "creative"
+  | "typography_suppressed"
+  | "source_treatment_suppressed";
 
 export type MaulRenderedFrameSample = {
   outputMs: number;
@@ -65,6 +70,31 @@ export const shouldRetainMaulFrameSamples = ({
   renderMode: "preview" | "final";
   sampleTimesMs: number[];
 }): boolean => sampleTimesMs.length > 0;
+
+export const resolveMaulRenderConcurrency = (
+  renderConcurrency: number | undefined,
+): string[] => {
+  if (renderConcurrency === undefined) return [];
+  if (!Number.isInteger(renderConcurrency) || renderConcurrency < 1) {
+    throw new Error("MAUL render concurrency must be a positive integer when specified.");
+  }
+  return [`--concurrency=${renderConcurrency}`];
+};
+
+export const resolveMaulRenderFrameRange = (
+  frameRange: {startFrame: number; endFrame: number} | undefined,
+): string[] => {
+  if (frameRange === undefined) return [];
+  if (
+    !Number.isInteger(frameRange.startFrame) ||
+    !Number.isInteger(frameRange.endFrame) ||
+    frameRange.startFrame < 0 ||
+    frameRange.endFrame < frameRange.startFrame
+  ) {
+    throw new Error("MAUL render frame range must contain nonnegative ordered integer bounds.");
+  }
+  return [`--frames=${frameRange.startFrame}-${frameRange.endFrame}`];
+};
 
 const runRemotion = async ({
   executable,
@@ -236,6 +266,8 @@ export const renderMaulShortLocally: MaulShortRenderEngine = async (input) => {
         "--codec=h264",
         "--audio-codec=aac",
         "--overwrite",
+        ...resolveMaulRenderConcurrency(input.renderConcurrency),
+        ...resolveMaulRenderFrameRange(input.frameRange),
         ...(input.renderMode === "preview" ? ["--scale=0.5"] : []),
       ]
     });
@@ -274,7 +306,10 @@ export const renderMaulShortLocally: MaulShortRenderEngine = async (input) => {
     return {
       bytes,
       sha256: createHash("sha256").update(bytes).digest("hex"),
-      durationMs: input.manifest.timeline.outputDurationMs,
+      durationMs: input.frameRange
+        ? Math.round((input.frameRange.endFrame - input.frameRange.startFrame + 1) /
+          input.manifest.output.fps * 1000)
+        : input.manifest.timeline.outputDurationMs,
       width: input.renderMode === "preview" ? 540 : input.manifest.output.width,
       height: input.renderMode === "preview" ? 960 : input.manifest.output.height,
       evidence: {

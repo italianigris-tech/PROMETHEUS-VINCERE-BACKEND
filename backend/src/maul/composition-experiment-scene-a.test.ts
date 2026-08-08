@@ -1,4 +1,5 @@
 import {describe, expect, it} from "vitest";
+import {fileURLToPath} from "node:url";
 
 import {
   buildSceneAOutputSubjectMask,
@@ -79,7 +80,7 @@ describe("Scene A Composition Experiment adapter", () => {
 
   it("derives the output subject mask from immutable source alpha pixels", async () => {
     const mask = await buildSceneAOutputSubjectMask({
-      repoRoot: new URL("../../..", import.meta.url).pathname,
+      repoRoot: fileURLToPath(new URL("../../..", import.meta.url)),
     });
 
     expect(mask).toMatchObject({

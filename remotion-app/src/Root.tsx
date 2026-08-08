@@ -2,15 +2,10 @@ import React from "react";
 import {Composition, staticFile} from "remotion";
 import {UnifiedRenderManifestSchema, type UnifiedRenderManifest} from "@prometheus/shared-types";
 
-import {FemaleCoachDeanGraziosi} from "./compositions/FemaleCoachDeanGraziosi";
-import {ProjectScopedMotionComposition} from "./compositions/ProjectScopedMotionComposition";
-import {PROJECT_SCOPED_PREVIEW_COMPOSITION_ID} from "./compositions/ProjectScopedPreviewComposition";
 import {
   buildProjectScopedStudioDefaultProps,
   projectScopedStudioPropsSchema
 } from "./compositions/project-scoped-studio-defaults";
-import {CreativeAudioPreview} from "./compositions/CreativeAudioPreview";
-import {CinematicPiPShowcase} from "./compositions/CinematicPiPShowcase";
 import {TargetFocusZoomShowcase} from "./compositions/TargetFocusZoomShowcase";
 import {choreographyProofChunks} from "./data/choreography-proof.chunks";
 import {
@@ -45,6 +40,15 @@ const defaultCaptionProfileId = envCaptionProfileId?.trim()
   : undefined;
 const DEV_FIXTURE_LONGFORM_VIDEO_ASSET = "dev-fixtures/test-video.mp4";
 const DEV_FIXTURE_LONGFORM_COMPOSITION_ID = "MaleHeadVideoLongFormDevFixture";
+const PROJECT_SCOPED_PREVIEW_COMPOSITION_ID = "project-scoped-preview";
+const loadProjectScopedMotionComposition = () => import("./compositions/ProjectScopedMotionComposition")
+  .then(({ProjectScopedMotionComposition}) => ({default: ProjectScopedMotionComposition}));
+const loadFemaleCoachDeanGraziosi = () => import("./compositions/FemaleCoachDeanGraziosi")
+  .then(({FemaleCoachDeanGraziosi}) => ({default: FemaleCoachDeanGraziosi}));
+const loadCreativeAudioPreview = () => import("./compositions/CreativeAudioPreview")
+  .then(({CreativeAudioPreview}) => ({default: CreativeAudioPreview}));
+const loadCinematicPiPShowcase = () => import("./compositions/CinematicPiPShowcase")
+  .then(({CinematicPiPShowcase}) => ({default: CinematicPiPShowcase}));
 const KNOWN_STUDIO_COMPOSITION_IDS = new Set([
   "FemaleCoachDeanGraziosi",
   "MaleHeadVideoLongForm",
@@ -127,7 +131,7 @@ export const RemotionRoot: React.FC = () => {
     <>
       <Composition
         id={PROJECT_SCOPED_PREVIEW_COMPOSITION_ID}
-        component={ProjectScopedMotionComposition}
+        lazyComponent={loadProjectScopedMotionComposition}
         schema={projectScopedStudioPropsSchema}
         width={longFormPreset.videoMetadata.width}
         height={longFormPreset.videoMetadata.height}
@@ -137,7 +141,7 @@ export const RemotionRoot: React.FC = () => {
       />
       <Composition
         id="FemaleCoachDeanGraziosi"
-        component={FemaleCoachDeanGraziosi}
+        lazyComponent={loadFemaleCoachDeanGraziosi}
         width={reelPreset.videoMetadata.width}
         height={reelPreset.videoMetadata.height}
         fps={reelPreset.videoMetadata.fps}
@@ -158,7 +162,7 @@ export const RemotionRoot: React.FC = () => {
       />
       <Composition
         id="MaleHeadVideoLongForm"
-        component={ProjectScopedMotionComposition}
+        lazyComponent={loadProjectScopedMotionComposition}
         width={longFormPreset.videoMetadata.width}
         height={longFormPreset.videoMetadata.height}
         fps={longFormPreset.videoMetadata.fps}
@@ -182,7 +186,7 @@ export const RemotionRoot: React.FC = () => {
       />
       <Composition
         id={DEV_FIXTURE_LONGFORM_COMPOSITION_ID}
-        component={FemaleCoachDeanGraziosi}
+        lazyComponent={loadFemaleCoachDeanGraziosi}
         width={longFormPreset.videoMetadata.width}
         height={longFormPreset.videoMetadata.height}
         fps={longFormPreset.videoMetadata.fps}
@@ -209,7 +213,7 @@ export const RemotionRoot: React.FC = () => {
       />
       <Composition
         id={LONGFORM_DRAFT_COMPOSITION_ID}
-        component={CreativeAudioPreview}
+        lazyComponent={loadCreativeAudioPreview}
         width={longFormDraftVideoMetadata.width}
         height={longFormDraftVideoMetadata.height}
         fps={longFormDraftVideoMetadata.fps}
@@ -233,7 +237,7 @@ export const RemotionRoot: React.FC = () => {
       />
       <Composition
         id="Cinematic3DDemo"
-        component={ProjectScopedMotionComposition}
+        lazyComponent={loadProjectScopedMotionComposition}
         width={reelPreset.videoMetadata.width}
         height={reelPreset.videoMetadata.height}
         fps={reelPreset.videoMetadata.fps}
@@ -256,7 +260,7 @@ export const RemotionRoot: React.FC = () => {
       />
       <Composition
         id="CinematicChoreographyProof"
-        component={ProjectScopedMotionComposition}
+        lazyComponent={loadProjectScopedMotionComposition}
         width={choreographyProofVideoMetadata.width}
         height={choreographyProofVideoMetadata.height}
         fps={choreographyProofVideoMetadata.fps}
@@ -289,7 +293,7 @@ export const RemotionRoot: React.FC = () => {
       />
       <Composition
         id="CinematicPiPShowcase"
-        component={CinematicPiPShowcase}
+        lazyComponent={loadCinematicPiPShowcase}
         width={cinematicPiPShowcaseVideoMetadata.width}
         height={cinematicPiPShowcaseVideoMetadata.height}
         fps={cinematicPiPShowcaseVideoMetadata.fps}

@@ -76,11 +76,38 @@ export type MaulShortProps = {
   observationMode?: MaulShortObservationMode;
 };
 
-export type MaulShortObservationMode = "creative" | "typography_suppressed";
+export type MaulShortObservationMode =
+  | "creative"
+  | "typography_suppressed"
+  | "source_treatment_suppressed";
+
+export type MaulSourceTreatmentProfileId = "subject_focus_grade_v1";
+
+export const resolveMaulSourceTreatmentProfileId = (
+  treatment: MaulCreativeTreatment | undefined,
+): MaulSourceTreatmentProfileId | null => treatment?.sourceTreatmentProfileId ?? null;
+
+export const MaulSourceTreatment: React.FC<{
+  profileId: MaulSourceTreatmentProfileId;
+}> = ({profileId}) => (
+  <AbsoluteFill
+    aria-hidden="true"
+    data-maul-source-treatment={profileId}
+    style={{
+      pointerEvents: "none",
+      backgroundImage:
+        "radial-gradient(ellipse 88% 76% at 50% 38%, rgba(0, 0, 0, 0) 52%, rgba(0, 0, 0, 0.07) 75%, rgba(0, 0, 0, 0.34) 100%)",
+    }}
+  />
+);
 
 export const shouldRenderMaulTypography = (
   observationMode: MaulShortObservationMode | undefined,
 ): boolean => observationMode !== "typography_suppressed";
+
+export const shouldRenderMaulSourceTreatment = (
+  observationMode: MaulShortObservationMode | undefined,
+): boolean => observationMode !== "source_treatment_suppressed";
 
 type MaulCreativeTreatment =
   MaulUnifiedShortRenderManifest['plans']['artDirection']['creativeTreatment'];
@@ -833,6 +860,8 @@ export const MaulShort: React.FC<MaulShortProps> = ({
     buildMaulVisualStyle(treatment.treatmentId),
     creativeTreatment,
   );
+  const sourceTreatmentProfileId =
+    resolveMaulSourceTreatmentProfileId(creativeTreatment);
   const legacySequences =
     adaptedManifest.mode === "legacy"
       ? buildMaulSourceSequences(timeline, fps)
@@ -936,6 +965,9 @@ export const MaulShort: React.FC<MaulShortProps> = ({
             "linear-gradient(180deg, rgba(0,0,0,0.02) 45%, rgba(0,0,0,0.42) 100%)",
         }}
       />
+      {sourceTreatmentProfileId && shouldRenderMaulSourceTreatment(observationMode) ? (
+        <MaulSourceTreatment profileId={sourceTreatmentProfileId} />
+      ) : null}
       {shouldRenderMaulTypography(observationMode)
         ? plannedModel
           ? (

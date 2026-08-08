@@ -68,23 +68,31 @@ export const buildCompositionFidelityReport = ({
   }
 
   const textBounds = observed.measurements.textBounds;
-  const placementDeclared = {
+  const placementDeclaredBounds = {
     leftPx: declaration.placement.box.x * declaration.output.width,
     topPx: declaration.placement.box.y * declaration.output.height,
     rightPx: (declaration.placement.box.x + declaration.placement.box.width) * declaration.output.width,
     bottomPx: (declaration.placement.box.y + declaration.placement.box.height) * declaration.output.height,
   };
-  const placementDelta = textBounds.status === "unobserved"
+  const placementComparisonMode = declaration.placement.comparisonMode;
+  const observedTextBounds = textBounds.status === "unobserved" ? null : textBounds.value;
+  const placementDelta = observedTextBounds === null
     ? null
     : {
-        leftPx: textBounds.value.leftPx - placementDeclared.leftPx,
-        topPx: textBounds.value.topPx - placementDeclared.topPx,
-        rightPx: textBounds.value.rightPx - placementDeclared.rightPx,
-        bottomPx: textBounds.value.bottomPx - placementDeclared.bottomPx,
+        leftPx: observedTextBounds.leftPx - placementDeclaredBounds.leftPx,
+        topPx: observedTextBounds.topPx - placementDeclaredBounds.topPx,
+        rightPx: observedTextBounds.rightPx - placementDeclaredBounds.rightPx,
+        bottomPx: observedTextBounds.bottomPx - placementDeclaredBounds.bottomPx,
       };
-  const placementTolerancePx = Math.max(4, declaration.output.width * 0.02);
   const placementMatches = placementDelta !== null &&
-    Object.values(placementDelta).every((delta) => Math.abs(delta) <= placementTolerancePx);
+    (placementComparisonMode === "containment"
+      ? observedTextBounds!.leftPx >= placementDeclaredBounds.leftPx - 4 &&
+        observedTextBounds!.topPx >= placementDeclaredBounds.topPx - 4 &&
+        observedTextBounds!.rightPx <= placementDeclaredBounds.rightPx + 4 &&
+        observedTextBounds!.bottomPx <= placementDeclaredBounds.bottomPx + 4
+      : Object.values(placementDelta).every(
+          (delta) => Math.abs(delta) <= Math.max(4, declaration.output.width * 0.02),
+        ));
   const lineCount = observed.measurements.lineCount;
   const lineMatches = lineCount.status !== "unobserved" &&
     lineCount.value === declaration.typography.lineBreaks.length;
@@ -110,7 +118,7 @@ export const buildCompositionFidelityReport = ({
     },
     placement: {
       status: textBounds.status === "unobserved" ? "unobserved" : placementMatches ? "match" : "mismatch",
-      declared: placementDeclared,
+      declared: {...placementDeclaredBounds, comparisonMode: placementComparisonMode},
       observed: measurementValue(textBounds),
       delta: placementDelta,
       evidenceIds: textBounds.evidenceIds,

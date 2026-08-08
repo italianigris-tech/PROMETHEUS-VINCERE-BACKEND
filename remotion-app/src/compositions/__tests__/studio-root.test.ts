@@ -47,8 +47,25 @@ describe("Remotion Studio root", () => {
 
     expect(PROJECT_SCOPED_PREVIEW_COMPOSITION_ID).toBe("project-scoped-preview");
     expect(source).toMatch(
-      /id=\{PROJECT_SCOPED_PREVIEW_COMPOSITION_ID\}[\s\S]*?component=\{ProjectScopedMotionComposition\}[\s\S]*?schema=\{projectScopedStudioPropsSchema\}/
+      /id=\{PROJECT_SCOPED_PREVIEW_COMPOSITION_ID\}[\s\S]*?lazyComponent=\{loadProjectScopedMotionComposition\}[\s\S]*?schema=\{projectScopedStudioPropsSchema\}/
     );
+  });
+
+  it("keeps the MaulShort render registry clear of eager legacy Google-font compositions", () => {
+    const source = readFileSync(path.resolve("src/Root.tsx"), "utf8");
+
+    expect(source).not.toMatch(/import\s+\{[^}]*ProjectScopedMotionComposition[^}]*\}\s+from/);
+    expect(source).not.toMatch(/import\s+\{[^}]*CreativeAudioPreview[^}]*\}\s+from/);
+    expect(source).not.toMatch(/import\s+\{[^}]*FemaleCoachDeanGraziosi[^}]*\}\s+from/);
+    expect(source).not.toMatch(/import\s+\{[^}]*CinematicPiPShowcase[^}]*\}\s+from/);
+    expect(source).toContain('const loadProjectScopedMotionComposition = () => import("./compositions/ProjectScopedMotionComposition")');
+    expect(source).toContain('const loadCreativeAudioPreview = () => import("./compositions/CreativeAudioPreview")');
+    expect(source).toContain('const loadFemaleCoachDeanGraziosi = () => import("./compositions/FemaleCoachDeanGraziosi")');
+    expect(source).toContain('const loadCinematicPiPShowcase = () => import("./compositions/CinematicPiPShowcase")');
+    expect(source).toContain('lazyComponent={loadProjectScopedMotionComposition}');
+    expect(source).toContain('lazyComponent={loadCreativeAudioPreview}');
+    expect(source).toContain('lazyComponent={loadFemaleCoachDeanGraziosi}');
+    expect(source).toContain('lazyComponent={loadCinematicPiPShowcase}');
   });
 
   it("loads JosephEdit from the latest compiled upload manifest before using the fixture fallback", () => {

@@ -1662,6 +1662,7 @@ export const maulCreativeTreatmentProposalSchema = z.object({
       'high_contrast_monochrome',
     ]),
   }),
+  sourceTreatmentProfileId: z.enum(['subject_focus_grade_v1']).nullable().default(null),
   textDensity: z.enum(['low', 'medium', 'high']),
   emphasisMode: z.enum([
     'selective_accent_phrase',
@@ -1754,6 +1755,7 @@ export const maulArtDirectionPlanPayloadSchema = maulPlanBaseSchema.extend({
       accent: '#F06424',
       sourceTreatment: 'dark_warm_cool_contrast',
     },
+    sourceTreatmentProfileId: null,
     textDensity: 'medium',
     emphasisMode: 'selective_accent_phrase',
     motionMode: 'restrained_phrase_lockup',

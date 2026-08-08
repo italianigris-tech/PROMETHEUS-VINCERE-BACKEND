@@ -63,12 +63,13 @@ const creativeTreatmentPlanFixture = {
     compositionDirection: 'subject_integrated',
     primaryTypeRole: 'neutral_grotesk',
     accentTypeRole: 'editorial_italic',
-    palette: {
-      primary: '#F7F3EA',
-      accent: '#F06424',
-      sourceTreatment: 'dark_warm_cool_contrast',
-    },
-    textDensity: 'medium',
+  palette: {
+    primary: '#F7F3EA',
+    accent: '#F06424',
+    sourceTreatment: 'dark_warm_cool_contrast',
+  },
+  sourceTreatmentProfileId: 'subject_focus_grade_v1',
+  textDensity: 'medium',
     emphasisMode: 'selective_accent_phrase',
     motionMode: 'restrained_phrase_lockup',
     rationale: ['Keep the speaker dominant.'],
@@ -332,6 +333,9 @@ describe('MAUL creative treatment contract', () => {
     });
     expect(result.creativeTreatment.compositionDirection).toBe(
       'subject_integrated',
+    );
+    expect(result.creativeTreatment.sourceTreatmentProfileId).toBe(
+      'subject_focus_grade_v1',
     );
     expect(result.creativeTreatmentInference).toMatchObject({
       status: 'invoked',

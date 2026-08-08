@@ -8,10 +8,13 @@ import {
   COMPOSITION_EXPERIMENT_FIXTURES,
   assertEligibleExperimentSceneEvidence,
   createCompositionExperimentSceneEvidenceProvider,
+  buildReferenceTypographyParagraph,
+  buildReferenceTypographyTranscript,
   deriveSceneAAlphaEvidence,
   loadCompositionExperimentFixtureEvidence,
   validateSceneBSceneMap,
 } from "./composition-experiment-fixtures.js";
+import {buildDeterministicShortsTextChunkPlan} from "./shorts-text-chunking.js";
 
 const repoRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -27,6 +30,63 @@ const sceneMapPath = path.join(
 );
 
 describe("composition experiment fixtures", () => {
+  it("preserves the supplied paragraph as source-grounded rhetorical chunks", () => {
+    const paragraph = buildReferenceTypographyParagraph();
+
+    expect(paragraph.text).toContain("speed is everything");
+    expect(paragraph.text).toContain("guarantees it");
+    expect(paragraph.chunks.map((chunk) => chunk.text)).toEqual(expect.arrayContaining([
+      "speed is everything",
+      "absolute focus",
+      "massive goal",
+      "build a system",
+    ]));
+  });
+
+  it("builds a deterministic full-coverage paragraph transcript for the text-chunk planner", () => {
+    const first = buildReferenceTypographyTranscript();
+    const second = buildReferenceTypographyTranscript();
+    const chunkPlan = buildDeterministicShortsTextChunkPlan({
+      request: {
+        transcript: first.transcript,
+        videoDurationMs: first.durationMs,
+        pacing: "measured",
+        style: "direct_response",
+        editorialContext: {
+          platform: "instagram_reels",
+          objective: "brand_consistency",
+          audience: null,
+          notes: "Reference typography proof fixture.",
+        },
+        constraints: {minWordsPerChunk: 3, maxWordsPerChunk: 4, preserveEveryWord: true},
+      },
+      inference: {
+        status: "skipped_missing_credentials",
+        provider: "openai_compatible",
+        baseUrl: "https://maul-reference-typography.local",
+        model: "reference-typography-transcript/v1",
+        requestHash: "c".repeat(64),
+        responseHash: null,
+        fallbackReason: "Deterministic reference proof fixture.",
+      },
+    });
+
+    expect(first).toEqual(second);
+    expect(first.durationMs).toBe(24_000);
+    expect(first.transcript.text).toBe(first.text);
+    expect(first.transcript.words.map((word) => word.text).join(" ")).toBe(first.text);
+    expect(first.transcript.words[0]).toMatchObject({startMs: 0, confidence: 1});
+    expect(first.transcript.words.at(-1)?.endMs).toBe(first.durationMs);
+    expect(first.transcript.words.every((word, index, words) =>
+      word.endMs > word.startMs &&
+      (index === 0 || word.startMs === words[index - 1]!.endMs),
+    )).toBe(true);
+    expect(chunkPlan.coverage).toMatchObject({
+      exact: true,
+      coveredWordCount: first.transcript.words.length,
+    });
+  });
+
   it("binds both experiment scenes to immutable source facts", async () => {
     expect(COMPOSITION_EXPERIMENT_FIXTURES.sceneA).toMatchObject({
       fixtureId: "scene_a_matted_lady_hierarchy_v1",
