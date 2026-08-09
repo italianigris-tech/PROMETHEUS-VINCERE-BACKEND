@@ -205,6 +205,24 @@ type PlacementCandidate = {
 export type MaulPlacementTypography = {
   profile: MaulTypographyCompatibilityProfile;
   layouts: readonly MaulMeasuredTypographyLayout[];
+} | {
+  byChunkId: Readonly<Record<string, {
+    profile: MaulTypographyCompatibilityProfile;
+    layout: MaulMeasuredTypographyLayout;
+  }>>;
+};
+
+const resolvePlacementTypography = (
+  typography: MaulPlacementTypography | undefined,
+  chunkId: string,
+): {
+  profile: MaulTypographyCompatibilityProfile;
+  layout: MaulMeasuredTypographyLayout;
+} | null => {
+  if (!typography) return null;
+  if ("byChunkId" in typography) return typography.byChunkId[chunkId] ?? null;
+  const layout = typography.layouts.find((candidate) => candidate.chunkId === chunkId);
+  return layout ? {profile: typography.profile, layout} : null;
 };
 
 const stableId = (prefix: string, value: unknown) =>
@@ -670,19 +688,28 @@ const buildCandidate = ({
     outputStartMs: node.outputStartMs,
     outputEndMs: node.outputEndMs,
   });
-  const measuredLayout = typography?.layouts.find(
-    (layout) => layout.chunkId === node.chunk.chunkId,
+  const chunkTypography = resolvePlacementTypography(
+    typography,
+    node.chunk.chunkId,
   );
-  if (typography && !measuredLayout) return null;
-  const profile = typography?.profile ?? MAUL_TYPOGRAPHY_COMPATIBILITY_PROFILE;
+  if (typography && !chunkTypography) return null;
+  const measuredLayout = chunkTypography?.layout;
+  const profile =
+    chunkTypography?.profile ?? MAUL_TYPOGRAPHY_COMPATIBILITY_PROFILE;
   const preferredNominalFontSizePx = isCaptionSafeFallback
     ? 48
-    : family === "measured"
+    : measuredLayout
+      ? measuredLayout.fontSizePx
+      : family === "measured"
       ? 72
       : family === "editorial"
         ? 68
         : 64;
-  const hierarchyScale = family === "editorial" ? 1.08 : 1;
+  const hierarchyScale = measuredLayout
+    ? 1
+    : family === "editorial"
+      ? 1.08
+      : 1;
   const lineHeight = 1.1;
   const variantId = isCaptionSafeFallback
     ? "caption_safe_fallback.padded_band_v1"
@@ -1103,10 +1130,22 @@ export const buildMaulTextPlacementPlan = ({
     governedTextChunkPlanHash ?? hashMaulPlanPayload(textChunkPlan);
   const outputCompositionTrackHash = hashMaulPlanPayload(compositionIntervals);
   const platformProfileHash = hashMaulPlanPayload(PLATFORM_PROFILE);
-  const selectedTypographyProfile =
-    typography?.profile ?? MAUL_TYPOGRAPHY_COMPATIBILITY_PROFILE;
+  const selectedTypographyProfiles = typography
+    ? "byChunkId" in typography
+      ? [
+          ...new Map(
+            textChunkPlan.chunks.flatMap((chunk) => {
+              const selectedProfile = typography.byChunkId[chunk.chunkId]?.profile;
+              return selectedProfile
+                ? [[selectedProfile.profileId, selectedProfile] as const]
+                : [];
+            }),
+          ).values(),
+        ]
+      : [typography.profile]
+    : [MAUL_TYPOGRAPHY_COMPATIBILITY_PROFILE];
   const compatibilityProfileHash = hashMaulPlanPayload(
-    selectedTypographyProfile,
+    selectedTypographyProfiles,
   );
   const status = selected ? ("planned" as const) : ("blocked" as const);
 
@@ -1128,7 +1167,7 @@ export const buildMaulTextPlacementPlan = ({
       planningHorizonSegments: SCORE_POLICY.planningHorizonSegments,
     },
     platformProfile: PLATFORM_PROFILE,
-    compatibilityProfiles: [selectedTypographyProfile],
+    compatibilityProfiles: selectedTypographyProfiles,
     compositionIntervals,
     status,
     blockingReason: selected

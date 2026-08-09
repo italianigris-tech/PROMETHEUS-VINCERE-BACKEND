@@ -214,4 +214,92 @@ describe("MAUL editorial lockup planner", () => {
     expect(result.segments[0]!.maximumEnvelope.x)
       .toBeLessThan(result.segments[0]!.box.x);
   });
+
+  it("uses the font pair selected for each chunk", () => {
+    const secondPrimary = {
+      assetId: "font_second_primary",
+      family: "Bebas Neue",
+      weight: 400,
+      style: "normal" as const,
+    };
+    const placement = {
+      segments: [
+        {
+          segmentId: "segment_first",
+          chunkId: "chunk_first",
+          tokenIds: ["token_first"],
+          lines: [{lineId: "line_first", tokenIds: ["token_first"], text: "First"}],
+          box: {x: 0.2, y: 0.2, width: 0.4, height: 0.1},
+          maximumEnvelope: {x: 0.2, y: 0.2, width: 0.4, height: 0.1},
+          alignment: "center",
+          compatibility: {nominalFontSizePx: 62, hierarchyScale: 1, lineHeight: 1.1},
+          outputStartMs: 0,
+          outputEndMs: 600,
+        },
+        {
+          segmentId: "segment_second",
+          chunkId: "chunk_second",
+          tokenIds: ["token_second"],
+          lines: [{lineId: "line_second", tokenIds: ["token_second"], text: "Second"}],
+          box: {x: 0.2, y: 0.4, width: 0.4, height: 0.1},
+          maximumEnvelope: {x: 0.2, y: 0.4, width: 0.4, height: 0.1},
+          alignment: "center",
+          compatibility: {nominalFontSizePx: 65, hierarchyScale: 1, lineHeight: 1.1},
+          outputStartMs: 600,
+          outputEndMs: 1200,
+        },
+      ],
+    } as never;
+    const chunks = {
+      tokens: [
+        {tokenId: "token_first", text: "First"},
+        {tokenId: "token_second", text: "Second"},
+      ],
+      chunks: [
+        {
+          chunkId: "chunk_first",
+          tokenIds: ["token_first"],
+          semanticRole: "hook",
+          emphasis: {level: "key", tokenIds: ["token_first"]},
+          holdAcrossProtectedPause: false,
+          outputStartMs: 0,
+          outputEndMs: 600,
+        },
+        {
+          chunkId: "chunk_second",
+          tokenIds: ["token_second"],
+          semanticRole: "payoff",
+          emphasis: {level: "hero", tokenIds: ["token_second"]},
+          holdAcrossProtectedPause: false,
+          outputStartMs: 600,
+          outputEndMs: 1200,
+        },
+      ],
+    } as never;
+
+    const result = applyMaulEditorialLockups({
+      placementPlan: placement,
+      textChunkPlan: chunks,
+      rhythm: {
+        segments: [
+          {segmentId: "segment_first", preserveReadableHold: false},
+          {segmentId: "segment_second", preserveReadableHold: false},
+        ],
+      },
+      primaryFont,
+      accentFont: null,
+      fontPairByChunkId: {
+        chunk_first: {primary: primaryFont, accent: null},
+        chunk_second: {primary: secondPrimary, accent: null},
+      },
+      referenceTraits: ["editorial hierarchy"],
+      selectionSeed: "per_chunk_font_pair",
+    });
+
+    expect(
+      result.segments.map(
+        (segment) => segment.editorialLockup?.tokenStyles[0]?.fontAssetId,
+      ),
+    ).toEqual([primaryFont.assetId, secondPrimary.assetId]);
+  });
 });

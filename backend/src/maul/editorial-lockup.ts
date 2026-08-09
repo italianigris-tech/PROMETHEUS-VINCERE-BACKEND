@@ -419,6 +419,7 @@ export const applyMaulEditorialLockups = ({
   rhythm,
   primaryFont,
   accentFont,
+  fontPairByChunkId,
   referenceTraits,
   selectionSeed,
   semanticHierarchyRolesByChunkId,
@@ -430,6 +431,10 @@ export const applyMaulEditorialLockups = ({
   rhythm: {segments: readonly RhythmSegment[]};
   primaryFont: LockupFont;
   accentFont: LockupFont | null | undefined;
+  fontPairByChunkId?: Readonly<Record<string, {
+    primary: LockupFont;
+    accent: LockupFont | null;
+  }>>;
   referenceTraits: readonly string[];
   selectionSeed: string;
   semanticHierarchyRolesByChunkId?: Readonly<
@@ -448,6 +453,10 @@ export const applyMaulEditorialLockups = ({
         throw new Error(`Editorial lockup ${segment.segmentId} references missing chunk ${segment.chunkId}.`);
       }
       const rhythmSegment = rhythmBySegmentId.get(segment.segmentId);
+      const chunkFontPair = fontPairByChunkId?.[chunk.chunkId] ?? {
+        primary: primaryFont,
+        accent: accentFont ?? null,
+      };
       const editorialLockup = buildMaulEditorialLockup({
         segment: {
           segmentId: segment.segmentId,
@@ -460,8 +469,8 @@ export const applyMaulEditorialLockups = ({
           emphasisLevel: chunk.emphasis.level,
           holdAcrossProtectedPause: rhythmSegment?.preserveReadableHold ?? chunk.holdAcrossProtectedPause,
         },
-        primaryFont,
-        accentFont,
+        primaryFont: chunkFontPair.primary,
+        accentFont: chunkFontPair.accent,
         selectionSeed: `${selectionSeed}:${segment.segmentId}`,
         referenceTraits,
       });

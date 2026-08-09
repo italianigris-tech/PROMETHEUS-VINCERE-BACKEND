@@ -70,6 +70,46 @@ const makeChunkPlan = ({
   },
 });
 
+const makeTwoChunkPlan = (): MaulShortsTextChunkPlanV2Core => {
+  const plan = makeChunkPlan();
+  return {
+    ...plan,
+    outputDurationMs: 2000,
+    tokens: [
+      plan.tokens[0]!,
+      {
+        tokenId: "token_beyond",
+        transcriptWordIndex: 5,
+        text: "Beyond",
+        sourceStartMs: 1200,
+        sourceEndMs: 2200,
+        outputSpans: [{outputStartMs: 1000, outputEndMs: 2000}],
+        outputStartMs: 1000,
+        outputEndMs: 2000,
+      },
+    ],
+    chunks: [
+      plan.chunks[0]!,
+      {
+        chunkId: "chunk_beyond",
+        tokenIds: ["token_beyond"],
+        text: "Beyond",
+        outputStartMs: 1000,
+        outputEndMs: 2000,
+        semanticRole: "payoff",
+        emphasis: {
+          tokenIds: ["token_beyond"],
+          text: "Beyond",
+          level: "hero",
+        },
+        holdAcrossProtectedPause: false,
+        rationale: "Preserve the second governed token.",
+        confidence: 1,
+      },
+    ],
+  };
+};
+
 const composition = ({
   intervalId = "composition_primary",
   sceneId = "scene_a",
@@ -424,6 +464,78 @@ describe("MAUL scene-aware text placement", () => {
         evidenceId: "measurement_across_playfair",
       }),
     );
+  });
+
+  it("uses each chunk's measured typography profile independently", () => {
+    const profile = (suffix: string, family: string) => ({
+      profileId: `maul-measured-${suffix}-v1`,
+      family,
+      approvedFontAssets: [
+        {assetId: `font_${suffix}`, family, weights: [700]},
+      ],
+      loadedFallback: {assetId: `font_${suffix}`, family, weight: 700},
+      metrics: {
+        fingerprint: sha(suffix === "alpha" ? "e" : "f"),
+        maxGlyphWidthEm: 0.82,
+        maxLineHeightEm: 1.18,
+        minimumFontSizePx: 48,
+        maximumFontSizePx: 88,
+        minimumLineHeight: 1,
+        maximumLineHeight: 1.2,
+      },
+    });
+    const alpha = profile("alpha", "Playfair Display");
+    const beta = profile("beta", "Bebas Neue");
+    const plan = buildMaulTextPlacementPlan({
+      textChunkPlanArtifactId: "artifact_text_chunk",
+      textChunkPlan: makeTwoChunkPlan(),
+      compositionIntervals: [composition({outputEndMs: 2000})],
+      observationIntervals: [
+        observation({outputEndMs: 2000, trackingState: "absent_confirmed"}),
+      ],
+      typography: {
+        byChunkId: {
+          chunk_across: {
+            profile: alpha,
+            layout: {
+              chunkId: "chunk_across",
+              fontSizePx: 62,
+              lines: [
+                {text: "Across", widthPx: 210, measurementId: "measure_alpha"},
+              ],
+              measurementIds: ["measure_alpha"],
+            },
+          },
+          chunk_beyond: {
+            profile: beta,
+            layout: {
+              chunkId: "chunk_beyond",
+              fontSizePx: 65,
+              lines: [
+                {text: "Beyond", widthPx: 180, measurementId: "measure_beta"},
+              ],
+              measurementIds: ["measure_beta"],
+            },
+          },
+        },
+      },
+    });
+
+    expect(plan.status).toBe("planned");
+    expect(plan.compatibilityProfiles.map((candidate) => candidate.profileId)).toEqual([
+      alpha.profileId,
+      beta.profileId,
+    ]);
+    expect(
+      plan.segments.map((segment) => [
+        segment.chunkId,
+        segment.compatibility.profileId,
+        segment.compatibility.nominalFontSizePx,
+      ]),
+    ).toEqual([
+      ["chunk_across", alpha.profileId, 62],
+      ["chunk_beyond", beta.profileId, 65],
+    ]);
   });
 
   it("uses only a padded fallback when cut or subject evidence is unknown", () => {
