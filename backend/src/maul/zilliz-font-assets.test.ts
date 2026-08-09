@@ -1,4 +1,13 @@
-import {describe, expect, it} from "vitest";
+import {copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync} from "node:fs";
+import os from "node:os";
+import path from "node:path";
+
+import {afterEach, describe, expect, it, vi} from "vitest";
+
+vi.mock("@zilliz/milvus2-sdk-node", () => ({
+  HttpClient: class TestHttpClient {},
+  MilvusClient: class TestMilvusClient {},
+}));
 
 import * as zillizFontAssets from "./zilliz-font-assets.js";
 import {
@@ -8,6 +17,13 @@ import {
 } from "./zilliz-font-assets.js";
 
 const sha = (character: string) => character.repeat(64);
+const temporaryRoots: string[] = [];
+
+afterEach(() => {
+  for (const root of temporaryRoots.splice(0)) {
+    rmSync(root, {recursive: true, force: true});
+  }
+});
 
 describe("Zilliz MAUL font assets", () => {
   it("reports the complete classified catalog independently from hydration", () => {
@@ -188,6 +204,53 @@ describe("Zilliz MAUL font assets", () => {
       .toBe("italic");
     expect(assets.find((asset) => asset.assetId === "font_leviathan-oblique_ea2cc92ea65b")?.style)
       .toBe("oblique");
+  });
+
+  it("filters a hydrated entry when its public URL points at a different binary", () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "maul-hydrated-font-"));
+    temporaryRoots.push(root);
+    const publicDir = path.join(root, "public");
+    const sourceFont = path.resolve(
+      process.cwd(),
+      "..",
+      "remotion-app",
+      "public",
+      "fonts",
+      "maul",
+      "dm-sans-700.woff2",
+    );
+    const localPath = path.join(publicDir, "fonts/library/test/source.woff2");
+    const publicPath = path.join(publicDir, "fonts/library/test/other.woff2");
+    mkdirSync(path.dirname(localPath), {recursive: true});
+    copyFileSync(sourceFont, localPath);
+    copyFileSync(path.resolve(
+      process.cwd(),
+      "..",
+      "remotion-app",
+      "public",
+      "fonts",
+      "maul",
+      "bebas-neue-400.woff2",
+    ), publicPath);
+    const manifestPath = path.join(root, "font-manifest.json");
+    writeFileSync(manifestPath, JSON.stringify([{
+      fontId: "font_mismatched",
+      familyName: "Mismatched",
+      weight: 400,
+      style: "normal",
+      format: "woff2",
+      publicUrl: "/fonts/library/test/other.woff2",
+      localPublicPath: "public/fonts/library/test/source.woff2",
+      renderable: true,
+      needsManualLicenseReview: false,
+      license: {licenseTexts: ["Bundled"]},
+    }]));
+
+    expect(loadHydratedMaulFontAssets({
+      manifestPath,
+      remotionPublicDir: publicDir,
+      roleBucketsByAssetId: new Map([["font_mismatched", ["neutral_reading"]]]),
+    })).toEqual([]);
   });
 
   it("does not classify Aesthetic as a script accent after taxonomy correction", () => {

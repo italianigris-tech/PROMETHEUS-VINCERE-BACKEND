@@ -18,6 +18,7 @@ import {
   type MaulTypographyPlanInput,
   type MaulTypographyProvider,
 } from "./typography-layout.js";
+import {resolveMaulFontReceipt} from "./font-asset-resolution.js";
 
 type HydratedFontManifestEntry = {
   fontId?: string;
@@ -217,7 +218,7 @@ export const loadHydratedMaulFontAssets = ({
     }
     const bytes = readFileSync(localFilePath);
     if (bytes.length < 12) return [];
-    return [{
+    const asset: MaulResolvedFontAsset = {
       assetId,
       family: entry.familyName?.trim() || assetId,
       cssFamily: cssFamilyFor(assetId),
@@ -235,7 +236,12 @@ export const loadHydratedMaulFontAssets = ({
           ...(entry.license?.licenseTexts ?? []).slice(0, 2),
         ],
       },
-    }];
+    };
+    try {
+      return [resolveMaulFontReceipt(asset, {remotionPublicDir})];
+    } catch {
+      return [];
+    }
   }).sort((left, right) => left.assetId.localeCompare(right.assetId));
 };
 
