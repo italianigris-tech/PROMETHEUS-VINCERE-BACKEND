@@ -542,6 +542,77 @@ describe("MAUL planned text renderer contract", () => {
     });
   });
 
+  it("carries the authoritative realization and full-group transform to Remotion", () => {
+    const binding = structuredClone(chunkTypographyBinding()) as any;
+    binding.realization = {
+      adaptation: "uniform_fit_9_16",
+      horizontalAlignment: "left",
+      maxWidthPercent: 85,
+      intrinsicSizePx: {width: 600, height: 180},
+      layers: [
+        {
+          layerName: "primary",
+          tokenIds: ["token_make"],
+          text: "Make",
+          selectedAsset: binding.layers[0].selectedAsset,
+          fontSizePx: 52,
+          measuredWidthPx: 220,
+          measuredHeightPx: 58,
+          lineHeight: 1.1,
+          letterSpacingEm: 0.01,
+          casing: "normal",
+          color: "#F4E9D7",
+          marginTopPx: 0,
+          shadow: {xOffset: 0, yOffset: 1, blurRadius: 2, color: "#000000"},
+          measurementId: "profile_measurement_make",
+        },
+        {
+          layerName: "accent",
+          tokenIds: ["token_it"],
+          text: "it",
+          selectedAsset: binding.layers[1].selectedAsset,
+          fontSizePx: 92,
+          measuredWidthPx: 180,
+          measuredHeightPx: 98,
+          lineHeight: 1,
+          letterSpacingEm: -0.01,
+          casing: "normal",
+          color: "#FF6B35",
+          marginTopPx: -4,
+          shadow: {xOffset: 0, yOffset: 2, blurRadius: 4, color: "#000000"},
+          measurementId: "profile_measurement_it",
+        },
+      ],
+    };
+    const placement = structuredClone(textPlacementPlan) as any;
+    placement.segments[0].variantId = "profile.typography_group_v1";
+    placement.segments[0].editorialLockup = undefined;
+    placement.segments[0].minimumLegibilityPrimitive = {kind: "none"};
+    placement.segments[0].profileTransform = {
+      uniformScale: 1.2,
+      intrinsicWidthPx: 600,
+      intrinsicHeightPx: 180,
+      finalWidthPx: 720,
+      finalHeightPx: 216,
+    };
+    const motion = structuredClone(typographyMotion) as any;
+    motion.chunkTypographyBindings = [binding];
+
+    const record = buildMaulPlannedTextRecords({
+      textChunkPlan: textChunkPlan as never,
+      textPlacementPlan: placement,
+      typographyMotion: motion,
+      output: {width: 1080, height: 1920},
+    })[0]!;
+
+    expect(record.profileRealization?.layers.map((layer) => layer.color)).toEqual([
+      "#F4E9D7",
+      "#FF6B35",
+    ]);
+    expect(record.profileTransform).toEqual(placement.segments[0].profileTransform);
+    expect(record.editorialLockup).toBeUndefined();
+  });
+
   it("rejects duplicate, missing, and placement-mismatched chunk bindings", () => {
     const binding = chunkTypographyBinding();
     const motion = structuredClone(typographyMotion) as any;

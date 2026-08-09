@@ -33,6 +33,7 @@ import {
   type MaulPlannedTextToken,
 } from "./maul-short-manifest-adapter";
 import {resolveMaulFontAssetUrl} from "./maul-font-asset-resolver";
+import {MaulProfileTypographyGroup} from "./MaulProfileTypographyGroup";
 
 const dmSansFamily = "DM Sans";
 const playfairDisplayFamily = "Playfair Display";
@@ -630,6 +631,17 @@ export const MaulPlannedTextCard: React.FC<{
         transform: resolveMaulTextAnimationTransform({program, outputFrame, fps}),
       }))
     : [];
+  const segmentAnimation = resolvedAnimations.find(
+    ({program}) => program.target.scope === "segment",
+  )?.transform ?? null;
+  if (record.profileRealization || record.profileTransform) {
+    return (
+      <MaulProfileTypographyGroup
+        record={record}
+        segmentAnimation={segmentAnimation}
+      />
+    );
+  }
   const requestedCinematicTreatment = animationPrograms.find((program) =>
     MAUL_CINEMATIC_TREATMENT_IDS.has(
       program.treatment as (typeof MAUL_CINEMATIC_TREATMENT_IDS extends Set<infer T>
@@ -682,9 +694,6 @@ export const MaulPlannedTextCard: React.FC<{
   const accentFont = accentFontFor(record, referenceEditorialRhythm);
   ensurePlannedFontLoaded(primaryFont);
   ensurePlannedFontLoaded(accentFont);
-  const segmentAnimation = resolvedAnimations.find(
-    ({program}) => program.target.scope === "segment",
-  )?.transform ?? null;
   return (
     <div
       data-maul-placement-segment={record.segmentId}

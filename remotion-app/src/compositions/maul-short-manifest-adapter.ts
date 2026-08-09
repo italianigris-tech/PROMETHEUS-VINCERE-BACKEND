@@ -10,6 +10,8 @@ import {
   type MaulNormalizedBox,
   type MaulResolvedFontAsset,
   type MaulOutputCompositionInterval,
+  type MaulProfileTypographyRealization,
+  type MaulTypographyProfileTransform,
   type MaulStableTextTokenV2,
   type MaulTextChunkPlanPayload,
   type MaulTextAnimationPlanPayload,
@@ -314,6 +316,8 @@ export type MaulPlannedTextRecord = {
   fallbackReason: string | null;
   editorialLockup?: MaulEditorialLockup;
   alignment: MaulTextPlacementSegment["alignment"];
+  profileRealization?: MaulProfileTypographyRealization;
+  profileTransform?: MaulTypographyProfileTransform;
   minimumLegibilityPrimitive: MaulMinimumLegibilityPrimitive;
   animationProgram?: MaulTextAnimationProgram | null;
   animationPrograms?: readonly MaulTextAnimationProgram[] | null;
@@ -603,6 +607,34 @@ export const buildMaulPlannedTextRecords = ({
       }
     }
 
+    const profileRealization = chunkTypographyBinding?.realization;
+    if (profileRealization && !segment.profileTransform) {
+      throw new Error(
+        `Placement ${segment.segmentId} has an authoritative realization without a profile transform.`,
+      );
+    }
+    if (segment.profileTransform && !profileRealization) {
+      throw new Error(
+        `Placement ${segment.segmentId} has a profile transform without an authoritative realization.`,
+      );
+    }
+    if (
+      profileRealization &&
+      segment.profileTransform &&
+      (Math.abs(
+        segment.profileTransform.intrinsicWidthPx -
+          profileRealization.intrinsicSizePx.width,
+      ) > 0.01 ||
+        Math.abs(
+          segment.profileTransform.intrinsicHeightPx -
+            profileRealization.intrinsicSizePx.height,
+        ) > 0.01)
+    ) {
+      throw new Error(
+        `Placement ${segment.segmentId} profile transform does not match its realization dimensions.`,
+      );
+    }
+
     return {
       segmentId: segment.segmentId,
       outputStartMs: segment.outputStartMs,
@@ -614,6 +646,8 @@ export const buildMaulPlannedTextRecords = ({
       fallbackReason: segment.fallbackReason,
       editorialLockup: segment.editorialLockup,
       alignment: segment.alignment,
+      profileRealization,
+      profileTransform: segment.profileTransform,
       minimumLegibilityPrimitive: segment.minimumLegibilityPrimitive,
       animationProgram,
       animationPrograms,
