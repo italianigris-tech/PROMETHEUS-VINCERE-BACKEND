@@ -89,6 +89,39 @@ describe("MAUL typography profile corpus", () => {
     ).toEqual(ranked.map((candidate) => candidate.profile.sourceSha256));
   });
 
+  it("only ranks exact word-count profiles and breaks perfect ties by recent reuse", () => {
+    const profiles = loadTypographyProfileCorpus();
+    const base = profiles.find(
+      (profile) =>
+        profile.metadata.totalWordCount === 5 &&
+        profile.metadata.totalCharacterCount === 20,
+    );
+    expect(base).toBeDefined();
+    const clone = {
+      ...base!,
+      profileName: `${base!.profileName}_Clone`,
+      sourceFilename: "zz-reuse-clone.json",
+      sourceSha256: "e".repeat(64),
+    };
+    const ranked = rankTypographyProfiles({
+      profiles: [...profiles, clone],
+      chunk: {
+        wordCount: 5,
+        characterCount: 20,
+        semanticRole: "claim",
+        emphasisLevel: "hero",
+      },
+      targetAspectRatio: "9:16",
+      recentlyUsedProfileNames: [base!.profileName],
+    });
+    expect(ranked.every((candidate) => candidate.wordDistance === 0)).toBe(true);
+    expect(ranked[0]?.profile.sourceFilename).toBe("zz-reuse-clone.json");
+    expect(
+      ranked.find((candidate) => candidate.profile.profileName === base!.profileName)
+        ?.recentProfileReusePenalty,
+    ).toBe(1);
+  });
+
   it("rejects a profile whose declared character counts disagree", () => {
     const corpusDir = mkdtempSync(path.join(tmpdir(), "maul-typography-corpus-"));
     try {

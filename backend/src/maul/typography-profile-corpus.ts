@@ -160,6 +160,7 @@ export type RankedTypographyProfile = {
   characterDistance: number;
   aspectPenalty: number;
   semanticScore: number;
+  recentProfileReusePenalty: number;
 };
 
 let cachedDefaultCorpus: readonly TypographyProfileObservation[] | null = null;
@@ -388,6 +389,7 @@ export const rankTypographyProfiles = ({
   profiles,
   chunk,
   targetAspectRatio,
+  recentlyUsedProfileNames = [],
 }: {
   profiles: readonly TypographyProfileObservation[];
   chunk: {
@@ -397,13 +399,15 @@ export const rankTypographyProfiles = ({
     emphasisLevel: "support" | "key" | "hero";
   };
   targetAspectRatio: "9:16";
+  recentlyUsedProfileNames?: readonly string[];
 }): RankedTypographyProfile[] =>
   profiles
+    .filter(
+      (profile) => profile.metadata.totalWordCount === chunk.wordCount,
+    )
     .map((profile) => ({
       profile,
-      wordDistance: Math.abs(
-        chunk.wordCount - profile.metadata.totalWordCount,
-      ),
+      wordDistance: 0,
       characterDistance: Math.abs(
         chunk.characterCount - profile.metadata.totalCharacterCount,
       ),
@@ -414,13 +418,18 @@ export const rankTypographyProfiles = ({
         chunk.semanticRole,
         chunk.emphasisLevel,
       ),
+      recentProfileReusePenalty: recentlyUsedProfileNames.includes(
+        profile.profileName,
+      )
+        ? 1
+        : 0,
     }))
     .sort(
       (left, right) =>
-        left.wordDistance - right.wordDistance ||
         left.characterDistance - right.characterDistance ||
         left.aspectPenalty - right.aspectPenalty ||
         right.semanticScore - left.semanticScore ||
+        left.recentProfileReusePenalty - right.recentProfileReusePenalty ||
         left.profile.sourceFilename.localeCompare(right.profile.sourceFilename) ||
         left.profile.sourceSha256.localeCompare(right.profile.sourceSha256),
     );

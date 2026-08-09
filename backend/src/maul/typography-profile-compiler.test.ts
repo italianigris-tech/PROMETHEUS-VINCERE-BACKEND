@@ -132,7 +132,7 @@ describe("MAUL typography profile compiler", () => {
     });
 
     const result = await compiler.compile({
-      chunks: [chunk({chunkId: "chunk_unresolved", text: "No font"})],
+      chunks: [chunk({chunkId: "chunk_unresolved", text: "No font here"})],
       targetAspectRatio: "9:16",
       maximumLineWidthPx: 410,
     });
