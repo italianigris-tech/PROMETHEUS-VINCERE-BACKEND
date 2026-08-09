@@ -1,0 +1,166 @@
+{
+  "profile_name": "There_Is_Luxury_In_Simplicity_Modern_Sans_Serif",
+  "version": "1.0.0",
+  "metadata": {
+    "target_aspect_ratio": "16:9",
+    "overall_mood": "Architectural Simplicity, Ultra-Light Sans with Bold Serif Focus",
+    "casing_strategy": "mixed",
+    "total_word_count": 5,
+    "total_character_count": 25,
+    "per_word_character_counts": [
+      {
+        "word": "There",
+        "character_count": 5
+      },
+      {
+        "word": "is",
+        "character_count": 2
+      },
+      {
+        "word": "Luxury",
+        "character_count": 6
+      },
+      {
+        "word": "in",
+        "character_count": 2
+      },
+      {
+        "word": "Simplicity",
+        "character_count": 10
+      }
+    ]
+  },
+  "layout_rules": {
+    "horizontal_alignment": "center",
+    "vertical_position": "center",
+    "bottom_margin_percent": 15,
+    "max_width_percent": 85,
+    "scrim_overlay": {
+      "enabled": false,
+      "type": "none",
+      "opacity": 0,
+      "color": "#F5F5F5"
+    }
+  },
+  "typography_layers": [
+    {
+      "layer_name": "prefix_sans",
+      "role": "secondary_clause",
+      "font_classification": "Ultra-Light Geometric Sans",
+      "matched_font_candidates": [
+        "Inter Thin",
+        "Montserrat"
+      ],
+      "font_style": {
+        "weight": 200,
+        "style": "normal",
+        "casing": "normal",
+        "color": "#666666",
+        "size_px_base": 24,
+        "relative_scale": 0.52,
+        "letter_spacing_em": 0.04,
+        "line_height": 1.2,
+        "vertical_margin_top_px": 0
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 1,
+          "blur_radius": 1,
+          "color": "rgba(0, 0, 0, 0.05)"
+        }
+      },
+      "sample_text": "There is",
+      "word_count": 2,
+      "character_count": 7,
+      "per_word_character_counts": [
+        {
+          "word": "There",
+          "character_count": 5
+        },
+        {
+          "word": "is",
+          "character_count": 2
+        }
+      ]
+    },
+    {
+      "layer_name": "hero_serif",
+      "role": "primary_focus_word",
+      "font_classification": "High-Contrast Bold Serif",
+      "matched_font_candidates": [
+        "Bodoni Moda",
+        "Playfair Display"
+      ],
+      "font_style": {
+        "weight": 800,
+        "style": "normal",
+        "casing": "normal",
+        "color": "#111111",
+        "size_px_base": 46,
+        "relative_scale": 1.0,
+        "letter_spacing_em": 0.01,
+        "line_height": 1.1,
+        "vertical_margin_top_px": 2
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 2,
+          "blur_radius": 4,
+          "color": "rgba(0, 0, 0, 0.1)"
+        }
+      },
+      "sample_text": "Luxury",
+      "word_count": 1,
+      "character_count": 6,
+      "per_word_character_counts": [
+        {
+          "word": "Luxury",
+          "character_count": 6
+        }
+      ]
+    },
+    {
+      "layer_name": "suffix_sans",
+      "role": "secondary_clause",
+      "font_classification": "Ultra-Light Geometric Sans",
+      "matched_font_candidates": [
+        "Inter Thin",
+        "Montserrat"
+      ],
+      "font_style": {
+        "weight": 200,
+        "style": "normal",
+        "casing": "normal",
+        "color": "#666666",
+        "size_px_base": 24,
+        "relative_scale": 0.52,
+        "letter_spacing_em": 0.04,
+        "line_height": 1.2,
+        "vertical_margin_top_px": 2
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 1,
+          "blur_radius": 1,
+          "color": "rgba(0, 0, 0, 0.05)"
+        }
+      },
+      "sample_text": "in Simplicity",
+      "word_count": 2,
+      "character_count": 12,
+      "per_word_character_counts": [
+        {
+          "word": "in",
+          "character_count": 2
+        },
+        {
+          "word": "Simplicity",
+          "character_count": 10
+        }
+      ]
+    }
+  ]
+}
