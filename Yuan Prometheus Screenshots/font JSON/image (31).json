@@ -1,0 +1,164 @@
+{
+  "profile_name": "I_Hate_Being_An_Influencer_Orange_Circle",
+  "version": "1.0.0",
+  "metadata": {
+    "target_aspect_ratio": "16:9",
+    "overall_mood": "Viral Content Critique, Orange Marker Circle & Bold Italic Calligraphy",
+    "casing_strategy": "mixed",
+    "total_word_count": 5,
+    "total_character_count": 23,
+    "per_word_character_counts": [
+      {
+        "word": "I",
+        "character_count": 1
+      },
+      {
+        "word": "hate",
+        "character_count": 4
+      },
+      {
+        "word": "being",
+        "character_count": 5
+      },
+      {
+        "word": "an",
+        "character_count": 2
+      },
+      {
+        "word": "influencer!",
+        "character_count": 11
+      }
+    ]
+  },
+  "layout_rules": {
+    "horizontal_alignment": "left",
+    "vertical_position": "center",
+    "bottom_margin_percent": 15,
+    "max_width_percent": 85,
+    "scrim_overlay": {
+      "enabled": false,
+      "type": "none",
+      "opacity": 0,
+      "color": "#F5F5F0"
+    }
+  },
+  "typography_layers": [
+    {
+      "layer_name": "line_1",
+      "role": "secondary_clause",
+      "font_classification": "Editorial Serif with Orange Circle around hate",
+      "matched_font_candidates": [
+        "Bodoni Moda",
+        "Playfair Display"
+      ],
+      "font_style": {
+        "weight": 400,
+        "style": "normal",
+        "casing": "normal",
+        "color": "#111111",
+        "size_px_base": 38,
+        "relative_scale": 0.79,
+        "letter_spacing_em": 0.01,
+        "line_height": 1.1,
+        "vertical_margin_top_px": 0
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 1,
+          "blur_radius": 2,
+          "color": "rgba(255, 61, 0, 0.3)"
+        }
+      },
+      "sample_text": "I hate",
+      "word_count": 2,
+      "character_count": 5,
+      "per_word_character_counts": [
+        {
+          "word": "I",
+          "character_count": 1
+        },
+        {
+          "word": "hate",
+          "character_count": 4
+        }
+      ]
+    },
+    {
+      "layer_name": "line_2",
+      "role": "secondary_clause",
+      "font_classification": "Editorial Serif",
+      "matched_font_candidates": [
+        "Bodoni Moda"
+      ],
+      "font_style": {
+        "weight": 400,
+        "style": "normal",
+        "casing": "normal",
+        "color": "#111111",
+        "size_px_base": 38,
+        "relative_scale": 0.79,
+        "letter_spacing_em": 0.01,
+        "line_height": 1.1,
+        "vertical_margin_top_px": 2
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 1,
+          "blur_radius": 2,
+          "color": "rgba(0, 0, 0, 0.08)"
+        }
+      },
+      "sample_text": "being an",
+      "word_count": 2,
+      "character_count": 7,
+      "per_word_character_counts": [
+        {
+          "word": "being",
+          "character_count": 5
+        },
+        {
+          "word": "an",
+          "character_count": 2
+        }
+      ]
+    },
+    {
+      "layer_name": "line_3",
+      "role": "primary_focus_word",
+      "font_classification": "Bold Calligraphic Italic Serif",
+      "matched_font_candidates": [
+        "Playfair Display Italic"
+      ],
+      "font_style": {
+        "weight": 800,
+        "style": "italic",
+        "casing": "lowercase",
+        "color": "#111111",
+        "size_px_base": 48,
+        "relative_scale": 1.0,
+        "letter_spacing_em": 0.01,
+        "line_height": 1.0,
+        "vertical_margin_top_px": 2
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 2,
+          "blur_radius": 4,
+          "color": "rgba(0, 0, 0, 0.12)"
+        }
+      },
+      "sample_text": "influencer!",
+      "word_count": 1,
+      "character_count": 11,
+      "per_word_character_counts": [
+        {
+          "word": "influencer!",
+          "character_count": 11
+        }
+      ]
+    }
+  ]
+}
