@@ -1,0 +1,111 @@
+{
+  "profile_name": "Symphony_Sanchez_Calligraphy_Slab",
+  "version": "1.0.0",
+  "metadata": {
+    "target_aspect_ratio": "16:9",
+    "overall_mood": "Musical Elegance, Calligraphic Swoop & Monospace Slab",
+    "casing_strategy": "mixed",
+    "total_word_count": 2,
+    "total_character_count": 15,
+    "per_word_character_counts": [
+      {
+        "word": "Symphony",
+        "character_count": 8
+      },
+      {
+        "word": "SANCHEZ",
+        "character_count": 7
+      }
+    ]
+  },
+  "layout_rules": {
+    "horizontal_alignment": "center",
+    "vertical_position": "center",
+    "bottom_margin_percent": 15,
+    "max_width_percent": 85,
+    "scrim_overlay": {
+      "enabled": false,
+      "type": "none",
+      "opacity": 0,
+      "color": "#F3F2EE"
+    }
+  },
+  "typography_layers": [
+    {
+      "layer_name": "calligraphy_header",
+      "role": "header",
+      "font_classification": "Flourished Calligraphic Script",
+      "matched_font_candidates": [
+        "Pinyon Script",
+        "Great Vibes",
+        "Alex Brush"
+      ],
+      "font_style": {
+        "weight": 400,
+        "style": "italic",
+        "casing": "normal",
+        "color": "#222222",
+        "size_px_base": 48,
+        "relative_scale": 1.0,
+        "letter_spacing_em": 0.03,
+        "line_height": 1.1,
+        "vertical_margin_top_px": 0
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 1,
+          "blur_radius": 2,
+          "color": "rgba(0, 0, 0, 0.08)"
+        }
+      },
+      "sample_text": "Symphony",
+      "word_count": 1,
+      "character_count": 8,
+      "per_word_character_counts": [
+        {
+          "word": "Symphony",
+          "character_count": 8
+        }
+      ]
+    },
+    {
+      "layer_name": "slab_subhead",
+      "role": "secondary_clause",
+      "font_classification": "Monospace Slab Serif",
+      "matched_font_candidates": [
+        "Courier Prime",
+        "Roboto Slab",
+        "Space Mono"
+      ],
+      "font_style": {
+        "weight": 600,
+        "style": "normal",
+        "casing": "uppercase",
+        "color": "#444444",
+        "size_px_base": 18,
+        "relative_scale": 0.37,
+        "letter_spacing_em": 0.1,
+        "line_height": 1.2,
+        "vertical_margin_top_px": -10
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 1,
+          "blur_radius": 2,
+          "color": "rgba(0, 0, 0, 0.05)"
+        }
+      },
+      "sample_text": "SANCHEZ",
+      "word_count": 1,
+      "character_count": 7,
+      "per_word_character_counts": [
+        {
+          "word": "SANCHEZ",
+          "character_count": 7
+        }
+      ]
+    }
+  ]
+}
