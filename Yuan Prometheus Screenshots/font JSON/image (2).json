@@ -1,0 +1,160 @@
+{
+  "profile_name": "Want_This_Premium_Fonts_3D_Blue",
+  "version": "1.0.0",
+  "metadata": {
+    "target_aspect_ratio": "16:9",
+    "overall_mood": "High Impact 3D Metallic, Electric Tech, Commercial Promo",
+    "casing_strategy": "mixed",
+    "total_word_count": 4,
+    "total_character_count": 20,
+    "per_word_character_counts": [
+      {
+        "word": "Want",
+        "character_count": 4
+      },
+      {
+        "word": "this",
+        "character_count": 4
+      },
+      {
+        "word": "PREMIUM",
+        "character_count": 7
+      },
+      {
+        "word": "fonts",
+        "character_count": 5
+      }
+    ]
+  },
+  "layout_rules": {
+    "horizontal_alignment": "center",
+    "vertical_position": "center",
+    "bottom_margin_percent": 20,
+    "max_width_percent": 90,
+    "scrim_overlay": {
+      "enabled": true,
+      "type": "radial_vignette",
+      "opacity": 0.8,
+      "color": "#041226"
+    }
+  },
+  "typography_layers": [
+    {
+      "layer_name": "header_prefix",
+      "role": "context_prefix",
+      "font_classification": "Geometric Italic Sans-Serif",
+      "matched_font_candidates": [
+        "Montserrat",
+        "Inter",
+        "Outfit"
+      ],
+      "font_style": {
+        "weight": 700,
+        "style": "italic",
+        "casing": "normal",
+        "color": "#FFFFFF",
+        "size_px_base": 22,
+        "relative_scale": 0.45,
+        "letter_spacing_em": 0.04,
+        "line_height": 1.1,
+        "vertical_margin_top_px": 0
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 2,
+          "blur_radius": 6,
+          "color": "rgba(0, 0, 0, 0.5)"
+        }
+      },
+      "sample_text": "Want this",
+      "word_count": 2,
+      "character_count": 8,
+      "per_word_character_counts": [
+        {
+          "word": "Want",
+          "character_count": 4
+        },
+        {
+          "word": "this",
+          "character_count": 4
+        }
+      ]
+    },
+    {
+      "layer_name": "hero_3d_text",
+      "role": "primary_focus_word",
+      "font_classification": "Heavy Extruded Display Sans",
+      "matched_font_candidates": [
+        "Impact",
+        "Bebas Neue",
+        "Montserrat ExtraBold"
+      ],
+      "font_style": {
+        "weight": 900,
+        "style": "italic",
+        "casing": "uppercase",
+        "color": "#007AFF",
+        "size_px_base": 52,
+        "relative_scale": 1.0,
+        "letter_spacing_em": 0.05,
+        "line_height": 1.0,
+        "vertical_margin_top_px": 2
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 3,
+          "y_offset": 6,
+          "blur_radius": 12,
+          "color": "rgba(0, 102, 255, 0.8)"
+        }
+      },
+      "sample_text": "PREMIUM",
+      "word_count": 1,
+      "character_count": 7,
+      "per_word_character_counts": [
+        {
+          "word": "PREMIUM",
+          "character_count": 7
+        }
+      ]
+    },
+    {
+      "layer_name": "suffix_text",
+      "role": "accent_tagline",
+      "font_classification": "Humanist Italic Sans-Serif",
+      "matched_font_candidates": [
+        "Inter",
+        "Open Sans"
+      ],
+      "font_style": {
+        "weight": 600,
+        "style": "italic",
+        "casing": "lowercase",
+        "color": "#FFFFFF",
+        "size_px_base": 24,
+        "relative_scale": 0.45,
+        "letter_spacing_em": 0.03,
+        "line_height": 1.1,
+        "vertical_margin_top_px": 4
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 2,
+          "blur_radius": 4,
+          "color": "rgba(0, 0, 0, 0.4)"
+        }
+      },
+      "sample_text": "fonts",
+      "word_count": 1,
+      "character_count": 5,
+      "per_word_character_counts": [
+        {
+          "word": "fonts",
+          "character_count": 5
+        }
+      ]
+    }
+  ]
+}
