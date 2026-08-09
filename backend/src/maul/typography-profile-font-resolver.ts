@@ -212,7 +212,7 @@ const scoreCandidate = ({
   profileMood: string;
   entry: TypographyFontIntelligenceEntry;
   asset: MaulResolvedFontAsset;
-}): {score: number; exactFamily: boolean} => {
+}): {score: number; exactFamily: boolean; exactStyle: boolean} => {
   const requestedFamilies = layer.matchedFontCandidates.map(normalizedFamily);
   const assetFamily = normalizedFamily(asset.family);
   const exactFamily = requestedFamilies.includes(assetFamily);
@@ -234,6 +234,7 @@ const scoreCandidate = ({
     ].join(" "),
   );
   const styleMatch = asset.style === layer.fontStyle.style ? 1 : -1;
+  const exactStyle = styleMatch === 1;
   const weightDistance = Math.abs(asset.weight - layer.fontStyle.weight);
   const score =
     (exactFamily ? 1000 : 0) +
@@ -243,7 +244,7 @@ const scoreCandidate = ({
     weightDistance / 20 +
     entry.readabilityScore * 10 +
     entry.expressivenessScore * 10;
-  return {score: Number(score.toFixed(6)), exactFamily};
+  return {score: Number(score.toFixed(6)), exactFamily, exactStyle};
 };
 
 export const resolveTypographyProfileLayer = ({
@@ -291,7 +292,8 @@ export const resolveTypographyProfileLayer = ({
         left.asset.assetId.localeCompare(right.asset.assetId),
     );
   const selected = ranked[0]!;
-  const resolution = selected.exactFamily ? "exact" : "closest_catalog";
+  const resolution =
+    selected.exactFamily && selected.exactStyle ? "exact" : "closest_catalog";
   return maulTypographyLayerBindingSchema.parse({
     layerName: layer.layerName,
     role: layer.role,

@@ -186,6 +186,33 @@ describe("MAUL typography profile font resolver", () => {
     expect(result.reason).toMatch(/closest deployed/i);
   });
 
+  it("records an exact-family style mismatch as a governed substitution", () => {
+    const result = resolveTypographyProfileLayer({
+      layer: layer({
+        candidates: ["Playfair Display Italic"],
+        classification: "Didone Editorial Serif",
+        role: "primary_focus_word",
+        style: "italic",
+      }),
+      profileMood: "Cinematic editorial luxury",
+      catalog,
+      executableAssets: [
+        asset({
+          assetId: "font_playfair_regular_700",
+          family: "Playfair Display",
+          weight: 700,
+          style: "normal",
+        }),
+      ],
+    });
+
+    expect(result.resolution).toBe("closest_catalog");
+    expect(result.selectedAsset).toMatchObject({
+      family: "Playfair Display",
+      style: "normal",
+    });
+  });
+
   it("does not select an exact 577-catalog match without a deployed receipt", () => {
     const result = resolveTypographyProfileLayer({
       layer: layer({candidates: ["Inter"]}),
