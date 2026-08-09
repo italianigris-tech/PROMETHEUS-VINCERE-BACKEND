@@ -1,0 +1,125 @@
+{
+  "profile_name": "Every_Moment_Matters_Drop_Cap_Serif",
+  "version": "1.0.0",
+  "metadata": {
+    "target_aspect_ratio": "16:9",
+    "overall_mood": "Editorial Classic, Giant Drop Cap, Architectural Hierarchy",
+    "casing_strategy": "mixed",
+    "total_word_count": 4,
+    "total_character_count": 19,
+    "per_word_character_counts": [
+      {
+        "word": "E",
+        "character_count": 1
+      },
+      {
+        "word": "very",
+        "character_count": 4
+      },
+      {
+        "word": "moment",
+        "character_count": 6
+      },
+      {
+        "word": "matters.",
+        "character_count": 8
+      }
+    ]
+  },
+  "layout_rules": {
+    "horizontal_alignment": "left",
+    "vertical_position": "center",
+    "bottom_margin_percent": 15,
+    "max_width_percent": 85,
+    "scrim_overlay": {
+      "enabled": false,
+      "type": "none",
+      "opacity": 0,
+      "color": "#F4F3EE"
+    }
+  },
+  "typography_layers": [
+    {
+      "layer_name": "giant_drop_cap",
+      "role": "primary_focus_word",
+      "font_classification": "Giant High-Contrast Serif Drop Cap",
+      "matched_font_candidates": [
+        "Bodoni Moda",
+        "Playfair Display"
+      ],
+      "font_style": {
+        "weight": 900,
+        "style": "normal",
+        "casing": "uppercase",
+        "color": "#111111",
+        "size_px_base": 90,
+        "relative_scale": 1.0,
+        "letter_spacing_em": -0.02,
+        "line_height": 0.9,
+        "vertical_margin_top_px": 0
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 4,
+          "blur_radius": 8,
+          "color": "rgba(0, 0, 0, 0.15)"
+        }
+      },
+      "sample_text": "E",
+      "word_count": 1,
+      "character_count": 1,
+      "per_word_character_counts": [
+        {
+          "word": "E",
+          "character_count": 1
+        }
+      ]
+    },
+    {
+      "layer_name": "suffix_text",
+      "role": "secondary_clause",
+      "font_classification": "Classic High-Contrast Serif",
+      "matched_font_candidates": [
+        "Bodoni Moda",
+        "Lora"
+      ],
+      "font_style": {
+        "weight": 600,
+        "style": "normal",
+        "casing": "lowercase",
+        "color": "#111111",
+        "size_px_base": 28,
+        "relative_scale": 0.31,
+        "letter_spacing_em": 0.01,
+        "line_height": 1.1,
+        "vertical_margin_top_px": 0
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 1,
+          "blur_radius": 2,
+          "color": "rgba(0, 0, 0, 0.08)"
+        }
+      },
+      "sample_text": "very moment matters.",
+      "word_count": 3,
+      "character_count": 18,
+      "per_word_character_counts": [
+        {
+          "word": "very",
+          "character_count": 4
+        },
+        {
+          "word": "moment",
+          "character_count": 6
+        },
+        {
+          "word": "matters.",
+          "character_count": 8
+        }
+      ]
+    }
+  ]
+}
