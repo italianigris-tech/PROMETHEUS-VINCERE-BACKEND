@@ -92,4 +92,37 @@ describe("MAUL typography profile placement", () => {
     expect(placement.box.x).toBeLessThan(0.5);
     expect(placement.box.y).toBeLessThan(0.7);
   });
+
+  it("scales compact profile geometry to an editorially present frame width", () => {
+    const selectedAsset = loadExecutableTypographyFontAssets()[0]!;
+    const placement = selectTypographyProfilePlacement({
+      realization: {
+        adaptation: "uniform_fit_9_16",
+        horizontalAlignment: "left",
+        maxWidthPercent: 85,
+        intrinsicSizePx: {width: 100, height: 120},
+        layers: [{
+          layerName: "hero",
+          tokenIds: ["t1"],
+          text: "Here",
+          selectedAsset,
+          fontSizePx: 68,
+          measuredWidthPx: 100,
+          measuredHeightPx: 120,
+          lineHeight: 1,
+          letterSpacingEm: 0,
+          casing: "normal",
+          color: "#111111",
+          marginTopPx: 0,
+          shadow: {xOffset: 0, yOffset: 0, blurRadius: 0, color: "#000000"},
+          measurementId: "profile_measurement_compact",
+        }],
+      },
+      subjectBox: null,
+      existingTextRegions: [],
+    });
+
+    expect(placement.transform.finalWidthPx).toBeGreaterThanOrEqual(540);
+    expect(placement.box.width).toBeGreaterThanOrEqual(0.5);
+  });
 });

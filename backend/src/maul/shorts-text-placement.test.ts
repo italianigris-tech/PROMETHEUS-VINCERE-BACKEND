@@ -150,6 +150,8 @@ const observation = ({
   trackingState = "tracked",
   subjectBox = null,
   cutEvidenceStatus = "known",
+  backgroundLuminance,
+  backgroundLuminanceGrid,
 }: {
   evidenceId?: string;
   sceneId?: string;
@@ -158,6 +160,12 @@ const observation = ({
   trackingState?: "tracked" | "held" | "lost" | "unknown" | "absent_confirmed";
   subjectBox?: MaulNormalizedBox | null;
   cutEvidenceStatus?: "known" | "unknown";
+  backgroundLuminance?: number;
+  backgroundLuminanceGrid?: {
+    columns: number;
+    rows: number;
+    samples: readonly number[];
+  };
 }) => ({
   evidenceId,
   sceneId,
@@ -167,6 +175,10 @@ const observation = ({
   subjectBox,
   cutEvidenceStatus,
   existingTextRegions: [],
+  ...(backgroundLuminance === undefined ? {} : {backgroundLuminance}),
+  ...(backgroundLuminanceGrid === undefined
+    ? {}
+    : {backgroundLuminanceGrid}),
 });
 
 const boxesOverlap = (first: MaulNormalizedBox, second: MaulNormalizedBox) =>
@@ -497,7 +509,14 @@ describe("MAUL scene-aware text placement", () => {
       textChunkPlan: makeChunkPlan(),
       compositionIntervals: [composition()],
       observationIntervals: [
-        observation({subjectBox: {x: 0.37, y: 0.12, width: 0.28, height: 0.68}}),
+        observation({
+          subjectBox: {x: 0.37, y: 0.12, width: 0.28, height: 0.68},
+          backgroundLuminanceGrid: {
+            columns: 2,
+            rows: 2,
+            samples: [0.04, 0.04, 0.04, 0.04],
+          },
+        }),
       ],
       typography: {
         byChunkId: {
@@ -529,7 +548,7 @@ describe("MAUL scene-aware text placement", () => {
                 lineHeight: 1.1,
                 letterSpacingEm: 0.01,
                 casing: "normal",
-                color: "#F4E9D7",
+                color: "#111111",
                 marginTopPx: 0,
                 shadow: {xOffset: 0, yOffset: 2, blurRadius: 8, color: "#000000"},
                 measurementId: "profile_measurement_across",
@@ -554,6 +573,15 @@ describe("MAUL scene-aware text placement", () => {
     });
     expect(plan.segments[0]!.box.width).toBeGreaterThan(0.5);
     expect(plan.segments[0]!.box.x).toBeGreaterThanOrEqual(0.04);
+    expect(plan.segments[0]!.profileColorResolution).toMatchObject({
+      mode: "light_text",
+      backgroundLuminance: 0.04,
+      layers: [{
+        layerName: "hero",
+        requestedColor: "#111111",
+        resolvedColor: "#FFFFFF",
+      }],
+    });
   });
 
   it("uses each chunk's measured typography profile independently", () => {

@@ -122,6 +122,39 @@ describe("MAUL typography profile corpus", () => {
     ).toBe(1);
   });
 
+  it("uses extracted expressiveness to break close character-count matches", () => {
+    const profiles = loadTypographyProfileCorpus();
+    const fiveWordRanked = rankTypographyProfiles({
+      profiles,
+      chunk: {
+        wordCount: 5,
+        characterCount: 23,
+        semanticRole: "claim",
+        emphasisLevel: "hero",
+      },
+      targetAspectRatio: "9:16",
+    });
+    const fourWordRanked = rankTypographyProfiles({
+      profiles,
+      chunk: {
+        wordCount: 4,
+        characterCount: 18,
+        semanticRole: "proof",
+        emphasisLevel: "key",
+      },
+      targetAspectRatio: "9:16",
+    });
+
+    expect(fiveWordRanked[0]?.profile.profileName).toBe(
+      "Old_Money_Script_Serif_Overlapping",
+    );
+    expect(fourWordRanked[0]?.profile.profileName).toBe(
+      "Want_This_Premium_Fonts_3D_Blue",
+    );
+    expect(fiveWordRanked[0]?.characterDistance).toBeLessThanOrEqual(2);
+    expect(fourWordRanked[0]?.characterDistance).toBeLessThanOrEqual(2);
+  });
+
   it("rejects a profile whose declared character counts disagree", () => {
     const corpusDir = mkdtempSync(path.join(tmpdir(), "maul-typography-corpus-"));
     try {

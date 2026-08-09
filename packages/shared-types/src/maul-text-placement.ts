@@ -573,6 +573,25 @@ export const maulTypographyProfileTransformSchema = z
     }
   });
 
+export const maulTypographyProfileColorResolutionSchema = z
+  .object({
+    mode: z.enum(["profile", "light_text", "dark_text"]),
+    backgroundLuminance: z.number().min(0).max(1).nullable(),
+    layers: z
+      .array(
+        z
+          .object({
+            layerName: idSchema,
+            requestedColor: z.string().trim().min(1),
+            resolvedColor: z.string().trim().min(1),
+            contrastRatio: z.number().positive().nullable(),
+          })
+          .strict(),
+      )
+      .min(1),
+  })
+  .strict();
+
 export const maulTextPlacementSegmentSchema = z
   .object({
     segmentId: idSchema,
@@ -599,6 +618,8 @@ export const maulTextPlacementSegmentSchema = z
     maximumEnvelope: maulNormalizedBoxSchema,
     alignment: z.enum(["left", "center", "right"]),
     profileTransform: maulTypographyProfileTransformSchema.optional(),
+    profileColorResolution:
+      maulTypographyProfileColorResolutionSchema.optional(),
     compatibility: z.object({
       profileId: idSchema,
       metricsFingerprint: sha256Schema,
@@ -928,6 +949,9 @@ export type MaulTypographyCompatibilityProfile = z.infer<
 >;
 export type MaulTypographyProfileTransform = z.infer<
   typeof maulTypographyProfileTransformSchema
+>;
+export type MaulTypographyProfileColorResolution = z.infer<
+  typeof maulTypographyProfileColorResolutionSchema
 >;
 export type MaulOutputCompositionInterval = z.infer<
   typeof maulOutputCompositionIntervalSchema

@@ -805,8 +805,8 @@ describe("MAUL complete short render path", () => {
         expect.objectContaining({
           chunkId: plans.textChunk.payload.chunks[0].chunkId,
           profile: expect.objectContaining({
-            name: "I_Hate_Being_An_Influencer_Orange_Circle",
-            sourceFilename: "image (31).json",
+            name: "Old_Money_Script_Serif_Overlapping",
+            sourceFilename: "image (7).json",
           }),
           layers: expect.arrayContaining([
             expect.objectContaining({
@@ -820,8 +820,8 @@ describe("MAUL complete short render path", () => {
         expect.objectContaining({
           chunkId: plans.textChunk.payload.chunks[1].chunkId,
           profile: expect.objectContaining({
-            name: "The_Evolution_Of_She_Geometric_Didone",
-            sourceFilename: "image (12).json",
+            name: "Want_This_Premium_Fonts_3D_Blue",
+            sourceFilename: "image (2).json",
           }),
         }),
       ]),

@@ -5,7 +5,7 @@ import type {
 } from "@prometheus/shared-types";
 
 const OUTPUT = {width: 1080, height: 1920} as const;
-const MAX_PROFILE_SCALE = 3.4;
+const MINIMUM_PROFILE_WIDTH_PERCENT = 50;
 const SAFE_REGION: MaulNormalizedBox = {
   x: 0.04,
   y: 0.04,
@@ -96,10 +96,20 @@ export const selectTypographyProfilePlacement = ({
   const maximumWidthPx =
     (OUTPUT.width * realization.maxWidthPercent) / 100;
   const maximumHeightPx = OUTPUT.height * SAFE_REGION.height;
-  const uniformScale = Math.min(
-    MAX_PROFILE_SCALE,
+  const maximumScale = Math.min(
     maximumWidthPx / realization.intrinsicSizePx.width,
     maximumHeightPx / realization.intrinsicSizePx.height,
+  );
+  const minimumPresenceWidthPx = Math.min(
+    maximumWidthPx,
+    (OUTPUT.width * MINIMUM_PROFILE_WIDTH_PERCENT) / 100,
+  );
+  const uniformScale = Math.min(
+    maximumScale,
+    Math.max(
+      1,
+      minimumPresenceWidthPx / realization.intrinsicSizePx.width,
+    ),
   );
   if (!Number.isFinite(uniformScale) || uniformScale <= 0) {
     throw new Error("Typography profile has no positive 9:16 placement scale.");

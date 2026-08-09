@@ -97,6 +97,24 @@ describe("MAUL profile typography renderer", () => {
         {lineId: "line_hero", text: "changes", tokens: [{tokenId: "token_hero", text: "changes", outputSpans: []}]},
       ],
     };
+    record.profileColorResolution = {
+      mode: "light_text",
+      backgroundLuminance: 0.04,
+      layers: [
+        {
+          layerName: "support",
+          requestedColor: "#F4E9D7",
+          resolvedColor: "#FFFFFF",
+          contrastRatio: 11.667,
+        },
+        {
+          layerName: "hero",
+          requestedColor: "#FF6B35",
+          resolvedColor: "#FF6B35",
+          contrastRatio: 4.7,
+        },
+      ],
+    };
 
     const markup = renderToStaticMarkup(
       <MaulProfileTypographyGroup
@@ -105,11 +123,13 @@ describe("MAUL profile typography renderer", () => {
     );
 
     expect(markup).toContain('data-maul-profile-typography="true"');
+    expect(markup).toContain('data-profile-color-mode="light_text"');
     expect(markup).toContain('data-maul-profile-layer="support"');
     expect(markup).toContain('data-maul-profile-layer="hero"');
     expect(markup).toContain("The setup");
     expect(markup).toContain("changes");
-    expect(markup).toContain("#F4E9D7");
+    expect(markup).toContain("#FFFFFF");
+    expect(markup).not.toContain("color:#F4E9D7");
     expect(markup).toContain("#FF6B35");
     expect(markup).toContain(selectedAsset.browserUrl);
     expect(markup).toContain("font-size:92px");

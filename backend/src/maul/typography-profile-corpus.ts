@@ -160,6 +160,7 @@ export type RankedTypographyProfile = {
   characterDistance: number;
   aspectPenalty: number;
   semanticScore: number;
+  expressivenessScore: number;
   recentProfileReusePenalty: number;
 };
 
@@ -385,6 +386,46 @@ const semanticScore = (
   );
 };
 
+const normalizedColor = (color: string): string =>
+  color.trim().toLocaleLowerCase();
+
+const normalizedFontFamily = (family: string): string =>
+  family.toLocaleLowerCase().replace(/[^a-z0-9]+/gu, "");
+
+const profileExpressivenessScore = (
+  profile: TypographyProfileObservation,
+): number => {
+  const colors = new Set(
+    profile.layers.map((layer) => normalizedColor(layer.fontStyle.color)),
+  );
+  const styles = new Set(
+    profile.layers.map((layer) => layer.fontStyle.style),
+  );
+  const roles = new Set(profile.layers.map((layer) => layer.role));
+  const families = new Set(
+    profile.layers.flatMap((layer) =>
+      layer.matchedFontCandidates.map(normalizedFontFamily),
+    ),
+  );
+  const scales = profile.layers.map((layer) => layer.fontStyle.relativeScale);
+  const scaleSpread = Math.max(...scales) - Math.min(...scales);
+  const negativeMargins = profile.layers.filter(
+    (layer) => layer.fontStyle.verticalMarginTopPx < 0,
+  ).length;
+
+  return (
+    Math.max(0, colors.size - 1) * 3 +
+    Math.max(0, styles.size - 1) * 2 +
+    Math.max(0, roles.size - 1) +
+    Math.max(0, families.size - 1) * 0.25 +
+    Math.min(2, profile.layers.length - 1) * 1.5 +
+    Math.min(2, scaleSpread * 4) +
+    Math.min(2, negativeMargins)
+  );
+};
+
+const CHARACTER_DISTANCE_TOLERANCE = 2;
+
 export const rankTypographyProfiles = ({
   profiles,
   chunk,
@@ -400,8 +441,8 @@ export const rankTypographyProfiles = ({
   };
   targetAspectRatio: "9:16";
   recentlyUsedProfileNames?: readonly string[];
-}): RankedTypographyProfile[] =>
-  profiles
+}): RankedTypographyProfile[] => {
+  const candidates = profiles
     .filter(
       (profile) => profile.metadata.totalWordCount === chunk.wordCount,
     )
@@ -418,18 +459,29 @@ export const rankTypographyProfiles = ({
         chunk.semanticRole,
         chunk.emphasisLevel,
       ),
+      expressivenessScore: profileExpressivenessScore(profile),
       recentProfileReusePenalty: recentlyUsedProfileNames.includes(
         profile.profileName,
       )
         ? 1
         : 0,
-    }))
-    .sort(
-      (left, right) =>
-        left.characterDistance - right.characterDistance ||
-        left.aspectPenalty - right.aspectPenalty ||
-        right.semanticScore - left.semanticScore ||
-        left.recentProfileReusePenalty - right.recentProfileReusePenalty ||
-        left.profile.sourceFilename.localeCompare(right.profile.sourceFilename) ||
-        left.profile.sourceSha256.localeCompare(right.profile.sourceSha256),
-    );
+    }));
+  if (candidates.length === 0) return [];
+  const minimumCharacterDistance = Math.min(
+    ...candidates.map((candidate) => candidate.characterDistance),
+  );
+  const maximumCloseCharacterDistance =
+    minimumCharacterDistance + CHARACTER_DISTANCE_TOLERANCE;
+  return candidates.sort(
+    (left, right) =>
+      left.aspectPenalty - right.aspectPenalty ||
+      Number(left.characterDistance > maximumCloseCharacterDistance) -
+        Number(right.characterDistance > maximumCloseCharacterDistance) ||
+      right.expressivenessScore - left.expressivenessScore ||
+      left.characterDistance - right.characterDistance ||
+      right.semanticScore - left.semanticScore ||
+      left.recentProfileReusePenalty - right.recentProfileReusePenalty ||
+      left.profile.sourceFilename.localeCompare(right.profile.sourceFilename) ||
+      left.profile.sourceSha256.localeCompare(right.profile.sourceSha256),
+  );
+};

@@ -46,6 +46,12 @@ export const MaulProfileTypographyGroup: React.FC<{
       `MAUL profile renderer requires realization and transform for ${record.segmentId}.`,
     );
   }
+  const resolvedColorsByLayerName = new Map(
+    (record.profileColorResolution?.layers ?? []).map((layer) => [
+      layer.layerName,
+      layer.resolvedColor,
+    ]),
+  );
   for (const layer of realization.layers) {
     ensureProfileFontLoaded(layer.selectedAsset);
   }
@@ -57,6 +63,10 @@ export const MaulProfileTypographyGroup: React.FC<{
       data-placement-family={record.family}
       data-placement-variant={record.variantId}
       data-profile-uniform-scale={profileTransform.uniformScale}
+      data-profile-color-mode={record.profileColorResolution?.mode}
+      data-profile-background-luminance={
+        record.profileColorResolution?.backgroundLuminance ?? undefined
+      }
       style={{
         position: "absolute",
         left: record.boxPx.leftPx,
@@ -85,7 +95,7 @@ export const MaulProfileTypographyGroup: React.FC<{
             style={{
               width: "100%",
               marginTop: layer.marginTopPx,
-              color: layer.color,
+              color: resolvedColorsByLayerName.get(layer.layerName) ?? layer.color,
               fontFamily: layer.selectedAsset.cssFamily,
               fontSize: layer.fontSizePx,
               fontWeight: layer.selectedAsset.weight,

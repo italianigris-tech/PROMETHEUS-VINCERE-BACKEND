@@ -1,7 +1,8 @@
-import {describe, expect, it} from "vitest";
+import {describe, expect, it, vi} from "vitest";
 
 import {
   buildSpeakerTrackSceneEvidence,
+  createSpeakerTrackSceneEvidenceProvider,
   createUnavailableSceneEvidenceProvider,
   sceneEvidenceToPlacementInputs,
 } from "./scene-evidence.js";
@@ -41,6 +42,11 @@ describe("MAUL scene evidence", () => {
             trackingState: "tracked",
             box: {x: 0.08, y: 0.12, width: 0.3, height: 0.64},
           },
+          backgroundLuminanceGrid: {
+            columns: 2,
+            rows: 2,
+            samples: [0.04, 0.08, 0.12, 0.16],
+          },
           existingTextRegions: [],
           opportunities: [
             {
@@ -63,6 +69,11 @@ describe("MAUL scene evidence", () => {
         expect.objectContaining({
           trackingState: "tracked",
           cutEvidenceStatus: "known",
+          backgroundLuminanceGrid: {
+            columns: 2,
+            rows: 2,
+            samples: [0.04, 0.08, 0.12, 0.16],
+          },
         }),
       ],
       compositionIntervals: expect.arrayContaining([
@@ -164,6 +175,57 @@ describe("MAUL scene evidence", () => {
         }),
       ]),
     );
+  });
+
+  it("attaches sampled source-frame luminance to tracked scene evidence", async () => {
+    const crop = {x: 0.2, y: 0, width: 0.5, height: 1};
+    const sampledGrid = {
+      columns: 2,
+      rows: 2,
+      samples: [0.03, 0.04, 0.05, 0.06],
+    };
+    const sampleBackgroundLuminance = vi.fn(async () => sampledGrid);
+    const provider = createSpeakerTrackSceneEvidenceProvider({
+      sampleBackgroundLuminance,
+    });
+    const evidence = await provider.inspect({
+      sourcePath: "/tmp/source.mp4",
+      beats: [{beatId: "beat_hook", startMs: 0, endMs: 500, purpose: "HOOK"}],
+      speakerTracks: [{
+        speakerId: "speaker_primary",
+        samples: [{
+          sourceMs: 1_250,
+          x: 0.25,
+          y: 0.1,
+          width: 0.1,
+          height: 0.4,
+          confidence: 0.94,
+        }],
+      }],
+      timestampMap: [{
+        sourceStartMs: 1_000,
+        sourceEndMs: 2_000,
+        outputStartMs: 0,
+        outputEndMs: 1_000,
+        mode: "keep",
+      }],
+      speakerCropTracks: [{
+        speakerId: "speaker_primary",
+        outputStartMs: 0,
+        outputEndMs: 1_000,
+        crop,
+      }],
+    });
+
+    expect(sampleBackgroundLuminance).toHaveBeenCalledWith({
+      sourcePath: "/tmp/source.mp4",
+      sourceMs: 1_250,
+      sourceCrop: crop,
+    });
+    expect(evidence).toMatchObject({
+      status: "available",
+      holds: [{backgroundLuminanceGrid: sampledGrid}],
+    });
   });
 
   it("refuses to invent scene evidence when no speaker sample maps into a beat", () => {

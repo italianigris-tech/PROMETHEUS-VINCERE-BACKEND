@@ -16,6 +16,10 @@ import {
   buildCompositionCandidates,
   type MaulCompositionDirection,
 } from "./composition-candidates.js";
+import {
+  createRepositorySceneBackgroundLuminanceSampler,
+  type SceneBackgroundLuminanceGrid,
+} from "./scene-background-luminance.js";
 
 export type SceneEvidenceVisualBeat = {
   beatId: string;
@@ -42,11 +46,15 @@ export type SceneEvidenceHold = {
   outputStartMs: number;
   outputEndMs: number;
   sourceFrameIds: string[];
+  sourceSampleMs?: number;
   sourceCrop: MaulNormalizedBox;
   subject: {
     trackingState: "tracked" | "held" | "absent_confirmed";
     box: MaulNormalizedBox | null;
   };
+  backgroundLuminanceGrid?: NonNullable<
+    MaulPlacementObservationInterval["backgroundLuminanceGrid"]
+  >;
   existingTextRegions: MaulNormalizedBox[];
   opportunities: SceneOpportunityRegion[];
 };
@@ -251,6 +259,7 @@ export const buildSpeakerTrackSceneEvidence = (
         sourceFrameIds: [
           selected.sample.speakerId + "@" + selected.sample.sourceMs,
         ],
+        sourceSampleMs: selected.sample.sourceMs,
         sourceCrop: selected.cropTrack.crop,
         subject: {
           trackingState: "tracked" as const,
@@ -277,8 +286,17 @@ export const buildSpeakerTrackSceneEvidence = (
       };
 };
 
-export const createSpeakerTrackSceneEvidenceProvider =
-  (): SceneEvidenceProvider => ({
+export type SceneBackgroundLuminanceSampler = (input: {
+  sourcePath: string;
+  sourceMs: number;
+  sourceCrop: MaulNormalizedBox;
+}) => Promise<SceneBackgroundLuminanceGrid>;
+
+export const createSpeakerTrackSceneEvidenceProvider = ({
+  sampleBackgroundLuminance = createRepositorySceneBackgroundLuminanceSampler(),
+}: {
+  sampleBackgroundLuminance?: SceneBackgroundLuminanceSampler;
+} = {}): SceneEvidenceProvider => ({
     async inspect(input) {
       if (
         !input.speakerTracks ||
@@ -292,12 +310,31 @@ export const createSpeakerTrackSceneEvidenceProvider =
             "Speaker-track scene evidence requires analysis tracks, timestamp mapping, and portrait crop tracks.",
         };
       }
-      return buildSpeakerTrackSceneEvidence({
+      const evidence = buildSpeakerTrackSceneEvidence({
         ...input,
         speakerTracks: input.speakerTracks,
         timestampMap: input.timestampMap,
         speakerCropTracks: input.speakerCropTracks,
       });
+      if (evidence.status !== "available") return evidence;
+      const holds = await Promise.all(
+        evidence.holds.map(async (hold) => {
+          if (hold.sourceSampleMs === undefined) return hold;
+          try {
+            return {
+              ...hold,
+              backgroundLuminanceGrid: await sampleBackgroundLuminance({
+                sourcePath: input.sourcePath,
+                sourceMs: hold.sourceSampleMs,
+                sourceCrop: hold.sourceCrop,
+              }),
+            };
+          } catch {
+            return hold;
+          }
+        }),
+      );
+      return {...evidence, holds};
     },
   });
 
@@ -380,6 +417,9 @@ export const sceneEvidenceToPlacementInputs = (
     subjectBox: hold.subject.box,
     cutEvidenceStatus: "known" as const,
     existingTextRegions: hold.existingTextRegions,
+    ...(hold.backgroundLuminanceGrid
+      ? {backgroundLuminanceGrid: hold.backgroundLuminanceGrid}
+      : {}),
   }));
   const shotIntervals = evidence.holds.map((hold) => ({
     sceneId: hold.sceneId,

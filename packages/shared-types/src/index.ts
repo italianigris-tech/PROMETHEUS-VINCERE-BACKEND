@@ -121,6 +121,7 @@ export {
   maulTextOutputSpanSchema,
   maulTextPlacementPlanCoreSchema,
   maulTextPlacementSegmentSchema,
+  maulTypographyProfileColorResolutionSchema,
   maulTypographyProfileTransformSchema,
   maulTypographyCompatibilityProfileSchema,
   type MaulMinimumLegibilityPrimitive,
@@ -135,6 +136,7 @@ export {
   type MaulTextPlacementPlanCore,
   type MaulTextPlacementSegment,
   type MaulTypographyCompatibilityProfile,
+  type MaulTypographyProfileColorResolution,
   type MaulTypographyProfileTransform,
 } from "./maul-text-placement.js";
 

@@ -16,8 +16,18 @@ import {
 import {hashMaulPlanPayload} from "./text-chunk-plan.js";
 import type {MaulMeasuredTypographyLayout} from "./typography-layout.js";
 import {selectTypographyProfilePlacement} from "./typography-profile-placement.js";
+import {
+  averageLuminanceForBox,
+  resolveTypographyProfileColors,
+} from "./typography-profile-contrast.js";
 
 export type MaulPlacementFamily = "measured" | "editorial" | "personal";
+
+export type MaulBackgroundLuminanceGrid = {
+  columns: number;
+  rows: number;
+  samples: readonly number[];
+};
 
 export type MaulPlacementObservationInterval = {
   evidenceId: string;
@@ -33,6 +43,8 @@ export type MaulPlacementObservationInterval = {
   subjectBox: MaulNormalizedBox | null;
   cutEvidenceStatus: "known" | "unknown";
   existingTextRegions: readonly MaulNormalizedBox[];
+  backgroundLuminance?: number;
+  backgroundLuminanceGrid?: MaulBackgroundLuminanceGrid;
 };
 
 export type MaulPlacementTimelineInterval = {
@@ -966,6 +978,20 @@ const buildCandidate = ({
       maximumEnvelope: geometry.maximumEnvelope,
       alignment: geometry.alignment,
       ...(profilePlacement ? {profileTransform: profilePlacement.transform} : {}),
+      ...(profileRealization
+        ? {
+            profileColorResolution: resolveTypographyProfileColors({
+              realization: profileRealization,
+              backgroundLuminance:
+                (observation?.backgroundLuminanceGrid && profilePlacement
+                  ? averageLuminanceForBox({
+                      grid: observation.backgroundLuminanceGrid,
+                      box: profilePlacement.box,
+                    })
+                  : null) ?? observation?.backgroundLuminance,
+            }),
+          }
+        : {}),
       compatibility: {
         profileId: profile.profileId,
         metricsFingerprint: profile.metrics.fingerprint,

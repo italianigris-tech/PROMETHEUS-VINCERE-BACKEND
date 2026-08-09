@@ -19,6 +19,7 @@ import {
   type MaulTextPlacementPlanPayload,
   type MaulTextPlacementSegment,
   type MaulTypographyMotionPlanV2Payload,
+  type MaulTypographyProfileColorResolution,
   type MaulUnifiedShortRenderManifestV1,
   type MaulUnifiedShortRenderManifestV2,
   type MaulUnifiedShortRenderManifestV3,
@@ -318,6 +319,7 @@ export type MaulPlannedTextRecord = {
   alignment: MaulTextPlacementSegment["alignment"];
   profileRealization?: MaulProfileTypographyRealization;
   profileTransform?: MaulTypographyProfileTransform;
+  profileColorResolution?: MaulTypographyProfileColorResolution;
   minimumLegibilityPrimitive: MaulMinimumLegibilityPrimitive;
   animationProgram?: MaulTextAnimationProgram | null;
   animationPrograms?: readonly MaulTextAnimationProgram[] | null;
@@ -658,6 +660,7 @@ export const buildMaulPlannedTextRecords = ({
       alignment: segment.alignment,
       profileRealization,
       profileTransform: segment.profileTransform,
+      profileColorResolution: segment.profileColorResolution,
       minimumLegibilityPrimitive: segment.minimumLegibilityPrimitive,
       animationProgram,
       animationPrograms,
