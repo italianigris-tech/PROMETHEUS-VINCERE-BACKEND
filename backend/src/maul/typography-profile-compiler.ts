@@ -22,15 +22,21 @@ import {
   type TypographyFontIntelligenceEntry,
 } from "./typography-profile-font-resolver.js";
 import {
+  createFontkitEditorialTokenMeasurementProvider,
   createResolvedMaulTypographyProvider,
   type MaulMeasuredTypographyLayout,
   type MaulTypographyPlan,
 } from "./typography-layout.js";
+import {
+  compileTypographyProfileRealization,
+  type TypographyRealizationToken,
+} from "./typography-profile-realization.js";
 
 export type TypographyProfileCompilerChunk = {
   chunkId: string;
   text: string;
   wordCount: number;
+  tokens: readonly TypographyRealizationToken[];
   semanticRole: string;
   emphasisLevel: "support" | "key" | "hero";
 };
@@ -140,6 +146,9 @@ export const createTypographyProfileCompiler = ({
   executableAssets?: readonly MaulResolvedFontAsset[];
   catalog?: readonly TypographyFontIntelligenceEntry[];
 } = {}): TypographyProfileCompiler => {
+  const measureProfileLayer = createFontkitEditorialTokenMeasurementProvider({
+    assets: executableAssets,
+  });
   const providerByKey = new Map<
     string,
     ReturnType<typeof createResolvedMaulTypographyProvider>
@@ -270,6 +279,13 @@ export const createTypographyProfileCompiler = ({
             }
             return binding;
           });
+          const realization = compileTypographyProfileRealization({
+            profile: selected.profile,
+            tokens: chunk.tokens,
+            bindingsByLayerName,
+            measureToken: ({tokenId, text, font, fontSizePx}) =>
+              measureProfileLayer({tokenId, text, font, fontSizePx}),
+          });
           const bindingReceipt = {
             schemaVersion: "maul-chunk-typography-binding/v1" as const,
             chunkId: chunk.chunkId,
@@ -299,6 +315,7 @@ export const createTypographyProfileCompiler = ({
             layers: layerBindings,
             compatibilityProfile: measured.profile,
             layout,
+            realization,
             selectionStatus: "selected" as const,
             reason: `Selected ${selected.profile.profileName} by word distance ${selected.wordDistance} and character distance ${selected.characterDistance}; exact or closest deployed font receipts were measured before placement.`,
           };
@@ -330,7 +347,14 @@ export const createTypographyProfileCompiler = ({
         ];
         const evidenceIds = [
           ...new Set(
-            compiledChunks.flatMap((chunk) => chunk.layout.measurementIds),
+            compiledChunks.flatMap((chunk) => [
+              ...chunk.layout.measurementIds,
+              ...(
+                chunk.binding.realization?.layers.map(
+                  (layer) => layer.measurementId,
+                ) ?? []
+              ),
+            ]),
           ),
         ].sort();
         const fontPairKeys = new Set(

@@ -858,6 +858,10 @@ describe("MAUL V3 text animation planning", () => {
         chunkId: "chunk_proof",
         text: "Proof works.",
         wordCount: 2,
+        tokens: [
+          {tokenId: "proof_token_0", text: "Proof"},
+          {tokenId: "proof_token_1", text: "works."},
+        ],
         semanticRole: "proof",
         emphasisLevel: "key",
       }],

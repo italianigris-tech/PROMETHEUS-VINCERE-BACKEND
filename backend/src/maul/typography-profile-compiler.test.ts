@@ -21,6 +21,10 @@ const chunk = ({
   chunkId,
   text,
   wordCount: text.trim().split(/\s+/u).length,
+  tokens: text.trim().split(/\s+/u).map((token, index) => ({
+    tokenId: `${chunkId}_token_${index}`,
+    text: token,
+  })),
   semanticRole,
   emphasisLevel,
 });
@@ -78,6 +82,20 @@ describe("MAUL typography profile compiler", () => {
     for (const binding of first.bindings) {
       expect(binding.layout.chunkId).toBe(binding.chunkId);
       expect(binding.layout.measurementIds.length).toBeGreaterThan(0);
+      expect(binding.realization).toBeDefined();
+      expect(binding.realization?.layers.flatMap((layer) => layer.tokenIds)).toEqual(
+        input.chunks
+          .find((chunkInput) => chunkInput.chunkId === binding.chunkId)!
+          .tokens.map((token) => token.tokenId),
+      );
+      expect(binding.realization?.layers.map((layer) => layer.color)).toEqual(
+        binding.layers.map((layer) => layer.requestedColor),
+      );
+      expect(binding.realization?.layers.every(
+        (layer) => layer.selectedAsset.assetId ===
+          binding.layers.find((receipt) => receipt.layerName === layer.layerName)
+            ?.selectedAsset.assetId,
+      )).toBe(true);
       expect(binding.bindingHash).toMatch(/^[a-f0-9]{64}$/);
       expect(binding.timingMs).toEqual({
         selection: expect.any(Number),

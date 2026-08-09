@@ -1411,13 +1411,25 @@ export class MaulProjectService {
       ? bindSemanticTypographyRolesToMaterializedChunks({
           binding: textChunkPlanV1.semanticTypography,
           textChunkPlan: textChunkCore,
-        })
+      })
       : undefined;
+    const textChunkTokenById = new Map(
+      textChunkCore.tokens.map((token) => [token.tokenId, token]),
+    );
     const compiledTypography = await this.typographyProfileCompiler.compile({
       chunks: textChunkCore.chunks.map((chunk) => ({
         chunkId: chunk.chunkId,
         text: chunk.text,
         wordCount: chunk.tokenIds.length,
+        tokens: chunk.tokenIds.map((tokenId) => {
+          const token = textChunkTokenById.get(tokenId);
+          if (!token) {
+            throw new Error(
+              `MAUL typography compiler could not resolve stable token ${tokenId}.`,
+            );
+          }
+          return {tokenId: token.tokenId, text: token.text};
+        }),
         semanticRole: chunk.semanticRole,
         emphasisLevel: chunk.emphasis.level,
       })),
