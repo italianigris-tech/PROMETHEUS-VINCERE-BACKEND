@@ -1,0 +1,119 @@
+{
+  "profile_name": "Giaza_Beautifully_Delicious_Serif_Script",
+  "version": "1.0.0",
+  "metadata": {
+    "target_aspect_ratio": "16:9",
+    "overall_mood": "Luxury Fashion, High Contrast Didone, Calligraphic Grace",
+    "casing_strategy": "mixed",
+    "total_word_count": 3,
+    "total_character_count": 25,
+    "per_word_character_counts": [
+      {
+        "word": "Giaza",
+        "character_count": 5
+      },
+      {
+        "word": "Beautifully",
+        "character_count": 11
+      },
+      {
+        "word": "Delicious",
+        "character_count": 9
+      }
+    ]
+  },
+  "layout_rules": {
+    "horizontal_alignment": "center",
+    "vertical_position": "center",
+    "bottom_margin_percent": 18,
+    "max_width_percent": 80,
+    "scrim_overlay": {
+      "enabled": false,
+      "type": "none",
+      "opacity": 0,
+      "color": "#F4F3EE"
+    }
+  },
+  "typography_layers": [
+    {
+      "layer_name": "brand_title",
+      "role": "header",
+      "font_classification": "Ultra-Bold Modern Display Serif",
+      "matched_font_candidates": [
+        "Abril Fatface",
+        "Bodoni Moda",
+        "Rozha One"
+      ],
+      "font_style": {
+        "weight": 800,
+        "style": "normal",
+        "casing": "normal",
+        "color": "#1A1A1A",
+        "size_px_base": 46,
+        "relative_scale": 1.0,
+        "letter_spacing_em": 0.01,
+        "line_height": 1.15,
+        "vertical_margin_top_px": 0
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 1,
+          "blur_radius": 2,
+          "color": "rgba(0, 0, 0, 0.08)"
+        }
+      },
+      "sample_text": "Giaza",
+      "word_count": 1,
+      "character_count": 5,
+      "per_word_character_counts": [
+        {
+          "word": "Giaza",
+          "character_count": 5
+        }
+      ]
+    },
+    {
+      "layer_name": "tagline_script",
+      "role": "secondary_clause",
+      "font_classification": "Calligraphic Cursive Script",
+      "matched_font_candidates": [
+        "Great Vibes",
+        "Dancing Script",
+        "Alex Brush"
+      ],
+      "font_style": {
+        "weight": 400,
+        "style": "italic",
+        "casing": "normal",
+        "color": "#7C7C7C",
+        "size_px_base": 22,
+        "relative_scale": 0.48,
+        "letter_spacing_em": 0.05,
+        "line_height": 1.2,
+        "vertical_margin_top_px": -8
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 1,
+          "blur_radius": 2,
+          "color": "rgba(0, 0, 0, 0.05)"
+        }
+      },
+      "sample_text": "Beautifully Delicious",
+      "word_count": 2,
+      "character_count": 20,
+      "per_word_character_counts": [
+        {
+          "word": "Beautifully",
+          "character_count": 11
+        },
+        {
+          "word": "Delicious",
+          "character_count": 9
+        }
+      ]
+    }
+  ]
+}
