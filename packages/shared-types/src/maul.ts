@@ -68,6 +68,7 @@ import {
   maulNormalizedBoxSchema,
   maulShortsTextChunkPlanV2CoreSchema,
   maulTextPlacementPlanCoreSchema,
+  maulTypographyCompatibilityProfileSchema,
 } from "./maul-text-placement.js";
 import {maulTextAnimationPlanCoreSchema} from "./maul-text-animation.js";
 import {
@@ -1358,6 +1359,157 @@ export const maulRenderPreviewRequestSchema = maulShortRenderRequestSchema.omit(
   reviewDecisionArtifactId: true,
 });
 
+export const maulTypographyLayerBindingSchema = z
+  .object({
+    layerName: idSchema,
+    role: idSchema,
+    requestedFamilies: z.array(idSchema).min(1),
+    requestedWeight: z.number().int().min(1).max(1000),
+    requestedStyle: z.enum(["normal", "italic", "oblique"]),
+    requestedColor: z.string().trim().min(1),
+    requestedRelativeScale: z.number().positive(),
+    requestedLineHeight: z.number().positive(),
+    resolution: z.enum(["exact", "closest_catalog", "governed_fallback"]),
+    selectedCatalogFontId: idSchema,
+    selectedAsset: maulResolvedFontAssetSchema,
+    similarityScore: z.number().finite(),
+    reason: idSchema,
+  })
+  .strict()
+  .superRefine((layer, ctx) => {
+    if (
+      layer.selectedCatalogFontId !== layer.selectedAsset.assetId ||
+      layer.selectedAsset.weight < 1 ||
+      layer.selectedAsset.weight > 1000
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["selectedAsset"],
+        message:
+          "Typography layer catalog IDs and selected asset receipts must match.",
+      });
+    }
+  });
+
+export const maulChunkTypographyBindingSchema = z
+  .object({
+    schemaVersion: z.literal("maul-chunk-typography-binding/v1"),
+    chunkId: idSchema,
+    bindingHash: z.string().regex(/^[a-f0-9]{64}$/i),
+    profile: z
+      .object({
+        name: idSchema,
+        version: idSchema,
+        sourceFilename: idSchema,
+        sourceSha256: z.string().regex(/^[a-f0-9]{64}$/i),
+        observedAspectRatio: z.string().trim().min(1),
+        targetAspectRatio: z.literal("9:16"),
+        adaptation: z.enum(["native_9_16", "normalized_to_9_16"]),
+      })
+      .strict(),
+    counts: z
+      .object({
+        actualWordCount: z.number().int().positive(),
+        actualCharacterCount: z.number().int().positive(),
+        observedWordCount: z.number().int().positive(),
+        observedCharacterCount: z.number().int().positive(),
+        wordDistance: z.number().int().nonnegative(),
+        characterDistance: z.number().int().nonnegative(),
+      })
+      .strict(),
+    primaryLayerName: idSchema,
+    accentLayerName: idSchema.nullable(),
+    layers: z.array(maulTypographyLayerBindingSchema).min(1),
+    compatibilityProfile: maulTypographyCompatibilityProfileSchema,
+    layout: z
+      .object({
+        chunkId: idSchema,
+        fontSizePx: z.number().positive(),
+        lines: z
+          .array(
+            z
+              .object({
+                text: z.string().trim().min(1),
+                widthPx: z.number().positive(),
+                measurementId: idSchema,
+              })
+              .strict(),
+          )
+          .min(1),
+        measurementIds: z.array(idSchema).min(1),
+      })
+      .strict(),
+    selectionStatus: z.enum(["selected", "governed_fallback"]),
+    reason: idSchema,
+    timingMs: z
+      .object({
+        selection: z.number().nonnegative(),
+        fontResolution: z.number().nonnegative(),
+        measurement: z.number().nonnegative(),
+      })
+      .strict(),
+  })
+  .strict()
+  .superRefine((binding, ctx) => {
+    const layerNames = binding.layers.map((layer) => layer.layerName);
+    if (new Set(layerNames).size !== layerNames.length) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["layers"],
+        message: "Typography binding layer names must be unique.",
+      });
+    }
+    if (
+      !layerNames.includes(binding.primaryLayerName) ||
+      (binding.accentLayerName !== null &&
+        !layerNames.includes(binding.accentLayerName))
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["primaryLayerName"],
+        message: "Typography binding layer references must exist.",
+      });
+    }
+    if (binding.layout.chunkId !== binding.chunkId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["layout", "chunkId"],
+        message: "Typography layout chunk ID must match its binding.",
+      });
+    }
+    const primary = binding.layers.find(
+      (layer) => layer.layerName === binding.primaryLayerName,
+    );
+    if (
+      !primary ||
+      primary.selectedAsset.family !== binding.compatibilityProfile.family ||
+      primary.selectedAsset.assetId !==
+        binding.compatibilityProfile.loadedFallback.assetId ||
+      primary.selectedAsset.weight !==
+        binding.compatibilityProfile.loadedFallback.weight
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["compatibilityProfile"],
+        message:
+          "Typography compatibility profile must prove the selected primary layer asset.",
+      });
+    }
+  });
+
+const maulChunkTypographyBindingsSchema = z
+  .array(maulChunkTypographyBindingSchema)
+  .default([])
+  .superRefine((bindings, ctx) => {
+    const chunkIds = bindings.map((binding) => binding.chunkId);
+    if (new Set(chunkIds).size !== chunkIds.length) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Chunk typography binding IDs must be unique.",
+      });
+    }
+  });
+
 const maulTypographyMotionPlanCommonShape = {
   captionGroups: z.array(
     z.object({
@@ -1386,6 +1538,7 @@ const maulTypographyMotionPlanCommonShape = {
     status: z.enum(["eligible_loaded", "governed_fallback", "blocked"]),
     reason: z.string().trim().min(1),
   }),
+  chunkTypographyBindings: maulChunkTypographyBindingsSchema,
   measurementEvidenceIds: z.array(idSchema).default([]),
   motionPrograms: z.array(
     z.object({
@@ -3944,6 +4097,12 @@ export type MaulTextPlacementPlanPayload = z.infer<
 >;
 export type MaulTextAnimationPlanPayload = z.infer<
   typeof maulTextAnimationPlanPayloadSchema
+>;
+export type MaulTypographyLayerBinding = z.infer<
+  typeof maulTypographyLayerBindingSchema
+>;
+export type MaulChunkTypographyBinding = z.infer<
+  typeof maulChunkTypographyBindingSchema
 >;
 export type MaulTypographyMotionPlanV1Payload = z.infer<
   typeof maulTypographyMotionPlanV1PayloadSchema

@@ -1615,6 +1615,115 @@ describe("MAUL shared contracts", () => {
     });
   });
 
+  it("preserves unique authoritative chunk typography bindings", () => {
+    const selectedAsset = {
+      assetId: "font_google_playfair_display_700",
+      family: "Playfair Display",
+      cssFamily: "Playfair Display",
+      weight: 700,
+      style: "normal",
+      browserUrl: "/fonts/maul/playfair-display-700.woff2",
+      localFilePath: "/srv/remotion/public/fonts/maul/playfair-display-700.woff2",
+      localFileSha256: sha("a"),
+      format: "woff2",
+      source: "bundled",
+      license: {
+        status: "bundled",
+        evidence: ["Bundled MAUL renderer font catalog."],
+      },
+    } as const;
+    const compatibilityProfile = {
+      profileId: "maul-compat-playfair-display-v1",
+      family: selectedAsset.family,
+      approvedFontAssets: [
+        {
+          assetId: selectedAsset.assetId,
+          family: selectedAsset.family,
+          weights: [selectedAsset.weight],
+        },
+      ],
+      loadedFallback: {
+        assetId: selectedAsset.assetId,
+        family: selectedAsset.family,
+        weight: selectedAsset.weight,
+      },
+      metrics: {
+        fingerprint: sha("d"),
+        maxGlyphWidthEm: 1.1,
+        maxLineHeightEm: 1.25,
+        minimumFontSizePx: 48,
+        maximumFontSizePx: 96,
+        minimumLineHeight: 1,
+        maximumLineHeight: 1.25,
+      },
+    } as const;
+    const binding = {
+      schemaVersion: "maul-chunk-typography-binding/v1",
+      chunkId: "chunk_a",
+      bindingHash: sha("b"),
+      profile: {
+        name: "Editorial_Profile",
+        version: "1.0.0",
+        sourceFilename: "editorial-profile.json",
+        sourceSha256: sha("c"),
+        observedAspectRatio: "16:9",
+        targetAspectRatio: "9:16",
+        adaptation: "normalized_to_9_16",
+      },
+      counts: {
+        actualWordCount: 1,
+        actualCharacterCount: 5,
+        observedWordCount: 1,
+        observedCharacterCount: 5,
+        wordDistance: 0,
+        characterDistance: 0,
+      },
+      primaryLayerName: "hero",
+      accentLayerName: null,
+      layers: [
+        {
+          layerName: "hero",
+          role: "primary_focus_word",
+          requestedFamilies: ["Playfair Display"],
+          requestedWeight: 700,
+          requestedStyle: "normal",
+          requestedColor: "#111111",
+          requestedRelativeScale: 1,
+          requestedLineHeight: 1.1,
+          resolution: "exact",
+          selectedCatalogFontId: selectedAsset.assetId,
+          selectedAsset,
+          similarityScore: 1000,
+          reason: "Exact deployed family and style match.",
+        },
+      ],
+      compatibilityProfile,
+      layout: {
+        chunkId: "chunk_a",
+        fontSizePx: 72,
+        lines: [
+          {text: "Proof", widthPx: 180, measurementId: "measure_proof"},
+        ],
+        measurementIds: ["measure_proof"],
+      },
+      selectionStatus: "selected",
+      reason: "Exact count match compiled with an executable font receipt.",
+      timingMs: {selection: 1, fontResolution: 2, measurement: 3},
+    } as const;
+
+    const parsed = maulTypographyMotionPlanPayloadSchema.parse({
+      ...typographyV3,
+      chunkTypographyBindings: [binding],
+    });
+    expect(parsed.chunkTypographyBindings).toEqual([binding]);
+    expect(() =>
+      maulTypographyMotionPlanPayloadSchema.parse({
+        ...typographyV3,
+        chunkTypographyBindings: [binding, binding],
+      }),
+    ).toThrow(/chunk typography binding IDs must be unique/i);
+  });
+
   it("keeps the V1 14-plan bundle and governs exactly 16 V2 plan IDs", () => {
     const v1 = maulPlanningBundleV1PayloadSchema.parse(planningBundleV1);
     expect(Object.keys(v1.planArtifactIds)).toHaveLength(14);
