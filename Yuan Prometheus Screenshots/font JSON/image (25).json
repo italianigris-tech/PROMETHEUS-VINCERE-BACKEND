@@ -1,0 +1,109 @@
+{
+  "profile_name": "Visual_Storytelling_Red_Serif",
+  "version": "1.0.0",
+  "metadata": {
+    "target_aspect_ratio": "16:9",
+    "overall_mood": "Creative Studio Brand, Crimson Red High-Contrast Serif",
+    "casing_strategy": "lowercase_all",
+    "total_word_count": 2,
+    "total_character_count": 19,
+    "per_word_character_counts": [
+      {
+        "word": "visual",
+        "character_count": 6
+      },
+      {
+        "word": "storytelling.",
+        "character_count": 13
+      }
+    ]
+  },
+  "layout_rules": {
+    "horizontal_alignment": "left",
+    "vertical_position": "center",
+    "bottom_margin_percent": 15,
+    "max_width_percent": 85,
+    "scrim_overlay": {
+      "enabled": false,
+      "type": "none",
+      "opacity": 0,
+      "color": "#F4EFEC"
+    }
+  },
+  "typography_layers": [
+    {
+      "layer_name": "italic_red_prefix",
+      "role": "secondary_clause",
+      "font_classification": "Crimson Red Italic Display Serif",
+      "matched_font_candidates": [
+        "Playfair Display Italic",
+        "Bodoni Moda"
+      ],
+      "font_style": {
+        "weight": 700,
+        "style": "italic",
+        "casing": "lowercase",
+        "color": "#C8382B",
+        "size_px_base": 34,
+        "relative_scale": 0.74,
+        "letter_spacing_em": 0.01,
+        "line_height": 1.0,
+        "vertical_margin_top_px": 0
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 1,
+          "blur_radius": 2,
+          "color": "rgba(200, 56, 43, 0.2)"
+        }
+      },
+      "sample_text": "visual",
+      "word_count": 1,
+      "character_count": 6,
+      "per_word_character_counts": [
+        {
+          "word": "visual",
+          "character_count": 6
+        }
+      ]
+    },
+    {
+      "layer_name": "bold_red_body",
+      "role": "header",
+      "font_classification": "Crimson Red Bold Serif with Ball Terminal Period",
+      "matched_font_candidates": [
+        "Playfair Display",
+        "Bodoni Moda"
+      ],
+      "font_style": {
+        "weight": 800,
+        "style": "normal",
+        "casing": "lowercase",
+        "color": "#C8382B",
+        "size_px_base": 46,
+        "relative_scale": 1.0,
+        "letter_spacing_em": -0.01,
+        "line_height": 0.95,
+        "vertical_margin_top_px": -2
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 2,
+          "blur_radius": 4,
+          "color": "rgba(200, 56, 43, 0.25)"
+        }
+      },
+      "sample_text": "storytelling.",
+      "word_count": 1,
+      "character_count": 13,
+      "per_word_character_counts": [
+        {
+          "word": "storytelling.",
+          "character_count": 13
+        }
+      ]
+    }
+  ]
+}
