@@ -630,81 +630,118 @@ const profileForRendererFont = ({
   });
 };
 
-export const createDefaultMaulTypographyProvider = (): MaulTypographyProvider => {
-  try {
-    const currentDir = path.dirname(fileURLToPath(import.meta.url));
-    const fontRoot = path.resolve(
-      currentDir,
-      "../../../remotion-app/public/fonts/maul",
-    );
-    const dmSansPath = path.join(fontRoot, "dm-sans-700.woff2");
-    const playfairPath = path.join(
-      fontRoot,
-      "playfair-display-700.woff2",
-    );
-    const bebasPath = path.join(fontRoot, "bebas-neue-400.woff2");
-    const dmSerifPath = path.join(fontRoot, "dm-serif-display-400.woff2");
-    const playfairItalicPath = path.join(
-      fontRoot,
-      "playfair-display-italic-700.woff2",
-    );
-    const greatVibesPath = path.join(fontRoot, "great-vibes-400.ttf");
-    const bundledAsset = ({
-      assetId,
-      family,
-      cssFamily,
-      weight,
-      style,
-      browserUrl,
-      localFilePath,
-      format,
-    }: {
-      assetId: string;
-      family: string;
-      cssFamily: string;
-      weight: number;
-      style: "normal" | "italic";
-      browserUrl: string;
-      localFilePath: string;
-      format: "ttf" | "woff2";
-    }): MaulResolvedFontAsset => maulResolvedFontAssetSchema.parse({
-      assetId,
-      family,
-      cssFamily,
-      weight,
-      style,
-      browserUrl,
-      localFilePath,
+const defaultMaulFontRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../../../remotion-app/public/fonts/maul",
+);
+
+const bundledMaulFontSpecs = [
+  {
+    assetId: "font_google_dm_sans_700",
+    family: "DM Sans",
+    cssFamily: "DM Sans",
+    weight: 700,
+    style: "normal",
+    fileName: "dm-sans-700.woff2",
+    browserUrl: "/fonts/maul/dm-sans-700.woff2",
+    format: "woff2",
+  },
+  {
+    assetId: "font_google_playfair_display_700",
+    family: "Playfair Display",
+    cssFamily: "Playfair Display",
+    weight: 700,
+    style: "normal",
+    fileName: "playfair-display-700.woff2",
+    browserUrl: "/fonts/maul/playfair-display-700.woff2",
+    format: "woff2",
+  },
+  {
+    assetId: "font_google_playfair_display_italic_700",
+    family: "Playfair Display",
+    cssFamily: "Playfair Display",
+    weight: 700,
+    style: "italic",
+    fileName: "playfair-display-italic-700.woff2",
+    browserUrl: "/fonts/maul/playfair-display-italic-700.woff2",
+    format: "woff2",
+  },
+  {
+    assetId: "font_google_bebas_neue_400",
+    family: "Bebas Neue",
+    cssFamily: "Bebas Neue",
+    weight: 400,
+    style: "normal",
+    fileName: "bebas-neue-400.woff2",
+    browserUrl: "/fonts/maul/bebas-neue-400.woff2",
+    format: "woff2",
+  },
+  {
+    assetId: "font_google_dm_serif_display_400",
+    family: "DM Serif Display",
+    cssFamily: "DM Serif Display",
+    weight: 400,
+    style: "normal",
+    fileName: "dm-serif-display-400.woff2",
+    browserUrl: "/fonts/maul/dm-serif-display-400.woff2",
+    format: "woff2",
+  },
+  {
+    assetId: "font_google_great_vibes_400",
+    family: "Great Vibes",
+    cssFamily: "Great Vibes",
+    weight: 400,
+    style: "normal",
+    fileName: "great-vibes-400.ttf",
+    browserUrl: "/fonts/maul/great-vibes-400.ttf",
+    format: "ttf",
+  },
+] as const;
+
+export const loadBundledMaulFontAssets = (): MaulResolvedFontAsset[] =>
+  bundledMaulFontSpecs.map((spec) =>
+    maulResolvedFontAssetSchema.parse({
+      assetId: spec.assetId,
+      family: spec.family,
+      cssFamily: spec.cssFamily,
+      weight: spec.weight,
+      style: spec.style,
+      browserUrl: spec.browserUrl,
+      localFilePath: path.join(defaultMaulFontRoot, spec.fileName),
       localFileSha256: createHash("sha256")
-        .update(readFileSync(localFilePath))
+        .update(readFileSync(path.join(defaultMaulFontRoot, spec.fileName)))
         .digest("hex"),
-      format,
+      format: spec.format,
       source: "bundled",
       license: {
         status: "bundled",
         evidence: ["Bundled MAUL renderer font catalog."],
       },
-    });
-    const playfairItalicAsset = bundledAsset({
-      assetId: "font_google_playfair_display_italic_700",
-      family: "Playfair Display",
-      cssFamily: "Playfair Display",
-      weight: 700,
-      style: "italic",
-      browserUrl: "/fonts/maul/playfair-display-italic-700.woff2",
-      localFilePath: playfairItalicPath,
-      format: "woff2",
-    });
-    const greatVibesAsset = bundledAsset({
-      assetId: "font_google_great_vibes_400",
-      family: "Great Vibes",
-      cssFamily: "Great Vibes",
-      weight: 400,
-      style: "normal",
-      browserUrl: "/fonts/maul/great-vibes-400.ttf",
-      localFilePath: greatVibesPath,
-      format: "ttf",
-    });
+    }),
+  );
+
+export const createDefaultMaulTypographyProvider = (): MaulTypographyProvider => {
+  try {
+    const assetsById = new Map(
+      loadBundledMaulFontAssets().map((asset) => [asset.assetId, asset]),
+    );
+    const requireAsset = (assetId: string): MaulResolvedFontAsset => {
+      const asset = assetsById.get(assetId);
+      if (!asset) throw new Error(`Bundled MAUL font asset is missing: ${assetId}`);
+      return asset;
+    };
+    const dmSansAsset = requireAsset("font_google_dm_sans_700");
+    const playfairAsset = requireAsset("font_google_playfair_display_700");
+    const playfairItalicAsset = requireAsset(
+      "font_google_playfair_display_italic_700",
+    );
+    const bebasAsset = requireAsset("font_google_bebas_neue_400");
+    const dmSerifAsset = requireAsset("font_google_dm_serif_display_400");
+    const greatVibesAsset = requireAsset("font_google_great_vibes_400");
+    const dmSansPath = dmSansAsset.localFilePath;
+    const playfairPath = playfairAsset.localFilePath;
+    const bebasPath = bebasAsset.localFilePath;
+    const dmSerifPath = dmSerifAsset.localFilePath;
     const playfair: GovernedTypographyFont = {
       role: "EDITORIAL_DISPLAY",
       assetId: "font_google_playfair_display_700",
