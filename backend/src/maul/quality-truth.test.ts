@@ -394,13 +394,40 @@ describe("MAUL Quality Truth gate", () => {
       chunkId: "chunk_bound",
       primaryLayerName: "primary",
       accentLayerName: null,
-      layers: [{
-        layerName: "primary",
-        selectedAsset: {
-          assetId: "font_google_playfair_display_700",
-          family: "Playfair Display",
+      layers: [
+        {
+          layerName: "primary",
+          selectedAsset: {
+            assetId: "font_google_playfair_display_700",
+            family: "Playfair Display",
+          },
         },
-      }],
+        {
+          layerName: "secondary",
+          selectedAsset: {
+            assetId: "font_google_great_vibes_400",
+            family: "Great Vibes",
+          },
+        },
+      ],
+      realization: {
+        layers: [
+          {
+            layerName: "primary",
+            selectedAsset: {
+              assetId: "font_google_playfair_display_700",
+              family: "Playfair Display",
+            },
+          },
+          {
+            layerName: "secondary",
+            selectedAsset: {
+              assetId: "font_google_great_vibes_400",
+              family: "Great Vibes",
+            },
+          },
+        ],
+      },
     }];
     boundManifest.plans.textPlacement = {
       segments: [{chunkId: "chunk_bound", editorialLockup: {accentTokenIds: []}}],
@@ -420,6 +447,17 @@ describe("MAUL Quality Truth gate", () => {
       },
     } as any;
 
+    expect(
+      evaluateMaulQualityTruth(boundManifest, proof).failures.map(
+        (failure) => failure.code,
+      ),
+    ).toContain("font_load_unverified");
+
+    proof.fontRuntime.assets.push({
+      family: "Great Vibes",
+      assetId: "font_google_great_vibes_400",
+      evidenceId: "evidence_font_great_vibes",
+    });
     expect(
       evaluateMaulQualityTruth(boundManifest, proof).failures.map(
         (failure) => failure.code,

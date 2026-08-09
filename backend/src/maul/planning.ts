@@ -55,6 +55,7 @@ import {
   buildMaulTextPlacementPlan,
   type MaulPlacementObservationInterval,
 } from "./shorts-text-placement.js";
+import {assertTypographyProfileManifestLineage} from "./typography-profile-manifest-contract.js";
 import {buildMaulVisualTrack} from "./visual-track.js";
 
 export {hashMaulPlanPayload} from "./text-chunk-plan.js";
@@ -2059,6 +2060,7 @@ export const compileMaulUnifiedShortRenderManifest = ({
               binding.compatibilityProfile.metrics.maxLineHeightEm,
           },
         });
+        assertTypographyProfileManifestLineage({binding, segment});
       }
     } else {
       const compatibility =

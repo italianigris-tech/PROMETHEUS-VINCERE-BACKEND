@@ -188,18 +188,24 @@ export const evaluateMaulQualityTruth = (
         : [];
     for (const segment of placementSegments) {
       const binding = bindingByChunkId.get(segment.chunkId);
-      const primary = binding?.layers.find(
-        (layer) => layer.layerName === binding.primaryLayerName,
-      )?.selectedAsset;
-      if (primary) expectedAssets.set(primary.assetId, primary);
-      if (
-        binding?.accentLayerName &&
-        (segment.editorialLockup?.accentTokenIds.length ?? 0) > 0
-      ) {
-        const accent = binding.layers.find(
-          (layer) => layer.layerName === binding.accentLayerName,
+      if (binding?.realization) {
+        for (const layer of binding.realization.layers) {
+          expectedAssets.set(layer.selectedAsset.assetId, layer.selectedAsset);
+        }
+      } else {
+        const primary = binding?.layers.find(
+          (layer) => layer.layerName === binding.primaryLayerName,
         )?.selectedAsset;
-        if (accent) expectedAssets.set(accent.assetId, accent);
+        if (primary) expectedAssets.set(primary.assetId, primary);
+        if (
+          binding?.accentLayerName &&
+          (segment.editorialLockup?.accentTokenIds.length ?? 0) > 0
+        ) {
+          const accent = binding.layers.find(
+            (layer) => layer.layerName === binding.accentLayerName,
+          )?.selectedAsset;
+          if (accent) expectedAssets.set(accent.assetId, accent);
+        }
       }
     }
     const runtimeAssetById = new Map(
