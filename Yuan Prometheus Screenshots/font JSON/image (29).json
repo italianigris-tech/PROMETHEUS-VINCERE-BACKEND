@@ -1,0 +1,148 @@
+{
+  "profile_name": "Designers_Dont_Gatekeep_Folder_Blue_Circle",
+  "version": "1.0.0",
+  "metadata": {
+    "target_aspect_ratio": "16:9",
+    "overall_mood": "Design Community Culture, Blue Marker Oval & Folder Icon",
+    "casing_strategy": "mixed",
+    "total_word_count": 3,
+    "total_character_count": 23,
+    "per_word_character_counts": [
+      {
+        "word": "Designers",
+        "character_count": 9
+      },
+      {
+        "word": "don't",
+        "character_count": 5
+      },
+      {
+        "word": "gatekeep.",
+        "character_count": 9
+      }
+    ]
+  },
+  "layout_rules": {
+    "horizontal_alignment": "left",
+    "vertical_position": "center",
+    "bottom_margin_percent": 15,
+    "max_width_percent": 85,
+    "scrim_overlay": {
+      "enabled": false,
+      "type": "none",
+      "opacity": 0,
+      "color": "#F4F3EE"
+    }
+  },
+  "typography_layers": [
+    {
+      "layer_name": "top_designers",
+      "role": "header",
+      "font_classification": "High Contrast Editorial Serif",
+      "matched_font_candidates": [
+        "Bodoni Moda",
+        "Playfair Display"
+      ],
+      "font_style": {
+        "weight": 700,
+        "style": "normal",
+        "casing": "title_case",
+        "color": "#111111",
+        "size_px_base": 42,
+        "relative_scale": 1.0,
+        "letter_spacing_em": 0.01,
+        "line_height": 1.0,
+        "vertical_margin_top_px": 0
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 2,
+          "blur_radius": 4,
+          "color": "rgba(0, 0, 0, 0.1)"
+        }
+      },
+      "sample_text": "Designers",
+      "word_count": 1,
+      "character_count": 9,
+      "per_word_character_counts": [
+        {
+          "word": "Designers",
+          "character_count": 9
+        }
+      ]
+    },
+    {
+      "layer_name": "circled_dont",
+      "role": "secondary_clause",
+      "font_classification": "Serif inside Blue Marker Oval with Folder Icon",
+      "matched_font_candidates": [
+        "Bodoni Moda"
+      ],
+      "font_style": {
+        "weight": 400,
+        "style": "normal",
+        "casing": "lowercase",
+        "color": "#111111",
+        "size_px_base": 42,
+        "relative_scale": 1.0,
+        "letter_spacing_em": 0.01,
+        "line_height": 1.0,
+        "vertical_margin_top_px": 2
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 2,
+          "blur_radius": 4,
+          "color": "rgba(16, 64, 192, 0.3)"
+        }
+      },
+      "sample_text": "don't",
+      "word_count": 1,
+      "character_count": 5,
+      "per_word_character_counts": [
+        {
+          "word": "don't",
+          "character_count": 5
+        }
+      ]
+    },
+    {
+      "layer_name": "bottom_gatekeep",
+      "role": "primary_focus_word",
+      "font_classification": "High Contrast Editorial Serif with Eyeball Emojis",
+      "matched_font_candidates": [
+        "Bodoni Moda"
+      ],
+      "font_style": {
+        "weight": 700,
+        "style": "normal",
+        "casing": "lowercase",
+        "color": "#111111",
+        "size_px_base": 42,
+        "relative_scale": 1.0,
+        "letter_spacing_em": 0.01,
+        "line_height": 1.0,
+        "vertical_margin_top_px": 2
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 2,
+          "blur_radius": 4,
+          "color": "rgba(0, 0, 0, 0.1)"
+        }
+      },
+      "sample_text": "gatekeep.",
+      "word_count": 1,
+      "character_count": 9,
+      "per_word_character_counts": [
+        {
+          "word": "gatekeep.",
+          "character_count": 9
+        }
+      ]
+    }
+  ]
+}
