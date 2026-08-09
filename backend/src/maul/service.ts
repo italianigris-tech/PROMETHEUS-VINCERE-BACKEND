@@ -1469,7 +1469,11 @@ export class MaulProjectService {
             byChunkId: Object.fromEntries(
               compiledTypography.chunks.map((chunk) => [
                 chunk.binding.chunkId,
-                {profile: chunk.profile, layout: chunk.layout},
+                {
+                  profile: chunk.profile,
+                  layout: chunk.layout,
+                  realization: chunk.binding.realization,
+                },
               ]),
             ),
           }
@@ -1584,19 +1588,45 @@ export class MaulProjectService {
     const editorialTokenMeasure = editorialAssets.length > 0
       ? createFontkitEditorialTokenMeasurementProvider({assets: editorialAssets})
       : undefined;
-    const editorialPlacementSegments = applyMaulEditorialLockups({
-      placementPlan: textPlacementCore,
-      textChunkPlan: textChunkCore,
-      rhythm: referenceEditorialRhythm,
-      primaryFont: lockupFontPair.primary,
-      accentFont: lockupFontPair.accent,
-      fontPairByChunkId,
-      referenceTraits,
-      selectionSeed: `${editorialRhythmSeed}:lockup`,
-      semanticHierarchyRolesByChunkId,
-      output: {widthPx: 1080, heightPx: 1920},
-      measureToken: editorialTokenMeasure,
-    }).segments;
+    const authoritativeProfileChunkIds = new Set(
+      compiledTypography.status === "available"
+        ? compiledTypography.bindings
+            .filter((binding) => Boolean(binding.realization))
+            .map((binding) => binding.chunkId)
+        : [],
+    );
+    const legacyPlacementSegments = textPlacementCore.segments.filter(
+      (segment) => !authoritativeProfileChunkIds.has(segment.chunkId),
+    );
+    const lockedLegacySegments = legacyPlacementSegments.length > 0
+      ? applyMaulEditorialLockups({
+          placementPlan: {
+            ...textPlacementCore,
+            segments: legacyPlacementSegments,
+          },
+          textChunkPlan: textChunkCore,
+          rhythm: referenceEditorialRhythm,
+          primaryFont: lockupFontPair.primary,
+          accentFont: lockupFontPair.accent,
+          fontPairByChunkId,
+          referenceTraits,
+          selectionSeed: `${editorialRhythmSeed}:lockup`,
+          semanticHierarchyRolesByChunkId,
+          output: {widthPx: 1080, heightPx: 1920},
+          measureToken: editorialTokenMeasure,
+        }).segments
+      : [];
+    const editorialPlacementSegments = [
+      ...textPlacementCore.segments.filter((segment) =>
+        authoritativeProfileChunkIds.has(segment.chunkId),
+      ),
+      ...lockedLegacySegments,
+    ].sort(
+      (left, right) =>
+        left.outputStartMs - right.outputStartMs ||
+        left.outputEndMs - right.outputEndMs ||
+        left.segmentId.localeCompare(right.segmentId),
+    );
     const textPlacementCoreWithLockups = {
       ...textPlacementCore,
       segments: editorialPlacementSegments,

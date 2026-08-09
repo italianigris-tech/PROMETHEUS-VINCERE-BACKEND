@@ -10,6 +10,7 @@ import {
   assertMaulTypographyPlacementCompatibility,
   buildMaulTextPlacementPlan,
 } from "./shorts-text-placement.js";
+import {loadExecutableTypographyFontAssets} from "./typography-profile-font-resolver.js";
 
 const sha = (character: string) => character.repeat(64);
 
@@ -464,6 +465,95 @@ describe("MAUL scene-aware text placement", () => {
         evidenceId: "measurement_across_playfair",
       }),
     );
+  });
+
+  it("places an authoritative profile as one full-group transform", () => {
+    const selectedAsset = loadExecutableTypographyFontAssets()[0]!;
+    const measuredProfile = {
+      profileId: "maul-measured-profile-group-v1",
+      family: selectedAsset.family,
+      approvedFontAssets: [{
+        assetId: selectedAsset.assetId,
+        family: selectedAsset.family,
+        weights: [selectedAsset.weight],
+      }],
+      loadedFallback: {
+        assetId: selectedAsset.assetId,
+        family: selectedAsset.family,
+        weight: selectedAsset.weight,
+      },
+      metrics: {
+        fingerprint: sha("8"),
+        maxGlyphWidthEm: 0.82,
+        maxLineHeightEm: 1.18,
+        minimumFontSizePx: 24,
+        maximumFontSizePx: 240,
+        minimumLineHeight: 0.8,
+        maximumLineHeight: 1.4,
+      },
+    };
+    const plan = buildMaulTextPlacementPlan({
+      textChunkPlanArtifactId: "artifact_text_chunk",
+      textChunkPlan: makeChunkPlan(),
+      compositionIntervals: [composition()],
+      observationIntervals: [
+        observation({subjectBox: {x: 0.37, y: 0.12, width: 0.28, height: 0.68}}),
+      ],
+      typography: {
+        byChunkId: {
+          chunk_across: {
+            profile: measuredProfile,
+            layout: {
+              chunkId: "chunk_across",
+              fontSizePx: 72,
+              lines: [{
+                text: "Across",
+                widthPx: 680,
+                measurementId: "legacy_measurement_across",
+              }],
+              measurementIds: ["legacy_measurement_across"],
+            },
+            realization: {
+              adaptation: "uniform_fit_9_16",
+              horizontalAlignment: "center",
+              maxWidthPercent: 85,
+              intrinsicSizePx: {width: 680, height: 140},
+              layers: [{
+                layerName: "hero",
+                tokenIds: ["token_across"],
+                text: "Across",
+                selectedAsset,
+                fontSizePx: 112,
+                measuredWidthPx: 680,
+                measuredHeightPx: 112,
+                lineHeight: 1.1,
+                letterSpacingEm: 0.01,
+                casing: "normal",
+                color: "#F4E9D7",
+                marginTopPx: 0,
+                shadow: {xOffset: 0, yOffset: 2, blurRadius: 8, color: "#000000"},
+                measurementId: "profile_measurement_across",
+              }],
+            },
+          },
+        },
+      },
+    });
+
+    expect(plan.status).toBe("planned");
+    expect(plan.segments[0]).toMatchObject({
+      variantId: "profile.typography_group_v1",
+      lines: [{tokenIds: ["token_across"], text: "Across"}],
+      profileTransform: {
+        intrinsicWidthPx: 680,
+        intrinsicHeightPx: 140,
+        finalWidthPx: expect.any(Number),
+        finalHeightPx: expect.any(Number),
+        uniformScale: expect.any(Number),
+      },
+    });
+    expect(plan.segments[0]!.box.width).toBeGreaterThan(0.5);
+    expect(plan.segments[0]!.box.x).toBeGreaterThanOrEqual(0.04);
   });
 
   it("uses each chunk's measured typography profile independently", () => {

@@ -5,6 +5,7 @@ import {
   type MaulMinimumLegibilityPrimitive,
   type MaulNormalizedBox,
   type MaulOutputCompositionInterval,
+  type MaulProfileTypographyRealization,
   type MaulShortsTextChunkPlanV2Core,
   type MaulTextChunkV2,
   type MaulTypographyCompatibilityProfile,
@@ -14,6 +15,7 @@ import {
 
 import {hashMaulPlanPayload} from "./text-chunk-plan.js";
 import type {MaulMeasuredTypographyLayout} from "./typography-layout.js";
+import {selectTypographyProfilePlacement} from "./typography-profile-placement.js";
 
 export type MaulPlacementFamily = "measured" | "editorial" | "personal";
 
@@ -220,6 +222,7 @@ export type MaulPlacementTypography = {
   byChunkId: Readonly<Record<string, {
     profile: MaulTypographyCompatibilityProfile;
     layout: MaulMeasuredTypographyLayout;
+    realization?: MaulProfileTypographyRealization;
   }>>;
 };
 
@@ -229,6 +232,7 @@ const resolvePlacementTypography = (
 ): {
   profile: MaulTypographyCompatibilityProfile;
   layout: MaulMeasuredTypographyLayout;
+  realization?: MaulProfileTypographyRealization;
 } | null => {
   if (!typography) return null;
   if ("byChunkId" in typography) return typography.byChunkId[chunkId] ?? null;
@@ -661,10 +665,18 @@ const buildCandidate = ({
     "caption_safe_fallback",
   );
   if (isCaptionSafeFallback && family !== "personal") return null;
+  const chunkTypography = resolvePlacementTypography(
+    typography,
+    node.chunk.chunkId,
+  );
+  if (typography && !chunkTypography) return null;
+  const profileRealization = chunkTypography?.realization;
   const directionFamily = familyForCompositionDirection(
     composition.compositionDirection,
   );
-  if (directionFamily && family !== directionFamily) return null;
+  if (!profileRealization && directionFamily && family !== directionFamily) {
+    return null;
+  }
 
   const subjectIsKnown =
     observation?.trackingState === "tracked" ||
@@ -686,28 +698,32 @@ const buildCandidate = ({
   ) {
     return null;
   }
-  const geometry = isCaptionSafeFallback
+  const profilePlacement = profileRealization
+    ? selectTypographyProfilePlacement({
+        realization: profileRealization,
+        subjectBox,
+        existingTextRegions: observation?.existingTextRegions ?? [],
+      })
+    : null;
+  const geometry = profilePlacement ?? (isCaptionSafeFallback
     ? {
         box: fallbackBand!,
         maximumEnvelope: fallbackBand!,
         alignment: "center" as const,
       }
-    : composition.textAnchor ?? geometryForFamily({family, subjectBox});
+    : composition.textAnchor ?? geometryForFamily({family, subjectBox}));
   const segmentId = stableId("placement_segment", {
     chunkId: node.chunk.chunkId,
     discontinuityId: composition.discontinuityId,
     outputStartMs: node.outputStartMs,
     outputEndMs: node.outputEndMs,
   });
-  const chunkTypography = resolvePlacementTypography(
-    typography,
-    node.chunk.chunkId,
-  );
-  if (typography && !chunkTypography) return null;
   const measuredLayout = chunkTypography?.layout;
   const profile =
     chunkTypography?.profile ?? MAUL_TYPOGRAPHY_COMPATIBILITY_PROFILE;
-  const preferredNominalFontSizePx = isCaptionSafeFallback
+  const preferredNominalFontSizePx = profileRealization
+    ? Math.max(...profileRealization.layers.map((layer) => layer.fontSizePx))
+    : isCaptionSafeFallback
     ? 48
     : measuredLayout
       ? measuredLayout.fontSizePx
@@ -716,13 +732,17 @@ const buildCandidate = ({
       : family === "editorial"
         ? 68
         : 64;
-  const hierarchyScale = measuredLayout
+  const hierarchyScale = profileRealization
+    ? profilePlacement!.transform.uniformScale
+    : measuredLayout
     ? 1
     : family === "editorial"
       ? 1.08
       : 1;
   const lineHeight = 1.1;
-  const variantId = isCaptionSafeFallback
+  const variantId = profileRealization
+    ? "profile.typography_group_v1"
+    : isCaptionSafeFallback
     ? "caption_safe_fallback.padded_band_v1"
     : family === "measured"
       ? "measured.centered_statement_v1"
@@ -750,13 +770,23 @@ const buildCandidate = ({
     minimumLegibilityPrimitive.kind === "solid_plate"
       ? minimumLegibilityPrimitive.paddingYPx
       : 0;
-  const candidateFontSizes = composition.textAnchor && !isCaptionSafeFallback
+  const candidateFontSizes = profileRealization
+    ? [preferredNominalFontSizePx]
+    : composition.textAnchor && !isCaptionSafeFallback
     ? [preferredNominalFontSizePx, 64, 56, 48]
         .map((size) => Math.min(profile.metrics.maximumFontSizePx, size) * hierarchyScale)
     : [preferredNominalFontSizePx * hierarchyScale];
   let effectiveFontSizePx = candidateFontSizes[0]!;
   let lines: ReturnType<typeof partitionLines> = null;
   for (const fontSizePx of candidateFontSizes) {
+    if (profileRealization) {
+      lines = profileRealization.layers.map((layer, index) => ({
+        lineId: `${segmentId}_profile_line_${index + 1}`,
+        tokenIds: [...layer.tokenIds],
+        text: layer.text,
+      }));
+      break;
+    }
     const candidateLines = partitionLines({
       family,
       tokenIds: node.chunk.tokenIds,
@@ -777,7 +807,9 @@ const buildCandidate = ({
     }
   }
   if (!lines) return null;
-  const nominalFontSizePx = effectiveFontSizePx / hierarchyScale;
+  const nominalFontSizePx = profileRealization
+    ? effectiveFontSizePx
+    : effectiveFontSizePx / hierarchyScale;
   const hardGates = [
     gate(
       "exact_token_sequence",
@@ -792,13 +824,23 @@ const buildCandidate = ({
       PLATFORM_PROFILE.profileId,
       "Maximum text envelope stays inside the versioned platform safe region.",
     ),
-    gate(
-      "typography_compatibility",
-      effectiveFontSizePx >= profile.metrics.minimumFontSizePx &&
-        effectiveFontSizePx <= profile.metrics.maximumFontSizePx,
-      profile.metrics.fingerprint,
-      `Measured ${profile.family} metrics cover the selected effective typography.`,
-    ),
+    ...(profileRealization
+      ? [gate(
+          "profile_realization_geometry",
+          profilePlacement!.transform.finalWidthPx <=
+            PLATFORM_PROFILE.output.width * profileRealization.maxWidthPercent / 100 + 0.01 &&
+            profilePlacement!.transform.finalHeightPx <=
+            PLATFORM_PROFILE.output.height * PLATFORM_PROFILE.safeRegion.height + 0.01,
+          profileRealization.layers[0]?.measurementId ?? null,
+          "Authoritative profile layers reserve one measured group envelope before placement.",
+        )]
+      : [gate(
+          "typography_compatibility",
+          effectiveFontSizePx >= profile.metrics.minimumFontSizePx &&
+            effectiveFontSizePx <= profile.metrics.maximumFontSizePx,
+          profile.metrics.fingerprint,
+          `Measured ${profile.family} metrics cover the selected effective typography.`,
+        )]),
     ...(typography && measuredLayout
       ? [gate(
           "measured_font_geometry",
@@ -809,7 +851,7 @@ const buildCandidate = ({
       : []),
     gate(
       "minimum_readable_fit",
-      measuredLayout
+      profileRealization || measuredLayout
         ? true
         : linesFit({
             lines,
@@ -832,7 +874,9 @@ const buildCandidate = ({
     ),
     gate(
       "subject_clearance",
-      isCaptionSafeFallback
+      profileRealization
+        ? true
+        : isCaptionSafeFallback
         ? Boolean(
             fallbackBand && boxContains(fallbackBand, geometry.maximumEnvelope),
           )
@@ -844,7 +888,9 @@ const buildCandidate = ({
       composition.textAnchor?.subjectInteraction?.evidenceIds[0] ??
         observation?.evidenceId ??
         composition.intervalId,
-      isCaptionSafeFallback
+      profileRealization
+        ? "Profile placement ranked subject occupancy and permits intentional editorial overlap when the selected group requires it."
+        : isCaptionSafeFallback
         ? "Text lies wholly inside a compiled non-source band."
         : !subjectBox || !boxesOverlap(geometry.maximumEnvelope, subjectBox)
           ? "Maximum envelope clears known subject occupancy."
@@ -919,6 +965,7 @@ const buildCandidate = ({
       box: geometry.box,
       maximumEnvelope: geometry.maximumEnvelope,
       alignment: geometry.alignment,
+      ...(profilePlacement ? {profileTransform: profilePlacement.transform} : {}),
       compatibility: {
         profileId: profile.profileId,
         metricsFingerprint: profile.metrics.fingerprint,
