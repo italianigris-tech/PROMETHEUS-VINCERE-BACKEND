@@ -1,0 +1,92 @@
+{
+  "profile_name": "The_Silence_Of_Style_Horizontal_Banner",
+  "version": "1.0.0",
+  "metadata": {
+    "target_aspect_ratio": "16:9",
+    "overall_mood": "Minimalist Horizontal Headline, High Contrast Italic Accent",
+    "casing_strategy": "mixed",
+    "total_word_count": 4,
+    "total_character_count": 17,
+    "per_word_character_counts": [
+      {
+        "word": "The",
+        "character_count": 3
+      },
+      {
+        "word": "Silence",
+        "character_count": 7
+      },
+      {
+        "word": "of",
+        "character_count": 2
+      },
+      {
+        "word": "Style",
+        "character_count": 5
+      }
+    ]
+  },
+  "layout_rules": {
+    "horizontal_alignment": "center",
+    "vertical_position": "center",
+    "bottom_margin_percent": 15,
+    "max_width_percent": 85,
+    "scrim_overlay": {
+      "enabled": false,
+      "type": "none",
+      "opacity": 0,
+      "color": "#F0F0F0"
+    }
+  },
+  "typography_layers": [
+    {
+      "layer_name": "horizontal_headline",
+      "role": "header",
+      "font_classification": "Editorial Serif with Italic Focus",
+      "matched_font_candidates": [
+        "Playfair Display",
+        "Cormorant Garamond"
+      ],
+      "font_style": {
+        "weight": 400,
+        "style": "italic",
+        "casing": "normal",
+        "color": "#111111",
+        "size_px_base": 38,
+        "relative_scale": 1.0,
+        "letter_spacing_em": 0.02,
+        "line_height": 1.15,
+        "vertical_margin_top_px": 0
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 1,
+          "blur_radius": 2,
+          "color": "rgba(0, 0, 0, 0.08)"
+        }
+      },
+      "sample_text": "The Silence of Style",
+      "word_count": 4,
+      "character_count": 17,
+      "per_word_character_counts": [
+        {
+          "word": "The",
+          "character_count": 3
+        },
+        {
+          "word": "Silence",
+          "character_count": 7
+        },
+        {
+          "word": "of",
+          "character_count": 2
+        },
+        {
+          "word": "Style",
+          "character_count": 5
+        }
+      ]
+    }
+  ]
+}
