@@ -1,0 +1,125 @@
+{
+  "profile_name": "The_Art_Of_FASHION_Condensed_Display",
+  "version": "1.0.0",
+  "metadata": {
+    "target_aspect_ratio": "16:9",
+    "overall_mood": "Haute Couture Banner, Light Condensed Stem with Heavy Caps Base",
+    "casing_strategy": "mixed",
+    "total_word_count": 4,
+    "total_character_count": 15,
+    "per_word_character_counts": [
+      {
+        "word": "The",
+        "character_count": 3
+      },
+      {
+        "word": "art",
+        "character_count": 3
+      },
+      {
+        "word": "of",
+        "character_count": 2
+      },
+      {
+        "word": "FASHION",
+        "character_count": 7
+      }
+    ]
+  },
+  "layout_rules": {
+    "horizontal_alignment": "left",
+    "vertical_position": "center",
+    "bottom_margin_percent": 15,
+    "max_width_percent": 85,
+    "scrim_overlay": {
+      "enabled": false,
+      "type": "none",
+      "opacity": 0,
+      "color": "#F8F8F8"
+    }
+  },
+  "typography_layers": [
+    {
+      "layer_name": "top_condensed",
+      "role": "secondary_clause",
+      "font_classification": "Condensed Fine Serif",
+      "matched_font_candidates": [
+        "Bodoni Moda",
+        "Playfair Display"
+      ],
+      "font_style": {
+        "weight": 400,
+        "style": "normal",
+        "casing": "normal",
+        "color": "#111111",
+        "size_px_base": 32,
+        "relative_scale": 0.53,
+        "letter_spacing_em": 0.02,
+        "line_height": 1.0,
+        "vertical_margin_top_px": 0
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 1,
+          "blur_radius": 2,
+          "color": "rgba(0, 0, 0, 0.08)"
+        }
+      },
+      "sample_text": "The art of",
+      "word_count": 3,
+      "character_count": 8,
+      "per_word_character_counts": [
+        {
+          "word": "The",
+          "character_count": 3
+        },
+        {
+          "word": "art",
+          "character_count": 3
+        },
+        {
+          "word": "of",
+          "character_count": 2
+        }
+      ]
+    },
+    {
+      "layer_name": "bottom_fashion",
+      "role": "header",
+      "font_classification": "Giant Heavy Display Serif All-Caps",
+      "matched_font_candidates": [
+        "Bodoni Moda",
+        "Abril Fatface"
+      ],
+      "font_style": {
+        "weight": 900,
+        "style": "normal",
+        "casing": "uppercase",
+        "color": "#111111",
+        "size_px_base": 60,
+        "relative_scale": 1.0,
+        "letter_spacing_em": -0.02,
+        "line_height": 0.9,
+        "vertical_margin_top_px": -4
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 3,
+          "blur_radius": 6,
+          "color": "rgba(0, 0, 0, 0.15)"
+        }
+      },
+      "sample_text": "FASHION",
+      "word_count": 1,
+      "character_count": 7,
+      "per_word_character_counts": [
+        {
+          "word": "FASHION",
+          "character_count": 7
+        }
+      ]
+    }
+  ]
+}
