@@ -1,0 +1,118 @@
+{
+  "profile_name": "2X_Revenue_Growth_Extended_Black",
+  "version": "1.0.0",
+  "metadata": {
+    "target_aspect_ratio": "16:9",
+    "overall_mood": "High-Converting Case Study, Giant Extended 2X with Compressed Revenue Growth",
+    "casing_strategy": "uppercase_all",
+    "total_word_count": 3,
+    "total_character_count": 15,
+    "per_word_character_counts": [
+      {
+        "word": "2X",
+        "character_count": 2
+      },
+      {
+        "word": "REVENUE",
+        "character_count": 7
+      },
+      {
+        "word": "GROWTH",
+        "character_count": 6
+      }
+    ]
+  },
+  "layout_rules": {
+    "horizontal_alignment": "center",
+    "vertical_position": "center",
+    "bottom_margin_percent": 15,
+    "max_width_percent": 85,
+    "scrim_overlay": {
+      "enabled": false,
+      "type": "none",
+      "opacity": 0,
+      "color": "#FFFFFF"
+    }
+  },
+  "typography_layers": [
+    {
+      "layer_name": "giant_2x",
+      "role": "primary_focus_word",
+      "font_classification": "Giant Extended Black Display",
+      "matched_font_candidates": [
+        "Impact",
+        "Anton",
+        "Bebas Neue"
+      ],
+      "font_style": {
+        "weight": 900,
+        "style": "normal",
+        "casing": "uppercase",
+        "color": "#111111",
+        "size_px_base": 65,
+        "relative_scale": 1.0,
+        "letter_spacing_em": 0.01,
+        "line_height": 0.9,
+        "vertical_margin_top_px": 0
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 3,
+          "blur_radius": 6,
+          "color": "rgba(0, 0, 0, 0.2)"
+        }
+      },
+      "sample_text": "2X",
+      "word_count": 1,
+      "character_count": 2,
+      "per_word_character_counts": [
+        {
+          "word": "2X",
+          "character_count": 2
+        }
+      ]
+    },
+    {
+      "layer_name": "compressed_growth",
+      "role": "header",
+      "font_classification": "Heavy Compressed Sans",
+      "matched_font_candidates": [
+        "Bebas Neue",
+        "Oswald"
+      ],
+      "font_style": {
+        "weight": 900,
+        "style": "normal",
+        "casing": "uppercase",
+        "color": "#111111",
+        "size_px_base": 24,
+        "relative_scale": 0.37,
+        "letter_spacing_em": 0.04,
+        "line_height": 1.1,
+        "vertical_margin_top_px": -2
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 1,
+          "blur_radius": 2,
+          "color": "rgba(0, 0, 0, 0.1)"
+        }
+      },
+      "sample_text": "REVENUE GROWTH",
+      "word_count": 2,
+      "character_count": 13,
+      "per_word_character_counts": [
+        {
+          "word": "REVENUE",
+          "character_count": 7
+        },
+        {
+          "word": "GROWTH",
+          "character_count": 6
+        }
+      ]
+    }
+  ]
+}
