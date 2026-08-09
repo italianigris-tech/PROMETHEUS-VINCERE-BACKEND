@@ -510,9 +510,11 @@ export const createMeasuredMaulTypographyProvider = ({
 export const createResolvedMaulTypographyProvider = ({
   primary,
   accent,
+  measurementFontSizePx = 72,
 }: {
   primary: MaulResolvedFontAssetInput;
   accent: MaulResolvedFontAssetInput;
+  measurementFontSizePx?: number;
 }): MaulTypographyProvider => {
   const primaryAsset = resolveExactFontAsset(primary);
   const accentAsset = resolveExactFontAsset(accent);
@@ -543,12 +545,14 @@ export const createResolvedMaulTypographyProvider = ({
       fontRoles,
       profile: primaryProfile,
       measure: primaryMeasure,
+      measurementFontSizePx,
       primaryFontRole: "EDITORIAL_DISPLAY",
     }),
     neutralGrotesk: createMeasuredMaulTypographyProvider({
       fontRoles,
       profile: primaryProfile,
       measure: primaryMeasure,
+      measurementFontSizePx,
       primaryFontRole: "NEUTRAL_GROTESK",
     }),
   });
