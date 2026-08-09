@@ -42,7 +42,7 @@ The compiler hides five responsibilities:
 1. Parse and validate observed profile JSON with source filename and SHA-256 provenance.
 2. Calculate chunk word count and Unicode code-point count excluding whitespace.
 3. Rank profiles deterministically by word-count distance, character-count distance, aspect-ratio preference, semantic role, emphasis, and a stable tie-break key.
-4. Bind the profile's primary and accent layers to exact local/public font receipts.
+4. Bind the profile's primary and accent layers to exact or closest-compatible local/public font receipts from the 577-font intelligence catalog.
 5. Measure the selected fonts and return placement-compatible layouts and metric envelopes.
 
 The existing `MaulTypographyProvider` remains as the compatibility adapter for legacy jobs and as the explicit fallback. New jobs first call the profile compiler. They use the legacy provider only when no corpus profile can be executed, and the resulting receipt must say `governed_fallback`.
@@ -72,17 +72,23 @@ For each materialized chunk:
 - semantic and emphasis compatibility break near ties;
 - the source filename and SHA-256 provide the final deterministic tie-break.
 
-Count matching chooses among executable profiles only. It cannot make an unavailable font executable.
+Count matching selects the typography profile independently of font deployment state. Font resolution must preserve the selected profile and resolve each requested layer afterward.
 
 ## Exact Font Resolution
 
-Font matching is case-insensitive and punctuation-insensitive, and it understands candidate suffixes such as `Italic`, `Black`, and `ExtraBold`. The compiler resolves each selected layer to a `MaulResolvedFontAsset` containing the exact local file, root-relative browser URL, hash, format, weight, style, source, and license receipt.
+Font matching is case-insensitive and punctuation-insensitive, and it understands candidate suffixes such as `Italic`, `Black`, and `ExtraBold`. The compiler first attempts an exact normalized-family and style match against the deployed manifest. If none exists, it queries the 577-font intelligence catalog using the requested family, classification, layer role, weight, style, and profile mood, then selects the highest-ranked result that also has a deployed `MaulResolvedFontAsset` receipt.
 
-Requested style must match exactly. Requested weight may use the nearest available weight within the same normalized family and style because many reference JSON values describe visual weight rather than a specific shipped binary. The receipt records requested and selected weights. It never changes to an unrelated family.
+The full 577-font catalog defines the similarity space; the deployed manifest defines what Remotion can execute. A catalog entry without a local file and root-relative public URL cannot win the final resolution. When more of the 577 fonts are hydrated, they become eligible without changing the compiler interface or profile JSON.
 
-A profile is executable when its primary layer resolves. An accent layer is executable only when its font resolves; a profile that structurally requires an accent layer is skipped when that asset is unavailable. Single-layer profiles remain valid without an accent.
+If live vector retrieval is unavailable, the compiler performs deterministic local ranking over the hydrated intersection using taxonomy roles, style, weight distance, family-name similarity, readability, and expressiveness metadata. This fallback must produce the same result for the same catalog and profile hashes.
 
-If no profile can execute for a chunk, the existing measured provider supplies the governed fallback. The chunk receipt records the failure reasons considered and cannot claim the observed profile's name or style.
+The compiler resolves each selected layer to a `MaulResolvedFontAsset` containing the exact local file, root-relative browser URL, hash, format, weight, style, source, and license receipt. Its layer receipt separately records the originally requested candidate families and the selected executable family.
+
+Requested style is a strong compatibility signal. Exact style wins; when no exact-style asset exists, a style substitution is allowed only through the same governed similarity ranking and is recorded explicitly. Requested weight may use the nearest available weight because many reference JSON values describe visual weight rather than a specific shipped binary. The receipt records requested and selected styles and weights.
+
+A profile is executable when every structurally required layer resolves either exactly or through a governed closest-font substitution. Single-layer profiles remain valid without an accent. Multi-layer profiles retain their primary/accent contrast by ranking substitutions for their requested roles independently and preventing the same resolved asset from filling contrasting layers unless no distinct renderable candidate exists.
+
+If no renderable font can be resolved for a required layer, the existing measured provider supplies the governed fallback for that chunk. The chunk receipt still records the selected observed profile, the unresolved requested layers, and the fallback reason; it cannot claim that the requested font family rendered.
 
 ## Per-Chunk Typography Plan
 
@@ -94,7 +100,7 @@ Each successful chunk binding contains:
 - actual and observed word/character counts and their distances;
 - primary and optional accent layer roles;
 - requested style values used by the renderer in this batch: casing, relative scale, line height, font weight, and font style;
-- exact primary and optional accent `MaulResolvedFontAsset` receipts;
+- exact primary and optional accent `MaulResolvedFontAsset` receipts plus requested-to-selected substitution receipts;
 - the measured compatibility profile and measured line layout;
 - selection status and reason.
 
@@ -128,10 +134,10 @@ After validation, the adapter writes the binding's font data into that segment's
 Failures are divided into three classes:
 
 - `corpus_invalid`: malformed or internally inconsistent JSON blocks the profile compiler at startup or planning time;
-- `profile_unexecutable`: missing font binaries or incompatible style/weight skip that profile and continue deterministic ranking;
-- `chunk_unresolved`: no executable profile remains, so the existing measured provider supplies a governed fallback for that chunk.
+- `font_substituted`: a requested family/style is unavailable, so the closest deployed result from the 577-font intelligence space is selected and recorded;
+- `chunk_unresolved`: no executable exact or closest-compatible font remains for a required layer, so the existing measured provider supplies a governed fallback for that chunk.
 
-A selected profile that later fails font measurement is treated as unexecutable and the compiler tries the next ranked profile. A renderer receipt mismatch is a hard error, not a fallback, because it indicates corrupted causality between planning and rendering.
+A selected font that later fails measurement is removed from the layer candidate set and the compiler tries the next closest deployed font while retaining the selected JSON profile. A renderer receipt mismatch is a hard error, not a fallback, because it indicates corrupted causality between planning and rendering.
 
 No stage silently substitutes by CSS family name, system font, or environment-specific absolute path.
 
@@ -148,7 +154,8 @@ Tests must prove:
 - all 44 repository JSON files parse and their declared counts are consistent;
 - non-whitespace Unicode character counting is stable;
 - exact count matches beat near matches deterministically;
-- an unresolvable top-ranked profile is skipped for the next executable profile;
+- an unavailable requested family resolves to the closest deployed governed font while retaining the selected profile;
+- an unhydrated 577-catalog result is skipped for the next closest deployed result;
 - single-layer and primary/accent profiles resolve exact font receipts;
 - placement uses the measured profile for each chunk;
 - the typography motion plan preserves every binding and its hashes;
