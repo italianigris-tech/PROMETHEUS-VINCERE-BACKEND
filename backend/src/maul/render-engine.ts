@@ -10,6 +10,7 @@ import {
 } from "@prometheus/shared-types";
 
 import {resolveRepositoryMediaTool} from "./repository-media-tools.js";
+import {validateMaulRenderFontReceipts} from "./render-font-preflight.js";
 
 export type MaulRenderCaption = {
   text: string;
@@ -170,6 +171,9 @@ export const renderMaulShortLocally: MaulShortRenderEngine = async (input) => {
   const observationMode = input.observationMode ?? "creative";
   const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
   const remotionRoot = path.join(repoRoot, "remotion-app");
+  validateMaulRenderFontReceipts(input.manifest, {
+    remotionPublicDir: path.join(remotionRoot, "public"),
+  });
   const publicStageRoot = path.join(remotionRoot, "public", ".maul-renders");
   await mkdir(publicStageRoot, {recursive: true});
   // Resolve to absolute paths up front: the caller may hand us a relative

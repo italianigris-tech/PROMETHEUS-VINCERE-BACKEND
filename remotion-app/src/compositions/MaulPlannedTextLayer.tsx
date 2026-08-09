@@ -32,6 +32,7 @@ import {
   type MaulPlannedTextRecord,
   type MaulPlannedTextToken,
 } from "./maul-short-manifest-adapter";
+import {resolveMaulFontAssetUrl} from "./maul-font-asset-resolver";
 
 const dmSansFamily = "DM Sans";
 const playfairDisplayFamily = "Playfair Display";
@@ -181,13 +182,7 @@ export const resolveMaulFontBrowserUrl = (
   browserUrl: string,
   resolveStaticAsset: (assetPath: string) => string = staticFile,
 ): string => {
-  if (/^(https?:)?\/\//iu.test(browserUrl)) {
-    throw new Error("MAUL renderer only accepts offline root-relative font assets.");
-  }
-  if (!browserUrl.startsWith("/")) {
-    throw new Error("MAUL renderer requires root-relative font assets.");
-  }
-  return resolveStaticAsset(browserUrl.replace(/^\/+/, ""));
+  return resolveMaulFontAssetUrl(browserUrl, resolveStaticAsset);
 };
 
 const ensurePlannedFontLoaded = ({
