@@ -1,0 +1,109 @@
+{
+  "profile_name": "Grow_Your_Netflix_Red_White_Sans",
+  "version": "1.0.0",
+  "metadata": {
+    "target_aspect_ratio": "16:9",
+    "overall_mood": "High Impact Social Cover, Bright Red Bold Sans with White Overlap",
+    "casing_strategy": "uppercase_all",
+    "total_word_count": 2,
+    "total_character_count": 8,
+    "per_word_character_counts": [
+      {
+        "word": "GROW",
+        "character_count": 4
+      },
+      {
+        "word": "YOUR",
+        "character_count": 4
+      }
+    ]
+  },
+  "layout_rules": {
+    "horizontal_alignment": "center",
+    "vertical_position": "center",
+    "bottom_margin_percent": 15,
+    "max_width_percent": 85,
+    "scrim_overlay": {
+      "enabled": true,
+      "type": "linear_gradient",
+      "opacity": 0.9,
+      "color": "#0A0A0A"
+    }
+  },
+  "typography_layers": [
+    {
+      "layer_name": "red_grow",
+      "role": "header",
+      "font_classification": "Netflix Red Ultra-Bold Sans",
+      "matched_font_candidates": [
+        "Montserrat ExtraBold",
+        "Inter"
+      ],
+      "font_style": {
+        "weight": 900,
+        "style": "normal",
+        "casing": "uppercase",
+        "color": "#E50914",
+        "size_px_base": 58,
+        "relative_scale": 1.0,
+        "letter_spacing_em": 0.02,
+        "line_height": 0.9,
+        "vertical_margin_top_px": 0
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 4,
+          "blur_radius": 8,
+          "color": "rgba(229, 9, 20, 0.5)"
+        }
+      },
+      "sample_text": "GROW",
+      "word_count": 1,
+      "character_count": 4,
+      "per_word_character_counts": [
+        {
+          "word": "GROW",
+          "character_count": 4
+        }
+      ]
+    },
+    {
+      "layer_name": "white_your",
+      "role": "secondary_clause",
+      "font_classification": "White Bold Geometric Sans Overlapping GROW",
+      "matched_font_candidates": [
+        "Montserrat",
+        "Inter"
+      ],
+      "font_style": {
+        "weight": 800,
+        "style": "normal",
+        "casing": "uppercase",
+        "color": "#FFFFFF",
+        "size_px_base": 46,
+        "relative_scale": 0.79,
+        "letter_spacing_em": 0.03,
+        "line_height": 1.0,
+        "vertical_margin_top_px": -20
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 3,
+          "blur_radius": 6,
+          "color": "rgba(0, 0, 0, 0.6)"
+        }
+      },
+      "sample_text": "YOUR",
+      "word_count": 1,
+      "character_count": 4,
+      "per_word_character_counts": [
+        {
+          "word": "YOUR",
+          "character_count": 4
+        }
+      ]
+    }
+  ]
+}
