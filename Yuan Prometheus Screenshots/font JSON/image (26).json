@@ -1,0 +1,134 @@
+{
+  "profile_name": "Marketing_Trends_Grid_Orange_Annotated",
+  "version": "1.0.0",
+  "metadata": {
+    "target_aspect_ratio": "16:9",
+    "overall_mood": "Corporate Strategy Grid, Orange Marker Oval & Underline",
+    "casing_strategy": "uppercase_all",
+    "total_word_count": 5,
+    "total_character_count": 29,
+    "per_word_character_counts": [
+      {
+        "word": "MARKETING",
+        "character_count": 9
+      },
+      {
+        "word": "TRENDS",
+        "character_count": 6
+      },
+      {
+        "word": "YOU",
+        "character_count": 3
+      },
+      {
+        "word": "CAN'T",
+        "character_count": 5
+      },
+      {
+        "word": "IGNORE",
+        "character_count": 6
+      }
+    ]
+  },
+  "layout_rules": {
+    "horizontal_alignment": "center",
+    "vertical_position": "center",
+    "bottom_margin_percent": 15,
+    "max_width_percent": 85,
+    "scrim_overlay": {
+      "enabled": false,
+      "type": "none",
+      "opacity": 0,
+      "color": "#F5F5F5"
+    }
+  },
+  "typography_layers": [
+    {
+      "layer_name": "heavy_marketing",
+      "role": "header",
+      "font_classification": "Heavy Black Neogrotesque Sans",
+      "matched_font_candidates": [
+        "Inter",
+        "Helvetica",
+        "Arial Black"
+      ],
+      "font_style": {
+        "weight": 900,
+        "style": "normal",
+        "casing": "uppercase",
+        "color": "#111111",
+        "size_px_base": 48,
+        "relative_scale": 1.0,
+        "letter_spacing_em": 0.02,
+        "line_height": 1.0,
+        "vertical_margin_top_px": 0
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 2,
+          "blur_radius": 4,
+          "color": "rgba(0, 0, 0, 0.1)"
+        }
+      },
+      "sample_text": "MARKETING",
+      "word_count": 1,
+      "character_count": 9,
+      "per_word_character_counts": [
+        {
+          "word": "MARKETING",
+          "character_count": 9
+        }
+      ]
+    },
+    {
+      "layer_name": "annotated_subhead",
+      "role": "secondary_clause",
+      "font_classification": "Clean Medium Sans with Orange Circle on TRENDS & Underline on IGNORE",
+      "matched_font_candidates": [
+        "Inter",
+        "Roboto"
+      ],
+      "font_style": {
+        "weight": 600,
+        "style": "normal",
+        "casing": "uppercase",
+        "color": "#333333",
+        "size_px_base": 20,
+        "relative_scale": 0.41,
+        "letter_spacing_em": 0.05,
+        "line_height": 1.2,
+        "vertical_margin_top_px": 4
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 1,
+          "blur_radius": 2,
+          "color": "rgba(230, 81, 0, 0.3)"
+        }
+      },
+      "sample_text": "TRENDS YOU CAN'T IGNORE",
+      "word_count": 4,
+      "character_count": 20,
+      "per_word_character_counts": [
+        {
+          "word": "TRENDS",
+          "character_count": 6
+        },
+        {
+          "word": "YOU",
+          "character_count": 3
+        },
+        {
+          "word": "CAN'T",
+          "character_count": 5
+        },
+        {
+          "word": "IGNORE",
+          "character_count": 6
+        }
+      ]
+    }
+  ]
+}
