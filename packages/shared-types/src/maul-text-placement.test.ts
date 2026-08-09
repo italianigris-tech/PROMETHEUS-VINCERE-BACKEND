@@ -303,6 +303,12 @@ describe("MAUL text placement core contract", () => {
         .profileTransform?.uniformScale,
     ).toBe(2);
 
+    withTransform.segments[0].compatibility.hierarchyScale = 3;
+    expect(
+      maulTextPlacementPlanCoreSchema.parse(withTransform).segments[0]
+        .profileTransform?.uniformScale,
+    ).toBe(2);
+
     withTransform.segments[0].profileTransform.finalWidthPx = 1279;
     expect(() => maulTextPlacementPlanCoreSchema.parse(withTransform)).toThrow(
       /profile transform.*dimensions|dimensions.*uniform scale/i,

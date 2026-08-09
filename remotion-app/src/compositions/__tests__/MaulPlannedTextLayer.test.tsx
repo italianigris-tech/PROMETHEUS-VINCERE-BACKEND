@@ -553,7 +553,7 @@ describe("MAUL planned text renderer contract", () => {
         {
           layerName: "primary",
           tokenIds: ["token_make"],
-          text: "Make",
+          text: "MAKE",
           selectedAsset: binding.layers[0].selectedAsset,
           fontSizePx: 52,
           measuredWidthPx: 220,
@@ -586,6 +586,7 @@ describe("MAUL planned text renderer contract", () => {
     };
     const placement = structuredClone(textPlacementPlan) as any;
     placement.segments[0].variantId = "profile.typography_group_v1";
+    placement.segments[0].lines[0].text = "MAKE";
     placement.segments[0].editorialLockup = undefined;
     placement.segments[0].minimumLegibilityPrimitive = {kind: "none"};
     placement.segments[0].profileTransform = {
@@ -609,6 +610,7 @@ describe("MAUL planned text renderer contract", () => {
       "#F4E9D7",
       "#FF6B35",
     ]);
+    expect(record.lines[0]?.text).toBe("MAKE");
     expect(record.profileTransform).toEqual(placement.segments[0].profileTransform);
     expect(record.editorialLockup).toBeUndefined();
   });

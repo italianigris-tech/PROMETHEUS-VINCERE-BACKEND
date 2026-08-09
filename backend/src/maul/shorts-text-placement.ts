@@ -188,10 +188,10 @@ const boxesOverlap = (first: MaulNormalizedBox, second: MaulNormalizedBox) =>
   first.y + first.height > second.y;
 
 const boxContains = (outer: MaulNormalizedBox, inner: MaulNormalizedBox) =>
-  inner.x >= outer.x &&
-  inner.y >= outer.y &&
-  inner.x + inner.width <= outer.x + outer.width &&
-  inner.y + inner.height <= outer.y + outer.height;
+  inner.x >= outer.x - 0.000001 &&
+  inner.y >= outer.y - 0.000001 &&
+  inner.x + inner.width <= outer.x + outer.width + 0.000001 &&
+  inner.y + inner.height <= outer.y + outer.height + 0.000001;
 
 const intervalContains = (
   interval: MaulPlacementTimelineInterval,

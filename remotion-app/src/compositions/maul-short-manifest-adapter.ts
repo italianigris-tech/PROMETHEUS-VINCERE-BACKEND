@@ -438,9 +438,19 @@ export const buildMaulPlannedTextRecords = ({
     }
     for (const line of segment.lines) {
       const texts = line.tokenIds.map((tokenId) => tokenById.get(tokenId)?.text);
+      const realizedLayerText = chunkTypographyBindingById
+        .get(segment.chunkId)
+        ?.realization?.layers.find(
+          (layer) =>
+            layer.tokenIds.length === line.tokenIds.length &&
+            layer.tokenIds.every(
+              (tokenId, index) => tokenId === line.tokenIds[index],
+            ),
+        )?.text;
       if (
         texts.some((text) => text === undefined) ||
-        joinShortsTextTokens(texts as string[]) !== line.text
+        (joinShortsTextTokens(texts as string[]) !== line.text &&
+          realizedLayerText !== line.text)
       ) {
         throw new Error(
           `Placement ${segment.segmentId} line text does not match its governed tokens.`,

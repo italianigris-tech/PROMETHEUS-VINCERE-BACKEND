@@ -1876,6 +1876,20 @@ describe("MAUL shared contracts", () => {
       maulUnifiedShortRenderManifestSchema.parse(manifestV3).schemaVersion,
     ).toBe("maul-unified-short-render-manifest/v3");
 
+    const profileCasing = structuredClone(manifestV3) as any;
+    profileCasing.plans.textPlacement.segments[0].profileTransform = {
+      uniformScale: 1,
+      intrinsicWidthPx: 100,
+      intrinsicHeightPx: 40,
+      finalWidthPx: 100,
+      finalHeightPx: 40,
+    };
+    profileCasing.plans.textPlacement.segments[0].lines[0].text = "PROOF";
+    expect(
+      maulUnifiedShortRenderManifestV3Schema.parse(profileCasing).plans
+        .textPlacement.segments[0].lines[0].text,
+    ).toBe("PROOF");
+
     const staleToken = structuredClone(manifestV3);
     staleToken.plans.textAnimation.programs[0].target.tokenIds = [
       "token_missing",

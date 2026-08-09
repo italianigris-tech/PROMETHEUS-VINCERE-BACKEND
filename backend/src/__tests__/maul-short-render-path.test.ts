@@ -623,6 +623,9 @@ describe("MAUL complete short render path", () => {
       "visual",
     ]);
     const plans = planningResponse.json().plans;
+    const plannedTokenById = new Map(
+      plans.textChunk.payload.tokens.map((token: any) => [token.tokenId, token]),
+    );
     expect(typographyProfileCompile).toHaveBeenCalledOnce();
     expect(typographyProfileCompile).toHaveBeenCalledWith({
       chunks: plans.textChunk.payload.chunks.map((chunk: any) => ({
@@ -631,6 +634,13 @@ describe("MAUL complete short render path", () => {
         wordCount: chunk.tokenIds.length,
         semanticRole: chunk.semanticRole,
         emphasisLevel: chunk.emphasis.level,
+        tokens: chunk.tokenIds.map((tokenId: string) => {
+          const token = plannedTokenById.get(tokenId) as {text: string} | undefined;
+          if (!token) {
+            throw new Error(`Missing planned token ${tokenId}`);
+          }
+          return {tokenId, text: token.text};
+        }),
       })),
       targetAspectRatio: "9:16",
       maximumLineWidthPx: 410,
@@ -758,15 +768,17 @@ describe("MAUL complete short render path", () => {
     );
     expect(plans.textPlacement.payload.status).toBe("planned");
     expect(plans.textPlacement.payload.segments.length).toBeGreaterThan(0);
+    const profileSegments = plans.textPlacement.payload.segments.filter(
+      (segment: any) => segment.profileTransform,
+    );
+    expect(profileSegments).toHaveLength(plans.textChunk.payload.chunks.length);
     expect(
-      plans.textPlacement.payload.segments.every((segment: any) =>
-        segment.editorialLockup?.choreography?.tokenOrder.join("|") ===
-          segment.tokenIds.join("|"),
-      ),
-    ).toBe(true);
-    expect(
-      plans.textPlacement.payload.segments.some(
-        (segment: any) => segment.editorialLockup?.overlap?.enabled === true,
+      profileSegments.every((segment: any) =>
+        segment.variantId === "profile.typography_group_v1" &&
+        segment.lines.flatMap((line: any) => line.tokenIds).join("|") ===
+          segment.tokenIds.join("|") &&
+        segment.profileTransform.uniformScale > 1 &&
+        segment.editorialLockup === undefined,
       ),
     ).toBe(true);
     expect(
@@ -826,9 +838,7 @@ describe("MAUL complete short render path", () => {
       textChunkPlanArtifactId: plans.textChunk.artifactId,
       textPlacementPlanArtifactId: plans.textPlacement.artifactId,
     });
-    expect(plans.textPlacement.payload.segments[0]?.editorialLockup?.accentTokenIds).toEqual([
-      plans.textChunk.payload.tokens[0]?.tokenId,
-    ]);
+    expect(plans.textPlacement.payload.segments[0]?.editorialLockup).toBeUndefined();
     expect(
       plans.textChunk.payload.chunks
         .map((chunk: any) => chunk.text)

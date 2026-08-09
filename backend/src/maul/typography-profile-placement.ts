@@ -5,7 +5,7 @@ import type {
 } from "@prometheus/shared-types";
 
 const OUTPUT = {width: 1080, height: 1920} as const;
-const MAX_PROFILE_SCALE = 2.4;
+const MAX_PROFILE_SCALE = 3.4;
 const SAFE_REGION: MaulNormalizedBox = {
   x: 0.04,
   y: 0.04,

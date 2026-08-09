@@ -2670,10 +2670,13 @@ const validateMaulUnifiedShortRenderManifest = (
           const tokenTexts = line.tokenIds.map((tokenId) =>
             tokenTextById.get(tokenId),
           );
-          return (
-            tokenTexts.every((text): text is string => Boolean(text)) &&
-            joinShortsTextTokens(tokenTexts) === line.text
-          );
+          if (!tokenTexts.every((text): text is string => Boolean(text))) {
+            return false;
+          }
+          const sourceText = joinShortsTextTokens(tokenTexts);
+          return sourceText === line.text ||
+            (Boolean(segment.profileTransform) &&
+              sourceText.toLocaleLowerCase() === line.text.toLocaleLowerCase());
         });
         if (
           !chunk ||

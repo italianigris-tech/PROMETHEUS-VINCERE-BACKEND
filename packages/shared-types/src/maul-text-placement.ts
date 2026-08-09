@@ -879,12 +879,13 @@ export const maulTextPlacementPlanCoreSchema = z
         !profile ||
         profile.metrics.fingerprint !==
           segment.compatibility.metricsFingerprint ||
-        segment.compatibility.nominalFontSizePx *
-          segment.compatibility.hierarchyScale <
-          profile.metrics.minimumFontSizePx ||
-        segment.compatibility.nominalFontSizePx *
-          segment.compatibility.hierarchyScale >
-          profile.metrics.maximumFontSizePx ||
+        (!segment.profileTransform &&
+          (segment.compatibility.nominalFontSizePx *
+            segment.compatibility.hierarchyScale <
+            profile.metrics.minimumFontSizePx ||
+            segment.compatibility.nominalFontSizePx *
+              segment.compatibility.hierarchyScale >
+              profile.metrics.maximumFontSizePx)) ||
         segment.compatibility.lineHeight <
           profile.metrics.minimumLineHeight ||
         segment.compatibility.lineHeight > profile.metrics.maximumLineHeight
