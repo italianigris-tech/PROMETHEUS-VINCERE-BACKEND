@@ -161,6 +161,37 @@ describe("MAUL typography profile font resolver", () => {
     });
   });
 
+  it("treats an executable requested family as a hard priority over catalog similarity", () => {
+    const result = resolveTypographyProfileLayer({
+      layer: layer({
+        candidates: ["DM Sans"],
+        classification: "Didone Editorial Serif",
+        role: "primary_focus_word",
+        style: "italic",
+        weight: 700,
+      }),
+      profileMood: "Cinematic editorial luxury",
+      catalog,
+      executableAssets: [
+        asset({
+          assetId: "font_dm_sans_regular_400",
+          family: "DM Sans",
+          weight: 400,
+          style: "normal",
+        }),
+        asset({
+          assetId: "font_playfair_italic_700",
+          family: "Playfair Display",
+          weight: 700,
+          style: "italic",
+        }),
+      ],
+    });
+
+    expect(result.selectedAsset.family).toBe("DM Sans");
+    expect(result.resolution).toBe("closest_catalog");
+  });
+
   it("keeps the profile and chooses the closest deployed catalog font", () => {
     const result = resolveTypographyProfileLayer({
       layer: layer({candidates: ["Inter"]}),

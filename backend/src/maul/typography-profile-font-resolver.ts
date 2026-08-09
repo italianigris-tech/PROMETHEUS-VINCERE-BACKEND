@@ -291,7 +291,12 @@ export const resolveTypographyProfileLayer = ({
         right.score - left.score ||
         left.asset.assetId.localeCompare(right.asset.assetId),
     );
-  const selected = ranked[0]!;
+  const exactFamilyCandidates = ranked.filter(
+    (candidate) => candidate.exactFamily,
+  );
+  const selected = (exactFamilyCandidates.length > 0
+    ? exactFamilyCandidates
+    : ranked)[0]!;
   const resolution =
     selected.exactFamily && selected.exactStyle ? "exact" : "closest_catalog";
   return maulTypographyLayerBindingSchema.parse({
