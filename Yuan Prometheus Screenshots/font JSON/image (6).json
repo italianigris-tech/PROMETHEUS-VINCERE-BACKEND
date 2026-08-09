@@ -1,0 +1,126 @@
+{
+  "profile_name": "The_Seasons_True_Typewriter",
+  "version": "1.0.0",
+  "metadata": {
+    "target_aspect_ratio": "16:9",
+    "overall_mood": "Vintage Typewriter, Delicate Editorial Serif",
+    "casing_strategy": "mixed",
+    "total_word_count": 4,
+    "total_character_count": 24,
+    "per_word_character_counts": [
+      {
+        "word": "the",
+        "character_count": 3
+      },
+      {
+        "word": "seasons",
+        "character_count": 7
+      },
+      {
+        "word": "TRUE",
+        "character_count": 4
+      },
+      {
+        "word": "TYPEWRITER",
+        "character_count": 10
+      }
+    ]
+  },
+  "layout_rules": {
+    "horizontal_alignment": "center",
+    "vertical_position": "center",
+    "bottom_margin_percent": 15,
+    "max_width_percent": 85,
+    "scrim_overlay": {
+      "enabled": false,
+      "type": "none",
+      "opacity": 0,
+      "color": "#F5F4F0"
+    }
+  },
+  "typography_layers": [
+    {
+      "layer_name": "header_title",
+      "role": "header",
+      "font_classification": "Delicate Italic Modern Serif",
+      "matched_font_candidates": [
+        "Playfair Display Italic",
+        "Cormorant Garamond"
+      ],
+      "font_style": {
+        "weight": 400,
+        "style": "italic",
+        "casing": "lowercase",
+        "color": "#2B2B2B",
+        "size_px_base": 38,
+        "relative_scale": 1.0,
+        "letter_spacing_em": 0.02,
+        "line_height": 1.15,
+        "vertical_margin_top_px": 0
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 1,
+          "blur_radius": 2,
+          "color": "rgba(0, 0, 0, 0.05)"
+        }
+      },
+      "sample_text": "the seasons",
+      "word_count": 2,
+      "character_count": 10,
+      "per_word_character_counts": [
+        {
+          "word": "the",
+          "character_count": 3
+        },
+        {
+          "word": "seasons",
+          "character_count": 7
+        }
+      ]
+    },
+    {
+      "layer_name": "subhead_mono",
+      "role": "secondary_clause",
+      "font_classification": "Monospace Typewriter",
+      "matched_font_candidates": [
+        "Courier Prime",
+        "Special Elite",
+        "Space Mono"
+      ],
+      "font_style": {
+        "weight": 500,
+        "style": "normal",
+        "casing": "uppercase",
+        "color": "#555555",
+        "size_px_base": 14,
+        "relative_scale": 0.37,
+        "letter_spacing_em": 0.12,
+        "line_height": 1.2,
+        "vertical_margin_top_px": 6
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 1,
+          "blur_radius": 1,
+          "color": "rgba(0, 0, 0, 0.05)"
+        }
+      },
+      "sample_text": "TRUE TYPEWRITER",
+      "word_count": 2,
+      "character_count": 14,
+      "per_word_character_counts": [
+        {
+          "word": "TRUE",
+          "character_count": 4
+        },
+        {
+          "word": "TYPEWRITER",
+          "character_count": 10
+        }
+      ]
+    }
+  ]
+}
