@@ -1391,6 +1391,44 @@ export const maulTypographyLayerBindingSchema = z
     }
   });
 
+export const maulProfileTypographyLayerSchema = z
+  .object({
+    layerName: idSchema,
+    tokenIds: z.array(idSchema).min(1),
+    text: z.string().trim().min(1),
+    selectedAsset: maulResolvedFontAssetSchema,
+    fontSizePx: z.number().positive(),
+    measuredWidthPx: z.number().positive(),
+    measuredHeightPx: z.number().positive(),
+    lineHeight: z.number().positive(),
+    letterSpacingEm: z.number().finite(),
+    casing: z.enum(["normal", "lowercase", "uppercase", "title_case"]),
+    color: z.string().trim().min(1),
+    marginTopPx: z.number().finite(),
+    shadow: z
+      .object({
+        xOffset: z.number().finite(),
+        yOffset: z.number().finite(),
+        blurRadius: z.number().nonnegative(),
+        color: z.string().trim().min(1),
+      })
+      .strict(),
+    measurementId: idSchema,
+  })
+  .strict();
+
+export const maulProfileTypographyRealizationSchema = z
+  .object({
+    adaptation: z.literal("uniform_fit_9_16"),
+    horizontalAlignment: z.enum(["left", "center", "right"]),
+    maxWidthPercent: z.number().positive().max(100),
+    intrinsicSizePx: z
+      .object({width: z.number().positive(), height: z.number().positive()})
+      .strict(),
+    layers: z.array(maulProfileTypographyLayerSchema).min(1),
+  })
+  .strict();
+
 export const maulChunkTypographyBindingSchema = z
   .object({
     schemaVersion: z.literal("maul-chunk-typography-binding/v1"),
@@ -1439,6 +1477,7 @@ export const maulChunkTypographyBindingSchema = z
         measurementIds: z.array(idSchema).min(1),
       })
       .strict(),
+    realization: maulProfileTypographyRealizationSchema.optional(),
     selectionStatus: z.enum(["selected", "governed_fallback"]),
     reason: idSchema,
     timingMs: z
@@ -1494,6 +1533,52 @@ export const maulChunkTypographyBindingSchema = z
         message:
           "Typography compatibility profile must prove the selected primary layer asset.",
       });
+    }
+    if (binding.realization) {
+      const realizationLayerNames = binding.realization.layers.map(
+        (layer) => layer.layerName,
+      );
+      const realizationTokenIds = binding.realization.layers.flatMap(
+        (layer) => layer.tokenIds,
+      );
+      if (
+        new Set(realizationLayerNames).size !== realizationLayerNames.length ||
+        realizationLayerNames.length !== binding.layers.length ||
+        realizationLayerNames.some((layerName) => !layerNames.includes(layerName))
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["realization", "layers"],
+          message:
+            "Typography realization layers must match binding layers exactly.",
+        });
+      }
+      if (new Set(realizationTokenIds).size !== realizationTokenIds.length) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["realization", "layers"],
+          message: "Typography realization token IDs must be unique.",
+        });
+      }
+      for (const realizationLayer of binding.realization.layers) {
+        const bindingLayer = binding.layers.find(
+          (layer) => layer.layerName === realizationLayer.layerName,
+        );
+        if (
+          !bindingLayer ||
+          bindingLayer.selectedAsset.assetId !==
+            realizationLayer.selectedAsset.assetId ||
+          bindingLayer.selectedAsset.localFileSha256 !==
+            realizationLayer.selectedAsset.localFileSha256
+        ) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["realization", "layers"],
+            message:
+              "Typography realization assets must match their binding layer receipts.",
+          });
+        }
+      }
     }
   });
 
@@ -2763,7 +2848,9 @@ export const maulUnifiedShortRenderManifestV2Schema =
     validateMaulUnifiedShortRenderManifest,
   );
 
-export const maulUnifiedShortRenderManifestV3Schema =
+export const maulUnifiedShortRenderManifestV3Schema: z.ZodEffects<
+  typeof maulUnifiedShortRenderManifestV3ObjectSchema
+> =
   maulUnifiedShortRenderManifestV3ObjectSchema.superRefine(
     validateMaulUnifiedShortRenderManifest,
   );
@@ -4118,6 +4205,12 @@ export type MaulTextAnimationPlanPayload = z.infer<
 >;
 export type MaulTypographyLayerBinding = z.infer<
   typeof maulTypographyLayerBindingSchema
+>;
+export type MaulProfileTypographyLayer = z.infer<
+  typeof maulProfileTypographyLayerSchema
+>;
+export type MaulProfileTypographyRealization = z.infer<
+  typeof maulProfileTypographyRealizationSchema
 >;
 export type MaulChunkTypographyBinding = z.infer<
   typeof maulChunkTypographyBindingSchema

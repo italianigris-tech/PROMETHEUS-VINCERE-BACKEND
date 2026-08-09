@@ -545,6 +545,34 @@ export const maulMinimumLegibilityPrimitiveSchema = z.discriminatedUnion(
   ],
 );
 
+export const maulTypographyProfileTransformSchema = z
+  .object({
+    uniformScale: z.number().positive(),
+    intrinsicWidthPx: z.number().positive(),
+    intrinsicHeightPx: z.number().positive(),
+    finalWidthPx: z.number().positive(),
+    finalHeightPx: z.number().positive(),
+  })
+  .strict()
+  .superRefine((transform, ctx) => {
+    if (
+      Math.abs(
+        transform.finalWidthPx -
+          transform.intrinsicWidthPx * transform.uniformScale,
+      ) > 0.01 ||
+      Math.abs(
+        transform.finalHeightPx -
+          transform.intrinsicHeightPx * transform.uniformScale,
+      ) > 0.01
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "Profile transform final dimensions must equal intrinsic dimensions times uniform scale.",
+      });
+    }
+  });
+
 export const maulTextPlacementSegmentSchema = z
   .object({
     segmentId: idSchema,
@@ -570,6 +598,7 @@ export const maulTextPlacementSegmentSchema = z
     box: maulNormalizedBoxSchema,
     maximumEnvelope: maulNormalizedBoxSchema,
     alignment: z.enum(["left", "center", "right"]),
+    profileTransform: maulTypographyProfileTransformSchema.optional(),
     compatibility: z.object({
       profileId: idSchema,
       metricsFingerprint: sha256Schema,
@@ -895,6 +924,9 @@ export type MaulShortsTextChunkPlanV2Core = z.infer<
 >;
 export type MaulTypographyCompatibilityProfile = z.infer<
   typeof maulTypographyCompatibilityProfileSchema
+>;
+export type MaulTypographyProfileTransform = z.infer<
+  typeof maulTypographyProfileTransformSchema
 >;
 export type MaulOutputCompositionInterval = z.infer<
   typeof maulOutputCompositionIntervalSchema

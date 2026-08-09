@@ -121,6 +121,7 @@ export {
   maulTextOutputSpanSchema,
   maulTextPlacementPlanCoreSchema,
   maulTextPlacementSegmentSchema,
+  maulTypographyProfileTransformSchema,
   maulTypographyCompatibilityProfileSchema,
   type MaulMinimumLegibilityPrimitive,
   type MaulNormalizedBox,
@@ -134,6 +135,7 @@ export {
   type MaulTextPlacementPlanCore,
   type MaulTextPlacementSegment,
   type MaulTypographyCompatibilityProfile,
+  type MaulTypographyProfileTransform,
 } from "./maul-text-placement.js";
 
 export {
@@ -200,6 +202,8 @@ export {
   maulTextPlacementPlanPayloadSchema,
   maulTextAnimationPlanPayloadSchema,
   maulTypographyLayerBindingSchema,
+  maulProfileTypographyLayerSchema,
+  maulProfileTypographyRealizationSchema,
   maulChunkTypographyBindingSchema,
   maulTypographyMotionPlanPayloadSchema,
   maulTypographyMotionPlanV1PayloadSchema,
@@ -303,6 +307,8 @@ export {
   type MaulTextPlacementPlanPayload,
   type MaulTextAnimationPlanPayload,
   type MaulTypographyLayerBinding,
+  type MaulProfileTypographyLayer,
+  type MaulProfileTypographyRealization,
   type MaulChunkTypographyBinding,
   type MaulTypographyMotionPlanPayload,
   type MaulTypographyMotionPlanV1Payload,

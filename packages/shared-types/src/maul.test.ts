@@ -1709,6 +1709,35 @@ describe("MAUL shared contracts", () => {
         ],
         measurementIds: ["measure_proof"],
       },
+      realization: {
+        adaptation: "uniform_fit_9_16",
+        horizontalAlignment: "left",
+        maxWidthPercent: 85,
+        intrinsicSizePx: {width: 180, height: 80},
+        layers: [
+          {
+            layerName: "hero",
+            tokenIds: ["token_a"],
+            text: "Proof",
+            selectedAsset,
+            fontSizePx: 72,
+            measuredWidthPx: 180,
+            measuredHeightPx: 72,
+            lineHeight: 1.1,
+            letterSpacingEm: 0.01,
+            casing: "normal",
+            color: "#111111",
+            marginTopPx: 0,
+            shadow: {
+              xOffset: 0,
+              yOffset: 1,
+              blurRadius: 2,
+              color: "rgba(0, 0, 0, 0.08)",
+            },
+            measurementId: "measure_proof",
+          },
+        ],
+      },
       selectionStatus: "selected",
       reason: "Exact count match compiled with an executable font receipt.",
       timingMs: {selection: 1, fontResolution: 2, measurement: 3},
@@ -1719,6 +1748,28 @@ describe("MAUL shared contracts", () => {
       chunkTypographyBindings: [binding],
     });
     expect(parsed.chunkTypographyBindings).toEqual([binding]);
+    expect(parsed.chunkTypographyBindings[0]?.realization?.layers[0]?.color).toBe(
+      "#111111",
+    );
+    const invalidRealization = structuredClone(binding) as any;
+    invalidRealization.realization.layers[0].tokenIds = ["token_a", "token_a"];
+    expect(() =>
+      maulTypographyMotionPlanPayloadSchema.parse({
+        ...typographyV3,
+        chunkTypographyBindings: [invalidRealization],
+      }),
+    ).toThrow(/realization.*token|token.*unique/i);
+    invalidRealization.realization.layers[0].tokenIds = ["token_a"];
+    invalidRealization.realization.layers[0].selectedAsset = {
+      ...invalidRealization.realization.layers[0].selectedAsset,
+      assetId: "font_google_dm_sans_700",
+    };
+    expect(() =>
+      maulTypographyMotionPlanPayloadSchema.parse({
+        ...typographyV3,
+        chunkTypographyBindings: [invalidRealization],
+      }),
+    ).toThrow(/realization.*asset|asset.*binding/i);
     expect(() =>
       maulTypographyMotionPlanPayloadSchema.parse({
         ...typographyV3,

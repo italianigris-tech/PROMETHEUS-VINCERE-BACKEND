@@ -289,6 +289,26 @@ describe("MAUL text placement core contract", () => {
     ).toBe("measured");
   });
 
+  it("accepts a uniform profile transform and rejects inconsistent final dimensions", () => {
+    const withTransform = clone(placementCore) as any;
+    withTransform.segments[0].profileTransform = {
+      uniformScale: 2,
+      intrinsicWidthPx: 640,
+      intrinsicHeightPx: 180,
+      finalWidthPx: 1280,
+      finalHeightPx: 360,
+    };
+    expect(
+      maulTextPlacementPlanCoreSchema.parse(withTransform).segments[0]
+        .profileTransform?.uniformScale,
+    ).toBe(2);
+
+    withTransform.segments[0].profileTransform.finalWidthPx = 1279;
+    expect(() => maulTextPlacementPlanCoreSchema.parse(withTransform)).toThrow(
+      /profile transform.*dimensions|dimensions.*uniform scale/i,
+    );
+  });
+
   it("allows primary and fallback composition variants over the same interval", () => {
     const withFallback = clone(placementCore);
     withFallback.compositionIntervals.push({
