@@ -5,9 +5,15 @@ import path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("@zilliz/milvus2-sdk-node", () => ({
+  HttpClient: class TestHttpClient {},
+  MilvusClient: class TestMilvusClient {},
+}));
+
 import { materializeShortsTextChunkProposal } from "../maul/shorts-text-chunking";
 import { createResolvedMaulTypographyProvider } from "../maul/typography-layout";
-import { loadHydratedMaulFontAssets } from "../maul/zilliz-font-assets";
+import { loadHydratedMaulFontAssets } from "../maul/maul-font-catalog";
+import { createTypographyProfileCompiler } from "../maul/typography-profile-compiler";
 import { cleanupTempDir, createTestApp, makeTempDir } from "./test-utils";
 
 const sourceBytes = Buffer.from("maul-test-source-video");
@@ -377,6 +383,10 @@ describe("MAUL complete short render path", () => {
       expect(input.fontSystemId).toBe("grotesk_editorial_hinge");
       return measuredTypographyProvider.plan(input);
     });
+    const authoritativeTypographyCompiler = createTypographyProfileCompiler();
+    const typographyProfileCompile = vi.fn(
+      authoritativeTypographyCompiler.compile.bind(authoritativeTypographyCompiler),
+    );
     const qualityTruthProofProvider = vi.fn(validQualityTruthProofProvider);
     const perceptualTruthEvaluate = vi.fn(async ({preview}: any) => ({
       status: "pass",
@@ -403,6 +413,7 @@ describe("MAUL complete short render path", () => {
           evaluate: perceptualTruthEvaluate,
         },
         maulTypographyProvider: {plan: measuredTypographyPlan},
+        maulTypographyProfileCompiler: {compile: typographyProfileCompile},
       } as any,
     });
     const projectResponse = await context.app.inject({
@@ -585,6 +596,18 @@ describe("MAUL complete short render path", () => {
       "visual",
     ]);
     const plans = planningResponse.json().plans;
+    expect(typographyProfileCompile).toHaveBeenCalledOnce();
+    expect(typographyProfileCompile).toHaveBeenCalledWith({
+      chunks: plans.textChunk.payload.chunks.map((chunk: any) => ({
+        chunkId: chunk.chunkId,
+        text: chunk.text,
+        wordCount: chunk.tokenIds.length,
+        semanticRole: chunk.semanticRole,
+        emphasisLevel: chunk.emphasis.level,
+      })),
+      targetAspectRatio: "9:16",
+      maximumLineWidthPx: 410,
+    });
     expect(plans.visual.payload.visualTrack).toMatchObject({
       schemaVersion: "maul-visual-track/v1",
       projectId: project.id,
@@ -733,15 +756,42 @@ describe("MAUL complete short render path", () => {
       textPlacementPlanArtifactId: plans.textPlacement.artifactId,
       textAnimationPlanArtifactId: plans.textAnimation.artifactId,
       fontResolution: {
-        selectedFamily: "Almera",
-        selectedAssetId: "font_almera_baa51ed42a1d",
+        selectedFamily: "Playfair Display",
+        selectedAssetId: "font_google_playfair_display_italic_700",
         accentAsset: expect.objectContaining({
-          assetId: "font_google_great_vibes_400",
+          assetId: "font_google_playfair_display_700",
           style: "normal",
         }),
         status: "eligible_loaded",
       },
+      chunkTypographyBindings: expect.arrayContaining([
+        expect.objectContaining({
+          chunkId: plans.textChunk.payload.chunks[0].chunkId,
+          profile: expect.objectContaining({
+            name: "I_Hate_Being_An_Influencer_Orange_Circle",
+            sourceFilename: "image (31).json",
+          }),
+          layers: expect.arrayContaining([
+            expect.objectContaining({
+              resolution: expect.stringMatching(/^(exact|closest_catalog)$/),
+              selectedAsset: expect.objectContaining({
+                browserUrl: expect.stringMatching(/^\/fonts\//),
+              }),
+            }),
+          ]),
+        }),
+        expect.objectContaining({
+          chunkId: plans.textChunk.payload.chunks[1].chunkId,
+          profile: expect.objectContaining({
+            name: "The_Evolution_Of_She_Geometric_Didone",
+            sourceFilename: "image (12).json",
+          }),
+        }),
+      ]),
     });
+    expect(plans.typographyMotion.payload.chunkTypographyBindings).toHaveLength(
+      plans.textChunk.payload.chunks.length,
+    );
     expect(plans.typographyMotion.payload.authority).toMatchObject({
       authorityClass: "deterministic",
     });

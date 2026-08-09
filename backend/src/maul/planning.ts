@@ -23,6 +23,7 @@ import {
   maulUnifiedShortRenderManifestSchema,
   maulVisualPlanPayloadSchema,
   type MaulArtifactRecord,
+  type MaulChunkTypographyBinding,
   type MaulPlanningBundlePayload,
   type MaulPlanningBundleV1Payload,
   type MaulProject,
@@ -116,6 +117,7 @@ export type MaulTypographyPlanningResolution = {
     status: "eligible_loaded" | "governed_fallback" | "blocked";
     reason: string;
   };
+  chunkTypographyBindings?: MaulChunkTypographyBinding[];
   measurementEvidenceIds: string[];
   warnings?: string[];
 };
@@ -1059,6 +1061,8 @@ export const buildMaulPlanningPayloads = (
             reason:
               "Measured typography is unavailable; the explicit safe-caption fallback blocks art-directed output.",
           },
+          chunkTypographyBindings:
+            typographyResolution?.chunkTypographyBindings ?? [],
           measurementEvidenceIds: typographyResolution?.measurementEvidenceIds ?? [],
           warnings: typographyResolution?.warnings ?? [
             "Measured typography is unavailable; this plan cannot claim art-directed output.",
@@ -1078,6 +1082,8 @@ export const buildMaulPlanningPayloads = (
             reason:
               "Measured typography is unavailable; the explicit safe-caption fallback blocks art-directed output.",
           },
+          chunkTypographyBindings:
+            typographyResolution?.chunkTypographyBindings ?? [],
           measurementEvidenceIds: typographyResolution?.measurementEvidenceIds ?? [],
           warnings: typographyResolution?.warnings ?? [
             "Measured typography is unavailable; this plan cannot claim art-directed output.",

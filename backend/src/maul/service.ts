@@ -102,7 +102,10 @@ import {
   createDefaultMaulTypographyProvider,
   type MaulTypographyProvider,
 } from "./typography-layout.js";
-import {buildMaulTextPlacementPlan} from "./shorts-text-placement.js";
+import {
+  buildMaulTextPlacementPlan,
+  type MaulPlacementTypography,
+} from "./shorts-text-placement.js";
 import {materializeMaulTextChunkPlanV2} from "./text-chunk-plan.js";
 import {bindSemanticTypographyRolesToMaterializedChunks} from "./semantic-typography-tree.js";
 import {
@@ -129,6 +132,10 @@ import {
   applyMaulEditorialLockups,
   buildMaulEditorialFontPair,
 } from "./editorial-lockup.js";
+import {
+  createTypographyProfileCompiler,
+  type TypographyProfileCompiler,
+} from "./typography-profile-compiler.js";
 
 export class MaulProjectNotFoundError extends Error {}
 export class MaulLineageConflictError extends Error {}
@@ -332,6 +339,8 @@ export class MaulProjectService {
       createDefaultMaulTypographyProvider(),
     private readonly creativeTreatmentPlanner: CreativeTreatmentPlanner =
       createUnavailableCreativeTreatmentPlanner(),
+    private readonly typographyProfileCompiler: TypographyProfileCompiler =
+      createTypographyProfileCompiler(),
   ) {}
 
   public async initialize(): Promise<void> {
@@ -1404,15 +1413,28 @@ export class MaulProjectService {
           textChunkPlan: textChunkCore,
         })
       : undefined;
-    const measuredTypography = await this.typographyProvider.plan({
+    const compiledTypography = await this.typographyProfileCompiler.compile({
       chunks: textChunkCore.chunks.map((chunk) => ({
         chunkId: chunk.chunkId,
         text: chunk.text,
+        wordCount: chunk.tokenIds.length,
+        semanticRole: chunk.semanticRole,
+        emphasisLevel: chunk.emphasis.level,
       })),
+      targetAspectRatio: "9:16",
       maximumLineWidthPx: 410,
-      primaryTypeRole: creativeTreatment.treatment.primaryTypeRole,
-      fontSystemId: referenceEditorialDirection.fontSystemId,
     });
+    const measuredTypography = compiledTypography.status === "unavailable"
+      ? await this.typographyProvider.plan({
+          chunks: textChunkCore.chunks.map((chunk) => ({
+            chunkId: chunk.chunkId,
+            text: chunk.text,
+          })),
+          maximumLineWidthPx: 410,
+          primaryTypeRole: creativeTreatment.treatment.primaryTypeRole,
+          fontSystemId: referenceEditorialDirection.fontSystemId,
+        })
+      : null;
     const textChunkPayload = buildMaulTextChunkPlanPayload({
       inputs: planningInputs,
       core: textChunkCore,
@@ -1429,8 +1451,24 @@ export class MaulProjectService {
     const textChunkPlanHash = hashMaulPlanPayload(
       textChunkResult.artifact.payload,
     );
+    const placementTypography: MaulPlacementTypography | undefined =
+      compiledTypography.status === "available"
+        ? {
+            byChunkId: Object.fromEntries(
+              compiledTypography.chunks.map((chunk) => [
+                chunk.binding.chunkId,
+                {profile: chunk.profile, layout: chunk.layout},
+              ]),
+            ),
+          }
+        : measuredTypography?.status === "available"
+          ? {
+              profile: measuredTypography.profile,
+              layouts: measuredTypography.layouts,
+            }
+          : undefined;
     const mayUseMeasuredSourcePlacement =
-      Boolean(scenePlacementInputs) && measuredTypography.status === "available";
+      Boolean(scenePlacementInputs) && placementTypography !== undefined;
     const placementInputs = mayUseMeasuredSourcePlacement
       ? scenePlacementInputs!
       : buildMaulConservativePlacementInputs(timeline.payload);
@@ -1439,14 +1477,7 @@ export class MaulProjectService {
       textChunkPlan: textChunkCore,
       textChunkPlanHash,
       ...placementInputs,
-      ...(mayUseMeasuredSourcePlacement
-        ? {
-            typography: {
-              profile: measuredTypography.profile,
-              layouts: measuredTypography.layouts,
-            },
-          }
-        : {}),
+      ...(placementTypography ? {typography: placementTypography} : {}),
     });
     const referenceEditorialRhythm = deriveReferenceEditorialRhythm({
       referenceTraits,
@@ -1464,18 +1495,31 @@ export class MaulProjectService {
         holdAcrossProtectedPause: chunk.holdAcrossProtectedPause,
       })),
     });
-    const fontResolution = measuredTypography.status === "available"
+    const legacyFontResolution = measuredTypography?.status === "available"
       ? measuredTypography.fontResolution as typeof measuredTypography.fontResolution & {
           selectedAsset?: MaulResolvedFontAsset | null;
           accentAsset?: MaulResolvedFontAsset | null;
         }
       : null;
-    const primaryFont = measuredTypography.status === "available"
+    const primaryFont = compiledTypography.status === "available"
+      ? (() => {
+          const first = compiledTypography.chunks[0]!.binding;
+          const primary = first.layers.find(
+            (layer) => layer.layerName === first.primaryLayerName,
+          )!.selectedAsset;
+          return {
+            assetId: primary.assetId,
+            family: primary.family,
+            weight: primary.weight,
+            style: primary.style,
+          };
+        })()
+      : measuredTypography?.status === "available"
       ? {
           assetId: measuredTypography.fontResolution.selectedAssetId,
           family: measuredTypography.fontResolution.selectedFamily,
           weight: measuredTypography.profile.loadedFallback.weight,
-          style: fontResolution?.selectedAsset?.style ?? "normal" as const,
+          style: legacyFontResolution?.selectedAsset?.style ?? "normal" as const,
         }
       : {
           assetId: "font_google_dm_sans_700",
@@ -1483,16 +1527,50 @@ export class MaulProjectService {
           weight: 700,
           style: "normal" as const,
         };
-    const lockupFontPair = measuredTypography.status === "available" && fontResolution
+    const lockupFontPair = measuredTypography?.status === "available" && legacyFontResolution
       ? buildMaulEditorialFontPair({
-          fontResolution,
+          fontResolution: legacyFontResolution,
           fallbackPrimary: primaryFont,
         })
       : {primary: primaryFont, accent: null};
-    const editorialTokenMeasure = fontResolution?.selectedAsset && fontResolution.accentAsset
-      ? createFontkitEditorialTokenMeasurementProvider({
-          assets: [fontResolution.selectedAsset, fontResolution.accentAsset],
-        })
+    const fontPairByChunkId = compiledTypography.status === "available"
+      ? Object.fromEntries(
+          compiledTypography.chunks.map((chunk) => {
+            const primaryLayer = chunk.binding.layers.find(
+              (layer) => layer.layerName === chunk.binding.primaryLayerName,
+            )!;
+            return [
+              chunk.binding.chunkId,
+              buildMaulEditorialFontPair({
+                fontResolution: chunk.fontResolution,
+                fallbackPrimary: {
+                  assetId: primaryLayer.selectedAsset.assetId,
+                  family: primaryLayer.selectedAsset.family,
+                  weight: primaryLayer.selectedAsset.weight,
+                  style: primaryLayer.selectedAsset.style,
+                },
+              }),
+            ];
+          }),
+        )
+      : undefined;
+    const editorialAssets = compiledTypography.status === "available"
+      ? [
+          ...new Map(
+            compiledTypography.bindings.flatMap((binding) =>
+              binding.layers.map((layer) => [
+                layer.selectedAsset.assetId,
+                layer.selectedAsset,
+              ] as const),
+            ),
+          ).values(),
+        ]
+      : [
+          legacyFontResolution?.selectedAsset,
+          legacyFontResolution?.accentAsset,
+        ].filter((asset): asset is MaulResolvedFontAsset => Boolean(asset));
+    const editorialTokenMeasure = editorialAssets.length > 0
+      ? createFontkitEditorialTokenMeasurementProvider({assets: editorialAssets})
       : undefined;
     const editorialPlacementSegments = applyMaulEditorialLockups({
       placementPlan: textPlacementCore,
@@ -1500,6 +1578,7 @@ export class MaulProjectService {
       rhythm: referenceEditorialRhythm,
       primaryFont: lockupFontPair.primary,
       accentFont: lockupFontPair.accent,
+      fontPairByChunkId,
       referenceTraits,
       selectionSeed: `${editorialRhythmSeed}:lockup`,
       semanticHierarchyRolesByChunkId,
@@ -1565,24 +1644,30 @@ export class MaulProjectService {
       textPlacementPlanHash,
       textAnimationPlanArtifactId: textAnimationResult.artifact.artifactId,
       textAnimationPlanHash,
-    }, mayUseMeasuredSourcePlacement
+    }, compiledTypography.status === "available"
       ? {
-          fontResolution: measuredTypography.fontResolution,
-          measurementEvidenceIds: measuredTypography.evidenceIds,
+          fontResolution: compiledTypography.fontResolution,
+          chunkTypographyBindings: compiledTypography.bindings,
+          measurementEvidenceIds: compiledTypography.evidenceIds,
         }
+      : mayUseMeasuredSourcePlacement && measuredTypography?.status === "available"
+        ? {
+            fontResolution: measuredTypography.fontResolution,
+            measurementEvidenceIds: measuredTypography.evidenceIds,
+          }
       : {
           fontResolution: {
             requestedRole: "utility",
             selectedFamily: "DM Sans",
             selectedAssetId: "font_google_dm_sans_700",
             status: "governed_fallback",
-            reason: measuredTypography.status === "unavailable"
+            reason: measuredTypography?.status === "unavailable"
               ? `Measured typography is unavailable: ${measuredTypography.reason}`
               : "Source-pixel composition is unavailable; MAUL is using the explicit safe-caption typography fallback.",
           },
           measurementEvidenceIds: [],
           warnings: [
-            measuredTypography.status === "unavailable"
+            measuredTypography?.status === "unavailable"
               ? `Measured typography unavailable: ${measuredTypography.reason}`
               : "Measured typography is retained for a future source-pixel attempt; the current output is a safe-caption fallback.",
           ],

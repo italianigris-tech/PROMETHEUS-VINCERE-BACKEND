@@ -37,6 +37,7 @@ import type {MaulQualityTruthProofProvider} from "./maul/quality-truth";
 import type {MaulPerceptualTruthProvider} from "./maul/perceptual-truth";
 import type {SceneEvidenceProvider} from "./maul/scene-evidence";
 import type {MaulTypographyProvider} from "./maul/typography-layout";
+import type {TypographyProfileCompiler} from "./maul/typography-profile-compiler";
 import {createZillizMaulTypographyProvider} from "./maul/zilliz-font-assets";
 import {
   createShortsTextChunkPlanner,
@@ -112,6 +113,7 @@ export type BackendDependencies = PipelineDependencies & EditSessionDependencies
   maulPerceptualTruthProvider?: MaulPerceptualTruthProvider;
   maulSceneEvidenceProvider?: SceneEvidenceProvider;
   maulTypographyProvider?: MaulTypographyProvider;
+  maulTypographyProfileCompiler?: TypographyProfileCompiler;
   maulTextChunkPlanner?: ShortsTextChunkPlanner;
   maulCreativeTreatmentPlanner?: CreativeTreatmentPlanner;
 };
@@ -354,6 +356,7 @@ export const createBackendApp = async ({
     deps?.maulPerceptualTruthProvider,
     deps?.maulTypographyProvider ?? createZillizMaulTypographyProvider(env),
     maulCreativeTreatmentPlanner,
+    deps?.maulTypographyProfileCompiler,
   );
   await maulProjects.initialize();
   const maulControlPlane = new MaulDurableControlPlane(env.STORAGE_DIR, maulProjects);

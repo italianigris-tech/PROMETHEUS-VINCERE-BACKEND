@@ -13,6 +13,7 @@ import {
   mapMaulSourceMsToOutput,
   mapMaulTranscriptWordsToOutput,
 } from "./planning.js";
+import {createTypographyProfileCompiler} from "./typography-profile-compiler.js";
 
 const sha = (character: string) => character.repeat(64);
 
@@ -777,7 +778,7 @@ describe("MAUL V3 text animation planning", () => {
     ).toBe(false);
   });
 
-  it("emits Typography Motion V3 and truthful camera/caption execution declarations", () => {
+  it("emits Typography Motion V3 and preserves authoritative chunk typography bindings", async () => {
     const planningInputs = {
       project: {intake: {platform: "instagram_reels"}},
       source: {
@@ -852,6 +853,19 @@ describe("MAUL V3 text animation planning", () => {
       },
       textChunkPlan: null,
     } as never;
+    const compilation = await createTypographyProfileCompiler().compile({
+      chunks: [{
+        chunkId: "chunk_proof",
+        text: "Proof works.",
+        wordCount: 2,
+        semanticRole: "proof",
+        emphasisLevel: "key",
+      }],
+      targetAspectRatio: "9:16",
+      maximumLineWidthPx: 410,
+    });
+    expect(compilation.status).toBe("available");
+    if (compilation.status !== "available") return;
     const payloads = buildMaulPlanningPayloads(
       planningInputs,
       {
@@ -859,20 +873,21 @@ describe("MAUL V3 text animation planning", () => {
         textAnimationPlanArtifactId: "artifact_text_animation",
         textAnimationPlanHash: sha("9"),
       },
+      {
+        fontResolution: compilation.fontResolution,
+        measurementEvidenceIds: compilation.evidenceIds,
+        chunkTypographyBindings: compilation.bindings,
+      },
     );
 
     expect(payloads.typographyMotion.schemaVersion).toBe(
       "maul-typography-motion-plan/v3",
     );
-    expect(payloads.typographyMotion.fontResolution).toMatchObject({
-      selectedFamily: "DM Sans",
-      selectedAssetId: "font_google_dm_sans_700",
-      status: "governed_fallback",
-    });
-    expect(payloads.typographyMotion.warnings).toEqual(
-      expect.arrayContaining([
-        expect.stringMatching(/measured typography/i),
-      ]),
+    expect(payloads.typographyMotion.fontResolution).toEqual(
+      compilation.fontResolution,
+    );
+    expect(payloads.typographyMotion.chunkTypographyBindings).toEqual(
+      compilation.bindings,
     );
     expect(
       payloads.typographyMotion.motionPrograms[0]?.execution.nativeBranch,
