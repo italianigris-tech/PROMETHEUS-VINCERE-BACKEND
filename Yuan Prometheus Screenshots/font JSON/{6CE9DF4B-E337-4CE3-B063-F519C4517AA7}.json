@@ -1,0 +1,117 @@
+{
+  "profile_name": "Escape_The_Ordinary_All_Caps_Serif",
+  "version": "1.0.0",
+  "metadata": {
+    "target_aspect_ratio": "16:9",
+    "overall_mood": "Luxury Travel Poster, Trajan / All-Caps High-Contrast Serif",
+    "casing_strategy": "uppercase_all",
+    "total_word_count": 3,
+    "total_character_count": 17,
+    "per_word_character_counts": [
+      {
+        "word": "ESCAPE",
+        "character_count": 6
+      },
+      {
+        "word": "THE",
+        "character_count": 3
+      },
+      {
+        "word": "ORDINARY",
+        "character_count": 8
+      }
+    ]
+  },
+  "layout_rules": {
+    "horizontal_alignment": "center",
+    "vertical_position": "center",
+    "bottom_margin_percent": 15,
+    "max_width_percent": 85,
+    "scrim_overlay": {
+      "enabled": false,
+      "type": "none",
+      "opacity": 0,
+      "color": "#F8F8F8"
+    }
+  },
+  "typography_layers": [
+    {
+      "layer_name": "top_escape",
+      "role": "header",
+      "font_classification": "Large All-Caps High-Contrast Serif",
+      "matched_font_candidates": [
+        "Cinzel",
+        "Bodoni Moda"
+      ],
+      "font_style": {
+        "weight": 700,
+        "style": "normal",
+        "casing": "uppercase",
+        "color": "#111111",
+        "size_px_base": 44,
+        "relative_scale": 1.0,
+        "letter_spacing_em": 0.05,
+        "line_height": 1.0,
+        "vertical_margin_top_px": 0
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 2,
+          "blur_radius": 4,
+          "color": "rgba(0, 0, 0, 0.1)"
+        }
+      },
+      "sample_text": "ESCAPE",
+      "word_count": 1,
+      "character_count": 6,
+      "per_word_character_counts": [
+        {
+          "word": "ESCAPE",
+          "character_count": 6
+        }
+      ]
+    },
+    {
+      "layer_name": "bottom_ordinary",
+      "role": "secondary_clause",
+      "font_classification": "Medium All-Caps High-Contrast Serif",
+      "matched_font_candidates": [
+        "Cinzel",
+        "Bodoni Moda"
+      ],
+      "font_style": {
+        "weight": 500,
+        "style": "normal",
+        "casing": "uppercase",
+        "color": "#111111",
+        "size_px_base": 26,
+        "relative_scale": 0.59,
+        "letter_spacing_em": 0.08,
+        "line_height": 1.1,
+        "vertical_margin_top_px": 2
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 1,
+          "blur_radius": 2,
+          "color": "rgba(0, 0, 0, 0.08)"
+        }
+      },
+      "sample_text": "THE ORDINARY",
+      "word_count": 2,
+      "character_count": 11,
+      "per_word_character_counts": [
+        {
+          "word": "THE",
+          "character_count": 3
+        },
+        {
+          "word": "ORDINARY",
+          "character_count": 8
+        }
+      ]
+    }
+  ]
+}
