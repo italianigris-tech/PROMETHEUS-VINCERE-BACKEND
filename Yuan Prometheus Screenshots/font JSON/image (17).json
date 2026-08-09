@@ -1,0 +1,100 @@
+{
+  "profile_name": "Peace_Is_The_New_Luxury_Ultra_Fine_Script",
+  "version": "1.0.0",
+  "metadata": {
+    "target_aspect_ratio": "16:9",
+    "overall_mood": "Zen Luxury, Ultra-Fine Calligraphic Serif, Minimalist Spacing",
+    "casing_strategy": "mixed",
+    "total_word_count": 5,
+    "total_character_count": 20,
+    "per_word_character_counts": [
+      {
+        "word": "Peace",
+        "character_count": 5
+      },
+      {
+        "word": "is",
+        "character_count": 2
+      },
+      {
+        "word": "the",
+        "character_count": 3
+      },
+      {
+        "word": "new",
+        "character_count": 3
+      },
+      {
+        "word": "luxury.",
+        "character_count": 7
+      }
+    ]
+  },
+  "layout_rules": {
+    "horizontal_alignment": "center",
+    "vertical_position": "center",
+    "bottom_margin_percent": 15,
+    "max_width_percent": 85,
+    "scrim_overlay": {
+      "enabled": false,
+      "type": "none",
+      "opacity": 0,
+      "color": "#F5F4EE"
+    }
+  },
+  "typography_layers": [
+    {
+      "layer_name": "main_quote",
+      "role": "header",
+      "font_classification": "Ultra-Thin Calligraphic Italic Serif",
+      "matched_font_candidates": [
+        "Cormorant Garamond",
+        "Playfair Display"
+      ],
+      "font_style": {
+        "weight": 300,
+        "style": "italic",
+        "casing": "normal",
+        "color": "#111111",
+        "size_px_base": 42,
+        "relative_scale": 1.0,
+        "letter_spacing_em": 0.02,
+        "line_height": 1.2,
+        "vertical_margin_top_px": 0
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 1,
+          "blur_radius": 2,
+          "color": "rgba(0, 0, 0, 0.05)"
+        }
+      },
+      "sample_text": "Peace is the new luxury.",
+      "word_count": 5,
+      "character_count": 20,
+      "per_word_character_counts": [
+        {
+          "word": "Peace",
+          "character_count": 5
+        },
+        {
+          "word": "is",
+          "character_count": 2
+        },
+        {
+          "word": "the",
+          "character_count": 3
+        },
+        {
+          "word": "new",
+          "character_count": 3
+        },
+        {
+          "word": "luxury.",
+          "character_count": 7
+        }
+      ]
+    }
+  ]
+}
