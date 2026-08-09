@@ -1,6 +1,7 @@
 import {
   isMaulRendererFontCatalogEntry,
   joinShortsTextTokens,
+  maulChunkTypographyBindingSchema,
   maulUnifiedShortRenderManifestV2Schema,
   maulUnifiedShortRenderManifestV3Schema,
   type MaulEditorialTimelinePayload,
@@ -361,6 +362,7 @@ export const buildMaulPlannedTextRecords = ({
   typographyMotion: Pick<
     MaulTypographyMotionPlanV2Payload,
     | "fontResolution"
+    | "chunkTypographyBindings"
     | "textChunkPlanArtifactId"
     | "textChunkPlanHash"
   >;
@@ -385,6 +387,20 @@ export const buildMaulPlannedTextRecords = ({
   const chunkById = new Map(
     textChunkPlan.chunks.map((chunk) => [chunk.chunkId, chunk]),
   );
+  const chunkTypographyBindingById = new Map<
+    string,
+    ReturnType<typeof maulChunkTypographyBindingSchema.parse>
+  >();
+  for (const inputBinding of typographyMotion.chunkTypographyBindings ?? []) {
+    const binding = maulChunkTypographyBindingSchema.parse(inputBinding);
+    if (chunkTypographyBindingById.has(binding.chunkId)) {
+      throw new Error(
+        `Duplicate chunk typography binding for ${binding.chunkId}.`,
+      );
+    }
+    chunkTypographyBindingById.set(binding.chunkId, binding);
+  }
+  const usesChunkTypographyBindings = chunkTypographyBindingById.size > 0;
   const animationProgramsBySegmentId = new Map<string, MaulTextAnimationProgram[]>();
   for (const program of textAnimationPlan?.programs ?? []) {
     const programs = animationProgramsBySegmentId.get(program.target.placementSegmentId) ?? [];
@@ -462,11 +478,44 @@ export const buildMaulPlannedTextRecords = ({
     const profile = textPlacementPlan.compatibilityProfiles.find(
       (candidate) => candidate.profileId === segment.compatibility.profileId,
     );
-    const selectedAsset = profile?.approvedFontAssets.find(
-      (asset) => asset.assetId === typographyMotion.fontResolution.selectedAssetId,
+    const chunkTypographyBinding = chunkTypographyBindingById.get(
+      segment.chunkId,
     );
-    const selectedResolvedAsset = typographyMotion.fontResolution.selectedAsset;
-    const accentResolvedAsset = typographyMotion.fontResolution.accentAsset;
+    if (usesChunkTypographyBindings && !chunkTypographyBinding) {
+      throw new Error(
+        `Placement ${segment.segmentId} is missing its chunk typography binding for ${segment.chunkId}.`,
+      );
+    }
+    const primaryLayer = chunkTypographyBinding?.layers.find(
+      (layer) => layer.layerName === chunkTypographyBinding.primaryLayerName,
+    );
+    const accentLayer = chunkTypographyBinding?.accentLayerName
+      ? chunkTypographyBinding.layers.find(
+          (layer) => layer.layerName === chunkTypographyBinding.accentLayerName,
+        )
+      : null;
+    if (
+      chunkTypographyBinding &&
+      (chunkTypographyBinding.compatibilityProfile.profileId !==
+        segment.compatibility.profileId ||
+        chunkTypographyBinding.compatibilityProfile.metrics.fingerprint !==
+          segment.compatibility.metricsFingerprint ||
+        chunkTypographyBinding.layout.chunkId !== segment.chunkId)
+    ) {
+      throw new Error(
+        `Chunk typography binding for ${segment.chunkId} does not match placement ${segment.segmentId}.`,
+      );
+    }
+    const selectedAsset = profile?.approvedFontAssets.find(
+      (asset) =>
+        asset.assetId ===
+        (primaryLayer?.selectedAsset.assetId ??
+          typographyMotion.fontResolution.selectedAssetId),
+    );
+    const selectedResolvedAsset = primaryLayer?.selectedAsset ??
+      typographyMotion.fontResolution.selectedAsset;
+    const accentResolvedAsset = accentLayer?.selectedAsset ??
+      typographyMotion.fontResolution.accentAsset;
     const resolvedAssetMatches = Boolean(
       selectedResolvedAsset &&
       selectedAsset &&
@@ -485,7 +534,8 @@ export const buildMaulPlannedTextRecords = ({
       profile.loadedFallback.assetId !== selectedAsset.assetId ||
       !selectedAsset.weights.includes(profile.loadedFallback.weight) ||
       profile.metrics.fingerprint !== segment.compatibility.metricsFingerprint ||
-      typographyMotion.fontResolution.selectedFamily !== profile.family ||
+      (!chunkTypographyBinding &&
+        typographyMotion.fontResolution.selectedFamily !== profile.family) ||
       (typographyMotion.fontResolution.status !== "eligible_loaded" &&
         !declaredSafeCaptionFallback)
     ) {
@@ -588,7 +638,7 @@ export const buildMaulPlannedTextRecords = ({
             }
           : {}),
       },
-      accentFont: typographyMotion.fontResolution.accentAsset ?? undefined,
+      accentFont: accentResolvedAsset ?? undefined,
       lines: segment.lines.map((line) => ({
         lineId: line.lineId,
         text: line.text,

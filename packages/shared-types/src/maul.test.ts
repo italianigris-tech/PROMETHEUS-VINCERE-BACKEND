@@ -1440,7 +1440,10 @@ describe("MAUL shared contracts", () => {
       ]
     } as const;
 
-    expect(maulQualityTruthProofSchema.parse(proof)).toEqual(proof);
+    expect(maulQualityTruthProofSchema.parse(proof)).toEqual({
+      ...proof,
+      fontRuntime: {...proof.fontRuntime, assets: []},
+    });
     expect(() => maulQualityTruthProofSchema.parse({
       ...proof,
       fontRuntime: {
@@ -1965,6 +1968,27 @@ describe("MAUL shared contracts", () => {
     expect(maulQualityTruthProofSchema.parse(proofV2).schemaVersion).toBe(
       "maul-quality-truth-proof/v2",
     );
+
+    const multiAssetProof = structuredClone(proofV2);
+    multiAssetProof.fontRuntime.family = "Mixed chunk typography";
+    multiAssetProof.fontRuntime.assetId = null;
+    Object.assign(multiAssetProof.fontRuntime, {
+      assets: [
+        {
+          family: "DM Sans",
+          assetId: "font_google_dm_sans_700",
+          evidenceId: "evidence_font_dm_sans",
+        },
+        {
+          family: "Playfair Display",
+          assetId: "font_google_playfair_display_700",
+          evidenceId: "evidence_font_playfair",
+        },
+      ],
+    });
+    expect(
+      maulQualityTruthProofV2Schema.parse(multiAssetProof).fontRuntime.assets,
+    ).toHaveLength(2);
 
     const missingEvidence = structuredClone(proofV2);
     missingEvidence.placementSegments[0].evidenceId = null;

@@ -2010,25 +2010,75 @@ export const compileMaulUnifiedShortRenderManifest = ({
         `${isV3 ? "V3" : "V2"} manifest compilation rejected a stale hash or mismatched placement reference.`,
       );
     }
-    const compatibility = textPlacementArtifact.payload.compatibilityProfiles[0]!;
-    assertMaulTypographyPlacementCompatibility({
-      placementPlan: textPlacementArtifact.payload,
-      selectedFamily:
-        planningArtifacts.typographyMotion.payload.fontResolution.selectedFamily,
-      selectedAssetId:
-        planningArtifacts.typographyMotion.payload.fontResolution.selectedAssetId,
-      compiledMetrics: {
-        maxGlyphWidthEm: compatibility.metrics.maxGlyphWidthEm,
-        maxLineHeightEm: compatibility.metrics.maxLineHeightEm,
-      },
-    });
+    const typographyPayload = planningArtifacts.typographyMotion.payload;
+    if (typographyPayload.chunkTypographyBindings.length > 0) {
+      const bindingByChunkId = new Map(
+        typographyPayload.chunkTypographyBindings.map((binding) => [
+          binding.chunkId,
+          binding,
+        ]),
+      );
+      const placedChunkIds = new Set(
+        textPlacementArtifact.payload.segments.map((segment) => segment.chunkId),
+      );
+      if (
+        bindingByChunkId.size !==
+          typographyPayload.chunkTypographyBindings.length ||
+        bindingByChunkId.size !== placedChunkIds.size
+      ) {
+        throw new Error(
+          "Manifest compilation requires exactly one typography binding for every placed chunk.",
+        );
+      }
+      for (const segment of textPlacementArtifact.payload.segments) {
+        const binding = bindingByChunkId.get(segment.chunkId);
+        const primaryLayer = binding?.layers.find(
+          (layer) => layer.layerName === binding.primaryLayerName,
+        );
+        if (
+          !binding ||
+          !primaryLayer ||
+          binding.compatibilityProfile.profileId !==
+            segment.compatibility.profileId ||
+          binding.compatibilityProfile.metrics.fingerprint !==
+            segment.compatibility.metricsFingerprint
+        ) {
+          throw new Error(
+            `Typography binding for ${segment.chunkId} does not match its placement profile.`,
+          );
+        }
+        assertMaulTypographyPlacementCompatibility({
+          placementPlan: textPlacementArtifact.payload,
+          profileId: segment.compatibility.profileId,
+          selectedFamily: primaryLayer.selectedAsset.family,
+          selectedAssetId: primaryLayer.selectedAsset.assetId,
+          compiledMetrics: {
+            maxGlyphWidthEm:
+              binding.compatibilityProfile.metrics.maxGlyphWidthEm,
+            maxLineHeightEm:
+              binding.compatibilityProfile.metrics.maxLineHeightEm,
+          },
+        });
+      }
+    } else {
+      const compatibility =
+        textPlacementArtifact.payload.compatibilityProfiles[0]!;
+      assertMaulTypographyPlacementCompatibility({
+        placementPlan: textPlacementArtifact.payload,
+        selectedFamily: typographyPayload.fontResolution.selectedFamily,
+        selectedAssetId: typographyPayload.fontResolution.selectedAssetId,
+        compiledMetrics: {
+          maxGlyphWidthEm: compatibility.metrics.maxGlyphWidthEm,
+          maxLineHeightEm: compatibility.metrics.maxLineHeightEm,
+        },
+      });
+    }
     if (isV3) {
       if (!textAnimationArtifact) {
         throw new Error(
           "V3 manifest compilation requires a text animation artifact.",
         );
       }
-      const typographyPayload = planningArtifacts.typographyMotion.payload;
       if (!("textAnimationPlanArtifactId" in typographyPayload)) {
         throw new Error(
           "V3 manifest compilation requires Typography Motion V3 references.",

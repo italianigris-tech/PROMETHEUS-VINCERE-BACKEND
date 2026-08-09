@@ -68,6 +68,13 @@ describe("MAUL typography profile compiler", () => {
         ),
       ).size,
     ).toBe(2);
+    expect(first.fontResolution).toMatchObject({
+      selectedFamily: "Mixed chunk typography",
+      selectedAssetId: null,
+      selectedAsset: null,
+      accentAsset: null,
+      status: "eligible_loaded",
+    });
     for (const binding of first.bindings) {
       expect(binding.layout.chunkId).toBe(binding.chunkId);
       expect(binding.layout.measurementIds.length).toBeGreaterThan(0);

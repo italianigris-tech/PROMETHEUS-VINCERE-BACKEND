@@ -12,6 +12,21 @@ export type MaulQualityTruthProofProvider = (
 
 type QualityTruthFailure = MaulQualityTruthResult["failures"][number];
 
+type PlacementAwareManifest = Extract<
+  MaulUnifiedShortRenderManifest,
+  {
+    schemaVersion:
+      | "maul-unified-short-render-manifest/v2"
+      | "maul-unified-short-render-manifest/v3";
+  }
+>;
+
+const isPlacementAwareManifest = (
+  manifest: MaulUnifiedShortRenderManifest,
+): manifest is PlacementAwareManifest =>
+  manifest.schemaVersion === "maul-unified-short-render-manifest/v2" ||
+  manifest.schemaVersion === "maul-unified-short-render-manifest/v3";
+
 export const buildUnavailableMaulQualityTruthResult = (
   manifest: MaulUnifiedShortRenderManifest,
   error: unknown,
@@ -41,8 +56,8 @@ export const evaluateMaulQualityTruth = (
   if (!parsedProof.success) {
     const issue = parsedProof.error.issues[0];
     const field = issue?.path.join(".") || "proof";
-    const missingV2PlacementProof =
-      manifest.schemaVersion === "maul-unified-short-render-manifest/v2" &&
+    const missingPlacementProof =
+      isPlacementAwareManifest(manifest) &&
       issue?.path[0] === "placementSegments";
     return maulQualityTruthResultSchema.parse({
       schemaVersion: "maul-quality-truth-result/v1",
@@ -51,7 +66,7 @@ export const evaluateMaulQualityTruth = (
       evidenceIds: [],
       failures: [
         {
-          code: missingV2PlacementProof
+          code: missingPlacementProof
             ? "placement_evidence_missing"
             : "proof_invalid",
           field,
@@ -92,13 +107,13 @@ export const evaluateMaulQualityTruth = (
   }
 
   if (
-    manifest.schemaVersion === "maul-unified-short-render-manifest/v2" &&
+    isPlacementAwareManifest(manifest) &&
     proof.schemaVersion !== "maul-quality-truth-proof/v2"
   ) {
     fail(
       "placement_evidence_missing",
       "schemaVersion",
-      "A V2 manifest requires placement-specific Quality Truth V2 evidence.",
+      "A placement-aware manifest requires Quality Truth V2 evidence.",
     );
   }
 
@@ -146,6 +161,8 @@ export const evaluateMaulQualityTruth = (
     manifest.plans.typographyMotion.fontResolution.selectedAssetId;
   const plannedFontStatus =
     manifest.plans.typographyMotion.fontResolution.status;
+  const chunkTypographyBindings =
+    manifest.plans.typographyMotion.chunkTypographyBindings ?? [];
   const forbiddenGenericFamily = /^(arial|helvetica|sans-serif|serif|system-ui|ui-sans-serif)$/i.test(
     plannedFamily.trim(),
   );
@@ -160,6 +177,50 @@ export const evaluateMaulQualityTruth = (
       "System font fallback cannot enter the MAUL renderer.",
       proof.fontRuntime.evidenceId,
     );
+  } else if (chunkTypographyBindings.length > 0) {
+    const bindingByChunkId = new Map(
+      chunkTypographyBindings.map((binding) => [binding.chunkId, binding]),
+    );
+    const expectedAssets = new Map<string, {family: string; assetId: string}>();
+    const placementSegments =
+      "textPlacement" in manifest.plans
+        ? manifest.plans.textPlacement.segments
+        : [];
+    for (const segment of placementSegments) {
+      const binding = bindingByChunkId.get(segment.chunkId);
+      const primary = binding?.layers.find(
+        (layer) => layer.layerName === binding.primaryLayerName,
+      )?.selectedAsset;
+      if (primary) expectedAssets.set(primary.assetId, primary);
+      if (
+        binding?.accentLayerName &&
+        (segment.editorialLockup?.accentTokenIds.length ?? 0) > 0
+      ) {
+        const accent = binding.layers.find(
+          (layer) => layer.layerName === binding.accentLayerName,
+        )?.selectedAsset;
+        if (accent) expectedAssets.set(accent.assetId, accent);
+      }
+    }
+    const runtimeAssetById = new Map(
+      proof.fontRuntime.assets.map((asset) => [asset.assetId, asset]),
+    );
+    const missingAssets = [...expectedAssets.values()].filter((asset) => {
+      const runtime = runtimeAssetById.get(asset.assetId);
+      return !runtime || runtime.family !== asset.family || !runtime.evidenceId;
+    });
+    if (
+      expectedAssets.size === 0 ||
+      missingAssets.length > 0 ||
+      proof.fontRuntime.status !== "eligible_loaded"
+    ) {
+      fail(
+        "font_load_unverified",
+        "plans.typographyMotion.chunkTypographyBindings",
+        "Every chunk-selected typography asset requires matching loaded-font proof.",
+        proof.fontRuntime.evidenceId,
+      );
+    }
   } else if (
     !plannedAssetId ||
     proof.fontRuntime.status !== "eligible_loaded" ||
@@ -174,14 +235,14 @@ export const evaluateMaulQualityTruth = (
     );
   }
 
-  const selectedV2Compositions: Array<{
+  const selectedPlacementCompositions: Array<{
     intervalId: string;
     outputStartMs: number;
     outputEndMs: number;
     crop: {x: number; y: number; width: number; height: number};
   }> = [];
   if (
-    manifest.schemaVersion === "maul-unified-short-render-manifest/v2" &&
+    isPlacementAwareManifest(manifest) &&
     proof.schemaVersion === "maul-quality-truth-proof/v2"
   ) {
     const placement = manifest.plans.textPlacement;
@@ -215,11 +276,11 @@ export const evaluateMaulQualityTruth = (
       );
       if (
         composition &&
-        !selectedV2Compositions.some(
+        !selectedPlacementCompositions.some(
           (selected) => selected.intervalId === composition.intervalId,
         )
       ) {
-        selectedV2Compositions.push(composition);
+        selectedPlacementCompositions.push(composition);
       }
       if (!record || record.status !== "verified" || !record.evidenceId) {
         fail(
@@ -236,6 +297,13 @@ export const evaluateMaulQualityTruth = (
         (candidate) =>
           candidate.profileId === segment.compatibility.profileId,
       );
+      const chunkBinding = chunkTypographyBindings.find(
+        (binding) => binding.chunkId === segment.chunkId,
+      );
+      const expectedFontAssetId =
+        chunkBinding?.layers.find(
+          (layer) => layer.layerName === chunkBinding.primaryLayerName,
+        )?.selectedAsset.assetId ?? plannedAssetId;
       if (
         !composition ||
         record.textPlacementPlanArtifactId !==
@@ -249,8 +317,7 @@ export const evaluateMaulQualityTruth = (
           segment.compatibility.metricsFingerprint ||
         !profile ||
         profile.metrics.fingerprint !== record.metricsFingerprint ||
-        record.exactFontAssetId !==
-          manifest.plans.typographyMotion.fontResolution.selectedAssetId
+        record.exactFontAssetId !== expectedFontAssetId
       ) {
         fail(
           "placement_reference_mismatch",
@@ -301,8 +368,8 @@ export const evaluateMaulQualityTruth = (
   }
 
   const expectedCrops =
-    manifest.schemaVersion === "maul-unified-short-render-manifest/v2"
-      ? selectedV2Compositions.map((composition) => ({
+    isPlacementAwareManifest(manifest)
+      ? selectedPlacementCompositions.map((composition) => ({
           outputStartMs: composition.outputStartMs,
           outputEndMs: composition.outputEndMs,
           ...composition.crop,
@@ -333,7 +400,7 @@ export const evaluateMaulQualityTruth = (
   ) {
     fail(
       "crop_or_mask_unverified",
-      manifest.schemaVersion === "maul-unified-short-render-manifest/v2"
+      isPlacementAwareManifest(manifest)
         ? "plans.textPlacement.compositionIntervals"
         : "timeline.speakerCropTracks",
       "Crop and required masking need matching runtime evidence.",
@@ -460,7 +527,7 @@ export const buildUnverifiedMaulQualityTruthProof = (
 ): MaulQualityTruthProof =>
   maulQualityTruthProofSchema.parse({
     schemaVersion:
-      manifest.schemaVersion === "maul-unified-short-render-manifest/v2"
+      isPlacementAwareManifest(manifest)
         ? "maul-quality-truth-proof/v2"
         : "maul-quality-truth-proof/v1",
     manifestReplayKey: manifest.replayKey,
@@ -478,7 +545,7 @@ export const buildUnverifiedMaulQualityTruthProof = (
       maskingRequired: false,
       maskingStatus: "not_required",
       crops:
-        manifest.schemaVersion === "maul-unified-short-render-manifest/v2"
+        isPlacementAwareManifest(manifest)
           ? manifest.plans.textPlacement.compositionIntervals.map(
               (interval) => ({
                 outputStartMs: interval.outputStartMs,
@@ -506,7 +573,7 @@ export const buildUnverifiedMaulQualityTruthProof = (
           evidenceId: null,
         })),
     fallbacks: [],
-    ...(manifest.schemaVersion === "maul-unified-short-render-manifest/v2"
+    ...(isPlacementAwareManifest(manifest)
       ? {
           placementSegments: manifest.plans.textPlacement.segments.map(
             (segment) => {
@@ -523,6 +590,10 @@ export const buildUnverifiedMaulQualityTruthProof = (
                     interval.outputEndMs >= segment.outputEndMs,
                 )!;
               const envelope = segment.maximumEnvelope;
+              const typographyBinding =
+                manifest.plans.typographyMotion.chunkTypographyBindings.find(
+                  (binding) => binding.chunkId === segment.chunkId,
+                );
               return {
                 status: "unverified",
                 evidenceId: null,
@@ -536,6 +607,10 @@ export const buildUnverifiedMaulQualityTruthProof = (
                 metricsFingerprint:
                   segment.compatibility.metricsFingerprint,
                 exactFontAssetId:
+                  typographyBinding?.layers.find(
+                    (layer) =>
+                      layer.layerName === typographyBinding.primaryLayerName,
+                  )?.selectedAsset.assetId ??
                   manifest.plans.typographyMotion.fontResolution.selectedAssetId,
                 compiledLegibilityPrimitive:
                   segment.minimumLegibilityPrimitive,

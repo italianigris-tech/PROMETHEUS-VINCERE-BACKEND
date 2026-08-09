@@ -2823,6 +2823,24 @@ const maulQualityTruthProofCommonShape = {
       family: z.string().trim().min(1),
       assetId: maulQualityTruthEvidenceIdSchema,
       evidenceId: maulQualityTruthEvidenceIdSchema,
+      assets: z
+        .array(
+          z.object({
+            family: z.string().trim().min(1),
+            assetId: idSchema,
+            evidenceId: idSchema,
+          }),
+        )
+        .default([])
+        .superRefine((assets, ctx) => {
+          const assetIds = assets.map((asset) => asset.assetId);
+          if (new Set(assetIds).size !== assetIds.length) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "Quality Truth font runtime asset IDs must be unique.",
+            });
+          }
+        }),
     }),
     cropAndMask: z.object({
       status: z.enum(["verified", "unsafe", "unverified"]),
@@ -2918,7 +2936,7 @@ const validateMaulQualityTruthProof = (
       (proof.captionLayout.status === "verified" &&
         !proof.captionLayout.evidenceId) ||
       (proof.fontRuntime.status === "eligible_loaded" &&
-        (!proof.fontRuntime.assetId || !proof.fontRuntime.evidenceId)) ||
+        !proof.fontRuntime.evidenceId) ||
       (proof.cropAndMask.status === "verified" &&
         !proof.cropAndMask.evidenceId) ||
       (proof.cameraContinuity.status === "verified_continuous" &&

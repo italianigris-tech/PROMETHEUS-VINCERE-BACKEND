@@ -101,16 +101,27 @@ export const assertMaulTypographyPlacementCompatibility = ({
   selectedFamily,
   selectedAssetId,
   compiledMetrics,
+  profileId,
 }: {
   placementPlan: MaulTextPlacementPlanCore;
   selectedFamily: string;
   selectedAssetId: string | null;
   compiledMetrics: {maxGlyphWidthEm: number; maxLineHeightEm: number};
+  profileId?: string;
 }): void => {
   const placementPlan = maulTextPlacementPlanCoreSchema.parse(
     inputPlacementPlan,
   );
-  const profile = placementPlan.compatibilityProfiles[0]!;
+  const profile = profileId
+    ? placementPlan.compatibilityProfiles.find(
+        (candidate) => candidate.profileId === profileId,
+      )
+    : placementPlan.compatibilityProfiles[0];
+  if (!profile) {
+    throw new Error(
+      `Typography placement profile ${profileId ?? "default"} is unavailable.`,
+    );
+  }
   if (selectedFamily !== profile.family) {
     throw new Error(
       `Typography family ${selectedFamily} is outside placement profile ${profile.profileId}.`,

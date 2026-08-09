@@ -196,6 +196,128 @@ const typographyMotion = {
   },
 };
 
+const resolvedAsset = ({
+  assetId,
+  family,
+  browserUrl,
+  style = "normal",
+}: {
+  assetId: string;
+  family: string;
+  browserUrl: string;
+  style?: "normal" | "italic";
+}) => ({
+  assetId,
+  family,
+  cssFamily: family,
+  weight: 700,
+  style,
+  browserUrl,
+  localFilePath: `/render/public${browserUrl}`,
+  localFileSha256: assetId === "font_google_dm_sans_700"
+    ? "c".repeat(64)
+    : "d".repeat(64),
+  format: "woff2" as const,
+  source: "bundled" as const,
+  license: {status: "bundled" as const, evidence: ["Bundled MAUL font"]},
+});
+
+const chunkTypographyBinding = () => {
+  const primary = resolvedAsset({
+    assetId: "font_google_dm_sans_700",
+    family: "DM Sans",
+    browserUrl: "/fonts/maul/dm-sans-700.woff2",
+  });
+  const accent = resolvedAsset({
+    assetId: "font_google_playfair_display_italic_700",
+    family: "Playfair Display",
+    browserUrl: "/fonts/maul/playfair-display-italic-700.woff2",
+    style: "italic",
+  });
+  return {
+    schemaVersion: "maul-chunk-typography-binding/v1",
+    chunkId: "chunk_make_it",
+    bindingHash: "a".repeat(64),
+    profile: {
+      name: "Make_It_Profile",
+      version: "1.0.0",
+      sourceFilename: "make-it.json",
+      sourceSha256: "b".repeat(64),
+      observedAspectRatio: "16:9",
+      targetAspectRatio: "9:16",
+      adaptation: "normalized_to_9_16",
+    },
+    counts: {
+      actualWordCount: 2,
+      actualCharacterCount: 6,
+      observedWordCount: 2,
+      observedCharacterCount: 6,
+      wordDistance: 0,
+      characterDistance: 0,
+    },
+    primaryLayerName: "primary",
+    accentLayerName: "accent",
+    layers: [
+      {
+        layerName: "primary",
+        role: "header",
+        requestedFamilies: ["DM Sans"],
+        requestedWeight: 700,
+        requestedStyle: "normal",
+        requestedColor: "#ffffff",
+        requestedRelativeScale: 1,
+        requestedLineHeight: 1.1,
+        resolution: "exact",
+        selectedCatalogFontId: primary.assetId,
+        selectedAsset: primary,
+        similarityScore: 1000,
+        reason: "Exact deployed family match.",
+      },
+      {
+        layerName: "accent",
+        role: "primary_focus_word",
+        requestedFamilies: ["Playfair Display Italic"],
+        requestedWeight: 700,
+        requestedStyle: "italic",
+        requestedColor: "#ffffff",
+        requestedRelativeScale: 0.82,
+        requestedLineHeight: 1.1,
+        resolution: "exact",
+        selectedCatalogFontId: accent.assetId,
+        selectedAsset: accent,
+        similarityScore: 1000,
+        reason: "Exact deployed family match.",
+      },
+    ],
+    compatibilityProfile: {
+      profileId: "maul-compat-dm-sans-v1",
+      family: "DM Sans",
+      approvedFontAssets: [
+        {assetId: primary.assetId, family: primary.family, weights: [700]},
+      ],
+      loadedFallback: {assetId: primary.assetId, family: primary.family, weight: 700},
+      metrics: {
+        fingerprint: sha("a"),
+        maxGlyphWidthEm: 1.1,
+        maxLineHeightEm: 1.2,
+        minimumFontSizePx: 48,
+        maximumFontSizePx: 96,
+        minimumLineHeight: 1,
+        maximumLineHeight: 1.3,
+      },
+    },
+    layout: {
+      chunkId: "chunk_make_it",
+      fontSizePx: 72,
+      lines: [{text: "Make it", widthPx: 240, measurementId: "measure_make_it"}],
+      measurementIds: ["measure_make_it"],
+    },
+    selectionStatus: "selected",
+    reason: "Exact count match.",
+    timingMs: {selection: 1, fontResolution: 1, measurement: 1},
+  } as const;
+};
+
 const baseTransform = {
   opacity: 1,
   translateXPx: 0,
@@ -395,6 +517,67 @@ describe("MAUL planned text renderer contract", () => {
       assetId: "font_google_playfair_display_700",
       weight: 700,
     });
+  });
+
+  it("uses the chunk binding font receipts instead of the plan-level summary", () => {
+    const motion = structuredClone(typographyMotion) as any;
+    motion.fontResolution.selectedFamily = "Incorrect Summary Font";
+    motion.fontResolution.selectedAssetId = "font_incorrect_summary";
+    motion.chunkTypographyBindings = [chunkTypographyBinding()];
+
+    const record = buildMaulPlannedTextRecords({
+      textChunkPlan: textChunkPlan as never,
+      textPlacementPlan: textPlacementPlan as never,
+      typographyMotion: motion,
+      output: {width: 1080, height: 1920},
+    })[0]!;
+
+    expect(record.font).toMatchObject({
+      assetId: "font_google_dm_sans_700",
+      browserUrl: "/fonts/maul/dm-sans-700.woff2",
+    });
+    expect(record.accentFont).toMatchObject({
+      assetId: "font_google_playfair_display_italic_700",
+      browserUrl: "/fonts/maul/playfair-display-italic-700.woff2",
+    });
+  });
+
+  it("rejects duplicate, missing, and placement-mismatched chunk bindings", () => {
+    const binding = chunkTypographyBinding();
+    const motion = structuredClone(typographyMotion) as any;
+    motion.chunkTypographyBindings = [binding, binding];
+    expect(() => buildMaulPlannedTextRecords({
+      textChunkPlan: textChunkPlan as never,
+      textPlacementPlan: textPlacementPlan as never,
+      typographyMotion: motion,
+      output: {width: 1080, height: 1920},
+    })).toThrow(/duplicate.*chunk typography|chunk typography.*duplicate/i);
+
+    motion.chunkTypographyBindings = [{
+      ...binding,
+      chunkId: "chunk_missing",
+      layout: {...binding.layout, chunkId: "chunk_missing"},
+    }];
+    expect(() => buildMaulPlannedTextRecords({
+      textChunkPlan: textChunkPlan as never,
+      textPlacementPlan: textPlacementPlan as never,
+      typographyMotion: motion,
+      output: {width: 1080, height: 1920},
+    })).toThrow(/missing.*chunk typography|chunk typography.*missing/i);
+
+    motion.chunkTypographyBindings = [{
+      ...binding,
+      compatibilityProfile: {
+        ...binding.compatibilityProfile,
+        profileId: "maul-compat-wrong-v1",
+      },
+    }];
+    expect(() => buildMaulPlannedTextRecords({
+      textChunkPlan: textChunkPlan as never,
+      textPlacementPlan: textPlacementPlan as never,
+      typographyMotion: motion,
+      output: {width: 1080, height: 1920},
+    })).toThrow(/binding.*placement|placement.*binding/i);
   });
 
   it("carries a planned hydrated font descriptor through to the renderer record", () => {

@@ -67,6 +67,22 @@ const validQualityTruthProofProvider = async (manifest: any) => {
       family: manifest.plans.typographyMotion.fontResolution.selectedFamily,
       assetId: manifest.plans.typographyMotion.fontResolution.selectedAssetId,
       evidenceId: "evidence_font_loaded",
+      assets: [
+        ...new Map(
+          (manifest.plans.typographyMotion.chunkTypographyBindings ?? [])
+            .flatMap((binding: any) =>
+              binding.layers.map((layer: any) => layer.selectedAsset),
+            )
+            .map((asset: any) => [
+              asset.assetId,
+              {
+                family: asset.family,
+                assetId: asset.assetId,
+                evidenceId: `evidence_font_${asset.assetId}`,
+              },
+            ]),
+        ).values(),
+      ],
     },
     cameraContinuity: {
       status: "verified_continuous",
@@ -95,7 +111,10 @@ const validQualityTruthProofProvider = async (manifest: any) => {
         evidenceId: `evidence_fallback_${entry.planType}`,
       })),
   };
-  if (manifest.schemaVersion === "maul-unified-short-render-manifest/v2") {
+  if (
+    manifest.schemaVersion === "maul-unified-short-render-manifest/v2" ||
+    manifest.schemaVersion === "maul-unified-short-render-manifest/v3"
+  ) {
     const selectedCompositions = manifest.plans.textPlacement.segments.map(
       (segment: any) =>
         manifest.plans.textPlacement.compositionIntervals.find(
@@ -135,6 +154,10 @@ const validQualityTruthProofProvider = async (manifest: any) => {
         (segment: any, index: number) => {
           const composition = selectedCompositions[index];
           const envelope = segment.maximumEnvelope;
+          const typographyBinding =
+            manifest.plans.typographyMotion.chunkTypographyBindings.find(
+              (binding: any) => binding.chunkId === segment.chunkId,
+            );
           return {
             status: "verified",
             evidenceId: `evidence_placement_${segment.segmentId}`,
@@ -147,6 +170,10 @@ const validQualityTruthProofProvider = async (manifest: any) => {
             compatibilityProfileId: segment.compatibility.profileId,
             metricsFingerprint: segment.compatibility.metricsFingerprint,
             exactFontAssetId:
+              typographyBinding?.layers.find(
+                (layer: any) =>
+                  layer.layerName === typographyBinding.primaryLayerName,
+              )?.selectedAsset.assetId ??
               manifest.plans.typographyMotion.fontResolution.selectedAssetId,
             compiledLegibilityPrimitive: segment.minimumLegibilityPrimitive,
             measuredBox: {
@@ -756,12 +783,10 @@ describe("MAUL complete short render path", () => {
       textPlacementPlanArtifactId: plans.textPlacement.artifactId,
       textAnimationPlanArtifactId: plans.textAnimation.artifactId,
       fontResolution: {
-        selectedFamily: "Playfair Display",
-        selectedAssetId: "font_google_playfair_display_italic_700",
-        accentAsset: expect.objectContaining({
-          assetId: "font_google_playfair_display_700",
-          style: "normal",
-        }),
+        selectedFamily: "Mixed chunk typography",
+        selectedAssetId: null,
+        selectedAsset: null,
+        accentAsset: null,
         status: "eligible_loaded",
       },
       chunkTypographyBindings: expect.arrayContaining([

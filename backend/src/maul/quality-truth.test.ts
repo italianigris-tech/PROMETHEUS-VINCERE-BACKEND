@@ -85,6 +85,7 @@ const validProof: MaulQualityTruthProof = {
     family: "Prometheus Test Sans",
     assetId: "font_asset_test_sans",
     evidenceId: "evidence_font_loaded",
+    assets: [],
   },
   cropAndMask: {
     status: "verified",
@@ -194,6 +195,7 @@ describe("MAUL Quality Truth gate", () => {
         family: "Playfair Display",
         assetId: "font_google_playfair_display_700",
         evidenceId: "evidence_font_loaded",
+        assets: [],
       },
       cropAndMask: {
         ...validProof.cropAndMask,
@@ -245,6 +247,51 @@ describe("MAUL Quality Truth gate", () => {
         (failure) => failure.code,
       ),
     ).toContain("placement_evidence_missing");
+
+    const v3Manifest = structuredClone(v2Manifest) as any;
+    v3Manifest.schemaVersion = "maul-unified-short-render-manifest/v3";
+    v3Manifest.plans.textPlacement.segments[0].chunkId = "chunk_cinematic";
+    v3Manifest.plans.typographyMotion.fontResolution = {
+      selectedFamily: "Mixed chunk typography",
+      selectedAssetId: null,
+      status: "eligible_loaded",
+    };
+    v3Manifest.plans.typographyMotion.chunkTypographyBindings = [{
+      chunkId: "chunk_cinematic",
+      primaryLayerName: "primary",
+      accentLayerName: null,
+      layers: [{
+        layerName: "primary",
+        selectedAsset: {
+          assetId: "font_google_playfair_display_700",
+          family: "Playfair Display",
+        },
+      }],
+    }];
+    const v3Proof = {
+      ...structuredClone(v2Proof),
+      fontRuntime: {
+        status: "eligible_loaded" as const,
+        family: "Mixed chunk typography",
+        assetId: null,
+        evidenceId: "evidence_font_loaded",
+        assets: [{
+          family: "Playfair Display",
+          assetId: "font_google_playfair_display_700",
+          evidenceId: "evidence_font_playfair",
+        }],
+      },
+    };
+    expect(evaluateMaulQualityTruth(v3Manifest, v3Proof).failures).toEqual([]);
+
+    const wrongV3FontReceipt = structuredClone(v3Proof);
+    (wrongV3FontReceipt.placementSegments[0] as any).exactFontAssetId =
+      "font_wrong_for_chunk";
+    expect(
+      evaluateMaulQualityTruth(v3Manifest, wrongV3FontReceipt).failures.map(
+        (failure) => failure.code,
+      ),
+    ).toContain("placement_reference_mismatch");
   });
 
   it("returns a named blocked result for malformed proof", () => {
@@ -315,6 +362,7 @@ describe("MAUL Quality Truth gate", () => {
         family: "Arial",
         assetId: null,
         evidenceId: null,
+        assets: [],
       },
     })).toContain("font_fallback_forbidden");
 
@@ -333,6 +381,57 @@ describe("MAUL Quality Truth gate", () => {
         assetId: "font_asset_unapproved",
       },
     })).toContain("font_load_unverified");
+  });
+
+  it("requires runtime evidence for every font selected by chunk bindings", () => {
+    const boundManifest = structuredClone(manifest) as any;
+    boundManifest.plans.typographyMotion.fontResolution = {
+      selectedFamily: "Mixed chunk typography",
+      selectedAssetId: null,
+      status: "eligible_loaded",
+    };
+    boundManifest.plans.typographyMotion.chunkTypographyBindings = [{
+      chunkId: "chunk_bound",
+      primaryLayerName: "primary",
+      accentLayerName: null,
+      layers: [{
+        layerName: "primary",
+        selectedAsset: {
+          assetId: "font_google_playfair_display_700",
+          family: "Playfair Display",
+        },
+      }],
+    }];
+    boundManifest.plans.textPlacement = {
+      segments: [{chunkId: "chunk_bound", editorialLockup: {accentTokenIds: []}}],
+    };
+    const proof = {
+      ...validProof,
+      fontRuntime: {
+        status: "eligible_loaded" as const,
+        family: "Mixed chunk typography",
+        assetId: null,
+        evidenceId: "evidence_fonts_loaded",
+        assets: [{
+          family: "Playfair Display",
+          assetId: "font_google_playfair_display_700",
+          evidenceId: "evidence_font_playfair",
+        }],
+      },
+    } as any;
+
+    expect(
+      evaluateMaulQualityTruth(boundManifest, proof).failures.map(
+        (failure) => failure.code,
+      ),
+    ).not.toContain("font_load_unverified");
+
+    proof.fontRuntime.assets = [];
+    expect(
+      evaluateMaulQualityTruth(boundManifest, proof).failures.map(
+        (failure) => failure.code,
+      ),
+    ).toContain("font_load_unverified");
   });
 
   it("cannot bless a manifest-declared Arial fallback with claimed runtime proof", () => {
@@ -463,6 +562,7 @@ describe("MAUL Quality Truth gate", () => {
         family: "Arial",
         assetId: null,
         evidenceId: null,
+        assets: [],
       },
       fallbacks: [],
     });

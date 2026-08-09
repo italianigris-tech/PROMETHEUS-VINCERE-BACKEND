@@ -37,6 +37,16 @@ export type TypographyProfileCompilerChunk = {
 
 type AvailableTypographyPlan = Extract<MaulTypographyPlan, {status: "available"}>;
 
+export type TypographyProfileFontResolutionSummary = {
+  requestedRole: "editorial" | "utility";
+  selectedFamily: string;
+  selectedAssetId: string | null;
+  status: "eligible_loaded";
+  reason: string;
+  selectedAsset?: MaulResolvedFontAsset | null;
+  accentAsset?: MaulResolvedFontAsset | null;
+};
+
 export type CompiledChunkTypography = {
   binding: MaulChunkTypographyBinding;
   profile: MaulTypographyCompatibilityProfile;
@@ -51,7 +61,7 @@ export type TypographyProfileCompilation =
       chunks: CompiledChunkTypography[];
       compatibilityProfiles: MaulTypographyCompatibilityProfile[];
       evidenceIds: string[];
-      fontResolution: AvailableTypographyPlan["fontResolution"];
+      fontResolution: TypographyProfileFontResolutionSummary;
     }
   | {status: "unavailable"; reason: string};
 
@@ -323,13 +333,33 @@ export const createTypographyProfileCompiler = ({
             compiledChunks.flatMap((chunk) => chunk.layout.measurementIds),
           ),
         ].sort();
+        const fontPairKeys = new Set(
+          compiledChunks.map((chunk) =>
+            [
+              chunk.fontResolution.selectedAssetId,
+              chunk.fontResolution.accentAsset?.assetId ?? "none",
+            ].join(":"),
+          ),
+        );
+        const fontResolution: TypographyProfileFontResolutionSummary =
+          fontPairKeys.size === 1
+            ? compiledChunks[0]!.fontResolution
+            : {
+                requestedRole: "editorial",
+                selectedFamily: "Mixed chunk typography",
+                selectedAssetId: null,
+                selectedAsset: null,
+                accentAsset: null,
+                status: "eligible_loaded",
+                reason: `${compiledChunks.length} chunks selected distinct measured font pairs; exact render assets are authoritative in chunkTypographyBindings.`,
+              };
         return {
           status: "available",
           bindings: compiledChunks.map((chunk) => chunk.binding),
           chunks: compiledChunks,
           compatibilityProfiles,
           evidenceIds,
-          fontResolution: compiledChunks[0]!.fontResolution,
+          fontResolution,
         };
       } catch (error) {
         return {
