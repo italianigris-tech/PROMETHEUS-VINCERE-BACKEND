@@ -1,0 +1,109 @@
+{
+  "profile_name": "Dreamer_GIRL_Magazine_Header",
+  "version": "1.0.0",
+  "metadata": {
+    "target_aspect_ratio": "16:9",
+    "overall_mood": "High-Fashion Cover Title, Medium Top Header with Giant Bold Bottom",
+    "casing_strategy": "mixed",
+    "total_word_count": 2,
+    "total_character_count": 11,
+    "per_word_character_counts": [
+      {
+        "word": "Dreamer",
+        "character_count": 7
+      },
+      {
+        "word": "GIRL",
+        "character_count": 4
+      }
+    ]
+  },
+  "layout_rules": {
+    "horizontal_alignment": "left",
+    "vertical_position": "center",
+    "bottom_margin_percent": 15,
+    "max_width_percent": 85,
+    "scrim_overlay": {
+      "enabled": false,
+      "type": "none",
+      "opacity": 0,
+      "color": "#CCCCCC"
+    }
+  },
+  "typography_layers": [
+    {
+      "layer_name": "top_title",
+      "role": "secondary_clause",
+      "font_classification": "Classic High-Contrast Serif",
+      "matched_font_candidates": [
+        "Bodoni Moda",
+        "Playfair Display"
+      ],
+      "font_style": {
+        "weight": 600,
+        "style": "normal",
+        "casing": "normal",
+        "color": "#111111",
+        "size_px_base": 32,
+        "relative_scale": 0.49,
+        "letter_spacing_em": 0.01,
+        "line_height": 1.1,
+        "vertical_margin_top_px": 0
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 1,
+          "blur_radius": 2,
+          "color": "rgba(0, 0, 0, 0.08)"
+        }
+      },
+      "sample_text": "Dreamer",
+      "word_count": 1,
+      "character_count": 7,
+      "per_word_character_counts": [
+        {
+          "word": "Dreamer",
+          "character_count": 7
+        }
+      ]
+    },
+    {
+      "layer_name": "giant_caps",
+      "role": "header",
+      "font_classification": "Giant Bold All-Caps Didone Serif",
+      "matched_font_candidates": [
+        "Bodoni Moda",
+        "Abril Fatface"
+      ],
+      "font_style": {
+        "weight": 900,
+        "style": "normal",
+        "casing": "uppercase",
+        "color": "#111111",
+        "size_px_base": 65,
+        "relative_scale": 1.0,
+        "letter_spacing_em": -0.02,
+        "line_height": 0.9,
+        "vertical_margin_top_px": -6
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 3,
+          "blur_radius": 6,
+          "color": "rgba(0, 0, 0, 0.15)"
+        }
+      },
+      "sample_text": "GIRL",
+      "word_count": 1,
+      "character_count": 4,
+      "per_word_character_counts": [
+        {
+          "word": "GIRL",
+          "character_count": 4
+        }
+      ]
+    }
+  ]
+}
