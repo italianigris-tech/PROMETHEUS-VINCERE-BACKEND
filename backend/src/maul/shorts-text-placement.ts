@@ -19,6 +19,7 @@ import {selectTypographyProfilePlacement} from "./typography-profile-placement.j
 import {
   averageLuminanceForBox,
   resolveTypographyProfileColors,
+  resolveTypographyProfileColorsAcrossSamples,
 } from "./typography-profile-contrast.js";
 
 export type MaulPlacementFamily = "measured" | "editorial" | "personal";
@@ -45,6 +46,8 @@ export type MaulPlacementObservationInterval = {
   existingTextRegions: readonly MaulNormalizedBox[];
   backgroundLuminance?: number;
   backgroundLuminanceGrid?: MaulBackgroundLuminanceGrid;
+  backgroundLuminanceGrids?: readonly MaulBackgroundLuminanceGrid[];
+  requiresTemporalContrast?: boolean;
 };
 
 export type MaulPlacementTimelineInterval = {
@@ -715,6 +718,16 @@ const buildCandidate = ({
         realization: profileRealization,
         subjectBox,
         existingTextRegions: observation?.existingTextRegions ?? [],
+        ...(composition.textAnchor
+          ? {
+              intent: {
+                preferredBox: composition.textAnchor.box,
+                overlapPolicy:
+                  composition.textAnchor.subjectInteraction?.policy ??
+                  "avoid_subject",
+              },
+            }
+          : {}),
       })
     : null;
   const geometry = profilePlacement ?? (isCaptionSafeFallback
@@ -822,6 +835,22 @@ const buildCandidate = ({
   const nominalFontSizePx = profileRealization
     ? effectiveFontSizePx
     : effectiveFontSizePx / hierarchyScale;
+  const temporalBackgroundLuminances =
+    profileRealization && profilePlacement
+      ? (observation?.backgroundLuminanceGrids ?? []).flatMap((grid) => {
+          const sampled = averageLuminanceForBox({
+            grid,
+            box: profilePlacement.box,
+          });
+          return sampled === null ? [] : [sampled];
+        })
+      : [];
+  const temporalColorResolution = profileRealization
+    ? resolveTypographyProfileColorsAcrossSamples({
+        realization: profileRealization,
+        backgroundLuminances: temporalBackgroundLuminances,
+      })
+    : null;
   const hardGates = [
     gate(
       "exact_token_sequence",
@@ -917,6 +946,15 @@ const buildCandidate = ({
       observation?.evidenceId ?? null,
       "Maximum envelope avoids known existing-text occupancy.",
     ),
+    ...(profileRealization && observation?.requiresTemporalContrast
+      ? [gate(
+          "temporal_contrast",
+          temporalBackgroundLuminances.length > 0 &&
+            temporalColorResolution?.readable === true,
+          observation.evidenceId,
+          "One static chunk color remains readable across every sampled observed frame.",
+        )]
+      : []),
     gate(
       "discontinuity_containment",
       intervalContains(composition, node.outputStartMs, node.outputEndMs),
@@ -980,16 +1018,20 @@ const buildCandidate = ({
       ...(profilePlacement ? {profileTransform: profilePlacement.transform} : {}),
       ...(profileRealization
         ? {
-            profileColorResolution: resolveTypographyProfileColors({
-              realization: profileRealization,
-              backgroundLuminance:
-                (observation?.backgroundLuminanceGrid && profilePlacement
-                  ? averageLuminanceForBox({
-                      grid: observation.backgroundLuminanceGrid,
-                      box: profilePlacement.box,
-                    })
-                  : null) ?? observation?.backgroundLuminance,
-            }),
+            profileColorResolution:
+              (temporalBackgroundLuminances.length > 0
+                ? temporalColorResolution!.resolution
+                : undefined) ??
+              resolveTypographyProfileColors({
+                realization: profileRealization,
+                backgroundLuminance:
+                  (observation?.backgroundLuminanceGrid && profilePlacement
+                    ? averageLuminanceForBox({
+                        grid: observation.backgroundLuminanceGrid,
+                        box: profilePlacement.box,
+                      })
+                    : null) ?? observation?.backgroundLuminance,
+              }),
           }
         : {}),
       compatibility: {

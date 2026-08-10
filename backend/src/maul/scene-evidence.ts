@@ -41,6 +41,7 @@ export type SceneOpportunityRegion = {
 
 export type SceneEvidenceHold = {
   beatId: string;
+  purpose?: MaulCompositionPurpose;
   sceneId: string;
   discontinuityId: string;
   outputStartMs: number;
@@ -54,6 +55,9 @@ export type SceneEvidenceHold = {
   };
   backgroundLuminanceGrid?: NonNullable<
     MaulPlacementObservationInterval["backgroundLuminanceGrid"]
+  >;
+  backgroundLuminanceGrids?: NonNullable<
+    MaulPlacementObservationInterval["backgroundLuminanceGrids"]
   >;
   existingTextRegions: MaulNormalizedBox[];
   opportunities: SceneOpportunityRegion[];
@@ -252,6 +256,7 @@ export const buildSpeakerTrackSceneEvidence = (
     return [
       {
         beatId: beat.beatId,
+        purpose: beat.purpose,
         sceneId: "speaker_scene_" + (beatIndex + 1),
         discontinuityId: "speaker_geometry_" + (beatIndex + 1),
         outputStartMs: beat.startMs,
@@ -369,7 +374,7 @@ export const sceneEvidenceToPlacementInputs = (
       buildCompositionCandidates({
         subjectBox: hold.subject.box,
         opportunity: region,
-        purpose: "SETUP",
+        purpose: hold.purpose ?? "SETUP",
       }).map((candidate) => ({
         intervalId: `${hold.beatId}.${candidate.direction}.${region.regionId}`,
         sceneId: hold.sceneId,
@@ -420,6 +425,10 @@ export const sceneEvidenceToPlacementInputs = (
     ...(hold.backgroundLuminanceGrid
       ? {backgroundLuminanceGrid: hold.backgroundLuminanceGrid}
       : {}),
+    ...(hold.backgroundLuminanceGrids
+      ? {backgroundLuminanceGrids: hold.backgroundLuminanceGrids}
+      : {}),
+    requiresTemporalContrast: evidence.providerId.startsWith("mediapipe_opencv"),
   }));
   const shotIntervals = evidence.holds.map((hold) => ({
     sceneId: hold.sceneId,

@@ -82,10 +82,15 @@ export const selectTypographyProfilePlacement = ({
   realization,
   subjectBox,
   existingTextRegions,
+  intent,
 }: {
   realization: MaulProfileTypographyRealization;
   subjectBox: MaulNormalizedBox | null;
   existingTextRegions: readonly MaulNormalizedBox[];
+  intent?: {
+    preferredBox: MaulNormalizedBox;
+    overlapPolicy: "avoid_subject" | "controlled_overlap";
+  };
 }): {
   box: MaulNormalizedBox;
   maximumEnvelope: MaulNormalizedBox;
@@ -133,12 +138,25 @@ export const selectTypographyProfilePlacement = ({
         total + overlapArea(box, region) / Math.max(0.0001, box.width * box.height),
       0,
     );
-    const lowerRightPenalty = anchor.id === "lower_right" ? 0.08 : 0;
+    const preferredCenterDistance = intent
+      ? Math.hypot(
+          box.x + box.width / 2 -
+            (intent.preferredBox.x + intent.preferredBox.width / 2),
+          box.y + box.height / 2 -
+            (intent.preferredBox.y + intent.preferredBox.height / 2),
+        )
+      : 0;
+    const intentScore = intent
+      ? Math.max(0, 1 - preferredCenterDistance / Math.SQRT2) * 3
+      : 0;
+    const subjectOverlapWeight =
+      intent?.overlapPolicy === "controlled_overlap" ? -0.2 : -5;
     const score =
-      subjectOverlap * -5 +
+      subjectOverlap * subjectOverlapWeight +
       existingOverlap * -4 -
       alignmentPenalty(realization.horizontalAlignment, anchor.horizontalAlignment) -
-      lowerRightPenalty;
+      0 +
+      intentScore;
     return {anchor, box, score};
   }).sort(
     (left, right) =>

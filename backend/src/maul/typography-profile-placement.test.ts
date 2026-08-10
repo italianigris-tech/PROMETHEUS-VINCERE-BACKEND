@@ -125,4 +125,43 @@ describe("MAUL typography profile placement", () => {
     expect(placement.transform.finalWidthPx).toBeGreaterThanOrEqual(540);
     expect(placement.box.width).toBeGreaterThanOrEqual(0.5);
   });
+
+  it("honors a measured center intent with controlled subject overlap", () => {
+    const selectedAsset = loadExecutableTypographyFontAssets()[0]!;
+    const subjectBox = {x: 0.3, y: 0.18, width: 0.4, height: 0.58};
+    const placement = selectTypographyProfilePlacement({
+      realization: {
+        adaptation: "uniform_fit_9_16",
+        horizontalAlignment: "center",
+        maxWidthPercent: 85,
+        intrinsicSizePx: {width: 640, height: 260},
+        layers: [{
+          layerName: "hero",
+          tokenIds: ["t1"],
+          text: "Occupy the frame",
+          selectedAsset,
+          fontSizePx: 84,
+          measuredWidthPx: 640,
+          measuredHeightPx: 260,
+          lineHeight: 1,
+          letterSpacingEm: 0,
+          casing: "normal",
+          color: "#FFFFFF",
+          marginTopPx: 0,
+          shadow: {xOffset: 0, yOffset: 2, blurRadius: 6, color: "#000000"},
+          measurementId: "profile_measurement_center",
+        }],
+      },
+      subjectBox,
+      existingTextRegions: [],
+      intent: {
+        preferredBox: {x: 0.18, y: 0.34, width: 0.64, height: 0.28},
+        overlapPolicy: "controlled_overlap",
+      },
+    });
+
+    expect(placement.anchorId).toBe("center");
+    expect(placement.box.x).toBeLessThan(subjectBox.x + subjectBox.width);
+    expect(placement.box.x + placement.box.width).toBeGreaterThan(subjectBox.x);
+  });
 });

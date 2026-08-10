@@ -1,6 +1,9 @@
 import {describe, expect, it} from "vitest";
 
-import {resolveTypographyProfileColors} from "./typography-profile-contrast.js";
+import {
+  resolveTypographyProfileColors,
+  resolveTypographyProfileColorsAcrossSamples,
+} from "./typography-profile-contrast.js";
 
 const realization = (color: string) => ({
   adaptation: "uniform_fit_9_16" as const,
@@ -62,5 +65,29 @@ describe("MAUL profile color resolution", () => {
       layers: [{requestedColor: "#007AFF", resolvedColor: "#007AFF"}],
     });
     expect(result.layers[0]!.contrastRatio).toBeGreaterThan(3);
+  });
+
+  it("chooses one static readable color across every sampled dark frame", () => {
+    const result = resolveTypographyProfileColorsAcrossSamples({
+      realization: realization("#111111"),
+      backgroundLuminances: [0.006, 0.012, 0.02],
+    });
+
+    expect(result.readable).toBe(true);
+    expect(result.resolution).toMatchObject({
+      mode: "light_text",
+      layers: [{requestedColor: "#111111", resolvedColor: "#FFFFFF"}],
+    });
+    expect(result.minimumContrastRatio).toBeGreaterThanOrEqual(3);
+  });
+
+  it("reports no static color as readable across irreconcilable frames", () => {
+    const result = resolveTypographyProfileColorsAcrossSamples({
+      realization: realization("#111111"),
+      backgroundLuminances: [0.01, 0.92],
+    });
+
+    expect(result.readable).toBe(false);
+    expect(result.minimumContrastRatio).toBeLessThan(3);
   });
 });
