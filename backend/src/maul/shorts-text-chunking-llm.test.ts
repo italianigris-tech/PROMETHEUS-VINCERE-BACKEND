@@ -76,6 +76,12 @@ describe("MAUL shorts text chunking LLM client", () => {
       capturedInit = init;
       return new Response(
         JSON.stringify({
+          id: "chunk_request_123",
+          usage: {
+            prompt_tokens: 210,
+            completion_tokens: 36,
+            total_tokens: 246,
+          },
           choices: [{message: {content: JSON.stringify(validProposal)}}],
         }),
         {status: 200, headers: {"content-type": "application/json"}},
@@ -128,7 +134,36 @@ describe("MAUL shorts text chunking LLM client", () => {
     });
     expect(plan.inference.requestHash).toMatch(/^[a-f0-9]{64}$/);
     expect(plan.inference.responseHash).toMatch(/^[a-f0-9]{64}$/);
+    expect(plan.inference.usage).toMatchObject({
+      promptTokens: 210,
+      completionTokens: 36,
+      totalTokens: 246,
+      requestId: "chunk_request_123",
+    });
+    expect(plan.inference.usage?.latencyMs).toBeGreaterThanOrEqual(0);
     expect(JSON.stringify(plan)).not.toContain("test-secret-token");
+  });
+
+  it("records null usage values when the provider omits usage metadata", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () =>
+      new Response(
+        JSON.stringify({
+          choices: [{message: {content: JSON.stringify(validProposal)}}],
+        }),
+        {status: 200, headers: {"content-type": "application/json"}},
+      ),
+    );
+    const planner = createShortsTextChunkPlanner({config, fetchImpl});
+
+    const plan = await planner.plan(request);
+
+    expect(plan.inference.usage).toEqual({
+      promptTokens: null,
+      completionTokens: null,
+      totalTokens: null,
+      requestId: null,
+      latencyMs: expect.any(Number),
+    });
   });
 
   it("does not duplicate a shared version segment in the endpoint URL", async () => {

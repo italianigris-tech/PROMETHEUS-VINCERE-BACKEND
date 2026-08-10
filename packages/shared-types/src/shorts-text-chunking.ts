@@ -258,6 +258,16 @@ export const shortsTextChunkPlanSchema = z
       requestHash: sha256Schema.nullable(),
       responseHash: sha256Schema.nullable(),
       fallbackReason: z.string().trim().min(1).nullable(),
+      usage: z
+        .object({
+          promptTokens: z.number().int().nonnegative().nullable(),
+          completionTokens: z.number().int().nonnegative().nullable(),
+          totalTokens: z.number().int().nonnegative().nullable(),
+          requestId: z.string().trim().min(1).nullable(),
+          latencyMs: z.number().finite().nonnegative().nullable(),
+        })
+        .strict()
+        .optional(),
     }),
     validationFindings: z.array(
       z.object({

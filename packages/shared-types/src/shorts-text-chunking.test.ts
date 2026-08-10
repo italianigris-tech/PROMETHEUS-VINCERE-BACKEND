@@ -59,6 +59,22 @@ const validPlan = () => ({
 });
 
 describe("shorts text chunking contracts", () => {
+  it("preserves provider usage receipts without requiring them on legacy plans", () => {
+    const legacy = validPlan();
+    expect(shortsTextChunkPlanSchema.parse(legacy).inference.usage).toBeUndefined();
+
+    const withUsage = structuredClone(legacy);
+    withUsage.inference.usage = {
+      promptTokens: 120,
+      completionTokens: 30,
+      totalTokens: 150,
+      requestId: "request_123",
+      latencyMs: 420,
+    };
+    expect(shortsTextChunkPlanSchema.parse(withUsage).inference.usage).toEqual(
+      withUsage.inference.usage,
+    );
+  });
   it("accepts the complete timed transcript and supplies conservative defaults", () => {
     const request = shortsTextChunkingRequestSchema.parse({
       transcript: {

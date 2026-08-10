@@ -44,6 +44,16 @@ export type ShortsTextChunkPlanner = {
 };
 
 const responseEnvelopeSchema = z.object({
+  id: z.string().trim().min(1).nullable().optional(),
+  usage: z
+    .object({
+      prompt_tokens: z.number().int().nonnegative().nullable().optional(),
+      completion_tokens: z.number().int().nonnegative().nullable().optional(),
+      total_tokens: z.number().int().nonnegative().nullable().optional(),
+    })
+    .strict()
+    .nullable()
+    .optional(),
   choices: z
     .array(
       z.object({
@@ -296,6 +306,7 @@ export const createShortsTextChunkPlanner = ({
         });
         const requestHash = sha256(body);
         let responseHash: string | null = null;
+        const requestStartedAtMs = performance.now();
 
         try {
           const response = await fetchImpl(endpointFor(config), {
@@ -316,10 +327,22 @@ export const createShortsTextChunkPlanner = ({
           responseHash = sha256(responseText);
 
           let proposal;
+          let usage: ShortsTextChunkPlan["inference"]["usage"];
+          let providerRequestId: string | null = null;
           try {
             const envelope = responseEnvelopeSchema.parse(
               JSON.parse(responseText),
             );
+            providerRequestId = envelope.id ?? null;
+            usage = {
+              promptTokens: envelope.usage?.prompt_tokens ?? null,
+              completionTokens: envelope.usage?.completion_tokens ?? null,
+              totalTokens: envelope.usage?.total_tokens ?? null,
+              requestId: providerRequestId,
+              latencyMs: Number(
+                Math.max(0, performance.now() - requestStartedAtMs).toFixed(3),
+              ),
+            };
             proposal = shortsTextChunkProposalSchema.parse(
               JSON.parse(
                 cleanJsonContent(envelope.choices[0]!.message.content),
@@ -348,6 +371,7 @@ export const createShortsTextChunkPlanner = ({
                 requestHash,
                 responseHash,
                 fallbackReason: null,
+                usage,
               },
             });
           } catch (error) {
