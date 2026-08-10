@@ -52,6 +52,8 @@ an explicit layer policy:
 type RenderLayerPolicy = {
   baseVideo: "required";
   typography: "required";
+  sourceTreatment: "disabled";
+  sourceLegibilityOverlay: "disabled";
   editorialCuts: "disabled";
   transitions: "disabled";
   backgroundAnimation: "disabled";
@@ -64,6 +66,11 @@ Disabled stages emit receipts that state they were disabled by policy. They do
 not disappear from lineage, and they cannot add hidden defaults. The same
 manifest compiler, Remotion adapter, font resolver, and renderer used for a live
 job execute the proof.
+
+When `audioTreatment` is disabled, a V3 manifest carries no music track and no
+SFX assets. Source dialogue remains part of the governed source sequences. A
+silent placeholder track is not an acceptable substitute for an absent music
+layer.
 
 ## Causal Chain
 
@@ -293,7 +300,9 @@ usage units; pricing can be applied by the deployment's current billing policy.
 6. Motion tests verify word entry within one output frame of the AssemblyAI
    timestamp and persistence until chunk exit.
 7. Manifest tests prove disabled layers cannot reappear through defaults or
-   compatibility adapters.
+   compatibility adapters, including the current full-frame legibility gradient
+   and source-treatment layer. They also prove an audio-disabled V3 manifest has
+   no music/SFX asset while preserving source dialogue audio.
 8. A canonical 20-second render produces the MP4, all causal artifacts, visual
    sample frames, and the performance/cost report.
 
