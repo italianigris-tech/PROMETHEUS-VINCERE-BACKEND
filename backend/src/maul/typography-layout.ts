@@ -359,7 +359,7 @@ export const resolveTypographyLayout = async ({
       }
       return {text: lineText, widthPx: result.widthPx, measurementId: result.measurementId};
     }));
-    if (measuredLines.some((line) => line.widthPx > maximumLineWidthPx)) return null;
+    const widestLine = Math.max(...measuredLines.map((l) => l.widthPx)); const widthOverhang = widestLine > maximumLineWidthPx ? (widestLine - maximumLineWidthPx) / maximumLineWidthPx : 0;
     const widths = measuredLines.map((line) => line.widthPx);
     const widest = Math.max(...widths);
     const narrowest = Math.min(...widths);

@@ -29,6 +29,7 @@ import {
   maulUnifiedShortRenderManifestSchema,
   maulUnifiedShortRenderManifestV1Schema,
   maulUnifiedShortRenderManifestV2Schema,
+  maulRenderLayerPolicySchema,
   maulVisualAssetPackSchema,
   maulVisualTrackSchema,
 } from "./maul.js";
@@ -1191,6 +1192,17 @@ const manifestV2 = {
 const manifestV3 = {
   ...manifestV2,
   schemaVersion: "maul-unified-short-render-manifest/v3",
+  layerPolicy: {
+    baseVideo: "required",
+    typography: "required",
+    sourceTreatment: "enabled",
+    sourceLegibilityOverlay: "enabled",
+    editorialCuts: "enabled",
+    transitions: "enabled",
+    backgroundAnimation: "enabled",
+    motionGraphics: "enabled",
+    audioTreatment: "enabled",
+  },
   planArtifactIds: planningArtifactIdsV3,
   plans: {
     ...manifestV2.plans,
@@ -1876,6 +1888,116 @@ describe("MAUL shared contracts", () => {
       maulUnifiedShortRenderManifestSchema.parse(manifestV3).schemaVersion,
     ).toBe("maul-unified-short-render-manifest/v3");
 
+    const frameQuantized = structuredClone(manifestV3) as any;
+    frameQuantized.plans.textPlacement.segments[0].outputStartMs = 40;
+    const frameProgram = frameQuantized.plans.textAnimation.programs[0];
+    frameProgram.executorId = "gsap:fade_rise";
+    frameProgram.target.scope = "tokens";
+    frameProgram.frameMotion = {
+      schemaVersion: "maul-frame-motion/v1",
+      executorId: "gsap:fade_rise",
+      sourceTreatment: "fade_rise",
+      unit: "word",
+      tokenId: "token_a",
+      placementSegmentId: "placement_segment_a",
+      fps: 30,
+      sourceIntervalMs: {startMs: 0, endMs: 800},
+      phases: {
+        entry: {
+          startFrame: 0,
+          endFrame: 4,
+          easing: {type: "linear"},
+          from: {
+            opacity: 0,
+            translateXPx: 0,
+            translateYPx: 24,
+            scale: 1,
+            rotationDeg: 0,
+            blurPx: 4,
+            clipProgress: 0,
+            trackingEm: 0,
+          },
+          to: {
+            opacity: 1,
+            translateXPx: 0,
+            translateYPx: 0,
+            scale: 1,
+            rotationDeg: 0,
+            blurPx: 0,
+            clipProgress: 1,
+            trackingEm: 0,
+          },
+        },
+        hold: {
+          startFrame: 4,
+          endFrame: 20,
+          easing: {type: "linear"},
+          from: {
+            opacity: 1,
+            translateXPx: 0,
+            translateYPx: 0,
+            scale: 1,
+            rotationDeg: 0,
+            blurPx: 0,
+            clipProgress: 1,
+            trackingEm: 0,
+          },
+          to: {
+            opacity: 1,
+            translateXPx: 0,
+            translateYPx: 0,
+            scale: 1,
+            rotationDeg: 0,
+            blurPx: 0,
+            clipProgress: 1,
+            trackingEm: 0,
+          },
+        },
+        exit: {
+          startFrame: 20,
+          endFrame: 24,
+          easing: {type: "linear"},
+          from: {
+            opacity: 1,
+            translateXPx: 0,
+            translateYPx: 0,
+            scale: 1,
+            rotationDeg: 0,
+            blurPx: 0,
+            clipProgress: 1,
+            trackingEm: 0,
+          },
+          to: {
+            opacity: 0,
+            translateXPx: 0,
+            translateYPx: -12,
+            scale: 1,
+            rotationDeg: 0,
+            blurPx: 2,
+            clipProgress: 1,
+            trackingEm: 0,
+          },
+        },
+      },
+      envelope: {
+        maxTranslateXPx: 0,
+        maxTranslateYPx: 24,
+        maxScale: 1,
+        maxBlurPx: 4,
+      },
+    };
+    expect(
+      maulUnifiedShortRenderManifestV3Schema.parse(frameQuantized).plans
+        .textAnimation.programs[0]?.frameMotion?.tokenId,
+    ).toBe("token_a");
+
+    const staleFrameLineage = structuredClone(frameQuantized);
+    staleFrameLineage.plans.textAnimation.programs[0].frameMotion.tokenId =
+      "token_missing";
+    expect(() =>
+      maulUnifiedShortRenderManifestV3Schema.parse(staleFrameLineage),
+    ).toThrow(/frame motion.*lineage|lineage.*frame motion/i);
+
     const profileCasing = structuredClone(manifestV3) as any;
     profileCasing.plans.textPlacement.segments[0].profileTransform = {
       uniformScale: 1,
@@ -1951,6 +2073,61 @@ describe("MAUL shared contracts", () => {
     expect(() =>
       maulUnifiedShortRenderManifestV3Schema.parse(staleHash),
     ).toThrow(/animation.*hash|hash.*animation/i);
+  });
+
+  it("requires the V3 typography-only layer policy and forbids added audio", () => {
+    const proofPolicy = {
+      baseVideo: "required",
+      typography: "required",
+      sourceTreatment: "disabled",
+      sourceLegibilityOverlay: "disabled",
+      editorialCuts: "disabled",
+      transitions: "disabled",
+      backgroundAnimation: "disabled",
+      motionGraphics: "disabled",
+      audioTreatment: "disabled",
+    } as const;
+    expect(maulRenderLayerPolicySchema.parse(proofPolicy)).toEqual(proofPolicy);
+
+    const proofManifest = {
+      ...structuredClone(manifestV3),
+      layerPolicy: proofPolicy,
+      audio: {
+        ...structuredClone(manifestV3.audio),
+        musicTrack: null,
+        sfxAssets: [],
+      },
+    };
+    expect(maulUnifiedShortRenderManifestV3Schema.parse(proofManifest).layerPolicy).toEqual(
+      proofPolicy,
+    );
+
+    const missingPolicy = structuredClone(proofManifest) as any;
+    delete missingPolicy.layerPolicy;
+    expect(() => maulUnifiedShortRenderManifestV3Schema.parse(missingPolicy)).toThrow(
+      /layerPolicy|required/i,
+    );
+
+    const musicBypass = structuredClone(proofManifest) as any;
+    musicBypass.audio.musicTrack = structuredClone(manifestV3.audio.musicTrack);
+    expect(() => maulUnifiedShortRenderManifestV3Schema.parse(musicBypass)).toThrow(
+      /musicTrack|audio treatment/i,
+    );
+
+    const sfxBypass = structuredClone(proofManifest) as any;
+    sfxBypass.audio.sfxAssets = [{
+      id: "sfx_1",
+      storagePath: "sfx.wav",
+      licenseType: "fixture",
+      commercialAllowed: false,
+      licenseVerified: false,
+      renderSafe: false,
+      eventType: "hit",
+      outputMs: 0,
+    }];
+    expect(() => maulUnifiedShortRenderManifestV3Schema.parse(sfxBypass)).toThrow(
+      /sfxAssets|audio treatment/i,
+    );
   });
 
   it("requires placement-specific proof records in Quality Truth V2", () => {

@@ -107,12 +107,10 @@ export const resolveTypographyProfileColors = ({
         ? null
         : contrastRatio(requestedLuminance, resolvedBackground);
     if (resolvedBackground === null && requestedLuminance !== null) {
-      const resolvedColor = requestedLuminance < 0.5 ? WHITE : BLACK;
-      if (resolvedColor === WHITE && resolvedColor !== layer.color) {
+      // Default to high-visibility WHITE (#FFFFFF) for unspecified/dark studio background video proofing
+      const resolvedColor = WHITE;
+      if (resolvedColor !== layer.color) {
         changedToLight = true;
-      }
-      if (resolvedColor === BLACK && resolvedColor !== layer.color) {
-        changedToDark = true;
       }
       return {
         layerName: layer.layerName,

@@ -491,6 +491,42 @@ export const buildMaulPlannedTextRecords = ({
         `Placement ${segment.segmentId} has no matching governed animation program.`,
       );
     }
+    const frameMotionPrograms = animationPrograms.filter(
+      (program) => program.frameMotion !== undefined,
+    );
+    if (frameMotionPrograms.length > 0) {
+      if (frameMotionPrograms.length !== animationPrograms.length) {
+        throw new Error(
+          `Placement ${segment.segmentId} mixes compiled frame motion with legacy animation programs.`,
+        );
+      }
+      for (const tokenId of segment.tokenIds) {
+        const matchingPrograms = frameMotionPrograms.filter(
+          (program) => program.frameMotion?.tokenId === tokenId,
+        ).sort(
+          (left, right) =>
+            (left.frameMotion?.phases.entry.startFrame ?? 0) -
+            (right.frameMotion?.phases.entry.startFrame ?? 0),
+        );
+        if (matchingPrograms.length === 0) {
+          throw new Error(
+            `Compiled frame motion must govern every placed token; ${tokenId} is missing in ${segment.segmentId}.`,
+          );
+        }
+        const hasOverlappingPrograms = matchingPrograms.some(
+          (program, programIndex) =>
+            programIndex > 0 &&
+            (program.frameMotion?.phases.entry.startFrame ?? 0) <
+              (matchingPrograms[programIndex - 1]?.frameMotion?.phases.exit
+                .endFrame ?? 0),
+        );
+        if (hasOverlappingPrograms) {
+          throw new Error(
+            `Compiled frame motion must govern each placed token exactly once at a time; intervals overlap for ${tokenId} in ${segment.segmentId}.`,
+          );
+        }
+      }
+    }
     const profile = textPlacementPlan.compatibilityProfiles.find(
       (candidate) => candidate.profileId === segment.compatibility.profileId,
     );

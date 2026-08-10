@@ -22,6 +22,7 @@ import {
   maulTypographyMotionPlanV1PayloadSchema,
   maulUnifiedShortRenderManifestSchema,
   maulVisualPlanPayloadSchema,
+  type MaulRenderLayerPolicy,
   type MaulArtifactRecord,
   type MaulChunkTypographyBinding,
   type MaulPlanningBundlePayload,
@@ -34,6 +35,7 @@ import {
   type MaulShortsTextChunkPlanV2Core,
   type MaulTextChunkPlanPayload,
   type MaulTextAnimationPlanPayload,
+  type MaulTextAnimationProgram,
   type MaulTextAnimationTreatment,
   type MaulTextPlacementPlanCore,
   type MaulTextPlacementPlanPayload,
@@ -57,6 +59,10 @@ import {
 } from "./shorts-text-placement.js";
 import {assertTypographyProfileManifestLineage} from "./typography-profile-manifest-contract.js";
 import {buildMaulVisualTrack} from "./visual-track.js";
+import {
+  compileMaulWordMotion,
+  getMaulMotionCapability,
+} from "./frame-motion-compiler.js";
 
 export {hashMaulPlanPayload} from "./text-chunk-plan.js";
 
@@ -210,7 +216,8 @@ const identityTransform = {
 const MAUL_POSITION_LOCKED_SOURCE_TREATMENTS = MAUL_TEXT_ANIMATION_TREATMENTS.filter(
   (treatment) =>
     treatment !== "position_locked_word_reveal" &&
-    treatment !== "position_locked_letter_reveal",
+    treatment !== "position_locked_letter_reveal" &&
+    getMaulMotionCapability(treatment) !== null,
 );
 const selectEditorialTreatment = ({candidates, seed}: {candidates: readonly MaulTextAnimationTreatment[]; seed: string}): MaulTextAnimationTreatment => {
   if (candidates.length === 0) {
@@ -339,6 +346,7 @@ export const buildMaulTextAnimationPlanPayload = ({
   referenceEditorialRhythm,
   selectionSeed,
   outputDurationMs,
+  fps = 30,
 }: {
   inputs: MaulPlanningInputs;
   textChunkPlan: TextChunkPlanArtifact;
@@ -347,6 +355,7 @@ export const buildMaulTextAnimationPlanPayload = ({
   referenceEditorialRhythm?: ReferenceEditorialRhythm;
   selectionSeed?: string;
   outputDurationMs: number;
+  fps?: number;
 }): MaulTextAnimationPlanPayload => {
   if (textPlacementPlan.payload.status === "blocked") {
     throw new Error(
@@ -358,6 +367,9 @@ export const buildMaulTextAnimationPlanPayload = ({
   const chunkById = new Map(
     textChunkPlan.payload.chunks.map((chunk) => [chunk.chunkId, chunk]),
   );
+  const tokenById = new Map(
+    textChunkPlan.payload.tokens.map((token) => [token.tokenId, token]),
+  );
   const rhythmBySegmentId = new Map(
     referenceEditorialRhythm?.segments.map((segment) => [
       segment.segmentId,
@@ -365,7 +377,7 @@ export const buildMaulTextAnimationPlanPayload = ({
     ]) ?? [],
   );
   let previousSupportingTreatment: MaulTextAnimationTreatment | null = null;
-  const programs = textPlacementPlan.payload.segments.map((segment) => {
+  const programs = textPlacementPlan.payload.segments.flatMap<MaulTextAnimationProgram>((segment) => {
     const durationMs = segment.outputEndMs - segment.outputStartMs;
     const chunk = chunkById.get(segment.chunkId);
     if (!chunk) {
@@ -387,7 +399,7 @@ export const buildMaulTextAnimationPlanPayload = ({
       ),
       wordCount: segment.tokenIds.length,
     });
-    const selectedTreatment = rhythmSegment?.treatment ?? treatment ??
+    const preferredTreatment = rhythmSegment?.treatment ?? treatment ??
       preferredReferenceTreatment({
         inputs,
         wordCount: segment.tokenIds.length,
@@ -397,7 +409,94 @@ export const buildMaulTextAnimationPlanPayload = ({
         candidates: supportingCandidates,
         seed: `${selectionSeed ?? inputs.project.id}:${segment.segmentId}:supporting`,
       });
+    const timedTokens = segment.tokenIds.map((tokenId) => tokenById.get(tokenId));
+    const hasAuthoritativeTokenTiming = timedTokens.every((token) =>
+      token !== undefined &&
+      typeof token.text === "string" &&
+      typeof token.sourceStartMs === "number" &&
+      typeof token.sourceEndMs === "number" &&
+      Array.isArray(token.outputSpans) &&
+      token.outputSpans.length > 0
+    );
+    const selectedTreatment = hasAuthoritativeTokenTiming &&
+      getMaulMotionCapability(preferredTreatment) === null
+      ? selectEditorialTreatment({
+          candidates: supportingCandidates,
+          seed: `${selectionSeed ?? inputs.project.id}:${segment.segmentId}:executable-motion`,
+        })
+      : preferredTreatment;
+    const treatmentSelectionNote = selectedTreatment !== preferredTreatment
+      ? ` Requested treatment ${preferredTreatment} is not an executable frame source; selected ${selectedTreatment} from the governed capability registry.`
+      : "";
     previousSupportingTreatment = selectedTreatment;
+    if (hasAuthoritativeTokenTiming) {
+      return timedTokens.flatMap((token) => {
+        if (!token) return [];
+        const relevantSpans = token.outputSpans.flatMap((span, spanIndex) => {
+          const outputStartMs = Math.max(segment.outputStartMs, span.outputStartMs);
+          const outputEndMs = Math.min(segment.outputEndMs, span.outputEndMs);
+          return outputEndMs > outputStartMs
+            ? [{outputStartMs, outputEndMs, spanIndex}]
+            : [];
+        });
+        if (relevantSpans.length === 0) {
+          throw new Error(
+            `Animation ${segment.segmentId} has no output span for stable token ${token.tokenId}.`,
+          );
+        }
+        return relevantSpans.map(({outputStartMs, outputEndMs, spanIndex}) => {
+          const frameMotion = compileMaulWordMotion({
+            treatmentId: selectedTreatment,
+            token: {
+              tokenId: token.tokenId,
+              text: token.text,
+              sourceStartMs: token.sourceStartMs,
+              sourceEndMs: token.sourceEndMs,
+            },
+            outputStartMs,
+            outputEndMs,
+            fps,
+            placementSegmentId: segment.segmentId,
+          });
+          const toOutputMs = (frame: number) => Math.round((frame / fps) * 1000);
+          return {
+            animationId: `maul_text_animation_${segment.segmentId}_${token.tokenId}_${spanIndex}`,
+            treatment: selectedTreatment,
+            executorId: frameMotion.executorId,
+            frameMotion,
+            target: {
+              scope: "tokens" as const,
+              placementSegmentId: segment.segmentId,
+              tokenIds: [token.tokenId],
+            },
+            phases: {
+              entry: {
+                outputStartMs: toOutputMs(frameMotion.phases.entry.startFrame),
+                outputEndMs: toOutputMs(frameMotion.phases.entry.endFrame),
+                easing: frameMotion.phases.entry.easing,
+                from: identityTransform,
+                to: identityTransform,
+              },
+              hold: {
+                outputStartMs: toOutputMs(frameMotion.phases.hold.startFrame),
+                outputEndMs: toOutputMs(frameMotion.phases.hold.endFrame),
+                easing: frameMotion.phases.hold.easing,
+                from: identityTransform,
+                to: identityTransform,
+              },
+              exit: {
+                outputStartMs: toOutputMs(frameMotion.phases.exit.startFrame),
+                outputEndMs: toOutputMs(frameMotion.phases.exit.endFrame),
+                easing: frameMotion.phases.exit.easing,
+                from: identityTransform,
+                to: identityTransform,
+              },
+            },
+            rationale: `Execute ${selectedTreatment} for stable token ${token.tokenId} from its authoritative transcript interval.${treatmentSelectionNote}`,
+          };
+        });
+      });
+    }
     if (durationMs < 3) {
       throw new Error(
         `Placement ${segment.segmentId} is too short for explicit entry, hold, and exit intervals.`,
@@ -443,7 +542,7 @@ export const buildMaulTextAnimationPlanPayload = ({
       x2: 1,
       y2: 1,
     };
-    return {
+    return [{
       animationId: `maul_text_animation_${segment.segmentId}`,
       treatment: lockedTreatment,
       target: {
@@ -472,10 +571,10 @@ export const buildMaulTextAnimationPlanPayload = ({
           ...transforms.exit,
         },
       },
-      rationale: rhythmSegment
+      rationale: `${rhythmSegment
         ? `Resolve the reference-derived ${selectedTreatment} rhythm inside fixed ${localReveal.unit} boxes.`
-        : `Resolve the governed ${selectedTreatment} treatment inside fixed ${localReveal.unit} boxes.`,
-    };
+        : `Resolve the governed ${selectedTreatment} treatment inside fixed ${localReveal.unit} boxes.`}${treatmentSelectionNote}`,
+    }];
   });
   const editorialPrograms = programs;
   const references = {
@@ -2135,6 +2234,17 @@ export const compileMaulUnifiedShortRenderManifest = ({
     },
     timeline: inputs.timeline.payload,
     treatment: inputs.treatment.payload,
+    layerPolicy: (request as { layerPolicy?: MaulRenderLayerPolicy }).layerPolicy ?? {
+      baseVideo: "required",
+      typography: "required",
+      sourceTreatment: "enabled",
+      sourceLegibilityOverlay: "enabled",
+      editorialCuts: "disabled",
+      transitions: "disabled",
+      backgroundAnimation: "disabled",
+      motionGraphics: "enabled",
+      audioTreatment: "enabled",
+    },
     captions,
     audio: {
       planId: audioPlan.id,

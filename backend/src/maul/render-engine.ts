@@ -186,13 +186,14 @@ export const renderMaulShortLocally: MaulShortRenderEngine = async (input) => {
   const stageName = path.basename(publicStageDir);
   const sourceExtension = path.extname(input.manifest.source.storagePath) || ".mp4";
   const stagedSource = path.join(publicStageDir, `source${sourceExtension}`);
-  const stagedMusic = path.join(publicStageDir, `music${path.extname(input.manifest.audio.musicTrack.storagePath) || ".wav"}`);
+  const musicTrack = input.manifest.audio.musicTrack;
+  const stagedMusic = musicTrack ? path.join(publicStageDir, `music${path.extname(musicTrack.storagePath) || ".wav"}`) : null;
   const outputPath = path.join(workDir, "maul-short.mp4");
   const propsPath = path.join(workDir, "props.json");
 
   try {
     await copyFile(input.manifest.source.storagePath, stagedSource);
-    await copyFile(input.manifest.audio.musicTrack.storagePath, stagedMusic);
+    if (musicTrack && stagedMusic) { await copyFile(musicTrack.storagePath, stagedMusic); }
     const visualTrack = input.manifest.plans.visual.visualTrack;
     const stagedVisualAssets = visualTrack
       ? await Promise.all(visualTrack.assets.map(async (asset, index) => {
@@ -227,7 +228,7 @@ export const renderMaulShortLocally: MaulShortRenderEngine = async (input) => {
         ...input.manifest.audio,
         musicTrack: {
           ...input.manifest.audio.musicTrack,
-          storagePath: `.maul-renders/${stageName}/${path.basename(stagedMusic)}`
+          storagePath: stagedMusic ? `.maul-renders/${stageName}/${path.basename(stagedMusic)}` : ""
         },
         sfxAssets: stagedSfx
       },

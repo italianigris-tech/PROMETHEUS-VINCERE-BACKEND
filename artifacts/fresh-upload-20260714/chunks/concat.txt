@@ -1,7 +1,0 @@
-file 'C:/Users/HomePC/Downloads/HELP, VIDEO MATTING/artifacts/fresh-upload-20260714/chunks/benchmark-angle-0-89.mp4'
-file 'C:/Users/HomePC/Downloads/HELP, VIDEO MATTING/artifacts/fresh-upload-20260714/chunks/benchmark-angle-90-179.mp4'
-file 'C:/Users/HomePC/Downloads/HELP, VIDEO MATTING/artifacts/fresh-upload-20260714/chunks/benchmark-angle-180-269.mp4'
-file 'C:/Users/HomePC/Downloads/HELP, VIDEO MATTING/artifacts/fresh-upload-20260714/chunks/benchmark-angle-270-359.mp4'
-file 'C:/Users/HomePC/Downloads/HELP, VIDEO MATTING/artifacts/fresh-upload-20260714/chunks/benchmark-angle-360-449.mp4'
-file 'C:/Users/HomePC/Downloads/HELP, VIDEO MATTING/artifacts/fresh-upload-20260714/chunks/benchmark-angle-450-539.mp4'
-file 'C:/Users/HomePC/Downloads/HELP, VIDEO MATTING/artifacts/fresh-upload-20260714/chunks/benchmark-angle-540-569.mp4'

@@ -325,6 +325,73 @@ const baseTransform = {
   scale: 1,
 } as const;
 
+const frameMotionMovingTransform = {
+  opacity: 0.05,
+  translateXPx: 48,
+  translateYPx: 16,
+  scale: 0.92,
+  rotationDeg: -4,
+  blurPx: 12,
+  clipProgress: 0.2,
+  trackingEm: 0.08,
+} as const;
+
+const frameMotionSettledTransform = {
+  opacity: 1,
+  translateXPx: 0,
+  translateYPx: 0,
+  scale: 1,
+  rotationDeg: 0,
+  blurPx: 0,
+  clipProgress: 1,
+  trackingEm: 0,
+} as const;
+
+const frameAnimationProgram = ({
+  tokenId = "token_make",
+  startFrame = 0,
+  endFrame = 9,
+  sourceStartMs = 0,
+  sourceEndMs = 300,
+}: {
+  tokenId?: string;
+  startFrame?: number;
+  endFrame?: number;
+  sourceStartMs?: number;
+  sourceEndMs?: number;
+} = {}) => ({
+  animationId: `animation_${tokenId}`,
+  treatment: "generic_single_word",
+  executorId: "gsap:generic_single_word",
+  target: {
+    scope: "tokens",
+    placementSegmentId: "placement_a",
+    tokenIds: [tokenId],
+  },
+  phases: {
+    entry: {outputStartMs: Math.round(startFrame / 30 * 1000), outputEndMs: Math.round((startFrame + 3) / 30 * 1000), easing: {type: "linear"}, from: baseTransform, to: baseTransform},
+    hold: {outputStartMs: Math.round((startFrame + 3) / 30 * 1000), outputEndMs: Math.round((endFrame - 3) / 30 * 1000), easing: {type: "linear"}, from: baseTransform, to: baseTransform},
+    exit: {outputStartMs: Math.round((endFrame - 3) / 30 * 1000), outputEndMs: Math.round(endFrame / 30 * 1000), easing: {type: "linear"}, from: baseTransform, to: baseTransform},
+  },
+  frameMotion: {
+    schemaVersion: "maul-frame-motion/v1",
+    executorId: "gsap:generic_single_word",
+    sourceTreatment: "generic_single_word",
+    unit: "word",
+    tokenId,
+    placementSegmentId: "placement_a",
+    fps: 30,
+    sourceIntervalMs: {startMs: sourceStartMs, endMs: sourceEndMs},
+    phases: {
+      entry: {startFrame, endFrame: startFrame + 3, easing: {type: "linear"}, from: frameMotionMovingTransform, to: frameMotionSettledTransform},
+      hold: {startFrame: startFrame + 3, endFrame: endFrame - 3, easing: {type: "linear"}, from: frameMotionSettledTransform, to: frameMotionSettledTransform},
+      exit: {startFrame: endFrame - 3, endFrame, easing: {type: "linear"}, from: frameMotionSettledTransform, to: frameMotionMovingTransform},
+    },
+    envelope: {maxTranslateXPx: 48, maxTranslateYPx: 16, maxScale: 1, maxBlurPx: 12},
+  },
+  rationale: "Renderer frame-motion contract fixture.",
+}) as const;
+
 const animationProgram = (
   treatment: "fade_rise" | "keyword_pop" | "continuous_push",
 ) => ({
@@ -613,6 +680,90 @@ describe("MAUL planned text renderer contract", () => {
     expect(record.lines[0]?.text).toBe("MAKE");
     expect(record.profileTransform).toEqual(placement.segments[0].profileTransform);
     expect(record.editorialLockup).toBeUndefined();
+  });
+
+  it("executes frame motion per word without replacing profile typography", () => {
+    const record = buildRecords()[0]!;
+    const selectedAsset = chunkTypographyBinding().layers[0].selectedAsset;
+
+    record.editorialLockup = undefined;
+    record.profileRealization = {
+      adaptation: "uniform_fit_9_16",
+      horizontalAlignment: "left",
+      maxWidthPercent: 85,
+      intrinsicSizePx: {width: 600, height: 180},
+      layers: [{
+        layerName: "primary",
+        tokenIds: ["token_make", "token_it"],
+        text: "MAKE it",
+        selectedAsset,
+        fontSizePx: 92,
+        measuredWidthPx: 480,
+        measuredHeightPx: 98,
+        lineHeight: 1,
+        letterSpacingEm: 0.01,
+        casing: "normal",
+        color: "#F4E9D7",
+        marginTopPx: 0,
+        shadow: {xOffset: 0, yOffset: 2, blurRadius: 4, color: "#000000"},
+        measurementId: "profile_measurement_make_it",
+      }],
+    } as never;
+    record.profileTransform = {
+      uniformScale: 1.2,
+      intrinsicWidthPx: 600,
+      intrinsicHeightPx: 180,
+      finalWidthPx: 720,
+      finalHeightPx: 216,
+    };
+    record.animationPrograms = [frameAnimationProgram() as never];
+
+    const markup = renderToStaticMarkup(
+      <MaulPlannedTextCard
+        record={record}
+        absoluteTimeMs={0}
+        outputFrame={0}
+        fps={30}
+        textColor="#ffffff"
+        accentColor="#00e5ff"
+      />,
+    );
+
+    expect(markup).toContain('data-maul-profile-typography="true"');
+    expect(markup).toContain('data-maul-frame-motion-executor="gsap:generic_single_word"');
+    expect(markup).toContain('data-maul-frame-motion-token="token_make"');
+    expect(markup).toContain("color:#F4E9D7");
+    expect(markup).toContain("font-size:92px");
+    expect(markup).toContain("opacity:0.05");
+    expect(markup).toContain("filter:blur(12px)");
+    expect(markup).toContain("clip-path:inset(0 80% 0 0)");
+    expect(markup).toContain("letter-spacing:0.09em");
+  });
+
+  it("executes compiled frame motion in the standard word renderer", () => {
+    const record = buildRecords()[0]!;
+    record.editorialLockup = undefined;
+    record.animationPrograms = [frameAnimationProgram() as never];
+
+    const markup = renderToStaticMarkup(
+      <MaulPlannedTextCard
+        record={record}
+        absoluteTimeMs={0}
+        outputFrame={0}
+        fps={30}
+        textColor="#F4E9D7"
+        accentColor="#00e5ff"
+      />,
+    );
+
+    expect(markup).toContain('data-maul-frame-motion-executor="gsap:generic_single_word"');
+    expect(markup).toContain('data-maul-frame-motion-token="token_make"');
+    expect(markup).toContain("opacity:0.05");
+    expect(markup).toContain("filter:blur(12px)");
+    expect(markup).toContain("clip-path:inset(0 80% 0 0)");
+    expect(markup).toContain("letter-spacing:0.08em");
+    expect(markup).toContain("color:#F4E9D7");
+    expect(markup).not.toContain("color:#00e5ff");
   });
 
   it("rejects duplicate, missing, and placement-mismatched chunk bindings", () => {
@@ -1342,6 +1493,53 @@ describe("MAUL planned text renderer contract", () => {
     expect(markup).toContain('data-text-animation-treatment="fade_rise"');
     expect(markup).toContain("opacity:0");
     expect(markup).toContain("translate3d(0px, 28px, 0)");
+  });
+
+  it("preserves exactly one compiled frame program for every placed token", () => {
+    const programs = [
+      frameAnimationProgram(),
+      frameAnimationProgram({
+        tokenId: "token_it",
+        startFrame: 9,
+        endFrame: 24,
+        sourceStartMs: 300,
+        sourceEndMs: 800,
+      }),
+    ];
+    const record = buildMaulPlannedTextRecords({
+      textChunkPlan: textChunkPlan as never,
+      textPlacementPlan: textPlacementPlan as never,
+      typographyMotion: typographyMotion as never,
+      textAnimationPlan: {programs} as never,
+      output: {width: 1080, height: 1920},
+    })[0]!;
+
+    expect(record.animationPrograms).toEqual(programs);
+    expect(record.animationPrograms?.map((program) => ({
+      executorId: program.executorId,
+      tokenId: program.frameMotion?.tokenId,
+      phases: program.frameMotion?.phases,
+    }))).toEqual(programs.map((program) => ({
+      executorId: program.executorId,
+      tokenId: program.frameMotion.tokenId,
+      phases: program.frameMotion.phases,
+    })));
+
+    expect(() => buildMaulPlannedTextRecords({
+      textChunkPlan: textChunkPlan as never,
+      textPlacementPlan: textPlacementPlan as never,
+      typographyMotion: typographyMotion as never,
+      textAnimationPlan: {programs: [programs[0]]} as never,
+      output: {width: 1080, height: 1920},
+    })).toThrow(/frame motion.*every.*token|every.*token.*frame motion/i);
+
+    expect(() => buildMaulPlannedTextRecords({
+      textChunkPlan: textChunkPlan as never,
+      textPlacementPlan: textPlacementPlan as never,
+      typographyMotion: typographyMotion as never,
+      textAnimationPlan: {programs: [programs[0], programs[0], programs[1]]} as never,
+      output: {width: 1080, height: 1920},
+    })).toThrow(/frame motion.*exactly once|exactly once.*frame motion/i);
   });
 
   it("rejects malformed V3 instead of adapting it as V2 or legacy", () => {

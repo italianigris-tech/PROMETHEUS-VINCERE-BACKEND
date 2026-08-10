@@ -5,6 +5,10 @@ import {staticFile} from "remotion";
 
 import type {MaulPlannedTextRecord} from "./maul-short-manifest-adapter";
 import {resolveMaulFontAssetUrl} from "./maul-font-asset-resolver";
+import {
+  maulFrameMotionStyle,
+  resolveMaulFrameMotionForToken,
+} from "./maul-frame-motion-renderer";
 
 const loadedProfileFontKeys = new Set<string>();
 
@@ -35,10 +39,44 @@ const animationStyle = (
     }
   : {};
 
+type ProfileTextPiece =
+  | {kind: "literal"; text: string}
+  | {kind: "token"; tokenId: string; text: string};
+
+const profileTextPieces = ({
+  text,
+  tokenIds,
+  tokenTextById,
+}: {
+  text: string;
+  tokenIds: readonly string[];
+  tokenTextById: ReadonlyMap<string, string>;
+}): ProfileTextPiece[] | null => {
+  const pieces: ProfileTextPiece[] = [];
+  let cursor = 0;
+  const normalizedText = text.toLocaleLowerCase();
+  for (const tokenId of tokenIds) {
+    const tokenText = tokenTextById.get(tokenId);
+    if (!tokenText) return null;
+    const index = normalizedText.indexOf(tokenText.toLocaleLowerCase(), cursor);
+    if (index < cursor) return null;
+    if (index > cursor) pieces.push({kind: "literal", text: text.slice(cursor, index)});
+    pieces.push({
+      kind: "token",
+      tokenId,
+      text: text.slice(index, index + tokenText.length),
+    });
+    cursor = index + tokenText.length;
+  }
+  if (cursor < text.length) pieces.push({kind: "literal", text: text.slice(cursor)});
+  return pieces;
+};
+
 export const MaulProfileTypographyGroup: React.FC<{
   record: MaulPlannedTextRecord;
   segmentAnimation?: MaulTextAnimationTransform | null;
-}> = ({record, segmentAnimation}) => {
+  outputFrame?: number;
+}> = ({record, segmentAnimation, outputFrame}) => {
   const realization = record.profileRealization;
   const profileTransform = record.profileTransform;
   if (!realization || !profileTransform) {
@@ -55,6 +93,12 @@ export const MaulProfileTypographyGroup: React.FC<{
   for (const layer of realization.layers) {
     ensureProfileFontLoaded(layer.selectedAsset);
   }
+  const tokenTextById = new Map(
+    record.lines.flatMap((line) => line.tokens).map((token) => [token.tokenId, token.text]),
+  );
+  const animationPrograms = record.animationPrograms?.length
+    ? record.animationPrograms
+    : record.animationProgram ? [record.animationProgram] : [];
 
   return (
     <div
@@ -84,31 +128,67 @@ export const MaulProfileTypographyGroup: React.FC<{
         transformOrigin: "left top",
         textAlign: realization.horizontalAlignment,
       }}>
-        {realization.layers.map((layer) => (
-          <div
-            key={layer.layerName}
-            data-maul-profile-layer={layer.layerName}
-            data-maul-profile-layer-token-ids={layer.tokenIds.join(",")}
-            data-font-asset-id={layer.selectedAsset.assetId}
-            data-font-url={layer.selectedAsset.browserUrl}
-            data-profile-measurement-id={layer.measurementId}
-            style={{
-              width: "100%",
-              marginTop: layer.marginTopPx,
-              color: resolvedColorsByLayerName.get(layer.layerName) ?? layer.color,
-              fontFamily: layer.selectedAsset.cssFamily,
-              fontSize: layer.fontSizePx,
-              fontWeight: layer.selectedAsset.weight,
-              fontStyle: layer.selectedAsset.style,
-              lineHeight: layer.lineHeight,
-              letterSpacing: `${layer.letterSpacingEm}em`,
-              textShadow: `${layer.shadow.xOffset}px ${layer.shadow.yOffset}px ${layer.shadow.blurRadius}px ${layer.shadow.color}`,
-              whiteSpace: "nowrap",
-            }}
-          >
-            {layer.text}
-          </div>
-        ))}
+        {realization.layers.map((layer) => {
+          const pieces = profileTextPieces({
+            text: layer.text,
+            tokenIds: layer.tokenIds,
+            tokenTextById,
+          });
+          const renderToken = (piece: Extract<ProfileTextPiece, {kind: "token"}>) => {
+            const resolvedMotion = resolveMaulFrameMotionForToken({
+              programs: animationPrograms,
+              tokenId: piece.tokenId,
+              outputFrame,
+            });
+            return (
+              <React.Fragment key={`${layer.layerName}:${piece.tokenId}`}>
+                {resolvedMotion ? (
+                  <span
+                    data-maul-frame-motion-executor={resolvedMotion.frameMotion.executorId}
+                    data-maul-frame-motion-treatment={resolvedMotion.frameMotion.sourceTreatment}
+                    data-maul-frame-motion-token={resolvedMotion.frameMotion.tokenId}
+                    data-maul-frame-motion-unit={resolvedMotion.frameMotion.unit}
+                    style={maulFrameMotionStyle(
+                      resolvedMotion.transform,
+                      layer.letterSpacingEm,
+                    )}
+                  >
+                    {piece.text}
+                  </span>
+                ) : piece.text}
+              </React.Fragment>
+            );
+          };
+          return (
+            <div
+              key={layer.layerName}
+              data-maul-profile-layer={layer.layerName}
+              data-maul-profile-layer-token-ids={layer.tokenIds.join(",")}
+              data-font-asset-id={layer.selectedAsset.assetId}
+              data-font-url={layer.selectedAsset.browserUrl}
+              data-profile-measurement-id={layer.measurementId}
+              style={{
+                width: "100%",
+                marginTop: layer.marginTopPx,
+                color: (() => { const res = resolvedColorsByLayerName.get(layer.layerName) || layer.color; return /^#?(111111|333333|000000|1a1a1a|222222|0f0f0f|2b2b2b)$/i.test(res.trim()) ? "#FFFFFF" : res; })(),
+                fontFamily: layer.selectedAsset.cssFamily,
+                fontSize: layer.fontSizePx,
+                fontWeight: layer.selectedAsset.weight,
+                fontStyle: layer.selectedAsset.style,
+                lineHeight: layer.lineHeight,
+                letterSpacing: `${layer.letterSpacingEm}em`,
+                textShadow: `${layer.shadow.xOffset}px ${layer.shadow.yOffset}px ${layer.shadow.blurRadius}px ${layer.shadow.color}`,
+                whiteSpace: "nowrap",
+              }}
+            >
+              {pieces
+                ? pieces.map((piece, index) => piece.kind === "literal"
+                  ? <React.Fragment key={`${layer.layerName}:literal:${index}`}>{piece.text}</React.Fragment>
+                  : renderToken(piece))
+                : layer.text}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

@@ -93,3 +93,4 @@ CONSOLIDATED.env
 
 .vite/
 .codex-temp/
+artifacts/

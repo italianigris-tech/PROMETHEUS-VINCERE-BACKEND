@@ -33,6 +33,10 @@ import {
   type MaulPlannedTextToken,
 } from "./maul-short-manifest-adapter";
 import {resolveMaulFontAssetUrl} from "./maul-font-asset-resolver";
+import {
+  maulFrameMotionStyle,
+  resolveMaulFrameMotionForToken,
+} from "./maul-frame-motion-renderer";
 import {MaulProfileTypographyGroup} from "./MaulProfileTypographyGroup";
 
 const dmSansFamily = "DM Sans";
@@ -639,10 +643,12 @@ export const MaulPlannedTextCard: React.FC<{
       <MaulProfileTypographyGroup
         record={record}
         segmentAnimation={segmentAnimation}
+        outputFrame={creativeTreatment?.motionMode === "static_editorial_hold" ? undefined : outputFrame}
       />
     );
   }
   const requestedCinematicTreatment = animationPrograms.find((program) =>
+    program.frameMotion === undefined &&
     MAUL_CINEMATIC_TREATMENT_IDS.has(
       program.treatment as (typeof MAUL_CINEMATIC_TREATMENT_IDS extends Set<infer T>
         ? T
@@ -761,7 +767,19 @@ export const MaulPlannedTextCard: React.FC<{
             const resolvedTokenAnimation = resolvedAnimations.find(({program}) =>
               program.target.scope === "tokens" && program.target.tokenIds.includes(token.tokenId),
             );
-            const tokenAnimation = resolvedTokenAnimation?.transform ?? null;
+            const resolvedFrameMotion = resolveMaulFrameMotionForToken({
+              programs: animationPrograms,
+              tokenId: token.tokenId,
+              outputFrame,
+            });
+            const tokenAnimation = resolvedFrameMotion
+              ? {
+                  opacity: resolvedFrameMotion.transform.opacity,
+                  translateXPx: resolvedFrameMotion.transform.translateXPx,
+                  translateYPx: resolvedFrameMotion.transform.translateYPx,
+                  scale: resolvedFrameMotion.transform.scale,
+                }
+              : resolvedTokenAnimation?.transform ?? null;
             const localRevealProgram = resolvedTokenAnimation?.program.localReveal
               ? resolvedTokenAnimation.program
               : null;
@@ -795,13 +813,19 @@ export const MaulPlannedTextCard: React.FC<{
                   data-maul-token-id={token.tokenId}
                   data-active={active}
                   data-maul-reveal-unit={localRevealProgram?.localReveal?.unit}
+                  data-maul-frame-motion-executor={resolvedFrameMotion?.frameMotion.executorId}
+                  data-maul-frame-motion-treatment={resolvedFrameMotion?.frameMotion.sourceTreatment}
+                  data-maul-frame-motion-token={resolvedFrameMotion?.frameMotion.tokenId}
+                  data-maul-frame-motion-unit={resolvedFrameMotion?.frameMotion.unit}
                   data-editorial-token-role={editorialStyle?.role}
                   data-editorial-font-asset-id={editorialStyle?.fontAssetId}
                   style={{
-                    color: editorialStyle?.role === "accent" || active
+                    color: editorialStyle?.role === "accent" || (
+                      !resolvedFrameMotion && active
+                    )
                       ? accentColor
                       : textColor,
-                    ...(editorialStyle?.role === "accent" || (active &&
+                    ...(editorialStyle?.role === "accent" || (!resolvedFrameMotion && active &&
                     creativeTreatment?.accentTypeRole === 'editorial_italic')
                       ? {
                           fontFamily: tokenFont.family,
@@ -820,6 +844,17 @@ export const MaulPlannedTextCard: React.FC<{
                         }
                       : annotations.length > 0
                         ? {position: "relative", display: "inline-block"}
+                      : {}),
+                    ...(resolvedFrameMotion
+                      ? {
+                          ...maulFrameMotionStyle(resolvedFrameMotion.transform),
+                          ...(composedTokenTransform
+                            ? {
+                                opacity: composedTokenTransform.opacity,
+                                transform: `translate3d(${composedTokenTransform.translateXPx}px, ${composedTokenTransform.translateYPx}px, 0) scale(${composedTokenTransform.scale}) rotate(${composedTokenTransform.rotationDeg + resolvedFrameMotion.transform.rotationDeg}deg)`,
+                              }
+                            : {}),
+                        }
                       : {}),
                   }}
                 >

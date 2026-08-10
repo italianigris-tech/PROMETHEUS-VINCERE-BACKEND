@@ -17,6 +17,7 @@
     "music:catalog:normalize": "tsx src/music/scripts/normalize-r2-music-catalog.ts",
     "music:catalog:smoke": "tsx src/music/scripts/smoke-music-catalog-api.ts",
     "maul:work-once": "tsx src/maul/run-worker.ts",
+    "maul:animation-proof": "tsx src/maul/scripts/run-frame-animation-proof.ts",
     "audio:sfx:catalog": "tsx src/audio/catalog/scan-sfx-catalog.ts",
     "music:upload:r2": "tsx src/music/scripts/upload-music-library-to-r2.ts",
     "test": "vitest run --pool threads",

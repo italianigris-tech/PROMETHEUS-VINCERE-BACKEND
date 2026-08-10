@@ -451,6 +451,51 @@ describe("MAUL V3 text animation planning", () => {
     )).toBe(true);
   });
 
+  it("emits one authoritative frame program per timed transcript word", () => {
+    const timedTextChunkPlan = structuredClone(textChunkPlan) as any;
+    timedTextChunkPlan.tokens = [
+      {
+        tokenId: "token_a",
+        transcriptWordIndex: 0,
+        text: "Most",
+        sourceStartMs: 0,
+        sourceEndMs: 450,
+        outputSpans: [{outputStartMs: 100, outputEndMs: 550}],
+        outputStartMs: 100,
+        outputEndMs: 550,
+      },
+      {
+        tokenId: "token_b",
+        transcriptWordIndex: 1,
+        text: "caption",
+        sourceStartMs: 450,
+        sourceEndMs: 1_000,
+        outputSpans: [{outputStartMs: 550, outputEndMs: 1_100}],
+        outputStartMs: 550,
+        outputEndMs: 1_100,
+      },
+    ];
+
+    const plan = buildMaulTextAnimationPlanPayload({
+      inputs,
+      textChunkPlan: {artifactId: "artifact_timed_chunks", payload: timedTextChunkPlan} as any,
+      textPlacementPlan: textPlacementArtifact,
+      treatment: "generic_single_word",
+      outputDurationMs: 1_200,
+    });
+
+    expect(plan.programs).toHaveLength(2);
+    expect(plan.programs.map((program) => program.target.tokenIds)).toEqual([
+      ["token_a"],
+      ["token_b"],
+    ]);
+    expect(plan.programs.every((program) => program.executorId && program.frameMotion)).toBe(true);
+    expect(plan.programs.map((program) => program.frameMotion?.sourceIntervalMs)).toEqual([
+      {startMs: 0, endMs: 450},
+      {startMs: 450, endMs: 1_000},
+    ]);
+  });
+
   it("adapts scale and travel references into bounded local primitives", () => {
     const keyword = buildMaulTextAnimationPlanPayload({
       inputs,

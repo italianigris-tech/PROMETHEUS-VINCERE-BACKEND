@@ -12,8 +12,12 @@ import type {
   MaulTreatmentGenomePayload,
   MaulUnifiedShortRenderManifest,
   MaulUnifiedShortRenderManifestV1,
+  type MaulRenderLayerPolicy,
 } from "@prometheus/shared-types";
-import {joinShortsTextTokens} from "@prometheus/shared-types";
+import {
+  joinShortsTextTokens,
+  shouldRenderMaulLayer as sharedShouldRenderMaulLayer,
+} from "@prometheus/shared-types";
 import {
   AbsoluteFill,
   Easing,
@@ -80,6 +84,19 @@ export type MaulShortObservationMode =
   | "creative"
   | "typography_suppressed"
   | "source_treatment_suppressed";
+
+export const resolveMaulRenderLayerPolicy = (manifest: {
+  schemaVersion: string;
+  layerPolicy?: MaulRenderLayerPolicy;
+}): MaulRenderLayerPolicy | null =>
+  manifest.schemaVersion === "maul-unified-short-render-manifest/v3"
+    ? manifest.layerPolicy ?? null
+    : null;
+
+export const shouldRenderMaulLayer = (
+  policy: MaulRenderLayerPolicy,
+  layer: keyof MaulRenderLayerPolicy,
+): boolean => sharedShouldRenderMaulLayer(policy, layer);
 
 export type MaulSourceTreatmentProfileId = "subject_focus_grade_v1";
 
@@ -845,7 +862,7 @@ export const MaulShort: React.FC<MaulShortProps> = ({
   );
   const { timeline, treatment, captions } = manifest;
   const sourceAsset = manifest.source.storagePath;
-  const musicAsset = manifest.audio.musicTrack.storagePath;
+  const musicAsset = manifest.audio.musicTrack?.storagePath;
   const sfxAssets = manifest.audio.sfxAssets.map((asset) => ({
     id: asset.id,
     eventType: asset.eventType,
@@ -854,6 +871,13 @@ export const MaulShort: React.FC<MaulShortProps> = ({
   }));
   const audioPlanId = manifest.audio.planId;
   const renderRemotionAudio = shouldMaulRemotionRenderAudio(manifest);
+  const layerPolicy = resolveMaulRenderLayerPolicy(manifest);
+  const rendersLayer = (layer: keyof MaulRenderLayerPolicy): boolean =>
+    layerPolicy ? shouldRenderMaulLayer(layerPolicy, layer) : true;
+  const renderAudioTreatment = rendersLayer("audioTreatment");
+  const renderSourceTreatment = rendersLayer("sourceTreatment");
+  const renderSourceOverlay = rendersLayer("sourceLegibilityOverlay");
+  const renderBackgroundAnimation = rendersLayer("backgroundAnimation");
   const { fps } = useVideoConfig();
   const creativeTreatment = manifest.plans?.artDirection?.creativeTreatment;
   const visualStyle = applyMaulCreativeTreatment(
@@ -870,10 +894,18 @@ export const MaulShort: React.FC<MaulShortProps> = ({
     adaptedManifest.mode === "planned"
       ? buildMaulPlannedRenderModel(adaptedManifest.manifest)
       : null;
-  const visualTrack =
+  const declaredVisualTrack =
     adaptedManifest.mode === "planned"
       ? adaptedManifest.manifest.plans.visual.visualTrack
       : undefined;
+  const renderVisualTrack = Boolean(
+    declaredVisualTrack &&
+      rendersLayer("editorialCuts") &&
+      rendersLayer("transitions") &&
+      rendersLayer("backgroundAnimation") &&
+      rendersLayer("motionGraphics"),
+  );
+  const visualTrack = renderVisualTrack ? declaredVisualTrack : undefined;
   const textSuppressionRanges = buildMaulTextSuppressionRanges(visualTrack);
   const governedCameraEvents =
     adaptedManifest.mode === "planned" &&
@@ -911,8 +943,8 @@ export const MaulShort: React.FC<MaulShortProps> = ({
             trimAfter={segment.trimAfter}
             playbackRate={segment.playbackRate}
             cropCenterPercent={cropCenterPercent}
-            motionAmplitude={visualStyle.motionAmplitude}
-            sourceFilter={visualStyle.sourceFilter}
+            motionAmplitude={renderBackgroundAnimation ? visualStyle.motionAmplitude : 0}
+            sourceFilter={renderSourceTreatment ? visualStyle.sourceFilter : "none"}
             globalFrameOffset={segment.from}
             cameraEvents={undefined}
           />
@@ -946,10 +978,10 @@ export const MaulShort: React.FC<MaulShortProps> = ({
             playbackRate={segment.playbackRate}
             cropCenterPercent={segment.cropCenterXPercent}
             cropCenterYPercent={segment.cropCenterYPercent}
-            motionAmplitude={visualStyle.motionAmplitude}
-            sourceFilter={visualStyle.sourceFilter}
+            motionAmplitude={renderBackgroundAnimation ? visualStyle.motionAmplitude : 0}
+            sourceFilter={renderSourceTreatment ? visualStyle.sourceFilter : "none"}
             globalFrameOffset={segment.from}
-            cameraEvents={governedCameraEvents}
+            cameraEvents={renderBackgroundAnimation ? governedCameraEvents : undefined}
             compositionScale={segment.scale}
             sourceViewport={segment.sourceViewport}
             plannedCrop={segment.crop}
@@ -959,13 +991,17 @@ export const MaulShort: React.FC<MaulShortProps> = ({
           />
         </Sequence>
       ))}
-      <AbsoluteFill
-        style={{
-          background:
-            "linear-gradient(180deg, rgba(0,0,0,0.02) 45%, rgba(0,0,0,0.42) 100%)",
-        }}
-      />
-      {sourceTreatmentProfileId && shouldRenderMaulSourceTreatment(observationMode) ? (
+      {renderSourceOverlay ? (
+        <AbsoluteFill
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(0,0,0,0.02) 45%, rgba(0,0,0,0.42) 100%)",
+          }}
+        />
+      ) : null}
+      {sourceTreatmentProfileId &&
+      renderSourceTreatment &&
+      shouldRenderMaulSourceTreatment(observationMode) ? (
         <MaulSourceTreatment profileId={sourceTreatmentProfileId} />
       ) : null}
       {shouldRenderMaulTypography(observationMode)
@@ -991,10 +1027,13 @@ export const MaulShort: React.FC<MaulShortProps> = ({
               />
             )
         : null}
-      {renderRemotionAudio && manifest.audio.musicTrack.renderSafe && musicAsset ? (
+      {renderRemotionAudio &&
+      renderAudioTreatment &&
+      manifest.audio.musicTrack?.renderSafe &&
+      musicAsset ? (
         <Audio src={staticFile(musicAsset)} loop volume={musicVolume} />
       ) : null}
-      {renderRemotionAudio && sfxAssets.map((sfx) => (
+      {renderRemotionAudio && renderAudioTreatment && sfxAssets.map((sfx) => (
         <Sequence
           key={sfx.id}
           from={Math.round((sfx.outputMs / 1000) * fps)}

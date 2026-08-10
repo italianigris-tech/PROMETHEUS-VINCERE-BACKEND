@@ -40,6 +40,33 @@ describe("MAUL Remotion short composition", () => {
     expect(module.shouldMaulRemotionRenderAudio({schemaVersion: "maul-unified-short-render-manifest/v2"} as any)).toBe(true);
   });
 
+  it("makes the V3 proof policy authoritative over optional visual and audio layers", async () => {
+    const module = await import("../MaulShort").catch(() => null);
+    expect(module).not.toBeNull();
+    if (!module) return;
+
+    const policy = {
+      baseVideo: "required",
+      typography: "required",
+      sourceTreatment: "disabled",
+      sourceLegibilityOverlay: "disabled",
+      editorialCuts: "disabled",
+      transitions: "disabled",
+      backgroundAnimation: "disabled",
+      motionGraphics: "disabled",
+      audioTreatment: "disabled",
+    } as const;
+    expect(module.resolveMaulRenderLayerPolicy({
+      schemaVersion: "maul-unified-short-render-manifest/v3",
+      layerPolicy: policy,
+    } as any)).toEqual(policy);
+    expect(module.shouldRenderMaulLayer(policy, "typography")).toBe(true);
+    expect(module.shouldRenderMaulLayer(policy, "sourceLegibilityOverlay")).toBe(false);
+    expect(module.shouldRenderMaulLayer(policy, "backgroundAnimation")).toBe(false);
+    expect(module.shouldRenderMaulLayer(policy, "motionGraphics")).toBe(false);
+    expect(module.shouldRenderMaulLayer(policy, "audioTreatment")).toBe(false);
+  });
+
   it("suppresses only typography for canonical observation controls", async () => {
     const module = await import("../MaulShort").catch(() => null);
     expect(module).not.toBeNull();

@@ -157,6 +157,18 @@ export {
 } from "./maul-text-animation.js";
 
 export {
+  evaluateMaulFrameMotion,
+  maulFrameMotionEasingSchema,
+  maulFrameMotionPhaseSchema,
+  maulFrameMotionProgramSchema,
+  maulFrameMotionTransformSchema,
+  type MaulFrameMotionEasing,
+  type MaulFrameMotionPhase,
+  type MaulFrameMotionProgram,
+  type MaulFrameMotionTransform,
+} from "./maul-frame-motion.js";
+
+export {
   maulAudioCatalogReferenceSchema,
   maulAudioDuckingSchema,
   maulAudioMasteringSchema,
@@ -236,6 +248,8 @@ export {
   maulUnifiedShortRenderManifestV1Schema,
   maulUnifiedShortRenderManifestV2Schema,
   maulUnifiedShortRenderManifestV3Schema,
+  maulRenderLayerPolicySchema,
+  shouldRenderMaulLayer,
   maulQualityTruthFailureCodeSchema,
   maulQualityTruthProofSchema,
   maulQualityTruthProofV1Schema,
@@ -340,6 +354,7 @@ export {
   type MaulUnifiedShortRenderManifestV1,
   type MaulUnifiedShortRenderManifestV2,
   type MaulUnifiedShortRenderManifestV3,
+  type MaulRenderLayerPolicy,
   type MaulQualityTruthProof,
   type MaulQualityTruthProofV1,
   type MaulQualityTruthProofV2,

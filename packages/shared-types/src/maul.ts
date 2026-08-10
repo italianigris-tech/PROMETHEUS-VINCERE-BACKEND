@@ -1133,6 +1133,67 @@ const maulLicensedAudioAssetSchema = z.object({
   renderSafe: z.boolean(),
 });
 
+export const maulRenderLayerPolicySchema = z
+  .object({
+    baseVideo: z.literal("required"),
+    typography: z.literal("required"),
+    sourceTreatment: z.enum(["enabled", "disabled"]),
+    sourceLegibilityOverlay: z.enum(["enabled", "disabled"]),
+    editorialCuts: z.enum(["enabled", "disabled"]),
+    transitions: z.enum(["enabled", "disabled"]),
+    backgroundAnimation: z.enum(["enabled", "disabled"]),
+    motionGraphics: z.enum(["enabled", "disabled"]),
+    audioTreatment: z.enum(["enabled", "disabled"]),
+  })
+  .strict();
+
+export type MaulRenderLayerPolicy = z.infer<
+  typeof maulRenderLayerPolicySchema
+>;
+
+export const shouldRenderMaulLayer = (
+  policy: MaulRenderLayerPolicy,
+  layer: keyof MaulRenderLayerPolicy,
+): boolean => policy[layer] !== "disabled";
+
+type MaulV3MusicTrack = z.infer<typeof maulLicensedAudioAssetSchema> & {
+  title: string;
+  artist: string;
+  durationSec: number;
+};
+
+type MaulV3AudioPayload = {
+  planId: z.infer<typeof idSchema>;
+  planMode: "render_ready";
+  musicTrack: MaulV3MusicTrack | null;
+  sfxAssets: Array<
+    z.infer<typeof maulLicensedAudioAssetSchema> & {
+      eventType: string;
+      outputMs: number;
+    }
+  >;
+};
+
+const maulV3AudioSchema: z.ZodType<MaulV3AudioPayload> = z
+  .object({
+    planId: idSchema,
+    planMode: z.literal("render_ready"),
+    musicTrack: maulLicensedAudioAssetSchema
+      .extend({
+        title: z.string().trim().min(1),
+        artist: z.string().trim().min(1),
+        durationSec: z.number().positive(),
+      })
+      .nullable(),
+    sfxAssets: z.array(
+      maulLicensedAudioAssetSchema.extend({
+        eventType: z.string().trim().min(1),
+        outputMs: z.number().int().nonnegative(),
+      }),
+    ),
+  })
+  .strict();
+
 export const maulShortRenderRequestSchema = z.object({
   candidateArtifactId: idSchema,
   treatmentGenomeArtifactId: idSchema,
@@ -2509,6 +2570,8 @@ const maulUnifiedShortRenderManifestV3ObjectSchema =
   maulUnifiedShortRenderManifestV2ObjectSchema.extend({
     schemaVersion: z.literal("maul-unified-short-render-manifest/v3"),
     planArtifactIds: maulPlanningArtifactIdsV3Schema,
+    layerPolicy: maulRenderLayerPolicySchema,
+    audio: maulV3AudioSchema,
     plans: z.object({
       observationSnapshot: maulObservationSnapshotPayloadSchema,
       candidateNarrative: maulCandidateNarrativePayloadSchema,
@@ -2711,6 +2774,28 @@ const validateMaulUnifiedShortRenderManifest = (
       }
     }
     if (manifest.schemaVersion === "maul-unified-short-render-manifest/v3") {
+      if (
+        manifest.layerPolicy.audioTreatment === "disabled" &&
+        (manifest.audio.musicTrack !== null || manifest.audio.sfxAssets.length > 0)
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["audio"],
+          message:
+            "V3 audioTreatment=disabled requires a null musicTrack and empty sfxAssets.",
+        });
+      }
+      if (
+        manifest.layerPolicy.audioTreatment === "enabled" &&
+        manifest.audio.musicTrack === null
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["audio", "musicTrack"],
+          message:
+            "V3 audioTreatment=enabled requires a licensed musicTrack asset.",
+        });
+      }
       const typography = manifest.plans.typographyMotion;
       const animation = manifest.plans.textAnimation;
       const placement = manifest.plans.textPlacement;
@@ -2759,17 +2844,32 @@ const validateMaulUnifiedShortRenderManifest = (
                     position > (targetTokenPositions[tokenIndex - 1] ?? -1)),
               )
           : false;
+        const frameMotionLineageMatch = program.frameMotion
+          ? program.target.scope === "tokens" &&
+            program.target.tokenIds.length === 1 &&
+            program.target.tokenIds[0] === program.frameMotion.tokenId &&
+            program.frameMotion.placementSegmentId ===
+              program.target.placementSegmentId
+          : true;
+        // Frame motion is the authoritative timing model. Its integer frame
+        // boundaries are allowed to straddle the millisecond segment edge
+        // after fps quantization; the legacy millisecond phases are only a
+        // compatibility receipt for older consumers.
+        const outputBoundsValid = program.frameMotion
+          ? true
+          : program.phases.entry.outputStartMs >= (segment?.outputStartMs ?? 0) &&
+            program.phases.exit.outputEndMs <= (segment?.outputEndMs ?? 0);
         if (
           !segment ||
           !tokenReferencesMatch ||
-          program.phases.entry.outputStartMs < segment.outputStartMs ||
-          program.phases.exit.outputEndMs > segment.outputEndMs
+          !frameMotionLineageMatch ||
+          !outputBoundsValid
         ) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             path: ["plans", "textAnimation", "programs", programIndex],
             message:
-              "V3 animation placement segment token references must be exact for segment scope or an ordered token subset inside the governed interval.",
+              "V3 animation placement segment token references must be exact for segment scope or an ordered token subset inside the governed interval; frame motion must retain token/segment lineage, and legacy timing must stay inside the governed interval.",
           });
         }
       });

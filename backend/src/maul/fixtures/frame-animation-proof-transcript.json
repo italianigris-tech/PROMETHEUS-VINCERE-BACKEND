@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "maul-frame-animation-proof-transcript/v1",
+  "source": "offline_fixture",
+  "language": "en",
+  "text": "One of the most dominant editing styles in long form content is the Iman",
+  "words": [
+    {"text": "One", "startMs": 160, "endMs": 240, "confidence": 1},
+    {"text": "of", "startMs": 240, "endMs": 360, "confidence": 1},
+    {"text": "the", "startMs": 360, "endMs": 480, "confidence": 1},
+    {"text": "most", "startMs": 480, "endMs": 640, "confidence": 1},
+    {"text": "dominant", "startMs": 640, "endMs": 1160, "confidence": 0.996},
+    {"text": "editing", "startMs": 1160, "endMs": 1480, "confidence": 0.766},
+    {"text": "styles", "startMs": 1480, "endMs": 1800, "confidence": 0.994},
+    {"text": "in", "startMs": 1800, "endMs": 2040, "confidence": 0.789},
+    {"text": "long", "startMs": 2040, "endMs": 2280, "confidence": 1},
+    {"text": "form", "startMs": 2280, "endMs": 2520, "confidence": 0.457},
+    {"text": "content", "startMs": 2520, "endMs": 2880, "confidence": 1},
+    {"text": "is", "startMs": 2880, "endMs": 3120, "confidence": 1},
+    {"text": "the", "startMs": 3120, "endMs": 3240, "confidence": 0.998},
+    {"text": "Iman", "startMs": 3240, "endMs": 3800, "confidence": 0.646}
+  ]
+}

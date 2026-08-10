@@ -1,5 +1,7 @@
 import {z} from "zod";
 
+import {maulFrameMotionProgramSchema} from "./maul-frame-motion.js";
+
 const idSchema = z.string().trim().min(1);
 const sha256Schema = z.string().regex(/^[a-f0-9]{64}$/i);
 
@@ -14,6 +16,9 @@ export const MAUL_TEXT_ANIMATION_TREATMENTS = [
   "cinematic_text_preset", "cinematic_text_preset_1", "cinematic_text_preset_2", "cinematic_text_preset_3", "cinematic_text_preset_4", "cinematic_text_preset_5", "cinematic_text_preset_6", "cinematic_text_preset_7", "cinematic_text_preset_8", "cinematic_text_preset_9", "cinematic_text_preset_10", "cinematic_text_preset_11",
   "word-rise-blur-resolve", "letter-float-overshoot", "tracking-collapse", "vertical-slit-reveal", "horizontal-mask-sweep", "depth-pop-letter", "glitch-stabilize", "whisper-fade-up", "impact-punch", "drift-from-depth", "letter-shimmer-pass", "baseline-wave", "split-convergence", "scramble-to-clarity", "heavy-subtitle-rise", "documentary-soft-lock", "kinetic-cascade", "flash-exposure", "bottom-crop-drift", "single-word-elastic-emphasis", "stepped-dramatic-build", "ghost-trail-letter", "compression-release", "skew-unbend", "rise-glow-settle", "cinematic-typewriter", "phrase-inhale", "pulse-emphasis", "long-shadow-sweep", "word-ladder-build", "letter-rain-settle", "delayed-bloom",
   "animated-quote-reveal", "blur-underline", "core-replaceable-word", "cursor-highlight-text-animation", "highlight-word", "main-word-inside-a-glow-box", "number-for-steps-counting-animation", "text-underlining-effect", "three-steps-pyramid", "word-cross-out",
+  "text-entry.word-riser", "text-entry.letter-riser", "text-entry.soft-letter-tracking", "text-entry.velocity-slide-reveal", "text-entry.clipped-mask-reveal",
+  "text-emphasis.underline-reveal", "text-emphasis.sweep-highlight", "text-emphasis.capsule-highlight", "text-emphasis.marker-stroke", "text-emphasis.semantic-glow",
+  "text-mutation.weight-escalation", "text-mutation.emphasis-handoff", "accent-motion.bracket-lock", "accent-motion.caption-rail", "spatial-motion.anchored-drift",
 ] as const;
 
 export const maulTextAnimationTreatmentSchema = z.enum(
@@ -94,6 +99,8 @@ export const maulTextAnimationProgramSchema = z
       })
       .strict(),
     localReveal: maulPositionLockedRevealSchema.optional(),
+    executorId: idSchema.optional(),
+    frameMotion: maulFrameMotionProgramSchema.optional(),
     phases: z
       .object({
         entry: maulTextAnimationPhaseSchema,
@@ -165,6 +172,29 @@ export const maulTextAnimationProgramSchema = z
       }
     }
 
+    if ((program.executorId === undefined) !== (program.frameMotion === undefined)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["frameMotion"],
+        message: "Frame motion programs require an executor ID and compiled frame motion together.",
+      });
+    }
+    if (program.frameMotion) {
+      if (
+        program.executorId !== program.frameMotion.executorId ||
+        program.target.placementSegmentId !== program.frameMotion.placementSegmentId ||
+        program.target.scope !== "tokens" ||
+        program.target.tokenIds.length !== 1 ||
+        program.target.tokenIds[0] !== program.frameMotion.tokenId
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["frameMotion"],
+          message: "Compiled frame motion must match its executor, placement segment, and single token target.",
+        });
+      }
+    }
+
     if (
       program.phases.hold.outputStartMs <
         program.phases.entry.outputEndMs ||
@@ -227,14 +257,21 @@ export const maulTextAnimationPlanCoreSchema = z
       });
     }
 
-    const programTargetKeys = plan.programs.map(
-      (program) => `${program.target.placementSegmentId}:${program.target.scope}`,
+    const programTargetKeys = plan.programs.map((program) =>
+      program.target.scope === "segment"
+        ? `${program.target.placementSegmentId}:segment`
+        : [
+            program.target.placementSegmentId,
+            "tokens",
+            program.target.tokenIds.join(","),
+            program.frameMotion?.phases.entry.startFrame ?? "legacy",
+          ].join(":"),
     );
     if (new Set(programTargetKeys).size !== programTargetKeys.length) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["programs"],
-        message: "Each placement segment may have one segment program and one token program.",
+        message: "Each placement segment may have one segment program; token targets must be unique within each frame interval.",
       });
     }
 
