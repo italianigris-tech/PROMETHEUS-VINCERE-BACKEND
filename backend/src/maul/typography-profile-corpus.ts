@@ -442,13 +442,11 @@ export const rankTypographyProfiles = ({
   targetAspectRatio: "9:16";
   recentlyUsedProfileNames?: readonly string[];
 }): RankedTypographyProfile[] => {
-  const candidates = profiles
-    .filter(
-      (profile) => profile.metadata.totalWordCount === chunk.wordCount,
-    )
-    .map((profile) => ({
+  const candidates = profiles.map((profile) => ({
       profile,
-      wordDistance: 0,
+      wordDistance: Math.abs(
+        chunk.wordCount - profile.metadata.totalWordCount,
+      ),
       characterDistance: Math.abs(
         chunk.characterCount - profile.metadata.totalCharacterCount,
       ),
@@ -474,6 +472,7 @@ export const rankTypographyProfiles = ({
     minimumCharacterDistance + CHARACTER_DISTANCE_TOLERANCE;
   return candidates.sort(
     (left, right) =>
+      left.wordDistance - right.wordDistance ||
       left.aspectPenalty - right.aspectPenalty ||
       Number(left.characterDistance > maximumCloseCharacterDistance) -
         Number(right.characterDistance > maximumCloseCharacterDistance) ||

@@ -1306,7 +1306,7 @@ export class MaulProjectService {
           : [],
       )
       .slice(0, 48);
-    const editorialRhythmSeed = `${planningSelectionSeed}:reference-editorial-v1`;
+    const editorialRhythmSeed = `${planningSelectionSeed}:${candidate.artifactId}:reference-editorial-v1`;
     const creativeTreatment = await this.creativeTreatmentPlanner.plan({
       sourceProfile:
         project.intake.sourceProfile.mode === 'single_speaker_podcast'
@@ -1499,17 +1499,25 @@ export class MaulProjectService {
       referenceTraits,
       primaryTypeRole: creativeTreatment.treatment.primaryTypeRole,
       selectionSeed: editorialRhythmSeed,
-      segments: textChunkCore.chunks.map((chunk) => ({
-        segmentId: textPlacementCore.segments.find(
-          (segment) => segment.chunkId === chunk.chunkId,
-        )?.segmentId ?? chunk.chunkId,
-        semanticRole: chunk.semanticRole,
-        emphasisLevel: chunk.emphasis.level,
-        wordCount: chunk.tokenIds.length,
-        outputStartMs: chunk.outputStartMs,
-        outputEndMs: chunk.outputEndMs,
-        holdAcrossProtectedPause: chunk.holdAcrossProtectedPause,
-      })),
+      segments: textPlacementCore.segments.map((segment) => {
+        const chunk = textChunkCore.chunks.find(
+          (candidate) => candidate.chunkId === segment.chunkId,
+        );
+        if (!chunk) {
+          throw new Error(
+            `MAUL editorial rhythm could not resolve placement chunk ${segment.chunkId}.`,
+          );
+        }
+        return {
+          segmentId: segment.segmentId,
+          semanticRole: chunk.semanticRole,
+          emphasisLevel: chunk.emphasis.level,
+          wordCount: segment.tokenIds.length,
+          outputStartMs: segment.outputStartMs,
+          outputEndMs: segment.outputEndMs,
+          holdAcrossProtectedPause: chunk.holdAcrossProtectedPause,
+        };
+      }),
     });
     const legacyFontResolution = measuredTypography?.status === "available"
       ? measuredTypography.fontResolution as typeof measuredTypography.fontResolution & {
@@ -1658,7 +1666,7 @@ export class MaulProjectService {
       textChunkPlan: textChunkResult.artifact,
       textPlacementPlan: textPlacementArtifact,
       referenceEditorialRhythm,
-      selectionSeed: `${planningSelectionSeed}:editorial-text-v1`,
+      selectionSeed: `${planningSelectionSeed}:${candidate.artifactId}:editorial-text-v1`,
       outputDurationMs: timeline.payload.outputDurationMs,
     });
     const textAnimationResult = await this.registerArtifact(projectId, {

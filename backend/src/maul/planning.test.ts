@@ -494,6 +494,13 @@ describe("MAUL V3 text animation planning", () => {
       {startMs: 0, endMs: 450},
       {startMs: 450, endMs: 1_000},
     ]);
+    expect(plan.programs.map((program) => program.frameMotion?.phases.exit.endFrame)).toEqual([
+      33,
+      33,
+    ]);
+    expect(plan.programs[0]!.frameMotion!.phases.hold.endFrame).toBeGreaterThan(
+      Math.ceil((timedTextChunkPlan.tokens[0].outputEndMs / 1000) * 30),
+    );
   });
 
   it("adapts scale and travel references into bounded local primitives", () => {
@@ -524,6 +531,49 @@ describe("MAUL V3 text animation planning", () => {
       push.phases.hold.to.translateXPx,
       push.phases.exit.to.translateXPx,
     ]).toEqual([0, 0, 0, 0]);
+  });
+
+  it("routes timed words individually and gives the marked semantic word cinematic emphasis", () => {
+    const timedTextChunkPlan = structuredClone(textChunkPlan) as any;
+    timedTextChunkPlan.chunks[0].emphasis = {
+      tokenIds: ["token_b"],
+      text: "point",
+      level: "key",
+    };
+    timedTextChunkPlan.tokens = [
+      {
+        tokenId: "token_a",
+        transcriptWordIndex: 0,
+        text: "The",
+        sourceStartMs: 0,
+        sourceEndMs: 450,
+        outputSpans: [{outputStartMs: 100, outputEndMs: 550}],
+        outputStartMs: 100,
+        outputEndMs: 550,
+      },
+      {
+        tokenId: "token_b",
+        transcriptWordIndex: 1,
+        text: "point",
+        sourceStartMs: 450,
+        sourceEndMs: 1_000,
+        outputSpans: [{outputStartMs: 550, outputEndMs: 1_100}],
+        outputStartMs: 550,
+        outputEndMs: 1_100,
+      },
+    ];
+
+    const plan = buildMaulTextAnimationPlanPayload({
+      inputs,
+      textChunkPlan: {artifactId: "artifact_semantic_motion", payload: timedTextChunkPlan} as any,
+      textPlacementPlan: textPlacementArtifact,
+      selectionSeed: "semantic-word-motion-proof",
+      outputDurationMs: 1_200,
+    });
+
+    expect(plan.programs).toHaveLength(2);
+    expect(plan.programs[0]!.treatment).not.toBe(plan.programs[1]!.treatment);
+    expect(plan.programs[1]!.rationale).toMatch(/cinematic semantic emphasis/i);
   });
 
 

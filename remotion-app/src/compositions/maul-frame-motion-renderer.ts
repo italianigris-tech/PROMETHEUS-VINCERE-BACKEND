@@ -71,3 +71,9 @@ export const maulFrameMotionStyle = (
   letterSpacing: `${(baseLetterSpacingEm + transform.trackingEm).toFixed(4).replace(/0+$/, "").replace(/\.$/, "")}em`,
   position: "relative",
 });
+
+export const maulLetterStaggerFrame = (
+  outputFrame: number,
+  letterIndex: number,
+  variant: number,
+): number => outputFrame - letterIndex * (1 + (variant % 3));

@@ -1,4 +1,9 @@
 export {
+  maulFrameMotionVisualRecipeSchema,
+  type MaulFrameMotionVisualRecipe,
+} from "./maul-frame-motion.js";
+
+export {
   textAnimationGrammarSchema,
   textAnimationOrderSchema,
   textAnimationStaggerSchema,
@@ -248,6 +253,7 @@ export {
   maulUnifiedShortRenderManifestV1Schema,
   maulUnifiedShortRenderManifestV2Schema,
   maulUnifiedShortRenderManifestV3Schema,
+  maulMartinDepthPlanSchema,
   maulRenderLayerPolicySchema,
   shouldRenderMaulLayer,
   maulQualityTruthFailureCodeSchema,
@@ -354,6 +360,7 @@ export {
   type MaulUnifiedShortRenderManifestV1,
   type MaulUnifiedShortRenderManifestV2,
   type MaulUnifiedShortRenderManifestV3,
+  type MaulMartinDepthPlan,
   type MaulRenderLayerPolicy,
   type MaulQualityTruthProof,
   type MaulQualityTruthProofV1,

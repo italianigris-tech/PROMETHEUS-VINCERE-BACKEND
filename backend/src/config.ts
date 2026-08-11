@@ -7,6 +7,7 @@ import {z} from "zod";
 const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(8000),
   STORAGE_DIR: z.string().default(path.join(process.cwd(), "data")),
+  MEDIA_DIR: z.string().default(path.join(process.cwd(), "data", "media")),
   REMOTION_ASSETS_DIR: z.string().default(""),
   MAX_UPLOAD_FILE_SIZE_BYTES: z.coerce.number().int().positive().default(500 * 1024 * 1024),
   CORS_ORIGINS: z
@@ -14,6 +15,7 @@ const envSchema = z.object({
     .default(
       "http://localhost:3000,http://127.0.0.1:3000,http://localhost:3010,http://127.0.0.1:3010,http://localhost:3101,http://127.0.0.1:3101,http://localhost:4101,http://127.0.0.1:4101,http://localhost:5173,http://127.0.0.1:5173"
     ),
+  MODAL_RENDER_DISPATCH_URL: z.string().url().default("http://127.0.0.1:8001"),
   ASSEMBLYAI_API_KEY: z.string().default(""),
   GROQ_API_KEY: z.string().default(""),
   GOOGLE_AI_STUDIO_API_KEY: z.string().default(""),

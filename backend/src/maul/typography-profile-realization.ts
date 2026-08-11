@@ -57,6 +57,68 @@ const positiveMeasurement = (value: number, label: string): number => {
   return Number(value.toFixed(4));
 };
 
+const visualScale = (layer: TypographyProfileLayer): number =>
+  layer.fontStyle.sizePxBase * layer.fontStyle.relativeScale;
+
+const allocateLayerWordCounts = ({
+  layers,
+  tokenCount,
+}: {
+  layers: readonly TypographyProfileLayer[];
+  tokenCount: number;
+}): Array<{layer: TypographyProfileLayer; wordCount: number}> => {
+  const activeLayers = tokenCount >= layers.length
+    ? [...layers]
+    : layers
+        .map((layer, index) => ({layer, index}))
+        .sort(
+          (left, right) =>
+            visualScale(right.layer) - visualScale(left.layer) ||
+            left.index - right.index,
+        )
+        .slice(0, tokenCount)
+        .sort((left, right) => left.index - right.index)
+        .map(({layer}) => layer);
+  const observedTotal = activeLayers.reduce(
+    (total, layer) => total + layer.wordCount,
+    0,
+  );
+  const ideals = activeLayers.map(
+    (layer) => (tokenCount * layer.wordCount) / observedTotal,
+  );
+  const counts = ideals.map((ideal) => Math.max(1, Math.floor(ideal)));
+  while (counts.reduce((total, count) => total + count, 0) < tokenCount) {
+    const index = counts
+      .map((count, candidateIndex) => ({
+        candidateIndex,
+        deficit: ideals[candidateIndex]! - count,
+      }))
+      .sort(
+        (left, right) =>
+          right.deficit - left.deficit ||
+          left.candidateIndex - right.candidateIndex,
+      )[0]!.candidateIndex;
+    counts[index] += 1;
+  }
+  while (counts.reduce((total, count) => total + count, 0) > tokenCount) {
+    const index = counts
+      .map((count, candidateIndex) => ({
+        candidateIndex,
+        removable: count > 1 ? count - ideals[candidateIndex]! : -Infinity,
+      }))
+      .sort(
+        (left, right) =>
+          right.removable - left.removable ||
+          right.candidateIndex - left.candidateIndex,
+      )[0]!.candidateIndex;
+    counts[index] -= 1;
+  }
+  return activeLayers.map((layer, index) => ({
+    layer,
+    wordCount: counts[index]!,
+  }));
+};
+
 const realizationMeasurementId = (input: {
   profile: TypographyProfileObservation;
   layer: TypographyProfileLayer;
@@ -93,14 +155,16 @@ export const compileTypographyProfileRealization = ({
   bindingsByLayerName: ReadonlyMap<string, MaulTypographyLayerBinding>;
   measureToken: TypographyLayerMeasurementProvider;
 }): MaulProfileTypographyRealization => {
-  if (tokens.length !== profile.metadata.totalWordCount) {
-    throw new Error(
-      `Typography profile token count ${tokens.length} does not match declared token count ${profile.metadata.totalWordCount}.`,
-    );
+  if (tokens.length === 0) {
+    throw new Error("Typography profile realization requires at least one token.");
   }
 
   let tokenOffset = 0;
-  const layers = profile.layers.map((profileLayer) => {
+  const adaptedLayers = allocateLayerWordCounts({
+    layers: profile.layers,
+    tokenCount: tokens.length,
+  });
+  const layers = adaptedLayers.map(({layer: profileLayer, wordCount}) => {
     const binding = bindingsByLayerName.get(profileLayer.layerName);
     if (!binding) {
       throw new Error(
@@ -109,22 +173,23 @@ export const compileTypographyProfileRealization = ({
     }
     const layerTokens = tokens.slice(
       tokenOffset,
-      tokenOffset + profileLayer.wordCount,
+      tokenOffset + wordCount,
     );
-    if (layerTokens.length !== profileLayer.wordCount) {
+    if (layerTokens.length !== wordCount) {
       throw new Error(
         `Typography profile layer ${profileLayer.layerName} token count is incomplete.`,
       );
     }
-    tokenOffset += profileLayer.wordCount;
+    tokenOffset += wordCount;
 
     const text = applyCasing(
       joinShortsTextTokens(layerTokens.map((token) => token.text)),
       profileLayer.fontStyle.casing,
     );
-    const fontSizePx = Number(
-      (profileLayer.fontStyle.sizePxBase * profileLayer.fontStyle.relativeScale).toFixed(4),
-    );
+    // The corpus records the rendered layer size in size_px_base. relative_scale
+    // describes hierarchy between layers; multiplying both values here applies
+    // that hierarchy twice and can turn support copy into illegible 2px text.
+    const fontSizePx = Number(profileLayer.fontStyle.sizePxBase.toFixed(4));
     const measured = measureToken({
       tokenId: `${profile.profileName}:${profileLayer.layerName}`,
       text,

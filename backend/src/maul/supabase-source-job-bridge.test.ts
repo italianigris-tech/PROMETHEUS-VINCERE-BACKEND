@@ -133,4 +133,85 @@ describe("SupabaseSourceJobBridge source materialization", () => {
       })
     ]);
   });
+
+  it("leases one requested durable job and runs it to a durable observation snapshot", async () => {
+    const requests: Array<{name: string; body: Record<string, unknown>}> = [];
+    const fetchImpl = vi.fn(async (url: string, init?: RequestInit) => {
+      const name = new URL(url).pathname.split("/").at(-1)!;
+      const body = JSON.parse(String(init?.body || "{}")) as Record<string, unknown>;
+      requests.push({name, body});
+      if (name === "maul_lease_source_ingestion_by_job") {
+        return Response.json(makeLease());
+      }
+      return Response.json({
+        id: "ingestion_1",
+        durable_job_id: "job_1",
+        status: "processing",
+        stage: body.p_stage,
+        progress: body.p_progress,
+        source_revision_id: "revision_1"
+      });
+    });
+    const r2 = {
+      isConfigured: true,
+      downloadObject: vi.fn(async ({bucket, key, destinationPath}) => {
+        await mkdir(new URL(".", `file://${destinationPath}`).pathname, {recursive: true});
+        await writeFile(destinationPath, sourceBytes);
+        return {bucket, key, destinationPath, sizeBytes: sourceBytes.byteLength};
+      })
+    };
+    const videoContexts = {
+      createVideoFromSource: vi.fn(async () => ({videoId: "video_1", urls: {snapshot: "/videos/video_1"}})),
+      getSnapshot: vi.fn(async () => ({
+        status: "handoff_ready",
+        contextLevel: 4,
+        warnings: [],
+        sourcePath: "/private/source.mp4",
+        transcript: {mergedWords: []}
+      })),
+      urlsFor: vi.fn(() => ({snapshot: "/videos/video_1"}))
+    };
+    const bridge = new SupabaseSourceJobBridge(
+      makeEnv() as any,
+      r2 as any,
+      videoContexts as any,
+      fetchImpl as typeof fetch
+    );
+
+    const result = await bridge.runJobToCompletion("job_1", {pollIntervalMs: 0});
+
+    expect(result).toEqual({jobId: "job_1", claimed: true, status: "finished"});
+    expect(requests).toContainEqual({
+      name: "maul_lease_source_ingestion_by_job",
+      body: expect.objectContaining({p_durable_job_id: "job_1"})
+    });
+    expect(requests.some((entry) => entry.name === "maul_complete_source_ingestion")).toBe(true);
+  });
+
+  it("falls back to the existing queue lease while the targeted RPC migration is pending", async () => {
+    const bridge = new SupabaseSourceJobBridge(
+      makeEnv() as any,
+      {isConfigured: true} as any,
+      {} as any,
+    );
+    const rpc = vi.fn(async (name: string) => {
+      if (name === "maul_lease_source_ingestion_by_job") {
+        throw new Error("SUPABASE_RPC_MAUL_LEASE_SOURCE_INGESTION_BY_JOB_404: PGRST202");
+      }
+      if (name === "maul_lease_source_ingestion") return makeLease();
+      throw new Error(`Unexpected RPC ${name}`);
+    });
+    (bridge as any).rpc = rpc;
+    (bridge as any).materializeLease = vi.fn(async (lease: ReturnType<typeof makeLease>) => {
+      (bridge as any).active.delete(lease.ingestion.id);
+    });
+
+    const result = await bridge.runJobToCompletion("job_1", {pollIntervalMs: 0});
+
+    expect(result).toEqual({jobId: "job_1", claimed: true, status: "finished"});
+    expect(rpc.mock.calls.map(([name]) => name)).toEqual([
+      "maul_lease_source_ingestion_by_job",
+      "maul_lease_source_ingestion"
+    ]);
+  });
 });

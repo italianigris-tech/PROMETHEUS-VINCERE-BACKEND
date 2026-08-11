@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
+    "start:core": "tsx src/core-server.ts",
     "music:rehearsal": "tsx src/music/scripts/run-music-rehearsal.ts",
     "music:preflight": "tsx src/music/scripts/validate-music-preflight.ts",
     "music:preview-mix": "tsx src/music/scripts/render-music-preview-mix.ts",

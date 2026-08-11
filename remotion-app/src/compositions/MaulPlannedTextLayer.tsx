@@ -1,5 +1,6 @@
 import {loadFont as loadLocalFont} from "@remotion/fonts";
 import {
+  evaluateMaulFrameMotion,
   joinShortsTextTokens,
   type MaulArtDirectionPlanPayload,
   type MaulEditorialLockup,
@@ -35,6 +36,7 @@ import {
 import {resolveMaulFontAssetUrl} from "./maul-font-asset-resolver";
 import {
   maulFrameMotionStyle,
+  maulLetterStaggerFrame,
   resolveMaulFrameMotionForToken,
 } from "./maul-frame-motion-renderer";
 import {MaulProfileTypographyGroup} from "./MaulProfileTypographyGroup";
@@ -606,6 +608,7 @@ export const MaulPlannedTextCard: React.FC<{
   creativeTreatment?: MaulCreativeTreatment;
   referenceEditorialRhythm?: MaulReferenceEditorialRhythm;
   suppressedOutputRanges?: readonly MaulTextSuppressionRange[];
+  visibleTokenIds?: ReadonlySet<string>;
 }> = ({
   record,
   absoluteTimeMs,
@@ -616,6 +619,7 @@ export const MaulPlannedTextCard: React.FC<{
   creativeTreatment,
   referenceEditorialRhythm,
   suppressedOutputRanges = [],
+  visibleTokenIds,
 }) => {
   if (suppressedOutputRanges.some(
     (range) =>
@@ -644,6 +648,7 @@ export const MaulPlannedTextCard: React.FC<{
         record={record}
         segmentAnimation={segmentAnimation}
         outputFrame={creativeTreatment?.motionMode === "static_editorial_hold" ? undefined : outputFrame}
+        visibleTokenIds={visibleTokenIds}
       />
     );
   }
@@ -772,7 +777,7 @@ export const MaulPlannedTextCard: React.FC<{
               tokenId: token.tokenId,
               outputFrame,
             });
-            const tokenAnimation = resolvedFrameMotion
+            const tokenAnimation = resolvedFrameMotion?.frameMotion.unit === "word"
               ? {
                   opacity: resolvedFrameMotion.transform.opacity,
                   translateXPx: resolvedFrameMotion.transform.translateXPx,
@@ -820,6 +825,7 @@ export const MaulPlannedTextCard: React.FC<{
                   data-editorial-token-role={editorialStyle?.role}
                   data-editorial-font-asset-id={editorialStyle?.fontAssetId}
                   style={{
+                    visibility: !visibleTokenIds || visibleTokenIds.has(token.tokenId) ? "visible" : "hidden",
                     color: editorialStyle?.role === "accent" || (
                       !resolvedFrameMotion && active
                     )
@@ -845,9 +851,13 @@ export const MaulPlannedTextCard: React.FC<{
                       : annotations.length > 0
                         ? {position: "relative", display: "inline-block"}
                       : {}),
-                    ...(resolvedFrameMotion
+                    ...(resolvedFrameMotion?.frameMotion.unit === "word"
                       ? {
-                          ...maulFrameMotionStyle(resolvedFrameMotion.transform),
+                          ...maulFrameMotionStyle(
+                            resolvedFrameMotion.transform,
+                            0,
+                          ),
+                          isolation: "isolate",
                           ...(composedTokenTransform
                             ? {
                                 opacity: composedTokenTransform.opacity,
@@ -858,7 +868,30 @@ export const MaulPlannedTextCard: React.FC<{
                       : {}),
                   }}
                 >
-                  {localRevealProgram ? (
+                  {resolvedFrameMotion?.frameMotion.unit === "letter" && outputFrame !== undefined ? (
+                    Array.from(token.text).map((character, letterIndex) => {
+                      const letterTransform = evaluateMaulFrameMotion(
+                        resolvedFrameMotion.frameMotion,
+                        maulLetterStaggerFrame(
+                          outputFrame,
+                          letterIndex,
+                          resolvedFrameMotion.frameMotion.visualRecipe?.variant ?? 0,
+                        ),
+                      );
+                      return (
+                        <span
+                          key={`${token.tokenId}_letter_${letterIndex}`}
+                          data-maul-letter-index={letterIndex}
+                          style={maulFrameMotionStyle(
+                            letterTransform,
+                            0,
+                          )}
+                        >
+                          {character}
+                        </span>
+                      );
+                    })
+                  ) : localRevealProgram ? (
                     <PositionLockedTokenText
                       token={token}
                       program={localRevealProgram}
@@ -896,6 +929,7 @@ const TimedMaulPlannedTextCard: React.FC<{
   creativeTreatment?: MaulCreativeTreatment;
   referenceEditorialRhythm?: MaulReferenceEditorialRhythm;
   suppressedOutputRanges?: readonly MaulTextSuppressionRange[];
+  visibleTokenIds?: ReadonlySet<string>;
 }> = ({
   record,
   outputFrame,
@@ -905,6 +939,7 @@ const TimedMaulPlannedTextCard: React.FC<{
   creativeTreatment,
   referenceEditorialRhythm,
   suppressedOutputRanges,
+  visibleTokenIds,
 }) => {
   return (
     <MaulPlannedTextCard
@@ -917,6 +952,7 @@ const TimedMaulPlannedTextCard: React.FC<{
       creativeTreatment={creativeTreatment}
       referenceEditorialRhythm={referenceEditorialRhythm}
       suppressedOutputRanges={suppressedOutputRanges}
+      visibleTokenIds={visibleTokenIds}
     />
   );
 };
@@ -928,7 +964,8 @@ export const MaulPlannedTextLayer: React.FC<{
   creativeTreatment?: MaulCreativeTreatment;
   referenceEditorialRhythm?: MaulReferenceEditorialRhythm;
   suppressedOutputRanges?: readonly MaulTextSuppressionRange[];
-}> = ({records, textColor, accentColor, creativeTreatment, referenceEditorialRhythm, suppressedOutputRanges}) => {
+  visibleTokenIds?: ReadonlySet<string>;
+}> = ({records, textColor, accentColor, creativeTreatment, referenceEditorialRhythm, suppressedOutputRanges, visibleTokenIds}) => {
   const outputFrame = useCurrentFrame();
   const {fps} = useVideoConfig();
   return (
@@ -951,6 +988,7 @@ export const MaulPlannedTextLayer: React.FC<{
             creativeTreatment={creativeTreatment}
             referenceEditorialRhythm={referenceEditorialRhythm}
             suppressedOutputRanges={suppressedOutputRanges}
+            visibleTokenIds={visibleTokenIds}
           />
         </Sequence>
       ))}

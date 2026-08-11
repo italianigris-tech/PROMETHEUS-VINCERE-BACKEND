@@ -3,9 +3,10 @@ import {
   type MaulFrameMotionEasing,
   type MaulFrameMotionProgram,
   type MaulFrameMotionTransform,
+  type MaulFrameMotionVisualRecipe,
 } from "@prometheus/shared-types";
 
-type MotionFamily =
+export type MotionFamily =
   | "rise"
   | "blur_lift"
   | "focus_lock"
@@ -60,8 +61,19 @@ export type CompileMaulWordMotionInput = {
   };
   outputStartMs: number;
   outputEndMs: number;
+  holdUntilMs?: number;
   fps: number;
   placementSegmentId: string;
+};
+
+export type CompileMaulWordVisibilityBridgeInput = {
+  treatmentId: string;
+  token: CompileMaulWordMotionInput["token"];
+  outputStartMs: number;
+  outputEndMs: number;
+  fps: number;
+  placementSegmentId: string;
+  visibility: "pending" | "settled";
 };
 
 const gsapTreatments = [
@@ -183,6 +195,32 @@ const capabilitiesByTreatment = new Map(
   MAUL_FRAME_MOTION_CAPABILITIES.map((capability) => [capability.treatmentId, capability]),
 );
 
+const accentFor = (family: MotionFamily): MaulFrameMotionVisualRecipe["accent"] => {
+  if (["underline", "highlight", "capsule", "marker", "glow", "bracket", "rail", "outline", "chromatic"].includes(family)) {
+    return family as MaulFrameMotionVisualRecipe["accent"];
+  }
+  return ["focus_lock", "banner", "depth", "impact", "elastic", "handoff"].includes(family)
+    ? "shade"
+    : "none";
+};
+
+const visualRecipeFor = (capability: MaulMotionCapability): MaulFrameMotionVisualRecipe => {
+  const variant = MAUL_FRAME_MOTION_CAPABILITIES.findIndex(
+    (candidate) => candidate.treatmentId === capability.treatmentId,
+  );
+  return {
+    family: capability.family,
+    variant,
+    accent: accentFor(capability.family),
+    depthPx: capability.family === "depth" ? 34 + (variant % 3) * 5 : variant % 7,
+    shadowPx: ["focus_lock", "impact", "glow", "depth"].includes(capability.family) ? 12 + (variant % 5) * 3 : variant % 4,
+    skewDeg: ["blade", "script_glide", "marker", "arc"].includes(capability.family) ? -8 + (variant % 5) * 2 : (variant % 3) - 1,
+    strokeWidthPx: ["outline", "bracket", "capsule"].includes(capability.family) ? 2 + (variant % 3) : 0,
+    colorSplitPx: capability.family === "chromatic" ? 6 + (variant % 4) * 2 : 0,
+    shadeOpacity: ["banner", "focus_lock", "impact", "depth", "elastic", "handoff"].includes(capability.family) ? 0.18 + (variant % 5) * 0.04 : 0,
+  };
+};
+
 const identity: MaulFrameMotionTransform = {
   opacity: 1,
   translateXPx: 0,
@@ -279,6 +317,7 @@ export const compileMaulWordMotion = ({
   token,
   outputStartMs,
   outputEndMs,
+  holdUntilMs = outputEndMs,
   fps,
   placementSegmentId,
 }: CompileMaulWordMotionInput): MaulFrameMotionProgram => {
@@ -287,16 +326,19 @@ export const compileMaulWordMotion = ({
   if (!Number.isFinite(fps) || fps <= 0 || fps > 240) throw new Error(`Invalid frame rate for MAUL motion: ${fps}`);
   if (token.sourceEndMs <= token.sourceStartMs) throw new Error(`Invalid source interval for token ${token.tokenId}.`);
   if (outputEndMs <= outputStartMs) throw new Error(`Invalid output interval for token ${token.tokenId}.`);
+  if (holdUntilMs < outputEndMs) throw new Error(`Invalid assembled hold interval for token ${token.tokenId}.`);
 
-  // Conservative boundaries keep short but real spoken words visible for every
-  // frame touched by their interval; the source interval remains unchanged.
+  // Entry timing follows the spoken word, while the settled word remains visible
+  // until the complete chunk exits. This lets a profile lockup assemble instead
+  // of replacing each word with the next one.
   const startFrame = toStartFrame(outputStartMs, fps);
-  const endFrame = toEndFrame(outputEndMs, fps);
-  const totalFrames = endFrame - startFrame;
-  if (totalFrames < 3) throw new Error(`MAUL word interval is too short for positive animation phases: ${token.tokenId}.`);
+  const spokenEndFrame = toEndFrame(outputEndMs, fps);
+  const endFrame = toEndFrame(holdUntilMs, fps);
+  const spokenFrames = spokenEndFrame - startFrame;
 
-  const entryFrames = Math.max(1, Math.floor(totalFrames * 0.25));
-  const exitFrames = Math.max(1, Math.floor(totalFrames * 0.2));
+  const entryFrames = Math.max(1, Math.floor(spokenFrames * 0.25));
+  const exitFrames = Math.max(1, Math.floor(spokenFrames * 0.2));
+  const totalFrames = endFrame - startFrame;
   const holdFrames = totalFrames - entryFrames - exitFrames;
   if (holdFrames < 1) throw new Error(`MAUL word interval has no readable hold: ${token.tokenId}.`);
 
@@ -337,5 +379,62 @@ export const compileMaulWordMotion = ({
       },
     },
     envelope: capability.envelope,
+    visualRecipe: visualRecipeFor(capability),
+  });
+};
+
+export const compileMaulWordVisibilityBridge = ({
+  treatmentId,
+  token,
+  outputStartMs,
+  outputEndMs,
+  fps,
+  placementSegmentId,
+  visibility,
+}: CompileMaulWordVisibilityBridgeInput): MaulFrameMotionProgram => {
+  const capability = getMaulMotionCapability(treatmentId);
+  if (!capability) throw new Error(`Unsupported MAUL frame motion treatment: ${treatmentId}`);
+  const startFrame = toStartFrame(outputStartMs, fps);
+  const endFrame = toEndFrame(outputEndMs, fps);
+  if (endFrame - startFrame < 3) {
+    throw new Error(`MAUL visibility bridge is too short for token ${token.tokenId}.`);
+  }
+  const transform = visibility === "settled"
+    ? identity
+    : {...identity, opacity: 0};
+  return maulFrameMotionProgramSchema.parse({
+    schemaVersion: "maul-frame-motion/v1",
+    executorId: capability.executorId,
+    sourceTreatment: treatmentId,
+    unit: capability.unit,
+    tokenId: token.tokenId,
+    placementSegmentId,
+    fps,
+    sourceIntervalMs: {startMs: token.sourceStartMs, endMs: token.sourceEndMs},
+    phases: {
+      entry: {
+        startFrame,
+        endFrame: startFrame + 1,
+        easing: {type: "linear"},
+        from: transform,
+        to: transform,
+      },
+      hold: {
+        startFrame: startFrame + 1,
+        endFrame: endFrame - 1,
+        easing: {type: "linear"},
+        from: transform,
+        to: transform,
+      },
+      exit: {
+        startFrame: endFrame - 1,
+        endFrame,
+        easing: {type: "linear"},
+        from: transform,
+        to: transform,
+      },
+    },
+    envelope: capability.envelope,
+    visualRecipe: visualRecipeFor(capability),
   });
 };

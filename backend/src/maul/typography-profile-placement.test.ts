@@ -122,8 +122,9 @@ describe("MAUL typography profile placement", () => {
       existingTextRegions: [],
     });
 
-    expect(placement.transform.finalWidthPx).toBeGreaterThanOrEqual(540);
-    expect(placement.box.width).toBeGreaterThanOrEqual(0.5);
+    expect(placement.transform.finalWidthPx).toBeGreaterThanOrEqual(756);
+    expect(placement.box.width).toBeGreaterThanOrEqual(0.7);
+    expect(68 * placement.transform.uniformScale).toBeGreaterThanOrEqual(72);
   });
 
   it("honors a measured center intent with controlled subject overlap", () => {

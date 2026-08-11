@@ -723,8 +723,10 @@ const buildCandidate = ({
               intent: {
                 preferredBox: composition.textAnchor.box,
                 overlapPolicy:
-                  composition.textAnchor.subjectInteraction?.policy ??
-                  "avoid_subject",
+                  node.chunk.emphasis.level === "hero"
+                    ? composition.textAnchor.subjectInteraction?.policy ??
+                      "avoid_subject"
+                    : "avoid_subject",
               },
             }
           : {}),
@@ -916,7 +918,11 @@ const buildCandidate = ({
     gate(
       "subject_clearance",
       profileRealization
-        ? true
+        ? !subjectBox ||
+          !boxesOverlap(geometry.maximumEnvelope, subjectBox) ||
+          (composition.textAnchor?.subjectInteraction?.policy ===
+              "controlled_overlap" &&
+            composition.textAnchor.subjectInteraction.faceInterference === 0)
         : isCaptionSafeFallback
         ? Boolean(
             fallbackBand && boxContains(fallbackBand, geometry.maximumEnvelope),
@@ -930,7 +936,9 @@ const buildCandidate = ({
         observation?.evidenceId ??
         composition.intervalId,
       profileRealization
-        ? "Profile placement ranked subject occupancy and permits intentional editorial overlap when the selected group requires it."
+        ? node.chunk.emphasis.level === "hero"
+          ? "Profile placement clears known subject occupancy unless measured face-clear controlled overlap is explicitly authorized for a hero word."
+          : "Supporting and key profile placement must clear subject occupancy unless measured controlled overlap proves zero face interference."
         : isCaptionSafeFallback
         ? "Text lies wholly inside a compiled non-source band."
         : !subjectBox || !boxesOverlap(geometry.maximumEnvelope, subjectBox)

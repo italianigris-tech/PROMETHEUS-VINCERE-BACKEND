@@ -1199,6 +1199,7 @@ export const maulShortRenderRequestSchema = z.object({
   treatmentGenomeArtifactId: idSchema,
   planningBundleArtifactId: idSchema,
   reviewDecisionArtifactId: idSchema,
+  layerPolicy: maulRenderLayerPolicySchema.optional(),
   musicTrack: maulLicensedAudioAssetSchema.extend({
     title: z.string().trim().min(1),
     artist: z.string().trim().min(1),
@@ -2566,12 +2567,129 @@ const maulUnifiedShortRenderManifestV2ObjectSchema =
       .length(16),
   });
 
-const maulUnifiedShortRenderManifestV3ObjectSchema =
+export type MaulMartinDepthPlan = {
+  schemaVersion: "maul-martin-depth/v1";
+  status: "supplied" | "ready";
+  selections: Array<{
+    segmentId: string; tokenId: string; reason: "bold_subject_overlap";
+    fontWeight: number; boldEvidence?: "css_weight" | "profile_visual_weight";
+    overlapRatio: number; outputStartMs: number; outputEndMs: number;
+  }>;
+  windows: Array<{
+    windowId: string; sourceStartMs: number; sourceEndMs: number;
+    outputStartMs: number; outputEndMs: number;
+    foregroundAsset: {
+      assetId: string; storagePath: string; sha256: string; format: "webm_vp9_alpha";
+      fps: number; width: number; height: number; durationInFrames: number;
+    };
+  }>;
+};
+
+export const maulMartinDepthPlanSchema: z.ZodType<MaulMartinDepthPlan> = z.object({
+  schemaVersion: z.literal("maul-martin-depth/v1"),
+  status: z.enum(["supplied", "ready"]),
+  selections: z.array(z.object({
+    segmentId: idSchema,
+    tokenId: idSchema,
+    reason: z.literal("bold_subject_overlap"),
+    fontWeight: z.number().int().min(100).max(1000),
+    boldEvidence: z.enum(["css_weight", "profile_visual_weight"]).optional(),
+    overlapRatio: z.number().min(0.12).max(1),
+    outputStartMs: z.number().int().nonnegative(),
+    outputEndMs: z.number().int().positive(),
+  })).min(1),
+  windows: z.array(z.object({
+    windowId: idSchema,
+    sourceStartMs: z.number().int().nonnegative(),
+    sourceEndMs: z.number().int().positive(),
+    outputStartMs: z.number().int().nonnegative(),
+    outputEndMs: z.number().int().positive(),
+    foregroundAsset: z.object({
+      assetId: idSchema,
+      storagePath: z.string().trim().min(1),
+      sha256: z.string().regex(/^[a-f0-9]{64}$/i),
+      format: z.literal("webm_vp9_alpha"),
+      fps: z.number().positive(),
+      width: z.number().int().positive(),
+      height: z.number().int().positive(),
+      durationInFrames: z.number().int().positive(),
+    }),
+  })).min(1),
+}).superRefine((plan, ctx) => {
+  plan.selections.forEach((selection, index) => {
+    if (selection.fontWeight < 700 && selection.boldEvidence !== "profile_visual_weight") {
+      ctx.addIssue({code: z.ZodIssueCode.custom, path: ["selections", index, "boldEvidence"], message: "Nominal weights below 700 require profile-proven visual boldness."});
+    }
+    if (selection.outputEndMs <= selection.outputStartMs) {
+      ctx.addIssue({code: z.ZodIssueCode.custom, path: ["selections", index], message: "Martin selection interval must be ordered."});
+    }
+    if (!plan.windows.some((window) =>
+      window.outputStartMs <= selection.outputStartMs && window.outputEndMs >= selection.outputEndMs
+    )) {
+      ctx.addIssue({code: z.ZodIssueCode.custom, path: ["selections", index], message: "Every Martin selection requires a covering foreground alpha window."});
+    }
+  });
+  plan.windows.forEach((window, index) => {
+    if (window.sourceEndMs <= window.sourceStartMs || window.outputEndMs <= window.outputStartMs) {
+      ctx.addIssue({code: z.ZodIssueCode.custom, path: ["windows", index], message: "Martin matte windows must contain ordered source and output intervals."});
+    }
+  });
+});
+
+type MaulUnifiedShortRenderManifestV3Contract = Omit<
+  z.infer<typeof maulUnifiedShortRenderManifestV2ObjectSchema>,
+  "schemaVersion" | "planArtifactIds" | "layerPolicy" | "audio" | "martinDepth" | "plans" | "planExecution"
+> & {
+  schemaVersion: "maul-unified-short-render-manifest/v3";
+  planArtifactIds: z.infer<typeof maulPlanningArtifactIdsV3Schema>;
+  layerPolicy: z.infer<typeof maulRenderLayerPolicySchema>;
+  audio: z.infer<typeof maulV3AudioSchema>;
+  martinDepth?: MaulMartinDepthPlan;
+  plans: {
+    observationSnapshot: z.infer<typeof maulObservationSnapshotPayloadSchema>;
+    candidateNarrative: z.infer<typeof maulCandidateNarrativePayloadSchema>;
+    beatMap: z.infer<typeof maulEditorialBeatMapPayloadSchema>;
+    typographyMotion: z.infer<typeof maulTypographyMotionPlanV3PayloadSchema>;
+    camera: z.infer<typeof maulFramingCameraPlanPayloadSchema>;
+    visual: z.infer<typeof maulVisualPlanPayloadSchema>;
+    audio: z.infer<typeof maulDialogueAudioPlanPayloadSchema>;
+    capabilitySelection: z.infer<typeof maulCapabilitySelectionPayloadSchema>;
+    adapterDecision: z.infer<typeof maulAdapterDecisionPayloadSchema>;
+    artDirection: z.infer<typeof maulArtDirectionPlanPayloadSchema>;
+    contextAssembly: z.infer<typeof maulContextAssemblyPlanPayloadSchema>;
+    shotIntentMatrix: z.infer<typeof maulShotIntentMatrixPayloadSchema>;
+    textOpportunity: z.infer<typeof maulTextOpportunityPlanPayloadSchema>;
+    revision: z.infer<typeof maulRevisionPlanPayloadSchema>;
+    textChunk: z.infer<typeof maulTextChunkPlanPayloadSchema>;
+    textPlacement: z.infer<typeof maulTextPlacementPlanPayloadSchema>;
+    textAnimation: z.infer<typeof maulTextAnimationPlanPayloadSchema>;
+  };
+  planExecution: Array<{
+    planArtifactId: string;
+    planType: "observation_snapshot" | "candidate_narrative" | "editorial_beat_map" |
+      "typography_motion_plan" | "framing_camera_plan" | "visual_plan" | "dialogue_audio_plan" |
+      "capability_selection" | "adapter_decision" | "art_direction_plan" | "context_assembly_plan" |
+      "shot_intent_matrix" | "text_opportunity_plan" | "revision_plan" | "text_chunk_plan" |
+      "text_placement_plan" | "text_animation_plan";
+    executionStatus: "native" | "governed_fallback";
+    nativeBranch: string | null;
+    fallback: string | null;
+  }>;
+};
+
+const maulUnifiedShortRenderManifestV3ObjectSchema: z.ZodObject<
+  z.ZodRawShape & {schemaVersion: z.ZodLiteral<"maul-unified-short-render-manifest/v3">},
+  "strip",
+  z.ZodTypeAny,
+  MaulUnifiedShortRenderManifestV3Contract,
+  any
+> =
   maulUnifiedShortRenderManifestV2ObjectSchema.extend({
     schemaVersion: z.literal("maul-unified-short-render-manifest/v3"),
     planArtifactIds: maulPlanningArtifactIdsV3Schema,
     layerPolicy: maulRenderLayerPolicySchema,
     audio: maulV3AudioSchema,
+    martinDepth: maulMartinDepthPlanSchema.optional(),
     plans: z.object({
       observationSnapshot: maulObservationSnapshotPayloadSchema,
       candidateNarrative: maulCandidateNarrativePayloadSchema,

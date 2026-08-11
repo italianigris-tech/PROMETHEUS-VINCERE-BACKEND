@@ -1,5 +1,6 @@
 import {execFile} from "node:child_process";
 import {createHash} from "node:crypto";
+import {existsSync} from "node:fs";
 import {readFile} from "node:fs/promises";
 import path from "node:path";
 import {fileURLToPath} from "node:url";
@@ -125,6 +126,28 @@ const defaultObservationScript = path.resolve(
   "../../../packages/trajectory-extractor/maul_observe.py",
 );
 
+const installedWindowsVisionPython = process.env.LOCALAPPDATA
+  ? path.join(
+      process.env.LOCALAPPDATA,
+      "Prometheus",
+      "maul-vision-py311",
+      "Scripts",
+      "python.exe",
+    )
+  : null;
+
+export const isMaulMediaObservationRuntimeConfigured = (): boolean =>
+  Boolean(process.env.MAUL_MEDIAPIPE_PYTHON_BIN?.trim()) ||
+  Boolean(installedWindowsVisionPython && existsSync(installedWindowsVisionPython));
+
+export const resolveMaulMediaObservationPythonBin = (): string =>
+  process.env.MAUL_MEDIAPIPE_PYTHON_BIN?.trim() ||
+  (installedWindowsVisionPython && existsSync(installedWindowsVisionPython)
+    ? installedWindowsVisionPython
+    : process.platform === "win32"
+      ? "python"
+      : "python3");
+
 const sha256 = (value: Buffer | string): string =>
   createHash("sha256").update(value).digest("hex");
 
@@ -143,7 +166,7 @@ const runObservationProcess = async ({
       [observationScript, ...args],
       {
         windowsHide: true,
-        timeout: 30_000,
+        timeout: 60_000,
         maxBuffer: 16 * 1024 * 1024,
         encoding: "utf8",
       },
@@ -168,7 +191,7 @@ export const runMaulMediaObservation = async ({
   outputWidth,
   outputHeight,
   sampleEveryFrames,
-  pythonBin = process.env.MAUL_MEDIAPIPE_PYTHON_BIN?.trim() || "python3",
+  pythonBin = resolveMaulMediaObservationPythonBin(),
   observationScript = defaultObservationScript,
 }: {
   sourcePath: string;
@@ -226,7 +249,8 @@ export const runMaulMediaObservation = async ({
 
   let parsedJson: unknown;
   try {
-    parsedJson = JSON.parse(stdout);
+    const payloadLine = stdout.trim().split(/\r?\n/u).at(-1) ?? "";
+    parsedJson = JSON.parse(payloadLine);
   } catch (error) {
     throw new Error(
       `MAUL MediaPipe observation output was not valid JSON: ${

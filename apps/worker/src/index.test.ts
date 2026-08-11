@@ -1,5 +1,5 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest';
-import {renderFromManifest, RenderError, MuxError, ValidationError} from './index.js';
+import {renderFromManifest, resolveRenderConcurrency, RenderError, MuxError, ValidationError} from './index.js';
 import {UnifiedRenderManifest} from '@prometheus/shared-types';
 import * as fs from 'fs';
 import * as child_process from 'child_process';
@@ -22,6 +22,11 @@ vi.mock('@prometheus/backend', () => ({
 }));
 
 describe('renderFromManifest', () => {
+  it('scales primary Remotion concurrency with CPU and useful frame work', () => {
+    expect(resolveRenderConcurrency({availableCpu: 8, durationFrames: 600})).toBe(7);
+    expect(resolveRenderConcurrency({availableCpu: 8, durationFrames: 120})).toBe(2);
+    expect(resolveRenderConcurrency({availableCpu: 2, durationFrames: 600})).toBe(1);
+  });
   let mockManifest: UnifiedRenderManifest;
 
   beforeEach(() => {
@@ -140,7 +145,7 @@ describe('renderFromManifest', () => {
       codec: 'h264',
       width: 1080,
       height: 1920,
-      concurrency: 1,
+      concurrency: expect.any(Number),
       timeoutInMilliseconds: 600000,
       gl: 'angle',
       hardwareAcceleration: 'if-possible',

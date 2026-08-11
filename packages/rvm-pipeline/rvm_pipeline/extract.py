@@ -11,6 +11,7 @@ from typing import Any, Iterable, Mapping, Sequence
 from urllib.parse import urlparse
 
 import cv2
+from imageio_ffmpeg import get_ffmpeg_exe
 import numpy as np
 import torch
 
@@ -18,12 +19,14 @@ import torch
 OUTPUT_ROOT = Path(os.getenv("RVM_OUTPUT_ROOT", "/tmp/prometheus-rvm"))
 MODEL_DIR = Path(os.getenv("RVM_MODEL_DIR", "/opt/models"))
 RVM_REPO = os.getenv("RVM_TORCHHUB_REPO", "PeterL1n/RobustVideoMatting")
+RVM_REPO_IS_LOCAL = os.getenv("RVM_REPO_IS_LOCAL", "0").lower() in {"1", "true", "yes"}
 RVM_VARIANT = os.getenv("RVM_VARIANT", "resnet50")
 RVM_WEIGHTS_NAME = os.getenv("RVM_WEIGHTS_NAME", "rvm_resnet50.pth")
 RVM_ALLOW_TORCHHUB_FALLBACK = os.getenv("RVM_ALLOW_TORCHHUB_FALLBACK", "1").lower() in {"1", "true", "yes"}
 RVM_REQUIRE_CUDA = os.getenv("RVM_REQUIRE_CUDA", "1").lower() in {"1", "true", "yes"}
 RVM_SEQ_CHUNK = max(1, int(os.getenv("RVM_SEQ_CHUNK", "12")))
 FFMPEG_LOGLEVEL = os.getenv("FFMPEG_LOGLEVEL", "error")
+FFMPEG_BINARY = os.getenv("FFMPEG_BINARY", get_ffmpeg_exe())
 DOWNLOAD_TIMEOUT_SECONDS = float(os.getenv("DOWNLOAD_TIMEOUT_SECONDS", "60"))
 MAX_INPUT_BYTES = int(os.getenv("MAX_INPUT_BYTES", str(1024 * 1024 * 1024)))
 
@@ -61,10 +64,11 @@ def _safe_job_id(job_id: str) -> str:
 
 
 def _run(command: Sequence[str]) -> None:
-    completed = subprocess.run(list(command), capture_output=True, check=False, text=True)
+    resolved = [FFMPEG_BINARY, *command[1:]] if command and command[0] == "ffmpeg" else list(command)
+    completed = subprocess.run(resolved, capture_output=True, check=False, text=True)
     if completed.returncode != 0:
         stderr = completed.stderr.strip() or completed.stdout.strip()
-        raise ExtractionError(f"command failed: {' '.join(command)}\n{stderr}")
+        raise ExtractionError(f"command failed: {' '.join(resolved)}\n{stderr}")
 
 
 def _parse_frame_rate(value: str) -> float | None:
@@ -213,7 +217,44 @@ def read_rgb_frames(frame_paths: Iterable[Path]) -> list[np.ndarray]:
     return frames
 
 
+def decode_video_frames(
+    video_path: Path,
+    *,
+    start_seconds: float,
+    duration_seconds: float,
+    width: int,
+    height: int,
+) -> list[np.ndarray]:
+    """Decode RGB directly from FFmpeg stdout; no RGB PNG write/read round trip."""
+    command = [
+        FFMPEG_BINARY,
+        "-hide_banner", "-loglevel", FFMPEG_LOGLEVEL,
+        "-ss", f"{start_seconds:.6f}",
+        "-t", f"{duration_seconds:.6f}",
+        "-i", str(video_path),
+        "-map", "0:v:0", "-an", "-vsync", "0",
+        "-pix_fmt", "rgb24", "-f", "rawvideo", "pipe:1",
+    ]
+    completed = subprocess.run(command, capture_output=True, check=False)
+    if completed.returncode != 0:
+        raise ExtractionError(completed.stderr.decode("utf-8", errors="replace").strip() or "ffmpeg RGB decode failed")
+    frame_bytes = width * height * 3
+    if not completed.stdout or len(completed.stdout) % frame_bytes != 0:
+        raise ExtractionError("ffmpeg returned an invalid raw RGB frame stream")
+    frame_count = len(completed.stdout) // frame_bytes
+    pixels = np.frombuffer(completed.stdout, dtype=np.uint8).reshape(frame_count, height, width, 3)
+    return [np.ascontiguousarray(frame) for frame in pixels]
+
+
 def _load_torchhub_model(pretrained: bool) -> Any:
+    if RVM_REPO_IS_LOCAL:
+        return torch.hub.load(
+            RVM_REPO,
+            RVM_VARIANT,
+            pretrained=pretrained,
+            progress=False,
+            source="local",
+        )
     try:
         return torch.hub.load(RVM_REPO, RVM_VARIANT, pretrained=pretrained, progress=False, trust_repo=True)
     except TypeError:
@@ -306,32 +347,38 @@ def write_alpha_frames(alpha_frames: Sequence[np.ndarray], alpha_dir: Path) -> l
     return paths
 
 
-def encode_transparent_webm(frames_dir: Path, alpha_dir: Path, output_path: Path, fps: float) -> Path:
+def encode_transparent_webm(
+    video_path: Path,
+    alpha_dir: Path,
+    output_path: Path,
+    fps: float,
+    start_seconds: float,
+    duration_seconds: float,
+    frame_count: int,
+) -> Path:
     _run([
         "ffmpeg",
         "-hide_banner",
         "-loglevel",
         FFMPEG_LOGLEVEL,
         "-y",
-        "-framerate",
-        f"{fps:.6f}",
-        "-i",
-        str(frames_dir / "frame_%06d.png"),
+        "-ss", f"{start_seconds:.6f}",
+        "-t", f"{duration_seconds:.6f}",
+        "-i", str(video_path),
         "-framerate",
         f"{fps:.6f}",
         "-i",
         str(alpha_dir / "alpha_%06d.png"),
         "-filter_complex",
-        "[0:v][1:v]alphamerge,format=yuva420p",
+        "[0:v]setpts=PTS-STARTPTS[rgb];[rgb][1:v]alphamerge,format=yuva420p",
+        "-frames:v", str(frame_count),
         "-an",
         "-c:v",
         "libvpx-vp9",
         "-b:v",
         "0",
-        "-crf",
-        "24",
-        "-auto-alt-ref",
-        "0",
+        "-q:v",
+        "8",
         "-pix_fmt",
         "yuva420p",
         str(output_path),
@@ -399,14 +446,22 @@ def extract_matte(
     if duration <= 0:
         raise ExtractionError("requested extraction duration is empty")
 
-    frame_paths = extract_video_frames(paths["input"], paths["frames"], start_seconds, duration)
-    frames = read_rgb_frames(frame_paths)
+    frames = decode_video_frames(
+        paths["input"],
+        start_seconds=start_seconds,
+        duration_seconds=duration,
+        width=probe.width,
+        height=probe.height,
+    )
     alpha_frames = run_rvm(frames)
     write_alpha_frames(alpha_frames, paths["alpha"])
-    encode_transparent_webm(paths["frames"], paths["alpha"], paths["matte"], probe.fps)
+    encode_transparent_webm(paths["input"],
+        paths["alpha"], paths["matte"], probe.fps,
+        start_seconds, duration, len(frames),
+    )
     extract_audio(paths["input"], paths["audio"], duration, probe.has_audio)
 
-    duration_in_frames = len(frame_paths)
+    duration_in_frames = len(frames)
     return ExtractionResult(
         job_id=job_id,
         matte_url=to_artifact_url(paths["matte"]),

@@ -746,42 +746,22 @@ export const createDefaultMaulTypographyProvider = (): MaulTypographyProvider =>
     const playfairPath = playfairAsset.localFilePath;
     const bebasPath = bebasAsset.localFilePath;
     const dmSerifPath = dmSerifAsset.localFilePath;
-    const playfair: GovernedTypographyFont = {
+    const playfair = fontFromResolvedAsset({
       role: "EDITORIAL_DISPLAY",
-      assetId: "font_google_playfair_display_700",
-      family: "Playfair Display",
-      weight: 700,
-      browserUrl: "/fonts/maul/playfair-display-700.woff2",
-      licensed: true,
-      rendererVerified: true,
-    };
-    const dmSans: GovernedTypographyFont = {
+      asset: playfairAsset,
+    });
+    const dmSans = fontFromResolvedAsset({
       role: "NEUTRAL_GROTESK",
-      assetId: "font_google_dm_sans_700",
-      family: "DM Sans",
-      weight: 700,
-      browserUrl: "/fonts/maul/dm-sans-700.woff2",
-      licensed: true,
-      rendererVerified: true,
-    };
-    const bebas: GovernedTypographyFont = {
+      asset: dmSansAsset,
+    });
+    const bebas = fontFromResolvedAsset({
       role: "EDITORIAL_DISPLAY",
-      assetId: "font_google_bebas_neue_400",
-      family: "Bebas Neue",
-      weight: 400,
-      browserUrl: "/fonts/maul/bebas-neue-400.woff2",
-      licensed: true,
-      rendererVerified: true,
-    };
-    const dmSerif: GovernedTypographyFont = {
+      asset: bebasAsset,
+    });
+    const dmSerif = fontFromResolvedAsset({
       role: "EDITORIAL_DISPLAY",
-      assetId: "font_google_dm_serif_display_400",
-      family: "DM Serif Display",
-      weight: 400,
-      browserUrl: "/fonts/maul/dm-serif-display-400.woff2",
-      licensed: true,
-      rendererVerified: true,
-    };
+      asset: dmSerifAsset,
+    });
     const createSystemProvider = ({
       display,
       displayPath,

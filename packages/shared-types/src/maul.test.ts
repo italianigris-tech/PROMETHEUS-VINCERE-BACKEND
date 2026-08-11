@@ -1873,6 +1873,45 @@ describe("MAUL shared contracts", () => {
     ).toThrow(/placement.*chunk.*token|token.*placement.*chunk/i);
   });
 
+  it("accepts a verified Martin depth receipt and rejects executable depth without alpha media", () => {
+    const withMartin = structuredClone(manifestV3) as any;
+    withMartin.martinDepth = {
+      schemaVersion: "maul-martin-depth/v1",
+      status: "ready",
+      selections: [{
+        segmentId: "placement_segment_a",
+        tokenId: "token_a",
+        reason: "bold_subject_overlap",
+        fontWeight: 400,
+        boldEvidence: "profile_visual_weight",
+        overlapRatio: 0.42,
+        outputStartMs: 0,
+        outputEndMs: 800,
+      }],
+      windows: [{
+        windowId: "martin-window-1",
+        sourceStartMs: 0,
+        sourceEndMs: 1800,
+        outputStartMs: 0,
+        outputEndMs: 1800,
+        foregroundAsset: {
+          assetId: "martin-foreground-1",
+          storagePath: "C:/matte/martin-window-1.webm",
+          sha256: "9".repeat(64),
+          format: "webm_vp9_alpha",
+          fps: 30,
+          width: 1080,
+          height: 1920,
+          durationInFrames: 54,
+        },
+      }],
+    };
+
+    expect(maulUnifiedShortRenderManifestV3Schema.parse(withMartin).martinDepth?.status).toBe("ready");
+    delete withMartin.martinDepth.windows[0].foregroundAsset;
+    expect(() => maulUnifiedShortRenderManifestV3Schema.parse(withMartin)).toThrow(/foreground|alpha|matte/i);
+  });
+
   it("keeps V1/V2 manifest readers exact and validates V3 animation references", () => {
     expect(
       maulUnifiedShortRenderManifestV1Schema.parse(manifestV1).planExecution,

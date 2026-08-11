@@ -89,7 +89,7 @@ describe("MAUL typography profile corpus", () => {
     ).toEqual(ranked.map((candidate) => candidate.profile.sourceSha256));
   });
 
-  it("only ranks exact word-count profiles and breaks perfect ties by recent reuse", () => {
+  it("prefers exact word-count profiles and breaks perfect ties by recent reuse", () => {
     const profiles = loadTypographyProfileCorpus();
     const base = profiles.find(
       (profile) =>
@@ -114,11 +114,30 @@ describe("MAUL typography profile corpus", () => {
       targetAspectRatio: "9:16",
       recentlyUsedProfileNames: [base!.profileName],
     });
-    expect(ranked.every((candidate) => candidate.wordDistance === 0)).toBe(true);
+    expect(ranked[0]!.wordDistance).toBe(0);
     expect(ranked[0]?.profile.sourceFilename).toBe("zz-reuse-clone.json");
     expect(
       ranked.find((candidate) => candidate.profile.profileName === base!.profileName)
         ?.recentProfileReusePenalty,
+    ).toBe(1);
+  });
+
+  it("adapts the nearest JSON grammar when a fast-paced chunk exceeds corpus word counts", () => {
+    const ranked = rankTypographyProfiles({
+      profiles: loadTypographyProfileCorpus(),
+      chunk: {
+        wordCount: 8,
+        characterCount: 39,
+        semanticRole: "claim",
+        emphasisLevel: "hero",
+      },
+      targetAspectRatio: "9:16",
+    });
+
+    expect(ranked.length).toBeGreaterThan(0);
+    expect(ranked[0]!.wordDistance).toBe(1);
+    expect(
+      Math.abs(ranked[0]!.profile.metadata.totalWordCount - 8),
     ).toBe(1);
   });
 

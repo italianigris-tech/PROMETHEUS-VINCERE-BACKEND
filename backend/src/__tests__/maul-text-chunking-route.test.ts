@@ -56,8 +56,18 @@ describe("MAUL text chunking preview route", () => {
       strategy: "deterministic_fallback",
       chunks: [
         {
-          text: "You do not need permission.",
+          text: "You",
           startWordIndex: 0,
+          endWordIndex: 0,
+        },
+        {
+          text: "do not",
+          startWordIndex: 1,
+          endWordIndex: 2,
+        },
+        {
+          text: "need permission.",
+          startWordIndex: 3,
           endWordIndex: 4,
         },
       ],

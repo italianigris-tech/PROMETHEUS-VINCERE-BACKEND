@@ -113,6 +113,44 @@ export class SupabaseSourceJobBridge {
     this.timer = null;
   }
 
+  public async runJobToCompletion(
+    durableJobId: string,
+    options: {pollIntervalMs?: number} = {}
+  ): Promise<{jobId: string; claimed: boolean; status: "finished" | "not_claimed"}> {
+    const jobId = durableJobId.trim();
+    if (!jobId) throw new Error("SOURCE_JOB_ID_REQUIRED");
+    if (!this.configured) throw new Error("SOURCE_JOB_BRIDGE_NOT_CONFIGURED");
+
+    let lease: Lease | null;
+    try {
+      lease = await this.rpc<Lease | null>("maul_lease_source_ingestion_by_job", {
+        p_durable_job_id: jobId,
+        p_worker_id: this.workerId,
+        p_lease_seconds: this.env.MAUL_SUPABASE_LEASE_SECONDS
+      });
+    } catch (error) {
+      const message = errorMessage(error);
+      if (!/PGRST202|404|could not find.*maul_lease_source_ingestion_by_job/i.test(message)) throw error;
+      lease = await this.rpc<Lease | null>("maul_lease_source_ingestion", {
+        p_worker_id: this.workerId,
+        p_lease_seconds: this.env.MAUL_SUPABASE_LEASE_SECONDS
+      });
+    }
+    if (!lease) return {jobId, claimed: false, status: "not_claimed"};
+
+    this.active.set(lease.ingestion.id, lease);
+    await this.materializeLease(lease);
+    const pollIntervalMs = Math.max(0, options.pollIntervalMs ?? this.env.MAUL_SUPABASE_POLL_INTERVAL_MS);
+    while (this.active.has(lease.ingestion.id)) {
+      if (pollIntervalMs > 0) {
+        await new Promise<void>((resolve) => setTimeout(resolve, pollIntervalMs));
+      }
+      const activeLease = this.active.get(lease.ingestion.id);
+      if (activeLease) await this.refreshActiveLease(activeLease);
+    }
+    return {jobId, claimed: true, status: "finished"};
+  }
+
   private async rpc<T>(name: string, body: JsonObject = {}): Promise<T> {
     const response = await this.fetchImpl(`${this.baseUrl}/rpc/${name}`, {
       method: "POST",

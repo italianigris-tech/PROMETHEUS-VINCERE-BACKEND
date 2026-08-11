@@ -145,10 +145,10 @@ const targetWordsForPacing = (
   request: ShortsTextChunkingRequest,
 ): number => {
   const target = {
-    slow: 8,
-    measured: 7,
-    fast: 5,
-    very_fast: 4,
+    slow: 4,
+    measured: 5,
+    fast: 6,
+    very_fast: 8,
   }[request.pacing];
   return Math.max(
     request.constraints.minWordsPerChunk,
@@ -167,57 +167,199 @@ const canPartitionWordCount = (
   return minimumChunkCount <= maximumChunkCount;
 };
 
+type GrammaticalRole =
+  | "DET"
+  | "ADJ"
+  | "NOUN"
+  | "AUX"
+  | "VERB"
+  | "PREP"
+  | "CONJ"
+  | "OTHER";
+
+const DETERMINERS = new Set([
+  "a", "an", "the", "this", "that", "these", "those",
+  "my", "your", "his", "her", "its", "our", "their",
+  "any", "some", "every", "all", "each", "no", "another", "which", "what",
+  "most", "many", "few", "more", "much", "less", "least"
+]);
+
+const AUXILIARY_VERBS = new Set([
+  "is", "am", "are", "was", "were", "be", "been", "being",
+  "do", "does", "did", "have", "has", "had",
+  "can", "could", "should", "would", "will", "might", "must", "may"
+]);
+
+const PREPOSITIONS = new Set([
+  "in", "on", "at", "to", "for", "with", "from", "of", "by", "about",
+  "into", "through", "during", "before", "after", "above", "below",
+  "between", "under", "over", "against", "without", "within", "around"
+]);
+
+const CONJUNCTIONS = new Set([
+  "and", "but", "or", "so", "yet", "nor", "because", "although", "while", "if"
+]);
+
+const PRONOUNS_AND_COMMON_NOUNS = new Set([
+  "brain", "organ", "people", "permission", "creators", "video", "content", "story",
+  "world", "form", "life", "time", "man", "human", "way", "day", "thing", "things",
+  "you", "they", "we", "he", "she", "it", "i", "me", "him", "them", "us", "who"
+]);
+
+const COMMON_ADJECTIVES = new Set([
+  "human", "form", "best", "great", "ready", "real", "quick", "slow", "first",
+  "last", "long", "short", "high", "low", "big", "small", "new", "old", "good",
+  "bad", "scared", "lazy", "better", "worse", "different", "same", "important"
+]);
+
+const classifyGrammaticalRole = (rawToken: string): GrammaticalRole => {
+  const token = cleanToken(rawToken);
+  if (!token) return "OTHER";
+  if (DETERMINERS.has(token)) return "DET";
+  if (AUXILIARY_VERBS.has(token)) return "AUX";
+  if (PREPOSITIONS.has(token)) return "PREP";
+  if (CONJUNCTIONS.has(token)) return "CONJ";
+  if (COMMON_ADJECTIVES.has(token) || /(?:al|ful|ic|ive|less|ous|able|ible|ish|ent|ant)$/.test(token)) {
+    return "ADJ";
+  }
+  if (PRONOUNS_AND_COMMON_NOUNS.has(token)) return "NOUN";
+  if (/(?:ing|ed|es|s)$/.test(token)) return "VERB";
+  return "NOUN";
+};
+
+const computeBoundaryScore = (
+  words: ShortsTextChunkingRequest["transcript"]["words"],
+  i: number,
+): {boundaryScore: number; syntaxScore: number} => {
+  const currentWord = words[i]!;
+  const nextWord = words[i + 1]!;
+
+  let punctScore = 0;
+  if (/[.!?]["')\]]?$/.test(currentWord.text)) {
+    punctScore = 25.0;
+  } else if (/[,;:]["')\]]?$/.test(currentWord.text)) {
+    punctScore = 10.0;
+  }
+
+  const gapMs = Math.max(0, nextWord.startMs - currentWord.endMs);
+  const pauseScore = Math.min(6.0, (gapMs / 150.0) * 2.0);
+
+  const role1 = classifyGrammaticalRole(currentWord.text);
+  const role2 = classifyGrammaticalRole(nextWord.text);
+
+  let syntaxScore = 0;
+
+  if (role1 === "DET" && (role2 === "ADJ" || role2 === "NOUN")) {
+    syntaxScore -= 9.0;
+  } else if (role1 === "ADJ" && role2 === "NOUN") {
+    syntaxScore -= 7.0;
+  } else if (role1 === "PREP" && (role2 === "DET" || role2 === "ADJ" || role2 === "NOUN")) {
+    syntaxScore -= 6.0;
+  } else if (role2 === "PREP") {
+    // Prepositional complements usually complete the phrase before them
+    // ("wait for permission", "build with focus"). Keep them attached even
+    // when the lightweight lexical classifier cannot identify the verb.
+    syntaxScore -= 6.0;
+  } else if (role1 === "AUX" && (role2 === "DET" || role2 === "ADJ")) {
+    syntaxScore -= 3.0;
+  }
+
+  if (role1 === "NOUN" && (role2 === "AUX" || role2 === "VERB")) {
+    syntaxScore += 4.0;
+  } else if (role1 === "AUX" && role2 === "DET") {
+    syntaxScore += 2.0;
+  } else if (role1 === "VERB" && (role2 === "DET" || role2 === "CONJ")) {
+    syntaxScore += 2.0;
+  } else if (role1 === "NOUN" && (role2 === "PREP" || role2 === "CONJ")) {
+    syntaxScore += 2.0;
+  }
+
+  const boundaryScore = punctScore + pauseScore + syntaxScore;
+  return {boundaryScore, syntaxScore};
+};
+
+const scoreChunkCandidate = (
+  words: ShortsTextChunkingRequest["transcript"]["words"],
+  start: number,
+  end: number,
+  targetWords: number,
+): number => {
+  const size = end - start + 1;
+
+  let internalCohesion = 0;
+  for (let k = start; k < end; k++) {
+    const {syntaxScore} = computeBoundaryScore(words, k);
+    if (syntaxScore < 0) {
+      internalCohesion += Math.abs(syntaxScore);
+    }
+  }
+
+  let boundaryBreakReward = 0;
+  if (end < words.length - 1) {
+    const {boundaryScore} = computeBoundaryScore(words, end);
+    boundaryBreakReward = boundaryScore;
+  } else {
+    boundaryBreakReward = 15.0;
+  }
+
+  const lengthPreference = -1.25 * Math.pow(size - targetWords, 2);
+
+  return internalCohesion + boundaryBreakReward + lengthPreference;
+};
+
 const proposalBoundaries = (
   request: ShortsTextChunkingRequest,
 ): Array<{startWordIndex: number; endWordIndex: number}> => {
-  const boundaries: Array<{startWordIndex: number; endWordIndex: number}> = [];
   const words = request.transcript.words;
+  if (words.length === 0) return [];
+
   const targetWords = targetWordsForPacing(request);
   const {minWordsPerChunk, maxWordsPerChunk} = request.constraints;
-  let startWordIndex = 0;
+  const n = words.length;
 
-  while (startWordIndex < words.length) {
-    const remainingWordCount = words.length - startWordIndex;
-    const feasibleSizes = Array.from(
-      {
-        length:
-          Math.min(maxWordsPerChunk, remainingWordCount) -
-          minWordsPerChunk +
-          1,
-      },
-      (_value, offset) => minWordsPerChunk + offset,
-    ).filter((size) =>
-      canPartitionWordCount(
-        remainingWordCount - size,
-        minWordsPerChunk,
-        maxWordsPerChunk,
-      ),
-    );
-    if (feasibleSizes.length === 0) {
-      throw new Error(
-        `The ${remainingWordCount} remaining transcript words cannot be partitioned into ${minWordsPerChunk}-${maxWordsPerChunk}-word chunks.`,
-      );
+  const dp = new Array<number>(n + 1).fill(-Infinity);
+  const nextChoice = new Array<number>(n + 1).fill(0);
+  dp[n] = 0;
+
+  for (let i = n - 1; i >= 0; i--) {
+    const remaining = n - i;
+    const maxPossibleSize = Math.min(maxWordsPerChunk, remaining);
+
+    let bestScore = -Infinity;
+    let bestSize = 0;
+
+    for (let size = minWordsPerChunk; size <= maxPossibleSize; size++) {
+      if (!canPartitionWordCount(remaining - size, minWordsPerChunk, maxWordsPerChunk)) {
+        continue;
+      }
+      if (dp[i + size] === -Infinity) continue;
+
+      const chunkScore = scoreChunkCandidate(words, i, i + size - 1, targetWords);
+      const totalScore = chunkScore + dp[i + size];
+
+      if (totalScore > bestScore) {
+        bestScore = totalScore;
+        bestSize = size;
+      }
     }
 
-    const preferredSizes = feasibleSizes
-      .filter((size) => size <= targetWords)
-      .sort((left, right) => right - left);
-    const rankedSizes = preferredSizes.length > 0
-      ? preferredSizes
-      : [...feasibleSizes].sort((left, right) => left - right);
-    const sentenceSize = [...rankedSizes]
-      .sort((left, right) => left - right)
-      .find((size) =>
-        /[.!?]["')\]]?$/.test(words[startWordIndex + size - 1]!.text),
-      );
-    const clauseSize = rankedSizes.find((size) =>
-      /[,;:]["')\]]?$/.test(words[startWordIndex + size - 1]!.text),
-    );
-    const selectedSize = sentenceSize ?? clauseSize ?? rankedSizes[0]!;
-    const endWordIndex = startWordIndex + selectedSize - 1;
+    if (bestSize > 0) {
+      dp[i] = bestScore;
+      nextChoice[i] = bestSize;
+    }
+  }
 
+  const boundaries: Array<{startWordIndex: number; endWordIndex: number}> = [];
+  let curr = 0;
+  while (curr < n) {
+    const size = nextChoice[curr];
+    if (!size || size === 0) {
+      throw new Error(`The ${n - curr} remaining transcript words cannot be partitioned.`);
+    }
+    const startWordIndex = curr;
+    const endWordIndex = curr + size - 1;
     boundaries.push({startWordIndex, endWordIndex});
-    startWordIndex = endWordIndex + 1;
+    curr += size;
   }
 
   return boundaries;

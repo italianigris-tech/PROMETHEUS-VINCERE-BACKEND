@@ -197,7 +197,6 @@ def main() -> None:
         fail("media_metadata_failed", "OpenCV returned invalid source FPS.")
 
     maximum_frame = max(0, int(math.floor((args.duration_ms / 1000.0) * fps)) - 1)
-    frame_indices = range(0, maximum_frame + 1, args.sample_every_frames)
     frames: list[dict[str, Any]] = []
     try:
         with mp.solutions.face_detection.FaceDetection(
@@ -210,11 +209,14 @@ def main() -> None:
             min_detection_confidence=0.45,
             min_tracking_confidence=0.45,
         ) as pose_detector:
-            for frame_index in frame_indices:
-                capture.set(cv2.CAP_PROP_POS_FRAMES, frame_index)
+            for frame_index in range(0, maximum_frame + 1):
+                if frame_index % args.sample_every_frames != 0:
+                    if not capture.grab():
+                        break
+                    continue
                 success, frame = capture.read()
                 if not success:
-                    continue
+                    break
                 rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 face_box = face_box_for(face_detector.process(rgb))
                 pose_landmarks = pose_landmarks_for(mp, pose_detector.process(rgb))

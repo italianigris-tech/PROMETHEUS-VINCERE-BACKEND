@@ -5,7 +5,8 @@ import type {
 } from "@prometheus/shared-types";
 
 const OUTPUT = {width: 1080, height: 1920} as const;
-const MINIMUM_PROFILE_WIDTH_PERCENT = 50;
+const MINIMUM_PROFILE_WIDTH_PERCENT = 70;
+const MINIMUM_HERO_FONT_SIZE_PX = 72;
 const SAFE_REGION: MaulNormalizedBox = {
   x: 0.04,
   y: 0.04,
@@ -109,11 +110,15 @@ export const selectTypographyProfilePlacement = ({
     maximumWidthPx,
     (OUTPUT.width * MINIMUM_PROFILE_WIDTH_PERCENT) / 100,
   );
+  const largestLayerFontSizePx = Math.max(
+    ...realization.layers.map((layer) => layer.fontSizePx),
+  );
   const uniformScale = Math.min(
     maximumScale,
     Math.max(
       1,
       minimumPresenceWidthPx / realization.intrinsicSizePx.width,
+      MINIMUM_HERO_FONT_SIZE_PX / largestLayerFontSizePx,
     ),
   );
   if (!Number.isFinite(uniformScale) || uniformScale <= 0) {

@@ -6,6 +6,7 @@ import {fileURLToPath} from "node:url";
 
 import {
   maulUnifiedShortRenderManifestSchema,
+  type MaulMartinDepthPlan,
   type MaulUnifiedShortRenderManifest,
 } from "@prometheus/shared-types";
 
@@ -96,6 +97,15 @@ export const resolveMaulRenderFrameRange = (
   }
   return [`--frames=${frameRange.startFrame}-${frameRange.endFrame}`];
 };
+
+export const resolveMaulMartinStageAssets = (
+  manifest: {martinDepth?: MaulMartinDepthPlan},
+): Array<{windowId: string; storagePath: string; sha256: string}> =>
+  manifest.martinDepth?.windows.map((window) => ({
+    windowId: window.windowId,
+    storagePath: window.foregroundAsset.storagePath,
+    sha256: window.foregroundAsset.sha256,
+  })) ?? [];
 
 const runRemotion = async ({
   executable,
@@ -218,6 +228,24 @@ export const renderMaulShortLocally: MaulShortRenderEngine = async (input) => {
         storagePath: `.maul-renders/${stageName}/${filename}`
       };
     }));
+    const martinDepth = input.manifest.schemaVersion === "maul-unified-short-render-manifest/v3"
+      ? input.manifest.martinDepth
+      : undefined;
+    const stagedMartinAssets = await Promise.all(
+      resolveMaulMartinStageAssets({martinDepth}).map(async (asset, index) => {
+        const bytes = await readFile(asset.storagePath);
+        const actualSha256 = createHash("sha256").update(bytes).digest("hex");
+        if (actualSha256 !== asset.sha256.toLowerCase()) {
+          throw new Error(`Martin foreground ${asset.windowId} failed render-time SHA-256 verification.`);
+        }
+        const filename = `martin-${index}${path.extname(asset.storagePath) || ".webm"}`;
+        await copyFile(asset.storagePath, path.join(publicStageDir, filename));
+        return {windowId: asset.windowId, storagePath: `.maul-renders/${stageName}/${filename}`};
+      }),
+    );
+    const stagedMartinPathByWindowId = new Map(
+      stagedMartinAssets.map((asset) => [asset.windowId, asset.storagePath]),
+    );
     const runtimeManifest: MaulUnifiedShortRenderManifest = maulUnifiedShortRenderManifestSchema.parse({
       ...input.manifest,
       source: {
@@ -232,6 +260,20 @@ export const renderMaulShortLocally: MaulShortRenderEngine = async (input) => {
         },
         sfxAssets: stagedSfx
       },
+      ...(martinDepth
+        ? {
+            martinDepth: {
+              ...martinDepth,
+              windows: martinDepth.windows.map((window) => ({
+                ...window,
+                foregroundAsset: {
+                  ...window.foregroundAsset,
+                  storagePath: stagedMartinPathByWindowId.get(window.windowId),
+                },
+              })),
+            },
+          }
+        : {}),
       plans: stagedVisualAssets
         ? {
             ...input.manifest.plans,

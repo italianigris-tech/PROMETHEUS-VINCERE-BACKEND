@@ -102,6 +102,18 @@ describe("MAUL MediaPipe observation adapter", () => {
     });
   });
 
+  it("accepts bounded MediaPipe setup progress before the JSON payload", async () => {
+    const script = validScript().replace(
+      "const sourceIndex",
+      'process.stdout.write("Downloading vision model...\\n");\nconst sourceIndex',
+    );
+    const input = await fixture(script);
+
+    const result = await run(input);
+
+    expect(result.detector.providerId).toBe("mediapipe_opencv");
+  });
+
   it("rejects malformed subprocess output", async () => {
     const input = await fixture('process.stdout.write("not-json");');
 

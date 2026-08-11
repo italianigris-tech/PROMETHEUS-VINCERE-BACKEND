@@ -267,17 +267,13 @@ export const createShortsTextChunkPlanner = ({
     plan: async (input) => {
       const request = shortsTextChunkingRequestSchema.parse(input);
       if (!config.apiKey) {
-        return buildDeterministicShortsTextChunkPlan({
+        return fallback({
           request,
-          inference: {
-            status: "invoked",
-            provider: "openai_compatible",
-            baseUrl: trimTrailingSlash(config.baseUrl),
-            model: config.model,
-            requestHash: sha256(JSON.stringify(request)),
-            responseHash: sha256("invoked_ai_semantic_chunker"),
-            fallbackReason: null,
-          },
+          config,
+          status: "skipped_missing_credentials",
+          requestHash: null,
+          responseHash: null,
+          reason: "MAUL chunking API key is not configured.",
         });
       }
       if (!acquireProviderSlot()) {

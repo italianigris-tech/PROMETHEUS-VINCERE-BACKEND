@@ -117,7 +117,20 @@ describe("MAUL frame motion compiler", () => {
     expect(tracking.phases.entry.from.trackingEm).not.toBe(0);
   });
 
-  it("rejects unknown treatments and intervals too short for positive phases", () => {
+  it("compiles a renderer-owned cinematic recipe for every one of the 53 sources", () => {
+    const programs = allIds.map(compile);
+    const signatures = programs.map((program) => JSON.stringify(program.visualRecipe));
+
+    expect(programs.every((program) => program.visualRecipe !== undefined)).toBe(true);
+    expect(new Set(signatures).size).toBe(53);
+    expect(compile("text-emphasis.underline-reveal").visualRecipe?.accent).toBe("underline");
+    expect(compile("text-emphasis.sweep-highlight").visualRecipe?.accent).toBe("highlight");
+    expect(compile("text-emphasis.semantic-glow").visualRecipe?.accent).toBe("glow");
+    expect(compile("accent-motion.bracket-lock").visualRecipe?.accent).toBe("bracket");
+    expect(compile("three_word_ref_build_legacy_your_v1").visualRecipe?.depthPx).toBeGreaterThan(0);
+  });
+
+  it("uses the assembled chunk hold for very short spoken words", () => {
     expect(() => compile("not-a-treatment")).toThrow(/unsupported.*treatment/i);
     const shortSpokenWord = compileMaulWordMotion({
       treatmentId: "generic_single_word",
@@ -135,6 +148,24 @@ describe("MAUL frame motion compiler", () => {
     expect(shortSpokenWord.phases.entry.startFrame).toBe(4);
     expect(shortSpokenWord.phases.exit.endFrame).toBe(8);
 
+    const heldShortWord = compileMaulWordMotion({
+      treatmentId: "generic_single_word",
+      token: {
+        tokenId: "token_held_short",
+        text: "a",
+        sourceStartMs: 0,
+        sourceEndMs: 40,
+      },
+      outputStartMs: 0,
+      outputEndMs: 40,
+      holdUntilMs: 400,
+      fps: 30,
+      placementSegmentId: "segment_a",
+    });
+    expect(heldShortWord.phases.entry.endFrame).toBe(1);
+    expect(heldShortWord.phases.hold.endFrame).toBe(11);
+    expect(heldShortWord.phases.exit.endFrame).toBe(12);
+
     expect(() => compileMaulWordMotion({
       treatmentId: "generic_single_word",
       token: {
@@ -147,6 +178,6 @@ describe("MAUL frame motion compiler", () => {
       outputEndMs: 40,
       fps: 30,
       placementSegmentId: "segment_a",
-    })).toThrow(/too short|positive.*phase/i);
+    })).toThrow(/no readable hold/i);
   });
 });

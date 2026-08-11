@@ -31,6 +31,8 @@ import {registerThumbnailRoutes} from "./thumbnail";
 import {registerRenderJobRoutes} from "./render-jobs/routes";
 import {MaulProjectStore} from "./maul/store";
 import {MaulProjectService} from "./maul/service";
+import {createRuntimeMediaObservationSceneEvidenceProvider} from "./maul/media-observation-placement";
+import {isMaulMediaObservationRuntimeConfigured} from "./maul/mediapipe-observation";
 import type {MaulShortRenderEngine} from "./maul/render-engine";
 import type {MaulThumbnailGenerator} from "./maul/thumbnail-generator";
 import type {MaulQualityTruthProofProvider} from "./maul/quality-truth";
@@ -352,7 +354,10 @@ export const createBackendApp = async ({
     deps?.maulQualityTruthProofProvider,
     maulTextChunkPlanner,
     undefined,
-    deps?.maulSceneEvidenceProvider,
+    deps?.maulSceneEvidenceProvider ??
+      (isMaulMediaObservationRuntimeConfigured()
+        ? createRuntimeMediaObservationSceneEvidenceProvider()
+        : undefined),
     deps?.maulPerceptualTruthProvider,
     deps?.maulTypographyProvider ?? createZillizMaulTypographyProvider(env),
     maulCreativeTreatmentPlanner,

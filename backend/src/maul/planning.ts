@@ -61,8 +61,11 @@ import {assertTypographyProfileManifestLineage} from "./typography-profile-manif
 import {buildMaulVisualTrack} from "./visual-track.js";
 import {
   compileMaulWordMotion,
+  compileMaulWordVisibilityBridge,
   getMaulMotionCapability,
+  type MotionFamily,
 } from "./frame-motion-compiler.js";
+import {routeMaulWordMotion} from "./word-motion-router.js";
 
 export {hashMaulPlanPayload} from "./text-chunk-plan.js";
 
@@ -377,6 +380,13 @@ export const buildMaulTextAnimationPlanPayload = ({
     ]) ?? [],
   );
   let previousSupportingTreatment: MaulTextAnimationTreatment | null = null;
+  let previousWordTreatment: MaulTextAnimationTreatment | null = null;
+  let previousWordFamily: MotionFamily | null = null;
+  const usedWordTreatments = new Set<MaulTextAnimationTreatment>();
+  const wordMotionByTokenId = new Map<
+    string,
+    ReturnType<typeof routeMaulWordMotion>
+  >();
   const programs = textPlacementPlan.payload.segments.flatMap<MaulTextAnimationProgram>((segment) => {
     const durationMs = segment.outputEndMs - segment.outputStartMs;
     const chunk = chunkById.get(segment.chunkId);
@@ -432,6 +442,22 @@ export const buildMaulTextAnimationPlanPayload = ({
     if (hasAuthoritativeTokenTiming) {
       return timedTokens.flatMap((token) => {
         if (!token) return [];
+        const isSemanticEmphasis = chunk.emphasis.tokenIds.includes(token.tokenId);
+        let wordMotion = wordMotionByTokenId.get(token.tokenId);
+        if (!wordMotion) {
+          wordMotion = routeMaulWordMotion({
+            seed: `${selectionSeed ?? inputs.candidate.artifactId}:${token.tokenId}`,
+            emphasisLevel: chunk.emphasis.level,
+            isEmphasized: isSemanticEmphasis,
+            previousTreatment: previousWordTreatment,
+            previousFamily: previousWordFamily,
+            usedTreatments: usedWordTreatments,
+          });
+          wordMotionByTokenId.set(token.tokenId, wordMotion);
+          previousWordTreatment = wordMotion.treatmentId;
+          previousWordFamily = wordMotion.family;
+          usedWordTreatments.add(wordMotion.treatmentId);
+        }
         const relevantSpans = token.outputSpans.flatMap((span, spanIndex) => {
           const outputStartMs = Math.max(segment.outputStartMs, span.outputStartMs);
           const outputEndMs = Math.min(segment.outputEndMs, span.outputEndMs);
@@ -440,28 +466,26 @@ export const buildMaulTextAnimationPlanPayload = ({
             : [];
         });
         if (relevantSpans.length === 0) {
-          throw new Error(
-            `Animation ${segment.segmentId} has no output span for stable token ${token.tokenId}.`,
-          );
-        }
-        return relevantSpans.map(({outputStartMs, outputEndMs, spanIndex}) => {
-          const frameMotion = compileMaulWordMotion({
-            treatmentId: selectedTreatment,
+          const frameMotion = compileMaulWordVisibilityBridge({
+            treatmentId: wordMotion.treatmentId,
             token: {
               tokenId: token.tokenId,
               text: token.text,
               sourceStartMs: token.sourceStartMs,
               sourceEndMs: token.sourceEndMs,
             },
-            outputStartMs,
-            outputEndMs,
+            outputStartMs: segment.outputStartMs,
+            outputEndMs: segment.outputEndMs,
             fps,
             placementSegmentId: segment.segmentId,
+            visibility: token.outputEndMs <= segment.outputStartMs
+              ? "settled"
+              : "pending",
           });
           const toOutputMs = (frame: number) => Math.round((frame / fps) * 1000);
-          return {
-            animationId: `maul_text_animation_${segment.segmentId}_${token.tokenId}_${spanIndex}`,
-            treatment: selectedTreatment,
+          return [{
+            animationId: `maul_text_animation_${segment.segmentId}_${token.tokenId}_bridge`,
+            treatment: wordMotion.treatmentId,
             executorId: frameMotion.executorId,
             frameMotion,
             target: {
@@ -492,7 +516,59 @@ export const buildMaulTextAnimationPlanPayload = ({
                 to: identityTransform,
               },
             },
-            rationale: `Execute ${selectedTreatment} for stable token ${token.tokenId} from its authoritative transcript interval.${treatmentSelectionNote}`,
+            rationale: `Preserve ${token.tokenId} as a ${token.outputEndMs <= segment.outputStartMs ? "settled" : "pending"} visibility bridge without replaying its routed word animation.`,
+          }];
+        }
+        return relevantSpans.map(({outputStartMs, outputEndMs, spanIndex}) => {
+          const frameMotion = compileMaulWordMotion({
+            treatmentId: wordMotion.treatmentId,
+            token: {
+              tokenId: token.tokenId,
+              text: token.text,
+              sourceStartMs: token.sourceStartMs,
+              sourceEndMs: token.sourceEndMs,
+            },
+            outputStartMs,
+            outputEndMs,
+            holdUntilMs: segment.outputEndMs,
+            fps,
+            placementSegmentId: segment.segmentId,
+          });
+          const toOutputMs = (frame: number) => Math.round((frame / fps) * 1000);
+          return {
+            animationId: `maul_text_animation_${segment.segmentId}_${token.tokenId}_${spanIndex}`,
+            treatment: wordMotion.treatmentId,
+            executorId: frameMotion.executorId,
+            frameMotion,
+            target: {
+              scope: "tokens" as const,
+              placementSegmentId: segment.segmentId,
+              tokenIds: [token.tokenId],
+            },
+            phases: {
+              entry: {
+                outputStartMs: toOutputMs(frameMotion.phases.entry.startFrame),
+                outputEndMs: toOutputMs(frameMotion.phases.entry.endFrame),
+                easing: frameMotion.phases.entry.easing,
+                from: identityTransform,
+                to: identityTransform,
+              },
+              hold: {
+                outputStartMs: toOutputMs(frameMotion.phases.hold.startFrame),
+                outputEndMs: toOutputMs(frameMotion.phases.hold.endFrame),
+                easing: frameMotion.phases.hold.easing,
+                from: identityTransform,
+                to: identityTransform,
+              },
+              exit: {
+                outputStartMs: toOutputMs(frameMotion.phases.exit.startFrame),
+                outputEndMs: toOutputMs(frameMotion.phases.exit.endFrame),
+                easing: frameMotion.phases.exit.easing,
+                from: identityTransform,
+                to: identityTransform,
+              },
+            },
+            rationale: `Execute ${wordMotion.treatmentId} for stable token ${token.tokenId} from its authoritative transcript interval as ${wordMotion.tier === "cinematic_emphasis" ? "cinematic semantic emphasis" : "supporting word motion"}; ${selectedTreatment} remains the chunk-level stylistic anchor.${treatmentSelectionNote}`,
           };
         });
       });

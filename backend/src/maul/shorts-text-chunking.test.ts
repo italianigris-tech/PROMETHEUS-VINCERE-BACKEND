@@ -312,4 +312,82 @@ describe("MAUL shorts text chunking", () => {
       }),
     ).toThrow(/unrecognized|rationale|confidence/i);
   });
+
+  it("applies directed dynamic semantic chunking to keep cohesive noun phrases intact", () => {
+    const semanticRequest: ShortsTextChunkingRequest = {
+      transcript: {
+        language: "en",
+        text: "The human brain is a form organ.",
+        words: [
+          {text: "The", startMs: 0, endMs: 150, confidence: 0.99},
+          {text: "human", startMs: 160, endMs: 350, confidence: 0.99},
+          {text: "brain", startMs: 360, endMs: 600, confidence: 0.99},
+          {text: "is", startMs: 650, endMs: 800, confidence: 0.99},
+          {text: "a", startMs: 810, endMs: 900, confidence: 0.99},
+          {text: "form", startMs: 910, endMs: 1100, confidence: 0.99},
+          {text: "organ.", startMs: 1110, endMs: 1400, confidence: 0.99},
+        ],
+      },
+      videoDurationMs: 5000,
+      pacing: "fast",
+      style: "cinematic",
+      editorialContext: {
+        platform: null,
+        objective: null,
+        audience: null,
+        notes: null,
+      },
+      constraints: {
+        minWordsPerChunk: 1,
+        maxWordsPerChunk: 4,
+        preserveEveryWord: true,
+      },
+    };
+
+    const plan = buildDeterministicShortsTextChunkPlan({
+      request: semanticRequest,
+      inference: fallbackInference,
+    });
+
+    const chunkTexts = plan.chunks.map((c) => c.text);
+    expect(chunkTexts[0]).toBe("The human brain");
+    expect(plan.coverage.exact).toBe(true);
+  });
+
+  it("holds a complete eight-word thought together at very fast speech pacing", () => {
+    const words = "Build the system before the market moves again.".split(" ");
+    const plan = buildDeterministicShortsTextChunkPlan({
+      request: {
+        transcript: {
+          language: "en",
+          text: words.join(" "),
+          words: words.map((text, index) => ({
+            text,
+            startMs: index * 105,
+            endMs: index * 105 + 95,
+            confidence: 0.99,
+          })),
+        },
+        videoDurationMs: 2_000,
+        pacing: "very_fast",
+        style: "cinematic",
+        editorialContext: {
+          platform: "instagram_reels",
+          objective: "retention",
+          audience: null,
+          notes: null,
+        },
+        constraints: {
+          minWordsPerChunk: 1,
+          maxWordsPerChunk: 8,
+          preserveEveryWord: true,
+        },
+      },
+      inference: fallbackInference,
+    });
+
+    expect(plan.chunks.map((chunk) => chunk.text)).toEqual([
+      "Build the system before the market moves again.",
+    ]);
+  });
 });

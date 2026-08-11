@@ -510,11 +510,11 @@ describe("MAUL scene-aware text placement", () => {
       compositionIntervals: [composition()],
       observationIntervals: [
         observation({
-          subjectBox: {x: 0.37, y: 0.12, width: 0.28, height: 0.68},
+          subjectBox: {x: 0.02, y: 0.12, width: 0.1, height: 0.68},
           backgroundLuminanceGrid: {
-            columns: 2,
-            rows: 2,
-            samples: [0.04, 0.04, 0.04, 0.04],
+            columns: 12,
+            rows: 20,
+            samples: Array(240).fill(0.04),
           },
         }),
       ],

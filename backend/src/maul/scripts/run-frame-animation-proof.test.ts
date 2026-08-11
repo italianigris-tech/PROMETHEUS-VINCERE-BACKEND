@@ -5,6 +5,7 @@ import path from "node:path";
 import {afterEach, describe, expect, it, vi} from "vitest";
 
 import {
+  FRAME_ANIMATION_PROOF_LAYER_POLICY,
   assertFrameAnimationProofPlan,
   resolveFrameAnimationProofTranscript,
 } from "./run-frame-animation-proof";
@@ -24,6 +25,19 @@ const fixtureWords = [
 ];
 
 describe("MAUL frame-animation proof runner", () => {
+  it("declares typography as the only added visual layer", () => {
+    expect(FRAME_ANIMATION_PROOF_LAYER_POLICY).toMatchObject({
+      baseVideo: "required",
+      typography: "required",
+      sourceTreatment: "disabled",
+      sourceLegibilityOverlay: "disabled",
+      editorialCuts: "disabled",
+      transitions: "disabled",
+      backgroundAnimation: "disabled",
+      motionGraphics: "disabled",
+    });
+  });
+
   it("uses AssemblyAI when a key is supplied and preserves timed words", async () => {
     const transcribe = vi.fn(async () => fixtureWords.map((word) => ({
       text: word.text,
@@ -46,7 +60,7 @@ describe("MAUL frame-animation proof runner", () => {
     expect(result.words).toEqual(fixtureWords);
   });
 
-  it("uses an explicit persisted transcript when AssemblyAI is unavailable", async () => {
+  it("prefers an explicit persisted transcript even when AssemblyAI is configured", async () => {
     const directory = await mkdtemp(path.join(os.tmpdir(), "maul-frame-proof-"));
     temporaryDirectories.push(directory);
     const transcriptPath = path.join(directory, "transcript.json");
@@ -57,13 +71,21 @@ describe("MAUL frame-animation proof runner", () => {
       text: "Make ideas matter",
       words: fixtureWords,
     }));
+    const transcribe = vi.fn(async () => fixtureWords.map((word) => ({
+      text: word.text,
+      start_ms: word.startMs,
+      end_ms: word.endMs,
+      confidence: word.confidence,
+    })));
 
     const result = await resolveFrameAnimationProofTranscript({
       mediaPath: "/tmp/source.mp4",
       transcriptPath,
-      assemblyAiApiKey: "",
+      assemblyAiApiKey: "configured-but-must-not-run",
+      transcribe,
     });
 
+    expect(transcribe).not.toHaveBeenCalled();
     expect(result.source).toBe("offline_fixture");
     expect(result.text).toBe("Make ideas matter");
     expect(result.words).toHaveLength(3);

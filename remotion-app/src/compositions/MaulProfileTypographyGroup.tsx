@@ -76,7 +76,8 @@ export const MaulProfileTypographyGroup: React.FC<{
   record: MaulPlannedTextRecord;
   segmentAnimation?: MaulTextAnimationTransform | null;
   outputFrame?: number;
-}> = ({record, segmentAnimation, outputFrame}) => {
+  visibleTokenIds?: ReadonlySet<string>;
+}> = ({record, segmentAnimation, outputFrame, visibleTokenIds}) => {
   const realization = record.profileRealization;
   const profileTransform = record.profileTransform;
   if (!realization || !profileTransform) {
@@ -84,12 +85,6 @@ export const MaulProfileTypographyGroup: React.FC<{
       `MAUL profile renderer requires realization and transform for ${record.segmentId}.`,
     );
   }
-  const resolvedColorsByLayerName = new Map(
-    (record.profileColorResolution?.layers ?? []).map((layer) => [
-      layer.layerName,
-      layer.resolvedColor,
-    ]),
-  );
   for (const layer of realization.layers) {
     ensureProfileFontLoaded(layer.selectedAsset);
   }
@@ -135,6 +130,7 @@ export const MaulProfileTypographyGroup: React.FC<{
             tokenTextById,
           });
           const renderToken = (piece: Extract<ProfileTextPiece, {kind: "token"}>) => {
+            const visible = !visibleTokenIds || visibleTokenIds.has(piece.tokenId);
             const resolvedMotion = resolveMaulFrameMotionForToken({
               programs: animationPrograms,
               tokenId: piece.tokenId,
@@ -144,18 +140,34 @@ export const MaulProfileTypographyGroup: React.FC<{
               <React.Fragment key={`${layer.layerName}:${piece.tokenId}`}>
                 {resolvedMotion ? (
                   <span
+                    {...(visible
+                      ? {"data-maul-depth-token": piece.tokenId}
+                      : {"data-maul-depth-hidden-token": piece.tokenId})}
                     data-maul-frame-motion-executor={resolvedMotion.frameMotion.executorId}
                     data-maul-frame-motion-treatment={resolvedMotion.frameMotion.sourceTreatment}
                     data-maul-frame-motion-token={resolvedMotion.frameMotion.tokenId}
                     data-maul-frame-motion-unit={resolvedMotion.frameMotion.unit}
-                    style={maulFrameMotionStyle(
-                      resolvedMotion.transform,
-                      layer.letterSpacingEm,
-                    )}
+                    style={{
+                      ...maulFrameMotionStyle(
+                        resolvedMotion.transform,
+                        layer.letterSpacingEm,
+                      ),
+                      isolation: "isolate",
+                      visibility: visible ? "visible" : "hidden",
+                    }}
+                >
+                    {piece.text}
+                  </span>
+                ) : (
+                  <span
+                    {...(visible
+                      ? {"data-maul-depth-token": piece.tokenId}
+                      : {"data-maul-depth-hidden-token": piece.tokenId})}
+                    style={{visibility: visible ? "visible" : "hidden"}}
                   >
                     {piece.text}
                   </span>
-                ) : piece.text}
+                )}
               </React.Fragment>
             );
           };
@@ -170,7 +182,7 @@ export const MaulProfileTypographyGroup: React.FC<{
               style={{
                 width: "100%",
                 marginTop: layer.marginTopPx,
-                color: (() => { const res = resolvedColorsByLayerName.get(layer.layerName) || layer.color; return /^#?(111111|333333|000000|1a1a1a|222222|0f0f0f|2b2b2b)$/i.test(res.trim()) ? "#FFFFFF" : res; })(),
+                color: layer.color,
                 fontFamily: layer.selectedAsset.cssFamily,
                 fontSize: layer.fontSizePx,
                 fontWeight: layer.selectedAsset.weight,

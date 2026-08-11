@@ -163,6 +163,7 @@ export const createTypographyProfileCompiler = ({
       }
       try {
         const compiledChunks: CompiledChunkTypography[] = [];
+        const recentlyUsedProfileNames: string[] = [];
         for (const chunk of input.chunks) {
           const selectionStarted = performance.now();
           const ranked = rankTypographyProfiles({
@@ -174,10 +175,15 @@ export const createTypographyProfileCompiler = ({
               emphasisLevel: chunk.emphasisLevel,
             },
             targetAspectRatio: input.targetAspectRatio,
+            recentlyUsedProfileNames,
           });
           const selected = ranked[0];
           if (!selected) {
             throw new Error("Typography profile corpus produced no candidates.");
+          }
+          recentlyUsedProfileNames.push(selected.profile.profileName);
+          if (recentlyUsedProfileNames.length > 8) {
+            recentlyUsedProfileNames.shift();
           }
           const selectionMs = performance.now() - selectionStarted;
 

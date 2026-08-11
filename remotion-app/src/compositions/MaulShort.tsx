@@ -8,11 +8,12 @@ import { Audio, Video } from "@remotion/media";
 import type {
   MaulEditorialTimelinePayload,
   MaulFramingCameraPlanPayload,
+  MaulMartinDepthPlan,
   MaulNormalizedBox,
   MaulTreatmentGenomePayload,
   MaulUnifiedShortRenderManifest,
   MaulUnifiedShortRenderManifestV1,
-  type MaulRenderLayerPolicy,
+  MaulRenderLayerPolicy,
 } from "@prometheus/shared-types";
 import {
   joinShortsTextTokens,
@@ -33,7 +34,122 @@ import {MaulVisualTrack} from "./MaulVisualTrack";
 import {
   adaptMaulShortManifest,
   buildMaulPlannedRenderModel,
+  type MaulPlannedSourceSequence,
 } from "./maul-short-manifest-adapter";
+
+export const resolveMaulMartinTokenPasses = (
+  plan: MaulMartinDepthPlan | undefined,
+  allTokenIds: readonly string[],
+): {behind: Set<string>; front: Set<string>} => {
+  const behind = new Set(
+    plan && (plan.status === "ready" || plan.status === "supplied")
+      ? plan.selections.map((selection) => selection.tokenId)
+      : [],
+  );
+  return {
+    behind,
+    front: new Set(allTokenIds.filter((tokenId) => !behind.has(tokenId))),
+  };
+};
+
+export const resolveMaulMartinForegroundSequences = (
+  plan: MaulMartinDepthPlan | undefined,
+  fps: number,
+  sourceSequences?: readonly MaulPlannedSourceSequence[],
+): Array<{
+  windowId: string;
+  from: number;
+  durationInFrames: number;
+  foregroundAsset: string;
+  trimBefore?: number;
+  trimAfter?: number;
+  playbackRate?: number;
+  compositionIntervalId?: string;
+  cropCenterXPercent?: number;
+  cropCenterYPercent?: number;
+  crop?: MaulNormalizedBox;
+  scale?: {x: number; y: number};
+  sourceViewport?: MaulNormalizedBox;
+}> => plan?.windows.flatMap((window) => {
+  const windowFrom = Math.round(window.outputStartMs / 1000 * fps);
+  const windowEnd = Math.round(window.outputEndMs / 1000 * fps);
+  if (!sourceSequences) {
+    return [{
+      windowId: window.windowId,
+      from: windowFrom,
+      durationInFrames: Math.max(1, windowEnd - windowFrom),
+      foregroundAsset: window.foregroundAsset.storagePath,
+    }];
+  }
+  const windowSourceFrom = Math.round(window.sourceStartMs / 1000 * fps);
+  return sourceSequences.flatMap((sourceSequence) => {
+    const intersectionFrom = Math.max(windowFrom, sourceSequence.from);
+    const intersectionEnd = Math.min(
+      windowEnd,
+      sourceSequence.from + sourceSequence.durationInFrames,
+    );
+    if (intersectionEnd <= intersectionFrom) return [];
+    const trimBefore = Math.round(
+      sourceSequence.trimBefore +
+      (intersectionFrom - sourceSequence.from) * sourceSequence.playbackRate -
+      windowSourceFrom,
+    );
+    const durationInFrames = intersectionEnd - intersectionFrom;
+    return [{
+      windowId: window.windowId,
+      from: intersectionFrom,
+      durationInFrames,
+      foregroundAsset: window.foregroundAsset.storagePath,
+      trimBefore: Math.max(0, trimBefore),
+      trimAfter: Math.max(1, trimBefore + Math.round(durationInFrames * sourceSequence.playbackRate)),
+      playbackRate: sourceSequence.playbackRate,
+      compositionIntervalId: sourceSequence.compositionIntervalId,
+      cropCenterXPercent: sourceSequence.cropCenterXPercent,
+      cropCenterYPercent: sourceSequence.cropCenterYPercent,
+      crop: sourceSequence.crop,
+      scale: sourceSequence.scale,
+      sourceViewport: sourceSequence.sourceViewport,
+    }];
+  });
+}) ?? [];
+
+const MaulMartinForegroundLayer: React.FC<{
+  plan: MaulMartinDepthPlan;
+  sourceSequences: readonly MaulPlannedSourceSequence[];
+  motionAmplitude: number;
+  cameraEvents?: MaulCameraScaleEvent[];
+  sourceFilter: string;
+}> = ({plan, sourceSequences, motionAmplitude, cameraEvents, sourceFilter}) => {
+  const {fps} = useVideoConfig();
+  return (
+    <>
+      {resolveMaulMartinForegroundSequences(plan, fps, sourceSequences).map((window) => (
+        <Sequence key={`${window.windowId}-${window.from}`} from={window.from} durationInFrames={window.durationInFrames}>
+          <AbsoluteFill data-maul-martin-foreground-window={window.windowId} style={{pointerEvents: "none"}}>
+            <SourceSegment
+              sourceAsset={window.foregroundAsset}
+              trimBefore={window.trimBefore ?? 0}
+              trimAfter={window.trimAfter ?? window.durationInFrames}
+              playbackRate={window.playbackRate ?? 1}
+              cropCenterPercent={window.cropCenterXPercent ?? 50}
+              cropCenterYPercent={window.cropCenterYPercent ?? 50}
+              motionAmplitude={motionAmplitude}
+              sourceFilter={sourceFilter}
+              globalFrameOffset={window.from}
+              cameraEvents={cameraEvents}
+              compositionScale={window.scale}
+              sourceViewport={window.sourceViewport}
+              plannedCrop={window.crop}
+              paddedNonSourceRegions={[]}
+              background="transparent"
+              compositionIntervalId={window.compositionIntervalId}
+            />
+          </AbsoluteFill>
+        </Sequence>
+      ))}
+    </>
+  );
+};
 
 export const MaulPaddedSourceRegions: React.FC<{
   regions: MaulNormalizedBox[];
@@ -57,6 +173,11 @@ export const MaulPaddedSourceRegions: React.FC<{
     ))}
   </>
 );
+
+export const resolveMaulPaddedSourceRegions = (
+  regions: readonly MaulNormalizedBox[],
+  sourceLegibilityOverlayEnabled: boolean,
+): MaulNormalizedBox[] => sourceLegibilityOverlayEnabled ? [...regions] : [];
 
 export const buildMaulPlannedSourceVideoStyle = ({
   crop,
@@ -923,6 +1044,19 @@ export const MaulShort: React.FC<MaulShortProps> = ({
     0.42,
     Math.pow(10, treatment.rendererInputs.audio.duckingDb / 20),
   );
+  const martinDepth =
+    adaptedManifest.mode === "planned" &&
+    adaptedManifest.manifest.schemaVersion === "maul-unified-short-render-manifest/v3"
+      ? adaptedManifest.manifest.martinDepth
+      : undefined;
+  const martinTokenPasses = martinDepth && plannedModel
+    ? resolveMaulMartinTokenPasses(
+        martinDepth,
+        plannedModel.textRecords.flatMap((record) =>
+          record.lines.flatMap((line) => line.tokens.map((token) => token.tokenId)),
+        ),
+      )
+    : undefined;
 
   return (
     <AbsoluteFill
@@ -985,7 +1119,10 @@ export const MaulShort: React.FC<MaulShortProps> = ({
             compositionScale={segment.scale}
             sourceViewport={segment.sourceViewport}
             plannedCrop={segment.crop}
-            paddedNonSourceRegions={segment.paddedNonSourceRegions}
+            paddedNonSourceRegions={resolveMaulPaddedSourceRegions(
+              segment.paddedNonSourceRegions,
+              renderSourceOverlay,
+            )}
             background={visualStyle.background}
             compositionIntervalId={segment.compositionIntervalId}
           />
@@ -1007,15 +1144,41 @@ export const MaulShort: React.FC<MaulShortProps> = ({
       {shouldRenderMaulTypography(observationMode)
         ? plannedModel
           ? (
-              <MaulPlannedTextLayer
-                records={plannedModel.textRecords}
-                textColor={visualStyle.captionText}
-                accentColor={visualStyle.captionAccent}
-                creativeTreatment={creativeTreatment}
-                referenceEditorialRhythm={
-                  manifest.plans?.artDirection?.referenceEditorialRhythm
-                }
-              />
+              martinDepth && martinTokenPasses ? (
+                <>
+                  <MaulPlannedTextLayer
+                    records={plannedModel.textRecords}
+                    textColor={visualStyle.captionText}
+                    accentColor={visualStyle.captionAccent}
+                    creativeTreatment={creativeTreatment}
+                    referenceEditorialRhythm={manifest.plans?.artDirection?.referenceEditorialRhythm}
+                    visibleTokenIds={martinTokenPasses.behind}
+                  />
+                  <MaulMartinForegroundLayer
+                    plan={martinDepth}
+                    sourceSequences={plannedModel.sourceSequences}
+                    motionAmplitude={renderBackgroundAnimation ? visualStyle.motionAmplitude : 0}
+                    cameraEvents={renderBackgroundAnimation ? governedCameraEvents : undefined}
+                    sourceFilter={renderSourceTreatment ? visualStyle.sourceFilter ?? "none" : "none"}
+                  />
+                  <MaulPlannedTextLayer
+                    records={plannedModel.textRecords}
+                    textColor={visualStyle.captionText}
+                    accentColor={visualStyle.captionAccent}
+                    creativeTreatment={creativeTreatment}
+                    referenceEditorialRhythm={manifest.plans?.artDirection?.referenceEditorialRhythm}
+                    visibleTokenIds={martinTokenPasses.front}
+                  />
+                </>
+              ) : (
+                <MaulPlannedTextLayer
+                  records={plannedModel.textRecords}
+                  textColor={visualStyle.captionText}
+                  accentColor={visualStyle.captionAccent}
+                  creativeTreatment={creativeTreatment}
+                  referenceEditorialRhythm={manifest.plans?.artDirection?.referenceEditorialRhythm}
+                />
+              )
             )
           : (
               <MaulCaptionLayer

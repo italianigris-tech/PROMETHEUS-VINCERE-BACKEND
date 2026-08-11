@@ -76,20 +76,81 @@ describe("MAUL typography profile realization", () => {
     expect(realization.intrinsicSizePx.height).toBeGreaterThan(0);
   });
 
-  it("rejects a token stream that cannot satisfy the profile layer partition", () => {
+  it("adapts a multi-layer JSON grammar to one cinematic focus word", () => {
     const profile = loadTypographyProfileCorpus().find(
       (candidate) => candidate.sourceFilename === "image (31).json",
     );
     expect(profile).toBeDefined();
     if (!profile) return;
 
-    expect(() =>
-      compileTypographyProfileRealization({
-        profile,
-        tokens: [{tokenId: "only", text: "I"}],
-        bindingsByLayerName: new Map(),
-        measureToken: () => ({widthPx: 1, heightPx: 1}),
+    const assets = loadExecutableTypographyFontAssets();
+    const bindingsByLayerName = new Map(
+      profile.layers.map((layer) => [
+        layer.layerName,
+        resolveTypographyProfileLayer({
+          layer,
+          profileMood: profile.metadata.overallMood,
+          executableAssets: assets,
+        }),
+      ]),
+    );
+    const realization = compileTypographyProfileRealization({
+      profile,
+      tokens: [{tokenId: "only", text: "FOCUS"}],
+      bindingsByLayerName,
+      measureToken: ({text, fontSizePx}) => ({
+        widthPx: text.length * fontSizePx * 0.5,
+        heightPx: fontSizePx,
       }),
-    ).toThrow(/token count/i);
+    });
+
+    expect(realization.layers).toHaveLength(1);
+    expect(realization.layers[0]!.tokenIds).toEqual(["only"]);
+    expect(realization.layers[0]!.fontSizePx).toBe(
+      Math.max(
+        ...profile.layers.map((layer) => layer.fontStyle.sizePxBase),
+      ),
+    );
+  });
+
+  it("preserves authoritative JSON layer sizes without role-based restyling", () => {
+    const profile = loadTypographyProfileCorpus().find(
+      (candidate) => candidate.sourceFilename === "image (7).json",
+    );
+    expect(profile).toBeDefined();
+    if (!profile) return;
+
+    const assets = loadExecutableTypographyFontAssets();
+    const bindingsByLayerName = new Map(
+      profile.layers.map((layer) => [
+        layer.layerName,
+        resolveTypographyProfileLayer({
+          layer,
+          profileMood: profile.metadata.overallMood,
+          executableAssets: assets,
+        }),
+      ]),
+    );
+    const realization = compileTypographyProfileRealization({
+      profile,
+      tokens: [
+        {tokenId: "t1", text: "editing"},
+        {tokenId: "t2", text: "styles"},
+        {tokenId: "t3", text: "in"},
+        {tokenId: "t4", text: "long"},
+        {tokenId: "t5", text: "form"},
+      ],
+      bindingsByLayerName,
+      measureToken: ({text, fontSizePx}) => ({
+        widthPx: text.length * fontSizePx * 0.5,
+        heightPx: fontSizePx,
+      }),
+    });
+
+    expect(realization.layers.map((layer) => layer.fontSizePx)).toEqual([
+      12,
+      54,
+      68,
+    ]);
   });
 });

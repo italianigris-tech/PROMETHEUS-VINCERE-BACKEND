@@ -51,6 +51,42 @@ const envelopeSchema = z.object({
   maxBlurPx: z.number().nonnegative().max(24),
 }).strict();
 
+export type MaulFrameMotionVisualRecipe = {
+  family: "rise" | "blur_lift" | "focus_lock" | "split" | "arc" | "dual_rise" | "orbit" |
+    "blade" | "script_glide" | "banner" | "outline" | "depth" | "chromatic" | "stagger" |
+    "mask" | "impact" | "drop" | "elastic" | "fog" | "typing" | "underline" | "highlight" |
+    "capsule" | "marker" | "glow" | "weight" | "handoff" | "bracket" | "rail" | "drift";
+  variant: number;
+  accent: "none" | "underline" | "highlight" | "capsule" | "marker" | "glow" | "bracket" |
+    "rail" | "outline" | "chromatic" | "shade";
+  depthPx: number;
+  shadowPx: number;
+  skewDeg: number;
+  strokeWidthPx: number;
+  colorSplitPx: number;
+  shadeOpacity: number;
+};
+
+export const maulFrameMotionVisualRecipeSchema: z.ZodType<MaulFrameMotionVisualRecipe> = z.object({
+  family: z.enum([
+    "rise", "blur_lift", "focus_lock", "split", "arc", "dual_rise", "orbit",
+    "blade", "script_glide", "banner", "outline", "depth", "chromatic", "stagger",
+    "mask", "impact", "drop", "elastic", "fog", "typing", "underline", "highlight",
+    "capsule", "marker", "glow", "weight", "handoff", "bracket", "rail", "drift",
+  ]),
+  variant: z.number().int().min(0).max(52),
+  accent: z.enum([
+    "none", "underline", "highlight", "capsule", "marker", "glow", "bracket",
+    "rail", "outline", "chromatic", "shade",
+  ]),
+  depthPx: z.number().min(0).max(80),
+  shadowPx: z.number().min(0).max(48),
+  skewDeg: z.number().min(-18).max(18),
+  strokeWidthPx: z.number().min(0).max(8),
+  colorSplitPx: z.number().min(0).max(18),
+  shadeOpacity: z.number().min(0).max(0.8),
+}).strict();
+
 export const maulFrameMotionProgramSchema = z.object({
   schemaVersion: z.literal("maul-frame-motion/v1"),
   executorId: z.string().trim().min(1),
@@ -66,6 +102,7 @@ export const maulFrameMotionProgramSchema = z.object({
     exit: maulFrameMotionPhaseSchema,
   }).strict(),
   envelope: envelopeSchema,
+  visualRecipe: maulFrameMotionVisualRecipeSchema.optional(),
 }).strict().superRefine((program, ctx) => {
   const {entry, hold, exit} = program.phases;
   if (hold.startFrame < entry.endFrame || exit.startFrame < hold.endFrame) {

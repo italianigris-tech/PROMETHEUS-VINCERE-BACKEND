@@ -71,6 +71,21 @@ export type RenderFromManifestOptions = {
   tempDir?: string;
   sfxDir?: string;
   sourceVideoPath?: string;
+  renderConcurrency?: number;
+};
+
+export const resolveRenderConcurrency = ({
+  availableCpu,
+  durationFrames,
+  configuredConcurrency,
+}: {
+  availableCpu: number;
+  durationFrames: number;
+  configuredConcurrency?: number;
+}): number => {
+  const cpuBudget = configuredConcurrency ?? Math.max(1, Math.floor(availableCpu) - 1);
+  const usefulParallelism = Math.max(1, Math.ceil(durationFrames / 90));
+  return Math.max(1, Math.min(8, cpuBudget, usefulParallelism));
 };
 
 const shouldRetryRender = (error: Error) => {
@@ -203,6 +218,17 @@ export async function renderFromManifest(
   const finalVideoPath = path.join(tmpDir, `${validatedManifest.jobId}_final.mp4`);
   const browserExecutable = resolveBrowserExecutable();
   const inputProps = {manifest: validatedManifest, audioPreviewEnabled: false};
+  const renderConcurrency = resolveRenderConcurrency({
+    availableCpu: typeof os.availableParallelism === 'function'
+      ? os.availableParallelism()
+      : os.cpus().length,
+    durationFrames: validatedManifest.durationFrames,
+    configuredConcurrency: options.renderConcurrency ?? (
+      process.env.PROMETHEUS_RENDER_CONCURRENCY
+        ? Number.parseInt(process.env.PROMETHEUS_RENDER_CONCURRENCY, 10)
+        : undefined
+    ),
+  });
 
   const cleanupTempFiles = () => {
     removeIfPresent(silentVideoPath);
@@ -243,7 +269,7 @@ export async function renderFromManifest(
       height: validatedManifest.height,
       inputProps,
       gl: 'angle',
-      concurrency: 1,
+      concurrency: renderConcurrency,
       timeoutInMilliseconds: RENDER_TIMEOUT_MS,
       browserExecutable,
       hardwareAcceleration: 'if-possible',

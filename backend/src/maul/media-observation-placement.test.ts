@@ -1,7 +1,10 @@
 import {describe, expect, it} from "vitest";
 
 import type {MaulMediaObservationResult} from "./mediapipe-observation.js";
-import {createMediaObservationSceneEvidenceProvider} from "./media-observation-placement.js";
+import {
+  createMediaObservationSceneEvidenceProvider,
+  createRuntimeMediaObservationSceneEvidenceProvider,
+} from "./media-observation-placement.js";
 import {sceneEvidenceToPlacementInputs} from "./scene-evidence.js";
 
 const grid = (luminance: number) => ({
@@ -48,6 +51,45 @@ const observation = (): MaulMediaObservationResult => ({
 });
 
 describe("MAUL media observation placement bridge", () => {
+  it("runs MediaPipe observations on demand instead of silently using unknown geometry", async () => {
+    const requests: unknown[] = [];
+    const provider = createRuntimeMediaObservationSceneEvidenceProvider({
+      runObservation: async (request) => {
+        requests.push(request);
+        return observation();
+      },
+      sampleEveryFrames: 12,
+      maximumInterpolationGapMs: 600,
+    });
+
+    const evidence = await provider.inspect({
+      sourcePath: "/tmp/source.mp4",
+      beats: [{beatId: "beat_hook", startMs: 0, endMs: 1_000, purpose: "HOOK"}],
+      timestampMap: [{
+        sourceStartMs: 0,
+        sourceEndMs: 1_200,
+        outputStartMs: 0,
+        outputEndMs: 1_200,
+        mode: "keep",
+      }],
+      speakerCropTracks: [],
+    });
+
+    expect(requests).toEqual([expect.objectContaining({
+      sourcePath: "/tmp/source.mp4",
+      durationMs: 1_200,
+      outputWidth: 1_080,
+      outputHeight: 1_920,
+      sampleEveryFrames: 12,
+    })]);
+    expect(evidence.status).toBe("available");
+    if (evidence.status !== "available") return;
+    expect(evidence.holds.map((hold) => [hold.outputStartMs, hold.outputEndMs])).toEqual([
+      [0, 1_000],
+      [1_000, 1_200],
+    ]);
+  });
+
   it("maps real observation frames into clear and controlled-overlap opportunities", async () => {
     const provider = createMediaObservationSceneEvidenceProvider({
       observation: observation(),

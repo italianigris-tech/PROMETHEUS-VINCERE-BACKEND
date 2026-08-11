@@ -30,6 +30,32 @@ const chunk = ({
 });
 
 describe("MAUL typography profile compiler", () => {
+  it("does not repeat a comparable font-JSON profile on adjacent chunks", async () => {
+    const base = loadTypographyProfileCorpus().find(
+      (profile) => profile.metadata.totalWordCount === 3,
+    )!;
+    const alternate = {
+      ...structuredClone(base),
+      profileName: `${base.profileName}_Alternate`,
+      sourceFilename: `zz-${base.sourceFilename}`,
+      sourceSha256: "f".repeat(64),
+    };
+    const compiler = createTypographyProfileCompiler({profiles: [base, alternate]});
+
+    const result = await compiler.compile({
+      chunks: [
+        chunk({chunkId: "chunk_one", text: "Make ideas move"}),
+        chunk({chunkId: "chunk_two", text: "Build stories faster"}),
+      ],
+      targetAspectRatio: "9:16",
+      maximumLineWidthPx: 410,
+    });
+
+    expect(result.status).toBe("available");
+    if (result.status !== "available") return;
+    expect(new Set(result.bindings.map((binding) => binding.profile.name)).size).toBe(2);
+  });
+
   it("compiles independent authoritative bindings with real measured fonts", async () => {
     const corpus = loadTypographyProfileCorpus();
     const profiles = corpus.filter((profile) =>
@@ -141,6 +167,39 @@ describe("MAUL typography profile compiler", () => {
       ),
     ).toBe(true);
     expect(result.bindings[0]!.layers[0]!.requestedFamilies).toContain("Inter");
+  });
+
+  it("keeps an eight-word fast-paced chunk on JSON-backed typography", async () => {
+    const compiler = createTypographyProfileCompiler();
+    const inputChunk = chunk({
+      chunkId: "chunk_fast_eight",
+      text: "Build the system before the market moves again",
+      semanticRole: "claim",
+      emphasisLevel: "hero",
+    });
+
+    const result = await compiler.compile({
+      chunks: [inputChunk],
+      targetAspectRatio: "9:16",
+      maximumLineWidthPx: 820,
+    });
+
+    expect(
+      result.status,
+      result.status === "unavailable" ? result.reason : undefined,
+    ).toBe("available");
+    if (result.status !== "available") return;
+    expect(result.bindings[0]).toMatchObject({
+      counts: {
+        actualWordCount: 8,
+        wordDistance: 1,
+      },
+      selectionStatus: "selected",
+    });
+    expect(result.bindings[0]!.counts.observedWordCount).not.toBe(8);
+    expect(
+      result.bindings[0]!.realization?.layers.flatMap((layer) => layer.tokenIds),
+    ).toEqual(inputChunk.tokens.map((token) => token.tokenId));
   });
 
   it("returns a governed unavailable result when no font can execute", async () => {

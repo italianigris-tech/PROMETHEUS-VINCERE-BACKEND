@@ -31,6 +31,84 @@ const baseProps = {
 };
 
 describe("MAUL Remotion short composition", () => {
+  it("splits selected Martin tokens behind the subject while all others stay in front", async () => {
+    const module = await import("../MaulShort").catch(() => null);
+    expect(module).not.toBeNull();
+    if (!module) return;
+
+    const passes = module.resolveMaulMartinTokenPasses({
+      schemaVersion: "maul-martin-depth/v1",
+      status: "ready",
+      selections: [
+        {segmentId: "segment-1", tokenId: "ive", reason: "bold_subject_overlap", fontWeight: 800, overlapRatio: 0.4, outputStartMs: 0, outputEndMs: 1000},
+      ],
+      windows: [{windowId: "w1", sourceStartMs: 0, sourceEndMs: 2000, outputStartMs: 0, outputEndMs: 2000,
+        foregroundAsset: {assetId: "fg", storagePath: ".maul-renders/r/fg.webm", sha256: "a".repeat(64), format: "webm_vp9_alpha", fps: 30, width: 1080, height: 1920, durationInFrames: 60}}],
+    } as any, ["ive", "done"]);
+
+    expect([...passes.behind]).toEqual(["ive"]);
+    expect([...passes.front]).toEqual(["done"]);
+  }, 30_000);
+
+  it("frame-locks every returned alpha micro-window without changing the base video", async () => {
+    const module = await import("../MaulShort").catch(() => null);
+    expect(module).not.toBeNull();
+    if (!module) return;
+    const plan = {
+      status: "ready",
+      windows: [{windowId: "w1", outputStartMs: 1000, outputEndMs: 3000,
+        foregroundAsset: {storagePath: ".maul-renders/r/w1.webm"}}],
+    } as any;
+    expect(module.resolveMaulMartinForegroundSequences(plan, 30)).toEqual([{
+      windowId: "w1", from: 30, durationInFrames: 60, foregroundAsset: ".maul-renders/r/w1.webm",
+    }]);
+  }, 30_000);
+
+  it("replays the planned source crop and trim on Martin foreground intersections", async () => {
+    const module = await import("../MaulShort").catch(() => null);
+    expect(module).not.toBeNull();
+    if (!module) return;
+    const plan = {
+      status: "ready",
+      windows: [{
+        windowId: "w1",
+        sourceStartMs: 1000,
+        sourceEndMs: 5000,
+        outputStartMs: 1000,
+        outputEndMs: 5000,
+        foregroundAsset: {storagePath: ".maul-renders/r/w1.webm"},
+      }],
+    } as any;
+    const crop = {x: 0.2, y: 0.1, width: 0.6, height: 0.8};
+    const sequences = [{
+      from: 60,
+      durationInFrames: 60,
+      trimBefore: 60,
+      trimAfter: 120,
+      playbackRate: 1,
+      compositionIntervalId: "composition-1",
+      cropCenterXPercent: 50,
+      cropCenterYPercent: 50,
+      crop,
+      scale: {x: 1.1, y: 1.1},
+      sourceViewport: {x: 0, y: 0, width: 1, height: 1},
+      sourceOccupancy: [],
+      paddedNonSourceRegions: [],
+    }];
+
+    expect(module.resolveMaulMartinForegroundSequences(plan, 30, sequences)).toEqual([expect.objectContaining({
+      windowId: "w1",
+      from: 60,
+      durationInFrames: 60,
+      foregroundAsset: ".maul-renders/r/w1.webm",
+      trimBefore: 30,
+      trimAfter: 90,
+      crop,
+      scale: {x: 1.1, y: 1.1},
+      compositionIntervalId: "composition-1",
+    })]);
+  }, 30_000);
+
   it("renders V3 audio because this render path has no backend master mux", async () => {
     const module = await import("../MaulShort").catch(() => null);
     expect(module).not.toBeNull();
@@ -65,6 +143,10 @@ describe("MAUL Remotion short composition", () => {
     expect(module.shouldRenderMaulLayer(policy, "backgroundAnimation")).toBe(false);
     expect(module.shouldRenderMaulLayer(policy, "motionGraphics")).toBe(false);
     expect(module.shouldRenderMaulLayer(policy, "audioTreatment")).toBe(false);
+    expect(module.resolveMaulPaddedSourceRegions(
+      [{x: 0.08, y: 0.74, width: 0.84, height: 0.14}],
+      module.shouldRenderMaulLayer(policy, "sourceLegibilityOverlay"),
+    )).toEqual([]);
   });
 
   it("suppresses only typography for canonical observation controls", async () => {

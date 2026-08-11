@@ -247,6 +247,10 @@ describe("MAUL typography layout", () => {
       fontResolution: {
         selectedFamily: "DM Sans",
         selectedAssetId: "font_google_dm_sans_700",
+        selectedAsset: {
+          assetId: "font_google_dm_sans_700",
+          family: "DM Sans",
+        },
         accentAsset: {
           assetId: "font_google_great_vibes_400",
           family: "Great Vibes",
@@ -261,6 +265,10 @@ describe("MAUL typography layout", () => {
       fontResolution: {
         selectedFamily: "Playfair Display",
         selectedAssetId: "font_google_playfair_display_700",
+        selectedAsset: {
+          assetId: "font_google_playfair_display_700",
+          family: "Playfair Display",
+        },
       },
       evidenceIds: expect.arrayContaining([
         expect.stringMatching(/^font_measurement_[a-f0-9]{64}$/),

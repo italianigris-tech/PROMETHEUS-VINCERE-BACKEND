@@ -1,7 +1,8 @@
 import type {MaulNormalizedBox} from "@prometheus/shared-types";
 
-import type {
-  MaulMediaObservationResult,
+import {
+  runMaulMediaObservation,
+  type MaulMediaObservationResult,
 } from "./mediapipe-observation.js";
 import type {
   SceneEvidenceHold,
@@ -210,6 +211,50 @@ const opportunitiesForSubject = (
 const sourceFrameId = (frame: ObservationFrame): string =>
   `mediapipe@${frame.sourceMs}`;
 
+const coverageBeatsFor = (
+  input: SceneEvidenceProviderInput,
+): SceneEvidenceProviderInput["beats"] => {
+  const keptIntervals = input.timestampMap?.filter(
+    (interval) => interval.mode !== "cut" && interval.outputEndMs > interval.outputStartMs,
+  );
+  if (!keptIntervals || keptIntervals.length === 0) return input.beats;
+  const orderedBeats = [...input.beats].sort(
+    (left, right) => left.startMs - right.startMs || left.endMs - right.endMs,
+  );
+  return keptIntervals.flatMap((interval, intervalIndex) => {
+    const covered: SceneEvidenceProviderInput["beats"] = [];
+    let cursor = interval.outputStartMs;
+    const intersecting = orderedBeats.filter(
+      (beat) => beat.endMs > interval.outputStartMs && beat.startMs < interval.outputEndMs,
+    );
+    for (const beat of intersecting) {
+      const startMs = Math.max(cursor, interval.outputStartMs, beat.startMs);
+      const endMs = Math.min(interval.outputEndMs, beat.endMs);
+      if (startMs > cursor) {
+        covered.push({
+          beatId: `mediapipe_coverage_${intervalIndex}_${cursor}_${startMs}`,
+          startMs: cursor,
+          endMs: startMs,
+          purpose: covered.at(-1)?.purpose ?? beat.purpose,
+        });
+      }
+      if (endMs > startMs) {
+        covered.push({...beat, startMs, endMs});
+        cursor = Math.max(cursor, endMs);
+      }
+    }
+    if (cursor < interval.outputEndMs) {
+      covered.push({
+        beatId: `mediapipe_coverage_${intervalIndex}_${cursor}_${interval.outputEndMs}`,
+        startMs: cursor,
+        endMs: interval.outputEndMs,
+        purpose: covered.at(-1)?.purpose ?? "SETUP",
+      });
+    }
+    return covered;
+  });
+};
+
 const holdForBeat = ({
   input,
   frames,
@@ -299,7 +344,7 @@ export const createMediaObservationSceneEvidenceProvider = ({
       const outputMs = outputMsForSource(input.timestampMap, frame.sourceMs);
       return outputMs === null ? [] : [{...frame, outputMs}];
     });
-    const holds = input.beats.map((beat, index) =>
+    const holds = coverageBeatsFor(input).map((beat, index) =>
       holdForBeat({
         input,
         frames,
@@ -322,5 +367,51 @@ export const createMediaObservationSceneEvidenceProvider = ({
       providerVersion: `${observation.detector.mediapipeVersion}+${observation.detector.opencvVersion}`,
       holds: holds as SceneEvidenceHold[],
     };
+  },
+});
+
+export const createRuntimeMediaObservationSceneEvidenceProvider = ({
+  runObservation = runMaulMediaObservation,
+  sampleEveryFrames = 12,
+  maximumInterpolationGapMs = 600,
+}: {
+  runObservation?: typeof runMaulMediaObservation;
+  sampleEveryFrames?: number;
+  maximumInterpolationGapMs?: number;
+} = {}): SceneEvidenceProvider => ({
+  async inspect(input): Promise<SceneEvidenceTimeline> {
+    const durationMs = Math.ceil(Math.max(
+      0,
+      ...(input.timestampMap?.map((interval) => interval.sourceEndMs) ?? []),
+      ...input.beats.map((beat) => beat.endMs),
+    ));
+    if (durationMs <= 0) {
+      return {
+        status: "unavailable",
+        providerId: "unavailable",
+        reason: "MediaPipe runtime observation requires a positive source interval.",
+      };
+    }
+    try {
+      const observation = await runObservation({
+        sourcePath: input.sourcePath,
+        durationMs,
+        outputWidth: 1_080,
+        outputHeight: 1_920,
+        sampleEveryFrames,
+      });
+      return createMediaObservationSceneEvidenceProvider({
+        observation,
+        maximumInterpolationGapMs,
+      }).inspect(input);
+    } catch (error) {
+      return {
+        status: "unavailable",
+        providerId: "unavailable",
+        reason: `MediaPipe runtime observation failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      };
+    }
   },
 });

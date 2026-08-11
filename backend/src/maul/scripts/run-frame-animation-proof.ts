@@ -5,7 +5,10 @@ import path from "node:path";
 import {fileURLToPath} from "node:url";
 import {promisify} from "node:util";
 
-import {joinShortsTextTokens} from "@prometheus/shared-types";
+import {
+  joinShortsTextTokens,
+  type MaulRenderLayerPolicy,
+} from "@prometheus/shared-types";
 import {z} from "zod";
 
 import {transcribeWithAssemblyAI} from "../../integrations/assemblyai.js";
@@ -23,6 +26,20 @@ const defaultTranscriptPath = path.join(
   "backend/src/maul/fixtures/frame-animation-proof-transcript.json",
 );
 const defaultOutputDir = path.join(repoRoot, "artifacts/maul-frame-animation-proof");
+
+export const FRAME_ANIMATION_PROOF_LAYER_POLICY: MaulRenderLayerPolicy = {
+  baseVideo: "required",
+  typography: "required",
+  sourceTreatment: "disabled",
+  sourceLegibilityOverlay: "disabled",
+  editorialCuts: "disabled",
+  transitions: "disabled",
+  backgroundAnimation: "disabled",
+  motionGraphics: "disabled",
+  // The legacy proof still supplies a silent contract track. The production
+  // proof replaces this with audioTreatment=disabled and a null music track.
+  audioTreatment: "enabled",
+};
 
 const proofWordSchema = z.object({
   text: z.string().trim().min(1),
@@ -86,6 +103,12 @@ export const resolveFrameAnimationProofTranscript = async ({
   transcribe?: ProofTranscriber;
   onActivity?: (detail: string) => void | Promise<void>;
 }): Promise<FrameAnimationProofTranscript> => {
+  if (transcriptPath && await isReadableFile(transcriptPath)) {
+    return proofTranscriptSchema.parse(
+      JSON.parse(await readFile(transcriptPath, "utf8")),
+    );
+  }
+
   if (assemblyAiApiKey.trim()) {
     const rawWords = await transcribe({
       filePath: mediaPath,
@@ -106,11 +129,6 @@ export const resolveFrameAnimationProofTranscript = async ({
     });
   }
 
-  if (transcriptPath && await isReadableFile(transcriptPath)) {
-    return proofTranscriptSchema.parse(
-      JSON.parse(await readFile(transcriptPath, "utf8")),
-    );
-  }
   throw new Error(
     "Frame-animation proof requires AssemblyAI credentials or an explicit persisted timed transcript.",
   );
@@ -269,7 +287,7 @@ const createSilentContractTrack = async ({
 
 export type FrameAnimationProofResult = {
   outputDirectory: string;
-  videoPath: string;
+  videoPath: string | null;
   manifestPath: string;
   transcriptPath: string;
   diagnosticsPath: string;
@@ -284,11 +302,15 @@ export const runFrameAnimationProof = async ({
   transcriptPath,
   outputDirectory = defaultOutputDir,
   assemblyAiApiKey = process.env.ASSEMBLYAI_API_KEY ?? "",
+  planOnly = false,
+  renderConcurrency = 6,
 }: {
   mediaPath?: string;
   transcriptPath?: string;
   outputDirectory?: string;
   assemblyAiApiKey?: string;
+  planOnly?: boolean;
+  renderConcurrency?: number;
 } = {}): Promise<FrameAnimationProofResult> => {
   const resolvedMediaPath = path.resolve(mediaPath);
   const resolvedOutputDirectory = path.resolve(outputDirectory);
@@ -302,9 +324,9 @@ export const runFrameAnimationProof = async ({
     throw new Error("Frame-animation proof output cannot be a repository or filesystem root.");
   }
   const media = await probeProofMedia(resolvedMediaPath);
-  if (media.durationMs < 9_000 || media.durationMs > 10_500) {
+  if (media.durationMs < 9_000 || media.durationMs > 20_500) {
     throw new Error(
-      `Frame-animation launch proof requires a 10-second source; received ${media.durationMs}ms.`,
+      `Frame-animation launch proof requires a 10-20 second source; received ${media.durationMs}ms.`,
     );
   }
   const transcript = await resolveFrameAnimationProofTranscript({
@@ -340,15 +362,36 @@ export const runFrameAnimationProof = async ({
   ]);
 
   const mediaBytes = await readFile(resolvedMediaPath);
-  const [{createBackendApp}, {renderMaulShortLocally}] = await Promise.all([
+  const [
+    {createBackendApp},
+    {renderMaulShortLocally},
+    {runMaulMediaObservation},
+    {createMediaObservationSceneEvidenceProvider},
+  ] = await Promise.all([
     import("../../app.js"),
     import("../render-engine.js"),
+    import("../mediapipe-observation.js"),
+    import("../media-observation-placement.js"),
   ]);
+  const mediaObservation = await runMaulMediaObservation({
+    sourcePath: resolvedMediaPath,
+    durationMs: media.durationMs,
+    outputWidth: 1_080,
+    outputHeight: 1_920,
+    sampleEveryFrames: 12,
+  });
+  const sceneEvidenceProvider = createMediaObservationSceneEvidenceProvider({
+    observation: mediaObservation,
+    maximumInterpolationGapMs: 600,
+  });
   const context = await createBackendApp({
     storageDir: storageDirectory,
+    deps: {maulSceneEvidenceProvider: sceneEvidenceProvider},
     envOverrides: {
       ASSEMBLYAI_API_KEY: "",
       ASSET_MILVUS_ENABLED: "false",
+      MAUL_CHUNKING_LLM_API_KEY: "",
+      MAUL_CREATIVE_PLANNER_API_KEY: "",
     },
   });
   try {
@@ -418,6 +461,22 @@ export const runFrameAnimationProof = async ({
         treatmentGenomeArtifactId: treatment.artifactId,
       },
     );
+    if (planning.plans.artDirection.payload.sceneEvidence.status !== "available") {
+      throw new Error(
+        `Frame-animation proof refuses unknown face geometry: ${
+          planning.plans.artDirection.payload.sceneEvidence.reason ?? "MediaPipe scene evidence unavailable"
+        }`,
+      );
+    }
+    const unsafeFallback = planning.plans.textPlacement.payload.segments.find(
+      (segment) => segment.fallbackCode === "caption_safe_fallback" ||
+        segment.selectedCompositionVariantId === "caption_safe_fallback",
+    );
+    if (unsafeFallback) {
+      throw new Error(
+        `Frame-animation proof refuses caption fallback ${unsafeFallback.segmentId} when MediaPipe evidence is required.`,
+      );
+    }
     const planReceipt = assertFrameAnimationProofPlan({
       tokens: planning.plans.textChunk.payload.tokens,
       segments: planning.plans.textPlacement.payload.segments,
@@ -429,6 +488,7 @@ export const runFrameAnimationProof = async ({
         candidateArtifactId: candidate.artifactId,
         treatmentGenomeArtifactId: treatment.artifactId,
         planningBundleArtifactId: planning.planningBundle.artifactId,
+        layerPolicy: FRAME_ANIMATION_PROOF_LAYER_POLICY,
         musicTrack: {
           id: "maul_frame_animation_silent_track",
           title: "Frame animation proof silent contract track",
@@ -443,6 +503,49 @@ export const runFrameAnimationProof = async ({
         sfxAssets: [],
       },
     );
+    const videoPath = path.join(resolvedOutputDirectory, "maul-frame-animation-proof.mp4");
+    const manifestPath = path.join(resolvedOutputDirectory, "render-manifest.json");
+    const diagnosticsPath = path.join(resolvedOutputDirectory, "diagnostics.json");
+    if (planOnly) {
+      await Promise.all([
+        writeJson(manifestPath, {
+          artifactId: compiled.renderManifest.artifactId,
+          sha256: createHash("sha256")
+            .update(JSON.stringify(compiled.renderManifest.payload))
+            .digest("hex"),
+          manifest: compiled.renderManifest.payload,
+        }),
+        writeJson(diagnosticsPath, {
+          schemaVersion: "maul-frame-animation-proof-diagnostics/v1",
+          mode: "plan_only",
+          transcriptSource: boundedTranscript.source,
+          mediaObservation: mediaObservation.receipt,
+          sceneEvidence: planning.plans.artDirection.payload.sceneEvidence,
+          animation: planReceipt,
+          treatments: planning.plans.textAnimation.payload.programs.map((program) => ({
+            tokenId: program.frameMotion?.tokenId,
+            treatment: program.treatment,
+            executorId: program.executorId,
+          })),
+          placements: planning.plans.textPlacement.payload.segments.map((segment) => ({
+            segmentId: segment.segmentId,
+            chunkId: segment.chunkId,
+            selectedCompositionVariantId: segment.selectedCompositionVariantId,
+            fallbackCode: segment.fallbackCode,
+            box: segment.box,
+          })),
+        }),
+      ]);
+      return {
+        outputDirectory: resolvedOutputDirectory,
+        videoPath: null,
+        manifestPath,
+        transcriptPath: persistedTranscriptPath,
+        diagnosticsPath,
+        transcriptSource: boundedTranscript.source,
+        ...planReceipt,
+      };
+    }
     const sampleTimesMs = planning.plans.textPlacement.payload.segments
       .slice(0, 4)
       .map((segment) => Math.round((segment.outputStartMs + segment.outputEndMs) / 2));
@@ -452,11 +555,8 @@ export const runFrameAnimationProof = async ({
       renderMode: "final",
       previewFrameTimesMs: sampleTimesMs,
       observationMode: "creative",
-      renderConcurrency: 1,
+      renderConcurrency,
     });
-    const videoPath = path.join(resolvedOutputDirectory, "maul-frame-animation-proof.mp4");
-    const manifestPath = path.join(resolvedOutputDirectory, "render-manifest.json");
-    const diagnosticsPath = path.join(resolvedOutputDirectory, "diagnostics.json");
     await Promise.all([
       writeFile(videoPath, rendered.bytes),
       writeJson(manifestPath, {
@@ -542,6 +642,8 @@ if (process.argv[1] && path.resolve(process.argv[1]) === currentFile) {
     mediaPath: cliValue("--media") ?? defaultMediaPath,
     transcriptPath: cliValue("--transcript"),
     outputDirectory: cliValue("--output") ?? defaultOutputDir,
+    planOnly: process.argv.includes("--plan-only"),
+    renderConcurrency: Number(cliValue("--concurrency") ?? 6),
   }).then((result) => {
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
   }).catch((error) => {
