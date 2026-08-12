@@ -336,9 +336,14 @@ export const compileMaulWordMotion = ({
   const endFrame = toEndFrame(holdUntilMs, fps);
   const spokenFrames = spokenEndFrame - startFrame;
 
-  const entryFrames = Math.max(1, Math.floor(spokenFrames * 0.25));
-  const exitFrames = Math.max(1, Math.floor(spokenFrames * 0.2));
   const totalFrames = endFrame - startFrame;
+  const desiredEntryFrames = Math.max(5, Math.floor(spokenFrames * 0.25));
+  const desiredExitFrames = Math.max(1, Math.floor(spokenFrames * 0.2));
+  const exitFrames = Math.min(desiredExitFrames, Math.max(1, totalFrames - 2));
+  const entryFrames = Math.min(
+    desiredEntryFrames,
+    Math.max(1, totalFrames - exitFrames - 1),
+  );
   const holdFrames = totalFrames - entryFrames - exitFrames;
   if (holdFrames < 1) throw new Error(`MAUL word interval has no readable hold: ${token.tokenId}.`);
 

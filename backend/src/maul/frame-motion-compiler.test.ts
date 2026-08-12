@@ -162,7 +162,7 @@ describe("MAUL frame motion compiler", () => {
       fps: 30,
       placementSegmentId: "segment_a",
     });
-    expect(heldShortWord.phases.entry.endFrame).toBe(1);
+    expect(heldShortWord.phases.entry.endFrame).toBe(5);
     expect(heldShortWord.phases.hold.endFrame).toBe(11);
     expect(heldShortWord.phases.exit.endFrame).toBe(12);
 
@@ -179,5 +179,24 @@ describe("MAUL frame motion compiler", () => {
       fps: 30,
       placementSegmentId: "segment_a",
     })).toThrow(/no readable hold/i);
+  });
+
+  it("holds each word entrance long enough to be visible at production frame rates", () => {
+    const program = compileMaulWordMotion({
+      treatmentId: "text-entry.letter-riser",
+      token: {
+        tokenId: "token_visible_entry",
+        text: "Luxury",
+        sourceStartMs: 0,
+        sourceEndMs: 80,
+      },
+      outputStartMs: 0,
+      outputEndMs: 80,
+      holdUntilMs: 500,
+      fps: 30,
+      placementSegmentId: "segment_a",
+    });
+
+    expect(program.phases.entry.endFrame - program.phases.entry.startFrame).toBeGreaterThanOrEqual(5);
   });
 });

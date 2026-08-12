@@ -1,11 +1,15 @@
 import {loadFont as loadLocalFont} from "@remotion/fonts";
-import type {MaulTextAnimationTransform} from "@prometheus/shared-types";
+import {
+  evaluateMaulFrameMotion,
+  type MaulTextAnimationTransform,
+} from "@prometheus/shared-types";
 import React from "react";
 import {staticFile} from "remotion";
 
 import type {MaulPlannedTextRecord} from "./maul-short-manifest-adapter";
 import {resolveMaulFontAssetUrl} from "./maul-font-asset-resolver";
 import {
+  maulLetterStaggerFrame,
   maulFrameMotionStyle,
   resolveMaulFrameMotionForToken,
 } from "./maul-frame-motion-renderer";
@@ -136,6 +140,14 @@ export const MaulProfileTypographyGroup: React.FC<{
               tokenId: piece.tokenId,
               outputFrame,
             });
+            const isLetterMotion =
+              resolvedMotion?.frameMotion.unit === "letter" && outputFrame !== undefined;
+            const tokenStyle = resolvedMotion && !isLetterMotion
+              ? maulFrameMotionStyle(
+                  resolvedMotion.transform,
+                  layer.letterSpacingEm,
+                )
+              : {};
             return (
               <React.Fragment key={`${layer.layerName}:${piece.tokenId}`}>
                 {resolvedMotion ? (
@@ -148,15 +160,35 @@ export const MaulProfileTypographyGroup: React.FC<{
                     data-maul-frame-motion-token={resolvedMotion.frameMotion.tokenId}
                     data-maul-frame-motion-unit={resolvedMotion.frameMotion.unit}
                     style={{
-                      ...maulFrameMotionStyle(
-                        resolvedMotion.transform,
-                        layer.letterSpacingEm,
-                      ),
+                      ...tokenStyle,
                       isolation: "isolate",
                       visibility: visible ? "visible" : "hidden",
                     }}
                 >
-                    {piece.text}
+                    {isLetterMotion
+                      ? Array.from(piece.text).map((character, letterIndex) => {
+                        const letterTransform = evaluateMaulFrameMotion(
+                          resolvedMotion.frameMotion,
+                          maulLetterStaggerFrame(
+                            outputFrame,
+                            letterIndex,
+                            resolvedMotion.frameMotion.visualRecipe?.variant ?? 0,
+                          ),
+                        );
+                        return (
+                          <span
+                            key={`${piece.tokenId}_letter_${letterIndex}`}
+                            data-maul-letter-index={letterIndex}
+                            style={maulFrameMotionStyle(
+                              letterTransform,
+                              layer.letterSpacingEm,
+                            )}
+                          >
+                            {character}
+                          </span>
+                        );
+                      })
+                      : piece.text}
                   </span>
                 ) : (
                   <span
