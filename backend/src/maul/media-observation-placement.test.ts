@@ -118,6 +118,7 @@ describe("MAUL media observation placement bridge", () => {
           trackingState: "tracked",
           box: {x: 0.26, y: 0.08, width: 0.48, height: 0.78},
         },
+        faceBox: {x: 0.42, y: 0.12, width: 0.16, height: 0.12},
         opportunities: expect.arrayContaining([
           expect.objectContaining({
             regionId: "media_observed_full_frame",
@@ -130,6 +131,9 @@ describe("MAUL media observation placement bridge", () => {
       }],
     });
     const placementInputs = sceneEvidenceToPlacementInputs(evidence);
+    expect(placementInputs?.observationIntervals[0]?.faceBox).toEqual(
+      {x: 0.42, y: 0.12, width: 0.16, height: 0.12},
+    );
     expect(placementInputs?.observationIntervals[0]?.backgroundLuminanceGrids)
       .toHaveLength(3);
     expect(placementInputs?.compositionIntervals).toEqual(expect.arrayContaining([

@@ -53,6 +53,7 @@ export type SceneEvidenceHold = {
     trackingState: "tracked" | "held" | "absent_confirmed";
     box: MaulNormalizedBox | null;
   };
+  faceBox?: MaulNormalizedBox | null;
   backgroundLuminanceGrid?: NonNullable<
     MaulPlacementObservationInterval["backgroundLuminanceGrid"]
   >;
@@ -420,6 +421,7 @@ export const sceneEvidenceToPlacementInputs = (
     outputEndMs: hold.outputEndMs,
     trackingState: hold.subject.trackingState,
     subjectBox: hold.subject.box,
+    faceBox: hold.faceBox ?? null,
     cutEvidenceStatus: "known" as const,
     existingTextRegions: hold.existingTextRegions,
     ...(hold.backgroundLuminanceGrid

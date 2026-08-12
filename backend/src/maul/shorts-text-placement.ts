@@ -42,6 +42,7 @@ export type MaulPlacementObservationInterval = {
     | "unknown"
     | "absent_confirmed";
   subjectBox: MaulNormalizedBox | null;
+  faceBox?: MaulNormalizedBox | null;
   cutEvidenceStatus: "known" | "unknown";
   existingTextRegions: readonly MaulNormalizedBox[];
   backgroundLuminance?: number;
@@ -705,6 +706,7 @@ const buildCandidate = ({
   }
 
   const subjectBox = observation?.subjectBox ?? null;
+  const faceBox = observation?.faceBox ?? null;
   if (
     family === "editorial" &&
     subjectBox &&
@@ -715,18 +717,17 @@ const buildCandidate = ({
   }
   const profilePlacement = profileRealization
     ? selectTypographyProfilePlacement({
-        realization: profileRealization,
-        subjectBox,
-        existingTextRegions: observation?.existingTextRegions ?? [],
+      realization: profileRealization,
+      subjectBox,
+      faceBox,
+      existingTextRegions: observation?.existingTextRegions ?? [],
         ...(composition.textAnchor
           ? {
               intent: {
                 preferredBox: composition.textAnchor.box,
                 overlapPolicy:
-                  node.chunk.emphasis.level === "hero"
-                    ? composition.textAnchor.subjectInteraction?.policy ??
-                      "avoid_subject"
-                    : "avoid_subject",
+                  composition.textAnchor.subjectInteraction?.policy ??
+                  "avoid_subject",
               },
             }
           : {}),
@@ -739,6 +740,17 @@ const buildCandidate = ({
         alignment: "center" as const,
       }
     : composition.textAnchor ?? geometryForFamily({family, subjectBox}));
+  const controlledOverlap =
+    composition.textAnchor?.subjectInteraction?.policy === "controlled_overlap";
+  const hasControlledFaceClearance = controlledOverlap && (
+    faceBox
+      ? !boxesOverlap(geometry.maximumEnvelope, faceBox)
+      : composition.textAnchor?.subjectInteraction?.faceInterference === 0
+  );
+  const subjectClearance =
+    !subjectBox ||
+    !boxesOverlap(geometry.maximumEnvelope, subjectBox) ||
+    hasControlledFaceClearance;
   const segmentId = stableId("placement_segment", {
     chunkId: node.chunk.chunkId,
     discontinuityId: composition.discontinuityId,
@@ -918,29 +930,23 @@ const buildCandidate = ({
     gate(
       "subject_clearance",
       profileRealization
-        ? !subjectBox ||
-          !boxesOverlap(geometry.maximumEnvelope, subjectBox) ||
-          (composition.textAnchor?.subjectInteraction?.policy ===
-              "controlled_overlap" &&
-            composition.textAnchor.subjectInteraction.faceInterference === 0)
+        ? subjectClearance
         : isCaptionSafeFallback
         ? Boolean(
             fallbackBand && boxContains(fallbackBand, geometry.maximumEnvelope),
           )
-        : !subjectBox ||
-          !boxesOverlap(geometry.maximumEnvelope, subjectBox) ||
-          (composition.textAnchor?.subjectInteraction?.policy ===
-            "controlled_overlap" &&
-            composition.textAnchor.subjectInteraction.faceInterference === 0),
+        : subjectClearance,
       composition.textAnchor?.subjectInteraction?.evidenceIds[0] ??
         observation?.evidenceId ??
         composition.intervalId,
       profileRealization
-        ? node.chunk.emphasis.level === "hero"
-          ? "Profile placement clears known subject occupancy unless measured face-clear controlled overlap is explicitly authorized for a hero word."
-          : "Supporting and key profile placement must clear subject occupancy unless measured controlled overlap proves zero face interference."
+        ? hasControlledFaceClearance
+          ? "Profile placement overlaps measured body occupancy while its final envelope clears the detected face."
+          : "Profile placement clears known subject occupancy."
         : isCaptionSafeFallback
         ? "Text lies wholly inside a compiled non-source band."
+        : hasControlledFaceClearance
+          ? "Controlled overlap clears the detected face in the final text envelope."
         : !subjectBox || !boxesOverlap(geometry.maximumEnvelope, subjectBox)
           ? "Maximum envelope clears known subject occupancy."
           : "Controlled overlap is explicitly authorized by measured face-clearance evidence.",

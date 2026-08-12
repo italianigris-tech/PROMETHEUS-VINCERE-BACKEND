@@ -7,6 +7,7 @@ import {afterEach, describe, expect, it, vi} from "vitest";
 import {
   FRAME_ANIMATION_PROOF_LAYER_POLICY,
   assertFrameAnimationProofPlan,
+  resolveFrameAnimationProofRenderConcurrency,
   resolveFrameAnimationProofTranscript,
 } from "./run-frame-animation-proof";
 
@@ -36,6 +37,11 @@ describe("MAUL frame-animation proof runner", () => {
       backgroundAnimation: "disabled",
       motionGraphics: "disabled",
     });
+  });
+
+  it("caps render concurrency to available CPU capacity", () => {
+    expect(resolveFrameAnimationProofRenderConcurrency(6, 2)).toBe(2);
+    expect(resolveFrameAnimationProofRenderConcurrency(1, 2)).toBe(1);
   });
 
   it("uses AssemblyAI when a key is supplied and preserves timed words", async () => {
@@ -138,4 +144,3 @@ describe("MAUL frame-animation proof runner", () => {
     })).toThrow(/overlap|duplicate/i);
   });
 });
-

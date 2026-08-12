@@ -318,6 +318,7 @@ const holdForBeat = ({
       trackingState: validFrames.length > 0 ? "tracked" : "held",
       box: subjectBox,
     },
+    faceBox,
     backgroundLuminanceGrid: grids[0],
     backgroundLuminanceGrids: grids,
     existingTextRegions: [],

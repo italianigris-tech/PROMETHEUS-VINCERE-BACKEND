@@ -165,4 +165,44 @@ describe("MAUL typography profile placement", () => {
     expect(placement.box.x).toBeLessThan(subjectBox.x + subjectBox.width);
     expect(placement.box.x + placement.box.width).toBeGreaterThan(subjectBox.x);
   });
+
+  it("scales a profile down only when that is required to clear a detected face", () => {
+    const selectedAsset = loadExecutableTypographyFontAssets()[0]!;
+    const faceBox = {x: 0.34, y: 0.22, width: 0.39, height: 0.22};
+    const placement = selectTypographyProfilePlacement({
+      realization: {
+        adaptation: "uniform_fit_9_16",
+        horizontalAlignment: "center",
+        maxWidthPercent: 90,
+        intrinsicSizePx: {width: 90, height: 136},
+        layers: [{
+          layerName: "hero",
+          tokenIds: ["t1"],
+          text: "THEN",
+          selectedAsset,
+          fontSizePx: 52,
+          measuredWidthPx: 90,
+          measuredHeightPx: 136,
+          lineHeight: 1,
+          letterSpacingEm: 0,
+          casing: "normal",
+          color: "#111111",
+          marginTopPx: 0,
+          shadow: {xOffset: 0, yOffset: 0, blurRadius: 0, color: "#000000"},
+          measurementId: "profile_measurement_face_clear_scale",
+        }],
+      },
+      subjectBox: {x: 0, y: 0.18, width: 1, height: 0.82},
+      faceBox,
+      existingTextRegions: [],
+      intent: {
+        preferredBox: {x: 0.08, y: 0.46, width: 0.84, height: 0.2},
+        overlapPolicy: "controlled_overlap",
+      },
+    });
+
+    expect(placement.box.y).toBeGreaterThanOrEqual(faceBox.y + faceBox.height);
+    expect(placement.transform.finalWidthPx).toBeLessThan(756);
+    expect(52 * placement.transform.uniformScale).toBeGreaterThanOrEqual(72);
+  });
 });

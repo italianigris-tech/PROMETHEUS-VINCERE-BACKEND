@@ -1,6 +1,7 @@
 import {execFile} from "node:child_process";
 import {createHash} from "node:crypto";
 import {stat, mkdir, readFile, writeFile} from "node:fs/promises";
+import {availableParallelism} from "node:os";
 import path from "node:path";
 import {fileURLToPath} from "node:url";
 import {promisify} from "node:util";
@@ -39,6 +40,16 @@ export const FRAME_ANIMATION_PROOF_LAYER_POLICY: MaulRenderLayerPolicy = {
   // The legacy proof still supplies a silent contract track. The production
   // proof replaces this with audioTreatment=disabled and a null music track.
   audioTreatment: "enabled",
+};
+
+export const resolveFrameAnimationProofRenderConcurrency = (
+  requested: number,
+  availableCpu = availableParallelism(),
+): number => {
+  if (!Number.isFinite(requested) || requested < 1) {
+    throw new Error("Frame-animation proof render concurrency must be at least 1.");
+  }
+  return Math.min(Math.floor(requested), Math.max(1, Math.floor(availableCpu)));
 };
 
 const proofWordSchema = z.object({
@@ -555,7 +566,9 @@ export const runFrameAnimationProof = async ({
       renderMode: "final",
       previewFrameTimesMs: sampleTimesMs,
       observationMode: "creative",
-      renderConcurrency,
+      renderConcurrency: resolveFrameAnimationProofRenderConcurrency(
+        renderConcurrency,
+      ),
     });
     await Promise.all([
       writeFile(videoPath, rendered.bytes),

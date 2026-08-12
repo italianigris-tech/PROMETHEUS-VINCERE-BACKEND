@@ -82,11 +82,13 @@ const alignmentPenalty = (
 export const selectTypographyProfilePlacement = ({
   realization,
   subjectBox,
+  faceBox,
   existingTextRegions,
   intent,
 }: {
   realization: MaulProfileTypographyRealization;
   subjectBox: MaulNormalizedBox | null;
+  faceBox?: MaulNormalizedBox | null;
   existingTextRegions: readonly MaulNormalizedBox[];
   intent?: {
     preferredBox: MaulNormalizedBox;
@@ -121,15 +123,25 @@ export const selectTypographyProfilePlacement = ({
       MINIMUM_HERO_FONT_SIZE_PX / largestLayerFontSizePx,
     ),
   );
-  if (!Number.isFinite(uniformScale) || uniformScale <= 0) {
+  const minimumUniformScale = Math.max(
+    1,
+    MINIMUM_HERO_FONT_SIZE_PX / largestLayerFontSizePx,
+  );
+  if (
+    !Number.isFinite(uniformScale) ||
+    !Number.isFinite(minimumUniformScale) ||
+    uniformScale <= 0 ||
+    minimumUniformScale <= 0
+  ) {
     throw new Error("Typography profile has no positive 9:16 placement scale.");
   }
-  const finalWidthPx = realization.intrinsicSizePx.width * uniformScale;
-  const finalHeightPx = realization.intrinsicSizePx.height * uniformScale;
-  const normalizedWidth = finalWidthPx / OUTPUT.width;
-  const normalizedHeight = finalHeightPx / OUTPUT.height;
 
-  const ranked = ANCHORS.map((anchor) => {
+  const candidatesForScale = (scale: number) => {
+    const finalWidthPx = realization.intrinsicSizePx.width * scale;
+    const finalHeightPx = realization.intrinsicSizePx.height * scale;
+    const normalizedWidth = finalWidthPx / OUTPUT.width;
+    const normalizedHeight = finalHeightPx / OUTPUT.height;
+    return ANCHORS.map((anchor) => {
     const box = boxForAnchor({
       anchor,
       width: normalizedWidth,
@@ -162,20 +174,61 @@ export const selectTypographyProfilePlacement = ({
       alignmentPenalty(realization.horizontalAlignment, anchor.horizontalAlignment) -
       0 +
       intentScore;
-    return {anchor, box, score};
-  }).sort(
+      return {anchor, box, score, scale, finalWidthPx, finalHeightPx};
+    });
+  };
+
+  const rank = (candidates: ReturnType<typeof candidatesForScale>) =>
+    candidates.sort(
     (left, right) =>
       right.score - left.score || left.anchor.id.localeCompare(right.anchor.id),
   );
+  let ranked = rank(candidatesForScale(uniformScale));
+  if (faceBox && intent?.overlapPolicy === "controlled_overlap") {
+    const fullSizeFaceClear = ranked.filter(
+      (candidate) => !boxesOverlap(candidate.box, faceBox),
+    );
+    if (fullSizeFaceClear.length > 0) {
+      ranked = rank(fullSizeFaceClear);
+    } else {
+      const faceClearCandidates = ANCHORS.flatMap((anchor) => {
+        const minimumCandidate = candidatesForScale(minimumUniformScale).find(
+          (candidate) => candidate.anchor.id === anchor.id,
+        );
+        if (!minimumCandidate || boxesOverlap(minimumCandidate.box, faceBox)) {
+          return [];
+        }
+        let lowerScale = minimumUniformScale;
+        let upperScale = uniformScale;
+        for (let index = 0; index < 32; index += 1) {
+          const midpoint = (lowerScale + upperScale) / 2;
+          const candidate = candidatesForScale(midpoint).find(
+            (entry) => entry.anchor.id === anchor.id,
+          )!;
+          if (boxesOverlap(candidate.box, faceBox)) upperScale = midpoint;
+          else lowerScale = midpoint;
+        }
+        return candidatesForScale(lowerScale).filter(
+          (candidate) => candidate.anchor.id === anchor.id,
+        );
+      });
+      ranked = faceClearCandidates.sort(
+        (left, right) =>
+          right.scale - left.scale ||
+          right.score - left.score ||
+          left.anchor.id.localeCompare(right.anchor.id),
+      );
+    }
+  }
   const selected = ranked[0];
   if (!selected) throw new Error("Typography profile produced no placement anchors.");
 
   const transform: MaulTypographyProfileTransform = {
-    uniformScale,
+    uniformScale: selected.scale,
     intrinsicWidthPx: realization.intrinsicSizePx.width,
     intrinsicHeightPx: realization.intrinsicSizePx.height,
-    finalWidthPx,
-    finalHeightPx,
+    finalWidthPx: selected.finalWidthPx,
+    finalHeightPx: selected.finalHeightPx,
   };
   return {
     box: selected.box,
