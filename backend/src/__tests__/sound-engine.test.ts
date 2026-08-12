@@ -209,6 +209,9 @@ describe("sound engine", () => {
     expect(plan.sfxCues).toHaveLength(2);
     expect(compilation.filterComplexScript).toContain("acrossfade");
     expect(compilation.filterComplexScript).toContain("loudnorm");
+    expect(compilation.filterComplexScript).toContain("sfx_cue_0_trim");
+    expect(compilation.filterComplexScript).toContain("loudnorm=I=-18:TP=-4:LRA=7");
+    expect(compilation.filterComplexScript).toContain("[sfx_cue_0_normalized]volume=-8dB[sfx_cue_0_gain]");
     expect(compilation.filterComplexScript).toContain("[dialogue_bus_raw]asplit=2");
     expect(compilation.inputFiles.length).toBeGreaterThanOrEqual(6);
 

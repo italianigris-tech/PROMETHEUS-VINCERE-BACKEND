@@ -136,6 +136,12 @@ describe("MAUL media observation placement bridge", () => {
     );
     expect(placementInputs?.observationIntervals[0]?.backgroundLuminanceGrids)
       .toHaveLength(3);
+    expect(placementInputs?.observationIntervals[0]?.backgroundLuminanceSamples)
+      .toEqual([
+        expect.objectContaining({outputMs: 0}),
+        expect.objectContaining({outputMs: 500}),
+        expect.objectContaining({outputMs: 1_000}),
+      ]);
     expect(placementInputs?.compositionIntervals).toEqual(expect.arrayContaining([
       expect.objectContaining({
         variantId: expect.stringContaining("media_observed_full_frame"),

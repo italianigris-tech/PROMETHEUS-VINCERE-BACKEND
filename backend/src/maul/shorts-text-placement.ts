@@ -30,6 +30,11 @@ export type MaulBackgroundLuminanceGrid = {
   samples: readonly number[];
 };
 
+export type MaulTimedBackgroundLuminanceGrid = {
+  outputMs: number;
+  grid: MaulBackgroundLuminanceGrid;
+};
+
 export type MaulPlacementObservationInterval = {
   evidenceId: string;
   sceneId: string;
@@ -48,6 +53,7 @@ export type MaulPlacementObservationInterval = {
   backgroundLuminance?: number;
   backgroundLuminanceGrid?: MaulBackgroundLuminanceGrid;
   backgroundLuminanceGrids?: readonly MaulBackgroundLuminanceGrid[];
+  backgroundLuminanceSamples?: readonly MaulTimedBackgroundLuminanceGrid[];
   requiresTemporalContrast?: boolean;
 };
 
@@ -849,9 +855,18 @@ const buildCandidate = ({
   const nominalFontSizePx = profileRealization
     ? effectiveFontSizePx
     : effectiveFontSizePx / hierarchyScale;
+  const timedBackgroundGrids = observation?.backgroundLuminanceSamples
+    ?.filter((sample) => (
+      sample.outputMs >= node.outputStartMs &&
+      sample.outputMs <= node.outputEndMs
+    ))
+    .map((sample) => sample.grid);
+  const temporalBackgroundGrids = timedBackgroundGrids?.length
+    ? timedBackgroundGrids
+    : observation?.backgroundLuminanceGrids ?? [];
   const temporalBackgroundLuminances =
     profileRealization && profilePlacement
-      ? (observation?.backgroundLuminanceGrids ?? []).flatMap((grid) => {
+      ? temporalBackgroundGrids.flatMap((grid) => {
           const sampled = averageLuminanceForBox({
             grid,
             box: profilePlacement.box,

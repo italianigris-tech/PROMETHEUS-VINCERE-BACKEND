@@ -121,6 +121,7 @@ import {
 } from "./perceptual-truth.js";
 import {buildMaulPreviewSampleTimes} from "./render-preview.js";
 import type {ShortsTextChunkPlanner} from "./shorts-text-chunking-llm.js";
+import {materializeAutomaticMaulSfx} from "./typography-sfx.js";
 
 import {
   createUnavailableCreativeTreatmentPlanner,
@@ -2551,7 +2552,12 @@ export class MaulProjectService {
         "Music must be licensed, commercially allowed, verified, and render-safe.",
       );
     }
-    for (const sfx of request.sfxAssets) {
+    const resolvedSfxAssets = request.sfxAssets.length > 0
+      ? request.sfxAssets
+      : textAnimation?.artifactType === "text_animation_plan"
+        ? materializeAutomaticMaulSfx(textAnimation.payload.programs)
+        : [];
+    for (const sfx of resolvedSfxAssets) {
       if (!sfx.renderSafe || !sfx.licenseVerified || !sfx.commercialAllowed) {
         throw new MaulLineageConflictError(
           `SFX ${sfx.id} must be licensed, commercially allowed, verified, and render-safe.`,
@@ -2560,7 +2566,7 @@ export class MaulProjectService {
     }
     await Promise.all([
       readFile(request.musicTrack.storagePath),
-      ...request.sfxAssets.map((sfx) => readFile(sfx.storagePath)),
+      ...resolvedSfxAssets.map((sfx) => readFile(sfx.storagePath)),
     ]);
 
     const timestamp = this.now();
@@ -2613,7 +2619,10 @@ export class MaulProjectService {
       planningArtifacts,
       captions,
       audioPlan,
-      request: request as MaulShortRenderRequest,
+      request: {
+        ...request,
+        sfxAssets: resolvedSfxAssets,
+      } as MaulShortRenderRequest,
       createdAt: timestamp,
     });
     const renderManifestResult = await this.registerArtifact(projectId, {

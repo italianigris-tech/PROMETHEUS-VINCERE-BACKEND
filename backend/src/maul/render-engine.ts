@@ -10,6 +10,7 @@ import {
   type MaulUnifiedShortRenderManifest,
 } from "@prometheus/shared-types";
 
+import {probeMediaDurationSeconds, renderMasterTrack, runFfmpegCommand} from "../sound-engine/index.js";
 import {resolveRepositoryMediaTool} from "./repository-media-tools.js";
 import {validateMaulRenderFontReceipts} from "./render-font-preflight.js";
 
@@ -106,6 +107,103 @@ export const resolveMaulMartinStageAssets = (
     storagePath: window.foregroundAsset.storagePath,
     sha256: window.foregroundAsset.sha256,
   })) ?? [];
+
+export const shouldUseMaulSoundEngine = (manifest: {
+  audio: {musicTrack: unknown; sfxAssets: readonly unknown[]};
+  layerPolicy?: {audioTreatment?: string};
+}): boolean =>
+  manifest.layerPolicy?.audioTreatment !== "disabled" &&
+  Boolean(manifest.audio.musicTrack || manifest.audio.sfxAssets.length > 0);
+
+export const assertMaulSfxAudibility = ({
+  dialogueMaxDb,
+  sfxMaxDb,
+}: {
+  dialogueMaxDb: number;
+  sfxMaxDb: number;
+}): void => {
+  if (sfxMaxDb < -12 || sfxMaxDb < dialogueMaxDb - 10) {
+    throw new Error(
+      `MAUL SFX audibility gate failed: SFX is inaudible at ${sfxMaxDb.toFixed(1)} dBFS ` +
+      `(dialogue ${dialogueMaxDb.toFixed(1)} dBFS).`,
+    );
+  }
+};
+
+const probeAudioMaxVolumeDb = async (filePath: string): Promise<number> => {
+  const result = await runFfmpegCommand([
+    "-nostdin", "-hide_banner", "-i", filePath,
+    "-af", "volumedetect", "-f", "null", "-",
+  ]);
+  const match = result.stderr.match(/max_volume:\s*(-?[\d.]+)\s*dB/i);
+  if (!match) throw new Error(`MAUL could not measure audio peak for ${filePath}.`);
+  return Number(match[1]);
+};
+
+export const buildMaulSoundDesignManifest = async ({
+  manifest,
+  dialogueSource,
+  probeDuration = probeMediaDurationSeconds,
+}: {
+  manifest: MaulUnifiedShortRenderManifest;
+  dialogueSource: string;
+  probeDuration?: (filePath: string) => Promise<number | null>;
+}) => {
+  const duration = manifest.timeline.outputDurationMs / 1000;
+  const dialogue = manifest.captions.length > 0
+    ? manifest.captions.map((caption, index) => ({
+        start: caption.startMs / 1000,
+        end: Math.min(duration, caption.endMs / 1000),
+        gainDb: 0,
+        label: `caption:${index}`,
+      })).filter((span) => span.end > span.start)
+    : [{start: 0, end: duration, gainDb: 0, label: "source-dialogue"}];
+  const music = manifest.audio.musicTrack;
+  const musicCues = music
+    ? [{
+        id: music.id,
+        file: music.storagePath,
+        start: 0,
+        end: duration,
+        sourceStart: 0,
+        sourceEnd: Math.min(duration, music.durationSec),
+        gainDb: -4,
+        transitionIn: {preset: "dialogue_safe_bed" as const, start: 0, duration: 0.7, settings: {}},
+        transitionOut: {preset: "filter_sink" as const, start: Math.max(0, duration - 0.8), duration: 0.8, settings: {}},
+        tags: ["maul", "dialogue-safe", "render-authoritative"],
+      }]
+    : [];
+  const sfx = [];
+  for (const asset of manifest.audio.sfxAssets) {
+    const source = await probeDuration(asset.storagePath);
+    if (!source || source <= 0) {
+      throw new Error(`MAUL SFX ${asset.id} has no measurable duration.`);
+    }
+    const start = asset.outputMs / 1000;
+    const end = Math.min(duration, start + source);
+    if (end <= start) continue;
+    sfx.push({
+      id: asset.id,
+      file: asset.storagePath,
+      start,
+      end,
+      role: "sfx" as const,
+      gainDb: 4,
+      sourceStart: 0,
+      sourceEnd: end - start,
+      tags: ["maul", "typography", asset.eventType, "audibility-gated"],
+    });
+  }
+  return {
+    duration,
+    dialogueSource,
+    dialogue,
+    musicCues,
+    sfx,
+    master: {targetI: -16, truePeak: -1.5, lra: 8, sampleRate: 48_000, previewSampleRate: 22_050},
+    presetOverrides: {},
+  };
+};
 
 const runRemotion = async ({
   executable,
@@ -254,11 +352,18 @@ export const renderMaulShortLocally: MaulShortRenderEngine = async (input) => {
       },
       audio: {
         ...input.manifest.audio,
-        musicTrack: {
-          ...input.manifest.audio.musicTrack,
-          storagePath: stagedMusic ? `.maul-renders/${stageName}/${path.basename(stagedMusic)}` : ""
-        },
-        sfxAssets: stagedSfx
+        musicTrack: input.manifest.audio.musicTrack && stagedMusic
+          ? {
+              ...input.manifest.audio.musicTrack,
+              ...(shouldUseMaulSoundEngine(input.manifest) && !input.frameRange
+                ? {renderSafe: false}
+                : {}),
+              storagePath: `.maul-renders/${stageName}/${path.basename(stagedMusic)}`,
+            }
+          : null,
+        sfxAssets: shouldUseMaulSoundEngine(input.manifest) && !input.frameRange
+          ? []
+          : stagedSfx
       },
       ...(martinDepth
         ? {
@@ -318,7 +423,50 @@ export const renderMaulShortLocally: MaulShortRenderEngine = async (input) => {
         ...(input.renderMode === "preview" ? ["--scale=0.5"] : []),
       ]
     });
-    const bytes = await readFile(outputPath);
+    let renderedOutputPath = outputPath;
+    if (shouldUseMaulSoundEngine(input.manifest) && !input.frameRange) {
+      const soundManifest = await buildMaulSoundDesignManifest({
+        manifest: input.manifest,
+        dialogueSource: outputPath,
+      });
+      const audioDir = path.join(workDir, "sound-engine");
+      await mkdir(audioDir, {recursive: true});
+      const audioResult = await renderMasterTrack(
+        soundManifest,
+        path.join(audioDir, "master.wav"),
+        {
+          baseDir: repoRoot,
+          aacPath: path.join(audioDir, "master.m4a"),
+          debugPlanPath: path.join(audioDir, "render-plan.json"),
+          stemsDir: path.join(audioDir, "stems"),
+        },
+      );
+      if (!audioResult.aacPath) {
+        throw new Error("MAUL sound-engine render did not produce an AAC master.");
+      }
+      if (soundManifest.sfx.length > 0) {
+        if (!audioResult.stemPaths.sfx || !audioResult.stemPaths.dialogue) {
+          throw new Error("MAUL sound-engine did not produce required audibility stems.");
+        }
+        const [sfxMaxDb, dialogueMaxDb] = await Promise.all([
+          probeAudioMaxVolumeDb(audioResult.stemPaths.sfx),
+          probeAudioMaxVolumeDb(audioResult.stemPaths.dialogue),
+        ]);
+        assertMaulSfxAudibility({dialogueMaxDb, sfxMaxDb});
+      }
+      const mixedOutputPath = path.join(workDir, "maul-short-audio-mixed.mp4");
+      await runFfmpegCommand([
+        "-y", "-nostdin", "-hide_banner", "-loglevel", "error",
+        "-i", outputPath,
+        "-i", audioResult.aacPath,
+        "-map", "0:v:0", "-map", "1:a:0",
+        "-c:v", "copy", "-c:a", "copy", "-shortest",
+        "-movflags", "+faststart",
+        mixedOutputPath,
+      ]);
+      renderedOutputPath = mixedOutputPath;
+    }
+    const bytes = await readFile(renderedOutputPath);
     if (bytes.length === 0) {
       throw new Error("MAUL Remotion render produced an empty MP4.");
     }
@@ -334,7 +482,7 @@ export const renderMaulShortLocally: MaulShortRenderEngine = async (input) => {
           return Promise.all((input.previewFrameTimesMs ?? []).map(async (outputMs, index) => {
           const bytes = await extractRenderedFrame({
             ffmpegPath: ffmpeg.executablePath,
-            outputPath,
+            outputPath: renderedOutputPath,
             framePath: path.join(workDir, `preview-frame-${index}.png`),
             outputMs,
           });

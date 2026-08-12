@@ -304,6 +304,10 @@ const holdForBeat = ({
   const grids = selectedFrames.map((frame) =>
     cropLuminanceGrid(frame.luminanceGrid, crop),
   );
+  const backgroundLuminanceSamples = selectedFrames.map((frame, index) => ({
+    outputMs: frame.outputMs,
+    grid: grids[index]!,
+  }));
   return {
     beatId: beat.beatId,
     purpose: beat.purpose,
@@ -321,6 +325,7 @@ const holdForBeat = ({
     faceBox,
     backgroundLuminanceGrid: grids[0],
     backgroundLuminanceGrids: grids,
+    backgroundLuminanceSamples,
     existingTextRegions: [],
     opportunities: opportunitiesForSubject(subjectBox, faceBox, stability),
   };

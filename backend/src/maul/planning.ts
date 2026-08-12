@@ -383,10 +383,6 @@ export const buildMaulTextAnimationPlanPayload = ({
   let previousWordTreatment: MaulTextAnimationTreatment | null = null;
   let previousWordFamily: MotionFamily | null = null;
   const usedWordTreatments = new Set<MaulTextAnimationTreatment>();
-  const wordMotionByTokenId = new Map<
-    string,
-    ReturnType<typeof routeMaulWordMotion>
-  >();
   const programs = textPlacementPlan.payload.segments.flatMap<MaulTextAnimationProgram>((segment) => {
     const durationMs = segment.outputEndMs - segment.outputStartMs;
     const chunk = chunkById.get(segment.chunkId);
@@ -440,24 +436,30 @@ export const buildMaulTextAnimationPlanPayload = ({
       : "";
     previousSupportingTreatment = selectedTreatment;
     if (hasAuthoritativeTokenTiming) {
+      const phraseMotion = routeMaulWordMotion({
+        seed: `${selectionSeed ?? inputs.candidate.artifactId}:${segment.segmentId}:phrase-motion`,
+        emphasisLevel: chunk.emphasis.level,
+        isEmphasized: false,
+        previousTreatment: previousWordTreatment,
+        previousFamily: previousWordFamily,
+        usedTreatments: usedWordTreatments,
+      });
+      previousWordTreatment = phraseMotion.treatmentId;
+      previousWordFamily = phraseMotion.family;
+      usedWordTreatments.add(phraseMotion.treatmentId);
       return timedTokens.flatMap((token) => {
         if (!token) return [];
         const isSemanticEmphasis = chunk.emphasis.tokenIds.includes(token.tokenId);
-        let wordMotion = wordMotionByTokenId.get(token.tokenId);
-        if (!wordMotion) {
-          wordMotion = routeMaulWordMotion({
-            seed: `${selectionSeed ?? inputs.candidate.artifactId}:${token.tokenId}`,
-            emphasisLevel: chunk.emphasis.level,
-            isEmphasized: isSemanticEmphasis,
-            previousTreatment: previousWordTreatment,
-            previousFamily: previousWordFamily,
-            usedTreatments: usedWordTreatments,
-          });
-          wordMotionByTokenId.set(token.tokenId, wordMotion);
-          previousWordTreatment = wordMotion.treatmentId;
-          previousWordFamily = wordMotion.family;
-          usedWordTreatments.add(wordMotion.treatmentId);
-        }
+        const wordMotion = isSemanticEmphasis
+          ? routeMaulWordMotion({
+              seed: `${selectionSeed ?? inputs.candidate.artifactId}:${segment.segmentId}:${token.tokenId}:hero-motion`,
+              emphasisLevel: chunk.emphasis.level,
+              isEmphasized: true,
+              previousTreatment: phraseMotion.treatmentId,
+              previousFamily: phraseMotion.family,
+              usedTreatments: usedWordTreatments,
+            })
+          : phraseMotion;
         const relevantSpans = token.outputSpans.flatMap((span, spanIndex) => {
           const outputStartMs = Math.max(segment.outputStartMs, span.outputStartMs);
           const outputEndMs = Math.min(segment.outputEndMs, span.outputEndMs);
@@ -1403,13 +1405,17 @@ export const buildMaulPlanningPayloads = (
     targetLufs: -14,
     musicPolicy: inputs.treatment.payload.rendererInputs.audio.musicBehavior,
     duckingDb: inputs.treatment.payload.rendererInputs.audio.duckingDb,
-    sfxIntents: [],
-    execution: executionFallback(
-      "Static dialogue-first source/music/SFX nodes; treatment ducking automation remains unimplemented.",
-      "Decoded-audio probes must verify dialogue dominance and disclose missing automation.",
+    sfxIntents: (chunkCaptionGroups ?? []).slice(0, 7).map((chunk, index) => ({
+      eventType: "typography_entry",
+      sourceMs: chunk.outputStartMs,
+      beatReason: `Typography cue ${index + 1} is docked to the governed caption entry.`,
+    })),
+    execution: executionNative(
+      "MaulSoundEngine.dialogueSidechainMaster",
+      "Rendered stems must prove dialogue priority, music ducking, and audible typography accents.",
     ),
     warnings: [
-      "The current native MAUL composition does not execute the full ducking envelope from the video-aware audio plan.",
+      "Sound is rendered after Remotion from the source dialogue bus; typography SFX are normalized and audibility-gated.",
     ],
   });
   const capabilitySelection = maulCapabilitySelectionPayloadSchema.parse({
@@ -1968,10 +1974,9 @@ export const buildMaulManifestPlanExecution = ({
     {
       planArtifactId: planningArtifacts.audio.artifactId,
       planType: "dialogue_audio_plan",
-      executionStatus: "governed_fallback",
-      nativeBranch: null,
-      fallback:
-        "Static dialogue-first source/music/SFX nodes without the unimplemented ducking envelope.",
+      executionStatus: "native",
+      nativeBranch: "MaulSoundEngine.dialogueSidechainMaster",
+      fallback: null,
     },
     {
       planArtifactId: planningArtifacts.capabilitySelection.artifactId,

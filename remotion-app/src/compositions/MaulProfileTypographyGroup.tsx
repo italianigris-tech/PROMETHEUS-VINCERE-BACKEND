@@ -128,6 +128,9 @@ export const MaulProfileTypographyGroup: React.FC<{
         textAlign: realization.horizontalAlignment,
       }}>
         {realization.layers.map((layer) => {
+          const resolvedLayerColor = record.profileColorResolution?.layers.find(
+            (entry) => entry.layerName === layer.layerName,
+          )?.resolvedColor ?? layer.color;
           const pieces = profileTextPieces({
             text: layer.text,
             tokenIds: layer.tokenIds,
@@ -214,7 +217,7 @@ export const MaulProfileTypographyGroup: React.FC<{
               style={{
                 width: "100%",
                 marginTop: layer.marginTopPx,
-                color: layer.color,
+                color: resolvedLayerColor,
                 fontFamily: layer.selectedAsset.cssFamily,
                 fontSize: layer.fontSizePx,
                 fontWeight: layer.selectedAsset.weight,

@@ -152,6 +152,9 @@ const observation = ({
   cutEvidenceStatus = "known",
   backgroundLuminance,
   backgroundLuminanceGrid,
+  backgroundLuminanceGrids,
+  backgroundLuminanceSamples,
+  requiresTemporalContrast,
 }: {
   evidenceId?: string;
   sceneId?: string;
@@ -166,6 +169,16 @@ const observation = ({
     rows: number;
     samples: readonly number[];
   };
+  backgroundLuminanceGrids?: readonly {
+    columns: number;
+    rows: number;
+    samples: readonly number[];
+  }[];
+  backgroundLuminanceSamples?: readonly {
+    outputMs: number;
+    grid: {columns: number; rows: number; samples: readonly number[]};
+  }[];
+  requiresTemporalContrast?: boolean;
 }) => ({
   evidenceId,
   sceneId,
@@ -179,6 +192,15 @@ const observation = ({
   ...(backgroundLuminanceGrid === undefined
     ? {}
     : {backgroundLuminanceGrid}),
+  ...(backgroundLuminanceGrids === undefined
+    ? {}
+    : {backgroundLuminanceGrids}),
+  ...(backgroundLuminanceSamples === undefined
+    ? {}
+    : {backgroundLuminanceSamples}),
+  ...(requiresTemporalContrast === undefined
+    ? {}
+    : {requiresTemporalContrast}),
 });
 
 const boxesOverlap = (first: MaulNormalizedBox, second: MaulNormalizedBox) =>
@@ -510,12 +532,28 @@ describe("MAUL scene-aware text placement", () => {
       compositionIntervals: [composition()],
       observationIntervals: [
         observation({
+          outputEndMs: 10_000,
           subjectBox: {x: 0.02, y: 0.12, width: 0.1, height: 0.68},
           backgroundLuminanceGrid: {
             columns: 12,
             rows: 20,
             samples: Array(240).fill(0.04),
           },
+          backgroundLuminanceGrids: [
+            {columns: 12, rows: 20, samples: Array(240).fill(0.04)},
+            {columns: 12, rows: 20, samples: Array(240).fill(0.92)},
+          ],
+          backgroundLuminanceSamples: [
+            {
+              outputMs: 500,
+              grid: {columns: 12, rows: 20, samples: Array(240).fill(0.04)},
+            },
+            {
+              outputMs: 5_000,
+              grid: {columns: 12, rows: 20, samples: Array(240).fill(0.92)},
+            },
+          ],
+          requiresTemporalContrast: true,
         }),
       ],
       typography: {

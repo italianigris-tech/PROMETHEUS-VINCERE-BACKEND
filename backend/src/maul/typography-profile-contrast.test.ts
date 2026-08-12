@@ -42,15 +42,15 @@ describe("MAUL profile color resolution", () => {
     expect(result.layers[0]!.contrastRatio).toBeGreaterThan(4.5);
   });
 
-  it("uses a conservative opposite tone when no background sample exists", () => {
+  it("uses high-visibility white when no background sample exists", () => {
     const result = resolveTypographyProfileColors({
       realization: realization("#F4E9D7"),
       backgroundLuminance: null,
     });
 
     expect(result).toMatchObject({
-      mode: "dark_text",
-      layers: [{requestedColor: "#F4E9D7", resolvedColor: "#111111"}],
+      mode: "light_text",
+      layers: [{requestedColor: "#F4E9D7", resolvedColor: "#FFFFFF"}],
     });
   });
 

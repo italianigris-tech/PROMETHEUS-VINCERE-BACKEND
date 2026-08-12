@@ -60,6 +60,9 @@ export type SceneEvidenceHold = {
   backgroundLuminanceGrids?: NonNullable<
     MaulPlacementObservationInterval["backgroundLuminanceGrids"]
   >;
+  backgroundLuminanceSamples?: NonNullable<
+    MaulPlacementObservationInterval["backgroundLuminanceSamples"]
+  >;
   existingTextRegions: MaulNormalizedBox[];
   opportunities: SceneOpportunityRegion[];
 };
@@ -429,6 +432,9 @@ export const sceneEvidenceToPlacementInputs = (
       : {}),
     ...(hold.backgroundLuminanceGrids
       ? {backgroundLuminanceGrids: hold.backgroundLuminanceGrids}
+      : {}),
+    ...(hold.backgroundLuminanceSamples
+      ? {backgroundLuminanceSamples: hold.backgroundLuminanceSamples}
       : {}),
     requiresTemporalContrast: evidence.providerId.startsWith("mediapipe_opencv"),
   }));

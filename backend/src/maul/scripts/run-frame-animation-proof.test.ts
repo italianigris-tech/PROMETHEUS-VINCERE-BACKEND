@@ -7,9 +7,14 @@ import {afterEach, describe, expect, it, vi} from "vitest";
 import {
   FRAME_ANIMATION_PROOF_LAYER_POLICY,
   assertFrameAnimationProofPlan,
+  selectFrameAnimationProofSfx,
   resolveFrameAnimationProofRenderConcurrency,
   resolveFrameAnimationProofTranscript,
 } from "./run-frame-animation-proof";
+import {
+  DEFAULT_MAUL_TYPOGRAPHY_SFX,
+  FULL_MAUL_SFX_CATALOG,
+} from "../typography-sfx.js";
 
 const temporaryDirectories: string[] = [];
 
@@ -26,6 +31,37 @@ const fixtureWords = [
 ];
 
 describe("MAUL frame-animation proof runner", () => {
+  it("indexes all 215 unique files in the main SFX pack", () => {
+    expect(FULL_MAUL_SFX_CATALOG).toHaveLength(215);
+    expect(new Set(FULL_MAUL_SFX_CATALOG.map((asset) => asset.storagePath)).size).toBe(215);
+    expect(DEFAULT_MAUL_TYPOGRAPHY_SFX.length).toBeGreaterThan(100);
+  });
+
+  it("selects audible full-pack SFX against governed typography entries", () => {
+    const selected = selectFrameAnimationProofSfx({
+      programs: [
+        {animationId: "a", treatment: "two_word_stagger_punch", frameMotion: {sourceIntervalMs: {startMs: 1_000, endMs: 1_400}}},
+        {animationId: "b", treatment: "cinematic_focus_lock", frameMotion: {sourceIntervalMs: {startMs: 3_000, endMs: 3_500}}},
+        {animationId: "c", treatment: "velocity_slide_reveal", frameMotion: {sourceIntervalMs: {startMs: 5_000, endMs: 5_400}}},
+      ],
+      assets: [
+        {id: "text", storagePath: "C:/SOUND FX/UI INTERFACE/click.wav", eventType: "typography_entry"},
+        {id: "impact", storagePath: "C:/SOUND FX/IMPACT HITS/hit.wav", eventType: "typography_emphasis"},
+        {id: "whoosh", storagePath: "C:/SOUND FX/WHOOSHES/whoosh.wav", eventType: "typography_motion"},
+      ],
+      maxCues: 3,
+      minimumGapMs: 1_000,
+    });
+
+    expect(selected).toHaveLength(3);
+    expect(selected.map((cue) => cue.sourceMs)).toEqual([1_000, 3_000, 5_000]);
+    expect(selected.map((cue) => cue.storagePath)).toEqual([
+      "C:/SOUND FX/IMPACT HITS/hit.wav",
+      "C:/SOUND FX/IMPACT HITS/hit.wav",
+      "C:/SOUND FX/WHOOSHES/whoosh.wav",
+    ]);
+  });
+
   it("declares typography as the only added visual layer", () => {
     expect(FRAME_ANIMATION_PROOF_LAYER_POLICY).toMatchObject({
       baseVideo: "required",

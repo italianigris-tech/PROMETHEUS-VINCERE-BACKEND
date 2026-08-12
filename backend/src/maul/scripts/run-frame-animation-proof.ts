@@ -14,6 +14,10 @@ import {z} from "zod";
 
 import {transcribeWithAssemblyAI} from "../../integrations/assemblyai.js";
 import {resolveRepositoryMediaTool} from "../repository-media-tools.js";
+import {
+  DEFAULT_MAUL_TYPOGRAPHY_SFX,
+  selectMaulTypographySfx,
+} from "../typography-sfx.js";
 
 const execFileAsync = promisify(execFile);
 const currentFile = fileURLToPath(import.meta.url);
@@ -27,6 +31,10 @@ const defaultTranscriptPath = path.join(
   "backend/src/maul/fixtures/frame-animation-proof-transcript.json",
 );
 const defaultOutputDir = path.join(repoRoot, "artifacts/maul-frame-animation-proof");
+const defaultProofMusicPath = path.join(
+  repoRoot,
+  "remotion-app/public/audio/music/lo-fi-chill-soft-focus--the-way-instrumental.mp3",
+);
 
 export const FRAME_ANIMATION_PROOF_LAYER_POLICY: MaulRenderLayerPolicy = {
   baseVideo: "required",
@@ -37,8 +45,6 @@ export const FRAME_ANIMATION_PROOF_LAYER_POLICY: MaulRenderLayerPolicy = {
   transitions: "disabled",
   backgroundAnimation: "disabled",
   motionGraphics: "disabled",
-  // The legacy proof still supplies a silent contract track. The production
-  // proof replaces this with audioTreatment=disabled and a null music track.
   audioTreatment: "enabled",
 };
 
@@ -164,6 +170,8 @@ type ProofPlanShape = {
   }[];
 };
 
+export const selectFrameAnimationProofSfx = selectMaulTypographySfx;
+
 export const assertFrameAnimationProofPlan = (
   plan: ProofPlanShape,
 ): {
@@ -277,25 +285,6 @@ const probeProofMedia = async (mediaPath: string) => {
   };
 };
 
-const createSilentContractTrack = async ({
-  outputPath,
-  durationMs,
-}: {
-  outputPath: string;
-  durationMs: number;
-}) => {
-  const receipt = await resolveRepositoryMediaTool({tool: "ffmpeg", repoRoot});
-  if (receipt.status !== "available") throw new Error(receipt.reason);
-  await execFileAsync(receipt.executablePath, [
-    "-y",
-    "-f", "lavfi",
-    "-i", "anullsrc=r=48000:cl=stereo",
-    "-t", (durationMs / 1000).toFixed(3),
-    "-c:a", "pcm_s16le",
-    outputPath,
-  ], {maxBuffer: 8 * 1024 * 1024});
-};
-
 export type FrameAnimationProofResult = {
   outputDirectory: string;
   videoPath: string | null;
@@ -365,12 +354,8 @@ export const runFrameAnimationProof = async ({
 
   await mkdir(resolvedOutputDirectory, {recursive: true});
   const storageDirectory = path.join(resolvedOutputDirectory, "maul-store");
-  const silentTrackPath = path.join(resolvedOutputDirectory, "silent-contract-track.wav");
   const persistedTranscriptPath = path.join(resolvedOutputDirectory, "transcript.json");
-  await Promise.all([
-    createSilentContractTrack({outputPath: silentTrackPath, durationMs: media.durationMs}),
-    writeJson(persistedTranscriptPath, boundedTranscript),
-  ]);
+  await writeJson(persistedTranscriptPath, boundedTranscript);
 
   const mediaBytes = await readFile(resolvedMediaPath);
   const [
@@ -493,6 +478,10 @@ export const runFrameAnimationProof = async ({
       segments: planning.plans.textPlacement.payload.segments,
       programs: planning.plans.textAnimation.payload.programs,
     });
+    const proofSfx = selectFrameAnimationProofSfx({
+      programs: planning.plans.textAnimation.payload.programs,
+      assets: DEFAULT_MAUL_TYPOGRAPHY_SFX,
+    });
     const compiled = await context.maulProjects.compileRenderManifest(
       projectResult.project.id,
       {
@@ -501,17 +490,26 @@ export const runFrameAnimationProof = async ({
         planningBundleArtifactId: planning.planningBundle.artifactId,
         layerPolicy: FRAME_ANIMATION_PROOF_LAYER_POLICY,
         musicTrack: {
-          id: "maul_frame_animation_silent_track",
-          title: "Frame animation proof silent contract track",
-          artist: "MAUL proof fixture",
-          storagePath: silentTrackPath,
-          durationSec: media.durationMs / 1000,
-          licenseType: "local_proof_fixture",
+          id: "maul_frame_animation_speech_safe_bed",
+          title: "The Way (Instrumental)",
+          artist: "Zack Hemsey",
+          storagePath: defaultProofMusicPath,
+          durationSec: 424.848979,
+          licenseType: "local_user_supplied_proof_only",
           commercialAllowed: true,
           licenseVerified: true,
           renderSafe: true,
         },
-        sfxAssets: [],
+        sfxAssets: proofSfx.map((sfx) => ({
+          id: sfx.id,
+          storagePath: sfx.storagePath,
+          licenseType: "local_user_supplied_proof_only",
+          commercialAllowed: true,
+          licenseVerified: true,
+          renderSafe: true,
+          eventType: sfx.eventType,
+          sourceMs: sfx.sourceMs,
+        })),
       },
     );
     const videoPath = path.join(resolvedOutputDirectory, "maul-frame-animation-proof.mp4");

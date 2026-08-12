@@ -74,10 +74,26 @@ const buildCueChain = ({
   const trimLabel = `${base}_trim`;
 
   lines.push(
-    `${stream(cue.inputIndex)}atrim=start=${toSeconds(cue.sourceStartSeconds)}:end=${toSeconds(cue.sourceEndSeconds)},asetpts=PTS-STARTPTS,volume=${toSeconds(cue.gainDb)}dB[${trimLabel}]`
+    `${stream(cue.inputIndex)}atrim=start=${toSeconds(cue.sourceStartSeconds)}:end=${toSeconds(cue.sourceEndSeconds)},asetpts=PTS-STARTPTS[${trimLabel}]`
   );
 
   let currentLabel = trimLabel;
+
+  // Normalize source assets before bus mixing. Catalog files vary by more than
+  // 20 dB; cue gain alone cannot provide predictable music/SFX audibility.
+  const normalizedLabel = `${base}_normalized`;
+  if (cueType === "sfx") {
+    lines.push(`[${currentLabel}]loudnorm=I=-18:TP=-4:LRA=7:linear=true[${normalizedLabel}]`);
+    currentLabel = normalizedLabel;
+    notes.push(`Normalized ${cue.id} to the MAUL audible-SFX target.`);
+  } else {
+    lines.push(`[${currentLabel}]loudnorm=I=-23:TP=-6:LRA=11:linear=true[${normalizedLabel}]`);
+    currentLabel = normalizedLabel;
+    notes.push(`Normalized ${cue.id} to the dialogue-safe music target.`);
+  }
+  const gainedLabel = `${base}_gain`;
+  lines.push(`[${currentLabel}]volume=${toSeconds(cue.gainDb)}dB[${gainedLabel}]`);
+  currentLabel = gainedLabel;
 
   const tempoStretch = buildTempoStretchFilters({
     ratio: cue.tempoStretchRatio,
@@ -363,7 +379,7 @@ const buildFinalMix = ({
     }
   } else if (plan.capabilities.loudnorm) {
     lines.push(
-      `[${preMaster}]loudnorm=I=${plan.manifest.master.targetI}:TP=${plan.manifest.master.truePeak}:LRA=${plan.manifest.master.lra}:linear=true:print_format=summary[${masterLabel}]`
+      `[${preMaster}]loudnorm=I=${plan.manifest.master.targetI}:TP=${plan.manifest.master.truePeak}:LRA=${plan.manifest.master.lra}:linear=true:print_format=summary,aresample=${plan.manifest.master.sampleRate}[${masterLabel}]`
     );
   } else if (plan.capabilities.alimiter) {
     lines.push(`[${preMaster}]alimiter=limit=0.99[${masterLabel}]`);

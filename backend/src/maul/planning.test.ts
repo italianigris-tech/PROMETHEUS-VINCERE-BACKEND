@@ -453,6 +453,11 @@ describe("MAUL V3 text animation planning", () => {
 
   it("emits one authoritative frame program per timed transcript word", () => {
     const timedTextChunkPlan = structuredClone(textChunkPlan) as any;
+    timedTextChunkPlan.chunks[0].emphasis = {
+      tokenIds: [],
+      text: "",
+      level: "support",
+    };
     timedTextChunkPlan.tokens = [
       {
         tokenId: "token_a",
@@ -488,6 +493,10 @@ describe("MAUL V3 text animation planning", () => {
     expect(plan.programs.map((program) => program.target.tokenIds)).toEqual([
       ["token_a"],
       ["token_b"],
+    ]);
+    expect(plan.programs.map((program) => program.treatment)).toEqual([
+      plan.programs[0]!.treatment,
+      plan.programs[0]!.treatment,
     ]);
     expect(plan.programs.every((program) => program.executorId && program.frameMotion)).toBe(true);
     expect(plan.programs.map((program) => program.frameMotion?.sourceIntervalMs)).toEqual([

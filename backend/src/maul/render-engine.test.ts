@@ -1,12 +1,56 @@
 import {describe, expect, it} from "vitest";
 
 import {
+  assertMaulSfxAudibility,
+  buildMaulSoundDesignManifest,
+  shouldUseMaulSoundEngine,
   resolveMaulRenderConcurrency,
   resolveMaulRenderFrameRange,
   resolveMaulMartinStageAssets,
 } from "./render-engine.js";
 
 describe("MAUL local render engine", () => {
+  it("rejects an imperceptible rendered typography-SFX stem", () => {
+    expect(() => assertMaulSfxAudibility({dialogueMaxDb: -2, sfxMaxDb: -20})).toThrow(/inaudible/i);
+    expect(() => assertMaulSfxAudibility({dialogueMaxDb: -2, sfxMaxDb: -7})).not.toThrow();
+  });
+
+  it("routes enabled 9:16 audio treatment through the sound engine", async () => {
+    const manifest = {
+      timeline: {outputDurationMs: 20_000},
+      captions: [],
+      treatment: {rendererInputs: {audio: {duckingDb: -14}}},
+      layerPolicy: {audioTreatment: "enabled"},
+      audio: {
+        musicTrack: {
+          id: "bed",
+          storagePath: "C:/audio/bed.mp3",
+          renderSafe: true,
+        },
+        sfxAssets: [{
+          id: "type_1",
+          eventType: "typography_entry",
+          outputMs: 1_000,
+          storagePath: "C:/audio/type.wav",
+          renderSafe: true,
+        }],
+      },
+    } as any;
+
+    expect(shouldUseMaulSoundEngine(manifest)).toBe(true);
+    const sound = await buildMaulSoundDesignManifest({
+      manifest,
+      dialogueSource: "C:/render/visual-dialogue.mp4",
+      probeDuration: async (file) => file.endsWith("type.wav") ? 0.8 : 60,
+    });
+    expect(sound.dialogueSource).toBe("C:/render/visual-dialogue.mp4");
+    expect(sound.musicCues).toHaveLength(1);
+    expect(sound.sfx).toEqual([
+      expect.objectContaining({id: "type_1", start: 1, end: 1.8, gainDb: 4}),
+    ]);
+    expect(sound.master).toMatchObject({targetI: -16, truePeak: -1.5, sampleRate: 48_000});
+  });
+
   it("serializes a constrained proof render with an explicit Remotion concurrency flag", () => {
     expect(resolveMaulRenderConcurrency(1)).toEqual(["--concurrency=1"]);
   });

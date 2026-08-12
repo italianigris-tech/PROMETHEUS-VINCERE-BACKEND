@@ -163,8 +163,8 @@ describe("MAUL profile typography renderer", () => {
     expect(markup).toContain('data-maul-profile-layer="hero"');
     expect(markup).toContain("The setup");
     expect(markup).toContain("changes");
-    expect(markup).toContain("color:#F4E9D7");
-    expect(markup).not.toContain("color:#FFFFFF");
+    expect(markup).toContain("color:#FFFFFF");
+    expect(markup).not.toContain("color:#F4E9D7");
     expect(markup).toContain("#FF6B35");
     expect(markup).toContain(selectedAsset.browserUrl);
     expect(markup).toContain("font-size:92px");
