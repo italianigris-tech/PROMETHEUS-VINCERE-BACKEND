@@ -3,8 +3,80 @@ import type {
   MaulTextPlacementSegment,
 } from "@prometheus/shared-types";
 
+import {hashMaulPlanPayload} from "./text-chunk-plan.js";
+
 const closeEnough = (left: number, right: number): boolean =>
   Math.abs(left - right) <= 0.01;
+
+export const TYPOGRAPHY_PROFILE_COMPILER_VERSION =
+  "maul-typography-profile-compiler/v2";
+
+export const fingerprintTypographyProfileGeometry = (
+  binding: Pick<
+    MaulChunkTypographyBinding,
+    "profile" | "layers" | "layout" | "realization"
+  >,
+): string => hashMaulPlanPayload({
+  profile: binding.profile,
+  layout: binding.layout,
+  realization: binding.realization,
+  resolvedAssets: binding.layers.map((layer) => ({
+    layerName: layer.layerName,
+    assetId: layer.selectedAsset.assetId,
+    localFileSha256: layer.selectedAsset.localFileSha256,
+    weight: layer.selectedAsset.weight,
+    style: layer.selectedAsset.style,
+  })),
+});
+
+export const assertTypographyProfileProvenance = (
+  binding: MaulChunkTypographyBinding,
+): void => {
+  const provenance = binding.provenance;
+  if (!provenance) {
+    throw new Error(
+      `Typography profile ${binding.chunkId} lacks an authentic compiler provenance receipt.`,
+    );
+  }
+  if (
+    provenance.compilerVersion !== TYPOGRAPHY_PROFILE_COMPILER_VERSION ||
+    provenance.profileId !== binding.compatibilityProfile.profileId ||
+    provenance.sourceFilename !== binding.profile.sourceFilename ||
+    provenance.sourceSha256 !== binding.profile.sourceSha256
+  ) {
+    throw new Error(
+      `Typography profile ${binding.chunkId} provenance does not match its declared profile.`,
+    );
+  }
+  const expectedGeometry = fingerprintTypographyProfileGeometry(binding);
+  if (provenance.geometryFingerprint !== expectedGeometry) {
+    throw new Error(
+      `Typography profile ${binding.chunkId} geometry fingerprint is stale or forged.`,
+    );
+  }
+  const expectedAssets = new Map(
+    binding.layers.map((layer) => [
+      layer.selectedAsset.assetId,
+      layer.selectedAsset.localFileSha256,
+    ]),
+  );
+  const receivedAssets = new Map(
+    provenance.resolvedFontAssets.map((asset) => [
+      asset.assetId,
+      asset.localFileSha256,
+    ]),
+  );
+  if (
+    expectedAssets.size !== receivedAssets.size ||
+    [...expectedAssets].some(
+      ([assetId, hash]) => receivedAssets.get(assetId) !== hash,
+    )
+  ) {
+    throw new Error(
+      `Typography profile ${binding.chunkId} resolved font provenance is incomplete.`,
+    );
+  }
+};
 
 export const assertTypographyProfileManifestLineage = ({
   binding,

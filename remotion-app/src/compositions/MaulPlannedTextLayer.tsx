@@ -39,6 +39,8 @@ import {
   maulLetterStaggerFrame,
   resolveMaulFrameMotionForToken,
 } from "./maul-frame-motion-renderer";
+export {resolveMaulKineticTokenText} from "./maul-kinetic-text-renderer";
+import {resolveMaulKineticTokenText} from "./maul-kinetic-text-renderer";
 import {MaulProfileTypographyGroup} from "./MaulProfileTypographyGroup";
 
 const dmSansFamily = "DM Sans";
@@ -788,6 +790,16 @@ export const MaulPlannedTextCard: React.FC<{
             const localRevealProgram = resolvedTokenAnimation?.program.localReveal
               ? resolvedTokenAnimation.program
               : null;
+            const kineticProgram = animationPrograms.find((program) =>
+              program.kineticTreatment?.evidence.tokenIds.includes(token.tokenId),
+            );
+            const renderedTokenText = resolveMaulKineticTokenText({
+              sourceText: token.text,
+              receipt: kineticProgram?.kineticTreatment,
+              outputFrame,
+              entryStartFrame: kineticProgram?.frameMotion?.phases.entry.startFrame ?? 0,
+              entryEndFrame: kineticProgram?.frameMotion?.phases.entry.endFrame ?? 1,
+            });
             const editorialStyle = lockupStyleFor(record.editorialLockup, token.tokenId);
             const editorialTransform = record.editorialLockup
               ? resolveMaulEditorialWordTransform({
@@ -897,7 +909,7 @@ export const MaulPlannedTextCard: React.FC<{
                       program={localRevealProgram}
                       absoluteTimeMs={absoluteTimeMs}
                     />
-                  ) : token.text}
+                  ) : renderedTokenText}
                   {annotations.map((annotation) => (
                     <span
                       key={annotation.annotationId}

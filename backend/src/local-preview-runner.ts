@@ -7,6 +7,7 @@ import path from "node:path";
 import {pipeline as streamPipeline} from "node:stream/promises";
 
 import {runFfmpegCommand} from "./sound-engine/ffmpeg";
+import {rmWithRetry, toUncPath} from "./path-utils";
 import {
   DEFAULT_LOCAL_PREVIEW_CAPTION_PROFILE_ID,
   normalizeLocalPreviewCaptionProfileId,
@@ -62,6 +63,14 @@ type DeliveryMode = (typeof DELIVERY_MODES)[number];
 type LocalPreviewStage = "idle" | "cleaning" | "ingesting" | "drafting" | "mastering" | "completed" | "failed";
 type LocalPreviewState = "idle" | "running" | "completed" | "failed";
 type LocalPreviewOutputKind = "none" | "source-preview" | "speed-draft" | "master-render";
+
+export const resolveLocalPreviewRenderPlan = (deliveryMode: DeliveryMode): {
+  renderDraft: false;
+  renderMaster: boolean;
+} => ({
+  renderDraft: false,
+  renderMaster: deliveryMode === "master-render"
+});
 
 type LocalPreviewPipelineStatus = {
   state: LocalPreviewState;
@@ -781,75 +790,22 @@ export class LocalPreviewRunner {
           ingest: Date.now() - ingestStartedAt
         }
       };
-      this.status = appendLog(
-        this.status,
-        request.deliveryMode === "master-render"
-          ? "Long-form ingest finished. Starting the draft preview render first, then the final render."
-          : "Long-form ingest finished. Starting the draft preview render."
-      );
+      const renderPlan = resolveLocalPreviewRenderPlan(request.deliveryMode);
+      this.status = appendLog(this.status, renderPlan.renderMaster
+        ? "Long-form ingest finished. Browser preview is ready; starting one final render."
+        : "Long-form ingest finished. Browser preview is ready; no backend preview MP4 was rendered.");
       await this.persistStatus();
 
       this.throwIfAbortRequested();
 
-      this.status = {
-        ...this.status,
-        stage: "drafting",
-        stageLabel: toStageLabel("drafting")
-      };
-      await this.persistStatus();
-
-      const draftRenderStartedAt = Date.now();
-      await this.runRemotionCommand({
-        label: "Draft preview render",
-        args: [
-          TSX_CLI_ENTRY,
-          DRAFT_RENDER_SCRIPT,
-          "--caption-profile",
-          request.captionProfileId,
-          "--motion-tier",
-          request.motionTier,
-          "--force"
-        ],
-        onChunk: async (chunk) => {
-          this.status = appendLog(this.status, chunk);
-          await this.persistStatus();
-        }
-      });
-
-      const draftManifest = await readJsonIfExists<Record<string, unknown>>(LONGFORM_DRAFT_MANIFEST_PATH);
-      const draftOutput = resolveManifestOutput({
-        manifest: draftManifest,
-        fallbackUrl: "/draft-previews/longform/current.mp4",
-        fallbackPath: path.join(REMOTION_PUBLIC_DIR, "draft-previews", "longform", "current.mp4")
-      });
-      const draftRenderElapsed = Date.now() - draftRenderStartedAt;
-
-      this.status = appendLog(this.status, "Draft preview render complete.");
-      this.status = {
-        ...this.status,
-        outputUrl: draftOutput.outputUrl,
-        outputPath: draftOutput.outputPath,
-        draftOutputUrl: draftOutput.outputUrl,
-        draftOutputPath: draftOutput.outputPath,
-        activeOutputKind: "speed-draft",
-        draftManifest,
-        stageTimingsMs: {
-          ...this.status.stageTimingsMs,
-          draftRender: draftRenderElapsed,
-          render: draftRenderElapsed
-        }
-      };
-      await this.persistStatus();
-
-      this.throwIfAbortRequested();
-
-      if (request.deliveryMode === "speed-draft") {
+      if (!renderPlan.renderMaster) {
         this.status = {
           ...this.status,
           state: "completed",
           stage: "completed",
           stageLabel: toStageLabel("completed"),
           finishedAt: new Date().toISOString(),
+          activeOutputKind: "source-preview",
           errorMessage: null,
           stageTimingsMs: {
             ...this.status.stageTimingsMs,
@@ -860,7 +816,6 @@ export class LocalPreviewRunner {
         return;
       }
 
-      this.status = appendLog(this.status, "Draft preview is ready. Starting the full final render.");
       this.status = {
         ...this.status,
         stage: "mastering",
@@ -911,7 +866,7 @@ export class LocalPreviewRunner {
         stageTimingsMs: {
           ...this.status.stageTimingsMs,
           masterRender: masterRenderElapsed,
-          render: this.status.stageTimingsMs.draftRender + masterRenderElapsed,
+          render: masterRenderElapsed,
           total: Date.now() - startedAtMs
         }
       };
@@ -919,16 +874,14 @@ export class LocalPreviewRunner {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.status = appendLog(this.status, message);
-      const preserveDraftOutput = Boolean(this.status.draftOutputUrl?.trim());
       this.status = {
         ...this.status,
         state: "failed",
         stage: "failed",
         stageLabel: toStageLabel("failed"),
         finishedAt: new Date().toISOString(),
-        outputUrl: preserveDraftOutput ? this.status.draftOutputUrl : this.status.outputUrl,
-        outputPath: preserveDraftOutput ? this.status.draftOutputPath : this.status.outputPath,
-        activeOutputKind: preserveDraftOutput ? "speed-draft" : this.status.activeOutputKind,
+        outputUrl: this.status.outputUrl,
+        outputPath: this.status.outputPath,
         errorMessage: message,
         stageTimingsMs: {
           ...this.status.stageTimingsMs,
@@ -1059,10 +1012,7 @@ export class LocalPreviewRunner {
   private async cleanupLongformArtifacts(): Promise<void> {
     for (const targetPath of LONGFORM_DERIVED_PATHS) {
       try {
-        await rm(ensureWithinRoot(targetPath), {
-          recursive: true,
-          force: true
-        });
+        await rmWithRetry(ensureWithinRoot(targetPath));
       } catch (error) {
         if (!isSkippableCleanupError(error)) {
           throw error;
@@ -1077,10 +1027,7 @@ export class LocalPreviewRunner {
       }
 
       try {
-        await rm(ensureWithinRoot(path.join(REMOTION_PUBLIC_DIR, entry)), {
-          recursive: true,
-          force: true
-        });
+        await rmWithRetry(ensureWithinRoot(path.join(REMOTION_PUBLIC_DIR, entry)));
       } catch (error) {
         if (!isSkippableCleanupError(error)) {
           throw error;

@@ -14,6 +14,7 @@ import {
   mapMaulTranscriptWordsToOutput,
 } from "./planning.js";
 import {createTypographyProfileCompiler} from "./typography-profile-compiler.js";
+import {KINETIC_TRAIT_REGISTRY} from "./kinetic-trait-registry.js";
 
 const sha = (character: string) => character.repeat(64);
 
@@ -542,7 +543,7 @@ describe("MAUL V3 text animation planning", () => {
     ]).toEqual([0, 0, 0, 0]);
   });
 
-  it("routes timed words individually and gives the marked semantic word cinematic emphasis", () => {
+  it("keeps one motion language across a timed editorial lockup", () => {
     const timedTextChunkPlan = structuredClone(textChunkPlan) as any;
     timedTextChunkPlan.chunks[0].emphasis = {
       tokenIds: ["token_b"],
@@ -581,8 +582,160 @@ describe("MAUL V3 text animation planning", () => {
     });
 
     expect(plan.programs).toHaveLength(2);
-    expect(plan.programs[0]!.treatment).not.toBe(plan.programs[1]!.treatment);
-    expect(plan.programs[1]!.rationale).toMatch(/cinematic semantic emphasis/i);
+    expect(plan.programs[0]!.treatment).toBe(plan.programs[1]!.treatment);
+    expect(plan.programs[1]!.rationale).toMatch(/one lockup motion language/i);
+  });
+
+  it("keeps frame-rounded phase receipts inside a fractional-frame duration", () => {
+    const timedChunks = structuredClone(textChunkPlan) as any;
+    timedChunks.chunks[0].emphasis = {
+      tokenIds: ["token_b"],
+      text: "end",
+      level: "key",
+    };
+    timedChunks.tokens = [
+      {
+        tokenId: "token_a",
+        transcriptWordIndex: 0,
+        text: "The",
+        sourceStartMs: 0,
+        sourceEndMs: 450,
+        outputSpans: [{outputStartMs: 0, outputEndMs: 450}],
+        outputStartMs: 0,
+        outputEndMs: 450,
+      },
+      {
+        tokenId: "token_b",
+        transcriptWordIndex: 1,
+        text: "end",
+        sourceStartMs: 450,
+        sourceEndMs: 3_250,
+        outputSpans: [{outputStartMs: 450, outputEndMs: 3_250}],
+        outputStartMs: 450,
+        outputEndMs: 3_250,
+      },
+    ];
+    const placement = structuredClone(textPlacementPlan);
+    placement.segments[0]!.outputStartMs = 0;
+    placement.segments[0]!.outputEndMs = 3_250;
+
+    const plan = buildMaulTextAnimationPlanPayload({
+      inputs,
+      textChunkPlan: {artifactId: "artifact_fractional_chunks", payload: timedChunks} as any,
+      textPlacementPlan: {artifactId: "artifact_fractional_placement", payload: placement} as any,
+      selectionSeed: "fractional-frame-boundary",
+      outputDurationMs: 3_250,
+      fps: 30,
+    });
+
+    expect(plan.programs.every(
+      (program) => program.phases.exit.outputEndMs <= plan.outputDurationMs,
+    )).toBe(true);
+  });
+
+  it("causally selects a deterministic counter trait for source-grounded numeric evidence", () => {
+    const numericChunks = structuredClone(textChunkPlan) as any;
+    numericChunks.tokens = [
+      {
+        tokenId: "token_a",
+        transcriptWordIndex: 0,
+        text: "$10,000",
+        sourceStartMs: 0,
+        sourceEndMs: 1_000,
+        outputSpans: [{outputStartMs: 100, outputEndMs: 1_100}],
+        outputStartMs: 100,
+        outputEndMs: 1_100,
+      },
+    ];
+    numericChunks.chunks[0] = {
+      ...numericChunks.chunks[0],
+      tokenIds: ["token_a"],
+      text: "$10,000",
+      semanticRole: "proof",
+      emphasis: {tokenIds: ["token_a"], text: "$10,000", level: "hero"},
+    };
+    const numericPlacement = structuredClone(textPlacementPlan) as any;
+    numericPlacement.segments[0].tokenIds = ["token_a"];
+    numericPlacement.segments[0].family = "measured";
+    numericPlacement.segments[0].box = {x: 0.15, y: 0.62, width: 0.7, height: 0.14};
+
+    const plan = buildMaulTextAnimationPlanPayload({
+      inputs,
+      textChunkPlan: {artifactId: "artifact_numeric_chunks", payload: numericChunks} as any,
+      textPlacementPlan: {artifactId: "artifact_numeric_placement", payload: numericPlacement} as any,
+      typographyLineageByChunkId: {
+        chunk_a: {
+          profileId: "font-json-proof-profile",
+          metricsFingerprint: "metrics-proof-001",
+        },
+      },
+      selectionSeed: "numeric-proof",
+      outputDurationMs: 1_200,
+    });
+
+    expect(plan.programs[0]!.kineticTreatment).toEqual({
+      registryVersion: KINETIC_TRAIT_REGISTRY.version,
+      traitId: "trait_number_count_up",
+      sourcePhenotype: "TYPO #17 (apple-metallic-chrome-counter)",
+      selectionMode: "semantic_bias",
+      targetScope: "word",
+      targetRole: "hero",
+      evidence: {
+        kind: "currency",
+        sourceText: "$10,000",
+        parsedValue: 10_000,
+        tokenIds: ["token_a"],
+      },
+      typographyAuthority: {
+        kind: "chunk_typography_binding",
+        chunkId: "chunk_a",
+        profileId: "font-json-proof-profile",
+        metricsFingerprint: "metrics-proof-001",
+      },
+      placementIntent: "lower_or_center_9x16",
+      renderContract: {
+        executorId: "maul-kinetic-number-count-up-v1",
+        frameDeterministic: true,
+        startValue: 0,
+        endValue: 10_000,
+        format: "currency_usd",
+      },
+    });
+  });
+
+  it("does not force a kinetic trait when semantic evidence does not merit one", () => {
+    const timedChunks = structuredClone(textChunkPlan) as any;
+    timedChunks.tokens = [
+      {
+        tokenId: "token_a",
+        transcriptWordIndex: 0,
+        text: "Clarity",
+        sourceStartMs: 0,
+        sourceEndMs: 1_000,
+        outputSpans: [{outputStartMs: 100, outputEndMs: 1_100}],
+        outputStartMs: 100,
+        outputEndMs: 1_100,
+      },
+    ];
+    timedChunks.chunks[0] = {
+      ...timedChunks.chunks[0],
+      tokenIds: ["token_a"],
+      text: "Clarity",
+      semanticRole: "context",
+      emphasis: {tokenIds: ["token_a"], text: "Clarity", level: "support"},
+    };
+    const placement = structuredClone(textPlacementPlan) as any;
+    placement.segments[0].tokenIds = ["token_a"];
+
+    const plan = buildMaulTextAnimationPlanPayload({
+      inputs,
+      textChunkPlan: {artifactId: "artifact_plain_chunks", payload: timedChunks} as any,
+      textPlacementPlan: {artifactId: "artifact_plain_placement", payload: placement} as any,
+      selectionSeed: "plain-support",
+      outputDurationMs: 1_200,
+    });
+
+    expect(plan.programs[0]!.kineticTreatment).toBeUndefined();
   });
 
 
@@ -955,7 +1108,25 @@ describe("MAUL V3 text animation planning", () => {
           },
         },
       },
-      textChunkPlan: null,
+      textChunkPlan: {
+        inference: {status: "invoked"},
+        chunks: [
+          {
+            text: "Proof",
+            startMs: 0,
+            endMs: 500,
+            semanticRole: "context",
+            emphasis: {level: "support"},
+          },
+          {
+            text: "works.",
+            startMs: 500,
+            endMs: 1000,
+            semanticRole: "payoff",
+            emphasis: {level: "hero"},
+          },
+        ],
+      },
     } as never;
     const compilation = await createTypographyProfileCompiler().compile({
       chunks: [{
@@ -1010,6 +1181,15 @@ describe("MAUL V3 text animation planning", () => {
     expect(payloads.camera.events[1]?.endScale).toBeGreaterThanOrEqual(
       payloads.camera.events[1]?.startScale ?? 0,
     );
+    expect(payloads.camera.events.some((event) => Math.abs(event.endScale - event.startScale) >= 0.01)).toBe(true);
+    expect(payloads.audio.sfxIntents).toEqual([
+      {
+        eventType: "typography_emphasis",
+        sourceMs: 500,
+        beatReason:
+          "payoff semantic state change earns one typography_emphasis cue.",
+      },
+    ]);
     expect(
       JSON.stringify(payloads).match(/CaptionPage\.spring|continuousPush/g),
     ).toBeNull();

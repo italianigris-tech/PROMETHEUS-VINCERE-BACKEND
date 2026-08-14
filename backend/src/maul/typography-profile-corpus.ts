@@ -458,11 +458,14 @@ export const rankTypographyProfiles = ({
         chunk.emphasisLevel,
       ),
       expressivenessScore: profileExpressivenessScore(profile),
-      recentProfileReusePenalty: recentlyUsedProfileNames.includes(
-        profile.profileName,
-      )
-        ? 1
-        : 0,
+      recentProfileReusePenalty: (() => {
+        let consecutiveUses = 0;
+        for (let index = recentlyUsedProfileNames.length - 1; index >= 0; index -= 1) {
+          if (recentlyUsedProfileNames[index] !== profile.profileName) break;
+          consecutiveUses += 1;
+        }
+        return consecutiveUses >= 2 ? 10_000 : consecutiveUses;
+      })(),
     }));
   if (candidates.length === 0) return [];
   const minimumCharacterDistance = Math.min(
@@ -472,14 +475,14 @@ export const rankTypographyProfiles = ({
     minimumCharacterDistance + CHARACTER_DISTANCE_TOLERANCE;
   return candidates.sort(
     (left, right) =>
+      left.recentProfileReusePenalty - right.recentProfileReusePenalty ||
       left.wordDistance - right.wordDistance ||
       left.aspectPenalty - right.aspectPenalty ||
       Number(left.characterDistance > maximumCloseCharacterDistance) -
         Number(right.characterDistance > maximumCloseCharacterDistance) ||
+      right.semanticScore - left.semanticScore ||
       right.expressivenessScore - left.expressivenessScore ||
       left.characterDistance - right.characterDistance ||
-      right.semanticScore - left.semanticScore ||
-      left.recentProfileReusePenalty - right.recentProfileReusePenalty ||
       left.profile.sourceFilename.localeCompare(right.profile.sourceFilename) ||
       left.profile.sourceSha256.localeCompare(right.profile.sourceSha256),
   );

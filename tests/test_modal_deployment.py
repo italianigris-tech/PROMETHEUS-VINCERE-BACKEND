@@ -97,12 +97,75 @@ class ModalDeploymentImageTests(unittest.TestCase):
 
     def test_worker_runs_only_on_demand_and_is_concurrency_bounded(self) -> None:
         function_call = self._decorator_call("render_worker", "function")
-
         self.assertEqual(ast.unparse(function_call.keywords[0].value), "worker_image")
+        self.assertEqual(self._literal_keyword(function_call, "gpu"), "L4")
         self.assertEqual(self._literal_keyword(function_call, "min_containers"), 0)
         self.assertGreaterEqual(self._literal_keyword(function_call, "cpu"), 8)
         self.assertGreaterEqual(self._literal_keyword(function_call, "max_containers"), 4)
         self.assertLessEqual(self._literal_keyword(function_call, "scaledown_window"), 60)
+
+    def test_maul_calls_scale_independently_and_publish_from_local_scratch(self) -> None:
+        function_call = self._decorator_call("maul_render_worker", "function")
+        function = next(
+            node
+            for node in self.tree.body
+            if isinstance(node, ast.FunctionDef) and node.name == "maul_render_worker"
+        )
+        source = ast.unparse(function)
+
+        self.assertGreaterEqual(self._literal_keyword(function_call, "max_containers"), 20)
+        self.assertIn("TemporaryDirectory", source)
+        self.assertIn("shutil.copyfile", source)
+        self.assertIn("artifacts.commit", source)
+        self.assertIn("stageTimingsMs", source)
+
+    def test_maul_export_fans_twelve_frame_slices_across_gpu_workers(self) -> None:
+        module_source = MODAL_APP.read_text(encoding="utf-8")
+        coordinator = next(
+            node
+            for node in self.tree.body
+            if isinstance(node, ast.FunctionDef) and node.name == "maul_render_worker"
+        )
+        slice_call = self._decorator_call("maul_frame_slice_worker", "function")
+
+        self.assertIn("maul_frame_slice_worker.spawn", ast.unparse(coordinator))
+        self.assertIn("MAUL_FRAMES_PER_SLICE", module_source)
+        self.assertIn("MAUL_FRAMES_PER_SLICE = 12", module_source)
+        self.assertIn("MAUL_MAX_PARALLEL_SLICES = 8", module_source)
+        self.assertNotIn("ThreadPoolExecutor", ast.unparse(coordinator))
+        self.assertIn("segmentBytes", ast.unparse(coordinator))
+        self.assertEqual(self._literal_keyword(slice_call, "gpu"), "L4")
+        self.assertGreaterEqual(self._literal_keyword(slice_call, "cpu"), 8)
+        self.assertGreaterEqual(self._literal_keyword(slice_call, "max_containers"), 50)
+        self.assertIn("h264_nvenc", ast.unparse(coordinator))
+
+        coordinator_call = self._decorator_call("maul_render_worker", "function")
+        self.assertFalse(any(keyword.arg == "gpu" for keyword in coordinator_call.keywords))
+        self.assertEqual(self._literal_keyword(coordinator_call, "min_containers"), 0)
+
+    def test_render_worker_requires_nvenc_and_reports_encoder(self) -> None:
+        module_source = MODAL_APP.read_text(encoding="utf-8")
+        function = next(
+            node
+            for node in self.tree.body
+            if isinstance(node, ast.FunctionDef) and node.name == "render_worker"
+        )
+        source = ast.unparse(function)
+
+        self.assertIn("assert_nvenc_available", source)
+        self.assertIn("encoder", source)
+        self.assertIn("h264_nvenc", module_source)
+
+    def test_render_dispatch_requires_pipeline_identity_and_routes_maul_separately(self) -> None:
+        module_source = MODAL_APP.read_text(encoding="utf-8")
+        self.assertIn('pipeline == "maul"', module_source)
+        self.assertIn('pipeline == "joseph"', module_source)
+        self.assertIn("maul_render_worker.spawn", module_source)
+        self.assertIn("render_worker.spawn", module_source)
+        self.assertIn("pipelineJobId", module_source)
+        self.assertIn("render-maul-slice.ts", module_source)
+        self.assertIn("render-maul-audio.ts", module_source)
+        self.assertIn("maul-remotion-bundle", self._assignment_source("worker_image"))
 
     def test_matte_worker_is_gpu_bounded_and_scales_to_zero(self) -> None:
         source = self._assignment_source("matte_image")

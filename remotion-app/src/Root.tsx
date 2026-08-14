@@ -31,6 +31,7 @@ import {
   MaulCinematicSvgPrototype,
   MAUL_CINEMATIC_SVG_PROTOTYPE_DURATION,
 } from "./compositions/MaulCinematicSvgPrototype";
+import {KineticCausalChainProof} from "./compositions/KineticCausalChainProof";
 
 const importMetaEnv = typeof import.meta !== "undefined" ? import.meta.env : undefined;
 const envCaptionProfileId =
@@ -60,7 +61,8 @@ const KNOWN_STUDIO_COMPOSITION_IDS = new Set([
   "CinematicPiPShowcase",
   "JosephEdit",
   "MaulShort",
-  "MaulCinematicSvgPrototype"
+  "MaulCinematicSvgPrototype",
+  "KineticCausalChainProof"
 ]);
 const reelPreset = getPresentationPreset("reel");
 const longFormPreset = getPresentationPreset("long-form");
@@ -316,6 +318,14 @@ export const RemotionRoot: React.FC = () => {
         height={1920}
         fps={30}
         durationInFrames={MAUL_CINEMATIC_SVG_PROTOTYPE_DURATION}
+      />
+      <Composition
+        id="KineticCausalChainProof"
+        component={KineticCausalChainProof}
+        width={1080}
+        height={1920}
+        fps={30}
+        durationInFrames={120}
       />
       <Composition
         id="JosephEdit"

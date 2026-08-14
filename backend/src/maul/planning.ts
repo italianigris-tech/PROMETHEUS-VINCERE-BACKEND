@@ -66,6 +66,12 @@ import {
   type MotionFamily,
 } from "./frame-motion-compiler.js";
 import {routeMaulWordMotion} from "./word-motion-router.js";
+import {selectMaulSemanticSfxIntents} from "./typography-sfx.js";
+import {
+  KINETIC_TRAIT_REGISTRY,
+  getExecutableKineticTrait,
+  parseNumericKineticEvidence,
+} from "./kinetic-trait-registry.js";
 
 export {hashMaulPlanPayload} from "./text-chunk-plan.js";
 
@@ -350,6 +356,7 @@ export const buildMaulTextAnimationPlanPayload = ({
   selectionSeed,
   outputDurationMs,
   fps = 30,
+  typographyLineageByChunkId,
 }: {
   inputs: MaulPlanningInputs;
   textChunkPlan: TextChunkPlanArtifact;
@@ -359,6 +366,10 @@ export const buildMaulTextAnimationPlanPayload = ({
   selectionSeed?: string;
   outputDurationMs: number;
   fps?: number;
+  typographyLineageByChunkId?: Readonly<Record<string, {
+    profileId: string;
+    metricsFingerprint: string;
+  }>>;
 }): MaulTextAnimationPlanPayload => {
   if (textPlacementPlan.payload.status === "blocked") {
     throw new Error(
@@ -450,16 +461,53 @@ export const buildMaulTextAnimationPlanPayload = ({
       return timedTokens.flatMap((token) => {
         if (!token) return [];
         const isSemanticEmphasis = chunk.emphasis.tokenIds.includes(token.tokenId);
-        const wordMotion = isSemanticEmphasis
-          ? routeMaulWordMotion({
-              seed: `${selectionSeed ?? inputs.candidate.artifactId}:${segment.segmentId}:${token.tokenId}:hero-motion`,
-              emphasisLevel: chunk.emphasis.level,
-              isEmphasized: true,
-              previousTreatment: phraseMotion.treatmentId,
-              previousFamily: phraseMotion.family,
-              usedTreatments: usedWordTreatments,
-            })
-          : phraseMotion;
+        const numericEvidence = parseNumericKineticEvidence(token.text);
+        const typographyLineage = typographyLineageByChunkId?.[chunk.chunkId];
+        const meritsNumericTreatment = numericEvidence !== null && (
+          numericEvidence.kind === "currency" ||
+          numericEvidence.kind === "percentage" ||
+          (isSemanticEmphasis && (
+            chunk.emphasis.level === "key" || chunk.emphasis.level === "hero"
+          ))
+        );
+        const numericTrait = meritsNumericTreatment && typographyLineage
+          ? getExecutableKineticTrait("trait_number_count_up")
+          : null;
+        const kineticTreatment = numericTrait && numericEvidence && typographyLineage
+          ? {
+              registryVersion: KINETIC_TRAIT_REGISTRY.version,
+              traitId: numericTrait.id,
+              sourcePhenotype: numericTrait.sourcePhenotype,
+              selectionMode: "semantic_bias" as const,
+              targetScope: "word" as const,
+              targetRole: chunk.emphasis.level === "hero"
+                ? "hero" as const
+                : chunk.emphasis.level === "key"
+                  ? "accent" as const
+                  : "support" as const,
+              evidence: {
+                kind: numericEvidence.kind,
+                sourceText: numericEvidence.sourceText,
+                parsedValue: numericEvidence.parsedValue,
+                tokenIds: [token.tokenId],
+              },
+              typographyAuthority: {
+                kind: "chunk_typography_binding" as const,
+                chunkId: chunk.chunkId,
+                profileId: typographyLineage.profileId,
+                metricsFingerprint: typographyLineage.metricsFingerprint,
+              },
+              placementIntent: "lower_or_center_9x16" as const,
+              renderContract: {
+                executorId: numericTrait.execution.executorId,
+                frameDeterministic: true as const,
+                startValue: 0,
+                endValue: numericEvidence.parsedValue,
+                format: numericEvidence.format,
+              },
+            }
+          : undefined;
+        const wordMotion = phraseMotion;
         const relevantSpans = token.outputSpans.flatMap((span, spanIndex) => {
           const outputStartMs = Math.max(segment.outputStartMs, span.outputStartMs);
           const outputEndMs = Math.min(segment.outputEndMs, span.outputEndMs);
@@ -484,12 +532,16 @@ export const buildMaulTextAnimationPlanPayload = ({
               ? "settled"
               : "pending",
           });
-          const toOutputMs = (frame: number) => Math.round((frame / fps) * 1000);
+          const toOutputMs = (frame: number) => Math.min(
+            outputDurationMs,
+            Math.round((frame / fps) * 1000),
+          );
           return [{
             animationId: `maul_text_animation_${segment.segmentId}_${token.tokenId}_bridge`,
             treatment: wordMotion.treatmentId,
             executorId: frameMotion.executorId,
             frameMotion,
+            ...(kineticTreatment ? {kineticTreatment} : {}),
             target: {
               scope: "tokens" as const,
               placementSegmentId: segment.segmentId,
@@ -536,12 +588,16 @@ export const buildMaulTextAnimationPlanPayload = ({
             fps,
             placementSegmentId: segment.segmentId,
           });
-          const toOutputMs = (frame: number) => Math.round((frame / fps) * 1000);
+          const toOutputMs = (frame: number) => Math.min(
+            outputDurationMs,
+            Math.round((frame / fps) * 1000),
+          );
           return {
             animationId: `maul_text_animation_${segment.segmentId}_${token.tokenId}_${spanIndex}`,
             treatment: wordMotion.treatmentId,
             executorId: frameMotion.executorId,
             frameMotion,
+            ...(kineticTreatment ? {kineticTreatment} : {}),
             target: {
               scope: "tokens" as const,
               placementSegmentId: segment.segmentId,
@@ -570,7 +626,7 @@ export const buildMaulTextAnimationPlanPayload = ({
                 to: identityTransform,
               },
             },
-            rationale: `Execute ${wordMotion.treatmentId} for stable token ${token.tokenId} from its authoritative transcript interval as ${wordMotion.tier === "cinematic_emphasis" ? "cinematic semantic emphasis" : "supporting word motion"}; ${selectedTreatment} remains the chunk-level stylistic anchor.${treatmentSelectionNote}`,
+            rationale: `Execute ${wordMotion.treatmentId} for stable token ${token.tokenId} from its authoritative transcript interval while preserving one lockup motion language; ${selectedTreatment} remains the chunk-level stylistic anchor.${isSemanticEmphasis ? " Semantic emphasis remains encoded by the typography hierarchy rather than a competing motion family." : ""}${treatmentSelectionNote}`,
           };
         });
       });
@@ -1309,15 +1365,27 @@ export const buildMaulPlanningPayloads = (
     schemaVersion: "maul-framing-camera-plan/v1",
     events: (() => {
       let previousEndScale = 1;
-      return beatRecords.map((beat, index) => {
+      const cameraBeats = inputs.textChunkPlan?.chunks.map((chunk, index) => ({
+        beatId: `maul_chunk_camera_${index + 1}`,
+        role: chunk.semanticRole,
+        outputStartMs: chunk.startMs,
+        outputEndMs: chunk.endMs,
+        protectedPause: false,
+      })) ?? beatRecords;
+      return cameraBeats.map((beat, index) => {
         const startScale = isV3 ? previousEndScale : 1;
-        const endScale = Math.min(
-          inputs.treatment.payload.rendererInputs.framing.maxPunchInScale,
-          startScale +
-            (inputs.treatment.payload.treatmentId === "minimal_expert"
-              ? 0.008
-              : 0.018),
-        );
+        const maxScale = inputs.treatment.payload.rendererInputs.framing.maxPunchInScale;
+        const restrainedFactor = inputs.treatment.payload.treatmentId === "minimal_expert" ? 0.65 : 1;
+        const roleDelta = beat.protectedPause || beat.role === "context" || beat.role === "claim"
+          ? -0.012
+          : beat.role === "hook"
+            ? 0.035
+            : beat.role === "contrast" || beat.role === "transition"
+              ? 0.028
+              : beat.role === "payoff" || beat.role === "cta"
+                ? 0.035
+                : 0.016;
+        const endScale = Math.min(maxScale, Math.max(1, startScale + roleDelta * restrainedFactor));
         previousEndScale = endScale;
         return {
           eventId: `maul_camera_${index + 1}`,
@@ -1330,7 +1398,9 @@ export const buildMaulPlanningPayloads = (
           motivatedByBeatId: beat.beatId,
           rationale: beat.protectedPause
             ? "Settle rather than restart motion across the protected pause."
-            : "Use one restrained continuous push to support the spoken beat.",
+            : roleDelta < 0
+              ? `Settle camera on ${beat.role} to create contrast without restarting scale.`
+              : `Use one continuous ${beat.role} push with visible but bounded amplitude.`,
           execution: isV3
             ? executionNative(
                 MAUL_V3_NATIVE_RENDER_BRANCHES.camera,
@@ -1405,11 +1475,19 @@ export const buildMaulPlanningPayloads = (
     targetLufs: -14,
     musicPolicy: inputs.treatment.payload.rendererInputs.audio.musicBehavior,
     duckingDb: inputs.treatment.payload.rendererInputs.audio.duckingDb,
-    sfxIntents: (chunkCaptionGroups ?? []).slice(0, 7).map((chunk, index) => ({
-      eventType: "typography_entry",
-      sourceMs: chunk.outputStartMs,
-      beatReason: `Typography cue ${index + 1} is docked to the governed caption entry.`,
-    })),
+    sfxIntents: inputs.textChunkPlan
+      ? selectMaulSemanticSfxIntents({
+          semanticMoments: inputs.textChunkPlan.chunks.map((chunk) => ({
+            sourceMs: chunk.startMs,
+            role: chunk.semanticRole,
+            emphasisLevel: chunk.emphasis.level,
+          })),
+        }).map((intent) => ({
+          eventType: intent.eventType,
+          sourceMs: intent.sourceMs,
+          beatReason: intent.reason,
+        }))
+      : [],
     execution: executionNative(
       "MaulSoundEngine.dialogueSidechainMaster",
       "Rendered stems must prove dialogue priority, music ducking, and audible typography accents.",
@@ -2321,8 +2399,8 @@ export const compileMaulUnifiedShortRenderManifest = ({
       sourceTreatment: "enabled",
       sourceLegibilityOverlay: "enabled",
       editorialCuts: "disabled",
-      transitions: "disabled",
-      backgroundAnimation: "disabled",
+      transitions: isV3 ? "enabled" : "disabled",
+      backgroundAnimation: "enabled",
       motionGraphics: "enabled",
       audioTreatment: "enabled",
     },

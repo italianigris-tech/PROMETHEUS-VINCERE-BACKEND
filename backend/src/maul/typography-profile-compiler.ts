@@ -12,6 +12,7 @@ import {
   countTypographyCharacters,
   loadTypographyProfileCorpus,
   rankTypographyProfiles,
+  type RankedTypographyProfile,
   type TypographyProfileLayer,
   type TypographyProfileObservation,
 } from "./typography-profile-corpus.js";
@@ -31,6 +32,10 @@ import {
   compileTypographyProfileRealization,
   type TypographyRealizationToken,
 } from "./typography-profile-realization.js";
+import {
+  fingerprintTypographyProfileGeometry,
+  TYPOGRAPHY_PROFILE_COMPILER_VERSION,
+} from "./typography-profile-manifest-contract.js";
 
 export type TypographyProfileCompilerChunk = {
   chunkId: string;
@@ -76,6 +81,7 @@ export interface TypographyProfileCompiler {
     chunks: readonly TypographyProfileCompilerChunk[];
     targetAspectRatio: "9:16";
     maximumLineWidthPx: number;
+    continuityMode?: "varied" | "scene_coherent";
   }): Promise<TypographyProfileCompilation>;
 }
 
@@ -164,6 +170,7 @@ export const createTypographyProfileCompiler = ({
       try {
         const compiledChunks: CompiledChunkTypography[] = [];
         const recentlyUsedProfileNames: string[] = [];
+        let sceneProfile: TypographyProfileObservation | null = null;
         for (const chunk of input.chunks) {
           const selectionStarted = performance.now();
           const ranked = rankTypographyProfiles({
@@ -177,10 +184,21 @@ export const createTypographyProfileCompiler = ({
             targetAspectRatio: input.targetAspectRatio,
             recentlyUsedProfileNames,
           });
-          const selected = ranked[0];
+          const sceneCandidate: RankedTypographyProfile | undefined = sceneProfile
+            ? ranked.find((candidate) =>
+                candidate.profile.profileName === sceneProfile!.profileName,
+              )
+            : undefined;
+          const selected: RankedTypographyProfile | undefined =
+            input.continuityMode === "scene_coherent" &&
+            sceneCandidate &&
+            sceneCandidate.recentProfileReusePenalty < 10_000
+              ? sceneCandidate
+              : ranked[0];
           if (!selected) {
             throw new Error("Typography profile corpus produced no candidates.");
           }
+          sceneProfile ??= selected.profile;
           recentlyUsedProfileNames.push(selected.profile.profileName);
           if (recentlyUsedProfileNames.length > 8) {
             recentlyUsedProfileNames.shift();
@@ -292,6 +310,19 @@ export const createTypographyProfileCompiler = ({
             measureToken: ({tokenId, text, font, fontSizePx}) =>
               measureProfileLayer({tokenId, text, font, fontSizePx}),
           });
+          const realizedLayerNames = new Set(
+            realization.layers.map((layer) => layer.layerName),
+          );
+          const realizedLayerBindings = layerBindings.filter((binding) =>
+            realizedLayerNames.has(binding.layerName),
+          );
+          const realizedPrimaryLayerName = realizedLayerNames.has(primaryLayer.layerName)
+            ? primaryLayer.layerName
+            : realization.layers[0]!.layerName;
+          const realizedAccentLayerName = accentLayer &&
+            realizedLayerNames.has(accentLayer.layerName)
+            ? accentLayer.layerName
+            : null;
           const bindingReceipt = {
             schemaVersion: "maul-chunk-typography-binding/v1" as const,
             chunkId: chunk.chunkId,
@@ -316,18 +347,37 @@ export const createTypographyProfileCompiler = ({
               wordDistance: selected.wordDistance,
               characterDistance: selected.characterDistance,
             },
-            primaryLayerName: primaryLayer.layerName,
-            accentLayerName: accentLayer?.layerName ?? null,
-            layers: layerBindings,
+            primaryLayerName: realizedPrimaryLayerName,
+            accentLayerName: realizedAccentLayerName,
+            layers: realizedLayerBindings,
             compatibilityProfile: measured.profile,
             layout,
             realization,
             selectionStatus: "selected" as const,
             reason: `Selected ${selected.profile.profileName} by word distance ${selected.wordDistance} and character distance ${selected.characterDistance}; exact or closest deployed font receipts were measured before placement.`,
           };
+          const resolvedFontAssets = [
+            ...new Map(
+              realizedLayerBindings.map((layer) => [
+                layer.selectedAsset.assetId,
+                layer.selectedAsset,
+              ]),
+            ).values(),
+          ];
+          const provenance = {
+            compilerVersion: TYPOGRAPHY_PROFILE_COMPILER_VERSION,
+            profileId: measured.profile.profileId,
+            sourceFilename: selected.profile.sourceFilename,
+            sourceSha256: selected.profile.sourceSha256,
+            geometryFingerprint: fingerprintTypographyProfileGeometry(
+              bindingReceipt,
+            ),
+            resolvedFontAssets,
+          };
           const binding = maulChunkTypographyBindingSchema.parse({
             ...bindingReceipt,
-            bindingHash: hashMaulPlanPayload(bindingReceipt),
+            provenance,
+            bindingHash: hashMaulPlanPayload({...bindingReceipt, provenance}),
             timingMs: {
               selection: roundTiming(selectionMs),
               fontResolution: roundTiming(fontResolutionMs),

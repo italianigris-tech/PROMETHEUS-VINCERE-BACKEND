@@ -1,17 +1,17 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest';
-import {renderFromManifest, resolveRenderConcurrency, RenderError, MuxError, ValidationError} from './index.js';
+import {renderFromManifest, resolveRenderConcurrency, RenderError, MuxError, NvencError, ValidationError} from './index.js';
 import {UnifiedRenderManifest} from '@prometheus/shared-types';
 import * as fs from 'fs';
 import * as child_process from 'child_process';
 import * as path from 'path';
 import {bundle} from '@remotion/bundler';
-import {renderMedia, selectComposition} from '@remotion/renderer';
+import {renderFrames, selectComposition} from '@remotion/renderer';
 import {mixAudio} from '@prometheus/backend';
 
 vi.mock('fs');
 vi.mock('child_process');
 vi.mock('@remotion/renderer', () => ({
-  renderMedia: vi.fn(),
+  renderFrames: vi.fn(),
   selectComposition: vi.fn(),
 }));
 vi.mock('@remotion/bundler', () => ({
@@ -44,11 +44,7 @@ describe('renderFromManifest', () => {
       folderName: null,
       nonce: 0,
     } as any);
-    vi.mocked(renderMedia).mockResolvedValue({
-      buffer: null,
-      contentType: 'video/mp4',
-      slowestFrames: [],
-    });
+    vi.mocked(renderFrames).mockResolvedValue({} as any);
     vi.mocked(mixAudio).mockResolvedValue(undefined);
 
     mockManifest = {
@@ -137,20 +133,18 @@ describe('renderFromManifest', () => {
       gl: 'angle',
       chromiumOptions: expect.objectContaining({gl: 'angle'}),
     }));
-    expect(renderMedia).toHaveBeenCalledWith(expect.objectContaining({
+    expect(renderFrames).toHaveBeenCalledWith(expect.objectContaining({
       composition: expect.objectContaining({id: 'JosephEdit'}),
       serveUrl: 'mock-serve-url',
       inputProps: {manifest: mockManifest, audioPreviewEnabled: false},
-      outputLocation: expect.stringContaining('_silent.mp4'),
-      codec: 'h264',
-      width: 1080,
-      height: 1920,
+      outputDir: expect.stringContaining('_frames'),
+      imageFormat: 'png',
       concurrency: expect.any(Number),
       timeoutInMilliseconds: 600000,
       gl: 'angle',
       hardwareAcceleration: 'if-possible',
       chromiumOptions: expect.objectContaining({gl: 'angle'}),
-      onProgress: expect.any(Function),
+      onFrameUpdate: expect.any(Function),
     }));
     expect(mixAudio).toHaveBeenCalledWith(
       mockManifest,
@@ -161,6 +155,12 @@ describe('renderFromManifest', () => {
       }),
     );
     expect(child_process.spawn).toHaveBeenCalled();
+    const ffmpegArgs = vi.mocked(child_process.spawn).mock.calls[0]?.[1] as string[];
+    expect(ffmpegArgs).toEqual(expect.arrayContaining([
+      '-c:v', 'h264_nvenc',
+      '-preset', 'p4',
+      '-cq', '18',
+    ]));
     expect(finalPath).toContain('123e4567-e89b-12d3-a456-426614174000_final.mp4');
   });
   it('removes the downloaded source video after a successful mux', async () => {
@@ -194,7 +194,7 @@ describe('renderFromManifest', () => {
 
     await expect(renderFromManifest(mockManifest)).rejects.toThrow(ValidationError);
     await expect(renderFromManifest(mockManifest)).rejects.toThrow(/composition metadata.*1080x1920/i);
-    expect(renderMedia).not.toHaveBeenCalled();
+    expect(renderFrames).not.toHaveBeenCalled();
   });
 
   it('rejects non-vertical Joseph manifests before bundling', async () => {
@@ -211,7 +211,7 @@ describe('renderFromManifest', () => {
     expect(bundle).not.toHaveBeenCalled();
   });
 
-  it('retries renderMedia on timeout', async () => {
+  it('retries frame rendering on timeout', async () => {
     const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
     const warningSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     const mockChildProcess = {
@@ -221,23 +221,21 @@ describe('renderFromManifest', () => {
       }),
     };
     vi.mocked(child_process.spawn).mockReturnValue(mockChildProcess as any);
-    vi.mocked(renderMedia)
+    vi.mocked(renderFrames)
       .mockImplementationOnce(async (options: any) => {
-        options.onProgress?.({progress: 0.11, renderedFrames: 33, encodedFrames: 0});
+        options.onFrameUpdate?.(33, 33, 10);
         throw new Error('Chromium timeout while rendering');
       })
-      .mockResolvedValueOnce({buffer: null, contentType: 'video/mp4', slowestFrames: []} as any);
+      .mockResolvedValueOnce({} as any);
 
     await renderFromManifest(mockManifest);
 
-    expect(renderMedia).toHaveBeenCalledTimes(2);
-    expect(vi.mocked(renderMedia).mock.calls[0]?.[0]).toEqual(expect.objectContaining({
-      serveUrl: 'mock-serve-url',
+    expect(renderFrames).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(renderFrames).mock.calls[0]?.[0]).toEqual(expect.objectContaining({
       gl: 'angle',
       hardwareAcceleration: 'if-possible',
     }));
-    expect(vi.mocked(renderMedia).mock.calls[1]?.[0]).toEqual(expect.objectContaining({
-      serveUrl: 'mock-serve-url',
+    expect(vi.mocked(renderFrames).mock.calls[1]?.[0]).toEqual(expect.objectContaining({
       timeoutInMilliseconds: 600000,
       concurrency: 1,
       gl: 'swangle',
@@ -250,18 +248,18 @@ describe('renderFromManifest', () => {
   });
 
   it('does not retry deterministic root suspension failures', async () => {
-    vi.mocked(renderMedia).mockRejectedValue(new Error('Waiting for Root component to unsuspend after 598000ms'));
+    vi.mocked(renderFrames).mockRejectedValue(new Error('Waiting for Root component to unsuspend after 598000ms'));
 
     await expect(renderFromManifest(mockManifest)).rejects.toThrow(RenderError);
 
-    expect(renderMedia).toHaveBeenCalledTimes(1);
+    expect(renderFrames).toHaveBeenCalledTimes(1);
   });
 
   it('throws RenderError on non-retryable Remotion failure', async () => {
-    vi.mocked(renderMedia).mockRejectedValue(new Error('shader compile failed'));
+    vi.mocked(renderFrames).mockRejectedValue(new Error('shader compile failed'));
 
     await expect(renderFromManifest(mockManifest)).rejects.toThrow(RenderError);
-    await expect(renderFromManifest(mockManifest)).rejects.toThrow('Remotion renderMedia failed for job 123e4567-e89b-12d3-a456-426614174000');
+    await expect(renderFromManifest(mockManifest)).rejects.toThrow('Remotion renderFrames failed for job 123e4567-e89b-12d3-a456-426614174000');
   });
 
   it('throws MuxError on FFmpeg failure', async () => {
@@ -273,6 +271,6 @@ describe('renderFromManifest', () => {
     };
     vi.mocked(child_process.spawn).mockReturnValue(mockChildProcess as any);
 
-    await expect(renderFromManifest(mockManifest)).rejects.toThrow(MuxError);
+    await expect(renderFromManifest(mockManifest)).rejects.toThrow(NvencError);
   });
 });

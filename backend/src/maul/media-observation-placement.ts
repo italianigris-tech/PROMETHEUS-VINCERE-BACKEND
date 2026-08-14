@@ -33,6 +33,22 @@ const clamp = (value: number, minimum: number, maximum: number): number =>
 
 const rounded = (value: number): number => Number(value.toFixed(6));
 
+const interpolateBox = (
+  left: MaulNormalizedBox | null,
+  right: MaulNormalizedBox | null,
+  progress: number,
+): MaulNormalizedBox | null => {
+  if (!left || !right) return null;
+  const lerp = (start: number, end: number): number =>
+    rounded(start + (end - start) * progress);
+  return {
+    x: lerp(left.x, right.x),
+    y: lerp(left.y, right.y),
+    width: lerp(left.width, right.width),
+    height: lerp(left.height, right.height),
+  };
+};
+
 const overlapArea = (
   first: MaulNormalizedBox,
   second: MaulNormalizedBox,
@@ -205,6 +221,40 @@ const opportunitiesForSubject = (
       temporalStability,
     }));
   }
+  const topHeight = Math.max(0, subjectBox.y - SAFE_REGION.y - 0.04);
+  const bottomStart = subjectBox.y + subjectBox.height + 0.04;
+  const bottomHeight = Math.max(
+    0,
+    SAFE_REGION.y + SAFE_REGION.height - bottomStart,
+  );
+  if (topHeight >= 0.1) {
+    regions.push(opportunity({
+      regionId: "media_observed_clear_top",
+      box: {
+        x: 0.1,
+        y: SAFE_REGION.y,
+        width: 0.8,
+        height: Math.min(0.18, topHeight),
+      },
+      overlapPolicy: "avoid_subject",
+      faceInterference: 0,
+      temporalStability,
+    }));
+  }
+  if (bottomHeight >= 0.1) {
+    regions.push(opportunity({
+      regionId: "media_observed_clear_bottom",
+      box: {
+        x: 0.1,
+        y: bottomStart,
+        width: 0.8,
+        height: Math.min(0.18, bottomHeight),
+      },
+      overlapPolicy: "avoid_subject",
+      faceInterference: 0,
+      temporalStability,
+    }));
+  }
   return regions;
 };
 
@@ -275,14 +325,50 @@ const holdForBeat = ({
       frame.outputMs <= beat.endMs,
   );
   const midpoint = (beat.startMs + beat.endMs) / 2;
-  const nearest = [...frames]
+  const subjectFrames = frames
     .filter((frame) => frame.subjectBox)
+    .sort((left, right) => left.outputMs - right.outputMs);
+  const nearest = [...subjectFrames]
     .sort(
       (left, right) =>
         Math.abs(left.outputMs - midpoint) - Math.abs(right.outputMs - midpoint),
     )[0];
-  const selectedFrames = validFrames.length > 0
-    ? validFrames
+  const leftBracket = [...subjectFrames]
+    .reverse()
+    .find((frame) => frame.outputMs <= midpoint);
+  const rightBracket = subjectFrames.find((frame) => frame.outputMs >= midpoint);
+  const canInterpolate = Boolean(
+    leftBracket &&
+    rightBracket &&
+    leftBracket !== rightBracket &&
+    midpoint - leftBracket.outputMs <= maximumInterpolationGapMs &&
+    rightBracket.outputMs - midpoint <= maximumInterpolationGapMs,
+  );
+  const interpolationProgress = canInterpolate
+    ? (midpoint - leftBracket!.outputMs) /
+      (rightBracket!.outputMs - leftBracket!.outputMs)
+    : 0;
+  const interpolatedSubjectBox = canInterpolate
+    ? interpolateBox(
+        leftBracket!.subjectBox,
+        rightBracket!.subjectBox,
+        interpolationProgress,
+      )
+    : null;
+  const interpolatedFaceBox = canInterpolate
+    ? interpolateBox(
+        leftBracket!.faceBox,
+        rightBracket!.faceBox,
+        interpolationProgress,
+      )
+    : null;
+  const selectedFrames = canInterpolate
+    ? [...new Map(
+        [...validFrames, leftBracket!, rightBracket!]
+          .map((frame) => [frame.outputMs, frame]),
+      ).values()]
+    : validFrames.length > 0
+      ? validFrames
     : nearest && Math.abs(nearest.outputMs - midpoint) <= maximumInterpolationGapMs
       ? [nearest]
       : [];
@@ -291,9 +377,16 @@ const holdForBeat = ({
     (left, right) =>
       Math.abs(left.outputMs - midpoint) - Math.abs(right.outputMs - midpoint),
   )[0]!;
-  const crop = cropForOutput(input, representative.outputMs);
-  const subjectBox = mapBoxIntoCrop(representative.subjectBox, crop);
-  const faceBox = mapBoxIntoCrop(representative.faceBox, crop);
+  const geometryOutputMs = canInterpolate ? midpoint : representative.outputMs;
+  const crop = cropForOutput(input, geometryOutputMs);
+  const subjectBox = mapBoxIntoCrop(
+    canInterpolate ? interpolatedSubjectBox : representative.subjectBox,
+    crop,
+  );
+  const faceBox = mapBoxIntoCrop(
+    canInterpolate ? interpolatedFaceBox : representative.faceBox,
+    crop,
+  );
   if (!subjectBox) return null;
   const stability = Number(
     (selectedFrames.reduce(
@@ -316,7 +409,12 @@ const holdForBeat = ({
     outputStartMs: beat.startMs,
     outputEndMs: beat.endMs,
     sourceFrameIds: selectedFrames.map(sourceFrameId),
-    sourceSampleMs: representative.sourceMs,
+    sourceSampleMs: canInterpolate
+      ? Math.round(
+          leftBracket!.sourceMs +
+          (rightBracket!.sourceMs - leftBracket!.sourceMs) * interpolationProgress,
+        )
+      : representative.sourceMs,
     sourceCrop: crop,
     subject: {
       trackingState: validFrames.length > 0 ? "tracked" : "held",

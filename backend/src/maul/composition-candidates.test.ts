@@ -48,4 +48,29 @@ describe("MAUL composition candidates", () => {
     expect(candidate?.box.width).toBeGreaterThanOrEqual(0.34);
     expect(candidate?.box.height).toBeGreaterThanOrEqual(0.16);
   });
+
+  it("keeps avoid-subject directions inside the measured opportunity", () => {
+    const opportunityBox = {x: 0.1, y: 0.08, width: 0.8, height: 0.12};
+    const candidates = buildCompositionCandidates({
+      subjectBox: {x: 0.07, y: 0.24, width: 0.86, height: 0.76},
+      opportunity: {
+        regionId: "media_observed_clear_top",
+        box: opportunityBox,
+        negativeSpace: 0.86,
+        readability: 0.82,
+        clutter: 0.2,
+        faceInterference: 0,
+        overlapPolicy: "avoid_subject",
+        temporalStability: 0.94,
+      },
+      purpose: "HOOK",
+    });
+
+    expect(candidates.every((candidate) => (
+      candidate.box.x >= opportunityBox.x &&
+      candidate.box.y >= opportunityBox.y &&
+      candidate.box.x + candidate.box.width <= opportunityBox.x + opportunityBox.width + 0.000001 &&
+      candidate.box.y + candidate.box.height <= opportunityBox.y + opportunityBox.height + 0.000001
+    ))).toBe(true);
+  });
 });

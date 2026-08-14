@@ -1,6 +1,6 @@
 import path from "node:path";
 
-import {afterEach, beforeEach, describe, expect, it} from "vitest";
+import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 
 import type {BackendAppContext, BackendDependencies} from "../app";
 import {buildMultipartBody, cleanupTempDir, createTestApp, makeTempDir} from "./test-utils";
@@ -276,6 +276,25 @@ describe("edit session live preview route", () => {
     expect(previewReadyEvent?.session["previewDiagnostics"]).toBeTruthy();
   });
 
+  it("rejects cross-pipeline tags before creating a session", async () => {
+    context = await createTestApp({storageDir: tempDir});
+    const createSession = vi.spyOn(context.editSessions, "createSession");
+
+    const response = await context.app.inject({
+      method: "POST",
+      url: "/api/edit-sessions/live-preview",
+      payload: {
+        sourcePath: path.join(tempDir, "source.mp4"),
+        pipeline: "maul",
+        josephProfile: "joseph_cinematic"
+      }
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toEqual({error: "josephProfile is only valid when pipeline='joseph'."});
+    expect(createSession).not.toHaveBeenCalled();
+  });
+
   it("compiles a browser upload through the Joseph pipeline and exposes the exact UnifiedRenderManifest", async () => {
     let receivedProfile: string | null = null;
     context = await createTestApp({
@@ -386,6 +405,7 @@ describe("edit session live preview route", () => {
 
     const multipart = buildMultipartBody([
       {name: "source_video", value: Buffer.from("fake-video-file"), filename: "joseph-source.mp4", contentType: "video/mp4"},
+      {name: "pipeline", value: "joseph"},
       {name: "josephProfile", value: "joseph_cinematic"},
       {name: "promptText", value: "Apply the complete Joseph treatment."}
     ]);

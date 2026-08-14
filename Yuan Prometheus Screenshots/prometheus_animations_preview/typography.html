@@ -1,0 +1,1326 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prometheus Master Kinetic Suite — All 25 Active Presets & Trait Registry</title>
+  <style>
+    :root {
+      --bg-primary: #050507;
+      --bg-secondary: #0c0c12;
+      --bg-card: #12121c;
+      --bg-preview: #040406;
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-glow: rgba(6, 182, 212, 0.4);
+      --accent-cyan: #06b6d4;
+      --accent-purple: #7c3aed;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --ease-apple: cubic-bezier(0.16, 1, 0.3, 1);
+      --font-apple: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+      --font-mono: "JetBrains Mono", "SF Mono", monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: var(--font-apple);
+      min-height: 100vh;
+      padding-bottom: 80px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    header {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(5, 5, 7, 0.88);
+      backdrop-filter: blur(24px) saturate(180%);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 18px 36px;
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px;
+    }
+
+    .brand { display: flex; align-items: center; gap: 14px; }
+    .brand-logo {
+      width: 40px; height: 40px;
+      background: linear-gradient(135deg, #ffffff, #94a3b8);
+      color: #000; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 900; font-size: 20px;
+      box-shadow: 0 0 24px rgba(255, 255, 255, 0.3);
+    }
+    .brand-title h1 { font-size: 20px; font-weight: 800; letter-spacing: -0.03em; }
+    .brand-title p { font-size: 12px; color: var(--text-secondary); }
+
+    .nav-links { display: flex; align-items: center; gap: 12px; }
+    .nav-btn {
+      background: var(--bg-secondary); border: 1px solid var(--border-subtle);
+      color: var(--text-secondary); padding: 8px 16px; border-radius: 8px;
+      font-size: 12px; font-weight: 600; text-decoration: none; transition: all 0.2s;
+    }
+    .nav-btn:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+
+    .container { max-width: 1700px; margin: 0 auto; padding: 36px; }
+
+    .banner {
+      background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(6,182,212,0.06));
+      border: 1px solid var(--border-subtle); border-radius: 18px;
+      padding: 28px 36px; margin-bottom: 40px;
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;
+    }
+
+    .banner-text h2 { font-size: 24px; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 6px; }
+    .banner-text p { font-size: 14px; color: var(--text-secondary); }
+    .banner-badge {
+      background: #ffffff; color: #000; font-size: 13px; font-weight: 800;
+      padding: 8px 18px; border-radius: 20px; box-shadow: 0 0 20px rgba(255, 255, 255, 0.4);
+    }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(540px, 1fr)); gap: 36px; }
+
+    .card {
+      background: var(--bg-card); border: 1px solid var(--border-subtle);
+      border-radius: 20px; overflow: hidden; display: flex; flex-direction: column;
+      transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s;
+    }
+    .card:hover {
+      border-color: rgba(255, 255, 255, 0.3);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(255, 255, 255, 0.1);
+      transform: translateY(-4px);
+    }
+
+    .card-header {
+      padding: 18px 24px; display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--border-subtle); background: rgba(0, 0, 0, 0.4);
+    }
+    .card-title-group { display: flex; align-items: center; gap: 12px; }
+    .card-badge {
+      font-family: var(--font-mono); font-size: 11px; font-weight: 800; color: #fff;
+      background: rgba(255, 255, 255, 0.14); padding: 4px 10px; border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+    }
+    .card-title { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
+
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+
+    .inspect-btn {
+      background: rgba(6, 182, 212, 0.15); border: 1px solid rgba(6, 182, 212, 0.4);
+      color: #38bdf8; border-radius: 8px; padding: 7px 12px; font-size: 12px; font-weight: 700;
+      cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 4px;
+    }
+    .inspect-btn:hover { background: #06b6d4; color: #000; box-shadow: 0 0 16px rgba(6,182,212,0.5); }
+
+    .replay-btn {
+      background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.16);
+      color: var(--text-primary); border-radius: 8px; padding: 7px 14px; font-size: 12px;
+      font-weight: 600; display: flex; align-items: center; gap: 6px; cursor: pointer; transition: all 0.2s ease;
+    }
+    .replay-btn:hover { background: #ffffff; color: #000; box-shadow: 0 0 18px rgba(255, 255, 255, 0.5); }
+    .replay-btn:active { transform: scale(0.94); }
+    .replay-btn svg { width: 14px; height: 14px; fill: currentColor; transition: transform 0.3s ease; }
+    .replay-btn:hover svg { transform: rotate(-180deg); }
+
+    .preview-stage {
+      height: 320px; background: var(--bg-preview); position: relative; overflow: hidden;
+      display: flex; align-items: center; justify-content: center; padding: 32px; width: 100%;
+    }
+
+    .card-footer {
+      padding: 16px 24px; border-top: 1px solid var(--border-subtle);
+      background: rgba(0, 0, 0, 0.25); display: flex; align-items: center; justify-content: space-between;
+      font-size: 13px; color: var(--text-secondary); font-family: var(--font-mono);
+    }
+
+    .trait-drawer {
+      background: #09090e; border-top: 1px solid rgba(6, 182, 212, 0.3);
+      padding: 20px 24px; display: none; font-family: var(--font-mono); font-size: 12px;
+      color: #cbd5e1; animation: slide-down 0.25s ease-out;
+    }
+    .trait-drawer.open { display: block; }
+    @keyframes slide-down { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+    .drawer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 10px; }
+    .drawer-tag { display: inline-block; background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 4px; color: #fff; margin-right: 6px; font-weight: 700; }
+    .drawer-code { background: #000; padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); color: #38bdf8; overflow-x: auto; margin-top: 6px; }
+
+    /* PRESET STYLES */
+    @keyframes apple-hero-anim { 0% { opacity: 0; transform: translateY(32px) scale(0.93); filter: blur(18px); letter-spacing: -0.05em; } 60% { opacity: 1; transform: translateY(-2px) scale(1.01); filter: blur(0px); letter-spacing: -0.03em; } 100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0px); letter-spacing: -0.03em; } }
+    .typo-apple-hero { font-size: 42px; font-weight: 800; letter-spacing: -0.03em; background: linear-gradient(180deg, #ffffff 0%, #a1a1aa 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-align: center; animation: apple-hero-anim 3.2s infinite var(--ease-apple); }
+
+    @keyframes char-cascade-anim { 0% { opacity: 0; transform: translateY(28px) rotateX(-90deg); filter: blur(10px); } 100% { opacity: 1; transform: translateY(0) rotateX(0deg); filter: blur(0px); } }
+    .char-box { display: flex; gap: 6px; perspective: 500px; }
+    .char-item { font-size: 40px; font-weight: 900; display: inline-block; animation: char-cascade-anim 2.6s infinite var(--ease-apple); }
+
+    @keyframes keynote-punch-anim { 0% { transform: scale(1.35); opacity: 0; filter: blur(16px); } 40% { transform: scale(0.98); opacity: 1; filter: blur(0px); } 60%, 100% { transform: scale(1); opacity: 1; filter: blur(0px); } }
+    .typo-keynote-punch { font-size: 38px; font-weight: 900; letter-spacing: -0.02em; text-align: center; animation: keynote-punch-anim 2.8s infinite var(--ease-apple); }
+
+    @keyframes blur-mask-anim { 0% { filter: blur(26px); opacity: 0; transform: scale(0.90); } 50%, 100% { filter: blur(0px); opacity: 1; transform: scale(1); } }
+    .typo-blur-mask { font-size: 38px; font-weight: 800; color: #fff; text-align: center; animation: blur-mask-anim 3s infinite var(--ease-apple); }
+
+    .text-rotate-container { display: flex; align-items: center; justify-content: center; font-size: 34px; font-weight: 400; color: #ffffff; background: #ffffff; padding: 32px 48px; border-radius: 16px; box-shadow: 0 12px 40px rgba(0,0,0,0.6); width: 100%; height: 100%; }
+    .text-rotate-prefix { color: #111111; font-weight: 300; margin-right: 12px; }
+    .text-rotate-pill { background: #ff5941; color: #ffffff; padding: 6px 16px; border-radius: 12px; font-weight: 700; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; min-width: 130px; height: 52px; position: relative; }
+    @keyframes text-rotate-in { 0% { transform: translateY(100%); opacity: 0; } 20%, 80% { transform: translateY(0%); opacity: 1; } 100% { transform: translateY(-120%); opacity: 0; } }
+    .text-rotate-char { display: inline-block; animation: text-rotate-in 2s cubic-bezier(0.175, 0.885, 0.32, 1.275) infinite; }
+
+    .exact-blur-stage { background: #ffffff; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 32px; border-radius: 16px; box-shadow: 0 12px 36px rgba(0,0,0,0.5); }
+    .exact-blur-text { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; font-size: 38px; font-weight: 400; color: #262626; letter-spacing: -0.02em; display: flex; gap: 10px; }
+    @keyframes exact-word-blur { 0% { opacity: 0.15; filter: blur(16px); transform: translateY(2px); } 35%, 75% { opacity: 1; filter: blur(0px); transform: translateY(0); } 100% { opacity: 0.15; filter: blur(16px); transform: translateY(-2px); } }
+    .word-blur-1 { animation: exact-word-blur 3s 0s infinite ease-in-out; }
+    .word-blur-2 { animation: exact-word-blur 3s 0.12s infinite ease-in-out; }
+    .word-blur-3 { animation: exact-word-blur 3s 0.24s infinite ease-in-out; }
+
+    .hexta-typewriter-stage { background: #ffffff; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 32px; border-radius: 16px; box-shadow: 0 12px 36px rgba(0,0,0,0.5); }
+    .hexta-typewriter-box { position: relative; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; font-size: 36px; font-weight: 400; color: #1c1c1e; letter-spacing: -0.02em; display: inline-flex; align-items: center; }
+    .hexta-ghost-text { position: absolute; left: 0; top: 0; color: rgba(0, 0, 0, 0.08); user-select: none; white-space: nowrap; }
+    .hexta-active-text { position: relative; z-index: 10; white-space: nowrap; }
+    @keyframes pipe-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+    .hexta-cursor { position: relative; z-index: 10; font-weight: 300; color: #1c1c1e; margin-left: 2px; animation: pipe-blink 0.8s infinite linear; }
+
+    .vercel-highlight-stage { background: #000000; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 32px; border-radius: 16px; }
+    .vercel-highlight-box { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; font-size: 40px; font-weight: 800; letter-spacing: -0.03em; color: #ffffff; display: flex; align-items: center; }
+    .vercel-yellow-pill { position: relative; background: #ffd000; padding: 2px 10px; margin-left: 8px; border-radius: 2px; display: inline-flex; align-items: center; overflow: hidden; }
+    @keyframes vercel-wipe { 0% { transform: scaleX(0); } 30%, 80% { transform: scaleX(1); } 100% { transform: scaleX(0); } }
+    .vercel-wipe-bg { position: absolute; inset: 0; background: #ffd000; transform-origin: left; animation: vercel-wipe 3s infinite var(--ease-apple); }
+    @keyframes vercel-text-invert { 0% { color: #8e8e93; } 30%, 80% { color: #000000; } 100% { color: #8e8e93; } }
+    .vercel-highlight-text { position: relative; z-index: 10; animation: vercel-text-invert 3s infinite var(--ease-apple); }
+
+    .iso-perspective-stage { background: #58585c; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; perspective: 1200px; border-radius: 16px; overflow: hidden; }
+    .iso-perspective-container { transform: rotateX(38deg) rotateZ(-28deg) skewX(12deg); display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+    @keyframes iso-word-wave { 0% { opacity: 0; transform: translateY(24px); filter: blur(8px); } 40%, 80% { opacity: 1; transform: translateY(0); filter: blur(0px); } 100% { opacity: 0; transform: translateY(-24px); filter: blur(8px); } }
+    .iso-word { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; font-size: 32px; font-weight: 900; letter-spacing: -0.04em; color: #050505; text-transform: uppercase; text-shadow: 0 10px 20px rgba(0, 0, 0, 0.4); animation: iso-word-wave 3.2s infinite var(--ease-apple); }
+
+    .hand-drawn-stage { background: #ffffff; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px; border-radius: 16px; box-shadow: 0 12px 36px rgba(0,0,0,0.5); }
+    .hand-drawn-text { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; font-size: 42px; font-weight: 800; color: #000000; letter-spacing: -0.02em; }
+    .hand-drawn-svg { width: 320px; height: 20px; margin-top: 4px; overflow: visible; }
+    @keyframes svg-underline-draw { 0% { stroke-dashoffset: 320; opacity: 0; } 20% { opacity: 1; } 60%, 85% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 320; opacity: 0; } }
+    .hand-drawn-path { stroke-dasharray: 320; stroke-dashoffset: 320; animation: svg-underline-draw 3s infinite var(--ease-apple); }
+
+    .gradient-fade-stage { background: #ffffff; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 32px; border-radius: 16px; box-shadow: 0 12px 36px rgba(0,0,0,0.5); }
+    @keyframes gradient-fade-sweep-anim { 0% { opacity: 0.2; background-position: -100% 0; } 40%, 80% { opacity: 1; background-position: 0% 0; } 100% { opacity: 0.2; background-position: 100% 0; } }
+    .gradient-fade-text { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; font-size: 48px; font-weight: 800; letter-spacing: -0.03em; background: linear-gradient(90deg, #000000 0%, rgba(0,0,0,0.5) 60%, rgba(255,255,255,0) 95%); background-size: 200% 100%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: gradient-fade-sweep-anim 3.2s infinite ease-in-out; }
+
+    .gooey-morph-stage { background: #ffffff; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 32px; border-radius: 16px; box-shadow: 0 12px 36px rgba(0,0,0,0.5); }
+    .gooey-ink-container { display: flex; align-items: center; justify-content: center; position: relative; min-width: 340px; height: 100px; }
+    @keyframes gooey-ink-crisp-morph { 0% { opacity: 0; filter: url(#goo-threshold-html) blur(8px); transform: scale(0.88); } 35% { opacity: 1; filter: url(#goo-threshold-html) blur(2px); transform: scale(1); } 60%, 85% { opacity: 1; filter: none; transform: scale(1); } 100% { opacity: 0; filter: url(#goo-threshold-html) blur(8px); transform: scale(1.1); } }
+    .gooey-ink-word { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; font-size: 56px; font-weight: 900; color: #000000; letter-spacing: -0.03em; position: absolute; white-space: nowrap; animation: gooey-ink-crisp-morph 3.2s infinite var(--ease-apple); }
+
+    .masked-glyph-stage { background: #000000; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 32px; border-radius: 16px; overflow: hidden; }
+    @keyframes cinematic-viewport-sweep { 0% { background-position: 0% 50%; filter: brightness(1.1) contrast(1.1); } 50% { background-position: 100% 50%; filter: brightness(1.25) contrast(1.15); } 100% { background-position: 0% 50%; filter: brightness(1.1) contrast(1.1); } }
+    .cinematic-sweep-text { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; font-size: 58px; font-weight: 900; letter-spacing: -0.04em; background-image: url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1400&q=80'); background-size: 220% 220%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; display: inline-block; animation: cinematic-viewport-sweep 18s infinite ease-in-out; }
+
+    .elegant-blur-stage { background: #000000; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 36px; border-radius: 16px; }
+    .elegant-blur-paragraph { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; font-size: 24px; font-weight: 200; line-height: 1.6; letter-spacing: 0.02em; color: #ffffff; display: flex; flex-wrap: wrap; gap: 6px 8px; max-width: 480px; }
+    @keyframes elegant-word-physics { 0% { filter: blur(16px); opacity: 0; transform: translateY(8px) scale(0.96); } 25%, 80% { filter: blur(0px); opacity: 1; transform: translateY(0) scale(1); } 100% { filter: blur(16px); opacity: 0; transform: translateY(-8px) scale(0.96); } }
+    .blur-word { display: inline-block; animation: elegant-word-physics 4.5s infinite var(--ease-apple); }
+
+    .matrix-scramble-stage { background: #000000; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; padding: 32px; border-radius: 16px; cursor: pointer; }
+    .matrix-yellow-bar { background: #ffff00; color: #000000; font-family: "JetBrains Mono", monospace; font-size: 38px; font-weight: 900; letter-spacing: 0.06em; padding: 6px 18px; width: 100%; transition: transform 0.2s ease; }
+    .matrix-scramble-stage:hover .matrix-yellow-bar { transform: scale(1.02); }
+    .matrix-sub-text { font-family: "JetBrains Mono", monospace; font-size: 28px; font-weight: 700; color: #71717a; letter-spacing: 0.06em; padding: 4px 18px; margin-top: 6px; transition: color 0.2s ease; }
+    .matrix-scramble-stage:hover .matrix-sub-text { color: #ffffff; }
+
+    .motion-primitives-stage { background: #ffffff; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 32px; border-radius: 16px; box-shadow: 0 12px 36px rgba(0,0,0,0.5); }
+    .motion-primitives-box { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; font-size: 46px; font-weight: 500; letter-spacing: -0.03em; color: #171717; display: flex; align-items: center; }
+    @keyframes slot-bounce-sub { 0%, 100% { transform: translateY(0px) scale(1); } 50% { transform: translateY(8px) scale(1.08); font-weight: 700; color: #000; } }
+    @keyframes slot-bounce-super { 0%, 100% { transform: translateY(0px) scale(1); } 50% { transform: translateY(-10px) scale(1.08); font-weight: 700; color: #000; } }
+    .slot-sub { display: inline-block; animation: slot-bounce-sub 2.2s infinite var(--ease-apple); }
+    .slot-super { display: inline-block; animation: slot-bounce-super 2.2s infinite var(--ease-apple); }
+
+    .chrome-hero-stage { background: #000000; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 32px; border-radius: 16px; }
+    @keyframes chrome-hero-spring-in { 0% { opacity: 0; transform: scale(0.82); filter: blur(12px); } 60% { opacity: 1; transform: scale(1.03); filter: blur(0px); } 100% { opacity: 1; transform: scale(1); filter: blur(0px); } }
+    .chrome-counter-title { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; font-size: 130px; font-weight: 900; letter-spacing: -0.05em; line-height: 1; background: linear-gradient(180deg, #ffffff 0%, #e4e4e7 35%, #71717a 70%, #27272a 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 20px 30px rgba(0, 0, 0, 0.95)); animation: chrome-hero-spring-in 1.4s var(--ease-apple); }
+
+    .soft-highlight-stage { background: #ffffff; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 32px; border-radius: 16px; box-shadow: 0 12px 36px rgba(0,0,0,0.5); }
+    .soft-highlight-box { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; font-size: 48px; font-weight: 700; letter-spacing: -0.03em; color: #111111; display: flex; align-items: center; }
+    .lavender-highlight-pill { background: rgba(243, 232, 255, 0.9); color: #7e22ce; font-weight: 800; padding: 2px 12px; margin-left: 10px; border-radius: 6px; border: 1px solid rgba(216, 180, 254, 0.6); display: inline-flex; align-items: center; position: relative; }
+    @keyframes cursor-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+    .soft-cursor-line { width: 2.5px; height: 38px; background: #9333ea; margin-left: 4px; border-radius: 2px; animation: cursor-blink 0.8s infinite linear; }
+    @keyframes soft-pill-wipe { 0% { opacity: 0; transform: translateX(-8px) scale(0.96); filter: blur(4px); } 20%, 80% { opacity: 1; transform: translateX(0) scale(1); filter: blur(0px); } 100% { opacity: 0; transform: translateX(-8px) scale(0.96); filter: blur(4px); } }
+    .soft-pill-word { display: inline-block; animation: soft-pill-wipe 2.8s infinite var(--ease-apple); }
+
+    .emoji-line-stage { background: #ffffff; background-image: radial-gradient(#e5e7eb 1.5px, transparent 1.5px); background-size: 20px 20px; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; padding: 36px 44px; border-radius: 16px; box-shadow: 0 12px 36px rgba(0,0,0,0.5); }
+    .emoji-line-mask { overflow: hidden; padding: 2px 0; }
+    @keyframes emoji-line-up { 0% { transform: translateY(115%); opacity: 0; } 25%, 85% { transform: translateY(0%); opacity: 1; } 100% { transform: translateY(-115%); opacity: 0; } }
+    .emoji-line-content { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; font-size: 40px; font-weight: 800; color: #0022ff; letter-spacing: -0.01em; display: flex; align-items: center; gap: 8px; animation: emoji-line-up 3.6s infinite var(--ease-apple); }
+
+    .stroke-sparkle-stage { background: #000000; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 32px; border-radius: 16px; position: relative; }
+    @keyframes stroke-star-trace { 0% { transform: translateX(-140px); opacity: 0; } 20% { opacity: 1; } 80% { opacity: 1; } 100% { transform: translateX(140px); opacity: 0; } }
+    @keyframes stroke-to-solid-blur { 0% { -webkit-text-stroke: 1.5px #ffffff; color: transparent; filter: blur(0px); } 40%, 80% { -webkit-text-stroke: 0px transparent; color: #ffffff; filter: blur(0px); } 100% { -webkit-text-stroke: 1.5px #ffffff; color: transparent; filter: blur(14px); } }
+    .stroke-sparkle-title { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; font-size: 64px; font-weight: 900; letter-spacing: -0.03em; position: relative; display: inline-flex; align-items: center; justify-content: center; animation: stroke-to-solid-blur 4s infinite ease-in-out; }
+    .star-sparkle-glyph { position: absolute; font-size: 24px; color: #ffffff; filter: drop-shadow(0 0 12px #ffffff); animation: stroke-star-trace 4s infinite ease-in-out; pointer-events: none; }
+
+    .collab-stage { background: #000000; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 32px; border-radius: 16px; position: relative; overflow: hidden; }
+    .collab-orange-glow { position: absolute; right: -40px; bottom: -40px; width: 300px; height: 300px; background: rgba(234, 88, 12, 0.35); border-radius: 50%; filter: blur(80px); pointer-events: none; }
+    .collab-box { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; font-size: 52px; font-weight: 700; color: #ffffff; letter-spacing: -0.02em; display: flex; align-items: center; gap: 18px; position: relative; z-index: 10; }
+    @keyframes word1-slide-in { 0% { opacity: 0; transform: translateX(-40px); filter: blur(10px); } 30%, 85% { opacity: 1; transform: translateX(0); filter: blur(0px); } 100% { opacity: 0; transform: translateX(-40px); filter: blur(10px); } }
+    @keyframes word2-slide-in { 0% { opacity: 0; transform: translateY(30px); filter: blur(10px); } 35%, 85% { opacity: 1; transform: translateY(0); filter: blur(0px); } 100% { opacity: 0; transform: translateY(30px); filter: blur(10px); } }
+    @keyframes frame-expand-box { 0% { transform: scaleX(0) scaleY(0.2); opacity: 0; } 40%, 85% { transform: scaleX(1) scaleY(1); opacity: 1; } 100% { transform: scaleX(0) scaleY(0.2); opacity: 0; } }
+    @keyframes anchor-pop { 0%, 40% { transform: scale(0); } 55%, 85% { transform: scale(1); } 100% { transform: scale(0); } }
+    .figma-word1-wrap { position: relative; padding: 0 4px; animation: word1-slide-in 4s infinite var(--ease-apple); }
+    .figma-word2-wrap { position: relative; animation: word2-slide-in 4s infinite var(--ease-apple); }
+    .figma-select-box-animated { position: absolute; inset: -6px -10px; border: 2px solid #60a5fa; border-radius: 2px; box-shadow: 0 0 16px rgba(96, 165, 250, 0.5); transform-origin: center; animation: frame-expand-box 4s infinite var(--ease-apple); pointer-events: none; }
+    .figma-anchor-tl, .figma-anchor-tr, .figma-anchor-bl, .figma-anchor-br { position: absolute; width: 7px; height: 7px; background: #ffffff; border: 1px solid #2563eb; border-radius: 1px; animation: anchor-pop 4s infinite var(--ease-apple); }
+    .figma-anchor-tl { top: -4px; left: -4px; } .figma-anchor-tr { top: -4px; right: -4px; } .figma-anchor-bl { bottom: -4px; left: -4px; } .figma-anchor-br { bottom: -4px; right: -4px; }
+    @keyframes cursor-float-sarah { 0% { opacity: 0; transform: translate(-60px, 60px); } 35%, 85% { opacity: 1; transform: translate(0, 0); } 100% { opacity: 0; transform: translate(-60px, 60px); } }
+    @keyframes cursor-float-robert { 0% { opacity: 0; transform: translate(60px, 60px); } 40%, 85% { opacity: 1; transform: translate(0, 0); } 100% { opacity: 0; transform: translate(60px, 60px); } }
+    .user-cursor-pointer-1 { position: absolute; bottom: -28px; left: -12px; animation: cursor-float-sarah 4s infinite var(--ease-apple); filter: drop-shadow(0 4px 10px rgba(0,0,0,0.8)); }
+    .user-cursor-pointer-2 { position: absolute; bottom: -28px; left: 8px; animation: cursor-float-robert 4s infinite var(--ease-apple); filter: drop-shadow(0 4px 10px rgba(0,0,0,0.8)); }
+
+    .hybrid-collab-stage { background: #ffffff; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 32px; border-radius: 16px; box-shadow: 0 12px 36px rgba(0,0,0,0.5); }
+    .hybrid-box { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; font-size: 46px; font-weight: 500; color: #171717; letter-spacing: -0.03em; display: flex; align-items: center; gap: 14px; }
+
+    .glow-search-box { position: relative; display: flex; align-items: center; padding: 14px 24px; background: #09090d; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); min-width: 320px; }
+    @keyframes radial-glow-pulse { 0%, 100% { opacity: 0.3; transform: scaleX(0.9); } 50% { opacity: 0.7; transform: scaleX(1.1); } }
+    .search-glow-bg { position: absolute; left: 16px; top: 8px; bottom: 8px; width: 64px; background: rgba(59, 130, 246, 0.3); filter: blur(12px); border-radius: 8px; pointer-events: none; animation: radial-glow-pulse 3s infinite ease-in-out; }
+    @keyframes caret-blink-bar { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+    .search-caret-line { width: 2.5px; height: 28px; background: #3b82f6; border-radius: 4px; box-shadow: 0 0 12px #3b82f6; margin-right: 8px; animation: caret-blink-bar 0.8s infinite linear; position: relative; z-index: 10; }
+    .search-text-content { font-size: 30px; font-weight: 500; color: #f3f4f6; letter-spacing: -0.02em; z-index: 10; }
+
+
+
+    /* 24. DOTTED GRID CANVAS & BLUE TEXT SHIMMER WAVE ENGINE */
+    .dotted-shimmer-stage { background: #f8fafc; background-image: radial-gradient(rgba(148, 163, 184, 0.45) 1.5px, transparent 1.5px); background-size: 18px 18px; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 32px; border-radius: 16px; box-shadow: inset 0 0 20px rgba(0,0,0,0.02); position: relative; overflow: hidden; }
+    .dotted-shimmer-box { display: inline-flex; align-items: center; justify-content: center; position: relative; z-index: 10; }
+    @keyframes text-shimmer-sweep { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+    .shimmer-wave-text { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Google Sans", sans-serif; font-size: 34px; font-weight: 500; letter-spacing: -0.01em; background: linear-gradient(90deg, #1d4ed8 0%, #3b82f6 20%, #ffffff 50%, #3b82f6 80%, #1d4ed8 100%); background-size: 200% 100%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; display: inline-flex; align-items: center; animation: text-shimmer-sweep 2.8s infinite linear; }
+    /* 26. TOP-DOWN STAGGERED CHARACTER DROP ENGINE */
+    .top-down-stage { background: #ffffff; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 32px; border-radius: 16px; box-shadow: inset 0 0 20px rgba(0,0,0,0.03); position: relative; overflow: hidden; }
+    .top-down-box { display: inline-flex; align-items: center; justify-content: center; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", sans-serif; font-size: 52px; font-weight: 700; color: #111111; letter-spacing: -0.02em; position: relative; z-index: 10; min-height: 70px; }
+    @keyframes top-down-letter-drop {
+      0% { opacity: 0; transform: translateY(-44px) scale(1.15); filter: blur(14px); }
+      60% { opacity: 1; transform: translateY(4px) scale(0.98); filter: blur(0px); }
+      80% { transform: translateY(-1px) scale(1); }
+      100% { opacity: 1; transform: translateY(0px) scale(1); filter: blur(0px); }
+    }
+    .top-down-char { display: inline-block; animation: top-down-letter-drop 0.85s var(--ease-apple) backwards; }
+    .word-pull-stage { background: #ffffff; background-image: radial-gradient(rgba(148, 163, 184, 0.35) 1.2px, transparent 1.2px); background-size: 16px 16px; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 32px; border-radius: 16px; box-shadow: inset 0 0 20px rgba(0,0,0,0.02); position: relative; overflow: hidden; }
+    .word-pull-box { display: inline-flex; align-items: baseline; justify-content: center; gap: 12px; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", sans-serif; position: relative; z-index: 10; }
+    @keyframes word-pull-primary-in { 0% { opacity: 0; transform: translateY(20px) scale(0.92); filter: blur(10px); } 100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0px); } }
+    .word-pull-primary { font-size: 64px; font-weight: 800; color: #09090b; letter-spacing: -0.03em; animation: word-pull-primary-in 0.8s var(--ease-apple); }
+    @keyframes word-pull-secondary-slide {
+      0% { opacity: 0; transform: translateX(80px) scale(0.85); filter: blur(16px); letter-spacing: 0.25em; }
+      65% { opacity: 0.9; transform: translateX(-4px) scale(1.04); filter: blur(0px); letter-spacing: -0.02em; }
+      100% { opacity: 0.45; transform: translateX(0px) scale(1); filter: blur(0px); letter-spacing: -0.01em; }
+    }
+    .word-pull-secondary { font-size: 64px; font-weight: 700; color: #a1a1aa; animation: word-pull-secondary-slide 1.0s 0.2s var(--ease-apple) backwards; }
+    .led-matrix-stage { background: #040407; background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px); background-size: 100% 4px; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 32px; border-radius: 16px; box-shadow: inset 0 0 30px rgba(0,0,0,0.9); position: relative; overflow: hidden; }
+    @keyframes led-scan-glow { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+    @keyframes led-dot-flicker { 0%, 100% { opacity: 0.96; filter: drop-shadow(0 0 10px rgba(255,255,255,0.7)); } 50% { opacity: 1; filter: drop-shadow(0 0 16px rgba(255,255,255,0.9)); } }
+    .led-matrix-text { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", sans-serif; font-size: 76px; font-weight: 900; letter-spacing: -0.01em; background: radial-gradient(circle, #ffffff 42%, #94a3b8 68%, transparent 72%), linear-gradient(90deg, #ffffff 0%, #e2e8f0 50%, #ffffff 100%); background-size: 5px 5px, 200% 100%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: led-scan-glow 3s infinite linear, led-dot-flicker 2s infinite ease-in-out; }
+    /* 29. GEOMETRIC CIRCLE INVERSION & KINETIC CONTRAST ENGINE */
+    .circle-invert-stage { background: #ffffff; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 32px; border-radius: 16px; box-shadow: inset 0 0 20px rgba(0,0,0,0.03); position: relative; overflow: hidden; isolation: isolate; }
+    @keyframes orb-float-pulse { 0%, 100% { transform: translate(-30px, -15px) scale(1); } 50% { transform: translate(30px, 15px) scale(1.06); } }
+    .invert-circle-orb { position: absolute; width: 150px; height: 150px; background: #000000; border-radius: 50%; animation: orb-float-pulse 4.5s infinite ease-in-out; pointer-events: none; z-index: 1; }
+    .invert-text-container { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; mix-blend-mode: difference; }
+    @keyframes text-invert-line-in { 0% { opacity: 0; transform: translateY(18px) scale(0.95); filter: blur(8px); } 100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0px); } }
+    .invert-text-line { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif; font-size: 50px; font-weight: 900; color: #ffffff; text-transform: uppercase; letter-spacing: -0.02em; line-height: 1.05; animation: text-invert-line-in 0.8s var(--ease-apple); }
+  </style>
+</head>
+<body>
+
+  <!-- SVG Filters -->
+  <svg style="position: absolute; width: 0; height: 0; pointer-events: none;">
+    <defs>
+      <filter id="goo-threshold-html">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" result="blur" />
+        <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7" result="gooey" />
+      </filter>
+      <filter id="spray-grain-noise" x="-30%" y="-30%" width="160%" height="160%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" result="noise" />
+        <feColorMatrix type="matrix" values="0 0 0 0 0   0 0 0 0 0   0 0 0 0 0  0 0 0 0.35 0" />
+        <feComposite operator="in" in2="SourceGraphic" />
+      </filter>
+    </defs>
+  </svg>
+
+  <header>
+    <div class="brand">
+      <div class="brand-logo"></div>
+      <div class="brand-title">
+        <h1>Prometheus Master Kinetic Suite</h1>
+        <p>Reference Trait Extraction & Decomposition Registry</p>
+      </div>
+    </div>
+    <div class="nav-links">
+      <a href="index.html" class="nav-btn">← Main Dashboard</a>
+      <span style="font-size:12px; color:var(--text-muted); font-family:var(--font-mono);">All 28 Presets Active</span>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <div class="banner">
+      <div class="banner-text">
+        <h2>Complete 28 Typography Animation Presets + Decomposed Contracts</h2>
+        <p>Every single preset features a live 🔍 Trait Contract Inspector drawer detailing Channels, Scope, Requirements, Conflicts, and Frame Expressions.</p>
+      </div>
+      <span class="banner-badge">28 Presets Active</span>
+    </div>
+
+    <div class="grid" id="typoGrid">
+
+      <!-- TYPO #01 -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title-group"><span class="card-badge">TYPO #01</span><span class="card-title">Apple Pro Display Hero Revealer</span></div>
+          <div class="header-actions">
+            <button class="inspect-btn" onclick="toggleDrawer(this)">🔍 Trait Contract</button>
+            <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+          </div>
+        </div>
+        <div class="preview-stage" style="padding:0;"><div class="typo-apple-hero">THINK DIFFERENT.</div></div>
+        <div class="trait-drawer">
+          <div><span class="drawer-tag">TRAIT ID</span> <code>trait_blur_up_reveal</code></div>
+          <div class="drawer-grid"><div><strong>Concern:</strong> MotionPhysics</div><div><strong>Target Scope:</strong> word</div><div><strong>Owns Channels:</strong> <code>filter.blur, opacity</code></div><div><strong>Conflicts With:</strong> <code>gooey_metaball_filter</code></div></div>
+          <div class="drawer-code">FrameExpression: blurPx = max(0, 26 - (frame/30)*26)</div>
+        </div>
+        <div class="card-footer"><span>SF Pro Display 800 • Tracking -0.03em</span><span>apple-hero-reveal</span></div>
+      </div>
+
+      <!-- TYPO #02 -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title-group"><span class="card-badge">TYPO #02</span><span class="card-title">Dynamic Staggered Char Cascade</span></div>
+          <div class="header-actions">
+            <button class="inspect-btn" onclick="toggleDrawer(this)">🔍 Trait Contract</button>
+            <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+          </div>
+        </div>
+        <div class="preview-stage" style="padding:0;"><div class="char-box"><span class="char-item" style="animation-delay:0s; color:#fff;">P</span><span class="char-item" style="animation-delay:0.08s; color:#fff;">R</span><span class="char-item" style="animation-delay:0.16s; color:var(--accent-cyan);">O</span><span class="char-item" style="animation-delay:0.24s; color:#fff;">M</span><span class="char-item" style="animation-delay:0.32s; color:#fff;">E</span><span class="char-item" style="animation-delay:0.40s; color:var(--accent-purple);">T</span><span class="char-item" style="animation-delay:0.48s; color:#fff;">H</span><span class="char-item" style="animation-delay:0.56s; color:#fff;">E</span><span class="char-item" style="animation-delay:0.64s; color:#fff;">U</span><span class="char-item" style="animation-delay:0.72s; color:#fff;">S</span></div></div>
+        <div class="trait-drawer">
+          <div><span class="drawer-tag">TRAIT ID</span> <code>trait_staggered_rotate_x</code></div>
+          <div class="drawer-grid"><div><strong>Concern:</strong> MotionPhysics</div><div><strong>Target Scope:</strong> glyph</div><div><strong>Owns Channels:</strong> <code>rotateX, translateY</code></div><div><strong>Conflicts With:</strong> <code>hand_drawn_svg_path</code></div></div>
+          <div class="drawer-code">FrameExpression: rotateX = max(0, -90 + ((frame - idx*2.4)/20)*90)</div>
+        </div>
+        <div class="card-footer"><span>Per-character 3D RotateX • Stagger 0.08s</span><span>staggered-char-cascade</span></div>
+      </div>
+
+      <!-- TYPO #03 -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title-group"><span class="card-badge">TYPO #03</span><span class="card-title">Apple Keynote Headline Punch-In</span></div>
+          <div class="header-actions">
+            <button class="inspect-btn" onclick="toggleDrawer(this)">🔍 Trait Contract</button>
+            <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+          </div>
+        </div>
+        <div class="preview-stage" style="padding:0;"><div class="typo-keynote-punch">ONE MORE THING.</div></div>
+        <div class="trait-drawer">
+          <div><span class="drawer-tag">TRAIT ID</span> <code>trait_keynote_punch</code></div>
+          <div class="drawer-grid"><div><strong>Concern:</strong> MotionPhysics</div><div><strong>Target Scope:</strong> phrase</div><div><strong>Owns Channels:</strong> <code>scale, opacity</code></div><div><strong>Conflicts With:</strong> <code>None</code></div></div>
+          <div class="drawer-code">FrameExpression: scale = frame < 12 ? (1.35 - (frame/12)*0.37) : 1.0</div>
+        </div>
+        <div class="card-footer"><span>Scale 1.35 to 1.0 • Focal Blur Recovery</span><span>keynote-punch-in</span></div>
+      </div>
+
+      <!-- TYPO #04 -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title-group"><span class="card-badge">TYPO #04</span><span class="card-title">Sub-Pixel Blur-Up Mask</span></div>
+          <div class="header-actions">
+            <button class="inspect-btn" onclick="toggleDrawer(this)">🔍 Trait Contract</button>
+            <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+          </div>
+        </div>
+        <div class="preview-stage" style="padding:0;"><div class="typo-blur-mask">ULTRA CINEMATIC</div></div>
+        <div class="trait-drawer">
+          <div><span class="drawer-tag">TRAIT ID</span> <code>trait_blur_up_reveal</code></div>
+          <div class="drawer-grid"><div><strong>Concern:</strong> MotionPhysics</div><div><strong>Target Scope:</strong> word</div><div><strong>Owns Channels:</strong> <code>filter.blur, opacity</code></div><div><strong>Conflicts With:</strong> <code>gooey_metaball_filter</code></div></div>
+          <div class="drawer-code">FrameExpression: blurPx = max(0, 26 - (frame/30)*26)</div>
+        </div>
+        <div class="card-footer"><span>Filter Blur 26px to 0px</span><span>subpixel-blur-mask</span></div>
+      </div>
+
+      <!-- TYPO #05 -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title-group"><span class="card-badge">TYPO #05</span><span class="card-title">TextRotate Kinetic Word Cycler</span></div>
+          <div class="header-actions">
+            <button class="inspect-btn" onclick="toggleDrawer(this)">🔍 Trait Contract</button>
+            <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+          </div>
+        </div>
+        <div class="preview-stage" style="padding:0;"><div class="text-rotate-container"><span class="text-rotate-prefix">Make it</span><div class="text-rotate-pill"><span class="text-rotate-word" id="rotateWord"><span class="text-rotate-char" style="animation-delay:0.025s;">w</span><span class="text-rotate-char" style="animation-delay:0.05s;">o</span><span class="text-rotate-char" style="animation-delay:0.075s;">r</span><span class="text-rotate-char" style="animation-delay:0.1s;">k</span><span class="text-rotate-char" style="animation-delay:0.125s;">!</span></span></div></div></div>
+        <div class="trait-drawer">
+          <div><span class="drawer-tag">TRAIT ID</span> <code>trait_text_rotate_cycle</code></div>
+          <div class="drawer-grid"><div><strong>Concern:</strong> TemporalTrigger</div><div><strong>Target Scope:</strong> word</div><div><strong>Owns Channels:</strong> <code>translateY, opacity</code></div><div><strong>Conflicts With:</strong> <code>None</code></div></div>
+          <div class="drawer-code">FrameExpression: translateY = max(0, 100 - (frame/20)*100)</div>
+        </div>
+        <div class="card-footer"><span>Spring Physics • Stagger 0.025s</span><span>text-rotate-kinetic</span></div>
+      </div>
+
+      <!-- TYPO #06 -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title-group"><span class="card-badge">TYPO #06</span><span class="card-title">TextEffect (Gaussian Blur Reveal Sweep)</span></div>
+          <div class="header-actions">
+            <button class="inspect-btn" onclick="toggleDrawer(this)">🔍 Trait Contract</button>
+            <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+          </div>
+        </div>
+        <div class="preview-stage" style="padding:0;"><div class="exact-blur-stage"><div class="exact-blur-text"><span class="word-blur-1">Animate</span><span class="word-blur-2">your</span><span class="word-blur-3">ideas</span></div></div></div>
+        <div class="trait-drawer">
+          <div><span class="drawer-tag">TRAIT ID</span> <code>trait_gaussian_blur_sweep</code></div>
+          <div class="drawer-grid"><div><strong>Concern:</strong> MotionPhysics</div><div><strong>Target Scope:</strong> word</div><div><strong>Owns Channels:</strong> <code>filter.blur, opacity</code></div><div><strong>Conflicts With:</strong> <code>None</code></div></div>
+          <div class="drawer-code">FrameExpression: blurPx = sin((frame - wordIdx*6)/30)*16</div>
+        </div>
+        <div class="card-footer"><span>White Stage • Charcoal SF Pro • Gaussian Blur Sweep</span><span>text-effect-exact-blur</span></div>
+      </div>
+
+      <!-- TYPO #07 -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title-group"><span class="card-badge">TYPO #07</span><span class="card-title">HextaUI Typewriter & Ghost Cursor Engine</span></div>
+          <div class="header-actions">
+            <button class="inspect-btn" onclick="toggleDrawer(this)">🔍 Trait Contract</button>
+            <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+          </div>
+        </div>
+        <div class="preview-stage" style="padding:0;"><div class="hexta-typewriter-stage"><div class="hexta-typewriter-box"><span class="hexta-ghost-text" id="hextaGhost">Welcome to HextaUI</span><span class="hexta-active-text" id="hextaActive">Welcome to HextaUI</span><span class="hexta-cursor">|</span></div></div></div>
+        <div class="trait-drawer">
+          <div><span class="drawer-tag">TRAIT ID</span> <code>trait_hexta_ghost_typewriter</code></div>
+          <div class="drawer-grid"><div><strong>Concern:</strong> TemporalTrigger</div><div><strong>Target Scope:</strong> phrase</div><div><strong>Owns Channels:</strong> <code>text.visibleLength</code></div><div><strong>Conflicts With:</strong> <code>liquid_gooey_morph</code></div></div>
+          <div class="drawer-code">FrameExpression: visibleCharCount = floor(frame / 2.5)</div>
+        </div>
+        <div class="card-footer"><span>Ghost Alpha Backspace • Active Cursor • Typewriter Loop</span><span>hexta-typewriter-engine</span></div>
+      </div>
+
+      <!-- TYPO #08 -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title-group"><span class="card-badge">TYPO #08</span><span class="card-title">Vercel Kinetic Highlight Box Engine</span></div>
+          <div class="header-actions">
+            <button class="inspect-btn" onclick="toggleDrawer(this)">🔍 Trait Contract</button>
+            <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+          </div>
+        </div>
+        <div class="preview-stage" style="padding:0;"><div class="vercel-highlight-stage"><div class="vercel-highlight-box"><span>Made for</span><div class="vercel-yellow-pill"><div class="vercel-wipe-bg"></div><span class="vercel-highlight-text">builders.</span></div></div></div></div>
+        <div class="trait-drawer">
+          <div><span class="drawer-tag">TRAIT ID</span> <code>trait_vercel_yellow_pill</code></div>
+          <div class="drawer-grid"><div><strong>Concern:</strong> EnclosureAndAccents</div><div><strong>Target Scope:</strong> word</div><div><strong>Owns Channels:</strong> <code>scaleX, text.color</code></div><div><strong>Conflicts With:</strong> <code>soft_lavender_pill</code></div></div>
+          <div class="drawer-code">FrameExpression: scaleX = clamp(frame/18, 0, 1)</div>
+        </div>
+        <div class="card-footer"><span>Dark Stage • Yellow Pill (#ffd000) • Inverted Black Text</span><span>vercel-highlight-box</span></div>
+      </div>
+
+      <!-- TYPO #09 -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title-group"><span class="card-badge">TYPO #09</span><span class="card-title">Isometric 3D Kinetic Perspective Stack</span></div>
+          <div class="header-actions">
+            <button class="inspect-btn" onclick="toggleDrawer(this)">🔍 Trait Contract</button>
+            <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+          </div>
+        </div>
+        <div class="preview-stage" style="padding:0;"><div class="iso-perspective-stage"><div class="iso-perspective-container"><div class="iso-word" style="animation-delay:0s;">INFINITE</div><div class="iso-word" style="animation-delay:0.1s;">PROGRESS</div><div class="iso-word" style="animation-delay:0.2s;">INNOVATION</div><div class="iso-word" style="animation-delay:0.3s;">FUTURE</div><div class="iso-word" style="animation-delay:0.4s;">DREAMS</div><div class="iso-word" style="animation-delay:0.5s;">ACHIEVEMENT</div></div></div></div>
+        <div class="trait-drawer">
+          <div><span class="drawer-tag">TRAIT ID</span> <code>trait_isometric_3d_stack</code></div>
+          <div class="drawer-grid"><div><strong>Concern:</strong> CompositionGeometry</div><div><strong>Target Scope:</strong> phrase</div><div><strong>Owns Channels:</strong> <code>matrix3d, rotateX, rotateZ</code></div><div><strong>Conflicts With:</strong> <code>hand_drawn_svg_path</code></div></div>
+          <div class="drawer-code">FrameExpression: matrix3d = rotateX(38deg) rotateZ(-28deg) skewX(12deg)</div>
+        </div>
+        <div class="card-footer"><span>Studio Gray • 3D Matrix (38deg, -28deg, 12deg)</span><span>isometric-perspective-stack</span></div>
+      </div>
+
+      <!-- TYPO #10 -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title-group"><span class="card-badge">TYPO #10</span><span class="card-title">Hand-Drawn Kinetic SVG Underline Engine</span></div>
+          <div class="header-actions">
+            <button class="inspect-btn" onclick="toggleDrawer(this)">🔍 Trait Contract</button>
+            <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+          </div>
+        </div>
+        <div class="preview-stage" style="padding:0;"><div class="hand-drawn-stage"><div class="hand-drawn-text">Namaste World!</div><svg class="hand-drawn-svg" viewBox="0 0 300 20" fill="none"><path class="hand-drawn-path" d="M 5,8 Q 140,20 295,10" stroke="#000000" stroke-width="3.5" stroke-linecap="round" /></svg></div></div>
+        <div class="trait-drawer">
+          <div><span class="drawer-tag">TRAIT ID</span> <code>trait_hand_drawn_underline</code></div>
+          <div class="drawer-grid"><div><strong>Concern:</strong> EnclosureAndAccents</div><div><strong>Target Scope:</strong> word</div><div><strong>Owns Channels:</strong> <code>svg.strokeDashoffset</code></div><div><strong>Conflicts With:</strong> <code>None</code></div></div>
+          <div class="drawer-code">FrameExpression: strokeDashoffset = max(0, 320 - (frame/25)*320)</div>
+        </div>
+        <div class="card-footer"><span>White Stage • Charcoal SF Pro • SVG Draw Animation</span><span>hand-drawn-underline</span></div>
+      </div>
+
+      <!-- TYPO #11 -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title-group"><span class="card-badge">TYPO #11</span><span class="card-title">Horizontal Linear Gradient Sweep & Fade Engine</span></div>
+          <div class="header-actions">
+            <button class="inspect-btn" onclick="toggleDrawer(this)">🔍 Trait Contract</button>
+            <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+          </div>
+        </div>
+        <div class="preview-stage" style="padding:0;"><div class="gradient-fade-stage"><div class="gradient-fade-text">Mishra Hub</div></div></div>
+        <div class="trait-drawer">
+          <div><span class="drawer-tag">TRAIT ID</span> <code>trait_gradient_fade_sweep</code></div>
+          <div class="drawer-grid"><div><strong>Concern:</strong> MaterialTreatment</div><div><strong>Target Scope:</strong> word</div><div><strong>Owns Channels:</strong> <code>background.position, opacity</code></div><div><strong>Conflicts With:</strong> <code>metallic_chrome_3d</code></div></div>
+          <div class="drawer-code">FrameExpression: bgPositionX = -100 + (frame/45)*200</div>
+        </div>
+        <div class="card-footer"><span>White Stage • Solid Black to Transparent Edge Mask</span><span>gradient-fade-sweep</span></div>
+      </div>
+
+      <!-- TYPO #12 -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title-group"><span class="card-badge">TYPO #12</span><span class="card-title">Designali Liquid Gooey Ink Morphing Engine</span></div>
+          <div class="header-actions">
+            <button class="inspect-btn" onclick="toggleDrawer(this)">🔍 Trait Contract</button>
+            <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+          </div>
+        </div>
+        <div class="preview-stage" style="padding:0;"><div class="gooey-morph-stage"><div class="gooey-ink-container"><span class="gooey-ink-word" id="gooeyInkWord">Designali</span></div></div></div>
+        <div class="trait-drawer">
+          <div><span class="drawer-tag">TRAIT ID</span> <code>trait_liquid_gooey_morph</code></div>
+          <div class="drawer-grid"><div><strong>Concern:</strong> MotionPhysics</div><div><strong>Target Scope:</strong> word</div><div><strong>Owns Channels:</strong> <code>filter.svgThreshold, scale</code></div><div><strong>Conflicts With:</strong> <code>vector_stroke_outline</code></div></div>
+          <div class="drawer-code">FrameExpression: filterMode = frame < 20 ? 'url(#goo) blur(4px)' : 'none'</div>
+        </div>
+        <div class="card-footer"><span>Liquid Ink Morphing • Crisp Resolution When Settled</span><span>designali-gooey-word-morph</span></div>
+      </div>
+
+      <!-- TYPO #13 -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title-group"><span class="card-badge">TYPO #13</span><span class="card-title">Cinematic Viewport Mask Sweep Engine</span></div>
+          <div class="header-actions">
+            <button class="inspect-btn" onclick="toggleDrawer(this)">🔍 Trait Contract</button>
+            <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+          </div>
+        </div>
+        <div class="preview-stage" style="padding:0;"><div class="masked-glyph-stage"><div class="cinematic-sweep-text">STUNNING</div></div></div>
+        <div class="trait-drawer">
+          <div><span class="drawer-tag">TRAIT ID</span> <code>trait_cinematic_viewport_sweep</code></div>
+          <div class="drawer-grid"><div><strong>Concern:</strong> MaterialTreatment</div><div><strong>Target Scope:</strong> phrase</div><div><strong>Owns Channels:</strong> <code>background.position, brightness</code></div><div><strong>Conflicts With:</strong> <code>gradient_fade_sweep</code></div></div>
+          <div class="drawer-code">FrameExpression: bgPositionX = sin((frame/540)*2π)*100</div>
+        </div>
+        <div class="card-footer"><span>Dark Stage • Ultra-Slow Viewport Sweep (18s)</span><span>cinematic-viewport-sweep</span></div>
+      </div>
+
+      <!-- TYPO #14 -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title-group"><span class="card-badge">TYPO #14</span><span class="card-title">Elegant Per-Word Spring Blur Physics Engine</span></div>
+          <div class="header-actions">
+            <button class="inspect-btn" onclick="toggleDrawer(this)">🔍 Trait Contract</button>
+            <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+          </div>
+        </div>
+        <div class="preview-stage" style="padding:0;"><div class="elegant-blur-stage"><div class="elegant-blur-paragraph" id="elegantBlurBox"></div></div></div>
+        <div class="trait-drawer">
+          <div><span class="drawer-tag">TRAIT ID</span> <code>trait_per_word_spring_blur</code></div>
+          <div class="drawer-grid"><div><strong>Concern:</strong> MotionPhysics</div><div><strong>Target Scope:</strong> word</div><div><strong>Owns Channels:</strong> <code>filter.blur, opacity, translateY</code></div><div><strong>Conflicts With:</strong> <code>liquid_gooey_morph</code></div></div>
+          <div class="drawer-code">FrameExpression: blurPx = max(0, 16 - ((frame - wordIdx*2.4)/15)*16)</div>
+        </div>
+        <div class="card-footer"><span>Dark Stage • Per-Word Stagger • Spring Blur Physics</span><span>elegant-blur-physics</span></div>
+      </div>
+
+      <!-- TYPO #15 -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title-group"><span class="card-badge">TYPO #15</span><span class="card-title">Cyber Matrix Text Scramble Engine</span></div>
+          <div class="header-actions">
+            <button class="inspect-btn" onclick="toggleDrawer(this)">🔍 Trait Contract</button>
+            <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+          </div>
+        </div>
+        <div class="preview-stage" style="padding:0;"><div class="matrix-scramble-stage" id="matrixStage" onmouseenter="triggerMatrixScramble()"><div class="matrix-yellow-bar" id="matrixMain">DYNAMIC TEXT</div><div class="matrix-sub-text" id="matrixSub">HOVER ME</div></div></div>
+        <div class="trait-drawer">
+          <div><span class="drawer-tag">TRAIT ID</span> <code>trait_cyber_matrix_scramble</code></div>
+          <div class="drawer-grid"><div><strong>Concern:</strong> TemporalTrigger</div><div><strong>Target Scope:</strong> word</div><div><strong>Owns Channels:</strong> <code>text.scrambleString</code></div><div><strong>Conflicts With:</strong> <code>None</code></div></div>
+          <div class="drawer-code">FrameExpression: revealedCharCount = floor(frame / 3)</div>
+        </div>
+        <div class="card-footer"><span>Dark Stage • Neon Yellow Bar (#ffff00) • Matrix Scramble</span><span>matrix-scramble-highlight</span></div>
+      </div>
+
+      <!-- TYPO #16 -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title-group"><span class="card-badge">TYPO #16</span><span class="card-title">Motion Primitives Kinetic Glyph Slot Engine</span></div>
+          <div class="header-actions">
+            <button class="inspect-btn" onclick="toggleDrawer(this)">🔍 Trait Contract</button>
+            <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+          </div>
+        </div>
+        <div class="preview-stage" style="padding:0;"><div class="motion-primitives-stage"><div class="motion-primitives-box"><span>m</span><span class="slot-sub">o</span><span class="slot-super">t</span><span>ion-primitives</span></div></div></div>
+        <div class="trait-drawer">
+          <div><span class="drawer-tag">TRAIT ID</span> <code>trait_slot_bounce</code></div>
+          <div class="drawer-grid"><div><strong>Concern:</strong> MotionPhysics</div><div><strong>Target Scope:</strong> glyph</div><div><strong>Owns Channels:</strong> <code>translateY, scale</code></div><div><strong>Conflicts With:</strong> <code>gooey_metaball_filter</code></div></div>
+          <div class="drawer-code">FrameExpression: subY = sin((frame/60)*2π)*8 | superY = -sin((frame/60)*2π)*10</div>
+        </div>
+        <div class="card-footer"><span>White Stage • Kinetic Subscript ('o') & Superscript ('t') Bounces</span><span>motion-primitives-slot</span></div>
+      </div>
+
+      <!-- TYPO #17 -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title-group"><span class="card-badge">TYPO #17</span><span class="card-title">Apple Metallic Chrome 3D Count-Up Hero Engine</span></div>
+          <div class="header-actions">
+            <button class="inspect-btn" onclick="toggleDrawer(this)">🔍 Trait Contract</button>
+            <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+          </div>
+        </div>
+        <div class="preview-stage" style="padding:0;"><div class="chrome-hero-stage"><div class="chrome-counter-title" id="chromeCounter">0</div></div></div>
+        <div class="trait-drawer">
+          <div><span class="drawer-tag">TRAIT ID</span> <code>trait_metallic_chrome_3d</code></div>
+          <div class="drawer-grid"><div><strong>Concern:</strong> MaterialTreatment</div><div><strong>Target Scope:</strong> phrase</div><div><strong>Owns Channels:</strong> <code>background.gradient, dropShadow</code></div><div><strong>Conflicts With:</strong> <code>vector_stroke_outline</code></div></div>
+          <div class="drawer-code">FrameExpression: countVal = floor(easeOutQuart(frame/72) * 404)</div>
+        </div>
+        <div class="card-footer"><span>Dark Stage • Metallic Chrome Gradient • Smooth Count-Up</span><span>apple-metallic-chrome-counter</span></div>
+      </div>
+
+      <!-- TYPO #18 -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title-group"><span class="card-badge">TYPO #18</span><span class="card-title">Designali Soft Lavender Highlight Selection Engine</span></div>
+          <div class="header-actions">
+            <button class="inspect-btn" onclick="toggleDrawer(this)">🔍 Trait Contract</button>
+            <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+          </div>
+        </div>
+        <div class="preview-stage" style="padding:0;"><div class="soft-highlight-stage"><div class="soft-highlight-box"><span>Design</span><div class="lavender-highlight-pill"><span class="soft-pill-word" id="lavenderPillWord">Limitless</span><span class="soft-cursor-line"></span></div></div></div></div>
+        <div class="trait-drawer">
+          <div><span class="drawer-tag">TRAIT ID</span> <code>trait_soft_lavender_pill</code></div>
+          <div class="drawer-grid"><div><strong>Concern:</strong> EnclosureAndAccents</div><div><strong>Target Scope:</strong> word</div><div><strong>Owns Channels:</strong> <code>background.color, text.color</code></div><div><strong>Conflicts With:</strong> <code>vercel_yellow_pill</code></div></div>
+          <div class="drawer-code">FrameExpression: pillAlpha = 0.9 | cursorBlink = floor(frame/24)%2 === 0 ? 1 : 0</div>
+        </div>
+        <div class="card-footer"><span>White Stage • Soft Lavender Pill Selection • Purple Cursor</span><span>designali-soft-highlight</span></div>
+      </div>
+
+      <!-- TYPO #19 -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title-group"><span class="card-badge">TYPO #19</span><span class="card-title">Electric Blue Emoji Line Revealer Engine</span></div>
+          <div class="header-actions">
+            <button class="inspect-btn" onclick="toggleDrawer(this)">🔍 Trait Contract</button>
+            <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+          </div>
+        </div>
+        <div class="preview-stage" style="padding:0;"><div class="emoji-line-stage"><div class="emoji-line-mask"><div class="emoji-line-content" style="animation-delay: 0s;">HI 👋, FRIEND!</div></div><div class="emoji-line-mask"><div class="emoji-line-content" style="animation-delay: 0.16s;">🌤️ IT IS NICE ↗ TO</div></div><div class="emoji-line-mask"><div class="emoji-line-content" style="animation-delay: 0.32s;">MEET 😊 YOU</div></div></div></div>
+        <div class="trait-drawer">
+          <div><span class="drawer-tag">TRAIT ID</span> <code>trait_emoji_line_reveal</code></div>
+          <div class="drawer-grid"><div><strong>Concern:</strong> MotionPhysics</div><div><strong>Target Scope:</strong> layer</div><div><strong>Owns Channels:</strong> <code>translateY, opacity</code></div><div><strong>Conflicts With:</strong> <code>None</code></div></div>
+          <div class="drawer-code">FrameExpression: translateY = max(0, 115 - ((frame - lineIdx*5.0)/20)*115)</div>
+        </div>
+        <div class="card-footer"><span>Dotted Grid Stage • Electric Royal Blue • Staggered Blind Slide</span><span>emoji-line-reveal</span></div>
+      </div>
+
+      <!-- TYPO #20 -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title-group"><span class="card-badge">TYPO #20</span><span class="card-title">21st.dev Vector Stroke Outline & Sparkle Engine</span></div>
+          <div class="header-actions">
+            <button class="inspect-btn" onclick="toggleDrawer(this)">🔍 Trait Contract</button>
+            <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+          </div>
+        </div>
+        <div class="preview-stage" style="padding:0;"><div class="stroke-sparkle-stage"><div class="stroke-sparkle-title">21st.dev <span class="star-sparkle-glyph">✦</span></div></div></div>
+        <div class="trait-drawer">
+          <div><span class="drawer-tag">TRAIT ID</span> <code>trait_vector_stroke_outline</code></div>
+          <div class="drawer-grid"><div><strong>Concern:</strong> MaterialTreatment</div><div><strong>Target Scope:</strong> word</div><div><strong>Owns Channels:</strong> <code>text.stroke, fillColor</code></div><div><strong>Conflicts With:</strong> <code>metallic_chrome_3d</code></div></div>
+          <div class="drawer-code">FrameExpression: strokeWidthPx = 1.5 | fillOpacity = frame>25 ? 1.0 : 0.0</div>
+        </div>
+        <div class="card-footer"><span>Dark Stage • Thin Vector Stroke • Tracing Sparkle Star</span><span>21st-dev-outline-sparkle</span></div>
+      </div>
+
+      <!-- TYPO #21 -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title-group"><span class="card-badge">TYPO #21</span><span class="card-title">Figma Collaborative Frame Expansion Engine</span></div>
+          <div class="header-actions">
+            <button class="inspect-btn" onclick="toggleDrawer(this)">🔍 Trait Contract</button>
+            <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+          </div>
+        </div>
+        <div class="preview-stage" style="padding:0;"><div class="collab-stage"><div class="collab-orange-glow"></div><div class="collab-box"><div class="figma-word1-wrap"><div class="figma-select-box-animated"><span class="figma-anchor-tl"></span><span class="figma-anchor-tr"></span><span class="figma-anchor-bl"></span><span class="figma-anchor-br"></span></div><span>Design</span><div class="user-cursor-pointer-1"><svg width="22" height="22" viewBox="0 0 24 24" fill="#ea580c"><path d="M3 3l7 18 3-7 7-3L3 3z"/></svg></div></div><div class="figma-word2-wrap"><span>together</span><div class="user-cursor-pointer-2"><svg width="22" height="22" viewBox="0 0 24 24" fill="#2563eb"><path d="M3 3l7 18 3-7 7-3L3 3z"/></svg></div></div></div></div></div>
+        <div class="trait-drawer">
+          <div><span class="drawer-tag">TRAIT ID</span> <code>trait_figma_vector_frame & trait_vector_cursor_pointers</code></div>
+          <div class="drawer-grid"><div><strong>Concern:</strong> EnclosureAndAccents</div><div><strong>Target Scope:</strong> word</div><div><strong>Owns Channels:</strong> <code>border.color, scaleX</code></div><div><strong>Conflicts With:</strong> <code>vercel_yellow_pill</code></div></div>
+          <div class="drawer-code">FrameExpression: scaleX = clamp(frame/18, 0, 1)</div>
+        </div>
+        <div class="card-footer"><span>Dark Stage • Animated Frame Expansion • Clean Vector Cursor Pointers</span><span>collaborative-headline</span></div>
+      </div>
+
+      <!-- TYPO #22 -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title-group"><span class="card-badge">TYPO #22</span><span class="card-title">Hybrid Cross-Bred Figma Frame & Kinetic Slot Engine</span></div>
+          <div class="header-actions">
+            <button class="inspect-btn" onclick="toggleDrawer(this)">🔍 Trait Contract</button>
+            <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+          </div>
+        </div>
+        <div class="preview-stage" style="padding:0;"><div class="hybrid-collab-stage"><div class="hybrid-box"><div class="figma-word1-wrap" style="padding: 2px 6px;"><div class="figma-select-box-animated" style="inset: -4px -6px;"><span class="figma-anchor-tl"></span><span class="figma-anchor-tr"></span><span class="figma-anchor-bl"></span><span class="figma-anchor-br"></span></div><span>m</span><span class="slot-sub">o</span><span>tion</span><div class="user-cursor-pointer-1" style="bottom:-24px; left:-8px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="#ea580c"><path d="M3 3l7 18 3-7 7-3L3 3z"/></svg></div></div><div class="figma-word2-wrap" style="padding: 2px 4px;"><span>p</span><span class="slot-super">r</span><span>imitives</span><div class="user-cursor-pointer-2" style="bottom:-24px; left:8px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="#2563eb"><path d="M3 3l7 18 3-7 7-3L3 3z"/></svg></div></div></div></div></div>
+        <div class="trait-drawer">
+          <div><span class="drawer-tag">TRAIT ID</span> <code>trait_figma_vector_frame + trait_slot_bounce</code></div>
+          <div class="drawer-grid"><div><strong>Concern:</strong> Multi-Layer Trait Fusion</div><div><strong>Target Scope:</strong> hero + accent</div><div><strong>Owns Channels:</strong> <code>border.color, translateY</code></div><div><strong>Conflicts With:</strong> <code>None</code></div></div>
+          <div class="drawer-code">FrameExpression: DeclaredComposition: Enclosure = figma-frame | Motion = slot-bounce ('o' & 'r')</div>
+        </div>
+        <div class="card-footer"><span>White Stage • Figma Frame Expansion + Character Slot Bouncing</span><span>hybrid-collab-slot</span></div>
+      </div>
+
+      <!-- TYPO #23 -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title-group"><span class="card-badge">TYPO #23</span><span class="card-title">Glow Search Input & Pulsing Caret Engine</span></div>
+          <div class="header-actions">
+            <button class="inspect-btn" onclick="toggleDrawer(this)">🔍 Trait Contract</button>
+            <button class="replay-btn" onclick="replaySearchTypewriter()"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+          </div>
+        </div>
+        <div class="preview-stage" style="padding:0;"><div class="glow-search-box"><div class="search-glow-bg"></div><div class="search-caret-line"></div><div class="search-text-content" id="searchTypewriterText">New search</div></div></div>
+        <div class="trait-drawer">
+          <div><span class="drawer-tag">TRAIT ID</span> <code>trait_glow_search_caret</code></div>
+          <div class="drawer-grid"><div><strong>Concern:</strong> EnclosureAndAccents</div><div><strong>Target Scope:</strong> word</div><div><strong>Owns Channels:</strong> <code>background.glow, caret.blink</code></div><div><strong>Conflicts With:</strong> <code>None</code></div></div>
+          <div class="drawer-code">FrameExpression: glowScaleX = clamp(frame/20, 0, 1) | caretBlink = floor(frame/15)%2 === 0 ? 1 : 0</div>
+        </div>
+        <div class="card-footer"><span>Dark Input Stage • Soft Blue Glow (#3b82f6) • Pulsing Caret Cursor</span><span>glow-search-input</span></div>
+      </div>
+
+      <!-- TYPO #24 -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title-group"><span class="card-badge">TYPO #24</span><span class="card-title">Dotted Grid Canvas & Blue Text Shimmer Wave Engine</span></div>
+          <div class="header-actions">
+            <button class="inspect-btn" onclick="toggleDrawer(this)">🔍 Trait Contract</button>
+            <button class="replay-btn" onclick="replayShimmerWave()"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+          </div>
+        </div>
+        <div class="preview-stage" style="padding:0;">
+          <div class="dotted-shimmer-stage">
+            <div class="dotted-shimmer-box">
+              <span class="shimmer-wave-text" id="shimmerWaveText">Creating the perfect dish...</span>
+            </div>
+          </div>
+        </div>
+        <div class="trait-drawer">
+          <div><span class="drawer-tag">TRAIT ID</span> <code>trait_dotted_shimmer_wave</code></div>
+          <div class="drawer-grid"><div><strong>Concern:</strong> MaterialTreatment + TemporalTrigger</div><div><strong>Target Scope:</strong> phrase</div><div><strong>Owns Channels:</strong> <code>background.dotGrid, text.shimmerGradient, translateY.wavePulse</code></div><div><strong>Conflicts With:</strong> <code>None</code></div></div>
+          <div class="drawer-code">FrameExpression: shimmerPos = (frame % 90) / 90 * 200% | waveY = sin((frame - charIdx*3)/15)*5</div>
+        </div>
+        <div class="card-footer"><span>Fine Dotted Canvas • Royal Blue Shimmer Sweep • Fluid Wave Micro-Pulse</span><span>dotted-shimmer-wave</span></div>
+      </div>
+
+
+
+      <!-- TYPO #26 -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title-group"><span class="card-badge">TYPO #26</span><span class="card-title">Top-Down Staggered Character Drop Engine</span></div>
+          <div class="header-actions">
+            <button class="inspect-btn" onclick="toggleDrawer(this)">🔍 Trait Contract</button>
+            <button class="replay-btn" onclick="replayTopDownLetters()"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+          </div>
+        </div>
+        <div class="preview-stage" style="padding:0;">
+          <div class="top-down-stage">
+            <div class="top-down-box" id="topDownLettersBox">Hello world</div>
+          </div>
+        </div>
+        <div class="trait-drawer">
+          <div><span class="drawer-tag">TRAIT ID</span> <code>trait_top_down_letters</code></div>
+          <div class="drawer-grid"><div><strong>Concern:</strong> MotionPhysics</div><div><strong>Target Scope:</strong> glyph</div><div><strong>Owns Channels:</strong> <code>translateY, opacity, filter.blur, scale</code></div><div><strong>Conflicts With:</strong> <code>None</code></div></div>
+          <div class="drawer-code">FrameExpression: translateY = min(0, -44 + (frame - charIdx*2.5)*1.8) | blurPx = max(0, 14 - (frame - charIdx*2.5)*0.6)</div>
+        </div>
+        <div class="card-footer"><span>White Studio Stage • Per-Character Top Down Cascade • Focal Blur & Spring Overshoot</span><span>top-down-letters</span></div>
+      </div>
+
+      <!-- TYPO #27 -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title-group"><span class="card-badge">TYPO #27</span><span class="card-title">Dotted Grid Canvas & Elastic Word Pull Engine</span></div>
+          <div class="header-actions">
+            <button class="inspect-btn" onclick="toggleDrawer(this)">🔍 Trait Contract</button>
+            <button class="replay-btn" onclick="replayWordPull()"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+          </div>
+        </div>
+        <div class="preview-stage" style="padding:0;">
+          <div class="word-pull-stage">
+            <div class="word-pull-box" id="wordPullContainer">
+              <span class="word-pull-primary" id="wordPullPrimary">Word</span>
+              <span class="word-pull-secondary" id="wordPullSecondary">Pull</span>
+            </div>
+          </div>
+        </div>
+        <div class="trait-drawer">
+          <div><span class="drawer-tag">TRAIT ID</span> <code>trait_dotted_word_pull</code></div>
+          <div class="drawer-grid"><div><strong>Concern:</strong> MotionPhysics + LayoutComposition</div><div><strong>Target Scope:</strong> phrase</div><div><strong>Owns Channels:</strong> <code>translateX, opacity, filter.blur, letterSpacing</code></div><div><strong>Conflicts With:</strong> <code>None</code></div></div>
+          <div class="drawer-code">FrameExpression: pullX = max(0, 80 - (frame/20)*80) | pullOpacity = clamp(frame/15, 0, 0.45)</div>
+        </div>
+        <div class="card-footer"><span>Dot Canvas Stage • Solid Black Lead Word • Horizontal Translucent Elastic Pull</span><span>dotted-word-pull</span></div>
+      </div>
+
+      <!-- TYPO #28 -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title-group"><span class="card-badge">TYPO #28</span><span class="card-title">Obsidian Stage & LED Dot-Matrix Scanline Engine</span></div>
+          <div class="header-actions">
+            <button class="inspect-btn" onclick="toggleDrawer(this)">🔍 Trait Contract</button>
+            <button class="replay-btn" onclick="replayLedMatrix()"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+          </div>
+        </div>
+        <div class="preview-stage" style="padding:0;">
+          <div class="led-matrix-stage">
+            <div class="led-matrix-box">
+              <span class="led-matrix-text" id="ledMatrixText">Design</span>
+            </div>
+          </div>
+        </div>
+        <div class="trait-drawer">
+          <div><span class="drawer-tag">TRAIT ID</span> <code>trait_led_dot_matrix</code></div>
+          <div class="drawer-grid"><div><strong>Concern:</strong> MaterialTreatment + TextureFusion</div><div><strong>Target Scope:</strong> phrase</div><div><strong>Owns Channels:</strong> <code>background.dotMask, text.ledGlow, filter.scanline</code></div><div><strong>Conflicts With:</strong> <code>None</code></div></div>
+          <div class="drawer-code">FrameExpression: ledScanX = (frame % 90) / 90 * 200% | dotGlow = 0.96 + sin((frame/12)*π)*0.04</div>
+        </div>
+        <div class="card-footer"><span>Obsidian Stage • High-Density LED Matrix Dot Grid • Phosphor Bloom & Scanline Sweep</span><span>led-dot-matrix</span></div>
+      </div>
+
+      <!-- TYPO #29 -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title-group"><span class="card-badge">TYPO #29</span><span class="card-title">Geometric Circle Inversion & Kinetic Contrast Engine</span></div>
+          <div class="header-actions">
+            <button class="inspect-btn" onclick="toggleDrawer(this)">🔍 Trait Contract</button>
+            <button class="replay-btn" onclick="replayCircleInvert()"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+          </div>
+        </div>
+        <div class="preview-stage" style="padding:0;">
+          <div class="circle-invert-stage">
+            <div class="invert-circle-orb" id="invertCircleOrb"></div>
+            <div class="invert-text-container">
+              <span class="invert-text-line" id="invertLine1">ELEVATE</span>
+              <span class="invert-text-line" id="invertLine2">VISION</span>
+            </div>
+          </div>
+        </div>
+        <div class="trait-drawer">
+          <div><span class="drawer-tag">TRAIT ID</span> <code>trait_geometric_circle_inversion</code></div>
+          <div class="drawer-grid"><div><strong>Concern:</strong> MaterialTreatment + LayoutComposition</div><div><strong>Target Scope:</strong> phrase</div><div><strong>Owns Channels:</strong> <code>container.orbPosition, text.mixBlendMode, text.tracking</code></div><div><strong>Conflicts With:</strong> <code>None</code></div></div>
+          <div class="drawer-code">FrameExpression: orbX = sin((frame/30)*π)*50 | blendMode = 'difference' | textOpacity = clamp(frame/15, 0, 1)</div>
+        </div>
+        <div class="card-footer"><span>White Studio Stage • Floating Black Circle Orb • CSS Difference Blend Mode Color Inversion</span><span>circle-inversion</span></div>
+      </div>
+
+
+
+  </div>
+
+  <script>
+    function toggleDrawer(btn) {
+      const card = btn.closest('.card');
+      const drawer = card.querySelector('.trait-drawer');
+      if (drawer) {
+        drawer.classList.toggle('open');
+        btn.textContent = drawer.classList.contains('open') ? '❌ Close Contract' : '🔍 Trait Contract';
+      }
+    }
+
+    // DESIGNALI SOFT LAVENDER HIGHLIGHT ENGINE FOR TYPO #18
+    const LAVENDER_WORDS = ["Limitless", "Boundless", "Seamless", "Effortless"];
+    let lavenderIdx = 0;
+    const lavenderPillWordEl = document.getElementById('lavenderPillWord');
+
+    function triggerSoftLavenderCycle() {
+      if (!lavenderPillWordEl) return;
+      lavenderIdx = (lavenderIdx + 1) % LAVENDER_WORDS.length;
+      lavenderPillWordEl.style.animation = 'none';
+      void lavenderPillWordEl.offsetWidth;
+      lavenderPillWordEl.textContent = LAVENDER_WORDS[lavenderIdx];
+      lavenderPillWordEl.style.animation = 'soft-pill-wipe 2.8s infinite var(--ease-apple)';
+    }
+    setInterval(triggerSoftLavenderCycle, 2800);
+
+    // DESIGNALI LIQUID GOOEY INK WORD MORPHING ENGINE FOR TYPO #12
+    const GOOEY_WORDS = ["Designali", "Creative", "Prometheus", "Innovation"];
+    let gooeyWordIdx = 0;
+    const gooeyInkWordEl = document.getElementById('gooeyInkWord');
+
+    function triggerGooeyWordMorph() {
+      if (!gooeyInkWordEl) return;
+      gooeyWordIdx = (gooeyWordIdx + 1) % GOOEY_WORDS.length;
+      gooeyInkWordEl.style.animation = 'none';
+      void gooeyInkWordEl.offsetWidth;
+      gooeyInkWordEl.textContent = GOOEY_WORDS[gooeyWordIdx];
+      gooeyInkWordEl.style.animation = 'gooey-ink-crisp-morph 3.2s infinite var(--ease-apple)';
+    }
+    setInterval(triggerGooeyWordMorph, 3200);
+
+    // APPLE METALLIC CHROME 3D COUNT-UP ENGINE FOR TYPO #17
+    const chromeCounterEl = document.getElementById('chromeCounter');
+    let counterRafId = null;
+
+    function runChromeCounter(targetVal = 404, durationMs = 2400) {
+      if (!chromeCounterEl) return;
+      if (counterRafId) cancelAnimationFrame(counterRafId);
+      chromeCounterEl.style.animation = 'none';
+      void chromeCounterEl.offsetWidth;
+      chromeCounterEl.style.animation = 'chrome-hero-spring-in 1.4s var(--ease-apple)';
+
+      let startTime = null;
+      function counterStep(timestamp) {
+        if (!startTime) startTime = timestamp;
+        const progress = Math.min((timestamp - startTime) / durationMs, 1);
+        const easeVal = 1 - Math.pow(1 - progress, 4);
+        chromeCounterEl.textContent = Math.floor(easeVal * targetVal).toLocaleString();
+        if (progress < 1) counterRafId = requestAnimationFrame(counterStep);
+        else chromeCounterEl.textContent = targetVal.toLocaleString();
+      }
+      counterRafId = requestAnimationFrame(counterStep);
+    }
+    setTimeout(() => runChromeCounter(404), 500);
+
+    // MATRIX TEXT SCRAMBLE ENGINE FOR TYPO #15
+    const MATRIX_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+    const TARGET_MAIN = "DYNAMIC TEXT";
+    const TARGET_SUB = "HOVER ME";
+    const matrixMainEl = document.getElementById('matrixMain');
+    const matrixSubEl = document.getElementById('matrixSub');
+    let matrixTimer = null;
+
+    function triggerMatrixScramble() {
+      if (!matrixMainEl || !matrixSubEl) return;
+      if (matrixTimer) clearInterval(matrixTimer);
+      let iteration = 0;
+
+      matrixTimer = setInterval(() => {
+        matrixMainEl.textContent = TARGET_MAIN.split('').map((char, index) => {
+          if (char === ' ') return ' ';
+          if (index < iteration) return TARGET_MAIN[index];
+          return MATRIX_CHARS[Math.floor(Math.random() * MATRIX_CHARS.length)];
+        }).join('');
+
+        matrixSubEl.textContent = TARGET_SUB.split('').map((char, index) => {
+          if (char === ' ') return ' ';
+          if (index < iteration) return TARGET_SUB[index];
+          return MATRIX_CHARS[Math.floor(Math.random() * MATRIX_CHARS.length)];
+        }).join('');
+
+        if (iteration >= Math.max(TARGET_MAIN.length, TARGET_SUB.length)) clearInterval(matrixTimer);
+        iteration += 1 / 3;
+      }, 30);
+    }
+    setTimeout(triggerMatrixScramble, 800);
+
+    // ELEGANT PER-WORD BLUR SPRING PHYSICS GENERATOR FOR TYPO #14
+    const ELEGANT_PARAGRAPH = "Elegant blur animation that brings your words to life with cinematic transitions.";
+    const elegantBlurBox = document.getElementById('elegantBlurBox');
+
+    function buildElegantBlurText() {
+      if (!elegantBlurBox) return;
+      const words = ELEGANT_PARAGRAPH.split(' ');
+      elegantBlurBox.innerHTML = words.map((word, i) => 
+        `<span class="blur-word" style="animation-delay:${i * 0.08}s;">${word}</span>`
+      ).join('');
+    }
+
+    function replayElegantBlur() {
+      if (!elegantBlurBox) return;
+      elegantBlurBox.innerHTML = '';
+      void elegantBlurBox.offsetWidth;
+      buildElegantBlurText();
+    }
+    buildElegantBlurText();
+
+    // ROTATING TEXT WORDS DATA FOR TYPO #05
+    const ROTATE_WORDS = ["work!", "fancy ✽", "right", "fast", "fun", "rock", "🕶️🕶️🕶️"];
+    let wordIndex = 0;
+    const rotateWordEl = document.getElementById('rotateWord');
+
+    function updateRotatingWord() {
+      if (!rotateWordEl) return;
+      wordIndex = (wordIndex + 1) % ROTATE_WORDS.length;
+      const word = ROTATE_WORDS[wordIndex];
+      rotateWordEl.innerHTML = Array.from(word).map((char, i) => 
+        `<span class="text-rotate-char" style="animation-delay:${i * 0.025}s;">${char === ' ' ? '&nbsp;' : char}</span>`
+      ).join('');
+    }
+    setInterval(updateRotatingWord, 2000);
+
+    // HEXTAUI TYPEWRITER ENGINE FOR TYPO #07
+    const HEXTA_PHRASES = ["Welcome to HextaUI", "Build with Prometheus", "Craft Cinematic Motion"];
+    let hextaPhraseIdx = 0;
+    let hextaCharIdx = HEXTA_PHRASES[0].length;
+    let hextaDeleting = false;
+    let hextaTimer = null;
+    const hextaActiveEl = document.getElementById('hextaActive');
+    const hextaGhostEl = document.getElementById('hextaGhost');
+
+    function runHextaTypewriterStep() {
+      if (!hextaActiveEl || !hextaGhostEl) return;
+      const currentPhrase = HEXTA_PHRASES[hextaPhraseIdx];
+      const prevPhrase = HEXTA_PHRASES[(hextaPhraseIdx - 1 + HEXTA_PHRASES.length) % HEXTA_PHRASES.length];
+      hextaGhostEl.textContent = hextaDeleting ? currentPhrase : prevPhrase;
+
+      if (!hextaDeleting && hextaCharIdx < currentPhrase.length) {
+        hextaCharIdx++;
+        hextaActiveEl.textContent = currentPhrase.substring(0, hextaCharIdx);
+        hextaTimer = setTimeout(runHextaTypewriterStep, 80);
+      } else if (!hextaDeleting && hextaCharIdx === currentPhrase.length) {
+        hextaTimer = setTimeout(() => { hextaDeleting = true; runHextaTypewriterStep(); }, 1800);
+      } else if (hextaDeleting && hextaCharIdx > 0) {
+        hextaCharIdx--;
+        hextaActiveEl.textContent = currentPhrase.substring(0, hextaCharIdx);
+        hextaTimer = setTimeout(runHextaTypewriterStep, 45);
+      } else if (hextaDeleting && hextaCharIdx === 0) {
+        hextaDeleting = false;
+        hextaPhraseIdx = (hextaPhraseIdx + 1) % HEXTA_PHRASES.length;
+        hextaTimer = setTimeout(runHextaTypewriterStep, 200);
+      }
+    }
+    hextaTimer = setTimeout(runHextaTypewriterStep, 1000);
+
+    function replayHextaTypewriter() {
+      if (hextaTimer) clearTimeout(hextaTimer);
+      hextaPhraseIdx = 0; hextaCharIdx = 0; hextaDeleting = false;
+      if (hextaActiveEl) hextaActiveEl.textContent = "";
+      if (hextaGhostEl) hextaGhostEl.textContent = HEXTA_PHRASES[0];
+      runHextaTypewriterStep();
+    }
+
+    // REPLAY FUNCTIONALITY FOR ALL CARDS
+    function replayCard(btn) {
+      const card = btn.closest('.card');
+      const animEls = card.querySelectorAll('.typo-apple-hero, .char-item, .typo-keynote-punch, .typo-blur-mask, .text-rotate-char, .word-blur-1, .word-blur-2, .word-blur-3, .vercel-wipe-bg, .vercel-highlight-text, .iso-word, .hand-drawn-path, .gradient-fade-text, .gooey-char-item, .cinematic-sweep-text, .blur-word, .slot-sub, .slot-super, .soft-pill-word, .emoji-line-content, .stroke-sparkle-title, .star-sparkle-glyph, .figma-word1-wrap, .figma-word2-wrap, .figma-select-box-animated, .figma-anchor-tl, .figma-anchor-tr, .figma-anchor-bl, .figma-anchor-br, .user-cursor-pointer-1, .user-cursor-pointer-2, .search-glow-bg, .search-caret-line, .noise-spray-halo-outer, .noise-spray-halo-mid, .noise-hero-text, .noise-grain-overlay, .shimmer-wave-text, .shimmer-wave-char, .top-down-char, .word-pull-primary, .word-pull-secondary, .led-matrix-text, .invert-text-line, .invert-circle-orb');
+      
+      animEls.forEach(el => {
+        el.style.animation = 'none';
+        void el.offsetWidth;
+        el.style.animation = '';
+      });
+    }
+  
+    // LIVE TYPEWRITER LOOP FOR GLOW SEARCH INPUT (TYPO #23)
+    const SEARCH_PHRASES = ["New search", "Search animation DNA", "Explore kinetic traits", "Prometheus UI"];
+    let searchPhraseIdx = 0;
+    let searchCharIdx = 0;
+    let searchDeleting = false;
+    let searchTimer = null;
+    const searchTypewriterTextEl = document.getElementById('searchTypewriterText');
+
+    function stepSearchTypewriter() {
+      if (!searchTypewriterTextEl) return;
+      const currentPhrase = SEARCH_PHRASES[searchPhraseIdx];
+
+      if (!searchDeleting && searchCharIdx < currentPhrase.length) {
+        searchCharIdx++;
+        searchTypewriterTextEl.textContent = currentPhrase.substring(0, searchCharIdx);
+        searchTimer = setTimeout(stepSearchTypewriter, 90);
+      } else if (!searchDeleting && searchCharIdx === currentPhrase.length) {
+        searchTimer = setTimeout(() => { searchDeleting = true; stepSearchTypewriter(); }, 1800);
+      } else if (searchDeleting && searchCharIdx > 0) {
+        searchCharIdx--;
+        searchTypewriterTextEl.textContent = currentPhrase.substring(0, searchCharIdx);
+        searchTimer = setTimeout(stepSearchTypewriter, 45);
+      } else if (searchDeleting && searchCharIdx === 0) {
+        searchDeleting = false;
+        searchPhraseIdx = (searchPhraseIdx + 1) % SEARCH_PHRASES.length;
+        searchTimer = setTimeout(stepSearchTypewriter, 200);
+      }
+    }
+    searchTimer = setTimeout(stepSearchTypewriter, 600);
+
+    function replaySearchTypewriter() {
+      if (searchTimer) clearTimeout(searchTimer);
+      searchPhraseIdx = 0;
+      searchCharIdx = 0;
+      searchDeleting = false;
+      if (searchTypewriterTextEl) searchTypewriterTextEl.textContent = "";
+      stepSearchTypewriter();
+    }
+
+    // DOTTED GRID CANVAS & BLUE TEXT SHIMMER WAVE ENGINE FOR TYPO #24
+    const SHIMMER_PHRASES = [
+      "Creating the perfect dish...",
+      "Synthesizing visual DNA...",
+      "Crafting kinetic motion...",
+      "Prometheus Shimmer Engine..."
+    ];
+    let shimmerPhraseIdx = 0;
+    let shimmerTimer = null;
+    const shimmerWaveTextEl = document.getElementById('shimmerWaveText');
+
+    function buildShimmerWaveChars(phrase) {
+      if (!shimmerWaveTextEl) return;
+      shimmerWaveTextEl.innerHTML = Array.from(phrase).map((char, i) => 
+        `<span class="shimmer-wave-char" style="animation-delay:${i * 0.04}s;">${char === ' ' ? '&nbsp;' : char}</span>`
+      ).join('');
+    }
+
+    function stepShimmerPhraseCycle() {
+      if (!shimmerWaveTextEl) return;
+      shimmerPhraseIdx = (shimmerPhraseIdx + 1) % SHIMMER_PHRASES.length;
+      shimmerWaveTextEl.style.animation = 'none';
+      void shimmerWaveTextEl.offsetWidth;
+      buildShimmerWaveChars(SHIMMER_PHRASES[shimmerPhraseIdx]);
+      shimmerWaveTextEl.style.animation = 'text-shimmer-sweep 2.8s infinite linear';
+    }
+
+    function replayShimmerWave() {
+      if (shimmerTimer) clearInterval(shimmerTimer);
+      shimmerPhraseIdx = 0;
+      if (shimmerWaveTextEl) buildShimmerWaveChars(SHIMMER_PHRASES[0]);
+      shimmerTimer = setInterval(stepShimmerPhraseCycle, 3200);
+    }
+
+    buildShimmerWaveChars(SHIMMER_PHRASES[0]);
+    shimmerTimer = setInterval(stepShimmerPhraseCycle, 3200);
+
+    // TOP-DOWN STAGGERED CHARACTER DROP ENGINE FOR TYPO #26
+    const TOP_DOWN_PHRASES = [
+      "Hello world",
+      "Top Down Letters",
+      "Cinematic Cascade",
+      "Prometheus Motion"
+    ];
+    let topDownPhraseIdx = 0;
+    let topDownTimer = null;
+    const topDownLettersBoxEl = document.getElementById('topDownLettersBox');
+
+    function buildTopDownChars(phrase) {
+      if (!topDownLettersBoxEl) return;
+      topDownLettersBoxEl.innerHTML = Array.from(phrase).map((char, i) => 
+        `<span class="top-down-char" style="animation-delay:${i * 0.06}s;">${char === ' ' ? '&nbsp;' : char}</span>`
+      ).join('');
+    }
+
+    function stepTopDownCycle() {
+      if (!topDownLettersBoxEl) return;
+      topDownPhraseIdx = (topDownPhraseIdx + 1) % TOP_DOWN_PHRASES.length;
+      buildTopDownChars(TOP_DOWN_PHRASES[topDownPhraseIdx]);
+    }
+
+    function replayTopDownLetters() {
+      if (topDownTimer) clearInterval(topDownTimer);
+      topDownPhraseIdx = 0;
+      buildTopDownChars(TOP_DOWN_PHRASES[0]);
+      topDownTimer = setInterval(stepTopDownCycle, 3400);
+    }
+
+    buildTopDownChars(TOP_DOWN_PHRASES[0]);
+    topDownTimer = setInterval(stepTopDownCycle, 3400);
+
+    // DOTTED GRID CANVAS & ELASTIC WORD PULL ENGINE FOR TYPO #27
+    const PULL_PAIRS = [
+      ["Word", "Pull"],
+      ["Motion", "Elastic"],
+      ["Kinetic", "Spring"],
+      ["Prometheus", "Suite"]
+    ];
+    let pullIdx = 0;
+    let pullTimer = null;
+    const wordPullPrimaryEl = document.getElementById('wordPullPrimary');
+    const wordPullSecondaryEl = document.getElementById('wordPullSecondary');
+
+    function stepWordPullCycle() {
+      if (!wordPullPrimaryEl || !wordPullSecondaryEl) return;
+      pullIdx = (pullIdx + 1) % PULL_PAIRS.length;
+      wordPullPrimaryEl.style.animation = 'none';
+      wordPullSecondaryEl.style.animation = 'none';
+      void wordPullPrimaryEl.offsetWidth;
+      void wordPullSecondaryEl.offsetWidth;
+      
+      wordPullPrimaryEl.textContent = PULL_PAIRS[pullIdx][0];
+      wordPullSecondaryEl.textContent = PULL_PAIRS[pullIdx][1];
+      
+      wordPullPrimaryEl.style.animation = 'word-pull-primary-in 0.8s var(--ease-apple)';
+      wordPullSecondaryEl.style.animation = 'word-pull-secondary-slide 1.0s 0.2s var(--ease-apple) backwards';
+    }
+
+    function replayWordPull() {
+      if (pullTimer) clearInterval(pullTimer);
+      pullIdx = 0;
+      if (wordPullPrimaryEl && wordPullSecondaryEl) {
+        wordPullPrimaryEl.textContent = PULL_PAIRS[0][0];
+        wordPullSecondaryEl.textContent = PULL_PAIRS[0][1];
+        wordPullPrimaryEl.style.animation = 'none';
+        wordPullSecondaryEl.style.animation = 'none';
+        void wordPullPrimaryEl.offsetWidth;
+        void wordPullSecondaryEl.offsetWidth;
+        wordPullPrimaryEl.style.animation = 'word-pull-primary-in 0.8s var(--ease-apple)';
+        wordPullSecondaryEl.style.animation = 'word-pull-secondary-slide 1.0s 0.2s var(--ease-apple) backwards';
+      }
+      pullTimer = setInterval(stepWordPullCycle, 3200);
+    }
+
+    pullTimer = setInterval(stepWordPullCycle, 3200);
+
+    // OBSIDIAN STAGE & LED DOT-MATRIX SCANLINE ENGINE FOR TYPO #28
+    const LED_PHRASES = [
+      "Design",
+      "Prometheus",
+      "Dot Matrix",
+      "Kinetic LED"
+    ];
+    let ledPhraseIdx = 0;
+    let ledTimer = null;
+    const ledMatrixTextEl = document.getElementById('ledMatrixText');
+
+    function stepLedMatrixCycle() {
+      if (!ledMatrixTextEl) return;
+      ledPhraseIdx = (ledPhraseIdx + 1) % LED_PHRASES.length;
+      ledMatrixTextEl.style.animation = 'none';
+      void ledMatrixTextEl.offsetWidth;
+      ledMatrixTextEl.textContent = LED_PHRASES[ledPhraseIdx];
+      ledMatrixTextEl.style.animation = 'led-scan-glow 3s infinite linear, led-dot-flicker 2s infinite ease-in-out';
+    }
+
+    function replayLedMatrix() {
+      if (ledTimer) clearInterval(ledTimer);
+      ledPhraseIdx = 0;
+      if (ledMatrixTextEl) {
+        ledMatrixTextEl.textContent = LED_PHRASES[0];
+        ledMatrixTextEl.style.animation = 'none';
+        void ledMatrixTextEl.offsetWidth;
+        ledMatrixTextEl.style.animation = 'led-scan-glow 3s infinite linear, led-dot-flicker 2s infinite ease-in-out';
+      }
+      ledTimer = setInterval(stepLedMatrixCycle, 3200);
+    }
+
+    ledTimer = setInterval(stepLedMatrixCycle, 3200);
+
+    // GEOMETRIC CIRCLE INVERSION & KINETIC CONTRAST ENGINE FOR TYPO #29
+    const INVERT_PAIRS = [
+      ["ELEVATE", "VISION"],
+      ["CREATE", "FUTURE"],
+      ["FOCUS", "IMPACT"],
+      ["PROMETHEUS", "KINETIC"]
+    ];
+    let invertIdx = 0;
+    let invertTimer = null;
+    const invertLine1El = document.getElementById('invertLine1');
+    const invertLine2El = document.getElementById('invertLine2');
+
+    function stepCircleInvertCycle() {
+      if (!invertLine1El || !invertLine2El) return;
+      invertIdx = (invertIdx + 1) % INVERT_PAIRS.length;
+      invertLine1El.style.animation = 'none';
+      invertLine2El.style.animation = 'none';
+      void invertLine1El.offsetWidth;
+      void invertLine2El.offsetWidth;
+      
+      invertLine1El.textContent = INVERT_PAIRS[invertIdx][0];
+      invertLine2El.textContent = INVERT_PAIRS[invertIdx][1];
+      
+      invertLine1El.style.animation = 'text-invert-line-in 0.8s var(--ease-apple)';
+      invertLine2El.style.animation = 'text-invert-line-in 0.8s 0.15s var(--ease-apple) backwards';
+    }
+
+    function replayCircleInvert() {
+      if (invertTimer) clearInterval(invertTimer);
+      invertIdx = 0;
+      if (invertLine1El && invertLine2El) {
+        invertLine1El.textContent = INVERT_PAIRS[0][0];
+        invertLine2El.textContent = INVERT_PAIRS[0][1];
+        invertLine1El.style.animation = 'none';
+        invertLine2El.style.animation = 'none';
+        void invertLine1El.offsetWidth;
+        void invertLine2El.offsetWidth;
+        invertLine1El.style.animation = 'text-invert-line-in 0.8s var(--ease-apple)';
+        invertLine2El.style.animation = 'text-invert-line-in 0.8s 0.15s var(--ease-apple) backwards';
+      }
+      invertTimer = setInterval(stepCircleInvertCycle, 3400);
+    }
+
+    invertTimer = setInterval(stepCircleInvertCycle, 3400);
+
+</script>
+</body>
+</html>

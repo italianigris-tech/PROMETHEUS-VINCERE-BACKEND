@@ -1,0 +1,866 @@
+{
+  "version": 1,
+  "assets": [
+    {
+      "assetId": "animated-3img-folder",
+      "displayName": "Animated 3-Image Folder",
+      "filename": "animated-3img-folder-v1.html",
+      "type": "folder-stack",
+      "macro": "animated folder with 3 image points",
+      "keywords": [
+        "animated",
+        "folder",
+        "stack",
+        "3-image",
+        "portrait-cards",
+        "glassmorphism",
+        "frosted",
+        "gsap",
+        "svg"
+      ],
+      "imageSlots": 3,
+      "imageSlotNames": [
+        "image_slot_1",
+        "image_slot_2",
+        "image_slot_3"
+      ],
+      "imageSlotRoles": [
+        "left",
+        "center",
+        "right"
+      ],
+      "textSlots": 2,
+      "textSlotNames": [
+        "text_primary_1",
+        "text_secondary_1"
+      ],
+      "textSlotRoles": [
+        "primary",
+        "secondary"
+      ],
+      "textArtifacts": [
+        {
+          "id": "text_primary_1",
+          "role": "primary",
+          "category": "core",
+          "slot": "1",
+          "text": "TRANSFORM",
+          "charCount": 9
+        },
+        {
+          "id": "text_secondary_1",
+          "role": "secondary",
+          "category": "descriptor",
+          "slot": "1",
+          "text": "2025",
+          "charCount": 4
+        }
+      ],
+      "textArtifactCount": 2,
+      "textArtifactCounts": {
+        "core": 1,
+        "descriptor": 1,
+        "stray": 0
+      },
+      "version": "1.0.0"
+    },
+    {
+      "assetId": "37899547bc6e5f7daf99bf019cd9bb3b",
+      "displayName": "TCU Myth vs Fact Card",
+      "filename": "37899547bc6e5f7daf99bf019cd9bb3b.html",
+      "type": "infographic-card",
+      "macro": "myth vs fact glassmorphism card",
+      "keywords": [
+        "tcu",
+        "myth",
+        "fact",
+        "followers",
+        "sales",
+        "glassmorphism",
+        "infographic",
+        "card",
+        "red",
+        "dark"
+      ],
+      "imageSlots": 0,
+      "imageSlotNames": [],
+      "imageSlotRoles": [],
+      "textSlots": 5,
+      "textSlotNames": [
+        "text_primary_1",
+        "text_secondary_1",
+        "text_tertiary_1",
+        "text_tertiary_2",
+        "text_stray_1"
+      ],
+      "textSlotRoles": [
+        "primary",
+        "secondary",
+        "tertiary",
+        "tertiary",
+        "stray"
+      ],
+      "textArtifacts": [
+        {
+          "id": "text_primary_1",
+          "role": "primary",
+          "category": "core",
+          "slot": "1",
+          "text": "More Followers = More Sales",
+          "charCount": 27
+        },
+        {
+          "id": "text_secondary_1",
+          "role": "secondary",
+          "category": "descriptor",
+          "slot": "1",
+          "text": "Strategy drives sales, not vanity metrics.",
+          "charCount": 42
+        },
+        {
+          "id": "text_tertiary_1",
+          "role": "tertiary",
+          "category": "descriptor",
+          "slot": "1",
+          "text": "Myth",
+          "charCount": 4
+        },
+        {
+          "id": "text_tertiary_2",
+          "role": "tertiary",
+          "category": "descriptor",
+          "slot": "2",
+          "text": "Fact",
+          "charCount": 4
+        },
+        {
+          "id": "text_stray_1",
+          "role": "stray",
+          "category": "stray",
+          "slot": "1",
+          "text": "tcu.",
+          "charCount": 4
+        }
+      ],
+      "textArtifactCount": 5,
+      "textArtifactCounts": {
+        "core": 1,
+        "descriptor": 3,
+        "stray": 1
+      },
+      "version": "1.0.0"
+    },
+    {
+      "assetId": "8bba9b4b4e60e49648ce5b9498de4dd7",
+      "displayName": "Blue Glass Analytics Card",
+      "filename": "8bba9b4b4e60e49648ce5b9498de4dd7.html",
+      "type": "glass-analytics-card",
+      "macro": "blue glass analytics card",
+      "keywords": [
+        "analytics",
+        "conversion",
+        "rate",
+        "400%",
+        "monthly",
+        "data",
+        "chart",
+        "blue",
+        "glassmorphism"
+      ],
+      "imageSlots": 0,
+      "imageSlotNames": [],
+      "imageSlotRoles": [],
+      "textSlots": 5,
+      "textSlotNames": [
+        "text_primary_1",
+        "text_secondary_1",
+        "text_tertiary_1",
+        "text_tertiary_2",
+        "text_tertiary_3"
+      ],
+      "textSlotRoles": [
+        "primary",
+        "secondary",
+        "tertiary",
+        "tertiary",
+        "tertiary"
+      ],
+      "textArtifacts": [
+        {
+          "id": "text_primary_1",
+          "role": "primary",
+          "category": "core",
+          "slot": "1",
+          "text": "400%",
+          "charCount": 4
+        },
+        {
+          "id": "text_secondary_1",
+          "role": "secondary",
+          "category": "descriptor",
+          "slot": "1",
+          "text": "Conversion rate",
+          "charCount": 15
+        },
+        {
+          "id": "text_tertiary_1",
+          "role": "tertiary",
+          "category": "descriptor",
+          "slot": "1",
+          "text": "Data updated 2h ago",
+          "charCount": 21
+        },
+        {
+          "id": "text_tertiary_2",
+          "role": "tertiary",
+          "category": "descriptor",
+          "slot": "2",
+          "text": "Monthly",
+          "charCount": 7
+        },
+        {
+          "id": "text_tertiary_3",
+          "role": "tertiary",
+          "category": "descriptor",
+          "slot": "3",
+          "text": "Increase vs last month",
+          "charCount": 23
+        }
+      ],
+      "textArtifactCount": 5,
+      "textArtifactCounts": {
+        "core": 1,
+        "descriptor": 4,
+        "stray": 0
+      },
+      "version": "1.0.0"
+    },
+    {
+      "assetId": "93379f1532461e1d70ee84dddfc1a454",
+      "displayName": "Red Glass Designer Card",
+      "filename": "93379f1532461e1d70ee84dddfc1a454.html",
+      "type": "glass-card",
+      "macro": "red glass designer card",
+      "keywords": [
+        "glassmorphism",
+        "designer",
+        "hello",
+        "red",
+        "card",
+        "portfolio",
+        "minimal"
+      ],
+      "imageSlots": 0,
+      "imageSlotNames": [],
+      "imageSlotRoles": [],
+      "textSlots": 5,
+      "textSlotNames": [
+        "text_primary_1",
+        "text_tertiary_1",
+        "text_tertiary_2",
+        "text_tertiary_3",
+        "text_stray_1"
+      ],
+      "textSlotRoles": [
+        "primary",
+        "tertiary",
+        "tertiary",
+        "tertiary",
+        "stray"
+      ],
+      "textArtifacts": [
+        {
+          "id": "text_primary_1",
+          "role": "primary",
+          "category": "core",
+          "slot": "1",
+          "text": "Hello, I'm a Designer.",
+          "charCount": 22
+        },
+        {
+          "id": "text_tertiary_1",
+          "role": "tertiary",
+          "category": "descriptor",
+          "slot": "1",
+          "text": "Glass",
+          "charCount": 5
+        },
+        {
+          "id": "text_tertiary_2",
+          "role": "tertiary",
+          "category": "descriptor",
+          "slot": "2",
+          "text": "morphic effect",
+          "charCount": 13
+        },
+        {
+          "id": "text_tertiary_3",
+          "role": "tertiary",
+          "category": "descriptor",
+          "slot": "3",
+          "text": "Let's create",
+          "charCount": 12
+        },
+        {
+          "id": "text_stray_1",
+          "role": "stray",
+          "category": "stray",
+          "slot": "1",
+          "text": "@_Taiwo_taiwo",
+          "charCount": 13
+        }
+      ],
+      "textArtifactCount": 5,
+      "textArtifactCounts": {
+        "core": 1,
+        "descriptor": 3,
+        "stray": 1
+      },
+      "version": "1.0.0"
+    },
+    {
+      "assetId": "993bb9f8957aa778af4ca306945cf94f",
+      "displayName": "Stripe Balance Card",
+      "filename": "993bb9f8957aa778af4ca306945cf94f.html",
+      "type": "finance-card",
+      "macro": "stripe paypal balance card",
+      "keywords": [
+        "stripe",
+        "paypal",
+        "balance",
+        "card",
+        "finance",
+        "black",
+        "blue"
+      ],
+      "imageSlots": 0,
+      "imageSlotNames": [],
+      "imageSlotRoles": [],
+      "textSlots": 4,
+      "textSlotNames": [
+        "text_primary_1",
+        "text_secondary_1",
+        "text_tertiary_1",
+        "text_tertiary_2"
+      ],
+      "textSlotRoles": [
+        "primary",
+        "secondary",
+        "tertiary",
+        "tertiary"
+      ],
+      "textArtifacts": [
+        {
+          "id": "text_primary_1",
+          "role": "primary",
+          "category": "core",
+          "slot": "1",
+          "text": "$120,000",
+          "charCount": 8
+        },
+        {
+          "id": "text_secondary_1",
+          "role": "secondary",
+          "category": "descriptor",
+          "slot": "1",
+          "text": "Total Balance",
+          "charCount": 13
+        },
+        {
+          "id": "text_tertiary_1",
+          "role": "tertiary",
+          "category": "descriptor",
+          "slot": "1",
+          "text": "stripe",
+          "charCount": 6
+        },
+        {
+          "id": "text_tertiary_2",
+          "role": "tertiary",
+          "category": "descriptor",
+          "slot": "2",
+          "text": "PayPal",
+          "charCount": 6
+        }
+      ],
+      "textArtifactCount": 4,
+      "textArtifactCounts": {
+        "core": 1,
+        "descriptor": 3,
+        "stray": 0
+      },
+      "version": "1.0.0"
+    },
+    {
+      "assetId": "99c78c7d757b8d8132ac2630e64ad4d1",
+      "displayName": "Budget Growth Card",
+      "filename": "99c78c7d757b8d8132ac2630e64ad4d1.html",
+      "type": "budget-card",
+      "macro": "budget chart card",
+      "keywords": [
+        "budget",
+        "chart",
+        "analytics",
+        "weekly",
+        "card",
+        "white",
+        "blue"
+      ],
+      "imageSlots": 0,
+      "imageSlotNames": [],
+      "imageSlotRoles": [],
+      "textSlots": 11,
+      "textSlotNames": [
+        "text_primary_1",
+        "text_secondary_1",
+        "text_tertiary_1",
+        "text_tertiary_2",
+        "text_tertiary_3",
+        "text_tertiary_4",
+        "text_tertiary_5",
+        "text_tertiary_6",
+        "text_tertiary_7",
+        "text_tertiary_8",
+        "text_tertiary_9",
+        "text_stray_1"
+      ],
+      "textSlotRoles": [
+        "primary",
+        "secondary",
+        "tertiary",
+        "tertiary",
+        "tertiary",
+        "tertiary",
+        "tertiary",
+        "tertiary",
+        "tertiary",
+        "tertiary",
+        "tertiary",
+        "stray"
+      ],
+      "textArtifacts": [
+        {
+          "id": "text_primary_1",
+          "role": "primary",
+          "category": "core",
+          "slot": "1",
+          "text": "$30.739",
+          "charCount": 7
+        },
+        {
+          "id": "text_secondary_1",
+          "role": "secondary",
+          "category": "descriptor",
+          "slot": "1",
+          "text": "+ $317",
+          "charCount": 6
+        },
+        {
+          "id": "text_tertiary_1",
+          "role": "tertiary",
+          "category": "descriptor",
+          "slot": "1",
+          "text": "Budget",
+          "charCount": 6
+        },
+        {
+          "id": "text_tertiary_2",
+          "role": "tertiary",
+          "category": "descriptor",
+          "slot": "2",
+          "text": "$750",
+          "charCount": 4
+        },
+        {
+          "id": "text_tertiary_3",
+          "role": "tertiary",
+          "category": "descriptor",
+          "slot": "3",
+          "text": "Sun",
+          "charCount": 3
+        },
+        {
+          "id": "text_tertiary_4",
+          "role": "tertiary",
+          "category": "descriptor",
+          "slot": "4",
+          "text": "Mon",
+          "charCount": 3
+        },
+        {
+          "id": "text_tertiary_5",
+          "role": "tertiary",
+          "category": "descriptor",
+          "slot": "5",
+          "text": "Tue",
+          "charCount": 3
+        },
+        {
+          "id": "text_tertiary_6",
+          "role": "tertiary",
+          "category": "descriptor",
+          "slot": "6",
+          "text": "Wed",
+          "charCount": 3
+        },
+        {
+          "id": "text_tertiary_7",
+          "role": "tertiary",
+          "category": "descriptor",
+          "slot": "7",
+          "text": "Thu",
+          "charCount": 3
+        },
+        {
+          "id": "text_tertiary_8",
+          "role": "tertiary",
+          "category": "descriptor",
+          "slot": "8",
+          "text": "Fri",
+          "charCount": 3
+        },
+        {
+          "id": "text_tertiary_9",
+          "role": "tertiary",
+          "category": "descriptor",
+          "slot": "9",
+          "text": "Sat",
+          "charCount": 3
+        },
+        {
+          "id": "text_stray_1",
+          "role": "stray",
+          "category": "stray",
+          "slot": "1",
+          "text": "webdesign.uiux",
+          "charCount": 14
+        }
+      ],
+      "textArtifactCount": 11,
+      "textArtifactCounts": {
+        "core": 1,
+        "descriptor": 9,
+        "stray": 1
+      },
+      "version": "1.0.0"
+    },
+    {
+      "assetId": "d0b12efad6cf31b80ba3e32a5323bae0",
+      "displayName": "Long Form Typography V1",
+      "filename": "d0b12efad6cf31b80ba3e32a5323bae0.html",
+      "type": "typographic-poster",
+      "macro": "long-form typography svg v1",
+      "keywords": [
+        "longform",
+        "svg",
+        "typography",
+        "kinetic",
+        "motion",
+        "poster",
+        "blue"
+      ],
+      "imageSlots": 0,
+      "imageSlotNames": [],
+      "imageSlotRoles": [],
+      "textSlots": 4,
+      "textSlotNames": [
+        "text_primary_1",
+        "text_secondary_1",
+        "text_stray_1",
+        "text_stray_2"
+      ],
+      "textSlotRoles": [
+        "primary",
+        "secondary",
+        "stray",
+        "stray"
+      ],
+      "textArtifacts": [
+        {
+          "id": "text_primary_1",
+          "role": "primary",
+          "category": "core",
+          "slot": "1",
+          "text": "LONG FORM",
+          "charCount": 9
+        },
+        {
+          "id": "text_secondary_1",
+          "role": "secondary",
+          "category": "descriptor",
+          "slot": "1",
+          "text": "TYPOGRAPHY",
+          "charCount": 10
+        },
+        {
+          "id": "text_stray_1",
+          "role": "stray",
+          "category": "stray",
+          "slot": "1",
+          "text": "svg",
+          "charCount": 3
+        },
+        {
+          "id": "text_stray_2",
+          "role": "stray",
+          "category": "stray",
+          "slot": "2",
+          "text": "v1",
+          "charCount": 2
+        }
+      ],
+      "textArtifactCount": 4,
+      "textArtifactCounts": {
+        "core": 1,
+        "descriptor": 1,
+        "stray": 2
+      },
+      "version": "1.0.0"
+    },
+    {
+      "assetId": "e87c37381d87acd0110ec967176db07f",
+      "displayName": "Red Box Showcase",
+      "filename": "e87c37381d87acd0110ec967176db07f.html",
+      "type": "showcase-box",
+      "macro": "red box profile card",
+      "keywords": [
+        "red",
+        "box",
+        "profile",
+        "card",
+        "showcase",
+        "date"
+      ],
+      "imageSlots": 0,
+      "imageSlotNames": [],
+      "imageSlotRoles": [],
+      "textSlots": 8,
+      "textSlotNames": [
+        "text_primary_1",
+        "text_secondary_1",
+        "text_tertiary_1",
+        "text_tertiary_2",
+        "text_tertiary_3",
+        "text_tertiary_4",
+        "text_stray_1",
+        "text_stray_2"
+      ],
+      "textSlotRoles": [
+        "primary",
+        "secondary",
+        "tertiary",
+        "tertiary",
+        "tertiary",
+        "tertiary",
+        "stray",
+        "stray"
+      ],
+      "textArtifacts": [
+        {
+          "id": "text_primary_1",
+          "role": "primary",
+          "category": "core",
+          "slot": "1",
+          "text": "Vadim Designer",
+          "charCount": 14
+        },
+        {
+          "id": "text_secondary_1",
+          "role": "secondary",
+          "category": "descriptor",
+          "slot": "1",
+          "text": "vadimdesignero",
+          "charCount": 14
+        },
+        {
+          "id": "text_tertiary_1",
+          "role": "tertiary",
+          "category": "descriptor",
+          "slot": "1",
+          "text": "3 подписчика · 36 лайков · 10 тыс просмотров в месяц",
+          "charCount": 52
+        },
+        {
+          "id": "text_tertiary_2",
+          "role": "tertiary",
+          "category": "descriptor",
+          "slot": "2",
+          "text": "Давай знакомиться? Меня зовут Вадим.",
+          "charCount": 36
+        },
+        {
+          "id": "text_tertiary_3",
+          "role": "tertiary",
+          "category": "descriptor",
+          "slot": "3",
+          "text": "Я создаю дизайн, который продает.",
+          "charCount": 33
+        },
+        {
+          "id": "text_tertiary_4",
+          "role": "tertiary",
+          "category": "descriptor",
+          "slot": "4",
+          "text": "14.02.2025",
+          "charCount": 10
+        },
+        {
+          "id": "text_stray_1",
+          "role": "stray",
+          "category": "stray",
+          "slot": "1",
+          "text": "10",
+          "charCount": 2
+        },
+        {
+          "id": "text_stray_2",
+          "role": "stray",
+          "category": "stray",
+          "slot": "2",
+          "text": "100",
+          "charCount": 3
+        }
+      ],
+      "textArtifactCount": 8,
+      "textArtifactCounts": {
+        "core": 1,
+        "descriptor": 5,
+        "stray": 2
+      },
+      "version": "1.0.0"
+    },
+    {
+      "assetId": "ea3e1edc41d8dcb7c1d1813c78eb6773",
+      "displayName": "Headline Glass Card",
+      "filename": "ea3e1edc41d8dcb7c1d1813c78eb6773.html",
+      "type": "headline-card",
+      "macro": "headline glass card",
+      "keywords": [
+        "headline",
+        "blue",
+        "glassmorphism",
+        "chart",
+        "card"
+      ],
+      "imageSlots": 0,
+      "imageSlotNames": [],
+      "imageSlotRoles": [],
+      "textSlots": 4,
+      "textSlotNames": [
+        "text_primary_1",
+        "text_secondary_1",
+        "text_secondary_2",
+        "text_tertiary_1"
+      ],
+      "textSlotRoles": [
+        "primary",
+        "secondary",
+        "secondary",
+        "tertiary"
+      ],
+      "textArtifacts": [
+        {
+          "id": "text_primary_1",
+          "role": "primary",
+          "category": "core",
+          "slot": "1",
+          "text": "Headline",
+          "charCount": 8
+        },
+        {
+          "id": "text_secondary_1",
+          "role": "secondary",
+          "category": "descriptor",
+          "slot": "1",
+          "text": "Goes",
+          "charCount": 4
+        },
+        {
+          "id": "text_secondary_2",
+          "role": "secondary",
+          "category": "descriptor",
+          "slot": "2",
+          "text": "Here",
+          "charCount": 4
+        },
+        {
+          "id": "text_tertiary_1",
+          "role": "tertiary",
+          "category": "descriptor",
+          "slot": "1",
+          "text": "maybe put a little bit of body text here.",
+          "charCount": 41
+        }
+      ],
+      "textArtifactCount": 4,
+      "textArtifactCounts": {
+        "core": 1,
+        "descriptor": 3,
+        "stray": 0
+      },
+      "version": "1.0.0"
+    },
+    {
+      "assetId": "f27962c3497c2f66fb3cb82a89483ae4",
+      "displayName": "Create Brand Intelligence",
+      "filename": "f27962c3497c2f66fb3cb82a89483ae4.html",
+      "type": "command-bar",
+      "macro": "create brand intelligence bar",
+      "keywords": [
+        "command",
+        "bar",
+        "dark",
+        "grid",
+        "orange",
+        "glow"
+      ],
+      "imageSlots": 0,
+      "imageSlotNames": [],
+      "imageSlotRoles": [],
+      "textSlots": 3,
+      "textSlotNames": [
+        "text_primary_1",
+        "text_secondary_1",
+        "text_tertiary_1"
+      ],
+      "textSlotRoles": [
+        "primary",
+        "secondary",
+        "tertiary"
+      ],
+      "textArtifacts": [
+        {
+          "id": "text_primary_1",
+          "role": "primary",
+          "category": "core",
+          "slot": "1",
+          "text": "Create",
+          "charCount": 6
+        },
+        {
+          "id": "text_secondary_1",
+          "role": "secondary",
+          "category": "descriptor",
+          "slot": "1",
+          "text": "Brand Intelligence",
+          "charCount": 18
+        },
+        {
+          "id": "text_tertiary_1",
+          "role": "tertiary",
+          "category": "descriptor",
+          "slot": "1",
+          "text": "Free Vector Assets",
+          "charCount": 18
+        }
+      ],
+      "textArtifactCount": 3,
+      "textArtifactCounts": {
+        "core": 1,
+        "descriptor": 2,
+        "stray": 0
+      },
+      "version": "1.0.0"
+    }
+  ]
+}

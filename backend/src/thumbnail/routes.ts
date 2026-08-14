@@ -103,10 +103,13 @@ export const registerThumbnailRoutes = async (
         job_id: params.jobId,
         keywords: promptResult.keywords,
         visual_prompt: promptResult.visualPrompt,
+        color_theme: promptResult.colorTheme,
+        subject_expression: promptResult.subjectExpression,
+        layout_zones: promptResult.layoutZones,
         r2_key: s3Key,
         public_url: publicUrl,
         base64_image: thumbnailBuffer.toString("base64"),
-        message: "Thumbnail generated successfully."
+        message: "Thumbnail generated successfully based on high-CTR blueprint."
       };
     } catch (error) {
       reply.code(400);

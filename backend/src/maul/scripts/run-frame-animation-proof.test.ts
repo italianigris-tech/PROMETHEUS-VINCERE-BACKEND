@@ -5,11 +5,13 @@ import path from "node:path";
 import {afterEach, describe, expect, it, vi} from "vitest";
 
 import {
+  FULL_SCALE_MAUL_LAYER_POLICY,
   FRAME_ANIMATION_PROOF_LAYER_POLICY,
   assertFrameAnimationProofPlan,
   selectFrameAnimationProofSfx,
   resolveFrameAnimationProofRenderConcurrency,
   resolveFrameAnimationProofTranscript,
+  runIndependentProofAnalyses,
 } from "./run-frame-animation-proof";
 import {
   DEFAULT_MAUL_TYPOGRAPHY_SFX,
@@ -31,6 +33,34 @@ const fixtureWords = [
 ];
 
 describe("MAUL frame-animation proof runner", () => {
+  it("starts transcript and media observation independently before either completes", async () => {
+    const events: string[] = [];
+    let releaseTranscript!: (value: "transcript") => void;
+    let releaseObservation!: (value: "observation") => void;
+
+    const resultPromise = runIndependentProofAnalyses({
+      resolveTranscript: () => new Promise<"transcript">((resolve) => {
+        events.push("transcript_started");
+        releaseTranscript = resolve;
+      }),
+      observeMedia: () => new Promise<"observation">((resolve) => {
+        events.push("observation_started");
+        releaseObservation = resolve;
+      }),
+    });
+
+    expect(events).toEqual(["transcript_started", "observation_started"]);
+    releaseObservation("observation");
+    await Promise.resolve();
+    expect(events).toEqual(["transcript_started", "observation_started"]);
+    releaseTranscript("transcript");
+
+    await expect(resultPromise).resolves.toEqual({
+      transcript: "transcript",
+      mediaObservation: "observation",
+    });
+  });
+
   it("indexes all 215 unique files in the main SFX pack", () => {
     expect(FULL_MAUL_SFX_CATALOG).toHaveLength(215);
     expect(new Set(FULL_MAUL_SFX_CATALOG.map((asset) => asset.storagePath)).size).toBe(215);
@@ -131,6 +161,40 @@ describe("MAUL frame-animation proof runner", () => {
     expect(result.source).toBe("offline_fixture");
     expect(result.text).toBe("Make ideas matter");
     expect(result.words).toHaveLength(3);
+  });
+
+  it("declares all creative layers for full-scale Modal output", () => {
+    expect(FULL_SCALE_MAUL_LAYER_POLICY).toMatchObject({
+      baseVideo: "required",
+      typography: "required",
+      sourceTreatment: "enabled",
+      sourceLegibilityOverlay: "enabled",
+      editorialCuts: "enabled",
+      transitions: "enabled",
+      backgroundAnimation: "enabled",
+      motionGraphics: "enabled",
+      audioTreatment: "enabled",
+    });
+  });
+
+  it("accepts the repository timed-word array used by the exact source reel", async () => {
+    const directory = await mkdtemp(path.join(os.tmpdir(), "maul-frame-proof-"));
+    temporaryDirectories.push(directory);
+    const transcriptPath = path.join(directory, "transcript.words.json");
+    await writeFile(transcriptPath, JSON.stringify(fixtureWords));
+
+    const result = await resolveFrameAnimationProofTranscript({
+      mediaPath: "/tmp/source.mp4",
+      transcriptPath,
+    });
+
+    expect(result).toMatchObject({
+      schemaVersion: "maul-frame-animation-proof-transcript/v1",
+      source: "offline_fixture",
+      language: "en",
+      text: "Make ideas matter",
+      words: fixtureWords,
+    });
   });
 
   it("fails when neither AssemblyAI nor a persisted transcript is available", async () => {

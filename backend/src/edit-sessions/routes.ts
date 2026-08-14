@@ -44,6 +44,11 @@ export const registerEditSessionRoutes = async (
     }
     return null;
   };
+  const parsePipeline = (value: string | undefined): "maul" | "joseph" => {
+    if (!value || value === "maul") return "maul";
+    if (value === "joseph") return "joseph";
+    throw new Error("pipeline must be 'maul' or 'joseph'.");
+  };
   const resolveRequestOrigin = (req: FastifyRequest): string | null => {
     const hostHeader = typeof req.headers.host === "string" ? req.headers.host.trim() : "";
     if (!hostHeader) {
@@ -100,6 +105,15 @@ export const registerEditSessionRoutes = async (
 
       const sourceFilename = uploadedFileName ?? path.basename(sourcePath);
       const runNonce = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+      const pipeline = parsePipeline(fields.pipeline);
+      const josephProfile = parseJosephProfile(fields.josephProfile);
+      if (pipeline === "maul" && josephProfile) {
+        throw new Error("josephProfile is only valid when pipeline='joseph'.");
+      }
+      if (pipeline === "joseph" && !josephProfile) {
+        throw new Error("pipeline='joseph' requires an explicit josephProfile.");
+      }
+      const pipelineJobId = `${pipeline}:${runNonce}`;
       const session = await manager.createSession({
         sourceFilename,
         captionProfileId: fields.captionProfileId,
@@ -109,7 +123,9 @@ export const registerEditSessionRoutes = async (
           forceFreshTranscript: true,
           runNonce,
           uploadedFromBrowser: Boolean(uploadedFilePath),
-          sourceDisplayName: sourceFilename
+          sourceDisplayName: sourceFilename,
+          pipeline,
+          pipelineJobId
         }
       });
 
@@ -121,7 +137,9 @@ export const registerEditSessionRoutes = async (
           forceFreshTranscript: true,
           runNonce,
           uploadedFromBrowser: Boolean(uploadedFilePath),
-          sourceDisplayName: sourceFilename
+          sourceDisplayName: sourceFilename,
+          pipeline,
+          pipelineJobId
         },
         autoStartPreview: false
       });
@@ -130,9 +148,8 @@ export const registerEditSessionRoutes = async (
         previewSeconds: parseOptionalNumber(fields.previewSeconds)
       });
 
-      const josephProfile = parseJosephProfile(fields.josephProfile);
       let resolvedSession = started;
-      if (josephProfile) {
+      if (pipeline === "joseph" && josephProfile) {
         if (!josephUploadPipeline) {
           throw new Error("Joseph upload pipeline is unavailable for this backend instance.");
         }

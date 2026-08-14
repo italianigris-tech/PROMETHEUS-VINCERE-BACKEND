@@ -205,4 +205,43 @@ describe("MAUL typography profile placement", () => {
     expect(placement.transform.finalWidthPx).toBeLessThan(756);
     expect(52 * placement.transform.uniformScale).toBeGreaterThanOrEqual(72);
   });
+
+  it("keeps an avoid-subject profile inside its measured opportunity box", () => {
+    const selectedAsset = loadExecutableTypographyFontAssets()[0]!;
+    const preferredBox = {x: 0.1, y: 0.08, width: 0.8, height: 0.12};
+    const placement = selectTypographyProfilePlacement({
+      realization: {
+        adaptation: "uniform_fit_9_16",
+        horizontalAlignment: "center",
+        maxWidthPercent: 85,
+        intrinsicSizePx: {width: 760, height: 340},
+        layers: [{
+          layerName: "hero",
+          tokenIds: ["t1"],
+          text: "industry experts and thought leaders",
+          selectedAsset,
+          fontSizePx: 84,
+          measuredWidthPx: 760,
+          measuredHeightPx: 340,
+          lineHeight: 1,
+          letterSpacingEm: 0,
+          casing: "normal",
+          color: "#FFFFFF",
+          marginTopPx: 0,
+          shadow: {xOffset: 0, yOffset: 2, blurRadius: 6, color: "#000000"},
+          measurementId: "profile_measurement_avoid_subject",
+        }],
+      },
+      subjectBox: {x: 0.07, y: 0.24, width: 0.86, height: 0.76},
+      existingTextRegions: [],
+      intent: {preferredBox, overlapPolicy: "avoid_subject"},
+    });
+
+    expect(placement.box.x).toBeGreaterThanOrEqual(preferredBox.x);
+    expect(placement.box.y).toBeGreaterThanOrEqual(preferredBox.y);
+    expect(placement.box.x + placement.box.width)
+      .toBeLessThanOrEqual(preferredBox.x + preferredBox.width + 0.000001);
+    expect(placement.box.y + placement.box.height)
+      .toBeLessThanOrEqual(preferredBox.y + preferredBox.height + 0.000001);
+  });
 });

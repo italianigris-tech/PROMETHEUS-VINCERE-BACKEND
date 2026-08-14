@@ -87,6 +87,35 @@ export const maulTextAnimationPhaseSchema = z
     message: "Text animation phases require positive duration.",
   });
 
+export const maulKineticTreatmentReceiptSchema = z.object({
+  registryVersion: idSchema,
+  traitId: idSchema,
+  sourcePhenotype: idSchema,
+  selectionMode: z.enum(["semantic_bias", "reference_trait", "explicit"]),
+  targetScope: z.enum(["layer", "phrase", "word", "glyph"]),
+  targetRole: z.enum(["hero", "support", "accent", "tail"]),
+  evidence: z.object({
+    kind: z.enum(["currency", "percentage", "plain_quantity", "year_or_date"]),
+    sourceText: idSchema,
+    parsedValue: z.number(),
+    tokenIds: z.array(idSchema).min(1),
+  }).strict(),
+  typographyAuthority: z.object({
+    kind: z.literal("chunk_typography_binding"),
+    chunkId: idSchema,
+    profileId: idSchema,
+    metricsFingerprint: idSchema,
+  }).strict(),
+  placementIntent: z.enum(["lower_or_center_9x16", "preserve_declared_placement"]),
+  renderContract: z.object({
+    executorId: idSchema,
+    frameDeterministic: z.literal(true),
+    startValue: z.number(),
+    endValue: z.number(),
+    format: z.enum(["integer", "currency_usd", "percentage", "year"]),
+  }).strict(),
+}).strict();
+
 export const maulTextAnimationProgramSchema = z
   .object({
     animationId: idSchema,
@@ -101,6 +130,7 @@ export const maulTextAnimationProgramSchema = z
     localReveal: maulPositionLockedRevealSchema.optional(),
     executorId: idSchema.optional(),
     frameMotion: maulFrameMotionProgramSchema.optional(),
+    kineticTreatment: maulKineticTreatmentReceiptSchema.optional(),
     phases: z
       .object({
         entry: maulTextAnimationPhaseSchema,
@@ -316,6 +346,9 @@ export type MaulTextAnimationPhase = z.infer<
 >;
 export type MaulTextAnimationProgram = z.infer<
   typeof maulTextAnimationProgramSchema
+>;
+export type MaulKineticTreatmentReceipt = z.infer<
+  typeof maulKineticTreatmentReceiptSchema
 >;
 export type MaulTextAnimationPlanCore = z.infer<
   typeof maulTextAnimationPlanCoreSchema

@@ -13,7 +13,7 @@ MAUL previously sent every Martin window through one L4 invocation and moved RGB
 - GPU workers own one window, reuse cached results, and return receipts in request order.
 - The primary Remotion render uses duration- and CPU-aware concurrency (bounded at eight); the software-GL recovery path remains single-threaded. Modal allocates eight CPUs per render job and may serve four independent render jobs concurrently.
 - RVM decodes RGB through an FFmpeg raw-video stream and encodes the source directly with generated alpha; RGB PNG intermediates are forbidden.
-- MediaPipe samples by sequential decode/grab. Random per-sample frame seeks are forbidden.
+- MediaPipe samples through one FFmpeg downscaled raw-RGB stream. Sequential Python decode/grab and random per-sample seeks are forbidden. Face inference runs at every sampled frame; pose may run at a lower governed frequency with bounded interpolation between successful bracketing observations.
 - Word-motion programs own animation transforms only. Visual-treatment fields remain inert until an explicit Declared Composition policy authorizes them; the renderer must not invent capsules, highlights, outlines, shadows, or chromatic accents.
 - Letter-source programs execute as staggered letters inside their routed word. Other programs execute word by word. Chunk timing remains the shared composition frame.
 - All 53 source capabilities must compile to unique executable recipes. Semantic key/hero words draw from the cinematic-emphasis family; supporting words draw from the supporting family with anti-repetition routing.

@@ -31,6 +31,7 @@ type ResolveRepositoryMediaToolInput = {
   platform?: NodeJS.Platform;
   arch?: string;
   pathValue?: string;
+  preferGlobalPath?: boolean;
 };
 
 const compositorPackageNames = (
@@ -81,6 +82,7 @@ export const resolveRepositoryMediaTool = async ({
   platform = process.platform,
   arch = process.arch,
   pathValue = process.env.PATH ?? "",
+  preferGlobalPath = false,
 }: ResolveRepositoryMediaToolInput): Promise<RepositoryMediaToolReceipt> => {
   const checkedPaths: string[] = [];
   if (configuredPath) {
@@ -109,44 +111,56 @@ export const resolveRepositoryMediaTool = async ({
   }
 
   const binaryName = executableName(tool, platform);
-  for (const packageName of compositorPackageNames(platform, arch)) {
-    const candidate = path.join(
-      repoRoot,
-      "remotion-app",
-      "node_modules",
-      "@remotion",
-      packageName,
-      binaryName,
-    );
-    checkedPaths.push(candidate);
-    if (await isExecutable(candidate, platform)) {
-      return {
-        status: "available",
-        tool,
-        executablePath: candidate,
-        source: "remotion_bundle",
-        degraded: false,
-        checkedPaths,
-        reason: null,
-      };
-    }
-  }
-
   const delimiter = platform === "win32" ? ";" : ":";
-  for (const entry of pathValue.split(delimiter).filter(Boolean)) {
-    const candidate = path.join(entry, binaryName);
-    checkedPaths.push(candidate);
-    if (await isExecutable(candidate, platform)) {
-      return {
-        status: "available",
-        tool,
-        executablePath: candidate,
-        source: "global_path",
-        degraded: true,
-        checkedPaths,
-        reason: null,
-      };
+  const resolveBundle = async (): Promise<RepositoryMediaToolReceipt | null> => {
+    for (const packageName of compositorPackageNames(platform, arch)) {
+      const candidate = path.join(
+        repoRoot,
+        "remotion-app",
+        "node_modules",
+        "@remotion",
+        packageName,
+        binaryName,
+      );
+      checkedPaths.push(candidate);
+      if (await isExecutable(candidate, platform)) {
+        return {
+          status: "available",
+          tool,
+          executablePath: candidate,
+          source: "remotion_bundle",
+          degraded: false,
+          checkedPaths,
+          reason: null,
+        };
+      }
     }
+    return null;
+  };
+  const resolveGlobal = async (): Promise<RepositoryMediaToolReceipt | null> => {
+    for (const entry of pathValue.split(delimiter).filter(Boolean)) {
+      const candidate = path.join(entry, binaryName);
+      checkedPaths.push(candidate);
+      if (await isExecutable(candidate, platform)) {
+        return {
+          status: "available",
+          tool,
+          executablePath: candidate,
+          source: "global_path",
+          degraded: true,
+          checkedPaths,
+          reason: null,
+        };
+      }
+    }
+    return null;
+  };
+  const resolvers = preferGlobalPath
+    ? [resolveGlobal, resolveBundle]
+    : [resolveBundle, resolveGlobal];
+  for (const resolver of resolvers) {
+    const receipt = await resolver();
+    if (receipt) return receipt;
   }
 
   return {

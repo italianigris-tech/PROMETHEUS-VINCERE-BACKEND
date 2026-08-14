@@ -6,6 +6,10 @@ import {
 import {
   createTypographyProfileCompiler,
 } from "./typography-profile-compiler.js";
+import {
+  assertTypographyProfileProvenance,
+  TYPOGRAPHY_PROFILE_COMPILER_VERSION,
+} from "./typography-profile-manifest-contract.js";
 
 const chunk = ({
   chunkId,
@@ -54,6 +58,31 @@ describe("MAUL typography profile compiler", () => {
     expect(result.status).toBe("available");
     if (result.status !== "available") return;
     expect(new Set(result.bindings.map((binding) => binding.profile.name)).size).toBe(2);
+  });
+
+  it("caps scene-coherent profile reuse at two consecutive chunks", async () => {
+    const profiles = loadTypographyProfileCorpus().filter(
+      (profile) => profile.metadata.totalWordCount === 4,
+    ).slice(0, 3);
+    const compiler = createTypographyProfileCompiler({profiles});
+
+    const result = await compiler.compile({
+      chunks: [
+        chunk({chunkId: "hook", text: "Allow people experience you"}),
+        chunk({chunkId: "payoff", text: "As one of those listen"}),
+        chunk({chunkId: "cta", text: "Build stories faster"}),
+      ],
+      targetAspectRatio: "9:16",
+      maximumLineWidthPx: 820,
+      continuityMode: "scene_coherent",
+    });
+
+    expect(result.status).toBe("available");
+    if (result.status !== "available") return;
+    const names = result.bindings.map((binding) => binding.profile.name);
+    expect(new Set(names).size).toBeGreaterThan(1);
+    expect(names[0]).toBe(names[1]);
+    expect(names[2]).not.toBe(names[1]);
   });
 
   it("compiles independent authoritative bindings with real measured fonts", async () => {
@@ -123,6 +152,16 @@ describe("MAUL typography profile compiler", () => {
             ?.selectedAsset.assetId,
       )).toBe(true);
       expect(binding.bindingHash).toMatch(/^[a-f0-9]{64}$/);
+      expect(binding.provenance).toMatchObject({
+        compilerVersion: TYPOGRAPHY_PROFILE_COMPILER_VERSION,
+        profileId: binding.compatibilityProfile.profileId,
+        sourceFilename: binding.profile.sourceFilename,
+        sourceSha256: binding.profile.sourceSha256,
+        geometryFingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
+      });
+      expect(binding.provenance?.resolvedFontAssets.map((asset) => asset.assetId))
+        .toEqual([...new Set(binding.layers.map((layer) => layer.selectedAsset.assetId))]);
+      expect(() => assertTypographyProfileProvenance(binding)).not.toThrow();
       expect(binding.timingMs).toEqual({
         selection: expect.any(Number),
         fontResolution: expect.any(Number),
@@ -200,6 +239,33 @@ describe("MAUL typography profile compiler", () => {
     expect(
       result.bindings[0]!.realization?.layers.flatMap((layer) => layer.tokenIds),
     ).toEqual(inputChunk.tokens.map((token) => token.tokenId));
+  });
+
+  it("records only the profile layers retained for a one-word realization", async () => {
+    const profile = loadTypographyProfileCorpus().find(
+      (candidate) => candidate.layers.length > 1,
+    );
+    expect(profile).toBeDefined();
+    const compiler = createTypographyProfileCompiler({profiles: [profile!]});
+
+    const result = await compiler.compile({
+      chunks: [chunk({chunkId: "chunk_one_word", text: "Focus"})],
+      targetAspectRatio: "9:16",
+      maximumLineWidthPx: 410,
+    });
+
+    expect(
+      result.status,
+      result.status === "unavailable" ? result.reason : undefined,
+    ).toBe("available");
+    if (result.status !== "available") return;
+    const binding = result.bindings[0]!;
+    expect(binding.layers).toHaveLength(1);
+    expect(binding.realization?.layers).toHaveLength(1);
+    expect(binding.layers.map((layer) => layer.layerName)).toEqual(
+      binding.realization?.layers.map((layer) => layer.layerName),
+    );
+    expect(binding.accentLayerName).toBeNull();
   });
 
   it("returns a governed unavailable result when no font can execute", async () => {

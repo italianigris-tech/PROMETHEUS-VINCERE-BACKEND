@@ -1912,6 +1912,43 @@ describe("MAUL shared contracts", () => {
     expect(() => maulUnifiedShortRenderManifestV3Schema.parse(withMartin)).toThrow(/foreground|alpha|matte/i);
   });
 
+  it("allows semantic context to remain in lineage without forcing it on screen", () => {
+    const selective = structuredClone(manifestV3) as any;
+    selective.plans.textChunk.tokens.push({
+      tokenId: "token_context",
+      transcriptWordIndex: 1,
+      text: "Context",
+      sourceStartMs: 800,
+      sourceEndMs: 950,
+      outputSpans: [{outputStartMs: 800, outputEndMs: 950}],
+      outputStartMs: 800,
+      outputEndMs: 950,
+    });
+    selective.plans.textChunk.chunks.push({
+      chunkId: "chunk_context",
+      tokenIds: ["token_context"],
+      text: "Context",
+      outputStartMs: 800,
+      outputEndMs: 950,
+      semanticRole: "context",
+      emphasis: {tokenIds: ["token_context"], text: "Context", level: "support"},
+      holdAcrossProtectedPause: false,
+      rationale: "Context stays in causal lineage without becoming foreground typography.",
+      confidence: 1,
+    });
+    selective.plans.textPlacement.foregroundChunkIds = ["chunk_a"];
+
+    expect(
+      maulUnifiedShortRenderManifestV3Schema.parse(selective)
+        .plans.textPlacement.foregroundChunkIds,
+    ).toEqual(["chunk_a"]);
+
+    selective.plans.textPlacement.foregroundChunkIds = ["chunk_context"];
+    expect(() => maulUnifiedShortRenderManifestV3Schema.parse(selective)).toThrow(
+      /selected foreground typography chunks/i,
+    );
+  });
+
   it("keeps V1/V2 manifest readers exact and validates V3 animation references", () => {
     expect(
       maulUnifiedShortRenderManifestV1Schema.parse(manifestV1).planExecution,

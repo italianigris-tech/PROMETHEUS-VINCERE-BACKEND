@@ -1,6 +1,6 @@
 import {UnifiedRenderManifest, UnifiedRenderManifestSchema} from '@prometheus/shared-types';
 import {bundle} from '@remotion/bundler';
-import {renderMedia, selectComposition} from '@remotion/renderer';
+import {renderFrames, selectComposition} from '@remotion/renderer';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -44,6 +44,13 @@ export class MuxError extends Error {
   }
 }
 
+export class NvencError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'NvencError';
+  }
+}
+
 const resolveBrowserExecutable = (): string | undefined => {
   const candidates = [
     process.env.REMOTION_CHROMIUM_EXECUTABLE,
@@ -64,6 +71,12 @@ const resolveBrowserExecutable = (): string | undefined => {
 const removeIfPresent = (targetPath: string) => {
   if (fs.existsSync(targetPath)) {
     fs.unlinkSync(targetPath);
+  }
+};
+
+const removeDirectoryIfPresent = (targetPath: string) => {
+  if (fs.existsSync(targetPath)) {
+    fs.rmSync(targetPath, {recursive: true, force: true});
   }
 };
 
@@ -108,6 +121,9 @@ export const renderFailureTagsForError = (error: unknown): string[] => {
     return error.failureTags;
   }
   const message = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+  if (/NvencError|h264_nvenc|NVIDIA GPU/i.test(message)) {
+    return ['hardware_encoder_failed'];
+  }
   if (/missing_sfx_asset|SFXNotFoundError|SFX file not found/i.test(message)) {
     return ['missing_sfx_asset'];
   }
@@ -117,8 +133,8 @@ export const renderFailureTagsForError = (error: unknown): string[] => {
   return ['render_failed'];
 };
 
-const logRenderProgress = (progress: {progress: number}) => {
-  const rounded = Math.round(progress.progress * 100);
+const logRenderProgress = (progress: number) => {
+  const rounded = Math.round(progress * 100);
   if (rounded % 10 === 0) {
     console.log(`[Worker] Render progress: ${rounded}%`);
   }
@@ -126,14 +142,20 @@ const logRenderProgress = (progress: {progress: number}) => {
 
 const getServeUrl = () => {
   if (!cachedServeUrlPromise) {
-    console.log(`[Worker] Bundling Joseph renderer to durable path ${DURABLE_BUNDLE_DIR}`);
-    cachedServeUrlPromise = bundle({
-      entryPoint: JOSEPH_ENTRY_POINT,
-      outDir: DURABLE_BUNDLE_DIR,
-    }).catch((error) => {
-      cachedServeUrlPromise = null;
-      throw error;
-    });
+    const bakedBundle = path.join(DURABLE_BUNDLE_DIR, 'index.html');
+    if (process.env.NODE_ENV === 'production' && fs.existsSync(bakedBundle)) {
+      console.log(`[Worker] Reusing baked Joseph renderer bundle ${DURABLE_BUNDLE_DIR}`);
+      cachedServeUrlPromise = Promise.resolve(DURABLE_BUNDLE_DIR);
+    } else {
+      console.log(`[Worker] Bundling Joseph renderer to durable path ${DURABLE_BUNDLE_DIR}`);
+      cachedServeUrlPromise = bundle({
+        entryPoint: JOSEPH_ENTRY_POINT,
+        outDir: DURABLE_BUNDLE_DIR,
+      }).catch((error) => {
+        cachedServeUrlPromise = null;
+        throw error;
+      });
+    }
   }
 
   return cachedServeUrlPromise;
@@ -163,29 +185,34 @@ const assertCompositionMatchesManifest = (
   }
 };
 
-const renderSilentVideo = async (options: Record<string, unknown>, manifest: UnifiedRenderManifest) => {
+const renderSilentFrames = async (options: Record<string, unknown>, manifest: UnifiedRenderManifest) => {
   let lastProgress = 0;
-  const progressCallback = (progress: {progress: number}) => {
-    lastProgress = progress.progress;
-    logRenderProgress(progress);
+  const progressCallback = (framesRendered: number) => {
+    lastProgress = framesRendered / manifest.durationFrames;
+    logRenderProgress(lastProgress);
   };
 
   try {
-    return await renderMedia({...options, onProgress: progressCallback} as any);
+    return await renderFrames({
+      ...options,
+      onStart: () => undefined,
+      onFrameUpdate: progressCallback,
+    } as any);
   } catch (error: any) {
     if (error?.message?.includes('timeout')) {
-      logRenderProgress({progress: 0.1});
+      logRenderProgress(0.1);
     }
     if (!shouldRetryRender(error)) {
-      throw new RenderError(`Remotion renderMedia failed for job ${manifest.jobId} at ${(lastProgress * 100).toFixed(0)}%: ${error.message}`);
+      throw new RenderError(`Remotion renderFrames failed for job ${manifest.jobId} at ${(lastProgress * 100).toFixed(0)}%: ${error.message}`);
     }
 
     console.warn(
       `[Worker] Primary render failed for job ${manifest.jobId}; retrying with software GL using the same durable bundle ${String(options.serveUrl)}.`,
     );
-    return renderMedia({
+    return renderFrames({
       ...options,
-      onProgress: progressCallback,
+      onStart: () => undefined,
+      onFrameUpdate: progressCallback,
       concurrency: 1,
       timeoutInMilliseconds: RENDER_TIMEOUT_MS,
       gl: 'swangle',
@@ -195,10 +222,27 @@ const renderSilentVideo = async (options: Record<string, unknown>, manifest: Uni
         headless: true,
       },
     } as any).catch((retryError: any) => {
-      throw new RenderError(`Remotion renderMedia failed for job ${manifest.jobId} at ${(lastProgress * 100).toFixed(0)}%: ${retryError.message}`);
+      throw new RenderError(`Remotion renderFrames failed for job ${manifest.jobId} at ${(lastProgress * 100).toFixed(0)}%: ${retryError.message}`);
     });
   }
 };
+
+const runFfmpeg = ({args, errorFactory}: {args: string[]; errorFactory: (detail: string) => Error}) =>
+  new Promise<void>((resolve, reject) => {
+    const ffmpeg = spawn('ffmpeg', args);
+    let stderr = '';
+    ffmpeg.stderr.on('data', (data) => {
+      stderr += data.toString();
+    });
+    ffmpeg.on('close', (code) => {
+      if (code === 0) {
+        resolve();
+        return;
+      }
+      reject(errorFactory(`FFmpeg exited with code ${code}: ${stderr}`));
+    });
+    ffmpeg.on('error', (error) => reject(errorFactory(`FFmpeg process error: ${error.message}`)));
+  });
 
 export async function renderFromManifest(
   manifest: UnifiedRenderManifest,
@@ -213,6 +257,7 @@ export async function renderFromManifest(
   assertVerticalJosephManifest(validatedManifest);
   const tmpDir = options.tempDir ?? os.tmpdir();
   const sfxDir = options.sfxDir ?? DEFAULT_SFX_DIR;
+  const framesDir = path.join(tmpDir, `${validatedManifest.jobId}_frames`);
   const silentVideoPath = path.join(tmpDir, `${validatedManifest.jobId}_silent.mp4`);
   const audioPath = path.join(tmpDir, `${validatedManifest.jobId}_audio.m4a`);
   const finalVideoPath = path.join(tmpDir, `${validatedManifest.jobId}_final.mp4`);
@@ -231,6 +276,7 @@ export async function renderFromManifest(
   });
 
   const cleanupTempFiles = () => {
+    removeDirectoryIfPresent(framesDir);
     removeIfPresent(silentVideoPath);
     removeIfPresent(audioPath);
   };
@@ -259,14 +305,14 @@ export async function renderFromManifest(
     } as any);
     assertCompositionMatchesManifest(composition, validatedManifest);
 
-    await renderSilentVideo({
+    removeDirectoryIfPresent(framesDir);
+    fs.mkdirSync(framesDir, {recursive: true});
+    await renderSilentFrames({
       composition,
       serveUrl,
-      outputLocation: silentVideoPath,
-      codec: 'h264',
-      fps: validatedManifest.fps,
-      width: validatedManifest.width,
-      height: validatedManifest.height,
+      outputDir: framesDir,
+      imageFormat: 'png',
+      imageSequencePattern: 'frame-[frame].[ext]',
       inputProps,
       gl: 'angle',
       concurrency: renderConcurrency,
@@ -279,8 +325,27 @@ export async function renderFromManifest(
         headless: true,
       },
       muted: true,
-      overwrite: true,
     }, validatedManifest);
+
+    const frameDigits = String(Math.max(0, validatedManifest.durationFrames - 1)).length;
+    await runFfmpeg({
+      args: [
+        '-hide_banner', '-loglevel', 'error',
+        '-framerate', String(validatedManifest.fps),
+        '-start_number', '0',
+        '-i', path.join(framesDir, `frame-%0${frameDigits}d.png`),
+        '-c:v', 'h264_nvenc',
+        '-preset', 'p4',
+        '-tune', 'hq',
+        '-rc', 'vbr',
+        '-cq', String(validatedManifest.output.crf),
+        '-b:v', '0',
+        '-pix_fmt', 'yuv420p',
+        '-movflags', '+faststart',
+        '-y', silentVideoPath,
+      ],
+      errorFactory: (detail) => new NvencError(`NVENC encode failed for job ${validatedManifest.jobId}. ${detail}`),
+    });
 
     try {
       await mixAudio(validatedManifest, audioPath, {sfxDir, tempDir: tmpDir});
@@ -291,8 +356,9 @@ export async function renderFromManifest(
       );
     }
 
-    await new Promise<void>((resolve, reject) => {
-      const ffmpegArgs = [
+    await runFfmpeg({
+      args: [
+        '-hide_banner', '-loglevel', 'error',
         '-i', silentVideoPath,
         '-i', audioPath,
         '-map_metadata', '-1',
@@ -303,27 +369,8 @@ export async function renderFromManifest(
         '-movflags', '+faststart',
         '-y',
         finalVideoPath,
-      ];
-
-      const ffmpeg = spawn('ffmpeg', ffmpegArgs);
-      let stderr = '';
-
-      ffmpeg.stderr.on('data', (data) => {
-        stderr += data.toString();
-      });
-
-      ffmpeg.on('close', (code) => {
-        if (code !== 0) {
-          reject(new MuxError(`FFmpeg mux failed with code ${code}: ${stderr}`));
-          return;
-        }
-
-        resolve();
-      });
-
-      ffmpeg.on('error', (error) => {
-        reject(new MuxError(`FFmpeg mux process error: ${error.message}`));
-      });
+      ],
+      errorFactory: (detail) => new MuxError(`FFmpeg mux failed. ${detail}`),
     });
 
     cleanupTempFiles();

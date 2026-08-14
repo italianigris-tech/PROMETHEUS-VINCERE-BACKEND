@@ -620,6 +620,12 @@ export const maulTextPlacementSegmentSchema = z
     profileTransform: maulTypographyProfileTransformSchema.optional(),
     profileColorResolution:
       maulTypographyProfileColorResolutionSchema.optional(),
+    kineticPlacement: z.object({
+      traitId: idSchema,
+      evidenceTokenIds: z.array(idSchema).min(1),
+      intent: z.literal("lower_or_center_9x16"),
+      influence: z.literal("score_bias_only"),
+    }).strict().optional(),
     compatibility: z.object({
       profileId: idSchema,
       metricsFingerprint: sha256Schema,
@@ -797,6 +803,7 @@ export const maulTextPlacementPlanCoreSchema = z
       .min(1),
     status: z.enum(["planned", "blocked"]),
     blockingReason: z.string().trim().min(1).nullable(),
+    foregroundChunkIds: z.array(idSchema).min(1).optional(),
     segments: z.array(maulTextPlacementSegmentSchema),
     inputHashes: z.object({
       textChunkPlan: sha256Schema,
@@ -863,6 +870,16 @@ export const maulTextPlacementPlanCoreSchema = z
         code: z.ZodIssueCode.custom,
         path: ["segments"],
         message: "Placement segment IDs must be unique.",
+      });
+    }
+    if (
+      plan.foregroundChunkIds &&
+      new Set(plan.foregroundChunkIds).size !== plan.foregroundChunkIds.length
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["foregroundChunkIds"],
+        message: "Foreground typography chunk IDs must be unique.",
       });
     }
     plan.segments.forEach((segment, index) => {

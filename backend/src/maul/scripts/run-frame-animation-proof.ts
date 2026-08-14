@@ -14,6 +14,7 @@ import {z} from "zod";
 
 import {transcribeWithAssemblyAI} from "../../integrations/assemblyai.js";
 import {resolveRepositoryMediaTool} from "../repository-media-tools.js";
+import {runMaulMediaObservation} from "../mediapipe-observation.js";
 import {
   DEFAULT_MAUL_TYPOGRAPHY_SFX,
   selectMaulTypographySfx,
@@ -45,6 +46,18 @@ export const FRAME_ANIMATION_PROOF_LAYER_POLICY: MaulRenderLayerPolicy = {
   transitions: "disabled",
   backgroundAnimation: "disabled",
   motionGraphics: "disabled",
+  audioTreatment: "enabled",
+};
+
+export const FULL_SCALE_MAUL_LAYER_POLICY: MaulRenderLayerPolicy = {
+  baseVideo: "required",
+  typography: "required",
+  sourceTreatment: "enabled",
+  sourceLegibilityOverlay: "enabled",
+  editorialCuts: "enabled",
+  transitions: "enabled",
+  backgroundAnimation: "enabled",
+  motionGraphics: "enabled",
   audioTreatment: "enabled",
 };
 
@@ -86,6 +99,8 @@ const proofTranscriptSchema = z.object({
   });
 });
 
+const proofWordArraySchema = z.array(proofWordSchema).min(1);
+
 export type FrameAnimationProofTranscript = z.infer<typeof proofTranscriptSchema>;
 
 type ProofTranscriber = (input: {
@@ -121,9 +136,18 @@ export const resolveFrameAnimationProofTranscript = async ({
   onActivity?: (detail: string) => void | Promise<void>;
 }): Promise<FrameAnimationProofTranscript> => {
   if (transcriptPath && await isReadableFile(transcriptPath)) {
-    return proofTranscriptSchema.parse(
-      JSON.parse(await readFile(transcriptPath, "utf8")),
-    );
+    const persisted = JSON.parse(await readFile(transcriptPath, "utf8")) as unknown;
+    if (Array.isArray(persisted)) {
+      const words = proofWordArraySchema.parse(persisted);
+      return proofTranscriptSchema.parse({
+        schemaVersion: "maul-frame-animation-proof-transcript/v1",
+        source: "offline_fixture",
+        language: "en",
+        text: joinShortsTextTokens(words.map((word) => word.text)),
+        words,
+      });
+    }
+    return proofTranscriptSchema.parse(persisted);
   }
 
   if (assemblyAiApiKey.trim()) {
@@ -168,6 +192,22 @@ type ProofPlanShape = {
       };
     };
   }[];
+};
+
+export const runIndependentProofAnalyses = async <TTranscript, TObservation>({
+  resolveTranscript,
+  observeMedia,
+}: {
+  resolveTranscript: () => Promise<TTranscript>;
+  observeMedia: () => Promise<TObservation>;
+}): Promise<{transcript: TTranscript; mediaObservation: TObservation}> => {
+  const transcriptPromise = resolveTranscript();
+  const observationPromise = observeMedia();
+  const [transcript, mediaObservation] = await Promise.all([
+    transcriptPromise,
+    observationPromise,
+  ]);
+  return {transcript, mediaObservation};
 };
 
 export const selectFrameAnimationProofSfx = selectMaulTypographySfx;
@@ -303,6 +343,8 @@ export const runFrameAnimationProof = async ({
   outputDirectory = defaultOutputDir,
   assemblyAiApiKey = process.env.ASSEMBLYAI_API_KEY ?? "",
   planOnly = false,
+  fullScale = false,
+  livePlanning = false,
   renderConcurrency = 6,
 }: {
   mediaPath?: string;
@@ -310,6 +352,8 @@ export const runFrameAnimationProof = async ({
   outputDirectory?: string;
   assemblyAiApiKey?: string;
   planOnly?: boolean;
+  fullScale?: boolean;
+  livePlanning?: boolean;
   renderConcurrency?: number;
 } = {}): Promise<FrameAnimationProofResult> => {
   const resolvedMediaPath = path.resolve(mediaPath);
@@ -323,22 +367,72 @@ export const runFrameAnimationProof = async ({
   ) {
     throw new Error("Frame-animation proof output cannot be a repository or filesystem root.");
   }
+  const runStartedAt = Date.now();
+  let stageStartedAt = runStartedAt;
+  const logStageTiming = (stage: string): void => {
+    const completedAt = Date.now();
+    process.stdout.write(
+      `[timing] ${stage} stageMs=${completedAt - stageStartedAt} totalMs=${completedAt - runStartedAt}\n`,
+    );
+    stageStartedAt = completedAt;
+  };
   const media = await probeProofMedia(resolvedMediaPath);
-  if (media.durationMs < 9_000 || media.durationMs > 20_500) {
+  logStageTiming("media_probe");
+  if (media.durationMs < 9_000 || media.durationMs > 65_000) {
     throw new Error(
-      `Frame-animation launch proof requires a 10-20 second source; received ${media.durationMs}ms.`,
+      `Frame-animation launch proof requires a 10-65 second source; received ${media.durationMs}ms.`,
     );
   }
-  const transcript = await resolveFrameAnimationProofTranscript({
-    mediaPath: resolvedMediaPath,
-    transcriptPath: transcriptPath
-      ? path.resolve(transcriptPath)
-      : assemblyAiApiKey.trim() ? undefined : defaultTranscriptPath,
-    assemblyAiApiKey,
-    onActivity: (detail) => {
-      process.stdout.write(`[assemblyai] ${detail}\n`);
-    },
-  });
+  const {loadEnv} = await import("../../config.js");
+  const configuredEnv = loadEnv();
+  const analysisStartedAt = Date.now();
+  const [
+    {transcript, mediaObservation},
+    [
+      {createBackendApp},
+      {renderMaulShortLocally},
+      {createMediaObservationSceneEvidenceProvider},
+    ],
+  ] = await Promise.all([
+    runIndependentProofAnalyses({
+      resolveTranscript: async () => {
+        const startedAt = Date.now();
+        const result = await resolveFrameAnimationProofTranscript({
+          mediaPath: resolvedMediaPath,
+          transcriptPath: transcriptPath
+            ? path.resolve(transcriptPath)
+            : assemblyAiApiKey.trim() ? undefined : defaultTranscriptPath,
+          assemblyAiApiKey: assemblyAiApiKey.trim()
+            ? assemblyAiApiKey
+            : configuredEnv.ASSEMBLYAI_API_KEY,
+          onActivity: (detail) => {
+            process.stdout.write(`[assemblyai] ${detail}\n`);
+          },
+        });
+        process.stdout.write(`[timing] assemblyai_transcript stageMs=${Date.now() - startedAt}\n`);
+        return result;
+      },
+      observeMedia: async () => {
+        const startedAt = Date.now();
+        const result = await runMaulMediaObservation({
+          sourcePath: resolvedMediaPath,
+          durationMs: media.durationMs,
+          outputWidth: 1_080,
+          outputHeight: 1_920,
+          sampleEveryFrames: 12,
+          poseEverySamples: 2,
+        });
+        process.stdout.write(`[timing] mediapipe_observation stageMs=${Date.now() - startedAt}\n`);
+        return result;
+      },
+    }),
+    Promise.all([
+      import("../../app.js"),
+      import("../render-engine.js"),
+      import("../media-observation-placement.js"),
+    ]),
+  ]);
+  process.stdout.write(`[timing] independent_analysis wallMs=${Date.now() - analysisStartedAt}\n`);
   const boundedWords = transcript.words
     .filter((word) => word.startMs < media.durationMs)
     .map((word) => ({...word, endMs: Math.min(word.endMs, media.durationMs)}))
@@ -351,6 +445,7 @@ export const runFrameAnimationProof = async ({
     text: joinShortsTextTokens(boundedWords.map((word) => word.text)),
     words: boundedWords,
   });
+  logStageTiming("independent_analysis");
 
   await mkdir(resolvedOutputDirectory, {recursive: true});
   const storageDirectory = path.join(resolvedOutputDirectory, "maul-store");
@@ -358,24 +453,6 @@ export const runFrameAnimationProof = async ({
   await writeJson(persistedTranscriptPath, boundedTranscript);
 
   const mediaBytes = await readFile(resolvedMediaPath);
-  const [
-    {createBackendApp},
-    {renderMaulShortLocally},
-    {runMaulMediaObservation},
-    {createMediaObservationSceneEvidenceProvider},
-  ] = await Promise.all([
-    import("../../app.js"),
-    import("../render-engine.js"),
-    import("../mediapipe-observation.js"),
-    import("../media-observation-placement.js"),
-  ]);
-  const mediaObservation = await runMaulMediaObservation({
-    sourcePath: resolvedMediaPath,
-    durationMs: media.durationMs,
-    outputWidth: 1_080,
-    outputHeight: 1_920,
-    sampleEveryFrames: 12,
-  });
   const sceneEvidenceProvider = createMediaObservationSceneEvidenceProvider({
     observation: mediaObservation,
     maximumInterpolationGapMs: 600,
@@ -383,12 +460,14 @@ export const runFrameAnimationProof = async ({
   const context = await createBackendApp({
     storageDir: storageDirectory,
     deps: {maulSceneEvidenceProvider: sceneEvidenceProvider},
-    envOverrides: {
-      ASSEMBLYAI_API_KEY: "",
-      ASSET_MILVUS_ENABLED: "false",
-      MAUL_CHUNKING_LLM_API_KEY: "",
-      MAUL_CREATIVE_PLANNER_API_KEY: "",
-    },
+    envOverrides: livePlanning
+      ? {ASSEMBLYAI_API_KEY: "", ASSET_MILVUS_ENABLED: "false"}
+      : {
+          ASSEMBLYAI_API_KEY: "",
+          ASSET_MILVUS_ENABLED: "false",
+          MAUL_CHUNKING_LLM_API_KEY: "",
+          MAUL_CREATIVE_PLANNER_API_KEY: "",
+        },
   });
   try {
     const projectResult = await context.maulProjects.createProject({
@@ -418,6 +497,7 @@ export const runFrameAnimationProof = async ({
         hasVideo: true,
       },
     });
+    logStageTiming("project_intake");
     const timeline = await context.maulProjects.createEditorialTimeline(
       projectResult.project.id,
       {
@@ -436,6 +516,7 @@ export const runFrameAnimationProof = async ({
         shots: [],
       },
     );
+    logStageTiming("editorial_timeline");
     const catalog = await context.maulProjects.createTreatmentCatalog(
       projectResult.project.id,
       {timelineArtifactId: timeline.timeline.artifactId},
@@ -448,6 +529,7 @@ export const runFrameAnimationProof = async ({
       projectResult.project.id,
       {timelineArtifactId: timeline.timeline.artifactId},
     );
+    logStageTiming("treatments_and_candidates");
     const candidate = candidateResult.candidates[0];
     if (!candidate) throw new Error("Frame-animation proof produced no eligible candidate.");
     const planning = await context.maulProjects.createPlanningBundle(
@@ -455,15 +537,10 @@ export const runFrameAnimationProof = async ({
       {
         candidateArtifactId: candidate.artifactId,
         treatmentGenomeArtifactId: treatment.artifactId,
+        typographyCoverage: "full",
       },
     );
-    if (planning.plans.artDirection.payload.sceneEvidence.status !== "available") {
-      throw new Error(
-        `Frame-animation proof refuses unknown face geometry: ${
-          planning.plans.artDirection.payload.sceneEvidence.reason ?? "MediaPipe scene evidence unavailable"
-        }`,
-      );
-    }
+    logStageTiming("codex_planning_bundle");
     const unsafeFallback = planning.plans.textPlacement.payload.segments.find(
       (segment) => segment.fallbackCode === "caption_safe_fallback" ||
         segment.selectedCompositionVariantId === "caption_safe_fallback",
@@ -481,6 +558,13 @@ export const runFrameAnimationProof = async ({
     const proofSfx = selectFrameAnimationProofSfx({
       programs: planning.plans.textAnimation.payload.programs,
       assets: DEFAULT_MAUL_TYPOGRAPHY_SFX,
+      semanticMoments: planning.plans.textChunk.payload.chunks.map((chunk) => ({
+        sourceMs: chunk.outputStartMs,
+        role: chunk.semanticRole,
+        emphasisLevel: chunk.emphasis.level,
+      })),
+      maxCues: 3,
+      minimumGapMs: 1_800,
     });
     const compiled = await context.maulProjects.compileRenderManifest(
       projectResult.project.id,
@@ -488,7 +572,9 @@ export const runFrameAnimationProof = async ({
         candidateArtifactId: candidate.artifactId,
         treatmentGenomeArtifactId: treatment.artifactId,
         planningBundleArtifactId: planning.planningBundle.artifactId,
-        layerPolicy: FRAME_ANIMATION_PROOF_LAYER_POLICY,
+        layerPolicy: fullScale
+          ? FULL_SCALE_MAUL_LAYER_POLICY
+          : FRAME_ANIMATION_PROOF_LAYER_POLICY,
         musicTrack: {
           id: "maul_frame_animation_speech_safe_bed",
           title: "The Way (Instrumental)",
@@ -512,6 +598,7 @@ export const runFrameAnimationProof = async ({
         })),
       },
     );
+    logStageTiming("manifest_compile");
     const videoPath = path.join(resolvedOutputDirectory, "maul-frame-animation-proof.mp4");
     const manifestPath = path.join(resolvedOutputDirectory, "render-manifest.json");
     const diagnosticsPath = path.join(resolvedOutputDirectory, "diagnostics.json");
@@ -654,6 +741,8 @@ if (process.argv[1] && path.resolve(process.argv[1]) === currentFile) {
     transcriptPath: cliValue("--transcript"),
     outputDirectory: cliValue("--output") ?? defaultOutputDir,
     planOnly: process.argv.includes("--plan-only"),
+    fullScale: process.argv.includes("--full-scale"),
+    livePlanning: process.argv.includes("--live-planning"),
     renderConcurrency: Number(cliValue("--concurrency") ?? 6),
   }).then((result) => {
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);

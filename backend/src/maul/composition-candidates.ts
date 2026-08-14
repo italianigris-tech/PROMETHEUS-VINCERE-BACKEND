@@ -33,6 +33,32 @@ const safeBox = (box: MaulNormalizedBox): MaulNormalizedBox => {
   };
 };
 
+const constrainToOpportunity = (
+  candidate: MaulNormalizedBox,
+  opportunity: MaulNormalizedBox,
+): MaulNormalizedBox => {
+  const right = opportunity.x + opportunity.width;
+  const bottom = opportunity.y + opportunity.height;
+  const width = clamp(
+    candidate.width,
+    Math.min(0.08, opportunity.width),
+    opportunity.width,
+  );
+  const height = clamp(
+    candidate.height,
+    Math.min(0.07, opportunity.height),
+    opportunity.height,
+  );
+  const x = clamp(candidate.x, opportunity.x, right - width);
+  const y = clamp(candidate.y, opportunity.y, bottom - height);
+  return {
+    x,
+    y,
+    width,
+    height,
+  };
+};
+
 const candidateScore = ({
   opportunity,
   purpose,
@@ -120,6 +146,9 @@ export const buildCompositionCandidates = ({
   ];
   return directions.map(({novelty, ...candidate}) => ({
     ...candidate,
+    box: opportunity.overlapPolicy === "avoid_subject"
+      ? constrainToOpportunity(candidate.box, opportunity.box)
+      : candidate.box,
     score: candidateScore({opportunity, purpose, novelty}),
   }));
 };

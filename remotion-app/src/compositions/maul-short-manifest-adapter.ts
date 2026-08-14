@@ -2,6 +2,7 @@ import {
   isMaulRendererFontCatalogEntry,
   joinShortsTextTokens,
   maulChunkTypographyBindingSchema,
+  maulUnifiedShortRenderManifestV1Schema,
   maulUnifiedShortRenderManifestV2Schema,
   maulUnifiedShortRenderManifestV3Schema,
   type MaulEditorialTimelinePayload,
@@ -119,7 +120,13 @@ export const adaptMaulShortManifest = (
       ? input.schemaVersion
       : null;
   if (schemaVersion === "maul-unified-short-render-manifest/v1") {
-    return {mode: "legacy", manifest: input as MaulUnifiedShortRenderManifestV1};
+    const parsed = maulUnifiedShortRenderManifestV1Schema.safeParse(input);
+    if (!parsed.success) {
+      throw new Error(
+        `Invalid or stale MAUL V1 render manifest: ${parsed.error.issues[0]?.message ?? "schema validation failed"}`,
+      );
+    }
+    return {mode: "legacy", manifest: parsed.data};
   }
   if (schemaVersion === "maul-unified-short-render-manifest/v2") {
     const parsed = maulUnifiedShortRenderManifestV2Schema.safeParse(input);
@@ -354,6 +361,7 @@ export const buildMaulPlannedTextRecords = ({
   typographyMotion,
   textAnimationPlan,
   output,
+  requireTypographyProvenance = false,
 }: {
   textChunkPlan: Pick<MaulTextChunkPlanPayload, "tokens" | "chunks">;
   textPlacementPlan: Pick<
@@ -374,6 +382,7 @@ export const buildMaulPlannedTextRecords = ({
   >;
   textAnimationPlan?: Pick<MaulTextAnimationPlanPayload, "programs">;
   output: {width: number; height: number};
+  requireTypographyProvenance?: boolean;
 }): MaulPlannedTextRecord[] => {
   if (textPlacementPlan.status !== "planned") {
     throw new Error("Blocked placement cannot enter planned text rendering.");
@@ -399,12 +408,45 @@ export const buildMaulPlannedTextRecords = ({
   >();
   for (const inputBinding of typographyMotion.chunkTypographyBindings ?? []) {
     const binding = maulChunkTypographyBindingSchema.parse(inputBinding);
+    if (requireTypographyProvenance) {
+      const provenance = binding.provenance;
+      const assetsById = new Map(
+        provenance?.resolvedFontAssets.map((asset) => [
+          asset.assetId,
+          asset.localFileSha256,
+        ]) ?? [],
+      );
+      const receiptMatches = Boolean(
+        provenance &&
+        provenance.profileId === binding.compatibilityProfile.profileId &&
+        provenance.sourceFilename === binding.profile.sourceFilename &&
+        provenance.sourceSha256 === binding.profile.sourceSha256 &&
+        assetsById.size === new Set(
+          binding.layers.map((layer) => layer.selectedAsset.assetId),
+        ).size &&
+        binding.layers.every(
+          (layer) =>
+            assetsById.get(layer.selectedAsset.assetId) ===
+            layer.selectedAsset.localFileSha256,
+        ),
+      );
+      if (!receiptMatches) {
+        throw new Error(
+          `Production typography binding ${binding.chunkId} lacks authentic Font JSON provenance.`,
+        );
+      }
+    }
     if (chunkTypographyBindingById.has(binding.chunkId)) {
       throw new Error(
         `Duplicate chunk typography binding for ${binding.chunkId}.`,
       );
     }
     chunkTypographyBindingById.set(binding.chunkId, binding);
+  }
+  if (requireTypographyProvenance && chunkTypographyBindingById.size === 0) {
+    throw new Error(
+      "Production MAUL rendering requires compiler-issued Font JSON bindings.",
+    );
   }
   const usesChunkTypographyBindings = chunkTypographyBindingById.size > 0;
   const animationProgramsBySegmentId = new Map<string, MaulTextAnimationProgram[]>();
@@ -537,6 +579,18 @@ export const buildMaulPlannedTextRecords = ({
       throw new Error(
         `Placement ${segment.segmentId} is missing its chunk typography binding for ${segment.chunkId}.`,
       );
+    }
+    for (const layer of chunkTypographyBinding?.realization?.layers ?? []) {
+      const layerTokens = layer.tokenIds.map((tokenId) => tokenById.get(tokenId));
+      if (
+        layerTokens.some((token) => token === undefined) ||
+        joinShortsTextTokens(layerTokens.map((token) => token!.text))
+          .toLocaleLowerCase() !== layer.text.toLocaleLowerCase()
+      ) {
+        throw new Error(
+          `Typography layer ${layer.layerName} for ${segment.chunkId} contains copy not governed by transcript tokens.`,
+        );
+      }
     }
     const primaryLayer = chunkTypographyBinding?.layers.find(
       (layer) => layer.layerName === chunkTypographyBinding.primaryLayerName,
@@ -741,6 +795,7 @@ export const buildMaulPlannedRenderModel = (
   manifest:
     | MaulUnifiedShortRenderManifestV2
     | MaulUnifiedShortRenderManifestV3,
+  options: {requireTypographyProvenance?: boolean} = {},
 ): {
   textRecords: MaulPlannedTextRecord[];
   sourceSequences: MaulPlannedSourceSequence[];
@@ -754,6 +809,8 @@ export const buildMaulPlannedRenderModel = (
         ? manifest.plans.textAnimation
         : undefined,
     output: manifest.output,
+    requireTypographyProvenance:
+      options.requireTypographyProvenance ?? false,
   }),
   sourceSequences: buildMaulPlannedSourceSequences({
     timeline: manifest.timeline,

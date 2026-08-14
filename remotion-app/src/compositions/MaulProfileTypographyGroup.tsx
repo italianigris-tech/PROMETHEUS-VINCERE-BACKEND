@@ -13,6 +13,7 @@ import {
   maulFrameMotionStyle,
   resolveMaulFrameMotionForToken,
 } from "./maul-frame-motion-renderer";
+import {resolveMaulKineticTokenText} from "./maul-kinetic-text-renderer";
 
 const loadedProfileFontKeys = new Set<string>();
 
@@ -143,7 +144,18 @@ export const MaulProfileTypographyGroup: React.FC<{
               tokenId: piece.tokenId,
               outputFrame,
             });
+            const kineticProgram = animationPrograms.find((program) =>
+              program.kineticTreatment?.evidence.tokenIds.includes(piece.tokenId),
+            );
+            const renderedText = resolveMaulKineticTokenText({
+              sourceText: piece.text,
+              receipt: kineticProgram?.kineticTreatment,
+              outputFrame,
+              entryStartFrame: resolvedMotion?.frameMotion.phases.entry.startFrame ?? 0,
+              entryEndFrame: resolvedMotion?.frameMotion.phases.entry.endFrame ?? 0,
+            });
             const isLetterMotion =
+              !kineticProgram?.kineticTreatment &&
               resolvedMotion?.frameMotion.unit === "letter" && outputFrame !== undefined;
             const tokenStyle = resolvedMotion && !isLetterMotion
               ? maulFrameMotionStyle(
@@ -162,6 +174,7 @@ export const MaulProfileTypographyGroup: React.FC<{
                     data-maul-frame-motion-treatment={resolvedMotion.frameMotion.sourceTreatment}
                     data-maul-frame-motion-token={resolvedMotion.frameMotion.tokenId}
                     data-maul-frame-motion-unit={resolvedMotion.frameMotion.unit}
+                    data-maul-kinetic-trait={kineticProgram?.kineticTreatment?.traitId}
                     style={{
                       ...tokenStyle,
                       isolation: "isolate",
@@ -191,7 +204,7 @@ export const MaulProfileTypographyGroup: React.FC<{
                           </span>
                         );
                       })
-                      : piece.text}
+                      : renderedText}
                   </span>
                 ) : (
                   <span
@@ -200,7 +213,7 @@ export const MaulProfileTypographyGroup: React.FC<{
                       : {"data-maul-depth-hidden-token": piece.tokenId})}
                     style={{visibility: visible ? "visible" : "hidden"}}
                   >
-                    {piece.text}
+                    {renderedText}
                   </span>
                 )}
               </React.Fragment>

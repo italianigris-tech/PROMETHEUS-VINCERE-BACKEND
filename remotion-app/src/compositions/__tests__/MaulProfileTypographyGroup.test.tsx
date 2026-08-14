@@ -239,4 +239,58 @@ describe("MAUL profile typography renderer", () => {
     expect(markup).not.toContain("background-color:");
     expect(markup).not.toContain("border-radius:");
   });
+
+  it("executes a deterministic numeric trait inside authoritative Font JSON typography", () => {
+    const selectedAsset = {
+      assetId: "font_profile_counter_700", family: "Profile Counter", cssFamily: "MAUL Profile Counter",
+      weight: 700, style: "normal" as const, browserUrl: "/fonts/maul/playfair-display-700.woff2",
+      localFilePath: "/tmp/playfair-display-700.woff2", localFileSha256: "d".repeat(64), format: "woff2" as const,
+      source: "hydrated_library" as const, license: {status: "cleared" as const, evidence: ["Fixture receipt."]},
+    };
+    const numericFrameMotion = {
+      ...letterFrameMotion,
+      executorId: "maul-kinetic-number-count-up-v1",
+      sourceTreatment: "number-for-steps-counting-animation",
+      unit: "word" as const,
+      tokenId: "token_amount",
+      phases: {
+        ...letterFrameMotion.phases,
+        entry: {...letterFrameMotion.phases.entry, endFrame: 30},
+        hold: {...letterFrameMotion.phases.hold, startFrame: 30, endFrame: 45},
+        exit: {...letterFrameMotion.phases.exit, startFrame: 45, endFrame: 60},
+      },
+    };
+    const record = {
+      segmentId: "segment_numeric", outputStartMs: 0, outputEndMs: 2000,
+      boxPx: {leftPx: 120, topPx: 1120, widthPx: 840, heightPx: 280}, family: "measured" as const,
+      variantId: "profile.typography_group_v1", fallbackCode: null, fallbackReason: null, alignment: "left" as const,
+      minimumLegibilityPrimitive: {kind: "none" as const}, animationProgram: null,
+      animationPrograms: [{
+        animationId: "numeric_count", treatment: "number-for-steps-counting-animation" as const,
+        executorId: numericFrameMotion.executorId, frameMotion: numericFrameMotion,
+        target: {scope: "tokens" as const, placementSegmentId: "segment_numeric", tokenIds: ["token_amount"]},
+        kineticTreatment: {
+          registryVersion: "1.1.0", traitId: "trait_number_count_up", sourcePhenotype: "TYPO #17",
+          selectionMode: "semantic_bias" as const, targetScope: "word" as const, targetRole: "hero" as const,
+          evidence: {kind: "currency" as const, sourceText: "$10,000", parsedValue: 10000, tokenIds: ["token_amount"]},
+          typographyAuthority: {kind: "chunk_typography_binding" as const, chunkId: "chunk_numeric", profileId: "profile-v1", metricsFingerprint: "a".repeat(64)},
+          placementIntent: "lower_or_center_9x16" as const,
+          renderContract: {executorId: "maul-kinetic-number-count-up-v1", frameDeterministic: true as const, startValue: 0, endValue: 10000, format: "currency_usd" as const},
+        },
+        phases: {
+          entry: {outputStartMs: 0, outputEndMs: 1000, easing: {type: "linear" as const}, from: letterFrameMotion.phases.entry.from, to: letterFrameMotion.phases.entry.to},
+          hold: {outputStartMs: 1000, outputEndMs: 1500, easing: {type: "linear" as const}, from: letterFrameMotion.phases.hold.from, to: letterFrameMotion.phases.hold.to},
+          exit: {outputStartMs: 1500, outputEndMs: 2000, easing: {type: "linear" as const}, from: letterFrameMotion.phases.exit.from, to: letterFrameMotion.phases.exit.to},
+        }, rationale: "Currency evidence biases the count-up trait.",
+      }],
+      font: {profileId: "profile-v1", metricsFingerprint: "a".repeat(64), family: selectedAsset.family, assetId: selectedAsset.assetId, weight: 700, fontSizePx: 132, lineHeight: 0.9, hierarchyScale: 1},
+      profileTransform: {uniformScale: 1, intrinsicWidthPx: 840, intrinsicHeightPx: 280, finalWidthPx: 840, finalHeightPx: 280},
+      profileRealization: {adaptation: "uniform_fit_9_16" as const, horizontalAlignment: "left" as const, maxWidthPercent: 85, intrinsicSizePx: {width: 840, height: 280}, layers: [{layerName: "hero", tokenIds: ["token_amount"], text: "$10,000", selectedAsset, fontSizePx: 132, measuredWidthPx: 620, measuredHeightPx: 140, lineHeight: 0.9, letterSpacingEm: 0, casing: "normal" as const, color: "#FFD34E", marginTopPx: 0, shadow: {xOffset: 0, yOffset: 2, blurRadius: 4, color: "#000000"}, measurementId: "profile_numeric"}]},
+      lines: [{lineId: "line", text: "$10,000", tokens: [{tokenId: "token_amount", text: "$10,000", outputSpans: []}]}],
+    } satisfies MaulPlannedTextRecord;
+
+    const markup = renderToStaticMarkup(<MaulProfileTypographyGroup record={record} outputFrame={15} />);
+    expect(markup).toContain("$9,375");
+    expect(markup).toContain('data-maul-kinetic-trait="trait_number_count_up"');
+  });
 });

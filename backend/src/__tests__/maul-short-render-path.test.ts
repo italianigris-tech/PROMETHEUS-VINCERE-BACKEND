@@ -643,7 +643,8 @@ describe("MAUL complete short render path", () => {
         }),
       })),
       targetAspectRatio: "9:16",
-      maximumLineWidthPx: 410,
+      maximumLineWidthPx: 820,
+      continuityMode: "scene_coherent",
     });
     expect(plans.visual.payload.visualTrack).toMatchObject({
       schemaVersion: "maul-visual-track/v1",
@@ -781,54 +782,51 @@ describe("MAUL complete short render path", () => {
         segment.editorialLockup === undefined,
       ),
     ).toBe(true);
-    expect(
-      plans.textAnimation.payload.programs.filter(
-        (program: any) => program.target.scope === "tokens",
-      ).map((program: any) => program.localReveal?.sourceTreatment),
-    ).toEqual([
-      "documentary-soft-lock",
-      "documentary-soft-lock",
-    ]);
+    const tokenAnimationPrograms = plans.textAnimation.payload.programs.filter(
+      (program: any) => program.target.scope === "tokens",
+    );
+    expect(tokenAnimationPrograms.every((program: any) =>
+      program.executorId &&
+      program.frameMotion?.tokenId === program.target.tokenIds[0]
+    )).toBe(true);
+    expect([
+      ...new Set(tokenAnimationPrograms.flatMap(
+        (program: any) => program.target.tokenIds,
+      )),
+    ].sort()).toEqual(
+      plans.textChunk.payload.tokens.map((token: any) => token.tokenId).sort(),
+    );
     expect(plans.typographyMotion.payload).toMatchObject({
       schemaVersion: "maul-typography-motion-plan/v3",
       textChunkPlanArtifactId: plans.textChunk.artifactId,
       textPlacementPlanArtifactId: plans.textPlacement.artifactId,
       textAnimationPlanArtifactId: plans.textAnimation.artifactId,
       fontResolution: {
-        selectedFamily: "Mixed chunk typography",
-        selectedAssetId: null,
-        selectedAsset: null,
-        accentAsset: null,
+        selectedFamily: expect.any(String),
+        selectedAssetId: expect.any(String),
+        selectedAsset: expect.objectContaining({
+          browserUrl: expect.stringMatching(/^\/fonts\//),
+        }),
         status: "eligible_loaded",
       },
-      chunkTypographyBindings: expect.arrayContaining([
-        expect.objectContaining({
-          chunkId: plans.textChunk.payload.chunks[0].chunkId,
-          profile: expect.objectContaining({
-            name: "Old_Money_Script_Serif_Overlapping",
-            sourceFilename: "image (7).json",
-          }),
-          layers: expect.arrayContaining([
-            expect.objectContaining({
-              resolution: expect.stringMatching(/^(exact|closest_catalog)$/),
-              selectedAsset: expect.objectContaining({
-                browserUrl: expect.stringMatching(/^\/fonts\//),
-              }),
-            }),
-          ]),
-        }),
-        expect.objectContaining({
-          chunkId: plans.textChunk.payload.chunks[1].chunkId,
-          profile: expect.objectContaining({
-            name: "Want_This_Premium_Fonts_3D_Blue",
-            sourceFilename: "image (2).json",
-          }),
-        }),
-      ]),
     });
-    expect(plans.typographyMotion.payload.chunkTypographyBindings).toHaveLength(
+    const typographyBindings =
+      plans.typographyMotion.payload.chunkTypographyBindings;
+    expect(typographyBindings).toHaveLength(
       plans.textChunk.payload.chunks.length,
     );
+    expect(new Set(
+      typographyBindings.map((binding: any) => binding.profile.name),
+    ).size).toBe(1);
+    expect(typographyBindings.every((binding: any) =>
+      binding.provenance?.profileId === binding.compatibilityProfile.profileId &&
+      binding.provenance?.sourceFilename === binding.profile.sourceFilename &&
+      binding.realization?.layers.length > 0 &&
+      binding.layers.every((layer: any) =>
+        /^(exact|closest_catalog)$/.test(layer.resolution) &&
+        /^\/fonts\//.test(layer.selectedAsset.browserUrl)
+      )
+    )).toBe(true);
     expect(plans.typographyMotion.payload.authority).toMatchObject({
       authorityClass: "deterministic",
     });

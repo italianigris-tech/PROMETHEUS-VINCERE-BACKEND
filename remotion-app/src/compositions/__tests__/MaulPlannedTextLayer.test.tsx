@@ -1,11 +1,13 @@
 import {renderToStaticMarkup} from "react-dom/server";
 import {describe, expect, it} from "vitest";
+import type {MaulKineticTreatmentReceipt} from "@prometheus/shared-types";
 
 import {
   MaulPlannedTextCard,
   composeMaulTextTransforms,
   resolveMaulEditorialWordTransform,
   resolveMaulFontBrowserUrl,
+  resolveMaulKineticTokenText,
   resolveMaulTextAnimationTransform,
 } from "../MaulPlannedTextLayer";
 import {
@@ -609,6 +611,36 @@ describe("MAUL planned text renderer contract", () => {
     });
   });
 
+  it("requires compiler provenance at the production render boundary", () => {
+    const motion = structuredClone(typographyMotion) as any;
+    const binding = structuredClone(chunkTypographyBinding()) as any;
+    motion.chunkTypographyBindings = [binding];
+
+    expect(() => buildMaulPlannedTextRecords({
+      textChunkPlan: textChunkPlan as never,
+      textPlacementPlan: textPlacementPlan as never,
+      typographyMotion: motion,
+      output: {width: 1080, height: 1920},
+      requireTypographyProvenance: true,
+    })).toThrow(/authentic Font JSON provenance/i);
+
+    binding.provenance = {
+      compilerVersion: "maul-typography-profile-compiler/v2",
+      profileId: binding.compatibilityProfile.profileId,
+      sourceFilename: binding.profile.sourceFilename,
+      sourceSha256: binding.profile.sourceSha256,
+      geometryFingerprint: "e".repeat(64),
+      resolvedFontAssets: binding.layers.map((layer: any) => layer.selectedAsset),
+    };
+    expect(buildMaulPlannedTextRecords({
+      textChunkPlan: textChunkPlan as never,
+      textPlacementPlan: textPlacementPlan as never,
+      typographyMotion: motion,
+      output: {width: 1080, height: 1920},
+      requireTypographyProvenance: true,
+    })).toHaveLength(1);
+  });
+
   it("carries the authoritative realization and full-group transform to Remotion", () => {
     const binding = structuredClone(chunkTypographyBinding()) as any;
     binding.realization = {
@@ -1205,15 +1237,10 @@ describe("MAUL planned text renderer contract", () => {
     expect(sequence!.from + sequence!.durationInFrames).toBe(32);
   });
 
-  it("normalizes V1 manifests only onto the explicit legacy path", () => {
-    const manifest = {
+  it("schema-validates V1 manifests before entering the legacy path", () => {
+    expect(() => adaptMaulShortManifest({
       schemaVersion: "maul-unified-short-render-manifest/v1",
-    } as never;
-
-    expect(adaptMaulShortManifest(manifest)).toEqual({
-      mode: "legacy",
-      manifest,
-    });
+    })).toThrow(/invalid or stale MAUL V1 render manifest/i);
   });
 
   it("rejects malformed V2 instead of falling back to legacy rendering", () => {
@@ -1493,6 +1520,59 @@ describe("MAUL planned text renderer contract", () => {
     expect(markup).toContain('data-text-animation-treatment="fade_rise"');
     expect(markup).toContain("opacity:0");
     expect(markup).toContain("translate3d(0px, 28px, 0)");
+  });
+
+  it("renders source-grounded numeric evidence as deterministic frame text", () => {
+    const receipt = {
+      registryVersion: "1.1.0",
+      traitId: "trait_number_count_up",
+      sourcePhenotype: "TYPO #17 (apple-metallic-chrome-counter)",
+      selectionMode: "semantic_bias",
+      targetScope: "word",
+      targetRole: "hero",
+      evidence: {
+        kind: "currency",
+        sourceText: "$10,000",
+        parsedValue: 10_000,
+        tokenIds: ["token_make"],
+      },
+      typographyAuthority: {
+        kind: "chunk_typography_binding",
+        chunkId: "chunk_make_it",
+        profileId: "font-json-proof-profile",
+        metricsFingerprint: "metrics-proof-001",
+      },
+      placementIntent: "lower_or_center_9x16",
+      renderContract: {
+        executorId: "maul-kinetic-number-count-up-v1",
+        frameDeterministic: true,
+        startValue: 0,
+        endValue: 10_000,
+        format: "currency_usd",
+      },
+    } satisfies MaulKineticTreatmentReceipt;
+
+    expect(resolveMaulKineticTokenText({
+      sourceText: "$10,000",
+      receipt,
+      outputFrame: 0,
+      entryStartFrame: 0,
+      entryEndFrame: 30,
+    })).toBe("$0");
+    expect(resolveMaulKineticTokenText({
+      sourceText: "$10,000",
+      receipt,
+      outputFrame: 15,
+      entryStartFrame: 0,
+      entryEndFrame: 30,
+    })).toBe("$9,375");
+    expect(resolveMaulKineticTokenText({
+      sourceText: "$10,000",
+      receipt,
+      outputFrame: 30,
+      entryStartFrame: 0,
+      entryEndFrame: 30,
+    })).toBe("$10,000");
   });
 
   it("preserves exactly one compiled frame program for every placed token", () => {

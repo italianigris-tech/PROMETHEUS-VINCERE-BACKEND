@@ -7,9 +7,11 @@ import argparse
 import hashlib
 import json
 import math
+import subprocess
 import sys
+import time
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, Iterator
 
 
 GRID_COLUMNS = 12
@@ -23,6 +25,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-width", type=int, required=True)
     parser.add_argument("--output-height", type=int, required=True)
     parser.add_argument("--sample-every-frames", type=int, default=6)
+    parser.add_argument("--pose-every-samples", type=int, default=2)
+    parser.add_argument("--sample-width", type=int, default=480)
+    parser.add_argument("--ffmpeg-bin", default="ffmpeg")
     return parser.parse_args()
 
 
@@ -46,6 +51,121 @@ def clamp(value: float, minimum: float = 0.0, maximum: float = 1.0) -> float:
 
 def rounded(value: float) -> float:
     return round(float(value), 6)
+
+
+def expected_sample_count(duration_ms: int, source_fps: float, sample_every_frames: int) -> int:
+    maximum_frame = max(0, int(math.floor((duration_ms / 1000.0) * source_fps)) - 1)
+    return maximum_frame // sample_every_frames + 1
+
+
+def scaled_dimensions(source_width: int, source_height: int, sample_width: int) -> tuple[int, int]:
+    scaled_height = max(2, int(round((source_height * sample_width / source_width) / 2.0)) * 2)
+    return sample_width, scaled_height
+
+
+def build_ffmpeg_sample_command(
+    *,
+    ffmpeg_bin: str,
+    source_path: str,
+    duration_ms: int,
+    source_fps: float,
+    sample_every_frames: int,
+    sample_width: int = 480,
+) -> list[str]:
+    sample_rate = source_fps / sample_every_frames
+    sample_rate_text = f"{sample_rate:.8f}".rstrip("0").rstrip(".")
+    return [
+        ffmpeg_bin,
+        "-v", "error",
+        "-nostdin",
+        "-i", source_path,
+        "-an", "-sn", "-dn",
+        "-vf", f"fps={sample_rate_text},scale={sample_width}:-2",
+        "-frames:v", str(expected_sample_count(duration_ms, source_fps, sample_every_frames)),
+        "-pix_fmt", "rgb24",
+        "-f", "rawvideo",
+        "pipe:1",
+    ]
+
+
+def read_exact(stream: Any, size: int) -> bytes:
+    chunks: list[bytes] = []
+    remaining = size
+    while remaining > 0:
+        chunk = stream.read(remaining)
+        if not chunk:
+            break
+        chunks.append(chunk)
+        remaining -= len(chunk)
+    return b"".join(chunks)
+
+
+def ffmpeg_sampled_rgb_frames(
+    *,
+    command: list[str],
+    width: int,
+    height: int,
+    numpy: Any,
+) -> Iterator[tuple[Any, float]]:
+    process = subprocess.Popen(
+        command,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+    )
+    assert process.stdout is not None
+    assert process.stderr is not None
+    frame_size = width * height * 3
+    try:
+        while True:
+            read_started_at = time.perf_counter()
+            frame_bytes = read_exact(process.stdout, frame_size)
+            read_ms = (time.perf_counter() - read_started_at) * 1000
+            if not frame_bytes:
+                break
+            if len(frame_bytes) != frame_size:
+                raise RuntimeError(
+                    f"FFmpeg returned a partial RGB frame ({len(frame_bytes)}/{frame_size} bytes)."
+                )
+            yield numpy.frombuffer(frame_bytes, dtype=numpy.uint8).reshape((height, width, 3)), read_ms
+    finally:
+        process.stdout.close()
+    stderr = process.stderr.read().decode("utf8", errors="replace").strip()
+    process.stderr.close()
+    return_code = process.wait()
+    if return_code != 0:
+        raise RuntimeError(f"FFmpeg sampled-frame extraction failed: {stderr or return_code}")
+
+
+def interpolate_sparse_pose_landmarks(frames: list[dict[str, Any]]) -> None:
+    sampled_indices = [index for index, frame in enumerate(frames) if frame["poseSampled"]]
+    for left_index, right_index in zip(sampled_indices, sampled_indices[1:]):
+        if right_index - left_index <= 1:
+            continue
+        left_landmarks = frames[left_index]["poseLandmarks"]
+        right_landmarks = frames[right_index]["poseLandmarks"]
+        if not left_landmarks or not right_landmarks:
+            continue
+        right_by_name = {landmark["name"]: landmark for landmark in right_landmarks}
+        if any(landmark["name"] not in right_by_name for landmark in left_landmarks):
+            continue
+        left_ms = frames[left_index]["sourceMs"]
+        right_ms = frames[right_index]["sourceMs"]
+        if right_ms <= left_ms:
+            continue
+        for frame_index in range(left_index + 1, right_index):
+            if frames[frame_index]["poseSampled"]:
+                continue
+            progress = (frames[frame_index]["sourceMs"] - left_ms) / (right_ms - left_ms)
+            frames[frame_index]["poseLandmarks"] = [
+                {
+                    "name": left["name"],
+                    "x": rounded(left["x"] + (right_by_name[left["name"]]["x"] - left["x"]) * progress),
+                    "y": rounded(left["y"] + (right_by_name[left["name"]]["y"] - left["y"]) * progress),
+                    "confidence": rounded(left["confidence"] + (right_by_name[left["name"]]["confidence"] - left["confidence"]) * progress),
+                }
+                for left in left_landmarks
+            ]
 
 
 def normalized_box(x: float, y: float, width: float, height: float) -> dict[str, float] | None:
@@ -135,11 +255,11 @@ def linear_channel(channel: float) -> float:
     return ((normalized + 0.055) / 1.055) ** 2.4
 
 
-def luminance_grid(cv2: Any, frame: Any) -> dict[str, Any]:
+def luminance_grid_rgb(cv2: Any, frame: Any) -> dict[str, Any]:
     resized = cv2.resize(frame, (GRID_COLUMNS, GRID_ROWS), interpolation=cv2.INTER_AREA)
     samples: list[float] = []
     for row in resized:
-        for blue, green, red in row:
+        for red, green, blue in row:
             luminance = (
                 0.2126 * linear_channel(float(red))
                 + 0.7152 * linear_channel(float(green))
@@ -178,6 +298,8 @@ def main() -> None:
         fail("invalid_arguments", "Duration and output dimensions must be positive.")
     if args.sample_every_frames <= 0:
         fail("invalid_arguments", "sample-every-frames must be positive.")
+    if args.pose_every_samples <= 0 or args.sample_width <= 0:
+        fail("invalid_arguments", "pose-every-samples and sample-width must be positive.")
     source_path = Path(args.source).resolve()
     if not source_path.is_file():
         fail("source_unavailable", f"Source media is unavailable: {source_path}")
@@ -185,6 +307,7 @@ def main() -> None:
     try:
         import cv2  # type: ignore
         import mediapipe as mp  # type: ignore
+        import numpy as np  # type: ignore
     except Exception as error:
         fail("missing_dependency", f"MediaPipe/OpenCV import failed: {error}")
 
@@ -192,12 +315,35 @@ def main() -> None:
     if not capture.isOpened():
         fail("media_decode_failed", "OpenCV could not open the source media.")
     fps = float(capture.get(cv2.CAP_PROP_FPS))
+    source_width = int(capture.get(cv2.CAP_PROP_FRAME_WIDTH))
+    source_height = int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    capture.release()
     if not math.isfinite(fps) or fps <= 0:
-        capture.release()
         fail("media_metadata_failed", "OpenCV returned invalid source FPS.")
+    if source_width <= 0 or source_height <= 0:
+        fail("media_metadata_failed", "OpenCV returned invalid source dimensions.")
 
-    maximum_frame = max(0, int(math.floor((args.duration_ms / 1000.0) * fps)) - 1)
+    sampled_width, sampled_height = scaled_dimensions(
+        source_width,
+        source_height,
+        args.sample_width,
+    )
+    command = build_ffmpeg_sample_command(
+        ffmpeg_bin=args.ffmpeg_bin,
+        source_path=str(source_path),
+        duration_ms=args.duration_ms,
+        source_fps=fps,
+        sample_every_frames=args.sample_every_frames,
+        sample_width=args.sample_width,
+    )
+    sample_interval_ms = max(1, int(round((args.sample_every_frames / fps) * 1000)))
     frames: list[dict[str, Any]] = []
+    stage_started_at = time.perf_counter()
+    ffmpeg_read_ms = 0.0
+    face_inference_ms = 0.0
+    pose_inference_ms = 0.0
+    post_process_ms = 0.0
+    pose_inference_frame_count = 0
     try:
         with mp.solutions.face_detection.FaceDetection(
             model_selection=0,
@@ -209,35 +355,52 @@ def main() -> None:
             min_detection_confidence=0.45,
             min_tracking_confidence=0.45,
         ) as pose_detector:
-            for frame_index in range(0, maximum_frame + 1):
-                if frame_index % args.sample_every_frames != 0:
-                    if not capture.grab():
-                        break
-                    continue
-                success, frame = capture.read()
-                if not success:
-                    break
-                rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            for sample_index, (rgb, read_ms) in enumerate(ffmpeg_sampled_rgb_frames(
+                command=command,
+                width=sampled_width,
+                height=sampled_height,
+                numpy=np,
+            )):
+                ffmpeg_read_ms += read_ms
+                face_started_at = time.perf_counter()
                 face_box = face_box_for(face_detector.process(rgb))
-                pose_landmarks = pose_landmarks_for(mp, pose_detector.process(rgb))
+                face_inference_ms += (time.perf_counter() - face_started_at) * 1000
+                pose_sampled = sample_index % args.pose_every_samples == 0
+                pose_landmarks: list[dict[str, Any]] = []
+                if pose_sampled:
+                    pose_started_at = time.perf_counter()
+                    pose_landmarks = pose_landmarks_for(mp, pose_detector.process(rgb))
+                    pose_inference_ms += (time.perf_counter() - pose_started_at) * 1000
+                    pose_inference_frame_count += 1
+                post_started_at = time.perf_counter()
                 frames.append({
-                    "sourceMs": int(round((frame_index / fps) * 1000)),
+                    "sourceMs": sample_index * sample_interval_ms,
                     "faceBox": face_box,
+                    "poseSampled": pose_sampled,
                     "poseLandmarks": pose_landmarks,
-                    "subjectBox": subject_box_for(face_box, pose_landmarks),
-                    "luminanceGrid": luminance_grid(cv2, frame),
+                    "subjectBox": None,
+                    "luminanceGrid": luminance_grid_rgb(cv2, rgb),
                 })
-    finally:
-        capture.release()
+                post_process_ms += (time.perf_counter() - post_started_at) * 1000
+    except RuntimeError as error:
+        fail("media_decode_failed", str(error))
 
     if not frames:
         fail("zero_valid_frames", "MediaPipe/OpenCV produced zero valid sampled frames.")
-    sample_interval_ms = max(1, int(round((args.sample_every_frames / fps) * 1000)))
+    post_started_at = time.perf_counter()
+    interpolate_sparse_pose_landmarks(frames)
+    for frame in frames:
+        frame["subjectBox"] = subject_box_for(frame["faceBox"], frame["poseLandmarks"])
+        del frame["poseSampled"]
+    post_process_ms += (time.perf_counter() - post_started_at) * 1000
+    total_stage_ms = (time.perf_counter() - stage_started_at) * 1000
     configuration = {
         "durationMs": args.duration_ms,
         "outputWidth": args.output_width,
         "outputHeight": args.output_height,
         "sampleEveryFrames": args.sample_every_frames,
+        "poseEverySamples": args.pose_every_samples,
+        "sampleWidth": args.sample_width,
         "gridColumns": GRID_COLUMNS,
         "gridRows": GRID_ROWS,
     }
@@ -252,6 +415,15 @@ def main() -> None:
             "mediapipeVersion": str(mp.__version__),
             "opencvVersion": str(cv2.__version__),
             "configurationSha256": configuration_sha256,
+            "performance": {
+                "sampledFrameCount": len(frames),
+                "poseInferenceFrameCount": pose_inference_frame_count,
+                "ffmpegReadMs": rounded(ffmpeg_read_ms),
+                "faceInferenceMs": rounded(face_inference_ms),
+                "poseInferenceMs": rounded(pose_inference_ms),
+                "postProcessMs": rounded(post_process_ms),
+                "totalStageMs": rounded(total_stage_ms),
+            },
         },
         "frames": frames,
         "missingSpans": missing_spans(frames, sample_interval_ms, args.duration_ms),

@@ -1,15 +1,40 @@
-import type {UnifiedRenderManifest} from "@prometheus/shared-types";
+import type {
+  MaulUnifiedShortRenderManifest,
+  UnifiedRenderManifest,
+} from "@prometheus/shared-types";
 
 import type {MartinMatteBatchRequest} from "./maul/martin-depth.js";
 
 export type RenderCallStatus = {
   status: "queued" | "running" | "completed" | "failed";
+  pipeline?: RenderPipeline;
+  pipelineJobId?: string;
   outputFile?: string;
   error?: string;
 };
 
+export type RenderPipeline = "maul" | "joseph";
+
+export type RenderDispatchRequest =
+  | {
+      pipeline: "maul";
+      pipelineJobId: string;
+      manifest: MaulUnifiedShortRenderManifest;
+    }
+  | {
+      pipeline: "joseph";
+      pipelineJobId: string;
+      manifest: UnifiedRenderManifest;
+    };
+
+export const maulPipelineJobId = (manifest: Pick<MaulUnifiedShortRenderManifest, "replayKey">): string =>
+  `maul:${manifest.replayKey}`;
+
+export const josephPipelineJobId = (manifest: Pick<UnifiedRenderManifest, "jobId">): string =>
+  `joseph:${manifest.jobId}`;
+
 export type RenderDispatcher = {
-  spawn: (manifest: UnifiedRenderManifest) => Promise<{callId: string}>;
+  spawn: (request: RenderDispatchRequest) => Promise<{callId: string}>;
   status: (callId: string) => Promise<RenderCallStatus>;
 };
 
@@ -52,11 +77,11 @@ export const createHttpRenderDispatcher = ({
   const root = baseUrl.replace(/\/+$/, "");
 
   return {
-    async spawn(manifest) {
+    async spawn(request) {
       const response = await fetchImpl(`${root}/spawn`, {
         method: "POST",
         headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({manifest}),
+        body: JSON.stringify(request),
       });
       const body = await responseJson(response);
       if (typeof body.callId !== "string" || !body.callId) {

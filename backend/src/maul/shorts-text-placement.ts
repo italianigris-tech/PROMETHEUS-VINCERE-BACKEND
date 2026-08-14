@@ -16,6 +16,7 @@ import {
 import {hashMaulPlanPayload} from "./text-chunk-plan.js";
 import type {MaulMeasuredTypographyLayout} from "./typography-layout.js";
 import {selectTypographyProfilePlacement} from "./typography-profile-placement.js";
+import {parseNumericKineticEvidence} from "./kinetic-trait-registry.js";
 import {
   averageLuminanceForBox,
   resolveTypographyProfileColors,
@@ -739,7 +740,7 @@ const buildCandidate = ({
           : {}),
       })
     : null;
-  const geometry = profilePlacement ?? (isCaptionSafeFallback
+  let geometry = profilePlacement ?? (isCaptionSafeFallback
     ? {
         box: fallbackBand!,
         maximumEnvelope: fallbackBand!,
@@ -850,8 +851,50 @@ const buildCandidate = ({
       lines = candidateLines;
       break;
     }
+    if (measuredLayout && composition.textAnchor && !isCaptionSafeFallback) {
+      const envelopeLines = partitionLines({
+        family,
+        tokenIds: node.chunk.tokenIds,
+        textByTokenId,
+        segmentId,
+        maximumLines: 3,
+        geometry: geometry.maximumEnvelope,
+        fontSizePx,
+        lineHeight,
+        paddingXPx,
+        paddingYPx,
+        measuredLayout,
+      });
+      if (envelopeLines) {
+        geometry = {...geometry, box: geometry.maximumEnvelope};
+        effectiveFontSizePx = fontSizePx;
+        lines = envelopeLines;
+        break;
+      }
+    }
   }
-  if (!lines) return null;
+  if (!lines) {
+    if (process.env.MAUL_PLACEMENT_DIAGNOSTICS === "1") {
+      process.stderr.write(`${JSON.stringify({
+        event: "maul_placement_line_fit_rejected",
+        chunkId: node.chunk.chunkId,
+        compositionVariantId: composition.variantId,
+        family,
+        geometry: geometry.box,
+        candidateFontSizes,
+        measuredLayout: measuredLayout
+          ? {
+              fontSizePx: measuredLayout.fontSizePx,
+              lines: measuredLayout.lines.map((line) => ({
+                text: line.text,
+                widthPx: line.widthPx,
+              })),
+            }
+          : null,
+      })}\n`);
+    }
+    return null;
+  }
   const nominalFontSizePx = profileRealization
     ? effectiveFontSizePx
     : effectiveFontSizePx / hierarchyScale;
@@ -991,9 +1034,36 @@ const buildCandidate = ({
       "Layout segment is contained by one compiled transform interval.",
     ),
   ];
-  if (hardGates.some((result) => result.status !== "pass")) return null;
+  const failedHardGates = hardGates.filter((result) => result.status !== "pass");
+  if (failedHardGates.length > 0) {
+    if (process.env.MAUL_PLACEMENT_DIAGNOSTICS === "1") {
+      process.stderr.write(`${JSON.stringify({
+        event: "maul_placement_candidate_rejected",
+        chunkId: node.chunk.chunkId,
+        compositionVariantId: composition.variantId,
+        family,
+        failedGateIds: failedHardGates.map((result) => result.gateId),
+        box: geometry.box,
+        maximumEnvelope: geometry.maximumEnvelope,
+        subjectBox,
+        faceBox,
+      })}\n`);
+    }
+    return null;
+  }
 
   const hasSubject = Boolean(subjectBox);
+  const numericEvidenceTokenIds = node.chunk.tokenIds.filter((tokenId) =>
+    parseNumericKineticEvidence(textByTokenId.get(tokenId) ?? "") !== null,
+  );
+  const meritsNumericPlacement = numericEvidenceTokenIds.length > 0 && (
+    node.chunk.emphasis.level === "key" ||
+    node.chunk.emphasis.level === "hero" ||
+    numericEvidenceTokenIds.some((tokenId) => {
+      const evidence = parseNumericKineticEvidence(textByTokenId.get(tokenId) ?? "");
+      return evidence?.kind === "currency" || evidence?.kind === "percentage";
+    })
+  );
   const scores = {
     readability: isCaptionSafeFallback ? 0.78 : family === "measured" ? 0.96 : 0.9,
     subjectRelationship:
@@ -1004,7 +1074,9 @@ const buildCandidate = ({
           : 0.72,
     opticalBalance: family === "measured" ? 0.94 : family === "editorial" ? 0.9 : 0.82,
     semanticCompatibility:
-      node.chunk.semanticRole === "proof" && family === "measured"
+      meritsNumericPlacement && (family === "measured" || family === "personal")
+        ? 1
+        : node.chunk.semanticRole === "proof" && family === "measured"
         ? 0.96
         : family === "editorial"
           ? 0.9
@@ -1044,6 +1116,16 @@ const buildCandidate = ({
       box: geometry.box,
       maximumEnvelope: geometry.maximumEnvelope,
       alignment: geometry.alignment,
+      ...(meritsNumericPlacement
+        ? {
+            kineticPlacement: {
+              traitId: "trait_number_count_up",
+              evidenceTokenIds: numericEvidenceTokenIds,
+              intent: "lower_or_center_9x16" as const,
+              influence: "score_bias_only" as const,
+            },
+          }
+        : {}),
       ...(profilePlacement ? {profileTransform: profilePlacement.transform} : {}),
       ...(profileRealization
         ? {
@@ -1181,6 +1263,7 @@ export const buildMaulTextPlacementPlan = ({
   candidateFamilyOrder = ["measured", "editorial", "personal"],
   textChunkPlanHash: governedTextChunkPlanHash,
   typography,
+  foregroundChunkIds,
 }: {
   textChunkPlanArtifactId: string;
   textChunkPlan: MaulShortsTextChunkPlanV2Core;
@@ -1192,6 +1275,7 @@ export const buildMaulTextPlacementPlan = ({
   candidateFamilyOrder?: readonly MaulPlacementFamily[];
   textChunkPlanHash?: string;
   typography?: MaulPlacementTypography;
+  foregroundChunkIds?: readonly string[];
 }): MaulTextPlacementPlanCore => {
   const textChunkPlan = maulShortsTextChunkPlanV2CoreSchema.parse(inputChunkPlan);
   const compositionIntervals = [...inputCompositionIntervals].sort(
@@ -1240,8 +1324,19 @@ export const buildMaulTextPlacementPlan = ({
     );
   }
 
+  const foregroundChunkIdSet = foregroundChunkIds
+    ? new Set(foregroundChunkIds)
+    : null;
+  const placementChunkPlan = foregroundChunkIdSet
+    ? {
+        ...textChunkPlan,
+        chunks: textChunkPlan.chunks.filter((chunk) =>
+          foregroundChunkIdSet.has(chunk.chunkId),
+        ),
+      }
+    : textChunkPlan;
   const nodes = buildLayoutNodes({
-    chunkPlan: textChunkPlan,
+    chunkPlan: placementChunkPlan,
     compositionIntervals,
     observationIntervals,
     shotIntervals,
@@ -1274,6 +1369,22 @@ export const buildMaulTextPlacementPlan = ({
       })
       .sort((left, right) => left.candidateId.localeCompare(right.candidateId)),
   );
+  if (process.env.MAUL_PLACEMENT_DIAGNOSTICS === "1") {
+    nodes.forEach((node, index) => {
+      process.stderr.write(`${JSON.stringify({
+        event: "maul_placement_node_candidates",
+        chunkId: node.chunk.chunkId,
+        outputStartMs: node.outputStartMs,
+        outputEndMs: node.outputEndMs,
+        compositionVariantIds: node.compositions.map((composition) => composition.variantId),
+        candidateCount: candidatesByNode[index]?.length ?? 0,
+        candidateVariants: (candidatesByNode[index] ?? []).map((candidate) => ({
+          family: candidate.segment.family,
+          compositionVariantId: candidate.segment.selectedCompositionVariantId,
+        })),
+      })}\n`);
+    });
+  }
   const selected =
     nodes.length > 0 && candidatesByNode.every((candidates) => candidates.length)
       ? selectCandidateSequence(candidatesByNode)
@@ -1328,6 +1439,7 @@ export const buildMaulTextPlacementPlan = ({
     blockingReason: selected
       ? null
       : "blocked_no_readable_dialogue_candidate",
+    foregroundChunkIds: placementChunkPlan.chunks.map((chunk) => chunk.chunkId),
     segments: selected?.map((candidate) => candidate.segment) ?? [],
     inputHashes: {
       textChunkPlan: textChunkPlanHash,

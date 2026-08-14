@@ -122,6 +122,7 @@ import {
 import {buildMaulPreviewSampleTimes} from "./render-preview.js";
 import type {ShortsTextChunkPlanner} from "./shorts-text-chunking-llm.js";
 import {materializeAutomaticMaulSfx} from "./typography-sfx.js";
+import {selectForegroundTypographyChunkIds} from "./typography-event-policy.js";
 
 import {
   createUnavailableCreativeTreatmentPlanner,
@@ -1417,8 +1418,17 @@ export class MaulProjectService {
     const textChunkTokenById = new Map(
       textChunkCore.tokens.map((token) => [token.tokenId, token]),
     );
+    const foregroundTypographyChunkIds = selectForegroundTypographyChunkIds(
+      textChunkCore.chunks,
+      request.typographyCoverage,
+    );
+    const foregroundTypographyChunkIdSet = new Set(
+      foregroundTypographyChunkIds,
+    );
     const compiledTypography = await this.typographyProfileCompiler.compile({
-      chunks: textChunkCore.chunks.map((chunk) => ({
+      chunks: textChunkCore.chunks
+        .filter((chunk) => foregroundTypographyChunkIdSet.has(chunk.chunkId))
+        .map((chunk) => ({
         chunkId: chunk.chunkId,
         text: chunk.text,
         wordCount: chunk.tokenIds.length,
@@ -1433,10 +1443,21 @@ export class MaulProjectService {
         }),
         semanticRole: chunk.semanticRole,
         emphasisLevel: chunk.emphasis.level,
-      })),
+        })),
       targetAspectRatio: "9:16",
-      maximumLineWidthPx: 410,
+      maximumLineWidthPx: 820,
+      continuityMode: "scene_coherent",
     });
+    if (
+      compiledTypography.status === "unavailable" &&
+      process.env.MAUL_TYPOGRAPHY_DIAGNOSTICS === "1"
+    ) {
+      process.stderr.write(`${JSON.stringify({
+        event: "maul_typography_profile_compilation_unavailable",
+        reason: compiledTypography.reason,
+        chunkCount: textChunkCore.chunks.length,
+      })}\n`);
+    }
     const measuredTypography = compiledTypography.status === "unavailable"
       ? await this.typographyProvider.plan({
           chunks: textChunkCore.chunks.map((chunk) => ({
@@ -1494,6 +1515,7 @@ export class MaulProjectService {
       textChunkPlan: textChunkCore,
       textChunkPlanHash,
       ...placementInputs,
+      foregroundChunkIds: foregroundTypographyChunkIds,
       ...(placementTypography ? {typography: placementTypography} : {}),
     });
     const referenceEditorialRhythm = deriveReferenceEditorialRhythm({
@@ -1667,6 +1689,15 @@ export class MaulProjectService {
       textChunkPlan: textChunkResult.artifact,
       textPlacementPlan: textPlacementArtifact,
       referenceEditorialRhythm,
+      typographyLineageByChunkId: compiledTypography.status === "available"
+        ? Object.fromEntries(compiledTypography.bindings.map((binding) => [
+            binding.chunkId,
+            {
+              profileId: binding.compatibilityProfile.profileId,
+              metricsFingerprint: binding.compatibilityProfile.metrics.fingerprint,
+            },
+          ]))
+        : undefined,
       selectionSeed: `${planningSelectionSeed}:${candidate.artifactId}:editorial-text-v1`,
       outputDurationMs: timeline.payload.outputDurationMs,
     });
@@ -2555,7 +2586,16 @@ export class MaulProjectService {
     const resolvedSfxAssets = request.sfxAssets.length > 0
       ? request.sfxAssets
       : textAnimation?.artifactType === "text_animation_plan"
-        ? materializeAutomaticMaulSfx(textAnimation.payload.programs)
+        ? materializeAutomaticMaulSfx(
+            textAnimation.payload.programs,
+            textChunk?.artifactType === "text_chunk_plan"
+              ? textChunk.payload.chunks.map((chunk) => ({
+                  sourceMs: chunk.outputStartMs,
+                  role: chunk.semanticRole,
+                  emphasisLevel: chunk.emphasis.level,
+                }))
+              : undefined,
+          )
         : [];
     for (const sfx of resolvedSfxAssets) {
       if (!sfx.renderSafe || !sfx.licenseVerified || !sfx.commercialAllowed) {

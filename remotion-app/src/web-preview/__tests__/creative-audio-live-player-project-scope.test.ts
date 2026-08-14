@@ -180,6 +180,8 @@ describe("CreativeAudioLivePlayer project scope", () => {
 
     expect(source).not.toContain("draft-preview-longform");
     expect(source).toContain("api/edit-sessions/live-preview");
+    expect(source).toContain('formData.append("pipeline", "maul")');
+    expect(source).not.toContain('formData.append("josephProfile", "joseph_cinematic")');
   });
 
   it("passes live caption chunks into the canonical project-scoped Remotion player", () => {

@@ -117,7 +117,8 @@ describe("MAUL typography layout", () => {
     });
     if (plan.status === "available") {
       expect(plan.evidenceIds).toEqual(expect.arrayContaining([
-        "measurement_Build_something",
+        "measurement_Build_something_that_lasts",
+        "measurement_Then_prove_it",
       ]));
     }
   });

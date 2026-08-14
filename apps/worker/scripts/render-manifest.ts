@@ -25,4 +25,5 @@ console.log(JSON.stringify({
   durationFrames: manifest.durationFrames,
   fps: manifest.fps,
   outputPath,
+  encoder: 'h264_nvenc',
 }));

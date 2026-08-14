@@ -4,6 +4,14 @@ export {
 } from "./maul-frame-motion.js";
 
 export {
+  buildMaulTransitionPlan,
+  type MaulTransitionBeat,
+  type MaulTransitionEvent,
+  type MaulTransitionKind,
+  type MaulTransitionSemanticRole,
+} from "./maul-transition-planning.js";
+
+export {
   textAnimationGrammarSchema,
   textAnimationOrderSchema,
   textAnimationStaggerSchema,
@@ -147,6 +155,7 @@ export {
 
 export {
   maulTextAnimationEasingSchema,
+  maulKineticTreatmentReceiptSchema,
   MAUL_TEXT_ANIMATION_TREATMENTS,
   maulTextAnimationPhaseSchema,
   maulTextAnimationPlanCoreSchema,
@@ -154,6 +163,7 @@ export {
   maulTextAnimationTransformSchema,
   maulTextAnimationTreatmentSchema,
   type MaulTextAnimationEasing,
+  type MaulKineticTreatmentReceipt,
   type MaulTextAnimationPhase,
   type MaulTextAnimationPlanCore,
   type MaulTextAnimationProgram,

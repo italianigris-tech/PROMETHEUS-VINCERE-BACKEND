@@ -210,6 +210,53 @@ const boxesOverlap = (first: MaulNormalizedBox, second: MaulNormalizedBox) =>
   first.y + first.height > second.y;
 
 describe("MAUL scene-aware text placement", () => {
+  it("biases source-grounded numeric proof toward lower or centered 9x16 placement", () => {
+    const chunkPlan = makeChunkPlan();
+    chunkPlan.tokens[0] = {...chunkPlan.tokens[0]!, text: "$10,000"};
+    chunkPlan.chunks[0] = {
+      ...chunkPlan.chunks[0]!,
+      text: "$10,000",
+      emphasis: {tokenIds: ["token_across"], text: "$10,000", level: "hero"},
+    };
+
+    const plan = buildMaulTextPlacementPlan({
+      textChunkPlanArtifactId: "artifact_numeric_chunk",
+      textChunkPlan: chunkPlan,
+      compositionIntervals: [composition()],
+      observationIntervals: [observation({trackingState: "absent_confirmed"})],
+    });
+
+    expect(plan.segments[0]!.box.y).toBeGreaterThanOrEqual(0.6);
+    expect(plan.segments[0]!.kineticPlacement).toEqual({
+      traitId: "trait_number_count_up",
+      evidenceTokenIds: ["token_across"],
+      intent: "lower_or_center_9x16",
+      influence: "score_bias_only",
+    });
+    expect(plan.segments[0]!.hardGates.every((gate) => gate.status === "pass")).toBe(true);
+  });
+
+  it("keeps non-foreground chunks in lineage without placing them on screen", () => {
+    const chunkPlan = makeTwoChunkPlan();
+    const plan = buildMaulTextPlacementPlan({
+      textChunkPlanArtifactId: "artifact_selective_typography",
+      textChunkPlan: chunkPlan,
+      foregroundChunkIds: ["chunk_beyond"],
+      compositionIntervals: [composition({outputEndMs: 2_000})],
+      observationIntervals: [observation({
+        outputEndMs: 2_000,
+        trackingState: "absent_confirmed",
+      })],
+    });
+
+    expect(plan.status).toBe("planned");
+    expect(plan.segments.map((segment) => segment.chunkId)).toEqual([
+      "chunk_beyond",
+    ]);
+    expect(plan.foregroundChunkIds).toEqual(["chunk_beyond"]);
+    expect(plan.textChunkPlanHash).toBeDefined();
+  });
+
   it.each([
     ["left", {x: 0.06, y: 0.08, width: 0.28, height: 0.56}],
     ["center", {x: 0.35, y: 0.08, width: 0.3, height: 0.48}],
@@ -499,6 +546,98 @@ describe("MAUL scene-aware text placement", () => {
         evidenceId: "measurement_across_playfair",
       }),
     );
+  });
+
+  it("scales a measured line into the evidence-backed clear-top envelope", () => {
+    const chunkPlan = makeChunkPlan();
+    const words = ["industry", "experts", "and", "thought", "leaders."];
+    chunkPlan.tokens = words.map((text, index) => ({
+      ...chunkPlan.tokens[0]!,
+      tokenId: `measured_token_${index + 1}`,
+      transcriptWordIndex: index,
+      text,
+      sourceStartMs: index * 200,
+      sourceEndMs: (index + 1) * 200,
+      outputSpans: [{outputStartMs: index * 200, outputEndMs: (index + 1) * 200}],
+      outputStartMs: index * 200,
+      outputEndMs: (index + 1) * 200,
+    }));
+    chunkPlan.chunks = [{
+      ...chunkPlan.chunks[0]!,
+      tokenIds: chunkPlan.tokens.map((token) => token.tokenId),
+      text: words.join(" "),
+      emphasis: {
+        tokenIds: ["measured_token_1"],
+        text: "industry",
+        level: "key",
+      },
+    }];
+
+    const measuredProfile = {
+      profileId: "maul-measured-dm-sans-local-v1",
+      family: "DM Sans",
+      approvedFontAssets: [{
+        assetId: "font_google_dm_sans_700",
+        family: "DM Sans",
+        weights: [700],
+      }],
+      loadedFallback: {
+        assetId: "font_google_dm_sans_700",
+        family: "DM Sans",
+        weight: 700,
+      },
+      metrics: {
+        fingerprint: sha("f"),
+        maxGlyphWidthEm: 1.096,
+        maxLineHeightEm: 1.302,
+        minimumFontSizePx: 48,
+        maximumFontSizePx: 88,
+        minimumLineHeight: 1,
+        maximumLineHeight: 1.302,
+      },
+    };
+    const clearTopBox = {x: 0.1, y: 0.08, width: 0.8, height: 0.12};
+    const clearTopEnvelope = {x: 0.08, y: 0.06, width: 0.84, height: 0.16};
+    const subjectBox = {x: 0.057, y: 0.248, width: 0.892, height: 0.752};
+    const plan = buildMaulTextPlacementPlan({
+      textChunkPlanArtifactId: "artifact_four_line_chunk",
+      textChunkPlan: chunkPlan,
+      compositionIntervals: [composition({
+        intervalId: "measured_clear_top",
+        variantId: "scene_evidence.editorial_asymmetry.media_observed_clear_top",
+        compositionDirection: "editorial_asymmetry",
+        textAnchor: {
+          box: clearTopBox,
+          maximumEnvelope: clearTopEnvelope,
+          alignment: "right",
+          subjectInteraction: {
+            policy: "avoid_subject",
+            faceInterference: 0,
+            evidenceIds: ["mediapipe@0"],
+          },
+        },
+      })],
+      observationIntervals: [observation({subjectBox})],
+      typography: {
+        profile: measuredProfile,
+        layouts: [{
+          chunkId: "chunk_across",
+          fontSizePx: 72,
+          lines: [{
+            text: "industry experts and thought leaders.",
+            widthPx: 1339.488,
+            measurementId: "measurement_full_line",
+          }],
+          measurementIds: ["measurement_full_line"],
+        }],
+      },
+    });
+
+    expect(plan.status).toBe("planned");
+    expect(plan.segments[0]!.lines).toHaveLength(1);
+    expect(plan.segments[0]!.compatibility.nominalFontSizePx).toBe(48);
+    expect(plan.segments[0]!.box).toEqual(clearTopEnvelope);
+    expect(boxesOverlap(plan.segments[0]!.maximumEnvelope, subjectBox)).toBe(false);
   });
 
   it("places an authoritative profile as one full-group transform", () => {

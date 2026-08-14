@@ -5,6 +5,7 @@ import path from "node:path";
 import cors from "@fastify/cors";
 import {
   shortsTextChunkingRequestSchema,
+  maulUnifiedShortRenderManifestSchema,
   UnifiedRenderManifestSchema,
   type ShortsTextChunkingRequest,
 } from "@prometheus/shared-types";
@@ -17,6 +18,8 @@ import {martinMatteBatchRequestSchema} from "./maul/martin-depth.js";
 import {
   createHttpMattingDispatcher,
   createHttpRenderDispatcher,
+  josephPipelineJobId,
+  maulPipelineJobId,
   type MattingDispatcher,
   type RenderDispatcher,
 } from "./render-dispatch.js";
@@ -117,12 +120,25 @@ export const createCoreApp = async (
 
   app.post("/api/render/jobs", async (request, reply) => {
     try {
-      const body = request.body as {manifest?: unknown};
+      const body = request.body as {pipeline?: unknown; pipelineJobId?: unknown; manifest?: unknown};
+      if (body?.pipeline !== "joseph") {
+        throw new Error("Joseph render dispatch requires pipeline='joseph'. Use /api/maul/render/jobs for MAUL.");
+      }
       const manifest = UnifiedRenderManifestSchema.parse(body?.manifest);
-      const {callId} = await renderDispatcher.spawn(manifest);
-      const statusUrl = `/api/render/jobs/${manifest.jobId}/calls/${callId}`;
+      const authoritativePipelineJobId = josephPipelineJobId(manifest);
+      if (body.pipelineJobId !== authoritativePipelineJobId) {
+        throw new Error(`Joseph pipelineJobId must equal ${authoritativePipelineJobId}.`);
+      }
+      const {callId} = await renderDispatcher.spawn({
+        pipeline: "joseph",
+        pipelineJobId: authoritativePipelineJobId,
+        manifest,
+      });
+      const statusUrl = `/api/render/jobs/joseph/${encodeURIComponent(authoritativePipelineJobId)}/calls/${callId}`;
       reply.code(202);
       return {
+        pipeline: "joseph",
+        pipelineJobId: authoritativePipelineJobId,
         jobId: manifest.jobId,
         callId,
         status: "queued",
@@ -134,17 +150,61 @@ export const createCoreApp = async (
     }
   });
 
-  app.get("/api/render/jobs/:jobId/calls/:callId", async (request, reply) => {
+  app.post("/api/maul/render/jobs", async (request, reply) => {
     try {
-      const {jobId, callId} = request.params as {jobId: string; callId: string};
-      const status = await renderDispatcher.status(callId);
+      const body = request.body as {pipeline?: unknown; pipelineJobId?: unknown; manifest?: unknown};
+      if (body?.pipeline !== "maul") {
+        throw new Error("MAUL render dispatch requires pipeline='maul'.");
+      }
+      const manifest = maulUnifiedShortRenderManifestSchema.parse(body?.manifest);
+      const authoritativePipelineJobId = maulPipelineJobId(manifest);
+      if (body.pipelineJobId !== authoritativePipelineJobId) {
+        throw new Error(`MAUL pipelineJobId must equal ${authoritativePipelineJobId}.`);
+      }
+      const {callId} = await renderDispatcher.spawn({
+        pipeline: "maul",
+        pipelineJobId: authoritativePipelineJobId,
+        manifest,
+      });
+      const statusUrl = `/api/render/jobs/maul/${encodeURIComponent(authoritativePipelineJobId)}/calls/${callId}`;
+      reply.code(202);
       return {
-        jobId,
+        pipeline: "maul",
+        pipelineJobId: authoritativePipelineJobId,
+        callId,
+        status: "queued",
+        statusUrl,
+      };
+    } catch (error) {
+      reply.code(error instanceof ZodError ? 400 : 400);
+      return errorBody(error);
+    }
+  });
+
+  app.get("/api/render/jobs/:pipeline/:pipelineJobId/calls/:callId", async (request, reply) => {
+    try {
+      const {pipeline, pipelineJobId, callId} = request.params as {
+        pipeline: string;
+        pipelineJobId: string;
+        callId: string;
+      };
+      if (pipeline !== "maul" && pipeline !== "joseph") {
+        reply.code(400);
+        return {error: "Unknown render pipeline."};
+      }
+      const status = await renderDispatcher.status(callId);
+      if (status.pipeline && status.pipeline !== pipeline) {
+        throw new Error(`Render call belongs to ${status.pipeline}, not ${pipeline}.`);
+      }
+      if (status.pipelineJobId && status.pipelineJobId !== pipelineJobId) {
+        throw new Error("Render call pipelineJobId does not match the requested job.");
+      }
+      return {
+        pipeline,
+        pipelineJobId,
         callId,
         ...status,
-        ...(status.outputFile
-          ? {outputUrl: `/media/${encodeURIComponent(status.outputFile)}`}
-          : {}),
+        ...(status.outputFile ? {outputUrl: `/media/${encodeURIComponent(status.outputFile)}`} : {}),
       };
     } catch (error) {
       reply.code(502);

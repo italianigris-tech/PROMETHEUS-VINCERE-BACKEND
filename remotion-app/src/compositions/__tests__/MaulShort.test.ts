@@ -300,6 +300,19 @@ describe("MAUL Remotion short composition", () => {
     ).toBe(1.1);
   });
 
+  it("resolves frame-driven transition states without CSS animation", async () => {
+    const module = await import("../MaulTransitionLayer").catch(() => null);
+    expect(module).not.toBeNull();
+    if (!module) return;
+
+    const event = {transitionId: "reveal", kind: "light_flash", outputMs: 1_000, durationMs: 400, intensity: 0.8, reason: "semantic reveal"} as const;
+    expect(module.resolveMaulTransitionFrame({event, outputFrame: 30, fps: 30})).toEqual(
+      expect.objectContaining({opacity: 0.8, translateXPercent: 0}),
+    );
+    expect(module.resolveMaulTransitionFrame({event, outputFrame: 36, fps: 30}).opacity).toBeGreaterThan(0);
+    expect(module.resolveMaulTransitionFrame({event, outputFrame: 45, fps: 30}).opacity).toBe(0);
+  });
+
   it("uses dynamic 9:16 metadata and omits cut segments", async () => {
     const module = await import("../MaulShort").catch(() => null);
     expect(module).not.toBeNull();

@@ -124,29 +124,57 @@ describe("thin core app", () => {
       const submitted = await context.app.inject({
         method: "POST",
         url: "/api/render/jobs",
-        payload: {manifest: renderManifest},
+        payload: {
+          pipeline: "joseph",
+          pipelineJobId: `joseph:${renderManifest.jobId}`,
+          manifest: renderManifest,
+        },
       });
       const statusUrl = submitted.json().statusUrl as string;
       const status = await context.app.inject({method: "GET", url: statusUrl});
 
       expect(submitted.statusCode).toBe(202);
       expect(submitted.json()).toEqual({
+        pipeline: "joseph",
+        pipelineJobId: `joseph:${renderManifest.jobId}`,
         jobId: renderManifest.jobId,
         callId: "fc-render-123",
         status: "queued",
-        statusUrl: `/api/render/jobs/${renderManifest.jobId}/calls/fc-render-123`,
+        statusUrl: `/api/render/jobs/joseph/${encodeURIComponent(`joseph:${renderManifest.jobId}`)}/calls/fc-render-123`,
       });
       expect(renderDispatcher.spawn).toHaveBeenCalledWith(
-        expect.objectContaining({jobId: renderManifest.jobId}),
+        expect.objectContaining({
+          pipeline: "joseph",
+          pipelineJobId: `joseph:${renderManifest.jobId}`,
+          manifest: expect.objectContaining({jobId: renderManifest.jobId}),
+        }),
       );
       expect(status.statusCode).toBe(200);
       expect(status.json()).toEqual({
-        jobId: renderManifest.jobId,
+        pipeline: "joseph",
+        pipelineJobId: `joseph:${renderManifest.jobId}`,
         callId: "fc-render-123",
         status: "completed",
         outputFile: "job_final.mp4",
         outputUrl: "/media/job_final.mp4",
       });
+    } finally {
+      await context.app.close();
+    }
+  });
+
+  it("rejects an untagged render instead of guessing Joseph", async () => {
+    const renderDispatcher = {spawn: vi.fn(), status: vi.fn()};
+    const context = await createCoreApp({}, {renderDispatcher});
+    try {
+      const response = await context.app.inject({
+        method: "POST",
+        url: "/api/render/jobs",
+        payload: {manifest: renderManifest},
+      });
+      expect(response.statusCode).toBe(502);
+      expect(response.json().error).toMatch(/pipeline='joseph'/);
+      expect(renderDispatcher.spawn).not.toHaveBeenCalled();
     } finally {
       await context.app.close();
     }

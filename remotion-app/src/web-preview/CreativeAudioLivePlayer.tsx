@@ -2012,8 +2012,8 @@ export const CreativeAudioLivePlayer: React.FC<CreativeAudioLivePlayerProps> = (
           formData.append("source_video", sourceFile);
           formData.append("captionProfileId", captionProfileId);
           formData.append("motionTier", motionTier);
-          formData.append("josephProfile", "joseph_cinematic");
-          formData.append("promptText", "Apply the full Joseph cinematic treatment with synchronized typography, motion, music, ducking, and SFX.");
+          formData.append("pipeline", "maul");
+          formData.append("promptText", "Apply the governed MAUL talking-head pipeline with semantic chunking, art direction, synchronized typography, motion, music, ducking, and SFX.");
           if (backendSourcePath) {
             formData.append("sourcePath", backendSourcePath);
           }
@@ -2037,8 +2037,8 @@ export const CreativeAudioLivePlayer: React.FC<CreativeAudioLivePlayerProps> = (
               sourcePath: backendSourcePath,
               captionProfileId,
               motionTier,
-              josephProfile: "joseph_cinematic",
-              promptText: "Apply the full Joseph cinematic treatment with synchronized typography, motion, music, ducking, and SFX."
+              pipeline: "maul",
+              promptText: "Apply the governed MAUL talking-head pipeline with semantic chunking, art direction, synchronized typography, motion, music, ducking, and SFX."
             }),
             signal: abortController.signal
           });

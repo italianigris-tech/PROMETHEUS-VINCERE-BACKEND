@@ -59,6 +59,7 @@ remotion-app/public/transitions/
 remotion-app/public/datasets/
 remotion-app/public/input-video*.mp4
 remotion-app/public/.maul-proofs/
+remotion-app/public/.maul-renders/
 
 # Large local media libraries not required for code review or backend source
 YOUTUBE MUSIC DOWNLOADER -THRAGG/downloads/

@@ -122,6 +122,38 @@ describe("MAUL typography profile corpus", () => {
     ).toBe(1);
   });
 
+  it("forces a profile rotation after two consecutive uses", () => {
+    const profiles = loadTypographyProfileCorpus();
+    const base = profiles.find(
+      (profile) =>
+        profile.metadata.totalWordCount === 4 &&
+        profile.metadata.totalCharacterCount === 24,
+    );
+    expect(base).toBeDefined();
+    const alternate = {
+      ...base!,
+      profileName: `${base!.profileName}_Alternate`,
+      sourceFilename: "zz-rotation-alternate.json",
+      sourceSha256: "e".repeat(64),
+    };
+
+    const ranked = rankTypographyProfiles({
+      profiles: [base!, alternate],
+      chunk: {
+        wordCount: 4,
+        characterCount: 24,
+        semanticRole: "claim",
+        emphasisLevel: "key",
+      },
+      targetAspectRatio: "9:16",
+      recentlyUsedProfileNames: [base!.profileName, base!.profileName],
+    });
+
+    expect(ranked[0]?.profile.profileName).toBe(alternate.profileName);
+    expect(ranked.find((candidate) => candidate.profile.profileName === base!.profileName)
+      ?.recentProfileReusePenalty).toBeGreaterThanOrEqual(10_000);
+  });
+
   it("adapts the nearest JSON grammar when a fast-paced chunk exceeds corpus word counts", () => {
     const ranked = rankTypographyProfiles({
       profiles: loadTypographyProfileCorpus(),

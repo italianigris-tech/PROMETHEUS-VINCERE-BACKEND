@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prometheus Production Motion Suite — Production & FX Preview</title>
+  <style>
+    :root {
+      --bg-primary: #07070a;
+      --bg-secondary: #0e0e14;
+      --bg-card: #14141f;
+      --bg-preview: #050508;
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-glow: rgba(6, 182, 212, 0.4);
+      --accent-cyan: #06b6d4;
+      --accent-cyan-glow: rgba(6, 182, 212, 0.18);
+      --accent-purple: #7c3aed;
+      --accent-lime: #10b981;
+      --accent-rose: #f43f5e;
+      --accent-amber: #f59e0b;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --ease-cinematic: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      padding-bottom: 80px;
+    }
+
+    /* HEADER STYLES */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(7, 7, 10, 0.9);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 18px 36px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-logo {
+      width: 38px;
+      height: 38px;
+      background: linear-gradient(135deg, var(--accent-purple), var(--accent-cyan));
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 18px;
+      box-shadow: 0 0 20px rgba(124, 58, 237, 0.5);
+    }
+
+    .brand-title h1 {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-title p {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .search-box input {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 8px 14px;
+      color: var(--text-primary);
+      font-size: 13px;
+      width: 240px;
+      outline: none;
+    }
+
+    .search-box input:focus {
+      border-color: var(--accent-cyan);
+    }
+
+    .filter-btn {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      padding: 7px 16px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .filter-btn:hover, .filter-btn.active {
+      background: var(--accent-cyan-glow);
+      border-color: var(--accent-cyan);
+      color: var(--accent-cyan);
+    }
+
+    /* CONTAINER & SECTIONS */
+    .container {
+      max-width: 1700px;
+      margin: 0 auto;
+      padding: 36px;
+    }
+
+    .section-header {
+      margin: 36px 0 20px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 12px;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .section-pill {
+      background: var(--accent-purple);
+      color: #fff;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 12px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+      gap: 28px;
+    }
+
+    /* CARD STYLES */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s;
+    }
+
+    .card:hover {
+      border-color: var(--border-glow);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 20px rgba(6, 182, 212, 0.15);
+      transform: translateY(-4px);
+    }
+
+    .card-header {
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-subtle);
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    .card-title-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .card-badge {
+      font-family: monospace;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent-cyan);
+      background: var(--accent-cyan-glow);
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+
+    /* REPLAY BUTTON STYLES */
+    .replay-btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: var(--text-primary);
+      border-radius: 8px;
+      padding: 5px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .replay-btn:hover {
+      background: var(--accent-cyan);
+      border-color: var(--accent-cyan);
+      color: #000;
+      box-shadow: 0 0 14px rgba(6, 182, 212, 0.5);
+    }
+
+    .replay-btn:active {
+      transform: scale(0.94);
+    }
+
+    .replay-btn svg {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
+      transition: transform 0.3s ease;
+    }
+
+    .replay-btn:hover svg {
+      transform: rotate(-180deg);
+    }
+
+    /* PREVIEW STAGE */
+    .preview-stage {
+      height: 260px;
+      background: var(--bg-preview);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .iframe-wrapper {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .iframe-wrapper iframe {
+      width: 200%;
+      height: 200%;
+      transform: scale(0.5);
+      transform-origin: 0 0;
+      border: none;
+      pointer-events: auto;
+    }
+
+    .card-footer {
+      padding: 14px 20px;
+      border-top: 1px solid var(--border-subtle);
+      background: rgba(0, 0, 0, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    /* CINEMATIC FX PREVIEWS */
+    @keyframes paper-tear {
+      0% { clip-path: polygon(0 0, 0 0, 0 100%, 0 100%); transform: scale(1.1); }
+      50% { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); transform: scale(1); }
+      100% { clip-path: polygon(100% 0, 100% 0, 100% 100%, 100% 100%); transform: scale(0.95); }
+    }
+
+    @keyframes lens-flare {
+      0%, 100% { opacity: 0.2; transform: translateX(-100%) rotate(25deg); }
+      50% { opacity: 0.8; transform: translateX(100%) rotate(25deg); }
+    }
+
+    @keyframes draw-blueprint {
+      0% { stroke-dashoffset: 600; opacity: 0; }
+      30% { opacity: 1; }
+      100% { stroke-dashoffset: 0; opacity: 1; }
+    }
+
+    @keyframes kinetic-burst {
+      0% { transform: scale(0.2) rotate(-10deg); opacity: 0; filter: blur(12px); }
+      60% { transform: scale(1.15) rotate(2deg); opacity: 1; filter: blur(0px); }
+      80% { transform: scale(0.98) rotate(0deg); }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+
+    .paper-tear-fx {
+      width: 85%;
+      height: 75%;
+      background: #e2d9cc;
+      color: #111;
+      padding: 24px;
+      font-family: 'Times New Roman', serif;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+      animation: paper-tear 4s infinite ease-in-out;
+    }
+
+    .lens-flare-fx {
+      position: absolute;
+      width: 300%;
+      height: 40px;
+      background: linear-gradient(90deg, transparent, rgba(6, 182, 212, 0.8), rgba(255, 215, 0, 0.9), transparent);
+      box-shadow: 0 0 30px var(--accent-cyan);
+      animation: lens-flare 3.5s infinite ease-in-out;
+    }
+
+    .blueprint-fx {
+      width: 100%;
+      height: 100%;
+      background: #002b49;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .kinetic-burst-fx {
+      font-size: 28px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      background: linear-gradient(135deg, #fff, var(--accent-cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: kinetic-burst 2.5s infinite var(--ease-cinematic);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <div class="brand-logo">P</div>
+      <div class="brand-title">
+        <h1>Prometheus Production Motion Suite</h1>
+        <p>Real GSAP HTML Templates & Cinematic FX Engine Replicas</p>
+      </div>
+    </div>
+    <div class="controls">
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Filter motion assets...">
+      </div>
+      <button class="filter-btn active" data-category="all">All Assets</button>
+      <button class="filter-btn" data-category="templates">Production GSAP Templates (10)</button>
+      <button class="filter-btn" data-category="cinematic-fx">Cinematic FX & Paper (4)</button>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- SECTION 1: REAL PRODUCTION GSAP TEMPLATES -->
+    <div class="section-header">
+      <div class="section-title">
+        <span>Production GSAP / SVG Motion Templates</span>
+        <span class="section-pill">10 Full GSAP Templates</span>
+      </div>
+      <span style="font-size:12px; color:var(--text-muted);">Each card includes a dedicated Replay button to re-trigger the GSAP timeline</span>
+    </div>
+
+    <div class="grid" id="productionGrid">
+      
+      <div class="card" data-category="templates">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="card-badge">GSAP #01</span>
+            <span class="card-title">Animated 3-Image Folder Stack</span>
+          </div>
+          <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+        </div>
+        <div class="preview-stage">
+          <div class="iframe-wrapper">
+            <iframe src="templates/animated-3img-folder-v1.html"></iframe>
+          </div>
+        </div>
+        <div class="card-footer">
+          <span>Frosted glass cards, GSAP 3D stack unfold</span>
+          <span style="font-family:monospace; color:var(--accent-cyan);">folder-stack</span>
+        </div>
+      </div>
+
+      <div class="card" data-category="templates">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="card-badge">GSAP #02</span>
+            <span class="card-title">TCU Myth vs Fact Card</span>
+          </div>
+          <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+        </div>
+        <div class="preview-stage">
+          <div class="iframe-wrapper">
+            <iframe src="templates/37899547bc6e5f7daf99bf019cd9bb3b.html"></iframe>
+          </div>
+        </div>
+        <div class="card-footer">
+          <span>Red/Dark Glassmorphism Myth vs Fact Infographic</span>
+          <span style="font-family:monospace; color:var(--accent-rose);">infographic-card</span>
+        </div>
+      </div>
+
+      <div class="card" data-category="templates">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="card-badge">GSAP #03</span>
+            <span class="card-title">Blue Glass Analytics Card</span>
+          </div>
+          <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+        </div>
+        <div class="preview-stage">
+          <div class="iframe-wrapper">
+            <iframe src="templates/8bba9b4b4e60e49648ce5b9498de4dd7.html"></iframe>
+          </div>
+        </div>
+        <div class="card-footer">
+          <span>Blue Glass chart & metric progression reveal</span>
+          <span style="font-family:monospace; color:var(--accent-cyan);">analytics-card</span>
+        </div>
+      </div>
+
+      <div class="card" data-category="templates">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="card-badge">GSAP #04</span>
+            <span class="card-title">Red Glass Designer Card</span>
+          </div>
+          <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+        </div>
+        <div class="preview-stage">
+          <div class="iframe-wrapper">
+            <iframe src="templates/93379f1532461e1d70ee84dddfc1a454.html"></iframe>
+          </div>
+        </div>
+        <div class="card-footer">
+          <span>High-contrast red frosted designer profile</span>
+          <span style="font-family:monospace; color:var(--accent-rose);">profile-card</span>
+        </div>
+      </div>
+
+      <div class="card" data-category="templates">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="card-badge">GSAP #05</span>
+            <span class="card-title">Stripe & PayPal Balance Card</span>
+          </div>
+          <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+        </div>
+        <div class="preview-stage">
+          <div class="iframe-wrapper">
+            <iframe src="templates/993bb9f8957aa778af4ca306945cf94f.html"></iframe>
+          </div>
+        </div>
+        <div class="card-footer">
+          <span>Fintech payout & balance growth animation</span>
+          <span style="font-family:monospace; color:var(--accent-lime);">balance-card</span>
+        </div>
+      </div>
+
+      <div class="card" data-category="templates">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="card-badge">GSAP #06</span>
+            <span class="card-title">Budget Growth Chart Card</span>
+          </div>
+          <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+        </div>
+        <div class="preview-stage">
+          <div class="iframe-wrapper">
+            <iframe src="templates/99c78c7d757b8d8132ac2630e64ad4d1.html"></iframe>
+          </div>
+        </div>
+        <div class="card-footer">
+          <span>Dynamic budget bar chart expansion</span>
+          <span style="font-family:monospace; color:var(--accent-amber);">chart-card</span>
+        </div>
+      </div>
+
+      <div class="card" data-category="templates">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="card-badge">GSAP #07</span>
+            <span class="card-title">Long Form Typography SVG V1</span>
+          </div>
+          <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+        </div>
+        <div class="preview-stage">
+          <div class="iframe-wrapper">
+            <iframe src="templates/d0b12efad6cf31b80ba3e32a5323bae0.html"></iframe>
+          </div>
+        </div>
+        <div class="card-footer">
+          <span>Long-form SVG headline kinetic typography</span>
+          <span style="font-family:monospace; color:var(--accent-purple);">typographic</span>
+        </div>
+      </div>
+
+      <div class="card" data-category="templates">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="card-badge">GSAP #08</span>
+            <span class="card-title">Red Box Showcase</span>
+          </div>
+          <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+        </div>
+        <div class="preview-stage">
+          <div class="iframe-wrapper">
+            <iframe src="templates/e87c37381d87acd0110ec967176db07f.html"></iframe>
+          </div>
+        </div>
+        <div class="card-footer">
+          <span>Bold red accent box profile reveal</span>
+          <span style="font-family:monospace; color:var(--accent-rose);">showcase-card</span>
+        </div>
+      </div>
+
+      <div class="card" data-category="templates">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="card-badge">GSAP #09</span>
+            <span class="card-title">Headline Glass Card</span>
+          </div>
+          <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+        </div>
+        <div class="preview-stage">
+          <div class="iframe-wrapper">
+            <iframe src="templates/ea3e1edc41d8dcb7c1d1813c78eb6773.html"></iframe>
+          </div>
+        </div>
+        <div class="card-footer">
+          <span>Frosted headline badge with glass shine</span>
+          <span style="font-family:monospace; color:var(--accent-cyan);">headline-card</span>
+        </div>
+      </div>
+
+      <div class="card" data-category="templates">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="card-badge">GSAP #10</span>
+            <span class="card-title">Create Brand Intelligence Bar</span>
+          </div>
+          <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+        </div>
+        <div class="preview-stage">
+          <div class="iframe-wrapper">
+            <iframe src="templates/f27962c3497c2f66fb3cb82a89483ae4.html"></iframe>
+          </div>
+        </div>
+        <div class="card-footer">
+          <span>Interactive AI prompt & brand intelligence bar</span>
+          <span style="font-family:monospace; color:var(--accent-lime);">prompt-bar</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- SECTION 2: CINEMATIC FX & TACTILE MOTION GRAPHICS -->
+    <div class="section-header">
+      <div class="section-title">
+        <span>Cinematic FX & Tactile Motion Graphics</span>
+        <span class="section-pill" style="background:var(--accent-cyan); color:#000;">Tactile & Optical FX</span>
+      </div>
+      <span style="font-size:12px; color:var(--text-muted);">Interactive Replay buttons restart clip-path tearing, SVG vector draw & kinetic burst</span>
+    </div>
+
+    <div class="grid" id="cinematicFxGrid">
+
+      <div class="card" data-category="cinematic-fx">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="card-badge">FX #01</span>
+            <span class="card-title">Tactile Paper Cutout & Newspaper Tear</span>
+          </div>
+          <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+        </div>
+        <div class="preview-stage">
+          <div class="paper-tear-fx">
+            <h2 style="font-size:22px; font-weight:700; margin-bottom:8px;">ARCHIVAL EXTRACTION</h2>
+            <p style="font-size:12px; line-height:1.4;">Tactile paper tear reveal with organic clip-path tearing and drop-shadow depth.</p>
+          </div>
+        </div>
+        <div class="card-footer">
+          <span>Ripped newspaper / kraft paper margin reveal</span>
+          <span style="font-family:monospace; color:var(--accent-amber);">clip-path tear</span>
+        </div>
+      </div>
+
+      <div class="card" data-category="cinematic-fx">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="card-badge">FX #02</span>
+            <span class="card-title">Volumetric Lens Flare & Anamorphic Streak</span>
+          </div>
+          <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+        </div>
+        <div class="preview-stage" style="background:#000;">
+          <div class="lens-flare-fx"></div>
+          <span style="font-weight:900; font-size:20px; letter-spacing:0.1em; color:#fff; z-index:2;">OPTICAL BURN</span>
+        </div>
+        <div class="card-footer">
+          <span>Anamorphic blue/gold lens streak over media cut</span>
+          <span style="font-family:monospace; color:var(--accent-cyan);">optical flare</span>
+        </div>
+      </div>
+
+      <div class="card" data-category="cinematic-fx">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="card-badge">FX #03</span>
+            <span class="card-title">Blueprint SVG Vector Schematic Tracing</span>
+          </div>
+          <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-8z"/></svg> Replay</button>
+        </div>
+        <div class="preview-stage">
+          <div class="blueprint-fx">
+            <svg width="280" height="180" viewBox="0 0 280 180">
+              <rect x="20" y="20" width="240" height="140" fill="none" stroke="#00f0ff" stroke-width="2" stroke-dasharray="600" style="animation: draw-blueprint 3s infinite ease-in-out;" />
+              <circle cx="140" cy="90" r="45" fill="none" stroke="#ffd700" stroke-width="2" stroke-dasharray="300" style="animation: draw-blueprint 3s 0.5s infinite ease-in-out;" />
+              <line x1="20" y1="90" x2="260" y2="90" stroke="rgba(255,255,255,0.4)" stroke-dasharray="6 4" />
+            </svg>
+          </div>
+        </div>
+        <div class="card-footer">
+          <span>Real-time technical schematic vector draw</span>
+          <span style="font-family:monospace; color:var(--accent-cyan);">svg stroke-dash</span>
+        </div>
+      </div>
+
+      <div class="card" data-category="cinematic-fx">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="card-badge">FX #04</span>
+            <span class="card-title">Kinetic Speed-Ramp Text Burst</span>
+          </div>
+          <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-8z"/></svg> Replay</button>
+        </div>
+        <div class="preview-stage">
+          <div class="kinetic-burst-fx">LEONARDO DA VINCI</div>
+        </div>
+        <div class="card-footer">
+          <span>High-frequency velocity overshoot curve (0.22, 1, 0.36, 1)</span>
+          <span style="font-family:monospace; color:var(--accent-purple);">kinetic overshoot</span>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    // REPLAY FUNCTION FOR EACH INDIVIDUAL CARD
+    function replayCard(btn) {
+      const card = btn.closest('.card');
+      const iframe = card.querySelector('iframe');
+      
+      if (iframe) {
+        // Reload iframe to restart GSAP animation timeline from frame 0
+        const currentSrc = iframe.src;
+        iframe.src = 'about:blank';
+        setTimeout(() => {
+          iframe.src = currentSrc;
+        }, 30);
+      } else {
+        // Re-trigger CSS animation for non-iframe FX cards
+        const animEl = card.querySelector('.paper-tear-fx, .lens-flare-fx, .kinetic-burst-fx, svg rect, svg circle');
+        if (animEl) {
+          const prevAnimation = animEl.style.animation;
+          animEl.style.animation = 'none';
+          void animEl.offsetWidth; // Trigger DOM reflow
+          animEl.style.animation = '';
+        }
+      }
+    }
+
+    // Search filtering logic
+    const searchInput = document.getElementById('searchInput');
+    const filterBtns = document.querySelectorAll('.filter-btn');
+    const allCards = document.querySelectorAll('.card');
+
+    searchInput.addEventListener('input', (e) => {
+      const query = e.target.value.toLowerCase().trim();
+      allCards.forEach(card => {
+        const text = card.textContent.toLowerCase();
+        card.style.display = text.includes(query) ? 'flex' : 'none';
+      });
+    });
+
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        filterBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const cat = btn.getAttribute('data-category');
+
+        allCards.forEach(card => {
+          if (cat === 'all') {
+            card.style.display = 'flex';
+          } else {
+            const cardCat = card.getAttribute('data-category');
+            card.style.display = (cardCat === cat) ? 'flex' : 'none';
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>

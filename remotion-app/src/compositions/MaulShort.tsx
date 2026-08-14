@@ -16,6 +16,7 @@ import type {
   MaulRenderLayerPolicy,
 } from "@prometheus/shared-types";
 import {
+  buildMaulTransitionPlan,
   joinShortsTextTokens,
   shouldRenderMaulLayer as sharedShouldRenderMaulLayer,
 } from "@prometheus/shared-types";
@@ -31,6 +32,7 @@ import {
 
 import {MaulPlannedTextLayer} from "./MaulPlannedTextLayer";
 import {MaulVisualTrack} from "./MaulVisualTrack";
+import {MaulTransitionLayer} from "./MaulTransitionLayer";
 import {
   adaptMaulShortManifest,
   buildMaulPlannedRenderModel,
@@ -999,6 +1001,7 @@ export const MaulShort: React.FC<MaulShortProps> = ({
   const renderSourceTreatment = rendersLayer("sourceTreatment");
   const renderSourceOverlay = rendersLayer("sourceLegibilityOverlay");
   const renderBackgroundAnimation = rendersLayer("backgroundAnimation");
+  const renderTransitions = rendersLayer("transitions");
   const { fps } = useVideoConfig();
   const creativeTreatment = manifest.plans?.artDirection?.creativeTreatment;
   const visualStyle = applyMaulCreativeTreatment(
@@ -1013,7 +1016,9 @@ export const MaulShort: React.FC<MaulShortProps> = ({
       : [];
   const plannedModel =
     adaptedManifest.mode === "planned"
-      ? buildMaulPlannedRenderModel(adaptedManifest.manifest)
+      ? buildMaulPlannedRenderModel(adaptedManifest.manifest, {
+          requireTypographyProvenance: true,
+        })
       : null;
   const declaredVisualTrack =
     adaptedManifest.mode === "planned"
@@ -1049,6 +1054,28 @@ export const MaulShort: React.FC<MaulShortProps> = ({
     adaptedManifest.manifest.schemaVersion === "maul-unified-short-render-manifest/v3"
       ? adaptedManifest.manifest.martinDepth
       : undefined;
+  const transitionEvents =
+    adaptedManifest.mode === "planned" &&
+    adaptedManifest.manifest.schemaVersion === "maul-unified-short-render-manifest/v3" &&
+    renderTransitions
+      ? buildMaulTransitionPlan({
+          treatmentId: treatment.treatmentId,
+          permittedTransitions:
+            treatment.rendererInputs.motion.permittedTransitions,
+          beats: adaptedManifest.manifest.plans.textChunk.chunks.map((chunk) => ({
+            beatId: chunk.chunkId,
+            role: chunk.semanticRole,
+            outputStartMs: chunk.outputStartMs,
+            outputEndMs: chunk.outputEndMs,
+            protectedPause: false,
+            intensity: chunk.emphasis.level === "hero"
+              ? 0.95
+              : chunk.emphasis.level === "key"
+                ? 0.84
+                : 0.64,
+          })),
+        })
+      : [];
   const martinTokenPasses = martinDepth && plannedModel
     ? resolveMaulMartinTokenPasses(
         martinDepth,
@@ -1115,7 +1142,7 @@ export const MaulShort: React.FC<MaulShortProps> = ({
             motionAmplitude={renderBackgroundAnimation ? visualStyle.motionAmplitude : 0}
             sourceFilter={renderSourceTreatment ? visualStyle.sourceFilter : "none"}
             globalFrameOffset={segment.from}
-            cameraEvents={renderBackgroundAnimation ? governedCameraEvents : undefined}
+            cameraEvents={governedCameraEvents}
             compositionScale={segment.scale}
             sourceViewport={segment.sourceViewport}
             plannedCrop={segment.crop}
@@ -1141,6 +1168,7 @@ export const MaulShort: React.FC<MaulShortProps> = ({
       shouldRenderMaulSourceTreatment(observationMode) ? (
         <MaulSourceTreatment profileId={sourceTreatmentProfileId} />
       ) : null}
+      {transitionEvents.length > 0 ? <MaulTransitionLayer events={transitionEvents} /> : null}
       {shouldRenderMaulTypography(observationMode)
         ? plannedModel
           ? (
@@ -1158,7 +1186,7 @@ export const MaulShort: React.FC<MaulShortProps> = ({
                     plan={martinDepth}
                     sourceSequences={plannedModel.sourceSequences}
                     motionAmplitude={renderBackgroundAnimation ? visualStyle.motionAmplitude : 0}
-                    cameraEvents={renderBackgroundAnimation ? governedCameraEvents : undefined}
+                    cameraEvents={governedCameraEvents}
                     sourceFilter={renderSourceTreatment ? visualStyle.sourceFilter ?? "none" : "none"}
                   />
                   <MaulPlannedTextLayer

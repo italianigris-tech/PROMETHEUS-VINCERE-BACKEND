@@ -13,6 +13,40 @@ const makeExecutable = async (filePath: string): Promise<void> => {
 };
 
 describe("repository media tools", () => {
+  it("prefers a global FFmpeg for raw streaming when both global and bundle exist", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "maul-media-tools-"));
+    const pathDir = path.join(repoRoot, "path-bin");
+    const binaryName = process.platform === "win32" ? "ffmpeg.exe" : "ffmpeg";
+    const globalFfmpeg = path.join(pathDir, binaryName);
+    const bundledFfmpeg = path.join(
+      repoRoot,
+      "remotion-app",
+      "node_modules",
+      "@remotion",
+      process.platform === "win32"
+        ? "compositor-win32-x64-msvc"
+        : "compositor-linux-x64-gnu",
+      binaryName,
+    );
+    await Promise.all([makeExecutable(globalFfmpeg), makeExecutable(bundledFfmpeg)]);
+
+    const receipt = await resolveRepositoryMediaTool({
+      tool: "ffmpeg",
+      repoRoot,
+      configuredPath: null,
+      platform: process.platform,
+      arch: "x64",
+      pathValue: pathDir,
+      preferGlobalPath: true,
+    });
+
+    expect(receipt).toMatchObject({
+      status: "available",
+      source: "global_path",
+      executablePath: globalFfmpeg,
+    });
+  });
+
   it("resolves bundled Remotion FFmpeg when the global PATH has no ffmpeg", async () => {
     const repoRoot = await mkdtemp(path.join(os.tmpdir(), "maul-media-tools-"));
     const bundledFfmpeg = path.join(

@@ -1,0 +1,431 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "name": "Prometheus Kinetic Reference Trait Extraction Registry",
+  "version": "1.4.0",
+  "description": "Decomposed atomic kinetic traits extracted from reference phenotypes (TYPO #01 - #26, excluding #24) for governed Treatment Genome composition.",
+  "traits": [
+    {
+      "id": "trait_blur_up_reveal",
+      "name": "Sub-Pixel Blur-Up Mask Reveal",
+      "sourcePhenotype": "TYPO #04 (subpixel-blur-mask)",
+      "concern": "MotionPhysics",
+      "targetScope": "word",
+      "targetRoles": ["hero", "support"],
+      "ownsChannels": ["filter.blur", "opacity", "transform.scale"],
+      "requires": [],
+      "conflictsWith": ["gooey_metaball_filter"],
+      "renderMode": "frame-deterministic",
+      "frameExpression": {
+        "opacity": "clamp((frame / 30), 0, 1)",
+        "blurPx": "max(0, 26 - (frame / 30) * 26)",
+        "scale": "0.90 + clamp((frame / 30), 0, 1) * 0.10"
+      },
+      "cost": { "domNodes": 1, "filters": 1 },
+      "readabilityLimits": { "maxWords": 6 }
+    },
+    {
+      "id": "trait_staggered_rotate_x",
+      "name": "Per-Character 3D Cascade",
+      "sourcePhenotype": "TYPO #02 (staggered-char-cascade)",
+      "concern": "MotionPhysics",
+      "targetScope": "glyph",
+      "targetRoles": ["hero", "accent"],
+      "ownsChannels": ["transform.rotateX", "transform.translateY", "filter.blur", "opacity"],
+      "requires": ["glyph-segmentation"],
+      "conflictsWith": ["hand_drawn_svg_path"],
+      "renderMode": "frame-deterministic",
+      "frameExpression": {
+        "staggerOffsetFrames": 2.4,
+        "rotateX": "max(0, -90 + ((frame - glyphIndex * 2.4) / 20) * 90)",
+        "translateY": "max(0, 28 - ((frame - glyphIndex * 2.4) / 20) * 28)",
+        "blurPx": "max(0, 10 - ((frame - glyphIndex * 2.4) / 20) * 10)"
+      },
+      "cost": { "domNodes": 12, "filters": 1 },
+      "readabilityLimits": { "maxWords": 3 }
+    },
+    {
+      "id": "trait_keynote_punch",
+      "name": "Keynote Focal Scale Punch",
+      "sourcePhenotype": "TYPO #03 (keynote-punch-in)",
+      "concern": "MotionPhysics",
+      "targetScope": "phrase",
+      "targetRoles": ["hero"],
+      "ownsChannels": ["transform.scale", "opacity", "filter.blur"],
+      "requires": [],
+      "conflictsWith": [],
+      "renderMode": "frame-deterministic",
+      "frameExpression": {
+        "scale": "frame < 12 ? (1.35 - (frame / 12) * 0.37) : 1.0",
+        "opacity": "clamp((frame / 10), 0, 1)",
+        "blurPx": "max(0, 16 - (frame / 10) * 16)"
+      },
+      "cost": { "domNodes": 1, "filters": 1 },
+      "readabilityLimits": { "maxWords": 4 }
+    },
+    {
+      "id": "trait_slot_bounce",
+      "name": "Kinetic Vertical Slot Bounce",
+      "sourcePhenotype": "TYPO #16 (motion-primitives-slot)",
+      "concern": "MotionPhysics",
+      "targetScope": "glyph",
+      "targetRoles": ["hero", "accent"],
+      "ownsChannels": ["transform.translateY", "transform.scale"],
+      "requires": ["glyph-segmentation"],
+      "conflictsWith": ["gooey_metaball_filter"],
+      "renderMode": "frame-deterministic",
+      "frameExpression": {
+        "subY": "sin((frame / 60) * Math.PI * 2) * 8",
+        "superY": "-sin((frame / 60) * Math.PI * 2) * 10"
+      },
+      "cost": { "domNodes": 16, "filters": 0 },
+      "readabilityLimits": { "maxWords": 4 }
+    },
+    {
+      "id": "trait_hexta_ghost_typewriter",
+      "name": "Ghost Backspace Typewriter",
+      "sourcePhenotype": "TYPO #07 (hexta-typewriter-engine)",
+      "concern": "TemporalTrigger",
+      "targetScope": "phrase",
+      "targetRoles": ["support", "tail"],
+      "ownsChannels": ["text.visibleLength", "opacity"],
+      "requires": ["text-sub-slicing"],
+      "conflictsWith": ["liquid_gooey_morph"],
+      "renderMode": "frame-deterministic",
+      "frameExpression": {
+        "visibleCharCount": "floor(frame / 2.5)",
+        "ghostAlpha": 0.08
+      },
+      "cost": { "domNodes": 3, "filters": 0 },
+      "readabilityLimits": { "maxWords": 8 }
+    },
+    {
+      "id": "trait_vercel_yellow_pill",
+      "name": "Vercel Inverted Yellow Wipe Pill",
+      "sourcePhenotype": "TYPO #08 (vercel-highlight-box)",
+      "concern": "EnclosureAndAccents",
+      "targetScope": "word",
+      "targetRoles": ["accent", "hero"],
+      "ownsChannels": ["background.color", "text.color", "transform.scaleX"],
+      "requires": ["word-wrapping-box"],
+      "conflictsWith": ["soft_lavender_pill"],
+      "renderMode": "frame-deterministic",
+      "frameExpression": {
+        "scaleX": "clamp((frame / 18), 0, 1)",
+        "textColor": "frame > 12 ? '#000000' : '#8e8e93'"
+      },
+      "cost": { "domNodes": 2, "filters": 0 },
+      "readabilityLimits": { "maxWords": 2 }
+    },
+    {
+      "id": "trait_soft_lavender_pill",
+      "name": "Soft Lavender Selection Pill & Cursor",
+      "sourcePhenotype": "TYPO #18 (designali-soft-highlight)",
+      "concern": "EnclosureAndAccents",
+      "targetScope": "word",
+      "targetRoles": ["accent"],
+      "ownsChannels": ["background.color", "text.color", "border.color"],
+      "requires": ["word-wrapping-box"],
+      "conflictsWith": ["vercel_yellow_pill"],
+      "renderMode": "frame-deterministic",
+      "frameExpression": {
+        "pillAlpha": 0.9,
+        "cursorBlink": "floor((frame / 24)) % 2 === 0 ? 1 : 0"
+      },
+      "cost": { "domNodes": 2, "filters": 0 },
+      "readabilityLimits": { "maxWords": 2 }
+    },
+    {
+      "id": "trait_isometric_3d_stack",
+      "name": "Isometric 3D Perspective Wave Stack",
+      "sourcePhenotype": "TYPO #09 (isometric-perspective-stack)",
+      "concern": "CompositionGeometry",
+      "targetScope": "phrase",
+      "targetRoles": ["hero", "support"],
+      "ownsChannels": ["transform.matrix3d", "transform.rotateX", "transform.rotateZ"],
+      "requires": ["multi-word-stack"],
+      "conflictsWith": ["hand_drawn_svg_path"],
+      "renderMode": "frame-deterministic",
+      "frameExpression": {
+        "matrix3d": "rotateX(38deg) rotateZ(-28deg) skewX(12deg)",
+        "wordStaggerY": "sin(((frame - wordIndex * 4) / 45) * Math.PI * 2) * 12"
+      },
+      "cost": { "domNodes": 6, "filters": 0 },
+      "readabilityLimits": { "maxWords": 6 }
+    },
+    {
+      "id": "trait_hand_drawn_underline",
+      "name": "Hand-Drawn Kinetic SVG Path",
+      "sourcePhenotype": "TYPO #10 (hand-drawn-underline)",
+      "concern": "EnclosureAndAccents",
+      "targetScope": "word",
+      "targetRoles": ["accent"],
+      "ownsChannels": ["svg.strokeDashoffset"],
+      "requires": ["svg-path-definition"],
+      "conflictsWith": [],
+      "renderMode": "frame-deterministic",
+      "frameExpression": {
+        "strokeDashoffset": "max(0, 320 - (frame / 25) * 320)"
+      },
+      "cost": { "domNodes": 2, "filters": 0 },
+      "readabilityLimits": { "maxWords": 3 }
+    },
+    {
+      "id": "trait_gradient_fade_sweep",
+      "name": "Horizontal Linear Mask Fade Sweep",
+      "sourcePhenotype": "TYPO #11 (gradient-fade-sweep)",
+      "concern": "MaterialTreatment",
+      "targetScope": "word",
+      "targetRoles": ["hero", "support"],
+      "ownsChannels": ["background.position", "opacity"],
+      "requires": ["gradient-background-clip"],
+      "conflictsWith": ["metallic_chrome_3d"],
+      "renderMode": "frame-deterministic",
+      "frameExpression": {
+        "bgPositionX": "-100 + (frame / 45) * 200"
+      },
+      "cost": { "domNodes": 1, "filters": 0 },
+      "readabilityLimits": { "maxWords": 4 }
+    },
+    {
+      "id": "trait_liquid_gooey_morph",
+      "name": "Designali Liquid Metaball Ink Morph",
+      "sourcePhenotype": "TYPO #12 (designali-gooey-word-morph)",
+      "concern": "MotionPhysics",
+      "targetScope": "word",
+      "targetRoles": ["hero", "accent"],
+      "ownsChannels": ["filter.svgThreshold", "filter.blur", "transform.scale"],
+      "requires": ["svg-gooey-filter-definition"],
+      "conflictsWith": ["vector_stroke_outline", "subpixel_blur_mask"],
+      "renderMode": "frame-deterministic",
+      "frameExpression": {
+        "filterMode": "frame < 20 ? 'url(#goo) blur(4px)' : 'none'",
+        "scale": "frame < 20 ? 0.88 + (frame / 20) * 0.12 : 1.0"
+      },
+      "cost": { "domNodes": 3, "filters": 2 },
+      "readabilityLimits": { "maxWords": 2 }
+    },
+    {
+      "id": "trait_cinematic_viewport_sweep",
+      "name": "Slow Viewport Image Mask Sweep",
+      "sourcePhenotype": "TYPO #13 (cinematic-viewport-sweep)",
+      "concern": "MaterialTreatment",
+      "targetScope": "phrase",
+      "targetRoles": ["hero"],
+      "ownsChannels": ["background.position", "filter.brightness"],
+      "requires": ["background-image-url"],
+      "conflictsWith": ["gradient_fade_sweep"],
+      "renderMode": "frame-deterministic",
+      "frameExpression": {
+        "bgPositionX": "sin((frame / 540) * Math.PI * 2) * 100"
+      },
+      "cost": { "domNodes": 1, "filters": 1 },
+      "readabilityLimits": { "maxWords": 3 }
+    },
+    {
+      "id": "trait_per_word_spring_blur",
+      "name": "Per-Word Spring Blur Physics",
+      "sourcePhenotype": "TYPO #14 (elegant-blur-physics)",
+      "concern": "MotionPhysics",
+      "targetScope": "word",
+      "targetRoles": ["support", "tail"],
+      "ownsChannels": ["filter.blur", "opacity", "transform.translateY"],
+      "requires": ["word-segmentation"],
+      "conflictsWith": ["liquid_gooey_morph"],
+      "renderMode": "frame-deterministic",
+      "frameExpression": {
+        "staggerOffsetFrames": 2.4,
+        "blurPx": "max(0, 16 - ((frame - wordIndex * 2.4) / 15) * 16)",
+        "translateY": "max(0, 8 - ((frame - wordIndex * 2.4) / 15) * 8)"
+      },
+      "cost": { "domNodes": 10, "filters": 1 },
+      "readabilityLimits": { "maxWords": 12 }
+    },
+    {
+      "id": "trait_cyber_matrix_scramble",
+      "name": "Cyber Matrix Glyph Scramble Decoding",
+      "sourcePhenotype": "TYPO #15 (matrix-scramble-highlight)",
+      "concern": "TemporalTrigger",
+      "targetScope": "word",
+      "targetRoles": ["accent", "hero"],
+      "ownsChannels": ["text.scrambleString"],
+      "requires": ["seeded-random-generator"],
+      "conflictsWith": [],
+      "renderMode": "frame-deterministic",
+      "frameExpression": {
+        "revealedCharCount": "floor(frame / 3)",
+        "seededRandomChar": "CHARS[seededRandom(frame, charIndex)]"
+      },
+      "cost": { "domNodes": 2, "filters": 0 },
+      "readabilityLimits": { "maxWords": 4 }
+    },
+    {
+      "id": "trait_metallic_chrome_3d",
+      "name": "Apple Metallic Chrome 3D Gradient",
+      "sourcePhenotype": "TYPO #17 (apple-metallic-chrome-counter)",
+      "concern": "MaterialTreatment",
+      "targetScope": "phrase",
+      "targetRoles": ["hero"],
+      "ownsChannels": ["background.gradient", "filter.dropShadow", "text.clip"],
+      "requires": [],
+      "conflictsWith": ["vector_stroke_outline"],
+      "renderMode": "frame-deterministic",
+      "frameExpression": {
+        "gradient": "linear-gradient(180deg, #ffffff 0%, #e4e4e7 35%, #71717a 70%, #27272a 100%)",
+        "dropShadowPx": "20"
+      },
+      "cost": { "domNodes": 1, "filters": 1 },
+      "readabilityLimits": { "maxWords": 3 }
+    },
+    {
+      "id": "trait_number_count_up",
+      "name": "Frame-Addressed Numeric Count-Up",
+      "sourcePhenotype": "TYPO #17 (apple-metallic-chrome-counter)",
+      "concern": "TemporalTrigger",
+      "targetScope": "word",
+      "targetRoles": ["hero", "accent", "support"],
+      "ownsChannels": ["text.numericValue"],
+      "requires": ["source-grounded-numeric-evidence"],
+      "conflictsWith": [],
+      "renderMode": "frame-deterministic",
+      "execution": {
+        "status": "typed_adapter",
+        "executorId": "maul-kinetic-number-count-up-v1"
+      },
+      "frameExpression": {
+        "progress": "clamp(frame / durationFrames, 0, 1)",
+        "displayValue": "round(startValue + (endValue - startValue) * easeOutCubic(progress))"
+      },
+      "cost": { "domNodes": 1, "filters": 0 },
+      "readabilityLimits": { "maxWords": 1 }
+    },
+    {
+      "id": "trait_emoji_line_reveal",
+      "name": "Staggered Line Blind Slide Reveal",
+      "sourcePhenotype": "TYPO #19 (emoji-line-reveal)",
+      "concern": "MotionPhysics",
+      "targetScope": "layer",
+      "targetRoles": ["hero", "support"],
+      "ownsChannels": ["transform.translateY", "opacity"],
+      "requires": ["line-mask-container"],
+      "conflictsWith": [],
+      "renderMode": "frame-deterministic",
+      "frameExpression": {
+        "lineStaggerFrames": 5.0,
+        "translateY": "max(0, 115 - ((frame - lineIndex * 5.0) / 20) * 115)"
+      },
+      "cost": { "domNodes": 6, "filters": 0 },
+      "readabilityLimits": { "maxWords": 10 }
+    },
+    {
+      "id": "trait_vector_stroke_outline",
+      "name": "Vector Stroke Outline & Sparkle",
+      "sourcePhenotype": "TYPO #20 (21st-dev-outline-sparkle)",
+      "concern": "MaterialTreatment",
+      "targetScope": "word",
+      "targetRoles": ["hero", "accent"],
+      "ownsChannels": ["text.stroke", "text.fillColor", "filter.blur"],
+      "requires": [],
+      "conflictsWith": ["metallic_chrome_3d", "liquid_gooey_morph"],
+      "renderMode": "frame-deterministic",
+      "frameExpression": {
+        "strokeWidthPx": "1.5",
+        "fillOpacity": "frame > 25 ? 1.0 : 0.0"
+      },
+      "cost": { "domNodes": 2, "filters": 1 },
+      "readabilityLimits": { "maxWords": 3 }
+    },
+    {
+      "id": "trait_figma_vector_frame",
+      "name": "Figma Bounding Box Expansion & Anchors",
+      "sourcePhenotype": "TYPO #21 & #22 (collaborative-headline & hybrid-collab-slot)",
+      "concern": "EnclosureAndAccents",
+      "targetScope": "word",
+      "targetRoles": ["hero", "accent"],
+      "ownsChannels": ["border.color", "transform.scaleX", "transform.scaleY", "shadow"],
+      "requires": ["word-wrapping-box"],
+      "conflictsWith": ["vercel_yellow_pill"],
+      "renderMode": "frame-deterministic",
+      "frameExpression": {
+        "scaleX": "clamp((frame / 18), 0, 1)",
+        "scaleY": "clamp(0.2 + (frame / 18) * 0.8, 0.2, 1)",
+        "anchorScale": "max(0, (frame - 18) / 8)"
+      },
+      "cost": { "domNodes": 5, "filters": 0 },
+      "readabilityLimits": { "maxWords": 2 }
+    },
+    {
+      "id": "trait_vector_cursor_pointers",
+      "name": "Realtime Vector Cursor Pointer Arrows",
+      "sourcePhenotype": "TYPO #21 & #22 (collaborative-headline & hybrid-collab-slot)",
+      "concern": "EnclosureAndAccents",
+      "targetScope": "word",
+      "targetRoles": ["accent"],
+      "ownsChannels": ["transform.translateX", "transform.translateY", "opacity"],
+      "requires": ["svg-pointer-path"],
+      "conflictsWith": [],
+      "renderMode": "frame-deterministic",
+      "frameExpression": {
+        "pointer1X": "max(0, -60 + (frame / 20) * 60)",
+        "pointer1Y": "max(0, 60 - (frame / 20) * 60)"
+      },
+      "cost": { "domNodes": 2, "filters": 0 },
+      "readabilityLimits": { "maxWords": 4 }
+    },
+    {
+      "id": "trait_glow_search_caret",
+      "name": "Soft Radial Search Glow & Animated Pulse Caret",
+      "sourcePhenotype": "TYPO #23 (glow-search-input)",
+      "concern": "EnclosureAndAccents",
+      "targetScope": "word",
+      "targetRoles": ["accent", "support"],
+      "ownsChannels": ["background.glow", "opacity", "caret.blink"],
+      "requires": ["rounded-input-container"],
+      "conflictsWith": [],
+      "renderMode": "frame-deterministic",
+      "execution": { "status": "contract_only" },
+      "frameExpression": {
+        "glowScaleX": "clamp((frame / 20), 0, 1)",
+        "caretBlink": "floor((frame / 15)) % 2 === 0 ? 1 : 0"
+      },
+      "cost": { "domNodes": 3, "filters": 1 },
+      "readabilityLimits": { "maxWords": 4 }
+    },
+    {
+      "id": "trait_chromatic_dream_shift",
+      "name": "Lens Blur & Dual-Color RGB Chromatic Shift",
+      "sourcePhenotype": "TYPO #25 (chromatic-dream-reveal)",
+      "concern": "MaterialTreatment",
+      "targetScope": "word",
+      "targetRoles": ["hero"],
+      "ownsChannels": ["filter.blur", "transform.translateX", "mixBlendMode"],
+      "requires": ["multi-layer-text-stack"],
+      "conflictsWith": ["subpixel_blur_mask"],
+      "renderMode": "frame-deterministic",
+      "frameExpression": {
+        "blurPx": "max(0, 22 - (frame / 25) * 22)",
+        "redShiftX": "-12 + (frame / 25) * 9",
+        "cyanShiftX": "12 - (frame / 25) * 9"
+      },
+      "cost": { "domNodes": 3, "filters": 2 },
+      "readabilityLimits": { "maxWords": 3 }
+    },
+    {
+      "id": "trait_noise_fine_grain",
+      "name": "Analog Film Noise & Fine Grain Spray Blur",
+      "sourcePhenotype": "TYPO #26 (noise-fine-grain)",
+      "concern": "MaterialTreatment",
+      "targetScope": "word",
+      "targetRoles": ["hero", "accent"],
+      "ownsChannels": ["filter.svgTurbulence", "filter.blur", "background.grainOverlay"],
+      "requires": ["svg-fractal-noise-filter"],
+      "conflictsWith": [],
+      "renderMode": "frame-deterministic",
+      "frameExpression": {
+        "grainOpacity": "0.25 + sin((frame / 10) * Math.PI) * 0.15",
+        "airbrushBlurPx": "max(0.5, 12 - (frame / 20) * 11.5)"
+      },
+      "cost": { "domNodes": 3, "filters": 2 },
+      "readabilityLimits": { "maxWords": 3 }
+    }
+  ]
+}

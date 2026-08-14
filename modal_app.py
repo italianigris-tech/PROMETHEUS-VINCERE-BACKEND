@@ -11,6 +11,7 @@ from pathlib import Path, PurePosixPath
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import hashlib
 import json
+import math
 import os
 import shutil
 import subprocess
@@ -18,6 +19,7 @@ import tempfile
 import threading
 import time
 import urllib.request
+import uuid
 
 import modal
 
@@ -29,6 +31,8 @@ WORKER_ROOT = APP_ROOT / "apps/worker"
 RVM_ROOT = APP_ROOT / "packages/rvm-pipeline"
 ARTIFACT_ROOT = PurePosixPath("/data")
 PORT = 8000
+MAUL_FRAMES_PER_SLICE = 12
+MAUL_MAX_PARALLEL_SLICES = 8
 
 local_root = Path(__file__).resolve().parent
 
@@ -171,10 +175,19 @@ worker_image = (
         f"{APP_ROOT}/Yuan Prometheus Screenshots/font JSON",
         copy=True,
     )
+    .run_commands(
+        f"cp -a {APP_ROOT}/remotion-app/public/. {WORKER_ROOT}/public/",
+        f"ln -s {WORKER_ROOT}/node_modules {APP_ROOT}/remotion-app/node_modules",
+        f"cd {WORKER_ROOT} && mkdir -p .cache && npx remotion bundle src/remotion-entry.tsx --out-dir .cache/joseph-remotion-bundle",
+        f"cd {WORKER_ROOT} && npx remotion bundle ../../remotion-app/src/entries/maul-entry.tsx --out-dir .cache/maul-remotion-bundle",
+    )
     .env(
         {
             "NODE_ENV": "production",
             "REMOTION_CHROMIUM_HEADLESS_MODE": "new",
+            "REMOTION_BUNDLE_DIR": f"{WORKER_ROOT}/.cache/joseph-remotion-bundle",
+            "MAUL_REMOTION_BUNDLE_DIR": f"{WORKER_ROOT}/.cache/maul-remotion-bundle",
+            "NVIDIA_DRIVER_CAPABILITIES": "compute,video,utility",
             "TOKENIZERS_PARALLELISM": "false",
         }
     )
@@ -221,6 +234,47 @@ backend_secrets = modal.Secret.from_name("prometheus-backend-env")
 artifacts = modal.Volume.from_name("prometheus-render-artifacts", create_if_missing=True)
 
 
+def assert_nvenc_available() -> None:
+    """Fail before rendering when image or assigned GPU cannot run NVENC."""
+    encoders = subprocess.run(
+        ["ffmpeg", "-hide_banner", "-encoders"],
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=30,
+    )
+    if "h264_nvenc" not in encoders.stdout:
+        raise RuntimeError("Modal render image is missing FFmpeg h264_nvenc support.")
+    gpu = subprocess.run(
+        ["nvidia-smi", "--query-gpu=name", "--format=csv,noheader"],
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=30,
+    )
+    if not gpu.stdout.strip():
+        raise RuntimeError("Modal render worker has no visible NVIDIA GPU.")
+
+
+def run_render_command(args: list[str], timeout: int) -> dict:
+    """Run a renderer and retain enough subprocess evidence to diagnose failures."""
+    completed = subprocess.run(
+        args,
+        cwd=WORKER_ROOT,
+        env=os.environ.copy(),
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+    )
+    if completed.returncode != 0:
+        stdout = completed.stdout[-8000:].strip()
+        stderr = completed.stderr[-8000:].strip()
+        raise RuntimeError(
+            f"Render command failed ({completed.returncode}). stdout={stdout!r} stderr={stderr!r}"
+        )
+    return json.loads(completed.stdout.strip().splitlines()[-1])
+
+
 class RenderDispatchHandler(BaseHTTPRequestHandler):
     """Private localhost adapter between the Node core and Modal calls."""
 
@@ -252,11 +306,31 @@ class RenderDispatchHandler(BaseHTTPRequestHandler):
                     raise ValueError("Matting dispatch requires a request object.")
                 call = matte_worker.spawn(request)
             else:
+                pipeline = payload.get("pipeline")
+                pipeline_job_id = payload.get("pipelineJobId")
                 manifest = payload.get("manifest")
                 if not isinstance(manifest, dict):
                     raise ValueError("Render dispatch requires a manifest object.")
-                call = render_worker.spawn(manifest)
-            self._send_json(202, {"callId": call.object_id, "status": "queued"})
+                if not isinstance(pipeline_job_id, str) or not pipeline_job_id.strip():
+                    raise ValueError("Render dispatch requires pipelineJobId.")
+                if pipeline == "maul":
+                    replay_key = manifest.get("replayKey")
+                    expected_job_id = f"maul:{replay_key}"
+                    if not isinstance(replay_key, str) or pipeline_job_id != expected_job_id:
+                        raise ValueError("MAUL pipelineJobId must match manifest replayKey.")
+                    call = maul_render_worker.spawn(manifest, pipeline_job_id)
+                elif pipeline == "joseph":
+                    job_id = manifest.get("jobId")
+                    expected_job_id = f"joseph:{job_id}"
+                    if not isinstance(job_id, str) or pipeline_job_id != expected_job_id:
+                        raise ValueError("Joseph pipelineJobId must match manifest jobId.")
+                    call = render_worker.spawn(manifest, pipeline_job_id)
+                else:
+                    raise ValueError("Render dispatch pipeline must be 'maul' or 'joseph'.")
+            response = {"callId": call.object_id, "status": "queued"}
+            if self.path == "/spawn":
+                response.update({"pipeline": pipeline, "pipelineJobId": pipeline_job_id})
+            self._send_json(202, response)
         except Exception as error:
             self._send_json(400, {"error": str(error)})
 
@@ -424,6 +498,67 @@ def source_analysis_worker(payload: dict) -> dict:
     image=worker_image,
     secrets=[shared_secrets, backend_secrets],
     volumes={str(ARTIFACT_ROOT): artifacts},
+    gpu="L4",
+    cpu=8,
+    memory=16384,
+    min_containers=0,
+    max_containers=100,
+    scaledown_window=60,
+    timeout=15 * 60,
+    retries=1,
+)
+def maul_frame_slice_worker(payload: dict) -> dict:
+    """Render one quota-matched MAUL frame interval with parallel Chrome and NVENC."""
+    started_at = time.monotonic()
+    manifest = payload.get("manifest")
+    pipeline_job_id = payload.get("pipelineJobId")
+    batch_id = payload.get("batchId")
+    slice_index = payload.get("sliceIndex")
+    start_frame = payload.get("startFrame")
+    end_frame = payload.get("endFrame")
+    if not isinstance(manifest, dict):
+        raise ValueError("MAUL slice requires manifest.")
+    replay_key = manifest.get("replayKey")
+    if pipeline_job_id != f"maul:{replay_key}":
+        raise ValueError("MAUL slice received a mismatched pipelineJobId.")
+    if not isinstance(batch_id, str) or len(batch_id) != 32 or not batch_id.isalnum():
+        raise ValueError("MAUL slice requires a safe batchId.")
+    if not all(isinstance(value, int) for value in (slice_index, start_frame, end_frame)):
+        raise ValueError("MAUL slice frame coordinates must be integers.")
+    if slice_index < 0 or start_frame < 0 or end_frame < start_frame:
+        raise ValueError("MAUL slice frame interval is invalid.")
+
+    assert_nvenc_available()
+    artifacts.reload()
+    with tempfile.TemporaryDirectory(prefix="prometheus-maul-slice-") as temp_dir:
+        manifest_path = Path(temp_dir) / "manifest.json"
+        scratch_dir = Path(temp_dir) / "output"
+        scratch_dir.mkdir()
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+        result = run_render_command(
+            [
+                "npx", "tsx", "scripts/render-maul-slice.ts",
+                str(manifest_path), str(scratch_dir), str(start_frame), str(end_frame),
+                "h264_nvenc",
+            ],
+            timeout=12 * 60,
+        )
+        segment_bytes = Path(result["outputPath"]).read_bytes()
+    return {
+        "sliceIndex": slice_index,
+        "startFrame": start_frame,
+        "endFrame": end_frame,
+        "segmentBytes": segment_bytes,
+        "encoder": "h264_nvenc",
+        "elapsedMs": round((time.monotonic() - started_at) * 1000),
+    }
+
+
+@app.function(
+    image=worker_image,
+    secrets=[shared_secrets, backend_secrets],
+    volumes={str(ARTIFACT_ROOT): artifacts},
+    gpu="L4",
     cpu=8,
     memory=16384,
     min_containers=0,
@@ -432,18 +567,22 @@ def source_analysis_worker(payload: dict) -> dict:
     timeout=60 * 60,
     retries=1,
 )
-def render_worker(manifest: dict) -> dict:
-    """Render one immutable manifest; callers retain its jobId as authority."""
+def render_worker(manifest: dict, pipeline_job_id: str) -> dict:
+    """Render one immutable Joseph manifest."""
     job_id = manifest.get("jobId")
     if not isinstance(job_id, str) or not job_id.strip():
         raise ValueError("Render manifest requires a non-empty jobId.")
+    if pipeline_job_id != f"joseph:{job_id}":
+        raise ValueError("Joseph worker received a mismatched pipelineJobId.")
+
+    assert_nvenc_available()
 
     output_dir = ARTIFACT_ROOT / "media"
     Path(output_dir).mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="prometheus-render-") as temp_dir:
         manifest_path = Path(temp_dir) / "manifest.json"
         manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
-        completed = subprocess.run(
+        result = run_render_command(
             [
                 "npx",
                 "tsx",
@@ -451,21 +590,154 @@ def render_worker(manifest: dict) -> dict:
                 str(manifest_path),
                 str(output_dir),
             ],
-            cwd=WORKER_ROOT,
-            env=os.environ.copy(),
-            capture_output=True,
-            text=True,
-            check=True,
             timeout=55 * 60,
         )
-
-    result = json.loads(completed.stdout.strip().splitlines()[-1])
     output_path = Path(result["outputPath"])
     artifacts.commit()
     return {
+        "pipeline": "joseph",
+        "pipelineJobId": pipeline_job_id,
         "jobId": job_id,
         "status": "completed",
         "outputFile": output_path.name,
+        "encoder": result.get("encoder", "h264_nvenc"),
+    }
+
+
+@app.function(
+    image=worker_image,
+    secrets=[shared_secrets, backend_secrets],
+    volumes={str(ARTIFACT_ROOT): artifacts},
+    cpu=8,
+    memory=16384,
+    min_containers=0,
+    max_containers=20,
+    scaledown_window=60,
+    timeout=60 * 60,
+    retries=1,
+)
+def maul_render_worker(manifest: dict, pipeline_job_id: str) -> dict:
+    """Fan one immutable MAUL manifest across true twelve-frame workers."""
+    started_at = time.monotonic()
+    replay_key = manifest.get("replayKey")
+    if not isinstance(replay_key, str) or not replay_key.strip():
+        raise ValueError("MAUL render manifest requires replayKey.")
+    if pipeline_job_id != f"maul:{replay_key}":
+        raise ValueError("MAUL worker received a mismatched pipelineJobId.")
+
+    output_dir = Path(ARTIFACT_ROOT / "media")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output = manifest.get("output")
+    timeline = manifest.get("timeline")
+    if not isinstance(output, dict) or not isinstance(timeline, dict):
+        raise ValueError("MAUL render requires output and timeline contracts.")
+    fps = output.get("fps")
+    duration_ms = timeline.get("outputDurationMs")
+    if not isinstance(fps, (int, float)) or not isinstance(duration_ms, (int, float)):
+        raise ValueError("MAUL render requires numeric fps and outputDurationMs.")
+    total_frames = max(1, int(duration_ms / 1000 * fps + 0.5))
+    batch_id = uuid.uuid4().hex
+    slice_count = min(
+        MAUL_MAX_PARALLEL_SLICES,
+        max(1, math.ceil(total_frames / MAUL_FRAMES_PER_SLICE)),
+    )
+    frames_per_slice = math.ceil(total_frames / slice_count)
+    payloads = []
+    for slice_index, start_frame in enumerate(range(0, total_frames, frames_per_slice)):
+        payloads.append({
+            "manifest": manifest,
+            "pipelineJobId": pipeline_job_id,
+            "batchId": batch_id,
+            "sliceIndex": slice_index,
+            "startFrame": start_frame,
+            "endFrame": min(total_frames - 1, start_frame + frames_per_slice - 1),
+        })
+
+    with tempfile.TemporaryDirectory(prefix="prometheus-maul-assemble-") as temp_dir:
+        scratch_dir = Path(temp_dir)
+        manifest_path = scratch_dir / "manifest.json"
+        concat_path = scratch_dir / "segments.txt"
+        silent_path = scratch_dir / "silent.mp4"
+        final_path = scratch_dir / f"maul_{replay_key}-final.mp4"
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+        fanout_started_at = time.monotonic()
+        slice_calls = [maul_frame_slice_worker.spawn(payload) for payload in payloads]
+        audio_started_at = time.monotonic()
+        audio_result = run_render_command(
+            ["npx", "tsx", "scripts/render-maul-audio.ts", str(manifest_path), str(scratch_dir)],
+            timeout=15 * 60,
+        )
+        audio_ms = round((time.monotonic() - audio_started_at) * 1000)
+        receipts = [call.get() for call in slice_calls]
+        fanout_ms = round((time.monotonic() - fanout_started_at) * 1000)
+
+        segment_paths = []
+        for receipt in receipts:
+            segment_path = scratch_dir / f"segment-{receipt['sliceIndex']:05d}.mp4"
+            segment_path.write_bytes(receipt["segmentBytes"])
+            segment_paths.append(segment_path)
+        concat_path.write_text(
+            "\n".join(f"file '{segment_path}'" for segment_path in segment_paths) + "\n",
+            encoding="utf-8",
+        )
+        concat_started_at = time.monotonic()
+        subprocess.run(
+            [
+                "ffmpeg", "-hide_banner", "-loglevel", "error",
+                "-f", "concat", "-safe", "0", "-i", str(concat_path),
+                "-c", "copy", "-y", str(silent_path),
+            ],
+            check=True,
+            timeout=5 * 60,
+        )
+        concat_ms = round((time.monotonic() - concat_started_at) * 1000)
+        mux_started_at = time.monotonic()
+        subprocess.run(
+            [
+                "ffmpeg", "-hide_banner", "-loglevel", "error",
+                "-i", str(silent_path), "-i", audio_result["outputPath"],
+                "-map", "0:v:0", "-map", "1:a:0", "-c:v", "copy",
+                "-c:a", "aac", "-b:a", "320k", "-shortest",
+                "-movflags", "+faststart", "-y", str(final_path),
+            ],
+            check=True,
+            timeout=5 * 60,
+        )
+        output_path = output_dir / final_path.name
+        with tempfile.NamedTemporaryFile(
+            prefix=f".{final_path.stem}-",
+            suffix=final_path.suffix,
+            dir=output_dir,
+            delete=False,
+        ) as publish_file:
+            publish_path = Path(publish_file.name)
+        try:
+            shutil.copyfile(final_path, publish_path)
+            os.replace(publish_path, output_path)
+        finally:
+            publish_path.unlink(missing_ok=True)
+        mux_publish_ms = round((time.monotonic() - mux_started_at) * 1000)
+    artifacts.commit()
+    return {
+        "pipeline": "maul",
+        "pipelineJobId": pipeline_job_id,
+        "status": "completed",
+        "outputFile": output_path.name,
+        "encoder": "h264_nvenc",
+        "frameSlices": len(payloads),
+        "stageTimingsMs": {
+            "fanout": fanout_ms,
+            "concat": concat_ms,
+            "audio": audio_ms,
+            "muxPublish": mux_publish_ms,
+            "sliceMin": min(receipt["elapsedMs"] for receipt in receipts),
+            "sliceMax": max(receipt["elapsedMs"] for receipt in receipts),
+            "sliceAverage": round(
+                sum(receipt["elapsedMs"] for receipt in receipts) / len(receipts)
+            ),
+            "total": round((time.monotonic() - started_at) * 1000),
+        },
     }
 
 

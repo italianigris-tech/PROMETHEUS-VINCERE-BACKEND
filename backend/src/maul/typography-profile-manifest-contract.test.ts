@@ -1,6 +1,9 @@
 import {describe, expect, it} from "vitest";
 
-import {assertTypographyProfileManifestLineage} from "./typography-profile-manifest-contract.js";
+import {
+  assertTypographyProfileManifestLineage,
+  assertTypographyProfileProvenance,
+} from "./typography-profile-manifest-contract.js";
 
 describe("MAUL typography profile manifest contract", () => {
   const binding = {
@@ -45,5 +48,11 @@ describe("MAUL typography profile manifest contract", () => {
         profileTransform: {...segment.profileTransform, intrinsicWidthPx: 601},
       },
     })).toThrow(/dimension|geometry/i);
+  });
+
+  it("rejects self-declared typography metadata without compiler provenance", () => {
+    expect(() => assertTypographyProfileProvenance(binding)).toThrow(
+      /provenance receipt/i,
+    );
   });
 });

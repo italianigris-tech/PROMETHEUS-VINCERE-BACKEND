@@ -1199,6 +1199,7 @@ export const maulShortRenderRequestSchema = z.object({
   treatmentGenomeArtifactId: idSchema,
   planningBundleArtifactId: idSchema,
   reviewDecisionArtifactId: idSchema,
+  typographyCoverage: z.enum(["selective", "full"]).default("full"),
   layerPolicy: maulRenderLayerPolicySchema.optional(),
   musicTrack: maulLicensedAudioAssetSchema.extend({
     title: z.string().trim().min(1),
@@ -1542,6 +1543,17 @@ export const maulChunkTypographyBindingSchema = z
     realization: maulProfileTypographyRealizationSchema.optional(),
     selectionStatus: z.enum(["selected", "governed_fallback"]),
     reason: idSchema,
+    provenance: z
+      .object({
+        compilerVersion: idSchema,
+        profileId: idSchema,
+        sourceFilename: idSchema,
+        sourceSha256: z.string().regex(/^[a-f0-9]{64}$/i),
+        geometryFingerprint: z.string().regex(/^[a-f0-9]{64}$/i),
+        resolvedFontAssets: z.array(maulResolvedFontAssetSchema).min(1),
+      })
+      .strict()
+      .optional(),
     timingMs: z
       .object({
         selection: z.number().nonnegative(),
@@ -2424,6 +2436,7 @@ export const maulPlanningBundlePayloadSchema = z
 export const maulPlanningBundleRequestSchema = z.object({
   candidateArtifactId: idSchema,
   treatmentGenomeArtifactId: idSchema,
+  typographyCoverage: z.enum(["selective", "full"]).default("full"),
   visualAssetPack: maulVisualAssetPackSchema.nullable().optional().default(null),
 });
 

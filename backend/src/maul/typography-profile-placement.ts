@@ -108,6 +108,12 @@ export const selectTypographyProfilePlacement = ({
     maximumWidthPx / realization.intrinsicSizePx.width,
     maximumHeightPx / realization.intrinsicSizePx.height,
   );
+  const avoidSubjectMaximumScale = intent?.overlapPolicy === "avoid_subject"
+    ? Math.min(
+        (intent.preferredBox.width * OUTPUT.width) / realization.intrinsicSizePx.width,
+        (intent.preferredBox.height * OUTPUT.height) / realization.intrinsicSizePx.height,
+      )
+    : Number.POSITIVE_INFINITY;
   const minimumPresenceWidthPx = Math.min(
     maximumWidthPx,
     (OUTPUT.width * MINIMUM_PROFILE_WIDTH_PERCENT) / 100,
@@ -117,6 +123,7 @@ export const selectTypographyProfilePlacement = ({
   );
   const uniformScale = Math.min(
     maximumScale,
+    avoidSubjectMaximumScale,
     Math.max(
       1,
       minimumPresenceWidthPx / realization.intrinsicSizePx.width,
@@ -142,11 +149,23 @@ export const selectTypographyProfilePlacement = ({
     const normalizedWidth = finalWidthPx / OUTPUT.width;
     const normalizedHeight = finalHeightPx / OUTPUT.height;
     return ANCHORS.map((anchor) => {
-    const box = boxForAnchor({
-      anchor,
-      width: normalizedWidth,
-      height: normalizedHeight,
-    });
+    const anchoredBox = boxForAnchor({anchor, width: normalizedWidth, height: normalizedHeight});
+    const box = intent?.overlapPolicy === "avoid_subject"
+      ? {
+          x: clamp(
+            anchoredBox.x,
+            intent.preferredBox.x,
+            intent.preferredBox.x + intent.preferredBox.width - normalizedWidth,
+          ),
+          y: clamp(
+            anchoredBox.y,
+            intent.preferredBox.y,
+            intent.preferredBox.y + intent.preferredBox.height - normalizedHeight,
+          ),
+          width: normalizedWidth,
+          height: normalizedHeight,
+        }
+      : anchoredBox;
     const subjectOverlap = subjectBox
       ? overlapArea(box, subjectBox) / Math.max(0.0001, box.width * box.height)
       : 0;

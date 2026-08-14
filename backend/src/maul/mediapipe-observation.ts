@@ -11,6 +11,7 @@ import {
   createProductionStageTimer,
   maulProductionStageReceiptSchema,
 } from "./production-proof-contract.js";
+import {resolveRepositoryMediaTool} from "./repository-media-tools.js";
 
 const sha256Schema = z.string().regex(/^[a-f0-9]{64}$/i);
 
@@ -57,6 +58,15 @@ export const maulMediaObservationPayloadSchema = z
         mediapipeVersion: z.string().trim().min(1),
         opencvVersion: z.string().trim().min(1),
         configurationSha256: sha256Schema,
+        performance: z.object({
+          sampledFrameCount: z.number().int().positive(),
+          poseInferenceFrameCount: z.number().int().positive(),
+          ffmpegReadMs: z.number().nonnegative(),
+          faceInferenceMs: z.number().nonnegative(),
+          poseInferenceMs: z.number().nonnegative(),
+          postProcessMs: z.number().nonnegative(),
+          totalStageMs: z.number().nonnegative(),
+        }).strict().optional(),
       })
       .strict(),
     frames: z
@@ -121,6 +131,7 @@ export type MaulMediaObservationResult = z.infer<
 >;
 
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(currentDirectory, "../../..");
 const defaultObservationScript = path.resolve(
   currentDirectory,
   "../../../packages/trajectory-extractor/maul_observe.py",
@@ -191,16 +202,20 @@ export const runMaulMediaObservation = async ({
   outputWidth,
   outputHeight,
   sampleEveryFrames,
+  poseEverySamples = 2,
   pythonBin = resolveMaulMediaObservationPythonBin(),
   observationScript = defaultObservationScript,
+  ffmpegBin,
 }: {
   sourcePath: string;
   durationMs: number;
   outputWidth: number;
   outputHeight: number;
   sampleEveryFrames: number;
+  poseEverySamples?: number;
   pythonBin?: string;
   observationScript?: string;
+  ffmpegBin?: string;
 }): Promise<MaulMediaObservationResult> => {
   if (!Number.isInteger(durationMs) || durationMs <= 0) {
     throw new Error("MAUL MediaPipe observation requires positive integer durationMs.");
@@ -214,6 +229,20 @@ export const runMaulMediaObservation = async ({
   if (!Number.isInteger(sampleEveryFrames) || sampleEveryFrames <= 0) {
     throw new Error("MAUL MediaPipe observation requires positive sampleEveryFrames.");
   }
+  if (!Number.isInteger(poseEverySamples) || poseEverySamples <= 0) {
+    throw new Error("MAUL MediaPipe observation requires positive poseEverySamples.");
+  }
+
+  const ffmpegReceipt = ffmpegBin?.trim()
+    ? {status: "available" as const, executablePath: ffmpegBin.trim()}
+    : await resolveRepositoryMediaTool({
+        tool: "ffmpeg",
+        repoRoot,
+        preferGlobalPath: true,
+      });
+  if (ffmpegReceipt.status !== "available") {
+    throw new Error(ffmpegReceipt.reason);
+  }
 
   const sourceBytes = await readFile(sourcePath);
   if (sourceBytes.length === 0) {
@@ -225,6 +254,7 @@ export const runMaulMediaObservation = async ({
     outputWidth,
     outputHeight,
     sampleEveryFrames,
+    poseEverySamples,
   };
   const inputSha256 = sha256(
     JSON.stringify({sourceSha256, configuration}),
@@ -244,6 +274,10 @@ export const runMaulMediaObservation = async ({
       String(outputHeight),
       "--sample-every-frames",
       String(sampleEveryFrames),
+      "--pose-every-samples",
+      String(poseEverySamples),
+      "--ffmpeg-bin",
+      ffmpegReceipt.executablePath,
     ],
   });
 
