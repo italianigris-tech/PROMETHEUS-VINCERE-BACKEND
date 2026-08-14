@@ -719,6 +719,8 @@ def maul_render_worker(manifest: dict, pipeline_job_id: str) -> dict:
             publish_path.unlink(missing_ok=True)
         mux_publish_ms = round((time.monotonic() - mux_started_at) * 1000)
     artifacts.commit()
+    warnings = manifest.get("plans", {}).get("typographyMotion", {}).get("warnings", [])
+    fallback_audit = manifest.get("fallbackAudit", None)
     return {
         "pipeline": "maul",
         "pipelineJobId": pipeline_job_id,
@@ -726,6 +728,8 @@ def maul_render_worker(manifest: dict, pipeline_job_id: str) -> dict:
         "outputFile": output_path.name,
         "encoder": "h264_nvenc",
         "frameSlices": len(payloads),
+        "fallbackAudit": fallback_audit,
+        "warnings": warnings,
         "stageTimingsMs": {
             "fanout": fanout_ms,
             "concat": concat_ms,

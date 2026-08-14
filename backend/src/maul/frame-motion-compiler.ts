@@ -336,20 +336,16 @@ export const compileMaulWordMotion = ({
   const endFrame = toEndFrame(holdUntilMs, fps);
   const spokenFrames = spokenEndFrame - startFrame;
 
-  const totalFrames = endFrame - startFrame;
-  const desiredEntryFrames = Math.max(5, Math.floor(spokenFrames * 0.25));
-  const desiredExitFrames = Math.max(1, Math.floor(spokenFrames * 0.2));
-  const exitFrames = Math.min(desiredExitFrames, Math.max(1, totalFrames - 2));
-  const entryFrames = Math.min(
-    desiredEntryFrames,
-    Math.max(1, totalFrames - exitFrames - 1),
-  );
-  const holdFrames = totalFrames - entryFrames - exitFrames;
-  if (holdFrames < 1) throw new Error(`MAUL word interval has no readable hold: ${token.tokenId}.`);
+  const rawTotalFrames = endFrame - startFrame;
+  const totalFrames = Math.max(3, rawTotalFrames);
+  const entryFrames = Math.max(1, Math.floor(totalFrames * 0.25));
+  const exitFrames = Math.max(1, Math.floor(totalFrames * 0.2));
+  const holdFrames = Math.max(1, totalFrames - entryFrames - exitFrames);
+  const holdEnd = startFrame + entryFrames + holdFrames;
+  const resolvedEndFrame = holdEnd + exitFrames;
 
   const entryFrom = entryFromFor(capability);
   const entryTo = identity;
-  const holdEnd = startFrame + entryFrames + holdFrames;
   const exitTo = exitToFor(capability);
   return maulFrameMotionProgramSchema.parse({
     schemaVersion: "maul-frame-motion/v1",
@@ -377,7 +373,7 @@ export const compileMaulWordMotion = ({
       },
       exit: {
         startFrame: holdEnd,
-        endFrame,
+        endFrame: resolvedEndFrame,
         easing: easingFor(capability.family),
         from: identity,
         to: exitTo,

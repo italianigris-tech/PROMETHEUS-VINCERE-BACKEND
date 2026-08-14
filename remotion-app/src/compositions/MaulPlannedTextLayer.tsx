@@ -634,7 +634,6 @@ export const MaulPlannedTextCard: React.FC<{
     ? record.animationPrograms
     : record.animationProgram ? [record.animationProgram] : [];
   const resolvedAnimations =
-    creativeTreatment?.motionMode !== 'static_editorial_hold' &&
     outputFrame !== undefined && fps !== undefined
     ? animationPrograms.map((program) => ({
         program,
@@ -649,7 +648,7 @@ export const MaulPlannedTextCard: React.FC<{
       <MaulProfileTypographyGroup
         record={record}
         segmentAnimation={segmentAnimation}
-        outputFrame={creativeTreatment?.motionMode === "static_editorial_hold" ? undefined : outputFrame}
+        outputFrame={outputFrame}
         visibleTokenIds={visibleTokenIds}
       />
     );

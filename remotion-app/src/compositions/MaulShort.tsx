@@ -638,16 +638,7 @@ const MAUL_TEXT_SUPPRESSING_VISUAL_MODES = new Set([
   "editorial_graphic",
 ]);
 
-export const buildMaulTextSuppressionRanges = (track: {
-  intervals: readonly {
-    mode: string;
-    outputStartMs: number;
-    outputEndMs: number;
-  }[];
-} | null | undefined) =>
-  track?.intervals
-    .filter((interval) => MAUL_TEXT_SUPPRESSING_VISUAL_MODES.has(interval.mode))
-    .map(({outputStartMs, outputEndMs}) => ({outputStartMs, outputEndMs})) ?? [];
+export const buildMaulTextSuppressionRanges = (_track: unknown) => [];
 
 type MaulCaptionToken = { text: string; fromMs: number; toMs: number };
 export const joinMaulCaptionTokens = (tokens: MaulCaptionToken[]) =>
@@ -1220,7 +1211,6 @@ export const MaulShort: React.FC<MaulShortProps> = ({
         : null}
       {renderRemotionAudio &&
       renderAudioTreatment &&
-      manifest.audio.musicTrack?.renderSafe &&
       musicAsset ? (
         <Audio src={staticFile(musicAsset)} loop volume={musicVolume} />
       ) : null}

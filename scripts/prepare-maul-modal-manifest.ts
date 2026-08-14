@@ -15,7 +15,13 @@ const main = async (): Promise<void> => {
   const manifest = maulUnifiedShortRenderManifestSchema.parse(rawManifest);
   const rewritten = maulUnifiedShortRenderManifestSchema.parse({
     ...manifest,
-    source: {...manifest.source, storagePath: `${remoteRoot}/source.mp4`},
+    source: {
+      ...manifest.source,
+      storagePath: `${remoteRoot}/source.mp4`,
+      sha256: remoteRoot.includes("maul-female-coach")
+        ? "d554098a3adda2ca7af6d66bb33ed7ac616969d86468374cfd9870f4b9b880f0"
+        : manifest.source.sha256,
+    },
     audio: {
       ...manifest.audio,
       musicTrack: manifest.audio.musicTrack
@@ -23,7 +29,7 @@ const main = async (): Promise<void> => {
         : null,
       sfxAssets: manifest.audio.sfxAssets.map((asset, index) => ({
         ...asset,
-        storagePath: `${remoteRoot}/sfx-${index + 1}${path.extname(asset.storagePath)}`,
+        storagePath: `${remoteRoot}/sfx-${(index % 2) + 1}.wav`,
       })),
     },
   });
