@@ -122,7 +122,7 @@ describe("MAUL typography profile corpus", () => {
     ).toBe(1);
   });
 
-  it("forces a profile rotation after two consecutive uses", () => {
+  it("keeps a profile capped after an alternate breaks its consecutive run", () => {
     const profiles = loadTypographyProfileCorpus();
     const base = profiles.find(
       (profile) =>
@@ -146,12 +146,97 @@ describe("MAUL typography profile corpus", () => {
         emphasisLevel: "key",
       },
       targetAspectRatio: "9:16",
-      recentlyUsedProfileNames: [base!.profileName, base!.profileName],
+      recentlyUsedProfileNames: [
+        base!.profileName,
+        base!.profileName,
+        alternate.profileName,
+      ],
     });
 
     expect(ranked[0]?.profile.profileName).toBe(alternate.profileName);
     expect(ranked.find((candidate) => candidate.profile.profileName === base!.profileName)
       ?.recentProfileReusePenalty).toBeGreaterThanOrEqual(10_000);
+  });
+
+  it("prefers an unused primary font family between equivalent profiles", () => {
+    const source = loadTypographyProfileCorpus().find(
+      (profile) => profile.metadata.totalWordCount === 4,
+    );
+    expect(source).toBeDefined();
+    const withFamily = (
+      profileName: string,
+      sourceFilename: string,
+      sourceSha256: string,
+      family: string,
+    ) => ({
+      ...structuredClone(source!),
+      profileName,
+      sourceFilename,
+      sourceSha256,
+      layers: source!.layers.map((layer) => ({
+        ...structuredClone(layer),
+        matchedFontCandidates: [family],
+      })),
+    });
+    const usedFamily = withFamily(
+      "Used_Playfair_Profile",
+      "aa-used-family.json",
+      "a".repeat(64),
+      "Playfair Display",
+    );
+    const freshFamily = withFamily(
+      "Fresh_Montserrat_Profile",
+      "zz-fresh-family.json",
+      "f".repeat(64),
+      "Montserrat",
+    );
+
+    const ranked = rankTypographyProfiles({
+      profiles: [usedFamily, freshFamily],
+      chunk: {
+        wordCount: source!.metadata.totalWordCount,
+        characterCount: source!.metadata.totalCharacterCount,
+        semanticRole: "claim",
+        emphasisLevel: "key",
+      },
+      targetAspectRatio: "9:16",
+      recentlyUsedPrimaryFontFamilies: ["playfairdisplay"],
+    });
+
+    expect(ranked[0]?.profile.profileName).toBe("Fresh_Montserrat_Profile");
+  });
+
+  it("never trades exact word compatibility for profile diversity", () => {
+    const exact = loadTypographyProfileCorpus().find(
+      (profile) =>
+        profile.metadata.totalWordCount === 4 &&
+        profile.metadata.totalCharacterCount === 24,
+    );
+    expect(exact).toBeDefined();
+    const incompatible = {
+      ...structuredClone(exact!),
+      profileName: "Unused_Incompatible_Profile",
+      sourceFilename: "zz-unused-incompatible.json",
+      sourceSha256: "f".repeat(64),
+      metadata: {
+        ...structuredClone(exact!.metadata),
+        totalWordCount: 3,
+      },
+    };
+
+    const ranked = rankTypographyProfiles({
+      profiles: [exact!, incompatible],
+      chunk: {
+        wordCount: 4,
+        characterCount: 24,
+        semanticRole: "claim",
+        emphasisLevel: "key",
+      },
+      targetAspectRatio: "9:16",
+      recentlyUsedProfileNames: [exact!.profileName, exact!.profileName],
+    });
+
+    expect(ranked[0]?.profile.profileName).toBe(exact!.profileName);
   });
 
   it("adapts the nearest JSON grammar when a fast-paced chunk exceeds corpus word counts", () => {

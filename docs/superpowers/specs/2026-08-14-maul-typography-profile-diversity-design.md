@@ -26,7 +26,7 @@ Selection will retain bounded whole-video history:
 
 1. Rank profiles by compatibility using the existing corpus ranker.
 2. Prefer candidates used fewer than two times across the compilation when compatible alternatives exist.
-3. Within the compatible candidate band, prefer a candidate whose primary requested font family differs from recent primary families.
+3. Within the compatible candidate band, prefer a candidate whose resolved primary font family differs from recent rendered families. This accounts for different JSON family requests resolving to the same deployed fallback.
 4. Fall back to the best compatible candidate when the corpus is too small to satisfy either diversity preference.
 
 The candidate band must preserve the selected ranking contract: minimum word distance first, then the existing close character-distance tolerance. Diversity cannot promote a structurally unsuitable profile.

@@ -644,7 +644,6 @@ describe("MAUL complete short render path", () => {
       })),
       targetAspectRatio: "9:16",
       maximumLineWidthPx: 820,
-      continuityMode: "scene_coherent",
     });
     expect(plans.visual.payload.visualTrack).toMatchObject({
       schemaVersion: "maul-visual-track/v1",
@@ -802,11 +801,9 @@ describe("MAUL complete short render path", () => {
       textPlacementPlanArtifactId: plans.textPlacement.artifactId,
       textAnimationPlanArtifactId: plans.textAnimation.artifactId,
       fontResolution: {
-        selectedFamily: expect.any(String),
-        selectedAssetId: expect.any(String),
-        selectedAsset: expect.objectContaining({
-          browserUrl: expect.stringMatching(/^\/fonts\//),
-        }),
+        selectedFamily: "Mixed chunk typography",
+        selectedAssetId: null,
+        selectedAsset: null,
         status: "eligible_loaded",
       },
     });
@@ -815,9 +812,12 @@ describe("MAUL complete short render path", () => {
     expect(typographyBindings).toHaveLength(
       plans.textChunk.payload.chunks.length,
     );
-    expect(new Set(
-      typographyBindings.map((binding: any) => binding.profile.name),
-    ).size).toBe(1);
+    const profileUseCounts = typographyBindings.reduce((counts: Record<string, number>, binding: any) => ({
+      ...counts,
+      [binding.profile.name]: (counts[binding.profile.name] ?? 0) + 1,
+    }), {} as Record<string, number>);
+    expect(Object.keys(profileUseCounts).length).toBeGreaterThan(1);
+    expect(Math.max(...(Object.values(profileUseCounts) as number[]))).toBeLessThanOrEqual(2);
     expect(typographyBindings.every((binding: any) =>
       binding.provenance?.profileId === binding.compatibilityProfile.profileId &&
       binding.provenance?.sourceFilename === binding.profile.sourceFilename &&

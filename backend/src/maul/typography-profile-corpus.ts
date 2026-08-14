@@ -162,12 +162,32 @@ export type RankedTypographyProfile = {
   semanticScore: number;
   expressivenessScore: number;
   recentProfileReusePenalty: number;
+  recentPrimaryFamilyReusePenalty: number;
 };
 
 let cachedDefaultCorpus: readonly TypographyProfileObservation[] | null = null;
 
 export const countTypographyCharacters = (text: string): number =>
   [...text].filter((character) => !/\s/u.test(character)).length;
+
+const typographyLayerVisualScale = (layer: TypographyProfileLayer): number =>
+  layer.fontStyle.sizePxBase * layer.fontStyle.relativeScale;
+
+export const primaryTypographyLayer = (
+  profile: TypographyProfileObservation,
+): TypographyProfileLayer =>
+  [...profile.layers].sort(
+    (left, right) =>
+      typographyLayerVisualScale(right) - typographyLayerVisualScale(left) ||
+      left.layerName.localeCompare(right.layerName),
+  )[0]!;
+
+export const typographyProfilePrimaryFamilyKey = (
+  profile: TypographyProfileObservation,
+): string =>
+  primaryTypographyLayer(profile).matchedFontCandidates[0]!
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "");
 
 const countObservedSampleCharacters = (text: string): number =>
   countTypographyCharacters(
@@ -431,6 +451,8 @@ export const rankTypographyProfiles = ({
   chunk,
   targetAspectRatio,
   recentlyUsedProfileNames = [],
+  recentlyUsedPrimaryFontFamilies = [],
+  primaryFontFamilyKeyForProfile = typographyProfilePrimaryFamilyKey,
 }: {
   profiles: readonly TypographyProfileObservation[];
   chunk: {
@@ -441,6 +463,10 @@ export const rankTypographyProfiles = ({
   };
   targetAspectRatio: "9:16";
   recentlyUsedProfileNames?: readonly string[];
+  recentlyUsedPrimaryFontFamilies?: readonly string[];
+  primaryFontFamilyKeyForProfile?: (
+    profile: TypographyProfileObservation,
+  ) => string;
 }): RankedTypographyProfile[] => {
   const candidates = profiles.map((profile) => ({
       profile,
@@ -459,12 +485,17 @@ export const rankTypographyProfiles = ({
       ),
       expressivenessScore: profileExpressivenessScore(profile),
       recentProfileReusePenalty: (() => {
-        let consecutiveUses = 0;
-        for (let index = recentlyUsedProfileNames.length - 1; index >= 0; index -= 1) {
-          if (recentlyUsedProfileNames[index] !== profile.profileName) break;
-          consecutiveUses += 1;
-        }
-        return consecutiveUses >= 2 ? 10_000 : consecutiveUses;
+        const totalUses = recentlyUsedProfileNames.filter(
+          (profileName) => profileName === profile.profileName,
+        ).length;
+        return totalUses >= 2 ? 10_000 : totalUses;
+      })(),
+      recentPrimaryFamilyReusePenalty: (() => {
+        const primaryFamily = primaryFontFamilyKeyForProfile(profile);
+        const totalUses = recentlyUsedPrimaryFontFamilies.filter(
+          (family) => family === primaryFamily,
+        ).length;
+        return totalUses >= 2 ? 10_000 : totalUses;
       })(),
     }));
   if (candidates.length === 0) return [];
@@ -475,11 +506,15 @@ export const rankTypographyProfiles = ({
     minimumCharacterDistance + CHARACTER_DISTANCE_TOLERANCE;
   return candidates.sort(
     (left, right) =>
-      left.recentProfileReusePenalty - right.recentProfileReusePenalty ||
       left.wordDistance - right.wordDistance ||
       left.aspectPenalty - right.aspectPenalty ||
       Number(left.characterDistance > maximumCloseCharacterDistance) -
         Number(right.characterDistance > maximumCloseCharacterDistance) ||
+      Number(left.recentProfileReusePenalty >= 10_000) -
+        Number(right.recentProfileReusePenalty >= 10_000) ||
+      left.recentPrimaryFamilyReusePenalty -
+        right.recentPrimaryFamilyReusePenalty ||
+      left.recentProfileReusePenalty - right.recentProfileReusePenalty ||
       right.semanticScore - left.semanticScore ||
       right.expressivenessScore - left.expressivenessScore ||
       left.characterDistance - right.characterDistance ||

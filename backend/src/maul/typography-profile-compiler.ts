@@ -11,8 +11,9 @@ import {hashMaulPlanPayload} from "./text-chunk-plan.js";
 import {
   countTypographyCharacters,
   loadTypographyProfileCorpus,
+  primaryTypographyLayer,
   rankTypographyProfiles,
-  type RankedTypographyProfile,
+  typographyProfilePrimaryFamilyKey,
   type TypographyProfileLayer,
   type TypographyProfileObservation,
 } from "./typography-profile-corpus.js";
@@ -81,7 +82,6 @@ export interface TypographyProfileCompiler {
     chunks: readonly TypographyProfileCompilerChunk[];
     targetAspectRatio: "9:16";
     maximumLineWidthPx: number;
-    continuityMode?: "varied" | "scene_coherent";
   }): Promise<TypographyProfileCompilation>;
 }
 
@@ -89,15 +89,6 @@ const roundTiming = (value: number): number => Number(value.toFixed(3));
 
 const visualScale = (layer: TypographyProfileLayer): number =>
   layer.fontStyle.sizePxBase * layer.fontStyle.relativeScale;
-
-const primaryLayerFor = (
-  profile: TypographyProfileObservation,
-): TypographyProfileLayer =>
-  [...profile.layers].sort(
-    (left, right) =>
-      visualScale(right) - visualScale(left) ||
-      left.layerName.localeCompare(right.layerName),
-  )[0]!;
 
 const accentLayerFor = ({
   profile,
@@ -124,6 +115,9 @@ const normalizedCandidateSet = (layer: TypographyProfileLayer): Set<string> =>
       candidate.toLowerCase().replace(/[^a-z0-9]+/g, ""),
     ),
   );
+
+const normalizedFontFamily = (family: string): string =>
+  family.toLowerCase().replace(/[^a-z0-9]+/g, "");
 
 const layersRequestContrast = (
   primary: TypographyProfileLayer,
@@ -159,6 +153,33 @@ export const createTypographyProfileCompiler = ({
     string,
     ReturnType<typeof createResolvedMaulTypographyProvider>
   >();
+  const primaryBindingByProfileName = new Map<
+    string,
+    ReturnType<typeof resolveTypographyProfileLayer>
+  >();
+  const resolvePrimaryBinding = (profile: TypographyProfileObservation) => {
+    const cached = primaryBindingByProfileName.get(profile.profileName);
+    if (cached) return cached;
+    const resolved = resolveTypographyProfileLayer({
+      layer: primaryTypographyLayer(profile),
+      profileMood: profile.metadata.overallMood,
+      catalog,
+      executableAssets,
+    });
+    primaryBindingByProfileName.set(profile.profileName, resolved);
+    return resolved;
+  };
+  const resolvedPrimaryFamilyKey = (
+    profile: TypographyProfileObservation,
+  ): string => {
+    try {
+      return normalizedFontFamily(
+        resolvePrimaryBinding(profile).selectedAsset.family,
+      );
+    } catch {
+      return typographyProfilePrimaryFamilyKey(profile);
+    }
+  };
   return {
     async compile(input) {
       if (input.chunks.length === 0) {
@@ -170,7 +191,7 @@ export const createTypographyProfileCompiler = ({
       try {
         const compiledChunks: CompiledChunkTypography[] = [];
         const recentlyUsedProfileNames: string[] = [];
-        let sceneProfile: TypographyProfileObservation | null = null;
+        const recentlyUsedPrimaryFontFamilies: string[] = [];
         for (const chunk of input.chunks) {
           const selectionStarted = performance.now();
           const ranked = rankTypographyProfiles({
@@ -183,36 +204,22 @@ export const createTypographyProfileCompiler = ({
             },
             targetAspectRatio: input.targetAspectRatio,
             recentlyUsedProfileNames,
+            recentlyUsedPrimaryFontFamilies,
+            primaryFontFamilyKeyForProfile: resolvedPrimaryFamilyKey,
           });
-          const sceneCandidate: RankedTypographyProfile | undefined = sceneProfile
-            ? ranked.find((candidate) =>
-                candidate.profile.profileName === sceneProfile!.profileName,
-              )
-            : undefined;
-          const selected: RankedTypographyProfile | undefined =
-            input.continuityMode === "scene_coherent" &&
-            sceneCandidate &&
-            sceneCandidate.recentProfileReusePenalty < 10_000
-              ? sceneCandidate
-              : ranked[0];
+          const selected = ranked[0];
           if (!selected) {
             throw new Error("Typography profile corpus produced no candidates.");
           }
-          sceneProfile ??= selected.profile;
           recentlyUsedProfileNames.push(selected.profile.profileName);
-          if (recentlyUsedProfileNames.length > 8) {
-            recentlyUsedProfileNames.shift();
-          }
           const selectionMs = performance.now() - selectionStarted;
 
           const fontResolutionStarted = performance.now();
-          const primaryLayer = primaryLayerFor(selected.profile);
-          const primaryBinding = resolveTypographyProfileLayer({
-            layer: primaryLayer,
-            profileMood: selected.profile.metadata.overallMood,
-            catalog,
-            executableAssets,
-          });
+          const primaryLayer = primaryTypographyLayer(selected.profile);
+          const primaryBinding = resolvePrimaryBinding(selected.profile);
+          recentlyUsedPrimaryFontFamilies.push(
+            normalizedFontFamily(primaryBinding.selectedAsset.family),
+          );
           const bindingsByLayerName = new Map([
             [primaryLayer.layerName, primaryBinding],
           ]);

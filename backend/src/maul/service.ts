@@ -1446,7 +1446,6 @@ export class MaulProjectService {
         })),
       targetAspectRatio: "9:16",
       maximumLineWidthPx: 820,
-      continuityMode: "scene_coherent",
     });
     if (
       compiledTypography.status === "unavailable" &&
