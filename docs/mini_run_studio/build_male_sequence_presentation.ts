@@ -72,9 +72,9 @@ const maleSequencePayload4 = [
         fontWeight: 700,
         fontStyle: "italic",
         fontSizePx: 34,
+        letterSpacingEm: 0.03,
         color: "#FFFFFF",
-        shining: true,
-        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 12, color: "rgba(0,0,0,0.9)" }
+        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 12, color: "rgba(0,0,0,0.95)" }
       }
     ]
   },
@@ -814,18 +814,36 @@ const htmlContent = `<!DOCTYPE html>
     .layer-behind-subject { z-index: 10 !important; position: relative; }
     .layer-front-of-subject { z-index: 30 !important; position: relative; }
     
-    /* COHESIVE WORD CONTAINER - PREVENTS ANY WORD FROM SPLITTING IN HALF */
+    /* WORD-LEVEL COHESION & TYPOGRAPHY METRICS (NO KISSING LETTERS) */
     .word-group {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       white-space: nowrap !important;
-      margin: 0 0.16em;
+      margin: 0 0.22em;
       overflow: visible;
       position: relative;
     }
 
-    .word-item, .char-item {
+    .word-item {
+      display: inline-block;
+      white-space: nowrap !important;
+      font-family: inherit !important;
+      font-size: inherit !important;
+      font-weight: inherit !important;
+      font-style: inherit !important;
+      color: inherit !important;
+      text-shadow: inherit !important;
+      line-height: inherit !important;
+      letter-spacing: inherit !important;
+      text-transform: inherit !important;
+      overflow: visible !important;
+      opacity: 1;
+      visibility: visible;
+      margin: 0 0.2em;
+    }
+
+    .char-item {
       display: inline-block;
       font-family: inherit !important;
       font-size: inherit !important;
@@ -839,9 +857,6 @@ const htmlContent = `<!DOCTYPE html>
       overflow: visible !important;
       opacity: 1;
       visibility: visible;
-    }
-    
-    .char-item {
       margin: 0;
       padding: 0;
     }
@@ -891,28 +906,6 @@ const htmlContent = `<!DOCTYPE html>
     @keyframes textLandFirst { 
       0% { opacity: 0; transform: scale(1.1); filter: blur(6px); } 
       100% { opacity: 1; transform: scale(1); filter: blur(0px); } 
-    }
-
-    /* SHINING METALLIC GOLD & CYAN LUMINOUS TEXT TREATMENT FOR BUSINESS LETTERS */
-    .shining-letters .char-item, .shining-letters .word-item, .shining-letters {
-      background: linear-gradient(110deg, #FFFFFF 15%, #FFE600 45%, #FFFFFF 65%, #00F0FF 90%);
-      background-size: 200% 100%;
-      -webkit-background-clip: text !important;
-      -webkit-text-fill-color: transparent !important;
-      animation: textShineSweep 2.4s linear infinite !important;
-      filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.7)) drop-shadow(0 0 24px rgba(255, 230, 0, 0.4));
-    }
-    .shining-cyan .char-item, .shining-cyan .word-item, .shining-cyan {
-      background: linear-gradient(110deg, #FFFFFF 15%, #00F0FF 45%, #FFFFFF 65%, #3B82F6 90%);
-      background-size: 200% 100%;
-      -webkit-background-clip: text !important;
-      -webkit-text-fill-color: transparent !important;
-      animation: textShineSweep 2.4s linear infinite !important;
-      filter: drop-shadow(0 0 12px rgba(0, 240, 255, 0.8));
-    }
-    @keyframes textShineSweep {
-      0% { background-position: 100% 0; }
-      100% { background-position: -100% 0; }
     }
 
     /* CIRCLE CONTRAST INVERSION MASK */
@@ -1451,12 +1444,6 @@ const htmlContent = `<!DOCTYPE html>
         if (layer.letterSpacingEm) layerDiv.style.letterSpacing = layer.letterSpacingEm + 'em';
         if (layer.marginTopPx) layerDiv.style.marginTop = layer.marginTopPx + 'px';
 
-        if (layer.shining) {
-          layerDiv.classList.add('shining-letters');
-        } else if (layer.shiningCyan) {
-          layerDiv.classList.add('shining-cyan');
-        }
-
         if (layer.dropShadow) {
           const s = layer.dropShadow;
           layerDiv.style.textShadow = s.xOffset + 'px ' + s.yOffset + 'px ' + s.blurRadius + 'px ' + s.color;
@@ -1516,18 +1503,18 @@ const htmlContent = `<!DOCTYPE html>
           layerDiv.appendChild(circle);
           layerDiv.appendChild(txt);
 
-        // 3. STANDARD KINETIC ANIMATION TREATMENTS (WORD-GROUP COHESIVE SYSTEM)
+        // 3. STANDARD KINETIC ANIMATION TREATMENTS (CLEAN SOLID WORD & CHAR ENGINE)
         } else {
           const rawText = applyCasing(layer.text, layer.casing);
           const isScriptFont = layer.fontFamily.toLowerCase().includes('vibes') || layer.fontFamily.toLowerCase().includes('playfair') || layer.fontFamily.toLowerCase().includes('serif');
           const words = rawText.split(/\s+/).filter(Boolean);
-          let layerCharIdx = 0;
 
-          words.forEach((w, wIdx) => {
-            const wordGroup = document.createElement('span');
-            wordGroup.className = 'word-group';
+          if (layerTrait.type === 'letter' && !isScriptFont) {
+            let layerCharIdx = 0;
+            words.forEach((w) => {
+              const wordGroup = document.createElement('span');
+              wordGroup.className = 'word-group';
 
-            if (layerTrait.type === 'letter' && !isScriptFont) {
               Array.from(w).forEach((char) => {
                 const charSpan = document.createElement('span');
                 charSpan.className = 'char-item';
@@ -1537,16 +1524,18 @@ const htmlContent = `<!DOCTYPE html>
                 layerCharIdx++;
                 wordGroup.appendChild(charSpan);
               });
-            } else {
+
+              layerDiv.appendChild(wordGroup);
+            });
+          } else {
+            words.forEach((w, wIdx) => {
               const wordSpan = document.createElement('span');
               wordSpan.className = 'word-item';
               wordSpan.innerText = w;
               wordSpan.style.animationDelay = (wIdx * 0.06) + 's';
-              wordGroup.appendChild(wordSpan);
-            }
-
-            layerDiv.appendChild(wordGroup);
-          });
+              layerDiv.appendChild(wordSpan);
+            });
+          }
         }
 
         familyGroup.appendChild(layerDiv);
