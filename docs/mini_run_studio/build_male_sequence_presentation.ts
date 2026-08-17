@@ -144,14 +144,6 @@ const maleSequencePayload4 = [
     chunkIndex: 5,
     timestamp: "00:08 — 00:10",
     text: "a consistency problem.",
-    backgroundAsset: {
-      assetId: "consistency_atomic_flywheel_clean",
-      assetName: "Archival Precision Clockwork Flywheel Machine ($Z:10$)",
-      imageUrl: flywheelBase64,
-      position: { topPercent: 6, leftPercent: 48, widthPx: 380 },
-      depth: "behind",
-      motion: "asset_bezier_rotate_spin"
-    },
     layers: [
       {
         layerName: "prefix_a_consistency",
@@ -166,14 +158,14 @@ const maleSequencePayload4 = [
       {
         layerName: "hero_consistency_problem",
         text: "CONSISTENCY PROBLEM.",
-        fontFamily: "Bebas Neue",
-        fontWeight: 400,
-        fontSizePx: 34,
+        fontFamily: "DM Sans",
+        fontWeight: 800,
+        fontSizePx: 32,
         casing: "uppercase",
         letterSpacingEm: 0.04,
         color: "#FFFFFF",
-        elasticMorphBadge: true,
-        marginTopPx: 6
+        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 12, color: "rgba(0,0,0,0.95)" },
+        marginTopPx: 4
       }
     ]
   },
@@ -450,11 +442,10 @@ const maleSequencePayload4 = [
     timestamp: "00:38 — 00:40",
     text: "That's how businesses scale.",
     backgroundAsset: {
-      assetId: "vintage_rocket_launch_documentary",
-      assetName: "Authentic Documentary Saturn-V Rocket Launch + Elon Musk Cutout ($Z:10$)",
+      assetId: "causal_flood_matted_rocket_launch",
+      assetName: "Causal Flood-Matted Rocket Launch Cutout ($Z:10$)",
       imageUrl: vintageRocketBase64,
-      secondaryImageUrl: techFoundersTrioBase64,
-      position: { topPercent: 3, leftPercent: 2, widthPx: 400 },
+      position: { topPercent: 6, leftPercent: 44, widthPx: 330 },
       depth: "behind",
       motion: "asset_documentary_rocket_liftoff"
     },
@@ -502,7 +493,7 @@ const perLayerKineticMap: Record<number, Record<string, { fx: string; treatmentO
   },
   5: {
     "prefix_a_consistency": { fx: "subpixel_blur_mask", name: "Helper Prefix Slide", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crisp White (#FFFFFF)" },
-    "hero_consistency_problem": { fx: "elastic_morph_badge", name: "Elastic Morphing Kinetic Glass Badge", type: "phrase", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Precision Flywheel ($Z:10$)" }
+    "hero_consistency_problem": { fx: "defocus_rack_focus", name: "Defocus Aperture Snap", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crisp White (#FFFFFF)" }
   },
   6: {
     "stem_getting_customers": { fx: "subpixel_blur_mask", name: "Soft Word Rise", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crisp White (#FFFFFF)" }
@@ -550,7 +541,7 @@ const perLayerKineticMap: Record<number, Record<string, { fx: string; treatmentO
   },
   20: {
     "prefix_thats_how": { fx: "subpixel_blur_mask", name: "Controlled Detachment Prefix", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Chest Zone ($Z:30$)" },
-    "payoff_businesses_scale": { fx: "typewriter_engine", name: "Ghost Typewriter Engine + Rocket Liftoff", type: "letter", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Saturn-V + Elon Cutout ($Z:10$)" }
+    "payoff_businesses_scale": { fx: "typewriter_engine", name: "Ghost Typewriter Engine + Causal Rocket Liftoff", type: "letter", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Flood-Matted Rocket ($Z:10$)" }
   }
 };
 
@@ -1480,37 +1471,16 @@ const htmlContent = `<!DOCTYPE html>
         const bgAsset = chunk.backgroundAsset;
         metaBgAssetInfo.innerText = bgAsset.assetName;
         
+        const halftoneWrap = document.createElement('div');
+        halftoneWrap.className = 'halftone-mosaic-wrap';
+
         const animContainer = document.createElement('div');
         animContainer.className = 'asset-anim-' + (bgAsset.motion || 'asset_bezier_scale_fade');
+        animContainer.appendChild(halftoneWrap);
 
-        if (bgAsset.assetId === 'vintage_rocket_launch_documentary') {
-          const docWrap = document.createElement('div');
-          docWrap.className = 'rocket-documentary-wrapper';
-
-          const rocketImg = document.createElement('img');
-          rocketImg.className = 'rocket-photo-img';
-          rocketImg.src = bgAsset.imageUrl;
-          docWrap.appendChild(rocketImg);
-
-          if (bgAsset.secondaryImageUrl) {
-            const elonBadge = document.createElement('div');
-            elonBadge.className = 'elon-documentary-cutout';
-            const elonImg = document.createElement('img');
-            elonImg.src = bgAsset.secondaryImageUrl;
-            elonBadge.appendChild(elonImg);
-            docWrap.appendChild(elonBadge);
-          }
-
-          animContainer.appendChild(docWrap);
-        } else {
-          const halftoneWrap = document.createElement('div');
-          halftoneWrap.className = 'halftone-mosaic-wrap';
-          animContainer.appendChild(halftoneWrap);
-
-          renderOuterFloodMatteAsset(bgAsset.imageUrl, bgAsset.position.widthPx, (keyedCanvas) => {
-            halftoneWrap.appendChild(keyedCanvas);
-          });
-        }
+        renderOuterFloodMatteAsset(bgAsset.imageUrl, bgAsset.position.widthPx, (keyedCanvas) => {
+          halftoneWrap.appendChild(keyedCanvas);
+        });
 
         semanticBgAssetLayer.style.top = bgAsset.position.topPercent + '%';
         semanticBgAssetLayer.style.left = bgAsset.position.leftPercent + '%';
@@ -1602,21 +1572,7 @@ const htmlContent = `<!DOCTYPE html>
           cardWrap.appendChild(cardText);
           layerDiv.appendChild(cardWrap);
 
-        // 2. ELASTIC MORPHING GLASS KINETIC BADGE (CHUNK 5)
-        } else if (layer.elasticMorphBadge || layerTrait.fx === 'elastic_morph_badge') {
-          const badgeWrap = document.createElement('div');
-          badgeWrap.className = 'elastic-morph-badge-container';
-          
-          const rawText = applyCasing(layer.text, layer.casing);
-          const txt = document.createElement('span');
-          txt.className = 'elastic-morph-badge-text';
-          txt.innerText = rawText;
-          txt.style.color = '#FFFFFF';
-
-          badgeWrap.appendChild(txt);
-          layerDiv.appendChild(badgeWrap);
-
-        // 3. STANDARD KINETIC ANIMATION TREATMENTS (WHOLE-WORD COHESIVE SYSTEM)
+        // 2. STANDARD KINETIC ANIMATION TREATMENTS (WHOLE-WORD COHESIVE SYSTEM)
         } else {
           const rawText = applyCasing(layer.text, layer.casing);
           const words = rawText.trim().split(' ').filter(w => w.length > 0);

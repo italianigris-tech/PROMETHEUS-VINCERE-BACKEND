@@ -43,9 +43,10 @@
 
 | Chunk & Timestamp | Transcript Phrase | 100% Unique Matted Asset ($Z:10$) | Signature Kinetic Animation Treatment Applied |
 | :--- | :--- | :--- | :--- |
-| **Chunk 3 (00:04–00:06)** | *"a growth problem."* | — | **Neon Yellow Delayed Highlight Card Sweep** ($Z:10$ Behind Head) |
-| **Chunk 5 (00:08–00:10)** | *"a consistency problem."* | **Unique Cyberpunk Metronome Cutout** | **Circle Contrast Inversion Mask** (Dark Stage Clean Inversion) |
-| **Chunk 8 (00:14–00:16)** | *"Keeping the machine running"* | **Unique Cyberpunk Robotic Arm Cutout** | **Kinetic Slot Bounce + Bezier Spin** |
-| **Chunk 12 (00:22–00:24)** | *"most founders struggle."* | — | **Cyan Delayed Highlight Card Sweep** ($Z:10$ Behind Head) |
-| **Chunk 16 (00:30–00:32)** | *"the business can't scale."* | — | **Red Warning Delayed Highlight Card Sweep** ($Z:10$ Behind Head) |
-| **Chunk 20 (00:38–00:40)** | *"That's how businesses scale."* | **Unique Cyberpunk Rocket Launch Cutout** | **Ghost Typewriter Engine** ($Z:30$ Chest) |
+| **Chunk 3 (00:04–00:06)** | *"a growth problem."* | — (Clean Slate) | **Neon Yellow Delayed Highlight Card Sweep** ($Z:10$ Behind Head) |
+| **Chunk 5 (00:08–00:10)** | *"a consistency problem."* | — (Clean Slate — Zero Asset Repetition) | **Mature Editorial Typography** (Tracked Serif/Sans Pair) |
+| **Chunk 8 (00:14–00:16)** | *"Keeping the machine running"* | **Industrial Precision Machinery Cutout** | **Kinetic Slot Bounce + Bezier Motion** |
+| **Chunk 12 (00:22–00:24)** | *"most founders struggle."* | — (Clean Slate) | **Cyan Delayed Highlight Card Sweep** ($Z:10$ Behind Head) |
+| **Chunk 16 (00:30–00:32)** | *"the business can't scale."* | — (Clean Slate) | **Red Pressure Delayed Highlight Card Sweep** ($Z:10$ Behind Head) |
+| **Chunk 20 (00:38–00:40)** | *"That's how businesses scale."* | **Causal Flood-Matted Rocket Launch Cutout** | **Ghost Typewriter Engine** ($Z:30$ Chest) |
+

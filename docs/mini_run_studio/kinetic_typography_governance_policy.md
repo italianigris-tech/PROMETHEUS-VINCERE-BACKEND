@@ -91,3 +91,25 @@ MediaPipe tracks face/mouth boundaries (`faceBox: [x:0.34, y:0.28, w:0.32, h:0.2
 
 ### 6.5 Controlled Hierarchy Detachment for Overly Obscured Payoffs
 * When a terminal payoff phrase suffers $>75\%$ body obscuration, it detaches cleanly to Zone B ($y = 56.5\%$) in crisp white + reduced-intensity cyan accent (`#00E5FF`).
+
+---
+
+## 7. Zero Asset Repetition & Clean Slate Governance Policy
+
+### 7.1 Absolute Prohibition on Asset Reincarnation
+* **Core Rule**: Background semantic assets MUST NEVER be repeated, recycled, or re-themed across chunks in the same sequence.
+* **Clean Slate Default**: If a scene chunk does not demand a completely unique, semantically grounded asset, it MUST default to a **Clean Slate** (`backgroundAsset: null`). This ensures maximum visual breathing room and high-contrast impact when hero assets appear.
+
+---
+
+## 8. Causal Silhouette Flood-Matte & Mature Typography Governance Policy
+
+### 8.1 Causal Flood-Matte Isolation Rule
+* Background semantic assets MUST be processed through the causal flood-matte engine (`renderOuterFloodMatteAsset`), strictly keying out solid backgrounds, unkeyed photo rectangles, and stock watermarks.
+* Assets MUST be pure silhouetted objects (e.g. clean rocket hull and exhaust plume), positioned behind the speaker's shoulder ($Z:10$).
+* Artificial rotation wrappers or distracting secondary picture-in-picture badges are strictly prohibited.
+
+### 8.2 Mature Editorial Typography Standard
+* Childish or unmotivated shape masks (e.g., flat colored circles or arbitrary badges) are strictly banned.
+* Typography MUST adhere to high-end documentary standards: high-contrast tracked serif/sans pairs, clean drop shadows, and refined micro-animations.
+
