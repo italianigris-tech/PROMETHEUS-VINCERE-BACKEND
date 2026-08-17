@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500">
+    <defs>
+      <radialGradient id="cyanGlow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#00F0FF" stop-opacity="0.85"/>
+        <stop offset="50%" stop-color="#0088FF" stop-opacity="0.4"/>
+        <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="goldGlow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#FFD700" stop-opacity="0.9"/>
+        <stop offset="60%" stop-color="#FF8C00" stop-opacity="0.3"/>
+        <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+      </radialGradient>
+      <filter id="cyberGlowFilter">
+        <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
+        <feMerge>
+          <feMergeNode in="coloredBlur"/>
+          <feMergeNode in="SourceGraphic"/>
+        </feMerge>
+      </filter>
+    </defs>
+    
+  <circle cx="580" cy="220" r="210" fill="url(#cyanGlow)"/>
+  <circle cx="580" cy="180" r="140" fill="url(#goldGlow)"/>
+  <!-- Rocket Body Shifted Right (x:580) for Shoulder Clearance -->
+  <path d="M 580,50 C 615,140 625,260 625,340 L 535,340 C 535,260 545,140 580,50 Z" fill="#101625" stroke="#00F0FF" stroke-width="6" filter="url(#cyberGlowFilter)"/>
+  <!-- Wings & Fins -->
+  <polygon points="535,290 475,370 535,360" fill="#1E293B" stroke="#FFD700" stroke-width="3"/>
+  <polygon points="625,290 685,370 625,360" fill="#1E293B" stroke="#FFD700" stroke-width="3"/>
+  <!-- Cockpit Glass Glow -->
+  <ellipse cx="580" cy="150" rx="24" ry="38" fill="#00F0FF" stroke="#FFFFFF" stroke-width="3" filter="url(#cyberGlowFilter)"/>
+  <!-- Thruster Energy Blast -->
+  <polygon points="555,340 580,430 605,340" fill="#FF3366" filter="url(#cyberGlowFilter)"/>
+  <polygon points="568,340 580,400 592,340" fill="#FFD700"/>
+  <!-- Orbit Ring -->
+  <ellipse cx="580" cy="230" rx="260" ry="70" fill="none" stroke="#00F0FF" stroke-width="3" stroke-dasharray="14 8" transform="rotate(-15 580 230)"/>
+
+  </svg>

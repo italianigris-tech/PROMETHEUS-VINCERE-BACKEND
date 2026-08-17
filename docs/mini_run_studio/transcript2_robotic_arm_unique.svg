@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500">
+    <defs>
+      <radialGradient id="cyanGlow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#00F0FF" stop-opacity="0.85"/>
+        <stop offset="50%" stop-color="#0088FF" stop-opacity="0.4"/>
+        <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="goldGlow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#FFD700" stop-opacity="0.9"/>
+        <stop offset="60%" stop-color="#FF8C00" stop-opacity="0.3"/>
+        <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+      </radialGradient>
+      <filter id="cyberGlowFilter">
+        <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
+        <feMerge>
+          <feMergeNode in="coloredBlur"/>
+          <feMergeNode in="SourceGraphic"/>
+        </feMerge>
+      </filter>
+    </defs>
+    
+  <circle cx="220" cy="220" r="200" fill="url(#cyanGlow)"/>
+  <!-- Robotic Arm Base Shifted Left (x:220) for Shoulder Clearance -->
+  <rect x="140" y="340" width="160" height="60" rx="12" fill="#1E293B" stroke="#00F0FF" stroke-width="5"/>
+  <circle cx="220" cy="340" r="35" fill="#070913" stroke="#FFD700" stroke-width="4"/>
+  <!-- Arm Segments extending Left -->
+  <line x1="220" y1="340" x2="120" y2="200" stroke="#00F0FF" stroke-width="14" stroke-linecap="round" filter="url(#cyberGlowFilter)"/>
+  <circle cx="120" cy="200" r="20" fill="#FFD700" stroke="#FFFFFF" stroke-width="3"/>
+  <line x1="120" y1="200" x2="300" y2="100" stroke="#00F0FF" stroke-width="10" stroke-linecap="round" filter="url(#cyberGlowFilter)"/>
+  <circle cx="300" cy="100" r="16" fill="#00F0FF"/>
+  <!-- Laser Tool Claw -->
+  <path d="M 300,100 L 340,70 M 300,100 L 340,130" stroke="#FF3366" stroke-width="6" stroke-linecap="round" filter="url(#cyberGlowFilter)"/>
+  <circle cx="220" cy="220" r="60" fill="none" stroke="#00F0FF" stroke-width="4" stroke-dasharray="12 6"/>
+
+  </svg>
