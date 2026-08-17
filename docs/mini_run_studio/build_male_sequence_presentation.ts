@@ -1363,7 +1363,9 @@ const htmlContent = `<!DOCTYPE html>
       if (!casing) return text;
       if (casing === 'uppercase') return text.toUpperCase();
       if (casing === 'lowercase') return text.toLowerCase();
-      if (casing === 'capitalize') return text.replace(/\b\w/g, l => l.toUpperCase());
+      if (casing === 'capitalize') {
+        return text.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      }
       return text;
     }
 
@@ -1504,7 +1506,7 @@ const htmlContent = `<!DOCTYPE html>
         // 3. STANDARD KINETIC ANIMATION TREATMENTS (WHOLE-WORD COHESIVE SYSTEM)
         } else {
           const rawText = applyCasing(layer.text, layer.casing);
-          const words = rawText.split(/\s+/).filter(Boolean);
+          const words = rawText.trim().split(' ').filter(w => w.length > 0);
 
           words.forEach((w, wIdx) => {
             const wordSpan = document.createElement('span');
