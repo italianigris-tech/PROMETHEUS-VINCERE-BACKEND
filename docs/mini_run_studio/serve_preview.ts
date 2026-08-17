@@ -70,8 +70,12 @@ const server = http.createServer((req, res) => {
   }
 
   // Serve Interactive Clipboard Paste & Upload Page
-  if (req.method === "GET" && (req.url === "/paste" || req.url === "/upload" || req.url === "/paste/")) {
+  if ((req.method === "GET" || req.method === "HEAD") && (req.url === "/paste" || req.url === "/upload" || req.url === "/paste/")) {
     res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+    if (req.method === "HEAD") {
+      res.end();
+      return;
+    }
     res.end(`<!DOCTYPE html>
 <html lang="en">
 <head>

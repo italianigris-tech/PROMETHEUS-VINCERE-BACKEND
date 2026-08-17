@@ -1004,6 +1004,36 @@
       };
     }
 
+    // Global Clipboard Paste Support (Ctrl+V / Cmd+V anywhere on the page)
+    window.addEventListener('paste', (e) => {
+      const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
+      if (!items) return;
+      for (const item of items) {
+        if (item.type.indexOf('image') !== -1) {
+          const file = item.getAsFile();
+          if (file) {
+            if (lblUploadScreenshot) lblUploadScreenshot.innerText = '⏳ Pasting Screenshot...';
+            const reader = new FileReader();
+            reader.onload = async () => {
+              try {
+                const res = await fetch('/api/upload_screenshot', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ dataUrl: reader.result })
+                });
+                if (res.ok) {
+                  if (lblUploadScreenshot) lblUploadScreenshot.innerText = '✅ Screenshot Sent to Agent!';
+                  alert('📸 Screenshot pasted & received by agent! The agent will inspect it directly.');
+                }
+              } catch (err) {}
+            };
+            reader.readAsDataURL(file);
+          }
+          break;
+        }
+      }
+    });
+
     function jumpTo(idx) { renderChunk(idx); if (isPlaying) restartTimer(); }
     function nextChunk() { renderChunk((currentIndex + 1) % payload.length); }
     function prevChunk() { renderChunk((currentIndex - 1 + payload.length) % payload.length); }
