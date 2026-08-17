@@ -49,16 +49,16 @@ if (pyCheck.executablePath && pyCheck.hasOpenCv) {
   }
 }
 
-// GOLDILOCKS ZONE TACTILE HEAD CONTACT: Position Head Stage at 15.5% (overlaps bottom 18% of text baseline at Z:10)
-const goldilocksHeadStageTopPercent = 15.5;
-console.log(`[GOLDILOCKS_ZONE_CALIBRATION] Head Stage Positioned at: ${goldilocksHeadStageTopPercent}% for Cinematic Tactile Scalp Contact (Z:10)`);
+// GOLDILOCKS ZONE TACTILE HEAD CONTACT: Position Head Stage at 9.8% (tactile scalp contact baseline at 14.79% Z:10)
+const goldilocksHeadStageTopPercent = 9.8;
+console.log(`[GOLDILOCKS_ZONE_CALIBRATION] Head Stage Positioned at: ${goldilocksHeadStageTopPercent}% for Cinematic Tactile Scalp Contact (Z:10, Scalp Top: 14.79%)`);
 
 // 100% UNIQUE BRAND-NEW MATTED ASSETS SPECIFICALLY CREATED FOR TRANSCRIPT 2
 const metronomeBase64 = getBase64DataUriFromPath(path.join(studioDir, "transcript2_metronome_unique.svg"));
 const roboticArmBase64 = getBase64DataUriFromPath(path.join(studioDir, "transcript2_robotic_arm_unique.svg"));
 const rocketScaleBase64 = getBase64DataUriFromPath(path.join(studioDir, "transcript2_rocket_scale_unique.svg"));
 
-// NEW 20-CHUNK TRANSCRIPT PAYLOAD 4: "Most businesses don't have a growth problem."
+// AUTHORITATIVE 20-CHUNK TRANSCRIPT PAYLOAD 4: "Most businesses don't have a growth problem."
 const maleSequencePayload4 = [
   {
     chunkIndex: 1,
@@ -105,19 +105,20 @@ const maleSequencePayload4 = [
         fontWeight: 700,
         fontStyle: "italic",
         fontSizePx: 22,
-        color: "#111111"
+        color: "#FFFFFF",
+        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 8, color: "rgba(0,0,0,0.8)" }
       },
       {
         layerName: "hero_growth_problem",
         text: "GROWTH PROBLEM.",
         fontFamily: "Bebas Neue",
         fontWeight: 400,
-        fontSizePx: 38,
+        fontSizePx: 36,
         casing: "uppercase",
         letterSpacingEm: 0.04,
         color: "#111111",
         delayedPillCard: "#FFE600",
-        marginTopPx: 18
+        marginTopPx: 6
       }
     ]
   },
@@ -132,7 +133,8 @@ const maleSequencePayload4 = [
         fontFamily: "DM Sans",
         fontWeight: 700,
         fontSizePx: 32,
-        color: "#FFFFFF"
+        color: "#FFFFFF",
+        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" }
       }
     ]
   },
@@ -156,14 +158,15 @@ const maleSequencePayload4 = [
         fontWeight: 700,
         fontStyle: "italic",
         fontSizePx: 22,
-        color: "#FFFFFF"
+        color: "#FFFFFF",
+        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 8, color: "rgba(0,0,0,0.8)" }
       },
       {
         layerName: "hero_consistency_problem",
         text: "CONSISTENCY PROBLEM.",
         fontFamily: "Bebas Neue",
         fontWeight: 400,
-        fontSizePx: 35,
+        fontSizePx: 32,
         casing: "uppercase",
         letterSpacingEm: 0.04,
         color: "#FFFFFF",
@@ -184,7 +187,8 @@ const maleSequencePayload4 = [
         fontWeight: 400,
         fontStyle: "italic",
         fontSizePx: 26,
-        color: "#FFFFFF"
+        color: "#FFFFFF",
+        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" }
       }
     ]
   },
@@ -198,10 +202,11 @@ const maleSequencePayload4 = [
         text: "IS ONE THING.",
         fontFamily: "Bebas Neue",
         fontWeight: 400,
-        fontSizePx: 38,
+        fontSizePx: 36,
         casing: "uppercase",
-        color: "#111111",
-        marginTopPx: 18
+        color: "#FFFFFF",
+        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" },
+        marginTopPx: 8
       }
     ]
   },
@@ -224,7 +229,8 @@ const maleSequencePayload4 = [
         fontFamily: "DM Sans",
         fontWeight: 700,
         fontSizePx: 24,
-        color: "#FFFFFF"
+        color: "#FFFFFF",
+        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" }
       }
     ]
   },
@@ -238,10 +244,11 @@ const maleSequencePayload4 = [
         text: "COMPLETELY DIFFERENT.",
         fontFamily: "Bebas Neue",
         fontWeight: 400,
-        fontSizePx: 35,
+        fontSizePx: 30,
         casing: "uppercase",
-        color: "#111111",
-        marginTopPx: 18
+        color: "#00E5FF",
+        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" },
+        marginTopPx: 8
       }
     ]
   },
@@ -257,7 +264,8 @@ const maleSequencePayload4 = [
         fontWeight: 700,
         fontStyle: "italic",
         fontSizePx: 22,
-        color: "#111111"
+        color: "#FFFFFF",
+        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 8, color: "rgba(0,0,0,0.8)" }
       },
       {
         layerName: "stem_honestly",
@@ -266,8 +274,9 @@ const maleSequencePayload4 = [
         fontWeight: 400,
         fontStyle: "italic",
         fontSizePx: 30,
-        color: "#FFFFFF",
-        marginTopPx: 14
+        color: "#FFE600",
+        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" },
+        marginTopPx: 6
       }
     ]
   },
@@ -282,7 +291,8 @@ const maleSequencePayload4 = [
         fontFamily: "DM Sans",
         fontWeight: 800,
         fontSizePx: 30,
-        color: "#00E5FF"
+        color: "#00E5FF",
+        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" }
       }
     ]
   },
@@ -296,11 +306,11 @@ const maleSequencePayload4 = [
         text: "MOST FOUNDERS STRUGGLE.",
         fontFamily: "Bebas Neue",
         fontWeight: 400,
-        fontSizePx: 34,
+        fontSizePx: 30,
         casing: "uppercase",
         color: "#111111",
         delayedPillCard: "#00F0FF",
-        marginTopPx: 18
+        marginTopPx: 8
       }
     ]
   },
@@ -315,7 +325,8 @@ const maleSequencePayload4 = [
         fontFamily: "DM Sans",
         fontWeight: 700,
         fontSizePx: 26,
-        color: "#FFFFFF"
+        color: "#FFFFFF",
+        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" }
       }
     ]
   },
@@ -331,7 +342,8 @@ const maleSequencePayload4 = [
         fontWeight: 700,
         fontStyle: "italic",
         fontSizePx: 26,
-        color: "#FFFFFF"
+        color: "#FFFFFF",
+        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" }
       }
     ]
   },
@@ -346,7 +358,8 @@ const maleSequencePayload4 = [
         fontFamily: "DM Sans",
         fontWeight: 700,
         fontSizePx: 28,
-        color: "#FFFFFF"
+        color: "#FFFFFF",
+        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" }
       }
     ]
   },
@@ -362,18 +375,19 @@ const maleSequencePayload4 = [
         fontWeight: 700,
         fontStyle: "italic",
         fontSizePx: 22,
-        color: "#111111"
+        color: "#FFFFFF",
+        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 8, color: "rgba(0,0,0,0.8)" }
       },
       {
         layerName: "hero_cant_scale",
         text: "CAN'T SCALE.",
         fontFamily: "Bebas Neue",
         fontWeight: 400,
-        fontSizePx: 38,
+        fontSizePx: 34,
         casing: "uppercase",
         color: "#FFFFFF",
         delayedPillCard: "#FF3366",
-        marginTopPx: 18
+        marginTopPx: 8
       }
     ]
   },
@@ -388,7 +402,8 @@ const maleSequencePayload4 = [
         fontFamily: "DM Sans",
         fontWeight: 700,
         fontSizePx: 28,
-        color: "#FFFFFF"
+        color: "#FFFFFF",
+        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" }
       }
     ]
   },
@@ -402,8 +417,9 @@ const maleSequencePayload4 = [
         text: "CREATE MOMENTUM",
         fontFamily: "Bebas Neue",
         fontWeight: 400,
-        fontSizePx: 36,
+        fontSizePx: 32,
         color: "#00E5FF",
+        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" },
         marginTopPx: 4
       }
     ]
@@ -419,7 +435,8 @@ const maleSequencePayload4 = [
         fontFamily: "DM Sans",
         fontWeight: 700,
         fontSizePx: 20,
-        color: "#FFFFFF"
+        color: "#FFFFFF",
+        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" }
       }
     ]
   },
@@ -443,17 +460,19 @@ const maleSequencePayload4 = [
         fontWeight: 700,
         fontStyle: "italic",
         fontSizePx: 24,
-        color: "#FFFFFF"
+        color: "#FFFFFF",
+        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 8, color: "rgba(0,0,0,0.8)" }
       },
       {
         layerName: "payoff_businesses_scale",
         text: "BUSINESSES SCALE.",
         fontFamily: "Bebas Neue",
         fontWeight: 400,
-        fontSizePx: 36,
+        fontSizePx: 32,
         casing: "uppercase",
         letterSpacingEm: 0.04,
         color: "#00E5FF",
+        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" },
         marginTopPx: -2
       }
     ]
@@ -468,7 +487,7 @@ const perLayerKineticMap: Record<number, Record<string, { fx: string; treatmentO
     "stem_dont_have": { fx: "chromatic_character_displace", name: "Chromatic Displace Glitch", type: "letter", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Electric Cyan (#00E5FF)" }
   },
   3: {
-    "prefix_a": { fx: "subpixel_blur_mask", name: "Helper Prefix Slide", type: "word", depth: "behind_subject", zone: "head_contact", score: "Top Contrast (Dark #111111)" },
+    "prefix_a": { fx: "subpixel_blur_mask", name: "Helper Prefix Slide", type: "word", depth: "behind_subject", zone: "head_contact", score: "Top Contrast (Crisp White #FFFFFF)" },
     "hero_growth_problem": { fx: "delayed_pill_card_sweep", name: "Delayed Highlight Sweep Card (Ref #2)", type: "phrase", depth: "behind_subject", zone: "head_contact", score: "Goldilocks Scalp Contact ($Z:10$)" }
   },
   4: {
@@ -491,8 +510,8 @@ const perLayerKineticMap: Record<number, Record<string, { fx: string; treatmentO
     "hero_completely_different": { fx: "staggered_rotate_x", name: "3D Cascade", type: "letter", depth: "behind_subject", zone: "head_contact", score: "Goldilocks Scalp Contact ($Z:10$)" }
   },
   10: {
-    "prefix_and": { fx: "subpixel_blur_mask", name: "Helper Prefix Slide", type: "word", depth: "behind_subject", zone: "head_contact", score: "Top Contrast (Dark #111111)" },
-    "stem_honestly": { fx: "defocus_rack_focus", name: "Defocus Aperture Snap", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crisp White (#FFFFFF)" }
+    "prefix_and": { fx: "subpixel_blur_mask", name: "Helper Prefix Slide", type: "word", depth: "behind_subject", zone: "head_contact", score: "Top Contrast (Crisp White #FFFFFF)" },
+    "stem_honestly": { fx: "defocus_rack_focus", name: "Defocus Aperture Snap", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Electric Yellow (#FFE600)" }
   },
   11: {
     "stem_thats_where": { fx: "chromatic_character_displace", name: "Chromatic Displace Glitch", type: "letter", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Electric Cyan (#00E5FF)" }
@@ -510,7 +529,7 @@ const perLayerKineticMap: Record<number, Record<string, { fx: string; treatmentO
     "stem_wonder_why": { fx: "top_down_character_drop", name: "Top-Down Character Drop Engine", type: "letter", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Character Drop" }
   },
   16: {
-    "prefix_the_business": { fx: "subpixel_blur_mask", name: "Helper Prefix Slide", type: "word", depth: "behind_subject", zone: "head_contact", score: "Top Contrast (Dark #111111)" },
+    "prefix_the_business": { fx: "subpixel_blur_mask", name: "Helper Prefix Slide", type: "word", depth: "behind_subject", zone: "head_contact", score: "Top Contrast (Crisp White #FFFFFF)" },
     "hero_cant_scale": { fx: "delayed_pill_card_sweep", name: "Red Delayed Highlight Sweep Card (Ref #2)", type: "phrase", depth: "behind_subject", zone: "head_contact", score: "Goldilocks Scalp Contact ($Z:10$)" }
   },
   17: {
@@ -737,16 +756,95 @@ const htmlContent = `<!DOCTYPE html>
       100% { opacity: 1; filter: blur(0px); transform: scale(1) translateY(0); }
     }
 
-    /* RESTORED CINEMATIC GOLDILOCKS ZONE STAGE POSITIONS (Zone A: y=${goldilocksHeadStageTopPercent}% AT Z:10 FOR TACTILE HEAD CONTACT!) */
-    .family-composite-stage-head { position: absolute; top: ${goldilocksHeadStageTopPercent}%; left: 0; width: 100%; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; text-align: center; overflow: visible; pointer-events: none; }
-    .family-composite-stage-chest { position: absolute; top: 56.5%; left: 0; width: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; overflow: visible; pointer-events: none; z-index: 30 !important; }
-    .layer-group { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; overflow: visible; }
-    .typo-layer { max-width: 96%; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; overflow: visible; backface-visibility: visible; white-space: nowrap; position: relative; text-align: center; }
+    /* CINEMATIC GOLDILOCKS ZONE STAGE POSITIONS (Zone A: y=${goldilocksHeadStageTopPercent}% AT Z:10 FOR TACTILE HEAD CONTACT!) */
+    .family-composite-stage-head { 
+      position: absolute; 
+      top: ${goldilocksHeadStageTopPercent}%; 
+      left: 0; 
+      width: 100%; 
+      display: flex; 
+      flex-direction: column; 
+      justify-content: flex-start; 
+      align-items: center; 
+      text-align: center; 
+      overflow: visible; 
+      pointer-events: none; 
+      z-index: 10 !important;
+    }
+    .family-composite-stage-chest { 
+      position: absolute; 
+      top: 56.5%; 
+      left: 0; 
+      width: 100%; 
+      display: flex; 
+      flex-direction: column; 
+      justify-content: center; 
+      align-items: center; 
+      text-align: center; 
+      overflow: visible; 
+      pointer-events: none; 
+      z-index: 30 !important; 
+    }
+    .layer-group { 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: center; 
+      width: 100%; 
+      overflow: visible; 
+    }
+    .typo-layer { 
+      max-width: 90%; 
+      display: flex; 
+      flex-wrap: wrap; 
+      justify-content: center; 
+      align-items: center; 
+      overflow: visible; 
+      backface-visibility: visible; 
+      position: relative; 
+      text-align: center; 
+      margin: 0 auto;
+    }
 
     .layer-behind-subject { z-index: 10 !important; position: relative; }
     .layer-front-of-subject { z-index: 30 !important; position: relative; }
-    .char-item, .word-item { font-family: inherit !important; font-size: inherit !important; font-weight: inherit !important; font-style: inherit !important; color: inherit !important; text-shadow: inherit !important; line-height: inherit !important; letter-spacing: inherit !important; text-transform: inherit !important; overflow: visible !important; margin-right: 0.24em; white-space: nowrap; }
-    .char-item:last-child, .word-item:last-child { margin-right: 0; }
+    
+    .word-item {
+      display: inline-block;
+      margin: 0 0.16em;
+      white-space: nowrap;
+      font-family: inherit !important;
+      font-size: inherit !important;
+      font-weight: inherit !important;
+      font-style: inherit !important;
+      color: inherit !important;
+      text-shadow: inherit !important;
+      line-height: inherit !important;
+      letter-spacing: inherit !important;
+      text-transform: inherit !important;
+      overflow: visible !important;
+    }
+    
+    .char-item {
+      display: inline-block;
+      margin: 0;
+      padding: 0;
+      font-family: inherit !important;
+      font-size: inherit !important;
+      font-weight: inherit !important;
+      font-style: inherit !important;
+      color: inherit !important;
+      text-shadow: inherit !important;
+      line-height: inherit !important;
+      letter-spacing: inherit !important;
+      text-transform: inherit !important;
+      overflow: visible !important;
+    }
+
+    .char-space {
+      display: inline-block;
+      width: 0.28em;
+    }
 
     /* DELAYED LEFT-TO-RIGHT HIGHLIGHT CARD SWEEP */
     .delayed-pill-card-container {
@@ -782,8 +880,8 @@ const htmlContent = `<!DOCTYPE html>
     /* CIRCLE CONTRAST INVERSION MASK */
     .circle-mask-bg-circle {
       position: absolute;
-      width: 150px;
-      height: 150px;
+      width: 140px;
+      height: 140px;
       background: #00F0FF;
       border-radius: 50%;
       z-index: 1;
@@ -800,19 +898,23 @@ const htmlContent = `<!DOCTYPE html>
     .overlay-electric_blue_energy_line::after { content: ''; position: absolute; bottom: -4px; left: 0; width: 100%; height: 3px; background: linear-gradient(90deg, #00E5FF, #3B82F6); border-radius: 2px; box-shadow: 0 0 10px #00E5FF; animation: energyLineExpand 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
     @keyframes energyLineExpand { 0% { width: 0%; opacity: 0; } 100% { width: 100%; opacity: 1; } }
 
-    .layer-fx-staggered_rotate_x .char-item { display: inline-block; transform-origin: 50% 100%; animation: charRotateXCascade 0.6s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
+    .layer-fx-staggered_rotate_x .char-item, .layer-fx-staggered_rotate_x .word-item { display: inline-block; transform-origin: 50% 100%; animation: charRotateXCascade 0.6s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
     @keyframes charRotateXCascade { 0% { opacity: 0; transform: perspective(600px) rotateX(-90deg) translateY(24px); filter: blur(8px); } 100% { opacity: 1; transform: perspective(600px) rotateX(0deg) translateY(0); filter: blur(0px); } }
-    .layer-fx-slot_bounce .word-item { display: inline-block; animation: wordSlotBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) backwards; }
+    .layer-fx-slot_bounce .word-item, .layer-fx-slot_bounce .char-item { display: inline-block; animation: wordSlotBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) backwards; }
     @keyframes wordSlotBounce { 0% { opacity: 0; transform: translateY(32px) scaleY(0.7); } 70% { transform: translateY(-6px) scaleY(1.05); } 100% { opacity: 1; transform: translateY(0) scaleY(1); } }
     .layer-fx-keynote_punch { animation: keynoteFocalPunch 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
     @keyframes keynoteFocalPunch { 0% { opacity: 0; transform: scale(1.38); filter: blur(16px); } 60% { transform: scale(0.96); filter: blur(0px); } 100% { opacity: 1; transform: scale(1); filter: blur(0px); } }
-    .layer-fx-subpixel_blur_mask .word-item, .layer-fx-subpixel_blur_mask { animation: subpixelMask 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
+    .layer-fx-subpixel_blur_mask .word-item, .layer-fx-subpixel_blur_mask .char-item, .layer-fx-subpixel_blur_mask { animation: subpixelMask 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
     @keyframes subpixelMask { 0% { opacity: 0; transform: translateY(16px); filter: blur(8px); } 100% { opacity: 1; transform: translateY(0); filter: blur(0px); } }
     .layer-fx-defocus_rack_focus { animation: defocusSnap 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
     @keyframes defocusSnap { 0% { opacity: 0; filter: blur(28px); transform: scale(1.18); } 70% { filter: blur(2px); } 100% { opacity: 1; filter: blur(0px); transform: scale(1); } }
     .layer-fx-chromatic_character_displace .char-item { display: inline-block; animation: chromaticGlitchChar 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
     .layer-fx-chromatic_character_displace .char-item:nth-child(even) { color: #00F0FF !important; text-shadow: -2px 0 #FF3366, 2px 0 #00F0FF !important; }
     @keyframes chromaticGlitchChar { 0% { opacity: 0; transform: translateX(-12px) skewX(20deg); filter: blur(6px); } 100% { opacity: 1; transform: translateX(0) skewX(0deg); filter: blur(0px); } }
+    .layer-fx-top_down_character_drop .char-item, .layer-fx-top_down_character_drop .word-item { display: inline-block; animation: topDownCharDrop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) backwards; }
+    @keyframes topDownCharDrop { 0% { opacity: 0; transform: translateY(-40px) scale(1.2); filter: blur(8px); } 70% { transform: translateY(4px) scale(0.95); filter: blur(0px); } 100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0px); } }
+    .layer-fx-typewriter_engine .char-item { display: inline-block; animation: typewriterCharPop 0.15s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
+    @keyframes typewriterCharPop { 0% { opacity: 0; transform: scale(1.4); filter: blur(4px); } 100% { opacity: 1; transform: scale(1); filter: blur(0px); } }
 
     /* FLOATING MOBILE GLASS CONTROLS */
     .mobile-controls-bar {
@@ -1174,6 +1276,8 @@ const htmlContent = `<!DOCTYPE html>
     function renderChunk(index) {
       currentIndex = index;
       const chunk = payload[index];
+      const chunkKinetic = perLayerMap[index + 1] || {};
+      
       timeBadge.innerText = chunk.timestamp.split('—')[0].trim();
       metaChunkInfo.innerText = 'Chunk ' + chunk.chunkIndex + ' of ' + payload.length + ' • ' + chunk.timestamp;
       timelineScrubber.value = index;
@@ -1183,26 +1287,35 @@ const htmlContent = `<!DOCTYPE html>
       semanticBgAssetLayer.innerHTML = '';
       layersTableBody.innerHTML = '';
 
-      if (chunk.semanticBgAsset) {
-        const bgSpec = chunk.semanticBgAsset;
-        metaBgAssetInfo.innerText = bgSpec.assetType.toUpperCase() + ' (' + bgSpec.placementZone + ') • Z:' + bgSpec.zIndex;
-        semanticBgAssetLayer.style.left = bgSpec.placementStyle.left || 'auto';
-        semanticBgAssetLayer.style.right = bgSpec.placementStyle.right || 'auto';
-        semanticBgAssetLayer.style.top = bgSpec.placementStyle.top || 'auto';
-        semanticBgAssetLayer.style.bottom = bgSpec.placementStyle.bottom || 'auto';
-        semanticBgAssetLayer.style.transform = bgSpec.placementStyle.transform || 'none';
-        semanticBgAssetLayer.style.zIndex = bgSpec.zIndex;
-        semanticBgAssetLayer.className = 'semantic-bg-asset-layer asset-anim-' + bgSpec.motionTreatment;
-        if (bgSpec.dataUri.startsWith('data:image/svg+xml')) {
-          const svgImg = document.createElement('img');
-          svgImg.src = bgSpec.dataUri;
-          svgImg.className = 'treated-asset-canvas';
-          svgImg.style.width = bgSpec.placementStyle.width || '280px';
-          semanticBgAssetLayer.appendChild(svgImg);
-        } else {
-          renderOuterFloodMatteAsset(bgSpec.dataUri, parseInt(bgSpec.placementStyle.width, 10) || 280, (c) => semanticBgAssetLayer.appendChild(c));
-        }
-      } else metaBgAssetInfo.innerText = 'None Active (Clean Slate)';
+      if (chunk.backgroundAsset) {
+        const bgAsset = chunk.backgroundAsset;
+        metaBgAssetInfo.innerText = bgAsset.assetName;
+        
+        const halftoneWrap = document.createElement('div');
+        halftoneWrap.className = 'halftone-mosaic-wrap';
+
+        const animContainer = document.createElement('div');
+        animContainer.className = 'asset-anim-' + (bgAsset.motion || 'asset_bezier_scale_fade');
+        animContainer.appendChild(halftoneWrap);
+
+        renderOuterFloodMatteAsset(bgAsset.imageUrl, bgAsset.position.widthPx, (keyedCanvas) => {
+          halftoneWrap.appendChild(keyedCanvas);
+        });
+
+        semanticBgAssetLayer.style.top = bgAsset.position.topPercent + '%';
+        semanticBgAssetLayer.style.left = bgAsset.position.leftPercent + '%';
+        semanticBgAssetLayer.appendChild(animContainer);
+
+        const trAsset = document.createElement('tr');
+        trAsset.innerHTML = 
+          '<td style="font-family: monospace; color: var(--accent-pink); font-weight: 700;">[BG-ASSET] ' + bgAsset.assetId + '</td>' +
+          '<td style="color: var(--accent-yellow); font-weight: 700;">Shoulder Clearance</td>' +
+          '<td style="color: var(--accent-purple); font-weight: 700;">BEHIND SPEAKER (Z:10)</td>' +
+          '<td><span class="badge-optimal">Shoulder Clearance Enforced</span></td>';
+        layersTableBody.appendChild(trAsset);
+      } else {
+        metaBgAssetInfo.innerText = 'None Active (Clean Slate)';
+      }
 
       chunkPicker.innerHTML = '';
       payload.forEach((c, idx) => {
@@ -1213,47 +1326,116 @@ const htmlContent = `<!DOCTYPE html>
         chunkPicker.appendChild(chip);
       });
 
-      const isHeadZone = chunk.layers.some(l => l.stackPosition === 'behind_subject' || l.stackPosition === 'tactile_head_contact');
+      const isHeadZoneChunk = Object.values(chunkKinetic).some(t => t.zone === 'head_contact');
       const familyGroup = document.createElement('div');
       familyGroup.className = 'layer-group';
       let globalCharIndex = 0;
 
       chunk.layers.forEach((layer, layerIdx) => {
+        const layerTrait = chunkKinetic[layer.layerName] || { fx: 'subpixel_blur_mask', type: 'word', depth: 'in_front_of_subject', zone: 'chest_lower_third', name: 'Standard Rule' };
+        const isBehind = (layerTrait.depth === 'behind_subject');
+
         const layerDiv = document.createElement('div');
-        const isBehind = (layer.stackPosition === 'behind_subject' || layer.stackPosition === 'tactile_head_contact');
-        layerDiv.className = 'typo-layer ' + (isBehind ? 'layer-behind-subject' : 'layer-front-of-subject');
-        const layerTrait = perLayerMap[layer.layerName] || { fx: 'layer-fx-subpixel_blur_mask', treatment: 'none', type: 'word' };
-        layerDiv.classList.add(layerTrait.fx);
-        if (layerTrait.treatment && layerTrait.treatment !== 'none') layerDiv.classList.add(layerTrait.treatment);
-        layerDiv.style.fontFamily = "'" + layer.fontFamily + "', sans-serif";
-        layerDiv.style.fontSize = layer.fontSizePx + 'px';
+        const overlayClass = layerTrait.treatmentOverlay ? ' overlay-' + layerTrait.treatmentOverlay : '';
+        layerDiv.className = 'typo-layer layer-fx-' + layerTrait.fx + overlayClass + (isBehind ? ' layer-behind-subject' : ' layer-front-of-subject');
+
+        layerDiv.style.fontFamily = '"' + layer.fontFamily + '", sans-serif';
         layerDiv.style.fontWeight = layer.fontWeight;
-        layerDiv.style.color = layer.color;
+        layerDiv.style.fontStyle = layer.fontStyle || 'normal';
+        layerDiv.style.fontSize = layer.fontSizePx + 'px';
+        layerDiv.style.lineHeight = layer.lineHeight || 1.1;
+        layerDiv.style.color = layer.color || '#FFFFFF';
+        if (layer.letterSpacingEm) layerDiv.style.letterSpacing = layer.letterSpacingEm + 'em';
+        if (layer.marginTopPx) layerDiv.style.marginTop = layer.marginTopPx + 'px';
+
+        if (layer.dropShadow) {
+          const s = layer.dropShadow;
+          layerDiv.style.textShadow = s.xOffset + 'px ' + s.yOffset + 'px ' + s.blurRadius + 'px ' + s.color;
+        }
 
         const tr = document.createElement('tr');
-        tr.innerHTML = '<td style="font-weight:700; color:var(--accent-cyan);">' + layer.layerName + '</td><td>' + layer.fontFamily + '</td><td style="color:var(--accent-yellow);">' + layerTrait.fx.replace('layer-fx-', '') + '</td><td><span style="color:' + (isBehind ? 'var(--accent-pink)' : 'var(--accent-green)') + '; font-weight:700;">' + (isBehind ? 'Z:10' : 'Z:30') + '</span></td><td><span class="badge-optimal">' + layer.stackPosition + '</span></td>';
+        tr.innerHTML = 
+          '<td style="font-family: monospace; color: var(--accent-cyan); font-weight: 700;">' + layer.layerName + '</td>' +
+          '<td style="font-weight: 700;">' + layer.fontFamily + ' ' + layer.fontSizePx + 'px</td>' +
+          '<td style="font-weight: 700; color: var(--accent-yellow);">' + layerTrait.name + '</td>' +
+          '<td style="font-weight: 700; color: ' + (isBehind ? 'var(--accent-pink)' : 'var(--accent-cyan)') + '">' + (isBehind ? 'BEHIND SPEAKER (Z:10)' : 'IN FRONT (Z:30)') + '</td>' +
+          '<td><span class="badge-optimal">' + (isBehind ? 'Goldilocks Scalp Contact' : 'Front Stage Clearance') + '</span></td>';
         layersTableBody.appendChild(tr);
 
-        if (layerTrait.treatment === 'delayed_highlight_sweep') {
-          const cardWrap = document.createElement('div'); cardWrap.className = 'delayed-pill-card-container';
-          const cardBg = document.createElement('div'); cardBg.className = 'delayed-pill-card-bg'; cardBg.style.background = layer.highlightCardColor || '#00F0FF';
-          const cardText = document.createElement('span'); cardText.className = 'delayed-pill-card-text'; cardText.innerText = applyCasing(layer.text, layer.casing); cardText.style.color = layer.highlightTextColor || '#070913';
-          cardWrap.appendChild(cardBg); cardWrap.appendChild(cardText); layerDiv.appendChild(cardWrap);
-        } else if (layerTrait.treatment === 'circle_contrast_mask') {
-          const circle = document.createElement('div'); circle.className = 'circle-mask-bg-circle';
-          const txt = document.createElement('span'); txt.className = 'delayed-pill-card-text'; txt.innerText = applyCasing(layer.text, layer.casing); txt.style.color = '#070913';
-          layerDiv.appendChild(circle); layerDiv.appendChild(txt);
+        // 1. DELAYED HIGHLIGHT CARD SWEEP
+        if (layer.delayedPillCard || layerTrait.fx === 'delayed_pill_card_sweep') {
+          const cardWrap = document.createElement('div');
+          cardWrap.className = 'delayed-pill-card-container';
+          
+          const cardBg = document.createElement('div');
+          cardBg.className = 'delayed-pill-card-bg';
+          cardBg.style.backgroundColor = layer.delayedPillCard || '#FFE600';
+          
+          const cardText = document.createElement('span');
+          cardText.className = 'delayed-pill-card-text';
+          cardText.innerText = applyCasing(layer.text, layer.casing);
+          cardText.style.color = layer.color || '#111111';
+
+          cardWrap.appendChild(cardBg);
+          cardWrap.appendChild(cardText);
+          layerDiv.appendChild(cardWrap);
+
+        // 2. CIRCLE CONTRAST INVERSION MASK
+        } else if (layer.circleMaskInversion || layerTrait.fx === 'circle_inversion_mask') {
+          const circle = document.createElement('div');
+          circle.className = 'circle-mask-bg-circle';
+          
+          const rawText = applyCasing(layer.text, layer.casing);
+          const txt = document.createElement('span');
+          txt.className = 'delayed-pill-card-text';
+          txt.innerText = rawText;
+          txt.style.color = '#070913';
+          txt.style.fontWeight = '800';
+
+          layerDiv.appendChild(circle);
+          layerDiv.appendChild(txt);
+
+        // 3. STANDARD KINETIC ANIMATION TREATMENTS
         } else {
           const rawText = applyCasing(layer.text, layer.casing);
-          rawText.split(/\s+/).forEach((w, wIdx) => {
-            const span = document.createElement('span'); span.className = 'word-item'; span.innerText = w;
-            span.style.animationDelay = ((layerIdx * 2 + wIdx) * 0.09) + 's';
-            layerDiv.appendChild(span);
-          });
+          const isScriptFont = layer.fontFamily.toLowerCase().includes('vibes') || layer.fontFamily.toLowerCase().includes('playfair') || layer.fontFamily.toLowerCase().includes('serif');
+
+          if (layerTrait.type === 'letter' && !isScriptFont) {
+            Array.from(rawText).forEach((char) => {
+              if (char === ' ') {
+                const spaceSpan = document.createElement('span');
+                spaceSpan.className = 'char-space';
+                spaceSpan.innerHTML = '&nbsp;';
+                layerDiv.appendChild(spaceSpan);
+              } else {
+                const charSpan = document.createElement('span');
+                charSpan.className = 'char-item';
+                charSpan.innerText = char;
+                charSpan.style.animationDelay = (globalCharIndex * 0.035) + 's';
+                globalCharIndex++;
+                layerDiv.appendChild(charSpan);
+              }
+            });
+          } else {
+            const words = rawText.split(/\s+/);
+            words.forEach((w, wIdx) => {
+              const wordSpan = document.createElement('span');
+              wordSpan.className = 'word-item';
+              wordSpan.innerText = w;
+              wordSpan.style.animationDelay = ((layerIdx * 2 + wIdx) * 0.09) + 's';
+              layerDiv.appendChild(wordSpan);
+            });
+          }
         }
+
         familyGroup.appendChild(layerDiv);
       });
-      (isHeadZone ? familyHeadStage : familyChestStage).appendChild(familyGroup);
+
+      if (isHeadZoneChunk) {
+        familyHeadStage.appendChild(familyGroup);
+      } else {
+        familyChestStage.appendChild(familyGroup);
+      }
     }
 
     function jumpTo(idx) { renderChunk(idx); if (isPlaying) restartTimer(); }
