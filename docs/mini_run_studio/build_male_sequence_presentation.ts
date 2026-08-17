@@ -71,9 +71,10 @@ const maleSequencePayload4 = [
         fontFamily: "Playfair Display",
         fontWeight: 700,
         fontStyle: "italic",
-        fontSizePx: 32,
+        fontSizePx: 34,
         color: "#FFFFFF",
-        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" }
+        shining: true,
+        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 12, color: "rgba(0,0,0,0.9)" }
       }
     ]
   },
@@ -369,8 +370,8 @@ const maleSequencePayload4 = [
     text: "the business can't scale.",
     layers: [
       {
-        layerName: "prefix_the_business",
-        text: "the business",
+        layerName: "prefix_the",
+        text: "the",
         fontFamily: "Playfair Display",
         fontWeight: 700,
         fontStyle: "italic",
@@ -379,15 +380,18 @@ const maleSequencePayload4 = [
         dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 8, color: "rgba(0,0,0,0.8)" }
       },
       {
-        layerName: "hero_cant_scale",
-        text: "CAN'T SCALE.",
+        layerName: "hero_business_cant_scale",
+        text: "BUSINESS CAN'T SCALE.",
         fontFamily: "Bebas Neue",
         fontWeight: 400,
         fontSizePx: 34,
         casing: "uppercase",
+        letterSpacingEm: 0.04,
         color: "#FFFFFF",
-        delayedPillCard: "#FF3366",
-        marginTopPx: 8
+        delayedPillCard: "#FF1744",
+        pressureType: "red_pressure",
+        shining: true,
+        marginTopPx: 6
       }
     ]
   },
@@ -468,11 +472,12 @@ const maleSequencePayload4 = [
         text: "BUSINESSES SCALE.",
         fontFamily: "Bebas Neue",
         fontWeight: 400,
-        fontSizePx: 32,
+        fontSizePx: 34,
         casing: "uppercase",
         letterSpacingEm: 0.04,
-        color: "#00E5FF",
-        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" },
+        color: "#00F0FF",
+        shiningCyan: true,
+        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 14, color: "rgba(0,240,255,0.7)" },
         marginTopPx: -2
       }
     ]
@@ -529,8 +534,8 @@ const perLayerKineticMap: Record<number, Record<string, { fx: string; treatmentO
     "stem_wonder_why": { fx: "top_down_character_drop", name: "Top-Down Character Drop Engine", type: "letter", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Character Drop" }
   },
   16: {
-    "prefix_the_business": { fx: "subpixel_blur_mask", name: "Helper Prefix Slide", type: "word", depth: "behind_subject", zone: "head_contact", score: "Top Contrast (Crisp White #FFFFFF)" },
-    "hero_cant_scale": { fx: "delayed_pill_card_sweep", name: "Red Delayed Highlight Sweep Card (Ref #2)", type: "phrase", depth: "behind_subject", zone: "head_contact", score: "Goldilocks Scalp Contact ($Z:10$)" }
+    "prefix_the": { fx: "subpixel_blur_mask", name: "Helper Prefix Slide", type: "word", depth: "behind_subject", zone: "head_contact", score: "Top Contrast (Crisp White #FFFFFF)" },
+    "hero_business_cant_scale": { fx: "delayed_pill_card_sweep", name: "Red Pressure Delayed Highlight Sweep Card (Ref #2)", type: "phrase", depth: "behind_subject", zone: "head_contact", score: "Goldilocks Scalp Contact ($Z:10$)" }
   },
   17: {
     "stem_need_systems": { fx: "subpixel_blur_mask", name: "Soft Word Rise", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crisp White (#FFFFFF)" }
@@ -841,13 +846,13 @@ const htmlContent = `<!DOCTYPE html>
       padding: 0;
     }
 
-    /* DELAYED LEFT-TO-RIGHT HIGHLIGHT CARD SWEEP */
+    /* RED PRESSURE & DELAYED LEFT-TO-RIGHT HIGHLIGHT CARD SWEEP */
     .delayed-pill-card-container {
       position: relative;
       display: inline-block;
       padding: 6px 18px;
       overflow: visible;
-      border-radius: 6px;
+      border-radius: 8px;
       margin-top: 4px;
     }
     .delayed-pill-card-bg {
@@ -856,10 +861,23 @@ const htmlContent = `<!DOCTYPE html>
       left: 0;
       height: 100%;
       width: 0%;
-      border-radius: 6px;
+      border-radius: 8px;
       z-index: 1;
       box-shadow: 0 8px 24px rgba(0,0,0,0.4);
       animation: pillCardSweepLeftToRight 0.45s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
+    }
+    .delayed-pill-card-bg.card-red-pressure {
+      background: linear-gradient(90deg, #FF1744 0%, #D50000 100%) !important;
+      box-shadow: 0 0 35px rgba(255, 23, 68, 0.9), 0 10px 25px rgba(0,0,0,0.6) !important;
+      border: 1px solid rgba(255, 100, 130, 0.4);
+    }
+    .delayed-pill-card-bg.card-cyan {
+      background: linear-gradient(90deg, #00F0FF 0%, #0099FF 100%) !important;
+      box-shadow: 0 0 30px rgba(0, 240, 255, 0.7), 0 10px 25px rgba(0,0,0,0.6) !important;
+    }
+    .delayed-pill-card-bg.card-yellow {
+      background: linear-gradient(90deg, #FFE600 0%, #FFA000 100%) !important;
+      box-shadow: 0 0 30px rgba(255, 230, 0, 0.7), 0 10px 25px rgba(0,0,0,0.6) !important;
     }
     @keyframes pillCardSweepLeftToRight {
       0% { width: 0%; }
@@ -873,6 +891,28 @@ const htmlContent = `<!DOCTYPE html>
     @keyframes textLandFirst { 
       0% { opacity: 0; transform: scale(1.1); filter: blur(6px); } 
       100% { opacity: 1; transform: scale(1); filter: blur(0px); } 
+    }
+
+    /* SHINING METALLIC GOLD & CYAN LUMINOUS TEXT TREATMENT FOR BUSINESS LETTERS */
+    .shining-letters .char-item, .shining-letters .word-item, .shining-letters {
+      background: linear-gradient(110deg, #FFFFFF 15%, #FFE600 45%, #FFFFFF 65%, #00F0FF 90%);
+      background-size: 200% 100%;
+      -webkit-background-clip: text !important;
+      -webkit-text-fill-color: transparent !important;
+      animation: textShineSweep 2.4s linear infinite !important;
+      filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.7)) drop-shadow(0 0 24px rgba(255, 230, 0, 0.4));
+    }
+    .shining-cyan .char-item, .shining-cyan .word-item, .shining-cyan {
+      background: linear-gradient(110deg, #FFFFFF 15%, #00F0FF 45%, #FFFFFF 65%, #3B82F6 90%);
+      background-size: 200% 100%;
+      -webkit-background-clip: text !important;
+      -webkit-text-fill-color: transparent !important;
+      animation: textShineSweep 2.4s linear infinite !important;
+      filter: drop-shadow(0 0 12px rgba(0, 240, 255, 0.8));
+    }
+    @keyframes textShineSweep {
+      0% { background-position: 100% 0; }
+      100% { background-position: -100% 0; }
     }
 
     /* CIRCLE CONTRAST INVERSION MASK */
@@ -1411,6 +1451,12 @@ const htmlContent = `<!DOCTYPE html>
         if (layer.letterSpacingEm) layerDiv.style.letterSpacing = layer.letterSpacingEm + 'em';
         if (layer.marginTopPx) layerDiv.style.marginTop = layer.marginTopPx + 'px';
 
+        if (layer.shining) {
+          layerDiv.classList.add('shining-letters');
+        } else if (layer.shiningCyan) {
+          layerDiv.classList.add('shining-cyan');
+        }
+
         if (layer.dropShadow) {
           const s = layer.dropShadow;
           layerDiv.style.textShadow = s.xOffset + 'px ' + s.yOffset + 'px ' + s.blurRadius + 'px ' + s.color;
@@ -1432,12 +1478,24 @@ const htmlContent = `<!DOCTYPE html>
           
           const cardBg = document.createElement('div');
           cardBg.className = 'delayed-pill-card-bg';
-          cardBg.style.backgroundColor = layer.delayedPillCard || '#FFE600';
+          const cardColor = (layer.delayedPillCard || '#FFE600').toUpperCase();
+          if (cardColor.includes('FF1744') || cardColor.includes('FF3366') || layer.pressureType === 'red_pressure') {
+            cardBg.classList.add('card-red-pressure');
+          } else if (cardColor.includes('00F0FF') || cardColor.includes('00E5FF')) {
+            cardBg.classList.add('card-cyan');
+          } else if (cardColor.includes('FFE600') || cardColor.includes('FFD700')) {
+            cardBg.classList.add('card-yellow');
+          } else {
+            cardBg.style.backgroundColor = layer.delayedPillCard || '#FFE600';
+          }
           
           const cardText = document.createElement('span');
           cardText.className = 'delayed-pill-card-text';
           cardText.innerText = applyCasing(layer.text, layer.casing);
-          cardText.style.color = layer.color || '#111111';
+          cardText.style.color = layer.color || '#FFFFFF';
+          if (layer.delayedPillCard && layer.delayedPillCard.includes('FFE600')) {
+            cardText.style.color = '#111111'; // Dark contrast on bright yellow
+          }
 
           cardWrap.appendChild(cardBg);
           cardWrap.appendChild(cardText);
