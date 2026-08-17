@@ -794,7 +794,7 @@ const htmlContent = `<!DOCTYPE html>
       overflow: visible; 
     }
     .typo-layer { 
-      max-width: 90%; 
+      max-width: 92%; 
       display: flex; 
       flex-wrap: wrap; 
       justify-content: center; 
@@ -809,10 +809,19 @@ const htmlContent = `<!DOCTYPE html>
     .layer-behind-subject { z-index: 10 !important; position: relative; }
     .layer-front-of-subject { z-index: 30 !important; position: relative; }
     
-    .word-item {
-      display: inline-block;
+    /* COHESIVE WORD CONTAINER - PREVENTS ANY WORD FROM SPLITTING IN HALF */
+    .word-group {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      white-space: nowrap !important;
       margin: 0 0.16em;
-      white-space: nowrap;
+      overflow: visible;
+      position: relative;
+    }
+
+    .word-item, .char-item {
+      display: inline-block;
       font-family: inherit !important;
       font-size: inherit !important;
       font-weight: inherit !important;
@@ -823,27 +832,13 @@ const htmlContent = `<!DOCTYPE html>
       letter-spacing: inherit !important;
       text-transform: inherit !important;
       overflow: visible !important;
+      opacity: 1;
+      visibility: visible;
     }
     
     .char-item {
-      display: inline-block;
       margin: 0;
       padding: 0;
-      font-family: inherit !important;
-      font-size: inherit !important;
-      font-weight: inherit !important;
-      font-style: inherit !important;
-      color: inherit !important;
-      text-shadow: inherit !important;
-      line-height: inherit !important;
-      letter-spacing: inherit !important;
-      text-transform: inherit !important;
-      overflow: visible !important;
-    }
-
-    .char-space {
-      display: inline-block;
-      width: 0.28em;
     }
 
     /* DELAYED LEFT-TO-RIGHT HIGHLIGHT CARD SWEEP */
@@ -851,7 +846,7 @@ const htmlContent = `<!DOCTYPE html>
       position: relative;
       display: inline-block;
       padding: 6px 18px;
-      overflow: hidden;
+      overflow: visible;
       border-radius: 6px;
       margin-top: 4px;
     }
@@ -864,7 +859,7 @@ const htmlContent = `<!DOCTYPE html>
       border-radius: 6px;
       z-index: 1;
       box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-      animation: pillCardSweepLeftToRight 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.25s forwards;
+      animation: pillCardSweepLeftToRight 0.45s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
     }
     @keyframes pillCardSweepLeftToRight {
       0% { width: 0%; }
@@ -873,9 +868,12 @@ const htmlContent = `<!DOCTYPE html>
     .delayed-pill-card-text {
       position: relative;
       z-index: 2;
-      animation: textLandFirst 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation: textLandFirst 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
     }
-    @keyframes textLandFirst { 0% { opacity: 0; transform: scale(1.12); filter: blur(8px); } 100% { opacity: 1; transform: scale(1); filter: blur(0px); } }
+    @keyframes textLandFirst { 
+      0% { opacity: 0; transform: scale(1.1); filter: blur(6px); } 
+      100% { opacity: 1; transform: scale(1); filter: blur(0px); } 
+    }
 
     /* CIRCLE CONTRAST INVERSION MASK */
     .circle-mask-bg-circle {
@@ -889,32 +887,97 @@ const htmlContent = `<!DOCTYPE html>
       left: 50%;
       transform: translate(-50%, -50%);
       box-shadow: 0 0 40px rgba(0, 240, 255, 0.6);
-      animation: circleMaskPop 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation: circleMaskPop 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
     }
     @keyframes circleMaskPop { 0% { transform: translate(-50%, -50%) scale(0.2); opacity: 0; } 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
 
-    .overlay-cinematic_viewport_mask_sweep { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); animation: viewportMaskSweep 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-    @keyframes viewportMaskSweep { 0% { clip-path: polygon(0 0, 0 0, 0 100%, 0 100%); transform: translateX(-16px); } 100% { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); transform: translateX(0); } }
-    .overlay-electric_blue_energy_line::after { content: ''; position: absolute; bottom: -4px; left: 0; width: 100%; height: 3px; background: linear-gradient(90deg, #00E5FF, #3B82F6); border-radius: 2px; box-shadow: 0 0 10px #00E5FF; animation: energyLineExpand 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    .overlay-cinematic_viewport_mask_sweep { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); animation: viewportMaskSweep 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+    @keyframes viewportMaskSweep { 0% { clip-path: polygon(0 0, 0 0, 0 100%, 0 100%); transform: translateX(-12px); } 100% { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); transform: translateX(0); } }
+    .overlay-electric_blue_energy_line::after { content: ''; position: absolute; bottom: -4px; left: 0; width: 100%; height: 3px; background: linear-gradient(90deg, #00E5FF, #3B82F6); border-radius: 2px; box-shadow: 0 0 10px #00E5FF; animation: energyLineExpand 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
     @keyframes energyLineExpand { 0% { width: 0%; opacity: 0; } 100% { width: 100%; opacity: 1; } }
 
-    .layer-fx-staggered_rotate_x .char-item, .layer-fx-staggered_rotate_x .word-item { display: inline-block; transform-origin: 50% 100%; animation: charRotateXCascade 0.6s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
-    @keyframes charRotateXCascade { 0% { opacity: 0; transform: perspective(600px) rotateX(-90deg) translateY(24px); filter: blur(8px); } 100% { opacity: 1; transform: perspective(600px) rotateX(0deg) translateY(0); filter: blur(0px); } }
-    .layer-fx-slot_bounce .word-item, .layer-fx-slot_bounce .char-item { display: inline-block; animation: wordSlotBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) backwards; }
-    @keyframes wordSlotBounce { 0% { opacity: 0; transform: translateY(32px) scaleY(0.7); } 70% { transform: translateY(-6px) scaleY(1.05); } 100% { opacity: 1; transform: translateY(0) scaleY(1); } }
-    .layer-fx-keynote_punch { animation: keynoteFocalPunch 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-    @keyframes keynoteFocalPunch { 0% { opacity: 0; transform: scale(1.38); filter: blur(16px); } 60% { transform: scale(0.96); filter: blur(0px); } 100% { opacity: 1; transform: scale(1); filter: blur(0px); } }
-    .layer-fx-subpixel_blur_mask .word-item, .layer-fx-subpixel_blur_mask .char-item, .layer-fx-subpixel_blur_mask { animation: subpixelMask 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
-    @keyframes subpixelMask { 0% { opacity: 0; transform: translateY(16px); filter: blur(8px); } 100% { opacity: 1; transform: translateY(0); filter: blur(0px); } }
-    .layer-fx-defocus_rack_focus { animation: defocusSnap 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-    @keyframes defocusSnap { 0% { opacity: 0; filter: blur(28px); transform: scale(1.18); } 70% { filter: blur(2px); } 100% { opacity: 1; filter: blur(0px); transform: scale(1); } }
-    .layer-fx-chromatic_character_displace .char-item { display: inline-block; animation: chromaticGlitchChar 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
-    .layer-fx-chromatic_character_displace .char-item:nth-child(even) { color: #00F0FF !important; text-shadow: -2px 0 #FF3366, 2px 0 #00F0FF !important; }
-    @keyframes chromaticGlitchChar { 0% { opacity: 0; transform: translateX(-12px) skewX(20deg); filter: blur(6px); } 100% { opacity: 1; transform: translateX(0) skewX(0deg); filter: blur(0px); } }
-    .layer-fx-top_down_character_drop .char-item, .layer-fx-top_down_character_drop .word-item { display: inline-block; animation: topDownCharDrop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) backwards; }
-    @keyframes topDownCharDrop { 0% { opacity: 0; transform: translateY(-40px) scale(1.2); filter: blur(8px); } 70% { transform: translateY(4px) scale(0.95); filter: blur(0px); } 100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0px); } }
-    .layer-fx-typewriter_engine .char-item { display: inline-block; animation: typewriterCharPop 0.15s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
-    @keyframes typewriterCharPop { 0% { opacity: 0; transform: scale(1.4); filter: blur(4px); } 100% { opacity: 1; transform: scale(1); filter: blur(0px); } }
+    /* HIGH-PERFORMANCE MICRO-SEQUENCED ANIMATIONS - FILL-MODE BOTH ENSURES ALL GLYPHS REMAIN 100% VISIBLE */
+    .layer-fx-staggered_rotate_x .char-item, 
+    .layer-fx-staggered_rotate_x .word-item { 
+      display: inline-block; 
+      transform-origin: 50% 100%; 
+      animation: charRotateXCascade 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; 
+    }
+    @keyframes charRotateXCascade { 
+      0% { opacity: 0; transform: perspective(500px) rotateX(-60deg) translateY(12px); filter: blur(4px); } 
+      100% { opacity: 1; transform: perspective(500px) rotateX(0deg) translateY(0); filter: blur(0px); } 
+    }
+
+    .layer-fx-slot_bounce .word-item, 
+    .layer-fx-slot_bounce .char-item { 
+      display: inline-block; 
+      animation: wordSlotBounce 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) both; 
+    }
+    @keyframes wordSlotBounce { 
+      0% { opacity: 0; transform: translateY(18px) scaleY(0.85); } 
+      70% { transform: translateY(-3px) scaleY(1.03); } 
+      100% { opacity: 1; transform: translateY(0) scaleY(1); } 
+    }
+
+    .layer-fx-keynote_punch { 
+      animation: keynoteFocalPunch 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; 
+    }
+    @keyframes keynoteFocalPunch { 
+      0% { opacity: 0; transform: scale(1.22); filter: blur(8px); } 
+      60% { transform: scale(0.98); filter: blur(0px); } 
+      100% { opacity: 1; transform: scale(1); filter: blur(0px); } 
+    }
+
+    .layer-fx-subpixel_blur_mask .word-item, 
+    .layer-fx-subpixel_blur_mask .char-item { 
+      animation: subpixelMask 0.32s cubic-bezier(0.16, 1, 0.3, 1) both; 
+    }
+    @keyframes subpixelMask { 
+      0% { opacity: 0; transform: translateY(10px); filter: blur(5px); } 
+      100% { opacity: 1; transform: translateY(0); filter: blur(0px); } 
+    }
+
+    .layer-fx-defocus_rack_focus { 
+      animation: defocusSnap 0.38s cubic-bezier(0.16, 1, 0.3, 1) both; 
+    }
+    @keyframes defocusSnap { 
+      0% { opacity: 0; filter: blur(16px); transform: scale(1.1); } 
+      70% { filter: blur(1px); } 
+      100% { opacity: 1; filter: blur(0px); transform: scale(1); } 
+    }
+
+    .layer-fx-chromatic_character_displace .char-item { 
+      display: inline-block; 
+      animation: chromaticGlitchChar 0.32s cubic-bezier(0.16, 1, 0.3, 1) both; 
+    }
+    .layer-fx-chromatic_character_displace .char-item:nth-child(even) { 
+      color: #00F0FF !important; 
+      text-shadow: -2px 0 #FF3366, 2px 0 #00F0FF !important; 
+    }
+    @keyframes chromaticGlitchChar { 
+      0% { opacity: 0; transform: translateX(-6px) skewX(10deg); filter: blur(4px); } 
+      100% { opacity: 1; transform: translateX(0) skewX(0deg); filter: blur(0px); } 
+    }
+
+    .layer-fx-top_down_character_drop .char-item, 
+    .layer-fx-top_down_character_drop .word-item { 
+      display: inline-block; 
+      animation: topDownCharDrop 0.36s cubic-bezier(0.34, 1.56, 0.64, 1) both; 
+    }
+    @keyframes topDownCharDrop { 
+      0% { opacity: 0; transform: translateY(-20px) scale(1.1); filter: blur(4px); } 
+      70% { transform: translateY(2px) scale(0.98); filter: blur(0px); } 
+      100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0px); } 
+    }
+
+    .layer-fx-typewriter_engine .char-item { 
+      display: inline-block; 
+      animation: typewriterCharPop 0.12s cubic-bezier(0.16, 1, 0.3, 1) both; 
+    }
+    @keyframes typewriterCharPop { 
+      0% { opacity: 0; transform: scale(1.2); filter: blur(2px); } 
+      100% { opacity: 1; transform: scale(1); filter: blur(0px); } 
+    }
 
     /* FLOATING MOBILE GLASS CONTROLS */
     .mobile-controls-bar {
@@ -1395,37 +1458,37 @@ const htmlContent = `<!DOCTYPE html>
           layerDiv.appendChild(circle);
           layerDiv.appendChild(txt);
 
-        // 3. STANDARD KINETIC ANIMATION TREATMENTS
+        // 3. STANDARD KINETIC ANIMATION TREATMENTS (WORD-GROUP COHESIVE SYSTEM)
         } else {
           const rawText = applyCasing(layer.text, layer.casing);
           const isScriptFont = layer.fontFamily.toLowerCase().includes('vibes') || layer.fontFamily.toLowerCase().includes('playfair') || layer.fontFamily.toLowerCase().includes('serif');
+          const words = rawText.split(/\s+/).filter(Boolean);
+          let layerCharIdx = 0;
 
-          if (layerTrait.type === 'letter' && !isScriptFont) {
-            Array.from(rawText).forEach((char) => {
-              if (char === ' ') {
-                const spaceSpan = document.createElement('span');
-                spaceSpan.className = 'char-space';
-                spaceSpan.innerHTML = '&nbsp;';
-                layerDiv.appendChild(spaceSpan);
-              } else {
+          words.forEach((w, wIdx) => {
+            const wordGroup = document.createElement('span');
+            wordGroup.className = 'word-group';
+
+            if (layerTrait.type === 'letter' && !isScriptFont) {
+              Array.from(w).forEach((char) => {
                 const charSpan = document.createElement('span');
                 charSpan.className = 'char-item';
                 charSpan.innerText = char;
-                charSpan.style.animationDelay = (globalCharIndex * 0.035) + 's';
-                globalCharIndex++;
-                layerDiv.appendChild(charSpan);
-              }
-            });
-          } else {
-            const words = rawText.split(/\s+/);
-            words.forEach((w, wIdx) => {
+                // Fast 16ms cascade per character — whole word settles in <180ms
+                charSpan.style.animationDelay = (layerCharIdx * 0.016) + 's';
+                layerCharIdx++;
+                wordGroup.appendChild(charSpan);
+              });
+            } else {
               const wordSpan = document.createElement('span');
               wordSpan.className = 'word-item';
               wordSpan.innerText = w;
-              wordSpan.style.animationDelay = ((layerIdx * 2 + wIdx) * 0.09) + 's';
-              layerDiv.appendChild(wordSpan);
-            });
-          }
+              wordSpan.style.animationDelay = (wIdx * 0.06) + 's';
+              wordGroup.appendChild(wordSpan);
+            }
+
+            layerDiv.appendChild(wordGroup);
+          });
         }
 
         familyGroup.appendChild(layerDiv);
