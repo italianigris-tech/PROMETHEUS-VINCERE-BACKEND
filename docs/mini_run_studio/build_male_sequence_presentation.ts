@@ -54,9 +54,10 @@ const goldilocksHeadStageTopPercent = 9.8;
 console.log(`[GOLDILOCKS_ZONE_CALIBRATION] Head Stage Positioned at: ${goldilocksHeadStageTopPercent}% for Cinematic Tactile Scalp Contact (Z:10, Scalp Top: 14.79%)`);
 
 // 100% UNIQUE BRAND-NEW MATTED ASSETS SPECIFICALLY CREATED FOR TRANSCRIPT 2
-const metronomeBase64 = getBase64DataUriFromPath(path.join(studioDir, "transcript2_metronome_unique.svg"));
-const roboticArmBase64 = getBase64DataUriFromPath(path.join(studioDir, "transcript2_robotic_arm_unique.svg"));
-const rocketScaleBase64 = getBase64DataUriFromPath(path.join(studioDir, "transcript2_rocket_scale_unique.svg"));
+const flywheelBase64 = getBase64DataUriFromPath(path.join(studioDir, "consistency_atomic_flywheel_clean.jpg"));
+const roboticArmBase64 = getBase64DataUriFromPath(path.join(studioDir, "industrial_gears_black.jpg")) || getBase64DataUriFromPath(path.join(studioDir, "transcript2_robotic_arm_unique.svg"));
+const vintageRocketBase64 = getBase64DataUriFromPath(path.join(studioDir, "vintage_rocket_launch.jpg"));
+const techFoundersTrioBase64 = getBase64DataUriFromPath(path.join(studioDir, "tech_founders_vintage_trio.jpg"));
 
 // AUTHORITATIVE 20-CHUNK TRANSCRIPT PAYLOAD 4: "Most businesses don't have a growth problem."
 const maleSequencePayload4 = [
@@ -144,12 +145,12 @@ const maleSequencePayload4 = [
     timestamp: "00:08 — 00:10",
     text: "a consistency problem.",
     backgroundAsset: {
-      assetId: "transcript2_metronome_unique",
-      assetName: "Unique Metronome & Precision Hourglass Instrument Cutout",
-      imageUrl: metronomeBase64,
-      position: { topPercent: 10, leftPercent: 4, widthPx: 375 },
+      assetId: "consistency_atomic_flywheel_clean",
+      assetName: "Archival Precision Clockwork Flywheel Machine ($Z:10$)",
+      imageUrl: flywheelBase64,
+      position: { topPercent: 6, leftPercent: 48, widthPx: 380 },
       depth: "behind",
-      motion: "asset_bezier_scale_fade"
+      motion: "asset_bezier_rotate_spin"
     },
     layers: [
       {
@@ -167,12 +168,12 @@ const maleSequencePayload4 = [
         text: "CONSISTENCY PROBLEM.",
         fontFamily: "Bebas Neue",
         fontWeight: 400,
-        fontSizePx: 32,
+        fontSizePx: 34,
         casing: "uppercase",
         letterSpacingEm: 0.04,
         color: "#FFFFFF",
-        circleMaskInversion: true,
-        marginTopPx: 4
+        elasticMorphBadge: true,
+        marginTopPx: 6
       }
     ]
   },
@@ -449,12 +450,13 @@ const maleSequencePayload4 = [
     timestamp: "00:38 — 00:40",
     text: "That's how businesses scale.",
     backgroundAsset: {
-      assetId: "transcript2_rocket_scale_unique",
-      assetName: "Unique Cyberpunk Starship Rocket Launch Cutout",
-      imageUrl: rocketScaleBase64,
-      position: { topPercent: 10, leftPercent: 4, widthPx: 375 },
+      assetId: "vintage_rocket_launch_documentary",
+      assetName: "Authentic Documentary Saturn-V Rocket Launch + Elon Musk Cutout ($Z:10$)",
+      imageUrl: vintageRocketBase64,
+      secondaryImageUrl: techFoundersTrioBase64,
+      position: { topPercent: 3, leftPercent: 2, widthPx: 400 },
       depth: "behind",
-      motion: "asset_bezier_scale_fade"
+      motion: "asset_documentary_rocket_liftoff"
     },
     layers: [
       {
@@ -500,7 +502,7 @@ const perLayerKineticMap: Record<number, Record<string, { fx: string; treatmentO
   },
   5: {
     "prefix_a_consistency": { fx: "subpixel_blur_mask", name: "Helper Prefix Slide", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crisp White (#FFFFFF)" },
-    "hero_consistency_problem": { fx: "circle_inversion_mask", name: "Circle Contrast Inversion Mask (Ref #0/#1)", type: "phrase", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Metronome Cutout ($Z:10$)" }
+    "hero_consistency_problem": { fx: "elastic_morph_badge", name: "Elastic Morphing Kinetic Glass Badge", type: "phrase", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Precision Flywheel ($Z:10$)" }
   },
   6: {
     "stem_getting_customers": { fx: "subpixel_blur_mask", name: "Soft Word Rise", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crisp White (#FFFFFF)" }
@@ -548,7 +550,7 @@ const perLayerKineticMap: Record<number, Record<string, { fx: string; treatmentO
   },
   20: {
     "prefix_thats_how": { fx: "subpixel_blur_mask", name: "Controlled Detachment Prefix", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Chest Zone ($Z:30$)" },
-    "payoff_businesses_scale": { fx: "typewriter_engine", name: "Ghost Typewriter Engine", type: "letter", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Rocket Launch Cutout ($Z:10$)" }
+    "payoff_businesses_scale": { fx: "typewriter_engine", name: "Ghost Typewriter Engine + Rocket Liftoff", type: "letter", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Saturn-V + Elon Cutout ($Z:10$)" }
   }
 };
 
@@ -741,13 +743,14 @@ const htmlContent = `<!DOCTYPE html>
       100% { opacity: 1; filter: blur(0px); transform: translateY(0) scale(1); }
     }
 
-    .asset-anim-asset_rotate_spin_bezier .treated-asset-canvas {
-      animation: assetRotateSpinBezier 26s cubic-bezier(0.1, 0.8, 0.3, 1) infinite;
+    .asset-anim-asset_rotate_spin_bezier .treated-asset-canvas,
+    .asset-anim-asset_bezier_rotate_spin .treated-asset-canvas {
+      animation: assetRotateSpinBezier 28s linear infinite;
     }
 
     @keyframes assetRotateSpinBezier {
-      0% { transform: rotate(0deg); filter: blur(12px); opacity: 0; }
-      10% { filter: blur(0px); opacity: 1; }
+      0% { transform: rotate(0deg); filter: blur(8px); opacity: 0; }
+      8% { filter: blur(0px); opacity: 1; }
       100% { transform: rotate(360deg); filter: blur(0px); opacity: 1; }
     }
 
@@ -759,6 +762,63 @@ const htmlContent = `<!DOCTYPE html>
       0% { opacity: 0; filter: blur(16px); transform: scale(0.65) translateY(30px); }
       60% { filter: blur(1px); transform: scale(1.04); }
       100% { opacity: 1; filter: blur(0px); transform: scale(1) translateY(0); }
+    }
+
+    /* DOCUMENTARY SATURN-V ROCKET LIFTOFF & ELON HEAD BADGE (CHUNK 20) */
+    .asset-anim-asset_documentary_rocket_liftoff {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      animation: documentaryRocketLift 1.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    @keyframes documentaryRocketLift {
+      0% { transform: translateY(40px) scale(0.92); opacity: 0; filter: blur(12px); }
+      70% { filter: blur(1px); }
+      100% { transform: translateY(-10px) scale(1); opacity: 1; filter: blur(0px); }
+    }
+    .rocket-documentary-wrapper {
+      position: relative;
+      width: 100%;
+      max-width: 400px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .rocket-photo-img {
+      width: 250px;
+      height: auto;
+      border-radius: 16px;
+      box-shadow: 0 0 50px rgba(255, 140, 0, 0.5), 0 15px 40px rgba(0,0,0,0.85);
+      mask-image: radial-gradient(ellipse at 50% 45%, black 65%, transparent 100%);
+      -webkit-mask-image: radial-gradient(ellipse at 50% 45%, black 65%, transparent 100%);
+      filter: contrast(1.15) brightness(1.05);
+    }
+    .elon-documentary-cutout {
+      position: absolute;
+      top: 12px;
+      right: 14px;
+      width: 105px;
+      height: 105px;
+      border-radius: 50%;
+      border: 2.5px solid rgba(255, 230, 0, 0.85);
+      box-shadow: 0 0 35px rgba(255, 230, 0, 0.55), 0 10px 25px rgba(0,0,0,0.8);
+      background: #070913;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: elonBadgePop 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.25s both;
+    }
+    @keyframes elonBadgePop {
+      0% { transform: scale(0.2) rotate(-20deg); opacity: 0; }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+    .elon-documentary-cutout img {
+      width: 230%;
+      height: auto;
+      object-fit: cover;
+      transform: translate(-1%, -6%);
+      filter: contrast(1.2) sepia(0.12);
     }
 
     /* CINEMATIC GOLDILOCKS ZONE STAGE POSITIONS (Zone A: y=${goldilocksHeadStageTopPercent}% AT Z:10 FOR TACTILE HEAD CONTACT!) */
@@ -908,21 +968,54 @@ const htmlContent = `<!DOCTYPE html>
       100% { opacity: 1; transform: scale(1); filter: blur(0px); } 
     }
 
-    /* CIRCLE CONTRAST INVERSION MASK */
-    .circle-mask-bg-circle {
-      position: absolute;
-      width: 140px;
-      height: 140px;
-      background: #00F0FF;
-      border-radius: 50%;
-      z-index: 1;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      box-shadow: 0 0 40px rgba(0, 240, 255, 0.6);
-      animation: circleMaskPop 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+    /* ELASTIC MORPHING GLASS KINETIC BADGE (CHUNK 5) */
+    .elastic-morph-badge-container {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 24px;
+      margin-top: 6px;
+      overflow: visible;
+      border-radius: 14px;
+      background: rgba(10, 15, 30, 0.9);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1.5px solid rgba(0, 240, 255, 0.7);
+      box-shadow: 0 0 35px rgba(0, 240, 255, 0.45), 0 10px 30px rgba(0, 0, 0, 0.7);
+      animation: elasticBadgeMorph 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
     }
-    @keyframes circleMaskPop { 0% { transform: translate(-50%, -50%) scale(0.2); opacity: 0; } 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+    @keyframes elasticBadgeMorph {
+      0% {
+        transform: scaleX(0.12) scaleY(0.35);
+        opacity: 0;
+        border-color: #FFE600;
+        box-shadow: 0 0 50px rgba(255, 230, 0, 0.8);
+      }
+      60% {
+        transform: scaleX(1.06) scaleY(1.04);
+        border-color: #00F0FF;
+      }
+      100% {
+        transform: scale(1);
+        opacity: 1;
+        border-color: rgba(0, 240, 255, 0.8);
+        box-shadow: 0 0 35px rgba(0, 240, 255, 0.45), 0 10px 30px rgba(0, 0, 0, 0.7);
+      }
+    }
+    .elastic-morph-badge-text {
+      position: relative;
+      z-index: 2;
+      color: #FFFFFF !important;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9), 0 0 16px rgba(0, 240, 255, 0.5);
+      animation: morphTextPop 0.35s cubic-bezier(0.16, 1, 0.3, 1) 0.12s both;
+    }
+    @keyframes morphTextPop {
+      0% { opacity: 0; transform: scale(1.15); filter: blur(6px); }
+      100% { opacity: 1; transform: scale(1); filter: blur(0px); }
+    }
 
     .overlay-cinematic_viewport_mask_sweep { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); animation: viewportMaskSweep 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
     @keyframes viewportMaskSweep { 0% { clip-path: polygon(0 0, 0 0, 0 100%, 0 100%); transform: translateX(-12px); } 100% { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); transform: translateX(0); } }
@@ -1387,16 +1480,37 @@ const htmlContent = `<!DOCTYPE html>
         const bgAsset = chunk.backgroundAsset;
         metaBgAssetInfo.innerText = bgAsset.assetName;
         
-        const halftoneWrap = document.createElement('div');
-        halftoneWrap.className = 'halftone-mosaic-wrap';
-
         const animContainer = document.createElement('div');
         animContainer.className = 'asset-anim-' + (bgAsset.motion || 'asset_bezier_scale_fade');
-        animContainer.appendChild(halftoneWrap);
 
-        renderOuterFloodMatteAsset(bgAsset.imageUrl, bgAsset.position.widthPx, (keyedCanvas) => {
-          halftoneWrap.appendChild(keyedCanvas);
-        });
+        if (bgAsset.assetId === 'vintage_rocket_launch_documentary') {
+          const docWrap = document.createElement('div');
+          docWrap.className = 'rocket-documentary-wrapper';
+
+          const rocketImg = document.createElement('img');
+          rocketImg.className = 'rocket-photo-img';
+          rocketImg.src = bgAsset.imageUrl;
+          docWrap.appendChild(rocketImg);
+
+          if (bgAsset.secondaryImageUrl) {
+            const elonBadge = document.createElement('div');
+            elonBadge.className = 'elon-documentary-cutout';
+            const elonImg = document.createElement('img');
+            elonImg.src = bgAsset.secondaryImageUrl;
+            elonBadge.appendChild(elonImg);
+            docWrap.appendChild(elonBadge);
+          }
+
+          animContainer.appendChild(docWrap);
+        } else {
+          const halftoneWrap = document.createElement('div');
+          halftoneWrap.className = 'halftone-mosaic-wrap';
+          animContainer.appendChild(halftoneWrap);
+
+          renderOuterFloodMatteAsset(bgAsset.imageUrl, bgAsset.position.widthPx, (keyedCanvas) => {
+            halftoneWrap.appendChild(keyedCanvas);
+          });
+        }
 
         semanticBgAssetLayer.style.top = bgAsset.position.topPercent + '%';
         semanticBgAssetLayer.style.left = bgAsset.position.leftPercent + '%';
@@ -1488,20 +1602,19 @@ const htmlContent = `<!DOCTYPE html>
           cardWrap.appendChild(cardText);
           layerDiv.appendChild(cardWrap);
 
-        // 2. CIRCLE CONTRAST INVERSION MASK
-        } else if (layer.circleMaskInversion || layerTrait.fx === 'circle_inversion_mask') {
-          const circle = document.createElement('div');
-          circle.className = 'circle-mask-bg-circle';
+        // 2. ELASTIC MORPHING GLASS KINETIC BADGE (CHUNK 5)
+        } else if (layer.elasticMorphBadge || layerTrait.fx === 'elastic_morph_badge') {
+          const badgeWrap = document.createElement('div');
+          badgeWrap.className = 'elastic-morph-badge-container';
           
           const rawText = applyCasing(layer.text, layer.casing);
           const txt = document.createElement('span');
-          txt.className = 'delayed-pill-card-text';
+          txt.className = 'elastic-morph-badge-text';
           txt.innerText = rawText;
-          txt.style.color = '#070913';
-          txt.style.fontWeight = '800';
+          txt.style.color = '#FFFFFF';
 
-          layerDiv.appendChild(circle);
-          layerDiv.appendChild(txt);
+          badgeWrap.appendChild(txt);
+          layerDiv.appendChild(badgeWrap);
 
         // 3. STANDARD KINETIC ANIMATION TREATMENTS (WHOLE-WORD COHESIVE SYSTEM)
         } else {
