@@ -106,77 +106,70 @@ server.listen(PORT, "0.0.0.0", () => {
   console.log("================================================================================");
   console.log("  Opening Cloudflare HTTPS Mobile Tunnel...");
 
-  startTunnel(PORT);
+  startAllTunnels(PORT);
 });
 
 /**
- * Start Cloudflare Tunnel with fallback to localtunnel.
+ * Start all tunnel options (Fixed Subdomain Localtunnel, Cloudflare Tunnel, and Direct EC2 IP).
  */
-function startTunnel(port: number) {
-  let tunnelUrlFound = false;
+async function startAllTunnels(port: number) {
+  let publicIp = "16.192.95.115";
+  try {
+    const res = await fetch("http://checkip.amazonaws.com", { signal: AbortSignal.timeout(3000) });
+    if (res.ok) publicIp = (await res.text()).trim();
+  } catch {}
 
-  // Try Cloudflared
+  const fixedSubdomain = process.env.TUNNEL_SUBDOMAIN || "prometheus-kinetic-studio";
+  const permanentLocaltunnelUrl = `https://${fixedSubdomain}.loca.lt/typography_treatment_presentation.html`;
+  const directEc2Url = `http://${publicIp}:${port}/typography_treatment_presentation.html`;
+
+  console.log("\n================================================================================");
+  console.log("  🌐 PERMANENT ACCESS URLS FOR MOBILE & DESKTOP");
+  console.log("================================================================================");
+  console.log(`  1. Permanent Fixed Subdomain: \x1b[32m\x1b[1m${permanentLocaltunnelUrl}\x1b[0m`);
+  console.log(`     (Fixed URL that never changes! On first prompt, endpoint IP is: \x1b[33m${publicIp}\x1b[0m)`);
+  console.log(`  2. Direct EC2 Permanent IP:    \x1b[36m\x1b[1m${directEc2Url}\x1b[0m`);
+  console.log(`     (Requires AWS Security Group Inbound Port ${port} open to 0.0.0.0/0)`);
+  console.log("--------------------------------------------------------------------------------");
+  console.log("  Establishing Cloudflare Zero-Config HTTPS Tunnel...");
+
+  // 1. Launch Fixed Subdomain Localtunnel
+  const ltProcess = spawn("npx", ["-y", "localtunnel", "--port", `${port}`, "--subdomain", fixedSubdomain], {
+    shell: true,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+
+  ltProcess.stdout?.on("data", () => {});
+  ltProcess.stderr?.on("data", () => {});
+
+  // 2. Launch Cloudflare Tunnel
   const cfProcess = spawn("npx", ["-y", "cloudflared", "tunnel", "--url", `http://127.0.0.1:${port}`], {
     shell: true,
     stdio: ["ignore", "pipe", "pipe"],
   });
 
+  let cfFound = false;
   const onData = (data: Buffer) => {
     const text = data.toString();
     const match = text.match(/https:\/\/[a-zA-Z0-9-]+\.trycloudflare\.com/i);
-    if (match && !tunnelUrlFound) {
-      tunnelUrlFound = true;
-      const baseTunnelUrl = match[0];
-      const presentationUrl = `${baseTunnelUrl}/typography_treatment_presentation.html`;
+    if (match && !cfFound) {
+      cfFound = true;
+      const cfBase = match[0];
+      const cfPresentation = `${cfBase}/typography_treatment_presentation.html`;
 
-      printBanner(baseTunnelUrl, presentationUrl);
+      console.log("\n================================================================================");
+      console.log("  📱 LIVE TUNNEL LINKS READY");
+      console.log("================================================================================");
+      console.log(`  🌟 Fixed Permanent Subdomain: \x1b[32m\x1b[1m${permanentLocaltunnelUrl}\x1b[0m`);
+      console.log(`     (Permanent fixed URL! Enter IP: ${publicIp} if prompted)`);
+      console.log(`  ⚡ Instant 1-Click Cloudflare: \x1b[35m\x1b[1m${cfPresentation}\x1b[0m`);
+      console.log(`  🔗 Direct Static EC2 Link:     \x1b[36m\x1b[1m${directEc2Url}\x1b[0m`);
+      console.log("================================================================================\n");
     }
   };
 
   cfProcess.stdout?.on("data", onData);
   cfProcess.stderr?.on("data", onData);
-
-  cfProcess.on("error", (err) => {
-    console.warn(`[TUNNEL_NOTICE] Cloudflared error: ${err.message}. Trying localtunnel fallback...`);
-    if (!tunnelUrlFound) startLocaltunnel(port);
-  });
-
-  // Fallback timer if Cloudflare doesn't respond within 12 seconds
-  setTimeout(() => {
-    if (!tunnelUrlFound) {
-      console.log("[TUNNEL_NOTICE] Cloudflare taking longer than usual, initiating localtunnel parallel probe...");
-      startLocaltunnel(port);
-    }
-  }, 12000);
-}
-
-function startLocaltunnel(port: number) {
-  const ltProcess = spawn("npx", ["-y", "localtunnel", "--port", `${port}`], {
-    shell: true,
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-
-  ltProcess.stdout?.on("data", (data: Buffer) => {
-    const text = data.toString();
-    const match = text.match(/https:\/\/[a-zA-Z0-9-]+\.loca\.lt/i);
-    if (match) {
-      const baseTunnelUrl = match[0];
-      const presentationUrl = `${baseTunnelUrl}/typography_treatment_presentation.html`;
-      printBanner(baseTunnelUrl, presentationUrl, "Localtunnel");
-    }
-  });
-}
-
-function printBanner(baseTunnelUrl: string, presentationUrl: string, provider = "Cloudflare Tunnel") {
-  console.log("\n================================================================================");
-  console.log(`  📱 LIVE PHONE BROWSER LINK READY (${provider})`);
-  console.log("================================================================================");
-  console.log(`  Direct Studio Link: \x1b[36m\x1b[1m${presentationUrl}\x1b[0m`);
-  console.log(`  Base Tunnel:        ${baseTunnelUrl}`);
-  console.log("--------------------------------------------------------------------------------");
-  console.log("  👉 Open the link above on your phone browser (iOS Safari, Chrome, Android)");
-  console.log("  👉 Works seamlessly over 4G/5G/Wi-Fi without AWS Security Group modifications!");
-  console.log("================================================================================\n");
 }
 
 process.on("SIGINT", () => {
