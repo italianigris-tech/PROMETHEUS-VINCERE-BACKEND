@@ -69,7 +69,177 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Handle Mobile Screenshot Upload
+  // Serve Interactive Clipboard Paste & Upload Page
+  if (req.method === "GET" && (req.url === "/paste" || req.url === "/upload" || req.url === "/paste/")) {
+    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+    res.end(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Paste Screenshot Dropzone</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      background: #070913;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      text-align: center;
+    }
+    .card {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 32px 24px;
+      width: 100%;
+      max-width: 520px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+    }
+    .dropzone {
+      border: 3px dashed #00F0FF;
+      border-radius: 14px;
+      padding: 36px 20px;
+      margin-top: 20px;
+      background: rgba(7, 9, 19, 0.6);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 0 25px rgba(0, 240, 255, 0.15);
+    }
+    .dropzone:hover, .dropzone.dragover {
+      border-color: #FFE600;
+      background: rgba(7, 9, 19, 0.9);
+      box-shadow: 0 0 35px rgba(255, 230, 0, 0.35);
+      transform: scale(1.01);
+    }
+    #previewImg {
+      max-width: 100%;
+      max-height: 380px;
+      border-radius: 10px;
+      margin-top: 20px;
+      display: none;
+      border: 2px solid #00F0FF;
+      box-shadow: 0 8px 30px rgba(0, 240, 255, 0.3);
+    }
+    .status {
+      margin-top: 18px;
+      font-size: 15px;
+      font-weight: 700;
+    }
+    .nav-link {
+      display: inline-block;
+      margin-top: 24px;
+      color: #94A3B8;
+      text-decoration: none;
+      font-size: 14px;
+      transition: color 0.2s;
+    }
+    .nav-link:hover { color: #00F0FF; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2 style="color: #00F0FF; margin: 0 0 8px 0; font-size: 24px;">📋 Paste Clipboard Screenshot</h2>
+    <p style="color: #94A3B8; font-size: 14px; margin: 0 0 16px 0; line-height: 1.5;">
+      Press <b style="color: #FFE600;">Ctrl+V</b> (or <b style="color: #FFE600;">Cmd+V</b> on Mac / Long-Press Paste on phone) anywhere on this page, or tap below to upload.
+    </p>
+
+    <div class="dropzone" id="dropzone">
+      <div style="font-size: 48px; margin-bottom: 10px;">📸</div>
+      <div style="font-size: 18px; font-weight: 700; color: #FFF;">Tap to Upload or Press Ctrl+V</div>
+      <div style="color: #64748B; font-size: 13px; margin-top: 6px;">Supports PNG, JPG, WebP, Mobile Screenshots</div>
+      <input type="file" id="fileInput" accept="image/*" style="display: none;">
+    </div>
+
+    <img id="previewImg" alt="Pasted Screenshot Preview">
+    <div id="status" class="status"></div>
+
+    <a href="/typography_treatment_presentation.html" class="nav-link">← Back to Presentation Studio</a>
+  </div>
+
+  <script>
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    const previewImg = document.getElementById('previewImg');
+    const status = document.getElementById('status');
+
+    dropzone.onclick = () => fileInput.click();
+
+    fileInput.onchange = (e) => {
+      if (e.target.files && e.target.files[0]) {
+        handleFile(e.target.files[0]);
+      }
+    };
+
+    window.addEventListener('paste', (e) => {
+      const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
+      if (!items) return;
+      for (const item of items) {
+        if (item.type.indexOf('image') !== -1) {
+          const file = item.getAsFile();
+          handleFile(file);
+          break;
+        }
+      }
+    });
+
+    ['dragenter', 'dragover'].forEach(name => {
+      dropzone.addEventListener(name, (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+    });
+    ['dragleave', 'drop'].forEach(name => {
+      dropzone.addEventListener(name, (e) => { e.preventDefault(); dropzone.classList.remove('dragover'); });
+    });
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        handleFile(e.dataTransfer.files[0]);
+      }
+    });
+
+    function handleFile(file) {
+      status.innerText = '⏳ Uploading screenshot...';
+      status.style.color = '#FFE600';
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const dataUrl = e.target.result;
+        previewImg.src = dataUrl;
+        previewImg.style.display = 'block';
+
+        try {
+          const res = await fetch('/api/upload_screenshot', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ dataUrl })
+          });
+          const data = await res.json();
+          if (data.success) {
+            status.innerText = '✅ Screenshot received! Tell the assistant in chat to look at it.';
+            status.style.color = '#38EF7D';
+          } else {
+            status.innerText = '❌ Upload failed: ' + (data.error || 'Unknown error');
+            status.style.color = '#FF3366';
+          }
+        } catch (err) {
+          status.innerText = '❌ Error uploading: ' + err.message;
+          status.style.color = '#FF3366';
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  </script>
+</body>
+</html>`);
+    return;
+  }
+
+  // Handle Mobile/Clipboard Screenshot Upload API
   if (req.method === "POST" && req.url === "/api/upload_screenshot") {
     let body = "";
     req.on("data", chunk => { body += chunk; });
@@ -79,9 +249,9 @@ const server = http.createServer((req, res) => {
         if (json.dataUrl) {
           const base64Data = json.dataUrl.replace(/^data:image\/\w+;base64,/, "");
           const buffer = Buffer.from(base64Data, "base64");
-          const targetPath = path.join(studioDir, "user_mobile_screenshot.png");
+          const targetPath = path.join(studioDir, "user_clipboard_screenshot.png");
           fs.writeFileSync(targetPath, buffer);
-          console.log("\n📸 [MOBILE_SCREENSHOT_RECEIVED] Successfully saved to:", targetPath);
+          console.log("\n📸 [CLIPBOARD_SCREENSHOT_RECEIVED] Successfully saved to:", targetPath);
           res.writeHead(200, { "Content-Type": "application/json" });
           res.end(JSON.stringify({ success: true, savedPath: targetPath }));
           return;
