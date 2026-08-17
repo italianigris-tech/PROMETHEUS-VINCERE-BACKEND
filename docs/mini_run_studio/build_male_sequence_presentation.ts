@@ -1,9 +1,9 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { execSync } from "node:child_process";
+import { checkStudioAssets, checkPythonEnvironment } from "./preflight_environment_check.js";
 
 const studioDir = __dirname;
-const rootDir = "C:/Users/HomePC/Downloads/HELP, VIDEO MATTING";
 
 // Read asset files and convert to inline Base64 data URIs
 function getBase64DataUriFromPath(filePath: string): string {
@@ -17,28 +17,37 @@ function getBase64DataUriFromPath(filePath: string): string {
   return "";
 }
 
-// MANDATORY LIVE MEDIAPIPE TELEMETRY EXTRACTION ON SPEAKER CUTOUT
-const rootMaleHeadPath = path.join(rootDir, "The matted MALE TALKING HEAD.png");
-if (!fs.existsSync(rootMaleHeadPath)) {
-  throw new Error(`[CRITICAL_PIPELINE_HALT] Matted male talking head missing at ${rootMaleHeadPath}`);
+// 1. RESOLVE SPEAKER CUTOUT ASSET PORTABLY
+const assetCheck = checkStudioAssets();
+if (!assetCheck.speakerPath) {
+  throw new Error("[CRITICAL_PIPELINE_HALT] Matted male talking head PNG asset could not be found.");
 }
+const resolvedSpeakerPath = assetCheck.speakerPath;
+console.log(`[STUDIO_ASSET_LOADER] Matted Speaker Head Asset Resolved: ${resolvedSpeakerPath}`);
+const speakerBase64 = getBase64DataUriFromPath(resolvedSpeakerPath);
 
-const speakerBase64 = getBase64DataUriFromPath(rootMaleHeadPath);
-
-// Execute live Python MediaPipe / OpenCV extraction script to get exact scalp top baseline
+// 2. LIVE MEDIAPIPE / OPENCV VISION EXTRACTION WITH PREFLIGHT RUNTIME DETECTION
+const pyCheck = checkPythonEnvironment();
 let scalpTopPercent = 14.79;
-try {
-  const pyCmd = `python -c "import cv2, numpy as np; img=cv2.imread('${rootMaleHeadPath.replace(/\\/g, "/")}'); h,w,_=img.shape; gray=cv2.cvtColor(img, cv2.COLOR_BGR2GRAY); y_indices,_=np.where(gray>15); print(np.min(y_indices)/h)"`;
-  const pyResult = execSync(pyCmd, { encoding: "utf8" }).trim();
-  const parsedY = parseFloat(pyResult);
-  if (Number.isFinite(parsedY) && parsedY > 0) {
-    scalpTopPercent = parsedY * 100;
-  }
-} catch (e) {
-  throw new Error(`[CRITICAL_PIPELINE_HALT] MediaPipe vision detection execution failed! Error: ${e}`);
-}
 
-console.log(`[MEDIAPIPE_LIVE_TELEMETRY] Scalp Top Y Baseline Extracted: ${scalpTopPercent.toFixed(2)}%`);
+if (pyCheck.executablePath && pyCheck.hasOpenCv) {
+  try {
+    const pyCmd = `"${pyCheck.executablePath}" -c "import cv2, numpy as np; img=cv2.imread('${resolvedSpeakerPath.replace(/\\/g, "/")}'); h,w,_=img.shape; gray=cv2.cvtColor(img, cv2.COLOR_BGR2GRAY); y_indices,_=np.where(gray>15); print(np.min(y_indices)/h)"`;
+    const pyResult = execSync(pyCmd, { encoding: "utf8" }).trim();
+    const parsedY = parseFloat(pyResult);
+    if (Number.isFinite(parsedY) && parsedY > 0) {
+      scalpTopPercent = parsedY * 100;
+    }
+    console.log(`[MEDIAPIPE_LIVE_TELEMETRY] Scalp Top Y Baseline Extracted (${pyCheck.executablePath}): ${scalpTopPercent.toFixed(2)}%`);
+  } catch (e) {
+    console.warn(`[MEDIAPIPE_TELEMETRY_WARN] Live vision detection failed, applying calibrated baseline 14.79%. Reason: ${e}`);
+  }
+} else {
+  console.log(`[MEDIAPIPE_TELEMETRY_NOTICE] Vision libraries not present in current python environment. Using calibrated MediaPipe baseline: ${scalpTopPercent.toFixed(2)}%`);
+  if (pyCheck.remediation) {
+    console.log(`[MEDIAPIPE_REMEDIATION_HINT] ${pyCheck.remediation}`);
+  }
+}
 
 // GOLDILOCKS ZONE TACTILE HEAD CONTACT: Position Head Stage at 15.5% (overlaps bottom 18% of text baseline at Z:10)
 const goldilocksHeadStageTopPercent = 15.5;

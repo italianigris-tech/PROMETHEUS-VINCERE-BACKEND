@@ -1,5 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { runPreflightCheck } from "./preflight_environment_check.js";
 
 const studioDir = __dirname;
 const htmlPath = path.join(studioDir, "typography_treatment_presentation.html");
@@ -7,6 +8,14 @@ const htmlPath = path.join(studioDir, "typography_treatment_presentation.html");
 console.log("=================================================");
 console.log("RUNNING AUTOMATED PRESENTATION NODE & TEXT CLEARANCE CHECKER");
 console.log("=================================================");
+
+// 0. Verify Pre-flight Environment & Binary Resolution
+const preflightReport = runPreflightCheck();
+console.log(`CHECK: Preflight environment status - Python: ${preflightReport.python.status}, FFmpeg: ${preflightReport.ffmpeg.status}, Assets: ${preflightReport.assets.status}`);
+if (!preflightReport.ready && preflightReport.python.status === "missing") {
+  console.error("FAIL: Preflight environment check failed completely (no Python detected)!");
+  process.exit(1);
+}
 
 if (!fs.existsSync(htmlPath)) {
   console.error("FAIL: typography_treatment_presentation.html does NOT exist!");
