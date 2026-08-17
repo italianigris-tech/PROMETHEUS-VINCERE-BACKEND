@@ -532,7 +532,10 @@ const htmlContent = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#070913">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Prometheus Core — Goldilocks Zone Scalp Contact Studio</title>
   
   <!-- Authoritative WebFont imports -->
@@ -552,22 +555,131 @@ const htmlContent = `<!DOCTYPE html>
       --accent-yellow: #F59E0B;
       --text-main: #F8FAFC;
       --text-muted: #94A3B8;
-      --stage-width: 415px;
-      --stage-height: 738px;
+      --stage-max-w: 415px;
+      --stage-width: min(var(--stage-max-w), calc(100vw - 20px));
+      --stage-height: calc(var(--stage-width) * (16 / 9));
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'DM Sans', sans-serif; }
-    body { background-color: var(--bg-dark); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; overflow-x: hidden; }
-    .header { text-align: center; margin-bottom: 20px; }
-    .header h1 { font-size: 22px; font-weight: 800; letter-spacing: 0.04em; background: linear-gradient(135deg, #00F0FF 0%, #A855F7 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-transform: uppercase; margin-bottom: 6px; }
-    .header p { font-size: 13px; color: var(--text-muted); }
-    .app-layout { display: flex; gap: 32px; max-width: 1240px; width: 100%; align-items: flex-start; justify-content: center; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'DM Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
+    
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: max(12px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+      overflow-x: hidden;
+    }
+
+    .header { text-align: center; margin-bottom: 12px; max-width: 900px; width: 100%; }
+    .header h1 { font-size: clamp(16px, 4vw, 22px); font-weight: 800; letter-spacing: 0.04em; background: linear-gradient(135deg, #00F0FF 0%, #A855F7 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-transform: uppercase; margin-bottom: 4px; }
+    .header p { font-size: clamp(11px, 2.5vw, 13px); color: var(--text-muted); }
+
+    /* VIEW MODE TAB SWITCHER */
+    .view-mode-tabs {
+      display: flex;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--panel-border);
+      border-radius: 30px;
+      padding: 3px;
+      gap: 4px;
+      margin-bottom: 14px;
+      max-width: 440px;
+      width: 100%;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    }
+    .tab-btn {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 8px 12px;
+      border-radius: 24px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      touch-action: manipulation;
+    }
+    .tab-btn.active {
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(139, 92, 246, 0.3));
+      color: #FFF;
+      border: 1px solid var(--accent-cyan);
+      box-shadow: 0 2px 8px rgba(0, 240, 255, 0.25);
+    }
+
+    .app-layout {
+      display: flex;
+      gap: 28px;
+      max-width: 1240px;
+      width: 100%;
+      align-items: flex-start;
+      justify-content: center;
+      transition: all 0.3s ease;
+    }
 
     /* CLEAN DARK STAGE CANVAS CONTAINER */
-    .stage-container { position: relative; width: var(--stage-width); height: var(--stage-height); background: linear-gradient(180deg, #070913 0%, #0F172A 100%); border-radius: 40px; box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 0 10px #1E293B; overflow: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 36px 20px; perspective: 1000px; }
-    .stage-notch { position: absolute; top: 14px; width: 120px; height: 22px; background: #1E293B; border-radius: 12px; z-index: 100; }
-    .stage-time-badge { position: absolute; top: 16px; right: 24px; font-size: 11px; font-weight: 700; color: #64748B; letter-spacing: 0.05em; z-index: 100; font-family: monospace; }
+    .stage-wrapper {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: auto;
+    }
+
+    .stage-container {
+      position: relative;
+      width: var(--stage-width);
+      height: var(--stage-height);
+      max-height: 82vh;
+      max-height: 82dvh;
+      aspect-ratio: 9 / 16;
+      background: linear-gradient(180deg, #070913 0%, #0F172A 100%);
+      border-radius: clamp(24px, 6vw, 40px);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 0 clamp(4px, 1.5vw, 10px) #1E293B;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 36px 20px;
+      perspective: 1000px;
+      user-select: none;
+      touch-action: pan-y;
+      cursor: pointer;
+    }
+    .stage-notch { position: absolute; top: 12px; width: 110px; height: 20px; background: #1E293B; border-radius: 12px; z-index: 100; }
+    .stage-time-badge { position: absolute; top: 14px; right: 18px; font-size: 11px; font-weight: 700; color: #64748B; letter-spacing: 0.05em; z-index: 100; font-family: monospace; }
     
+    /* MOBILE TOUCH GESTURE HINT */
+    .swipe-gesture-hint {
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(16, 22, 37, 0.85);
+      border: 1px solid var(--panel-border);
+      border-radius: 16px;
+      padding: 4px 12px;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-muted);
+      z-index: 100;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      backdrop-filter: blur(8px);
+    }
+
     /* DYNAMIC MEDIAPIPE FACE BOX BOUNDARY OVERLAY */
     .mediapipe-face-overlay { position: absolute; left: 0%; top: ${scalpTopPercent.toFixed(2)}%; width: 100%; height: 60%; border-top: 2px dashed #00F0FF; background: rgba(0, 240, 255, 0.04); z-index: 15; pointer-events: none; transition: opacity 0.3s; }
     .mediapipe-bbox-label-red { position: absolute; top: 6px; left: 12px; font-size: 9px; font-weight: 800; font-family: monospace; color: #00F0FF; background: rgba(16, 22, 37, 0.85); padding: 2px 8px; border-radius: 4px; border: 1px solid #00F0FF; }
@@ -702,70 +814,180 @@ const htmlContent = `<!DOCTYPE html>
     .layer-fx-chromatic_character_displace .char-item:nth-child(even) { color: #00F0FF !important; text-shadow: -2px 0 #FF3366, 2px 0 #00F0FF !important; }
     @keyframes chromaticGlitchChar { 0% { opacity: 0; transform: translateX(-12px) skewX(20deg); filter: blur(6px); } 100% { opacity: 1; transform: translateX(0) skewX(0deg); filter: blur(0px); } }
 
-    .inspector-panel { flex: 1; max-width: 600px; background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 20px; padding: 24px; display: flex; flex-direction: column; gap: 20px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); }
-    .inspector-title { font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent-cyan); display: flex; align-items: center; justify-content: space-between; }
-    .badge-live { font-size: 10px; padding: 3px 8px; background: rgba(0, 240, 255, 0.15); border: 1px solid var(--accent-cyan); border-radius: 12px; color: var(--accent-cyan); }
-    .controls-bar { display: flex; gap: 10px; align-items: center; background: rgba(255, 255, 255, 0.03); padding: 12px 16px; border-radius: 12px; border: 1px solid var(--panel-border); flex-wrap: wrap; }
-    .btn { background: #1E293B; border: 1px solid var(--panel-border); color: var(--text-main); padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600; }
+    /* FLOATING MOBILE GLASS CONTROLS */
+    .mobile-controls-bar {
+      width: 100%;
+      max-width: var(--stage-width);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 10px;
+      background: rgba(16, 22, 37, 0.9);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--panel-border);
+      border-radius: 20px;
+      padding: 10px 14px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+    
+    .mobile-buttons-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .btn {
+      background: #1E293B;
+      border: 1px solid var(--panel-border);
+      color: var(--text-main);
+      padding: 10px 16px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      touch-action: manipulation;
+      min-height: 42px;
+      transition: background 0.15s ease, transform 0.1s ease;
+    }
+    .btn:active { transform: scale(0.96); }
     .btn-primary { background: #2563EB; border-color: #2563EB; }
     .btn-green { background: rgba(16, 185, 129, 0.2); border-color: var(--accent-green); color: var(--accent-green); }
-    .timeline-scrubber { flex: 1; min-width: 120px; height: 6px; -webkit-appearance: none; background: #334155; border-radius: 4px; outline: none; cursor: pointer; }
-    .timeline-scrubber::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: var(--accent-cyan); cursor: pointer; }
-    .meta-card { background: rgba(255, 255, 255, 0.02); border: 1px solid var(--panel-border); border-radius: 12px; padding: 16px; }
+    
+    .timeline-scrubber {
+      width: 100%;
+      height: 8px;
+      -webkit-appearance: none;
+      background: #334155;
+      border-radius: 4px;
+      outline: none;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+    .timeline-scrubber::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--accent-cyan);
+      box-shadow: 0 0 10px var(--accent-cyan);
+      cursor: pointer;
+    }
+
+    /* INSPECTOR PANEL */
+    .inspector-panel {
+      flex: 1;
+      max-width: 600px;
+      width: 100%;
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 20px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+    .inspector-title { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent-cyan); display: flex; align-items: center; justify-content: space-between; }
+    .badge-live { font-size: 10px; padding: 3px 8px; background: rgba(0, 240, 255, 0.15); border: 1px solid var(--accent-cyan); border-radius: 12px; color: var(--accent-cyan); }
+    .meta-card { background: rgba(255, 255, 255, 0.02); border: 1px solid var(--panel-border); border-radius: 12px; padding: 14px; }
     .meta-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; }
     .meta-label { color: var(--text-muted); }
     .meta-val { font-weight: 600; color: #FFF; text-align: right; }
-    .layers-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 8px; }
+    
+    .table-container { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .layers-table { width: 100%; min-width: 320px; border-collapse: collapse; font-size: 11px; margin-top: 8px; }
     .layers-table th, .layers-table td { padding: 7px 8px; text-align: left; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
     .layers-table th { color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 9px; }
     .badge-optimal { color: var(--accent-green); font-weight: 700; }
-    .chunk-picker { display: flex; gap: 6px; flex-wrap: wrap; max-height: 120px; overflow-y: auto; padding-right: 4px; }
-    .chip { padding: 4px 10px; font-size: 11px; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--panel-border); border-radius: 6px; cursor: pointer; color: var(--text-muted); }
+    
+    .chunk-picker { display: flex; gap: 6px; flex-wrap: wrap; max-height: 140px; overflow-y: auto; padding-right: 4px; }
+    .chip { padding: 6px 12px; font-size: 12px; font-weight: 600; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--panel-border); border-radius: 8px; cursor: pointer; color: var(--text-muted); min-height: 32px; display: flex; align-items: center; }
     .chip.active { background: rgba(0, 240, 255, 0.12); border-color: var(--accent-cyan); color: var(--accent-cyan); }
+
+    /* RESPONSIVE BREAKPOINT RULES */
+    @media (max-width: 920px) {
+      .app-layout { flex-direction: column; align-items: center; gap: 18px; width: 100%; }
+      body.mode-stage .inspector-panel { display: none !important; }
+      body.mode-inspector .stage-wrapper { display: none !important; }
+      body.mode-inspector .inspector-panel { width: 100%; max-width: 500px; display: flex !important; }
+      body.mode-split .stage-wrapper { display: flex !important; }
+      body.mode-split .inspector-panel { display: flex !important; width: 100%; max-width: 500px; }
+    }
+
+    @media (min-width: 921px) {
+      .view-mode-tabs { display: none; }
+      .swipe-gesture-hint { display: none; }
+    }
   </style>
 </head>
-<body>
+<body class="mode-stage">
 
   <div class="header">
-    <h1>Prometheus Core — Goldilocks Zone Scalp Contact Studio</h1>
-    <p>Isolated Test Run • Goldilocks Scalp Contact ($Z:10$) • Fluid Font Scaler Zero Edge Clipping</p>
+    <h1>Prometheus Core — Goldilocks Scalp Studio</h1>
+    <p>Live 9:16 Kinetic Studio • Goldilocks Scalp Contact ($Z:10$) • Fluid Font Safe Area</p>
+  </div>
+
+  <!-- VIEW MODE TABS FOR MOBILE -->
+  <div class="view-mode-tabs" id="viewModeTabs">
+    <button class="tab-btn active" data-mode="stage">📱 Stage</button>
+    <button class="tab-btn" data-mode="inspector">⚙️ Telemetry</button>
+    <button class="tab-btn" data-mode="split">🔲 Split</button>
   </div>
 
   <div class="app-layout">
-    <div class="stage-container">
-      <div class="stage-notch"></div>
-      <div class="stage-time-badge" id="timeBadge">00:00</div>
+    
+    <!-- STAGE SECTION -->
+    <div class="stage-wrapper" id="stageWrapper">
+      <div class="stage-container" id="stageContainer" title="Tap to Play/Pause • Swipe Left/Right for Next/Prev Chunk">
+        <div class="stage-notch"></div>
+        <div class="stage-time-badge" id="timeBadge">00:00</div>
 
-      <!-- Z-INDEX 10: BACKGROUND MATTED SEMANTIC ASSET LAYER (BEHIND SPEAKER SHOULDER!) -->
-      <div class="semantic-bg-asset-layer" id="semanticBgAssetLayer"></div>
+        <!-- Z-INDEX 10: BACKGROUND MATTED SEMANTIC ASSET LAYER (BEHIND SPEAKER SHOULDER!) -->
+        <div class="semantic-bg-asset-layer" id="semanticBgAssetLayer"></div>
 
-      <!-- Z-INDEX 20: AUTHORITATIVE MATTED MALE TALKING HEAD SPEAKER (INLINE BASE64) -->
-      <img src="${speakerBase64}" id="mattedSpeakerImg" class="speaker-matted-layer" alt="The Matted Male Talking Head">
+        <!-- Z-INDEX 20: AUTHORITATIVE MATTED MALE TALKING HEAD SPEAKER (INLINE BASE64) -->
+        <img src="${speakerBase64}" id="mattedSpeakerImg" class="speaker-matted-layer" alt="The Matted Male Talking Head">
 
-      <!-- Z-INDEX 15: LIVE MEDIAPIPE FACE SCALP BOUNDARY OVERLAY -->
-      <div class="mediapipe-face-overlay" id="mediapipeFaceOverlay">
-        <span class="mediapipe-bbox-label-red">MediaPipe Scalp Top Baseline: ${scalpTopPercent.toFixed(2)}%</span>
+        <!-- Z-INDEX 15: LIVE MEDIAPIPE FACE SCALP BOUNDARY OVERLAY (MEDIAPIPE_FACE_OBSERVATION) -->
+        <div class="mediapipe-face-overlay" id="mediapipeFaceOverlay">
+          <span class="mediapipe-bbox-label-red">MediaPipe Scalp Top Baseline: ${scalpTopPercent.toFixed(2)}%</span>
+        </div>
+
+        <!-- ZONE A: HEAD-CONTACT STAGE (y:${goldilocksHeadStageTopPercent}% AT Z:10 - TACTILE SCALP CONTACT!) -->
+        <div class="family-composite-stage-head" id="familyHeadStage"></div>
+
+        <!-- ZONE B: CHEST STAGE (y:56.5% AT Z:30) -->
+        <div class="family-composite-stage-chest" id="familyChestStage"></div>
+
+        <!-- SWIPE GESTURE HINT -->
+        <div class="swipe-gesture-hint">
+          <span>👈 Swipe for Chunks 👉</span>
+        </div>
       </div>
 
-      <!-- ZONE A: HEAD-CONTACT STAGE (y:${goldilocksHeadStageTopPercent}% AT Z:10 - TACTILE SCALP CONTACT!) -->
-      <div class="family-composite-stage-head" id="familyHeadStage"></div>
-
-      <!-- ZONE B: CHEST STAGE (y:56.5% AT Z:30) -->
-      <div class="family-composite-stage-chest" id="familyChestStage"></div>
+      <!-- MOBILE / COMPACT GLASS CONTROLS -->
+      <div class="mobile-controls-bar">
+        <input type="range" class="timeline-scrubber" id="timelineScrubber" min="0" max="19" value="0">
+        <div class="mobile-buttons-row">
+          <button class="btn" id="btnPrev" style="flex: 1;">⏮ Prev</button>
+          <button class="btn btn-primary" id="btnPlay" style="flex: 1.2;">⏸ Pause</button>
+          <button class="btn" id="btnNext" style="flex: 1;">Next ⏭</button>
+          <button class="btn btn-green" id="btnToggleBbox" style="flex: 1.4;">📐 Wireframe</button>
+        </div>
+      </div>
     </div>
 
-    <div class="inspector-panel">
+    <!-- INSPECTOR PANEL SECTION -->
+    <div class="inspector-panel" id="inspectorPanel">
       <div class="inspector-title">
         <span>Goldilocks Scalp Contact Studio</span>
         <span class="badge-live">TACTILE 3D DEPTH ACTIVE</span>
-      </div>
-
-      <div class="controls-bar">
-        <button class="btn btn-primary" id="btnPlay">Pause</button>
-        <button class="btn" id="btnPrev">Prev</button>
-        <button class="btn" id="btnNext">Next</button>
-        <button class="btn btn-green" id="btnToggleBbox">Scalp Baseline Line: ON</button>
-        <input type="range" class="timeline-scrubber" id="timelineScrubber" min="0" max="19" value="0">
       </div>
 
       <div class="meta-card">
@@ -791,18 +1013,20 @@ const htmlContent = `<!DOCTYPE html>
         <div class="meta-row" style="margin-bottom: 10px;">
           <span class="meta-label" style="font-weight: 700; color: var(--text-main);">Kinetic Typography & Asset Telemetry</span>
         </div>
-        <table class="layers-table">
-          <thead>
-            <tr>
-              <th>Layer Name</th>
-              <th>Font / Asset Specs</th>
-              <th>Animation Treatment</th>
-              <th>Z-Stack Depth</th>
-              <th>Alignment Status</th>
-            </tr>
-          </thead>
-          <tbody id="layersTableBody"></tbody>
-        </table>
+        <div class="table-container">
+          <table class="layers-table">
+            <thead>
+              <tr>
+                <th>Layer Name</th>
+                <th>Font / Asset Specs</th>
+                <th>Animation Treatment</th>
+                <th>Z-Stack Depth</th>
+                <th>Alignment Status</th>
+              </tr>
+            </thead>
+            <tbody id="layersTableBody"></tbody>
+          </table>
+        </div>
       </div>
 
       <div class="meta-card">
@@ -823,6 +1047,7 @@ const htmlContent = `<!DOCTYPE html>
     let showBbox = true;
     let timer = null;
 
+    const stageContainer = document.getElementById('stageContainer');
     const familyHeadStage = document.getElementById('familyHeadStage');
     const familyChestStage = document.getElementById('familyChestStage');
     const semanticBgAssetLayer = document.getElementById('semanticBgAssetLayer');
@@ -837,8 +1062,44 @@ const htmlContent = `<!DOCTYPE html>
     const btnPrev = document.getElementById('btnPrev');
     const btnNext = document.getElementById('btnNext');
     const btnToggleBbox = document.getElementById('btnToggleBbox');
+    const viewModeTabs = document.getElementById('viewModeTabs');
 
-    // ALGORITHMIC OUTER BOUNDARY FLOOD MATTING:
+    if (viewModeTabs) {
+      viewModeTabs.addEventListener('click', (e) => {
+        const target = e.target.closest('.tab-btn');
+        if (!target) return;
+        const mode = target.getAttribute('data-mode');
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        target.classList.add('active');
+        document.body.className = 'mode-' + mode;
+      });
+    }
+
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchStartTime = 0;
+
+    stageContainer.addEventListener('touchstart', (e) => {
+      touchStartX = e.changedTouches[0].screenX;
+      touchStartY = e.changedTouches[0].screenY;
+      touchStartTime = Date.now();
+    }, { passive: true });
+
+    stageContainer.addEventListener('touchend', (e) => {
+      const touchEndX = e.changedTouches[0].screenX;
+      const touchEndY = e.changedTouches[0].screenY;
+      const diffX = touchEndX - touchStartX;
+      const diffY = touchEndY - touchStartY;
+      const duration = Date.now() - touchStartTime;
+
+      if (Math.abs(diffX) > 40 && Math.abs(diffX) > Math.abs(diffY)) {
+        if (diffX < 0) nextChunk(); else prevChunk();
+        if (isPlaying) restartTimer();
+      } else if (Math.abs(diffX) < 10 && Math.abs(diffY) < 10 && duration < 300) {
+        togglePlay();
+      }
+    }, { passive: true });
+
     function renderOuterFloodMatteAsset(dataUri, targetWidthPx, callback) {
       const img = new Image();
       img.onload = () => {
@@ -855,282 +1116,152 @@ const htmlContent = `<!DOCTYPE html>
         const visited = new Uint8Array(width * height);
         const queue = [];
 
-        function trySeed(x, y) {
-          const idx = y * width + x;
-          if (visited[idx]) return;
-          const p = idx * 4;
-          const brightness = (data[p] + data[p + 1] + data[p + 2]) / 3;
-          if (brightness < 45) {
-            visited[idx] = 1;
-            queue.push(idx);
-          }
+        function isBg(idx) {
+          const r = data[idx], g = data[idx+1], b = data[idx+2];
+          return (r < 32 && g < 32 && b < 32);
         }
 
-        for (let x = 0; x < width; x++) { trySeed(x, 0); trySeed(x, height - 1); }
-        for (let y = 0; y < height; y++) { trySeed(0, y); trySeed(width - 1, y); }
+        for (let x = 0; x < width; x++) {
+          if (isBg(x * 4)) { visited[x] = 1; queue.push(x); }
+          if (isBg(((height - 1) * width + x) * 4)) { visited[(height - 1) * width + x] = 1; queue.push((height - 1) * width + x); }
+        }
+        for (let y = 0; y < height; y++) {
+          if (isBg((y * width) * 4)) { visited[y * width] = 1; queue.push(y * width); }
+          if (isBg((y * width + (width - 1)) * 4)) { visited[y * width + (width - 1)] = 1; queue.push(y * width + (width - 1)); }
+        }
 
-        let head = 0;
-        while (head < queue.length) {
-          const curr = queue[head++];
-          const cx = curr % width;
-          const cy = Math.floor(curr / width);
-
-          data[curr * 4 + 3] = 0;
-
+        let qHead = 0;
+        while(qHead < queue.length) {
+          const curr = queue[qHead++];
+          const cx = curr % width, cy = Math.floor(curr / width);
           const neighbors = [
-            [cx + 1, cy], [cx - 1, cy], [cx, cy + 1], [cx, cy - 1]
+            cy > 0 ? (cy - 1) * width + cx : -1,
+            cy < height - 1 ? (cy + 1) * width + cx : -1,
+            cx > 0 ? cy * width + (cx - 1) : -1,
+            cx < width - 1 ? cy * width + (cx + 1) : -1
           ];
-
-          for (let n = 0; n < neighbors.length; n++) {
-            const nx = neighbors[n][0];
-            const ny = neighbors[n][1];
-            if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-              const nIdx = ny * width + nx;
-              if (!visited[nIdx]) {
-                const np = nIdx * 4;
-                const nBrightness = (data[np] + data[np + 1] + data[np + 2]) / 3;
-                if (nBrightness < 45) {
-                  visited[nIdx] = 1;
-                  queue.push(nIdx);
-                }
-              }
+          for (let n of neighbors) {
+            if (n >= 0 && !visited[n] && isBg(n * 4)) {
+              visited[n] = 1;
+              queue.push(n);
             }
           }
         }
-
+        for (let i = 0; i < visited.length; i++) if (visited[i] === 1) data[i * 4 + 3] = 0;
         ctx.putImageData(imgData, 0, 0);
 
-        canvas.className = 'treated-asset-canvas';
-        canvas.style.width = targetWidthPx + 'px';
-        canvas.style.height = 'auto';
-
-        callback(canvas);
+        const outCanvas = document.createElement('canvas');
+        outCanvas.className = 'treated-asset-canvas';
+        const aspect = height / width;
+        outCanvas.width = targetWidthPx * 2;
+        outCanvas.height = (targetWidthPx * aspect) * 2;
+        outCanvas.style.width = targetWidthPx + 'px';
+        outCanvas.style.height = (targetWidthPx * aspect) + 'px';
+        outCanvas.getContext('2d').drawImage(canvas, 0, 0, outCanvas.width, outCanvas.height);
+        callback(outCanvas);
       };
       img.src = dataUri;
     }
 
-    payload.forEach((item, index) => {
-      const chip = document.createElement('div');
-      chip.className = 'chip' + (index === 0 ? ' active' : '');
-      chip.innerText = '#' + (index + 1);
-      chip.onclick = () => jumpTo(index);
-      chunkPicker.appendChild(chip);
-    });
-
     function applyCasing(text, casing) {
+      if (!casing) return text;
       if (casing === 'uppercase') return text.toUpperCase();
       if (casing === 'lowercase') return text.toLowerCase();
-      if (casing === 'title_case') {
-        return text.replace(/(^|\\s)([^\\s])/g, (_, p, c) => p + c.toUpperCase());
-      }
+      if (casing === 'capitalize') return text.replace(/\b\w/g, l => l.toUpperCase());
       return text;
     }
 
     function renderChunk(index) {
       currentIndex = index;
-      const data = payload[index];
-      const chunkKinetic = perLayerMap[index + 1] || {};
-      const isHeadZoneChunk = Object.values(chunkKinetic).some(t => t.zone === 'head_contact');
-
-      timeBadge.innerText = data.timestamp.split('—')[0].trim();
-      metaChunkInfo.innerText = \`Chunk \${data.chunkIndex} of \${payload.length} • \${data.timestamp}\`;
+      const chunk = payload[index];
+      timeBadge.innerText = chunk.timestamp.split('—')[0].trim();
+      metaChunkInfo.innerText = 'Chunk ' + chunk.chunkIndex + ' of ' + payload.length + ' • ' + chunk.timestamp;
       timelineScrubber.value = index;
-
-      Array.from(chunkPicker.children).forEach((chip, i) => {
-        chip.classList.toggle('active', i === index);
-      });
 
       familyHeadStage.innerHTML = '';
       familyChestStage.innerHTML = '';
       semanticBgAssetLayer.innerHTML = '';
       layersTableBody.innerHTML = '';
 
-      if (data.backgroundAsset) {
-        const bgAsset = data.backgroundAsset;
-        metaBgAssetInfo.innerText = \`\${bgAsset.assetName}\`;
+      if (chunk.semanticBgAsset) {
+        const bgSpec = chunk.semanticBgAsset;
+        metaBgAssetInfo.innerText = bgSpec.assetType.toUpperCase() + ' (' + bgSpec.placementZone + ') • Z:' + bgSpec.zIndex;
+        semanticBgAssetLayer.style.left = bgSpec.placementStyle.left || 'auto';
+        semanticBgAssetLayer.style.right = bgSpec.placementStyle.right || 'auto';
+        semanticBgAssetLayer.style.top = bgSpec.placementStyle.top || 'auto';
+        semanticBgAssetLayer.style.bottom = bgSpec.placementStyle.bottom || 'auto';
+        semanticBgAssetLayer.style.transform = bgSpec.placementStyle.transform || 'none';
+        semanticBgAssetLayer.style.zIndex = bgSpec.zIndex;
+        semanticBgAssetLayer.className = 'semantic-bg-asset-layer asset-anim-' + bgSpec.motionTreatment;
+        if (bgSpec.dataUri.startsWith('data:image/svg+xml')) {
+          const svgImg = document.createElement('img');
+          svgImg.src = bgSpec.dataUri;
+          svgImg.className = 'treated-asset-canvas';
+          svgImg.style.width = bgSpec.placementStyle.width || '280px';
+          semanticBgAssetLayer.appendChild(svgImg);
+        } else {
+          renderOuterFloodMatteAsset(bgSpec.dataUri, parseInt(bgSpec.placementStyle.width, 10) || 280, (c) => semanticBgAssetLayer.appendChild(c));
+        }
+      } else metaBgAssetInfo.innerText = 'None Active (Clean Slate)';
 
-        const halftoneWrap = document.createElement('div');
-        halftoneWrap.className = 'halftone-mosaic-wrap';
+      chunkPicker.innerHTML = '';
+      payload.forEach((c, idx) => {
+        const chip = document.createElement('button');
+        chip.className = 'chip ' + (idx === index ? 'active' : '');
+        chip.innerText = '#' + c.chunkIndex + ' ' + c.text.slice(0, 14) + '...';
+        chip.onclick = () => jumpTo(idx);
+        chunkPicker.appendChild(chip);
+      });
 
-        const animContainer = document.createElement('div');
-        animContainer.className = \`asset-anim-\${bgAsset.motion || 'asset_bezier_scale_fade'}\`;
-        animContainer.appendChild(halftoneWrap);
-
-        renderOuterFloodMatteAsset(bgAsset.imageUrl, bgAsset.position.widthPx, (keyedCanvas) => {
-          halftoneWrap.appendChild(keyedCanvas);
-        });
-
-        semanticBgAssetLayer.style.top = \`\${bgAsset.position.topPercent}%\`;
-        semanticBgAssetLayer.style.left = \`\${bgAsset.position.leftPercent}%\`;
-        semanticBgAssetLayer.appendChild(animContainer);
-
-        const trAsset = document.createElement('tr');
-        trAsset.innerHTML = \`
-          <td style="font-family: monospace; color: var(--accent-pink); font-weight: 700;">[BG-ASSET] \${bgAsset.assetId}</td>
-          <td style="color: var(--accent-yellow); font-weight: 700;">Shoulder Clearance</td>
-          <td style="color: var(--accent-purple); font-weight: 700;">BEHIND SPEAKER (Z:10)</td>
-          <td><span class="badge-optimal">Shoulder Clearance Enforced</span></td>
-        \`;
-        layersTableBody.appendChild(trAsset);
-      } else {
-        metaBgAssetInfo.innerText = 'None Active';
-      }
-
+      const isHeadZone = chunk.layers.some(l => l.stackPosition === 'behind_subject' || l.stackPosition === 'tactile_head_contact');
       const familyGroup = document.createElement('div');
       familyGroup.className = 'layer-group';
       let globalCharIndex = 0;
 
-      data.layers.forEach((layer, layerIdx) => {
-        const layerTrait = chunkKinetic[layer.layerName] || { fx: 'subpixel_blur_mask', type: 'word', depth: 'in_front_of_subject', zone: 'head_contact', score: 'Standard Rule' };
-        const isBoldMattedLayer = (layerTrait.depth === 'behind_subject') && (layer.fontWeight >= 700 || layer.fontSizePx >= 34);
+      chunk.layers.forEach((layer, layerIdx) => {
+        const layerDiv = document.createElement('div');
+        const isBehind = (layer.stackPosition === 'behind_subject' || layer.stackPosition === 'tactile_head_contact');
+        layerDiv.className = 'typo-layer ' + (isBehind ? 'layer-behind-subject' : 'layer-front-of-subject');
+        const layerTrait = perLayerMap[layer.layerName] || { fx: 'layer-fx-subpixel_blur_mask', treatment: 'none', type: 'word' };
+        layerDiv.classList.add(layerTrait.fx);
+        if (layerTrait.treatment && layerTrait.treatment !== 'none') layerDiv.classList.add(layerTrait.treatment);
+        layerDiv.style.fontFamily = "'" + layer.fontFamily + "', sans-serif";
+        layerDiv.style.fontSize = layer.fontSizePx + 'px';
+        layerDiv.style.fontWeight = layer.fontWeight;
+        layerDiv.style.color = layer.color;
 
         const tr = document.createElement('tr');
-        tr.innerHTML = \`
-          <td style="font-family: monospace; color: var(--accent-cyan);">\${layer.layerName}</td>
-          <td style="font-weight: 700;">\${layer.fontFamily} \${layer.fontSizePx}px</td>
-          <td style="font-weight: 700; color: var(--accent-yellow);">\${layerTrait.name}</td>
-          <td style="font-weight: 700; color: \${isBoldMattedLayer ? 'var(--accent-pink)' : 'var(--accent-cyan)'}">\${isBoldMattedLayer ? 'BEHIND SPEAKER (Z:10)' : 'IN FRONT (Z:30)'}</td>
-          <td><span class="badge-optimal">\${isBoldMattedLayer ? 'Goldilocks Scalp Contact' : 'Front Stage Clearance'}</span></td>
-        \`;
+        tr.innerHTML = '<td style="font-weight:700; color:var(--accent-cyan);">' + layer.layerName + '</td><td>' + layer.fontFamily + '</td><td style="color:var(--accent-yellow);">' + layerTrait.fx.replace('layer-fx-', '') + '</td><td><span style="color:' + (isBehind ? 'var(--accent-pink)' : 'var(--accent-green)') + '; font-weight:700;">' + (isBehind ? 'Z:10' : 'Z:30') + '</span></td><td><span class="badge-optimal">' + layer.stackPosition + '</span></td>';
         layersTableBody.appendChild(tr);
 
-        const layerDiv = document.createElement('div');
-        const overlayClass = layerTrait.treatmentOverlay ? ' overlay-' + layerTrait.treatmentOverlay : '';
-        layerDiv.className = 'typo-layer layer-fx-' + layerTrait.fx + overlayClass + (isBoldMattedLayer ? ' layer-behind-subject' : ' layer-front-of-subject');
-
-        layerDiv.style.fontFamily = \`"\${layer.fontFamily}", sans-serif\`;
-        layerDiv.style.fontWeight = layer.fontWeight;
-        layerDiv.style.fontStyle = layer.fontStyle || 'normal';
-        layerDiv.style.fontSize = \`\${layer.fontSizePx}px\`;
-        layerDiv.style.lineHeight = layer.lineHeight || 1.1;
-        layerDiv.style.letterSpacing = layer.letterSpacingEm ? \`\${layer.letterSpacingEm}em\` : 'normal';
-        layerDiv.style.color = layer.color || '#FFFFFF';
-        layerDiv.style.marginTop = layer.marginTopPx ? \`\${layer.marginTopPx}px\` : '0px';
-
-        if (layer.layerName.startsWith('prefix_')) {
-          layerDiv.style.alignSelf = 'flex-start';
-          layerDiv.style.marginLeft = '18px';
-          layerDiv.style.marginBottom = '2px';
-        }
-
-        // 1. DELAYED LEFT-TO-RIGHT HIGHLIGHT CARD SWEEP
-        if (layer.delayedPillCard) {
-          const pillContainer = document.createElement('div');
-          pillContainer.className = 'delayed-pill-card-container';
-
-          const pillBg = document.createElement('div');
-          pillBg.className = 'delayed-pill-card-bg';
-          pillBg.style.backgroundColor = layer.delayedPillCard;
-
-          const pillText = document.createElement('div');
-          pillText.className = 'delayed-pill-card-text';
-          pillText.innerText = applyCasing(layer.text, layer.casing);
-          pillText.style.color = layer.color || '#111111';
-
-          pillContainer.appendChild(pillBg);
-          pillContainer.appendChild(pillText);
-          layerDiv.appendChild(pillContainer);
-
-        // 2. CIRCLE CONTRAST INVERSION MASK TREATMENT
-        } else if (layer.circleMaskInversion) {
-          const circleBg = document.createElement('div');
-          circleBg.className = 'circle-mask-bg-circle';
-          layerDiv.appendChild(circleBg);
-
-          const rawText = applyCasing(layer.text, layer.casing);
-          const words = rawText.split(/\\s+/);
-          words.forEach((w) => {
-            const wordSpan = document.createElement('span');
-            wordSpan.className = 'word-item';
-            wordSpan.innerText = w;
-            wordSpan.style.color = '#FFFFFF';
-            wordSpan.style.zIndex = '2';
-            layerDiv.appendChild(wordSpan);
-          });
-
-        // 3. STANDARD KINETIC ANIMATION TREATMENTS
+        if (layerTrait.treatment === 'delayed_highlight_sweep') {
+          const cardWrap = document.createElement('div'); cardWrap.className = 'delayed-pill-card-container';
+          const cardBg = document.createElement('div'); cardBg.className = 'delayed-pill-card-bg'; cardBg.style.background = layer.highlightCardColor || '#00F0FF';
+          const cardText = document.createElement('span'); cardText.className = 'delayed-pill-card-text'; cardText.innerText = applyCasing(layer.text, layer.casing); cardText.style.color = layer.highlightTextColor || '#070913';
+          cardWrap.appendChild(cardBg); cardWrap.appendChild(cardText); layerDiv.appendChild(cardWrap);
+        } else if (layerTrait.treatment === 'circle_contrast_mask') {
+          const circle = document.createElement('div'); circle.className = 'circle-mask-bg-circle';
+          const txt = document.createElement('span'); txt.className = 'delayed-pill-card-text'; txt.innerText = applyCasing(layer.text, layer.casing); txt.style.color = '#070913';
+          layerDiv.appendChild(circle); layerDiv.appendChild(txt);
         } else {
-          let shadowCss = '';
-          if (layer.dropShadow) {
-            const s = layer.dropShadow;
-            shadowCss = \`\${s.xOffset}px \${s.yOffset}px \${s.blurRadius}px \${s.color}\`;
-          }
-          if (layer.pseudoGlow) {
-            shadowCss = shadowCss ? \`\${shadowCss}, \${layer.pseudoGlow}\` : layer.pseudoGlow;
-          }
-          if (shadowCss) {
-            layerDiv.style.textShadow = shadowCss;
-          }
-
           const rawText = applyCasing(layer.text, layer.casing);
-          const isScriptFont = layer.fontFamily.toLowerCase().includes('vibes') || layer.fontFamily.toLowerCase().includes('script');
-
-          if (layerTrait.type === 'letter' && !isScriptFont) {
-            Array.from(rawText).forEach((char) => {
-              const charSpan = document.createElement('span');
-              charSpan.className = 'char-item';
-              charSpan.innerHTML = char === ' ' ? '&nbsp;' : char;
-              charSpan.style.animationDelay = \`\${globalCharIndex * 0.035}s\`;
-              globalCharIndex++;
-              layerDiv.appendChild(charSpan);
-            });
-          } else {
-            const words = rawText.split(/\\s+/);
-            words.forEach((w, wIdx) => {
-              const wordSpan = document.createElement('span');
-              wordSpan.className = 'word-item';
-              wordSpan.innerText = w;
-              wordSpan.style.animationDelay = \`\${(layerIdx * 2 + wIdx) * 0.09}s\`;
-              layerDiv.appendChild(wordSpan);
-            });
-          }
+          rawText.split(/\s+/).forEach((w, wIdx) => {
+            const span = document.createElement('span'); span.className = 'word-item'; span.innerText = w;
+            span.style.animationDelay = ((layerIdx * 2 + wIdx) * 0.09) + 's';
+            layerDiv.appendChild(span);
+          });
         }
-
         familyGroup.appendChild(layerDiv);
       });
-
-      if (isHeadZoneChunk) {
-        familyHeadStage.appendChild(familyGroup);
-      } else {
-        familyChestStage.appendChild(familyGroup);
-      }
+      (isHeadZone ? familyHeadStage : familyChestStage).appendChild(familyGroup);
     }
 
-    function jumpTo(index) {
-      renderChunk(index);
-      if (isPlaying) restartTimer();
-    }
-
-    function nextChunk() {
-      const next = (currentIndex + 1) % payload.length;
-      renderChunk(next);
-    }
-
-    function prevChunk() {
-      const prev = (currentIndex - 1 + payload.length) % payload.length;
-      renderChunk(prev);
-    }
-
-    function togglePlay() {
-      isPlaying = !isPlaying;
-      btnPlay.innerText = isPlaying ? 'Pause' : 'Play';
-      if (isPlaying) {
-        restartTimer();
-      } else {
-        clearInterval(timer);
-      }
-    }
-
-    function toggleBbox() {
-      showBbox = !showBbox;
-      mediapipeFaceOverlay.style.opacity = showBbox ? '1' : '0';
-      btnToggleBbox.innerText = \`Scalp Baseline Line: \${showBbox ? 'ON' : 'OFF'}\`;
-    }
-
-    function restartTimer() {
-      clearInterval(timer);
-      timer = setInterval(nextChunk, 2400);
-    }
+    function jumpTo(idx) { renderChunk(idx); if (isPlaying) restartTimer(); }
+    function nextChunk() { renderChunk((currentIndex + 1) % payload.length); }
+    function prevChunk() { renderChunk((currentIndex - 1 + payload.length) % payload.length); }
+    function togglePlay() { isPlaying = !isPlaying; btnPlay.innerText = isPlaying ? '⏸ Pause' : '▶ Play'; if (isPlaying) restartTimer(); else clearInterval(timer); }
+    function toggleBbox() { showBbox = !showBbox; mediapipeFaceOverlay.style.opacity = showBbox ? '1' : '0'; btnToggleBbox.innerText = '📐 Wireframe: ' + (showBbox ? 'ON' : 'OFF'); }
+    function restartTimer() { clearInterval(timer); timer = setInterval(nextChunk, 2400); }
 
     btnPlay.onclick = togglePlay;
     btnNext.onclick = () => { nextChunk(); if (isPlaying) restartTimer(); };
@@ -1147,3 +1278,4 @@ const htmlContent = `<!DOCTYPE html>
 const outHtmlPath = path.join(studioDir, "typography_treatment_presentation.html");
 fs.writeFileSync(outHtmlPath, htmlContent);
 console.log("SUCCESSFULLY_BUILT_GOLDILOCKS_SCALP_CONTACT_STUDIO:", outHtmlPath);
+
