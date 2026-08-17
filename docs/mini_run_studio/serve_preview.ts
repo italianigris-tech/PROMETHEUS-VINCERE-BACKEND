@@ -148,28 +148,32 @@ async function startAllTunnels(port: number) {
     stdio: ["ignore", "pipe", "pipe"],
   });
 
-  let cfFound = false;
   const onData = (data: Buffer) => {
     const text = data.toString();
     const match = text.match(/https:\/\/[a-zA-Z0-9-]+\.trycloudflare\.com/i);
-    if (match && !cfFound) {
-      cfFound = true;
+    if (match) {
       const cfBase = match[0];
       const cfPresentation = `${cfBase}/typography_treatment_presentation.html`;
-
-      console.log("\n================================================================================");
-      console.log("  📱 LIVE TUNNEL LINKS READY");
-      console.log("================================================================================");
-      console.log(`  🌟 Fixed Permanent Subdomain: \x1b[32m\x1b[1m${permanentLocaltunnelUrl}\x1b[0m`);
-      console.log(`     (Permanent fixed URL! Enter IP: ${publicIp} if prompted)`);
-      console.log(`  ⚡ Instant 1-Click Cloudflare: \x1b[35m\x1b[1m${cfPresentation}\x1b[0m`);
-      console.log(`  🔗 Direct Static EC2 Link:     \x1b[36m\x1b[1m${directEc2Url}\x1b[0m`);
-      console.log("================================================================================\n");
+      console.log(`\n  ⚡ Cloudflare HTTPS: \x1b[35m\x1b[1m${cfPresentation}\x1b[0m`);
     }
   };
-
   cfProcess.stdout?.on("data", onData);
   cfProcess.stderr?.on("data", onData);
+
+  // 3. Launch Pinggy Tunnel (Parallel High-Reliability HTTPS)
+  const pinggyProcess = spawn("ssh", ["-o", "StrictHostKeyChecking=no", "-p", "443", "-R0:localhost:8080", "a.pinggy.io"], {
+    shell: true,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+
+  pinggyProcess.stdout?.on("data", (data: Buffer) => {
+    const text = data.toString();
+    const match = text.match(/https:\/\/[a-zA-Z0-9-]+\.free\.pinggy\.net/i) || text.match(/https:\/\/[a-zA-Z0-9-]+\.run\.pinggy-free\.link/i);
+    if (match) {
+      const pinggyUrl = `${match[0]}/typography_treatment_presentation.html`;
+      console.log(`  🌐 Pinggy HTTPS:    \x1b[36m\x1b[1m${pinggyUrl}\x1b[0m\n`);
+    }
+  });
 }
 
 process.on("SIGINT", () => {
