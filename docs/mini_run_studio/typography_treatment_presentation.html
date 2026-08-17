@@ -375,20 +375,18 @@
     .overlay-electric_blue_energy_line::after { content: ''; position: absolute; bottom: -4px; left: 0; width: 100%; height: 3px; background: linear-gradient(90deg, #00E5FF, #3B82F6); border-radius: 2px; box-shadow: 0 0 10px #00E5FF; animation: energyLineExpand 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
     @keyframes energyLineExpand { 0% { width: 0%; opacity: 0; } 100% { width: 100%; opacity: 1; } }
 
-    /* HIGH-PERFORMANCE MICRO-SEQUENCED ANIMATIONS - FILL-MODE BOTH ENSURES ALL GLYPHS REMAIN 100% VISIBLE */
-    .layer-fx-staggered_rotate_x .char-item, 
+    /* HIGH-PERFORMANCE WHOLE-WORD KINETIC ANIMATIONS - 100% VISIBILITY, ZERO MISSING LETTERS */
     .layer-fx-staggered_rotate_x .word-item { 
       display: inline-block; 
       transform-origin: 50% 100%; 
-      animation: charRotateXCascade 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; 
+      animation: wordRotateXCascade 0.38s cubic-bezier(0.16, 1, 0.3, 1) both; 
     }
-    @keyframes charRotateXCascade { 
-      0% { opacity: 0; transform: perspective(500px) rotateX(-60deg) translateY(12px); filter: blur(4px); } 
+    @keyframes wordRotateXCascade { 
+      0% { opacity: 0; transform: perspective(500px) rotateX(-50deg) translateY(12px); filter: blur(3px); } 
       100% { opacity: 1; transform: perspective(500px) rotateX(0deg) translateY(0); filter: blur(0px); } 
     }
 
-    .layer-fx-slot_bounce .word-item, 
-    .layer-fx-slot_bounce .char-item { 
+    .layer-fx-slot_bounce .word-item { 
       display: inline-block; 
       animation: wordSlotBounce 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) both; 
     }
@@ -402,17 +400,16 @@
       animation: keynoteFocalPunch 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; 
     }
     @keyframes keynoteFocalPunch { 
-      0% { opacity: 0; transform: scale(1.22); filter: blur(8px); } 
+      0% { opacity: 0; transform: scale(1.2); filter: blur(6px); } 
       60% { transform: scale(0.98); filter: blur(0px); } 
       100% { opacity: 1; transform: scale(1); filter: blur(0px); } 
     }
 
-    .layer-fx-subpixel_blur_mask .word-item, 
-    .layer-fx-subpixel_blur_mask .char-item { 
+    .layer-fx-subpixel_blur_mask .word-item, .layer-fx-subpixel_blur_mask { 
       animation: subpixelMask 0.32s cubic-bezier(0.16, 1, 0.3, 1) both; 
     }
     @keyframes subpixelMask { 
-      0% { opacity: 0; transform: translateY(10px); filter: blur(5px); } 
+      0% { opacity: 0; transform: translateY(10px); filter: blur(4px); } 
       100% { opacity: 1; transform: translateY(0); filter: blur(0px); } 
     }
 
@@ -420,41 +417,36 @@
       animation: defocusSnap 0.38s cubic-bezier(0.16, 1, 0.3, 1) both; 
     }
     @keyframes defocusSnap { 
-      0% { opacity: 0; filter: blur(16px); transform: scale(1.1); } 
+      0% { opacity: 0; filter: blur(14px); transform: scale(1.08); } 
       70% { filter: blur(1px); } 
       100% { opacity: 1; filter: blur(0px); transform: scale(1); } 
     }
 
-    .layer-fx-chromatic_character_displace .char-item { 
+    .layer-fx-chromatic_character_displace .word-item { 
       display: inline-block; 
-      animation: chromaticGlitchChar 0.32s cubic-bezier(0.16, 1, 0.3, 1) both; 
+      animation: chromaticWordGlitch 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; 
     }
-    .layer-fx-chromatic_character_displace .char-item:nth-child(even) { 
-      color: #00F0FF !important; 
-      text-shadow: -2px 0 #FF3366, 2px 0 #00F0FF !important; 
-    }
-    @keyframes chromaticGlitchChar { 
-      0% { opacity: 0; transform: translateX(-6px) skewX(10deg); filter: blur(4px); } 
+    @keyframes chromaticWordGlitch { 
+      0% { opacity: 0; transform: translateX(-8px) skewX(8deg); filter: blur(3px); } 
       100% { opacity: 1; transform: translateX(0) skewX(0deg); filter: blur(0px); } 
     }
 
-    .layer-fx-top_down_character_drop .char-item, 
     .layer-fx-top_down_character_drop .word-item { 
       display: inline-block; 
-      animation: topDownCharDrop 0.36s cubic-bezier(0.34, 1.56, 0.64, 1) both; 
+      animation: topDownWordDrop 0.36s cubic-bezier(0.34, 1.56, 0.64, 1) both; 
     }
-    @keyframes topDownCharDrop { 
-      0% { opacity: 0; transform: translateY(-20px) scale(1.1); filter: blur(4px); } 
+    @keyframes topDownWordDrop { 
+      0% { opacity: 0; transform: translateY(-20px) scale(1.08); filter: blur(3px); } 
       70% { transform: translateY(2px) scale(0.98); filter: blur(0px); } 
       100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0px); } 
     }
 
-    .layer-fx-typewriter_engine .char-item { 
+    .layer-fx-typewriter_engine .word-item { 
       display: inline-block; 
-      animation: typewriterCharPop 0.12s cubic-bezier(0.16, 1, 0.3, 1) both; 
+      animation: typewriterWordPop 0.2s cubic-bezier(0.16, 1, 0.3, 1) both; 
     }
-    @keyframes typewriterCharPop { 
-      0% { opacity: 0; transform: scale(1.2); filter: blur(2px); } 
+    @keyframes typewriterWordPop { 
+      0% { opacity: 0; transform: scale(1.15); filter: blur(2px); } 
       100% { opacity: 1; transform: scale(1); filter: blur(0px); } 
     }
 
@@ -623,6 +615,12 @@
           <button class="btn btn-primary" id="btnPlay" style="flex: 1.2;">⏸ Pause</button>
           <button class="btn" id="btnNext" style="flex: 1;">Next ⏭</button>
           <button class="btn btn-green" id="btnToggleBbox" style="flex: 1.4;">📐 Wireframe</button>
+        </div>
+        <div class="mobile-buttons-row" style="margin-top: 4px;">
+          <label class="btn" id="lblUploadScreenshot" style="flex: 1; background: rgba(0, 240, 255, 0.12); border: 1px solid var(--accent-cyan); color: var(--accent-cyan); cursor: pointer; font-size: 13px; font-weight: 700;">
+            📸 Send Screenshot to Agent
+            <input type="file" accept="image/*" id="screenshotInput" style="display: none;">
+          </label>
         </div>
       </div>
     </div>
@@ -949,39 +947,18 @@
           layerDiv.appendChild(circle);
           layerDiv.appendChild(txt);
 
-        // 3. STANDARD KINETIC ANIMATION TREATMENTS (CLEAN SOLID WORD & CHAR ENGINE)
+        // 3. STANDARD KINETIC ANIMATION TREATMENTS (WHOLE-WORD COHESIVE SYSTEM)
         } else {
           const rawText = applyCasing(layer.text, layer.casing);
-          const isScriptFont = layer.fontFamily.toLowerCase().includes('vibes') || layer.fontFamily.toLowerCase().includes('playfair') || layer.fontFamily.toLowerCase().includes('serif');
           const words = rawText.split(/s+/).filter(Boolean);
 
-          if (layerTrait.type === 'letter' && !isScriptFont) {
-            let layerCharIdx = 0;
-            words.forEach((w) => {
-              const wordGroup = document.createElement('span');
-              wordGroup.className = 'word-group';
-
-              Array.from(w).forEach((char) => {
-                const charSpan = document.createElement('span');
-                charSpan.className = 'char-item';
-                charSpan.innerText = char;
-                // Fast 16ms cascade per character — whole word settles in <180ms
-                charSpan.style.animationDelay = (layerCharIdx * 0.016) + 's';
-                layerCharIdx++;
-                wordGroup.appendChild(charSpan);
-              });
-
-              layerDiv.appendChild(wordGroup);
-            });
-          } else {
-            words.forEach((w, wIdx) => {
-              const wordSpan = document.createElement('span');
-              wordSpan.className = 'word-item';
-              wordSpan.innerText = w;
-              wordSpan.style.animationDelay = (wIdx * 0.06) + 's';
-              layerDiv.appendChild(wordSpan);
-            });
-          }
+          words.forEach((w, wIdx) => {
+            const wordSpan = document.createElement('span');
+            wordSpan.className = 'word-item';
+            wordSpan.innerText = w;
+            wordSpan.style.animationDelay = (wIdx * 0.07) + 's';
+            layerDiv.appendChild(wordSpan);
+          });
         }
 
         familyGroup.appendChild(layerDiv);
@@ -992,6 +969,37 @@
       } else {
         familyChestStage.appendChild(familyGroup);
       }
+    }
+
+    const screenshotInput = document.getElementById('screenshotInput');
+    const lblUploadScreenshot = document.getElementById('lblUploadScreenshot');
+    if (screenshotInput) {
+      screenshotInput.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        if (lblUploadScreenshot) lblUploadScreenshot.innerText = '⏳ Uploading...';
+        const reader = new FileReader();
+        reader.onload = async () => {
+          try {
+            const res = await fetch('/api/upload_screenshot', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ dataUrl: reader.result })
+            });
+            if (res.ok) {
+              if (lblUploadScreenshot) lblUploadScreenshot.innerText = '✅ Screenshot Sent to Agent!';
+              alert('📸 Screenshot received by agent! The agent will inspect it directly.');
+            } else {
+              if (lblUploadScreenshot) lblUploadScreenshot.innerText = '❌ Upload Failed';
+              alert('Upload failed: ' + res.statusText);
+            }
+          } catch (err) {
+            if (lblUploadScreenshot) lblUploadScreenshot.innerText = '❌ Upload Error';
+            alert('Upload error: ' + err.message);
+          }
+        };
+        reader.readAsDataURL(file);
+      };
     }
 
     function jumpTo(idx) { renderChunk(idx); if (isPlaying) restartTimer(); }

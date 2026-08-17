@@ -69,6 +69,33 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // Handle Mobile Screenshot Upload
+  if (req.method === "POST" && req.url === "/api/upload_screenshot") {
+    let body = "";
+    req.on("data", chunk => { body += chunk; });
+    req.on("end", () => {
+      try {
+        const json = JSON.parse(body);
+        if (json.dataUrl) {
+          const base64Data = json.dataUrl.replace(/^data:image\/\w+;base64,/, "");
+          const buffer = Buffer.from(base64Data, "base64");
+          const targetPath = path.join(studioDir, "user_mobile_screenshot.png");
+          fs.writeFileSync(targetPath, buffer);
+          console.log("\n📸 [MOBILE_SCREENSHOT_RECEIVED] Successfully saved to:", targetPath);
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ success: true, savedPath: targetPath }));
+          return;
+        }
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Missing dataUrl" }));
+      } catch (err: any) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: err.message }));
+      }
+    });
+    return;
+  }
+
   const resolved = resolveFilePath(req.url || "/");
   if (!resolved) {
     res.writeHead(404, { "Content-Type": "text/html; charset=utf-8" });
