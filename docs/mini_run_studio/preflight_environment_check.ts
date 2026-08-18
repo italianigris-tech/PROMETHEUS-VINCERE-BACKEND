@@ -79,7 +79,7 @@ function discoverPythonCandidates(): string[] {
     candidates.push(path.join(process.env.VIRTUAL_ENV, process.platform === "win32" ? "Scripts/python.exe" : "bin/python"));
   }
 
-  // 3. Local repository virtual environments (.venv, venv)
+  // 3. Local repository virtual environments (.venv, venv, bin)
   const venvSearchRoots = [
     studioDir,
     repoRoot,
@@ -91,10 +91,14 @@ function discoverPythonCandidates(): string[] {
   for (const root of venvSearchRoots) {
     const venvDir1 = path.join(root, ".venv");
     const venvDir2 = path.join(root, "venv");
-    const py1 = path.join(venvDir1, process.platform === "win32" ? "Scripts/python.exe" : "bin/python");
-    const py2 = path.join(venvDir2, process.platform === "win32" ? "Scripts/python.exe" : "bin/python");
+    const py1 = path.join(venvDir1, process.platform === "win32" ? "Scripts/python.exe" : "bin/python3");
+    const py2 = path.join(venvDir2, process.platform === "win32" ? "Scripts/python.exe" : "bin/python3");
+    const py3 = path.join(root, "bin/python3");
+    const py4 = path.join(root, "bin/python");
     if (fs.existsSync(py1)) candidates.push(py1);
     if (fs.existsSync(py2)) candidates.push(py2);
+    if (fs.existsSync(py3)) candidates.push(py3);
+    if (fs.existsSync(py4)) candidates.push(py4);
   }
 
   // 4. Windows standard AppData Prometheus installation
