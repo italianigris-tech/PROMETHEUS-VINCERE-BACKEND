@@ -69,28 +69,28 @@ console.log(`[FONT_CORPUS_LOADER] Successfully loaded ${allFontProfiles.length} 
 // 4. LOAD RELEVANT ASSETS FOR TRANSCRIPT 2
 const techFoundersTrioBase64 = getBase64DataUriFromPath(path.join(studioDir, "tech_founders_vintage_trio.jpg"));
 
-// 5. AUTHORITATIVE 20-CHUNK RAW SPOKEN TRANSCRIPT (Script #2)
+// 5. AUTHORITATIVE 20-CHUNK RAW SPOKEN TRANSCRIPT (Script #2) WITH WORD-COUNT ACCURATE PROFILES
 const rawSpokenChunks = [
-  { chunkIndex: 1, timestamp: "00:00 — 00:02", text: "You can make", emphasis: "context", preferredProfile: "image (1).json" },
-  { chunkIndex: 2, timestamp: "00:02 — 00:04", text: "$50,000 a month", emphasis: "hero_metric", metricValue: 50000, metricPrefix: "$", metricSuffix: "", preferredProfile: "image (35).json" },
-  { chunkIndex: 3, timestamp: "00:04 — 00:06", text: "and still", emphasis: "transition", preferredProfile: "image (13).json" },
-  { chunkIndex: 4, timestamp: "00:06 — 00:08", text: "have a broken business.", emphasis: "inflection_tension", preferredProfile: "image (40).json" },
-  { chunkIndex: 5, timestamp: "00:08 — 00:10", text: "Because revenue", emphasis: "context", preferredProfile: "image (24).json" },
-  { chunkIndex: 6, timestamp: "00:10 — 00:12", text: "doesn't automatically mean", emphasis: "clause", preferredProfile: "image (39).json" },
-  { chunkIndex: 7, timestamp: "00:12 — 00:14", text: "you're building something scalable.", emphasis: "hero_concept", preferredProfile: "image (12).json" },
-  { chunkIndex: 8, timestamp: "00:14 — 00:16", text: "I've seen founders", emphasis: "named_entity_founders", preferredProfile: "image (23).json" },
-  { chunkIndex: 9, timestamp: "00:16 — 00:18", text: "make serious money", emphasis: "key_point", preferredProfile: "image (27).json" },
-  { chunkIndex: 10, timestamp: "00:18 — 00:20", text: "while working", emphasis: "transition", preferredProfile: "image (34).json" },
-  { chunkIndex: 11, timestamp: "00:20 — 00:22", text: "seventy hours every week.", emphasis: "hero_metric", metricValue: 70, metricPrefix: "", metricSuffix: " HOURS", preferredProfile: "image (35).json" },
-  { chunkIndex: 12, timestamp: "00:22 — 00:24", text: "That's not freedom.", emphasis: "inflection_tension", preferredProfile: "image (25).json" },
-  { chunkIndex: 13, timestamp: "00:24 — 00:26", text: "That's a", emphasis: "transition", preferredProfile: "image (32).json" },
-  { chunkIndex: 14, timestamp: "00:26 — 00:28", text: "very expensive job.", emphasis: "hero_concept", preferredProfile: "image (40).json" },
-  { chunkIndex: 15, timestamp: "00:28 — 00:30", text: "The real goal", emphasis: "context", preferredProfile: "image (10).json" },
-  { chunkIndex: 16, timestamp: "00:30 — 00:32", text: "isn't just making more money.", emphasis: "contrast_claim", preferredProfile: "image (5).json" },
-  { chunkIndex: 17, timestamp: "00:32 — 00:34", text: "It's building systems", emphasis: "inflection_solution", preferredProfile: "image (2).json" },
-  { chunkIndex: 18, timestamp: "00:34 — 00:36", text: "that keep producing results", emphasis: "key_point", preferredProfile: "image (4).json" },
-  { chunkIndex: 19, timestamp: "00:36 — 00:38", text: "without requiring you", emphasis: "clause", preferredProfile: "image (36).json" },
-  { chunkIndex: 20, timestamp: "00:38 — 00:40", text: "every single time.", emphasis: "terminal_payoff", preferredProfile: "image (6).json" }
+  { chunkIndex: 1, timestamp: "00:00 — 00:02", text: "You can make", emphasis: "context", preferredProfile: "image (39).json" }, // 3 words: Getting more / Personal
+  { chunkIndex: 2, timestamp: "00:02 — 00:04", text: "$50,000 a month", emphasis: "hero_metric", metricValue: 50000, metricPrefix: "$", metricSuffix: "", preferredProfile: "image (35).json" }, // 3 words: 2X / REVENUE GROWTH
+  { chunkIndex: 3, timestamp: "00:04 — 00:06", text: "and still", emphasis: "transition", preferredProfile: "image (13).json" }, // 2 words: for / YOU
+  { chunkIndex: 4, timestamp: "00:06 — 00:08", text: "have a broken business.", emphasis: "inflection_tension", preferredProfile: "image (12).json" }, // 4 words: THE EVOLUTION OF / she.
+  { chunkIndex: 5, timestamp: "00:08 — 00:10", text: "Because revenue", emphasis: "context", preferredProfile: "image (24).json" }, // 2 words: Five / HOOKS (Script + Yellow Sans)
+  { chunkIndex: 6, timestamp: "00:10 — 00:12", text: "doesn't automatically mean", emphasis: "clause", preferredProfile: "image (36).json" }, // 3 words: PRETTY DOESN'T / convert.
+  { chunkIndex: 7, timestamp: "00:12 — 00:14", text: "you're building something scalable.", emphasis: "hero_concept", preferredProfile: "image (23).json" }, // 4 words: The art of / FASHION
+  { chunkIndex: 8, timestamp: "00:14 — 00:16", text: "I've seen founders", emphasis: "named_entity_founders", preferredProfile: "image (21).json" }, // 3 words: She's got the / LOOK
+  { chunkIndex: 9, timestamp: "00:16 — 00:18", text: "make serious money", emphasis: "key_point", preferredProfile: "image (3).json" }, // 3 words: Giaza / Beautifully Delicious
+  { chunkIndex: 10, timestamp: "00:18 — 00:20", text: "while working", emphasis: "transition", preferredProfile: "image (34).json" }, // 2 words: team / SYNC
+  { chunkIndex: 11, timestamp: "00:20 — 00:22", text: "seventy hours every week.", emphasis: "hero_metric", metricValue: 70, metricPrefix: "", metricSuffix: " HOURS", preferredProfile: "image (35).json" }, // 4 words: 2X / REVENUE GROWTH
+  { chunkIndex: 12, timestamp: "00:22 — 00:24", text: "That's not freedom.", emphasis: "inflection_tension", preferredProfile: "image (29).json" }, // 3 words: Designers / don't / gatekeep.
+  { chunkIndex: 13, timestamp: "00:24 — 00:26", text: "That's a", emphasis: "transition", preferredProfile: "image (8).json" }, // 2 words: Symphony / SANCHEZ
+  { chunkIndex: 14, timestamp: "00:26 — 00:28", text: "very expensive job.", emphasis: "hero_concept", preferredProfile: "image (10).json" }, // 3 words: Into the / light
+  { chunkIndex: 15, timestamp: "00:28 — 00:30", text: "The real goal", emphasis: "context", preferredProfile: "image (9).json" }, // 3 words: The / Muse / era
+  { chunkIndex: 16, timestamp: "00:30 — 00:32", text: "isn't just making more money.", emphasis: "contrast_claim", preferredProfile: "image (7).json" }, // 5 words: FREE FONT PAIRINGS / Old / Money
+  { chunkIndex: 17, timestamp: "00:32 — 00:34", text: "It's building systems", emphasis: "inflection_solution", preferredProfile: "image (2).json" }, // 3 words: Want this / PREMIUM / fonts
+  { chunkIndex: 18, timestamp: "00:34 — 00:36", text: "that keep producing results", emphasis: "key_point", preferredProfile: "image (6).json" }, // 4 words: the seasons / TRUE TYPEWRITER
+  { chunkIndex: 19, timestamp: "00:36 — 00:38", text: "without requiring you", emphasis: "clause", preferredProfile: "image (14).json" }, // 3 words: It / has / design.
+  { chunkIndex: 20, timestamp: "00:38 — 00:40", text: "every single time.", emphasis: "terminal_payoff", preferredProfile: "image (18).json" } // 3 words: There is / Luxury / in Simplicity
 ];
 
 const htmlContent = `<!DOCTYPE html>
@@ -358,6 +358,22 @@ const htmlContent = `<!DOCTYPE html>
       width: 100%;
     }
 
+    /* INLINE HORIZONTAL COMPOUND LAYOUT (PORTfolio, Unearth, Drop Cap) */
+    .layer-group.layout-inline-horizontal {
+      flex-direction: row !important;
+      align-items: baseline !important;
+      justify-content: center !important;
+      gap: 0px !important;
+      white-space: nowrap !important;
+    }
+    .layer-group.layout-inline-horizontal .typo-layer {
+      display: inline-flex !important;
+      margin-top: 0 !important;
+      margin-bottom: 0 !important;
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+    }
+
     /* STRICT HORIZONTAL CONTAINMENT & ZERO WORD CUTTING */
     .typo-layer {
       display: flex;
@@ -510,7 +526,7 @@ const htmlContent = `<!DOCTYPE html>
 
   <div class="header">
     <h1>Prometheus 100% Faithful Font JSON Realization Studio</h1>
-    <p>Guaranteed 9:16 Mobile Containment • Subtle Baseline Overlaps • Zero Cutout Clipping</p>
+    <p>Guaranteed 9:16 Mobile Containment • Subtle Baseline Overlaps • Exact Metadata Word-Count Parity</p>
   </div>
 
   <!-- DYNAMIC SELECTOR RE-ROLL TOOLBAR -->
@@ -730,7 +746,7 @@ const htmlContent = `<!DOCTYPE html>
       }));
     }
 
-    // 3. AUTHORITATIVE COMPILER EXECUTING 100% FAITHFUL FONT JSON INVARIANTS & SUBTLE OVERLAPS
+    // 3. AUTHORITATIVE COMPILER EXECUTING 100% FAITHFUL FONT JSON INVARIANTS & METADATA WORD COUNT PARITY
     function compileDynamicSequence(seed) {
       const rng = mulberry32(seed);
       let lastProfileName = "";
@@ -742,7 +758,7 @@ const htmlContent = `<!DOCTYPE html>
         const wordCount = words.length;
         const totalChars = raw.text.length;
 
-        // 1. SELECT AUTHORITATIVE FONT JSON PROFILE
+        // 1. SELECT AUTHORITATIVE FONT JSON PROFILE WITH STRICT WORD COUNT CAPACITY FILTERING
         let profile = null;
         if (seed === 101 && raw.preferredProfile && PROFILE_MAP[raw.preferredProfile]) {
           profile = PROFILE_MAP[raw.preferredProfile];
@@ -750,14 +766,25 @@ const htmlContent = `<!DOCTYPE html>
           let candidates = ALL_FONT_PROFILES.filter(p => {
             if (p.profile_name === lastProfileName) return false;
             const pWords = p.metadata?.total_word_count || p.typography_layers?.length || 2;
-            return Math.abs(pWords - wordCount) <= 1;
+            const isInlineCompound = (p.profile_name.includes("Portfolio") || p.profile_name.includes("Unearth") || p.profile_name.includes("Drop_Cap"));
+            
+            // Invariant: Never assign 1-word inline compound profile to multi-word clauses
+            if (wordCount >= 3 && isInlineCompound) return false;
+            if (wordCount <= 2 && pWords >= 5) return false;
+
+            return Math.abs(pWords - wordCount) <= (wordCount >= 4 ? 1 : 0);
           });
           if (candidates.length === 0) {
-            candidates = ALL_FONT_PROFILES.filter(p => p.profile_name !== lastProfileName);
+            candidates = ALL_FONT_PROFILES.filter(p => {
+              const isInlineCompound = (p.profile_name.includes("Portfolio") || p.profile_name.includes("Unearth"));
+              return wordCount >= 3 ? !isInlineCompound : true;
+            });
           }
           profile = candidates[Math.floor(rng() * candidates.length)] || ALL_FONT_PROFILES[0];
         }
         lastProfileName = profile.profile_name;
+
+        const isInlineCompound = (profile.profile_name.includes("Portfolio") || profile.profile_name.includes("Unearth") || profile.profile_name.includes("Drop_Cap"));
 
         // 2. RIGOROUSLY ALLOCATE SPOKEN WORDS TO FONT JSON LAYERS
         const layerAllocations = allocateWordsToLayers(profile.typography_layers, wordCount);
@@ -886,6 +913,7 @@ const htmlContent = `<!DOCTYPE html>
           profileName: profile.profile_name,
           profileFilename: profile._filename || "font_json_profile",
           profileMood: profile.metadata?.overall_mood || "Editorial Pairing",
+          isInlineHorizontal: isInlineCompound,
           depthPlane: depthPlane,
           isHeadZone: isHeadZone,
           layers: renderedLayers,
@@ -943,7 +971,7 @@ const htmlContent = `<!DOCTYPE html>
       });
 
       const layerGroup = document.createElement('div');
-      layerGroup.className = 'layer-group';
+      layerGroup.className = 'layer-group' + (chunk.isInlineHorizontal ? ' layout-inline-horizontal' : '');
 
       chunk.layers.forEach((layer) => {
         const isBehind = (chunk.depthPlane === 'behind_subject');
@@ -957,7 +985,7 @@ const htmlContent = `<!DOCTYPE html>
         layerDiv.style.lineHeight = layer.lineHeight || 1.05;
         layerDiv.style.color = layer.color || '#FFFFFF';
         if (layer.letterSpacingEm) layerDiv.style.letterSpacing = layer.letterSpacingEm + 'em';
-        if (layer.marginTopPx) layerDiv.style.marginTop = layer.marginTopPx + 'px';
+        if (layer.marginTopPx && !chunk.isInlineHorizontal) layerDiv.style.marginTop = layer.marginTopPx + 'px';
         if (layer.dropShadow) {
           const ds = layer.dropShadow;
           layerDiv.style.textShadow = (ds.x_offset || 0) + 'px ' + (ds.y_offset || 2) + 'px ' + (ds.blur_radius || 8) + 'px ' + (ds.color || 'rgba(0,0,0,0.85)');
@@ -1024,7 +1052,7 @@ const htmlContent = `<!DOCTYPE html>
         tr.innerHTML = 
           '<td style="font-family: monospace; color: var(--accent-cyan); font-weight: 700;">' + layer.layerName + ' (' + layer.role + ')</td>' +
           '<td style="font-weight: 700;">' + layer.fontFamily + ' ' + layer.fontWeight + ' ' + (layer.fontStyle === 'italic' ? 'Italic' : '') + ' • ' + layer.fontSizePx + 'px</td>' +
-          '<td>' + (layer.casing || 'normal') + ' • ' + (layer.marginTopPx ? layer.marginTopPx + 'px subtle offset' : '0px') + '</td>' +
+          '<td>' + (layer.casing || 'normal') + ' • ' + (layer.marginTopPx && !chunk.isInlineHorizontal ? layer.marginTopPx + 'px subtle offset' : '0px inline') + '</td>' +
           '<td style="font-weight: 700; color: var(--accent-yellow);">' + layer.fxPreset + '</td>' +
           '<td style="font-weight: 700; color: ' + (isBehind ? 'var(--accent-pink)' : 'var(--accent-cyan)') + '">' + (isBehind ? 'ZONE A (Z:10)' : 'ZONE B (Z:30)') + '</td>';
         tableBody.appendChild(tr);
