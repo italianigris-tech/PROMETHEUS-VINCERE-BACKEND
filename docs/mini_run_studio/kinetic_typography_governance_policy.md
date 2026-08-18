@@ -113,3 +113,24 @@ MediaPipe tracks face/mouth boundaries (`faceBox: [x:0.34, y:0.28, w:0.32, h:0.2
 * Childish or unmotivated shape masks (e.g., flat colored circles or arbitrary badges) are strictly banned.
 * Typography MUST adhere to high-end documentary standards: high-contrast tracked serif/sans pairs, clean drop shadows, and refined micro-animations.
 
+---
+
+## 9. Core Points of Inflection & Multi-Tier Entity Governance Policy
+
+### 9.1 Core Points of Inflection as Creative Canvases (Anti-Image-Slotting)
+* **Core Rule**: Semantic extraction identifies **Core Points of Inflection (CPI)** — moments of high emotional, rhetorical, or structural salience.
+* **Prohibition**: An inflection point MUST NEVER be treated as a mechanical mandate to insert a background image.
+* **Creative Hierarchy**: Inflection points must first explore high-energy typography (cyber matrix glitch, 3D cascades, live numeric counters), then stylistic overlays (highlight sweeps, contrast inversion), then mini entity assets, and only lastly macro scene cutouts.
+
+### 9.2 Asset Taxonomy: Mini / Micro Entities vs. Macro Scene Cutouts
+* **Mini / Micro Entity Assets (`mini_asset`)**:
+  * Represents specific named entities, tools, or brands mentioned in speech (e.g. *"never post on Instagram"* $\to$ Instagram icon badge).
+  * Rendered as compact, high-precision vector/cutout badges accompanying Stage 1 typography on Stage 2 ($Z:30$).
+* **Macro Thematic Scene Assets (`macro_asset`)**:
+  * Large, atmospheric depth cutouts (e.g. Founders Trio, historical landmarks).
+  * Mounted strictly behind the speaker's shoulder ($Z:10$), capped at max 1–2 per 40-second timeline.
+
+### 9.3 Sequential Staging Execution
+* All video chunks execute sequentially:
+  $$\text{Stage 1: Typography-First Bedrock} \to \text{Stage 2: Inflection Enhancement (Motion / Mini-Entity / Macro)} \to \text{Stage 3: Depth & Cinematic Post-VFX}$$
+
