@@ -304,6 +304,11 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
     <div class="header-card">
       <h1>Prometheus Discrete Sound Design & Micro-Looping Studio</h1>
       <p>Click Any Cue to Seek & Micro-Loop • Real-Time Variant Auditioning • Decouple On Demand</p>
+      <div style="display: flex; justify-content: center; gap: 10px; margin-top: 10px;">
+        <a href="/" style="color: var(--accent-cyan); text-decoration: none; padding: 4px 10px; background: rgba(0, 240, 255, 0.1); border: 1px solid var(--accent-cyan); border-radius: 6px; font-size: 11px; font-weight: 700;">🎵 Sound Studio</a>
+        <a href="/typo" style="color: #FFF; text-decoration: none; padding: 4px 10px; background: rgba(255,255,255,0.05); border: 1px solid var(--panel-border); border-radius: 6px; font-size: 11px; font-weight: 700;">🔤 Typography Studio (/typo)</a>
+        <a href="/paste" style="color: #FFF; text-decoration: none; padding: 4px 10px; background: rgba(255,255,255,0.05); border: 1px solid var(--panel-border); border-radius: 6px; font-size: 11px; font-weight: 700;">📸 Screenshots (/paste)</a>
+      </div>
     </div>
 
     <div class="studio-grid">
@@ -739,9 +744,9 @@ function createServerInstance(port: number) {
     let decodedUrl = req.url || "";
     try { decodedUrl = decodeURIComponent(req.url || ""); } catch {}
 
-    // Typography Treatment Presentation Studio
+    // Typography Treatment Presentation Studio (/typo)
     if ((req.method === "GET" || req.method === "HEAD") && 
-        (req.url?.startsWith("/typography_treatment_presentation.html") || req.url === "/presentation" || req.url === "/typo")) {
+        (req.url?.startsWith("/typo") || req.url?.startsWith("/typography_treatment_presentation.html") || req.url === "/presentation")) {
       const presentationHtmlPath = path.join(studioDir, "typography_treatment_presentation.html");
       if (fs.existsSync(presentationHtmlPath)) {
         const stat = fs.statSync(presentationHtmlPath);
@@ -784,9 +789,9 @@ function createServerInstance(port: number) {
   <div class="header">
     <h1>📸 Screenshot Dropzone & Review Gallery</h1>
     <div class="nav-links">
-      <a href="/">🎵 Sound Design Studio</a>
-      <a href="/typography_treatment_presentation.html">🔤 Typography Presentation</a>
-      <a href="/paste" style="color: var(--accent-cyan); font-weight: bold;">📸 Review Screenshots</a>
+      <a href="/">🎵 Sound Studio</a>
+      <a href="/typo">🔤 Typography Studio (/typo)</a>
+      <a href="/paste" style="color: var(--accent-cyan); font-weight: bold;">📸 Screenshots (/paste)</a>
     </div>
   </div>
   <div class="dropzone" id="dropzone">
