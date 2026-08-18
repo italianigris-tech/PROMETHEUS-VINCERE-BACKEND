@@ -1,6 +1,7 @@
 import * as http from "node:http";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { execSync } from "node:child_process";
 
 const studioDir = __dirname;
 const repoRoot = path.resolve(studioDir, "../..");
@@ -8,6 +9,7 @@ const sfxVideoPath = path.join(studioDir, "video_with_real_sfx.mp4");
 const mutedVideoPath = path.join(studioDir, "uploaded_input_video.mp4");
 const soundJsonPath = path.join(studioDir, "authoritative_sound_treatment.json");
 const soundFxDir = path.join(repoRoot, "SOUND FX");
+const renderScript = path.join(studioDir, "render_video_with_sfx.ts");
 
 const MIME_TYPES: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -30,7 +32,7 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Prometheus — Master Sound Design & Scrubbable JSON Studio</title>
+  <title>Prometheus — Discrete Sound Design & Variant Control Studio</title>
   <style>
     :root {
       --bg-dark: #070913;
@@ -57,7 +59,7 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
     }
     .container {
       width: 100%;
-      max-width: 1200px;
+      max-width: 1240px;
       display: flex;
       flex-direction: column;
       gap: 14px;
@@ -151,15 +153,16 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
       margin-bottom: 12px;
       justify-content: space-between;
       align-items: center;
+      flex-wrap: wrap;
     }
     .tab-btn-group { display: flex; gap: 8px; }
     .tab-btn {
       background: rgba(255, 255, 255, 0.06);
       border: 1px solid var(--panel-border);
       color: var(--text-muted);
-      padding: 6px 14px;
+      padding: 6px 12px;
       border-radius: 8px;
-      font-size: 12px;
+      font-size: 11.5px;
       font-weight: 700;
       cursor: pointer;
     }
@@ -169,17 +172,21 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
       border-color: var(--accent-cyan);
       font-weight: 900;
     }
-    .btn-api-link {
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid var(--panel-border);
-      color: #FFF;
-      padding: 5px 12px;
+    .btn-rebake {
+      background: linear-gradient(135deg, var(--accent-yellow), var(--accent-pink));
+      color: #070913;
+      border: none;
+      padding: 6px 14px;
       border-radius: 8px;
-      font-size: 11px;
-      font-weight: 700;
-      text-decoration: none;
+      font-size: 11.5px;
+      font-weight: 900;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: transform 0.1s;
     }
-    .btn-api-link:hover { background: rgba(255, 255, 255, 0.16); }
+    .btn-rebake:hover { transform: scale(1.03); }
 
     /* TABLE */
     .table-scroll {
@@ -199,9 +206,20 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
     .tag { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 800; text-transform: uppercase; }
     .tag-text { background: rgba(255, 230, 0, 0.2); color: #FFE600; border: 1px solid rgba(255, 230, 0, 0.4); }
     .tag-whoosh { background: rgba(16, 185, 129, 0.2); color: #10B981; border: 1px solid rgba(16, 185, 129, 0.4); }
-    .tag-hit { background: rgba(255, 0, 85, 0.2); color: #FF0055; border: 1px solid rgba(255, 0, 85, 0.4); }
-    .tag-sweep { background: rgba(0, 240, 255, 0.2); color: #00F0FF; border: 1px solid rgba(0, 240, 255, 0.4); }
     .tag-ui { background: rgba(139, 92, 246, 0.2); color: #8B5CF6; border: 1px solid rgba(139, 92, 246, 0.4); }
+
+    .variant-select {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #FFF;
+      padding: 3px 6px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-family: monospace;
+      max-width: 180px;
+      cursor: pointer;
+    }
+    .variant-select:focus { border-color: var(--accent-cyan); outline: none; }
 
     .btn-audition {
       background: rgba(255, 255, 255, 0.08);
@@ -236,13 +254,13 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
   <div class="container">
     
     <div class="header-card">
-      <h1>Prometheus Sound Design & Authoritative JSON Studio</h1>
-      <p>Native Smooth Video Playback • 100% Real Audio Samples • 282 Synchronized Cues</p>
+      <h1>Prometheus Discrete Sound Design & Variant Studio</h1>
+      <p>Zero Background Clutter • Discrete Text Clicks, Whooshes & UI Pops • Interactive Variant Switching</p>
     </div>
 
     <div class="studio-grid">
       
-      <!-- LEFT: VIDEO PLAYER (NATIVE SMOOTH PLAYBACK) -->
+      <!-- LEFT: VIDEO PLAYER -->
       <div class="card">
         <div class="player-wrap">
           <video id="studioVideo" src="/video_with_real_sfx.mp4" controls playsinline preload="auto"></video>
@@ -251,7 +269,7 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
         <div class="controls-row">
           <div style="display:flex; gap:6px;">
             <button class="mode-switch-btn active" id="btnSfxMode" onclick="setAudioTrack('sfx')">
-              🔊 Real SFX Mixed
+              🔊 Real SFX Audio
             </button>
             <button class="mode-switch-btn" id="btnMuteMode" onclick="setAudioTrack('mute')">
               🔇 Muted
@@ -264,18 +282,21 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
         </div>
       </div>
 
-      <!-- RIGHT: SCRUBBABLE TABLE & JSON EXPLORER -->
+      <!-- RIGHT: SCRUBBABLE TABLE & VARIANT CONTROLS -->
       <div class="card">
         
         <div class="tab-bar">
           <div class="tab-btn-group">
-            <button class="tab-btn active" id="tabTableBtn" onclick="showTab('table')">📊 Sound Treatment (282 Cues)</button>
+            <button class="tab-btn active" id="tabTableBtn" onclick="showTab('table')">📊 Sound Treatments (282 Cues)</button>
             <button class="tab-btn" id="tabJsonBtn" onclick="showTab('json')">{ } Authoritative JSON</button>
           </div>
-          <a href="/api/authoritative_sound_treatment" target="_blank" class="btn-api-link">📥 Raw JSON API</a>
+          
+          <button class="btn-rebake" id="btnRebake" onclick="rebakeAudioTrack()">
+            ⚡ Re-Bake Master Audio
+          </button>
         </div>
 
-        <!-- TAB 1: SCRUBBABLE TABLE -->
+        <!-- TAB 1: SCRUBBABLE TABLE WITH VARIANT SELECTORS -->
         <div class="table-scroll" id="tableView">
           <table>
             <thead>
@@ -283,7 +304,7 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
                 <th>TIME</th>
                 <th>CATEGORY</th>
                 <th>VISUAL TRIGGER</th>
-                <th>ASSIGNED REAL SFX</th>
+                <th>SOUND VARIANT SELECTOR</th>
                 <th>PAN</th>
                 <th>AUDITION</th>
               </tr>
@@ -327,23 +348,85 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
       tbody.innerHTML = soundManifest.treatments.map((t, idx) => {
         let tagClass = 'tag-ui';
         if (t.soundDesign.category === 'TEXT') tagClass = 'tag-text';
-        else if (t.soundDesign.category === 'WHOOSHES' || t.soundDesign.category === 'SWOOSHES') tagClass = 'tag-whoosh';
-        else if (t.soundDesign.category === 'IMPACT HITS' || t.soundDesign.category === 'CINEMATIC HITS') tagClass = 'tag-hit';
-        else if (t.soundDesign.category === 'SWEEPS' || t.soundDesign.category === 'RISERS') tagClass = 'tag-sweep';
+        else if (t.soundDesign.category === 'WHOOSHES' || t.soundDesign.category === 'SWOOSHES' || t.soundDesign.category === 'TRANSITIONS') tagClass = 'tag-whoosh';
 
         const panStr = t.soundDesign.stereoPan >= 0 ? '+' + t.soundDesign.stereoPan.toFixed(2) : t.soundDesign.stereoPan.toFixed(2);
+
+        const optionsHtml = (t.soundDesign.variants || []).map((v, vIdx) => \`
+          <option value="\${vIdx}" \${vIdx === t.soundDesign.selectedVariantIndex ? 'selected' : ''}>\${v.label}</option>
+        \`).join('');
 
         return \`
           <tr id="row-\${idx}">
             <td><strong style="color:#FFF; cursor:pointer;" onclick="seekVideo(\${t.timestampSeconds})">\${t.timestampSeconds.toFixed(2)}s</strong></td>
             <td><span class="tag \${tagClass}">\${t.soundDesign.category}</span></td>
             <td><strong>\${t.visualTrigger.elementName}</strong><br><span style="font-size:10px; color:#64748B;">\${t.visualTrigger.description}</span></td>
-            <td><strong>\${t.soundDesign.soundName}</strong><br><span style="font-size:9.5px; color:#38BDF8;">\${t.soundDesign.soundFile.replace('SOUND FX/', '')}</span></td>
+            <td>
+              <select class="variant-select" onchange="changeVariant(\${idx}, this.value)">
+                \${optionsHtml}
+              </select>
+            </td>
             <td>\${panStr}</td>
-            <td><button class="btn-audition" onclick="auditionSingleAudio('\${t.soundDesign.audioUrl}')">▶ Play</button></td>
+            <td><button class="btn-audition" onclick="auditionCurrentVariant(\${idx})">▶ Play</button></td>
           </tr>
         \`;
       }).join('');
+    }
+
+    function changeVariant(cueIndex, variantIndex) {
+      const t = soundManifest.treatments[cueIndex];
+      const v = t.soundDesign.variants[variantIndex];
+      t.soundDesign.selectedVariantIndex = parseInt(variantIndex, 10);
+      t.soundDesign.soundName = v.label;
+      t.soundDesign.soundFile = v.soundFile;
+      t.soundDesign.audioUrl = v.audioUrl;
+      t.soundDesign.category = v.category;
+      t.soundDesign.gainDb = v.gainDb;
+      t.soundDesign.durationEstimateSec = v.durationSec;
+
+      // Audition immediately
+      auditionSingleAudio(v.audioUrl);
+
+      // Save to server
+      fetch('/api/update_variant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cueIndex, variantIndex: parseInt(variantIndex, 10) })
+      });
+      document.getElementById('jsonView').innerText = JSON.stringify(soundManifest, null, 2);
+    }
+
+    function auditionCurrentVariant(cueIndex) {
+      const t = soundManifest.treatments[cueIndex];
+      const v = t.soundDesign.variants[t.soundDesign.selectedVariantIndex || 0];
+      auditionSingleAudio(v.audioUrl);
+    }
+
+    async function rebakeAudioTrack() {
+      const btn = document.getElementById('btnRebake');
+      btn.innerText = '⏳ Mixing...';
+      btn.disabled = true;
+
+      try {
+        const res = await fetch('/api/rebake_audio', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          btn.innerText = '✓ Re-Baked!';
+          const cur = video.currentTime;
+          video.src = '/video_with_real_sfx.mp4?v=' + Date.now();
+          video.currentTime = cur;
+          video.play();
+        } else {
+          btn.innerText = '❌ Failed';
+        }
+      } catch (e) {
+        btn.innerText = '❌ Error';
+      }
+
+      setTimeout(() => {
+        btn.innerText = '⚡ Re-Bake Master Audio';
+        btn.disabled = false;
+      }, 2000);
     }
 
     function showTab(tab) {
@@ -388,7 +471,7 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
       if (wasPlaying) video.play();
     }
 
-    // High performance O(1) row highlighting in timeupdate (Zero layout thrashing)
+    // High performance O(1) row highlighting
     video.addEventListener('timeupdate', () => {
       const cur = video.currentTime;
       const min = Math.floor(cur / 60);
@@ -397,7 +480,6 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
 
       if (!soundManifest || !soundManifest.treatments) return;
 
-      // Find closest cue index with binary search
       const trs = soundManifest.treatments;
       let low = 0, high = trs.length - 1, bestIdx = 0;
       while (low <= high) {
@@ -418,7 +500,6 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
         const newRow = document.getElementById('row-' + bestIdx);
         if (newRow) {
           newRow.classList.add('active-row');
-          // Smoothly bring into view
           newRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
         lastActiveIdx = bestIdx;
@@ -432,6 +513,9 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
 
 function createServerInstance(port: number) {
   const s = http.createServer((req, res) => {
+    let decodedUrl = req.url || "";
+    try { decodedUrl = decodeURIComponent(req.url || ""); } catch {}
+
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, POST, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "*");
@@ -469,15 +553,58 @@ function createServerInstance(port: number) {
       return;
     }
 
+    // API: Update Specific Variant
+    if (req.method === "POST" && req.url === "/api/update_variant") {
+      let body = "";
+      req.on("data", chunk => { body += chunk; });
+      req.on("end", () => {
+        try {
+          const { cueIndex, variantIndex } = JSON.parse(body);
+          const manifest = JSON.parse(fs.readFileSync(soundJsonPath, "utf8"));
+          const t = manifest.treatments[cueIndex];
+          if (t && t.soundDesign.variants[variantIndex]) {
+            const v = t.soundDesign.variants[variantIndex];
+            t.soundDesign.selectedVariantIndex = variantIndex;
+            t.soundDesign.soundName = v.label;
+            t.soundDesign.soundFile = v.soundFile;
+            t.soundDesign.audioUrl = v.audioUrl;
+            t.soundDesign.category = v.category;
+            t.soundDesign.gainDb = v.gainDb;
+            t.soundDesign.durationEstimateSec = v.durationSec;
+            fs.writeFileSync(soundJsonPath, JSON.stringify(manifest, null, 2), "utf8");
+          }
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ success: true }));
+        } catch (e: any) {
+          res.writeHead(500, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: e.message }));
+        }
+      });
+      return;
+    }
+
+    // API: Re-Bake Video Audio Stream
+    if (req.method === "POST" && req.url === "/api/rebake_audio") {
+      try {
+        console.log("⚡ [REBAKE_REQUEST] Re-mixing master audio with selected variants...");
+        execSync(`npx tsx "${renderScript}"`, { stdio: "inherit" });
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ success: true }));
+      } catch (e: any) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: e.message }));
+      }
+      return;
+    }
 
     // Baked Video with Real SFX Audio
-    if (req.url === "/video_with_real_sfx.mp4") {
+    if (req.url?.startsWith("/video_with_real_sfx.mp4")) {
       if (fs.existsSync(sfxVideoPath)) {
         const stat = fs.statSync(sfxVideoPath);
         res.writeHead(200, {
           "Content-Type": "video/mp4",
           "Content-Length": stat.size,
-          "Cache-Control": "public, max-age=3600"
+          "Cache-Control": "no-cache"
         });
         fs.createReadStream(sfxVideoPath).pipe(res);
         return;
@@ -485,7 +612,7 @@ function createServerInstance(port: number) {
     }
 
     // Muted Raw Video
-    if (req.url === "/uploaded_input_video.mp4") {
+    if (req.url?.startsWith("/uploaded_input_video.mp4")) {
       if (fs.existsSync(mutedVideoPath)) {
         const stat = fs.statSync(mutedVideoPath);
         res.writeHead(200, {
@@ -500,7 +627,7 @@ function createServerInstance(port: number) {
 
     // Typography Treatment Presentation Studio
     if ((req.method === "GET" || req.method === "HEAD") && 
-        (req.url === "/typography_treatment_presentation.html" || req.url === "/presentation" || req.url === "/typo")) {
+        (req.url?.startsWith("/typography_treatment_presentation.html") || req.url === "/presentation" || req.url === "/typo")) {
       const presentationHtmlPath = path.join(studioDir, "typography_treatment_presentation.html");
       if (fs.existsSync(presentationHtmlPath)) {
         const stat = fs.statSync(presentationHtmlPath);
@@ -652,7 +779,7 @@ function createServerInstance(port: number) {
       }
     }
 
-    // General Static Assets in studioDir (matted_speaker_male.png, speed-rocket-fast.png, etc.)
+    // General Static Assets in studioDir (matted_speaker_male.png, etc.)
     const localStaticPath = path.join(studioDir, decodedUrl.replace(/^\//, ""));
     if (fs.existsSync(localStaticPath) && fs.statSync(localStaticPath).isFile()) {
       const ext = path.extname(localStaticPath).toLowerCase();
@@ -671,7 +798,7 @@ function createServerInstance(port: number) {
   });
 
   s.listen(port, "0.0.0.0", () => {
-    console.log(`  🚀 Ultra-Smooth Sound Design Studio running on Port ${port}: http://16.192.95.115:${port}/`);
+    console.log(`  🚀 Discrete Sound Design & Variant Studio on Port ${port}: http://16.192.95.115:${port}/`);
   });
   s.on("error", (e) => {
     console.warn(`[PORT_WARN] Port ${port} (${e.message})`);
