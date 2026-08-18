@@ -323,7 +323,8 @@ const htmlContent = `<!DOCTYPE html>
       top: ${goldilocksHeadStageTopPercent}%;
       left: 50%;
       transform: translateX(-50%);
-      width: 88%;
+      width: 82%;
+      max-width: 250px;
       z-index: 10; /* BEHIND SPEAKER HEAD (Z:10) */
       display: flex;
       flex-direction: column;
@@ -338,7 +339,8 @@ const htmlContent = `<!DOCTYPE html>
       top: 56.5%;
       left: 50%;
       transform: translateX(-50%);
-      width: 88%;
+      width: 82%;
+      max-width: 250px;
       z-index: 30; /* IN FRONT OF SPEAKER CHEST (Z:30) */
       display: flex;
       flex-direction: column;
@@ -388,16 +390,16 @@ const htmlContent = `<!DOCTYPE html>
     .layer-fx-typewriter_engine .word-item { animation-name: typewriterFade; }
     .layer-fx-chromatic_character_displace .word-item { animation-name: chromaticDisplace; }
 
-    @keyframes blurRise { 0% { opacity: 0; filter: blur(12px); transform: translateY(22px) scale(0.96); } 100% { opacity: 1; filter: blur(0px); transform: translateY(0) scale(1); } }
-    @keyframes defocusSnap { 0% { opacity: 0; filter: blur(18px); transform: scale(1.18); } 50% { filter: blur(4px); } 100% { opacity: 1; filter: blur(0); transform: scale(1); } }
-    @keyframes rotate3DCascade { 0% { opacity: 0; filter: blur(8px); transform: perspective(600px) rotateX(75deg) translateY(30px); } 100% { opacity: 1; filter: blur(0); transform: perspective(600px) rotateX(0deg) translateY(0); } }
-    @keyframes keynotePunch { 0% { opacity: 0; transform: scale(0.75); filter: blur(6px); } 60% { transform: scale(1.06); filter: blur(0px); } 100% { opacity: 1; transform: scale(1); } }
-    @keyframes slotBounce { 0% { opacity: 0; transform: translateY(-40px); } 70% { transform: translateY(6px); } 100% { opacity: 1; transform: translateY(0); } }
-    @keyframes topDownDrop { 0% { opacity: 0; transform: translateY(-30px); filter: blur(8px); } 100% { opacity: 1; transform: translateY(0); filter: blur(0px); } }
+    @keyframes blurRise { 0% { opacity: 0; filter: blur(10px); transform: translateY(16px) scale(0.97); } 100% { opacity: 1; filter: blur(0px); transform: translateY(0) scale(1); } }
+    @keyframes defocusSnap { 0% { opacity: 0; filter: blur(14px); transform: scale(1.03); } 50% { filter: blur(3px); } 100% { opacity: 1; filter: blur(0); transform: scale(1); } }
+    @keyframes rotate3DCascade { 0% { opacity: 0; filter: blur(6px); transform: perspective(500px) rotateX(60deg) translateY(20px); } 100% { opacity: 1; filter: blur(0); transform: perspective(500px) rotateX(0deg) translateY(0); } }
+    @keyframes keynotePunch { 0% { opacity: 0; transform: scale(0.88); filter: blur(4px); } 60% { transform: scale(1.02); filter: blur(0px); } 100% { opacity: 1; transform: scale(1); } }
+    @keyframes slotBounce { 0% { opacity: 0; transform: translateY(-30px); } 70% { transform: translateY(4px); } 100% { opacity: 1; transform: translateY(0); } }
+    @keyframes topDownDrop { 0% { opacity: 0; transform: translateY(-24px); filter: blur(6px); } 100% { opacity: 1; transform: translateY(0); filter: blur(0px); } }
     @keyframes typewriterFade { 0% { opacity: 0; } 100% { opacity: 1; } }
     @keyframes chromaticDisplace {
-      0% { opacity: 0; transform: translate(-8px, -4px) skewX(12deg); filter: drop-shadow(-4px 0 0 #00ffff) drop-shadow(4px 0 0 #ff0055); }
-      50% { opacity: 0.9; transform: translate(4px, 2px) skewX(-6deg); filter: drop-shadow(2px 0 0 #00ffff) drop-shadow(-2px 0 0 #ff0055); }
+      0% { opacity: 0; transform: translate(-6px, -3px) skewX(8deg); filter: drop-shadow(-3px 0 0 #00ffff) drop-shadow(3px 0 0 #ff0055); }
+      50% { opacity: 0.9; transform: translate(3px, 1px) skewX(-4deg); filter: drop-shadow(1px 0 0 #00ffff) drop-shadow(-1px 0 0 #ff0055); }
       100% { opacity: 1; transform: translate(0, 0) skewX(0deg); filter: drop-shadow(0 0 0 transparent); }
     }
 
@@ -408,10 +410,10 @@ const htmlContent = `<!DOCTYPE html>
       font-weight: 900;
       animation: limeGlitchCharAnim 0.75s cubic-bezier(0.16, 1, 0.3, 1) backwards;
     }
-    .lime-accent { color: #84CC16 !important; text-shadow: 0 0 20px rgba(132, 204, 22, 0.5) !important; }
+    .lime-accent { color: #84CC16 !important; text-shadow: 0 0 16px rgba(132, 204, 22, 0.5) !important; }
     @keyframes limeGlitchCharAnim {
-      0% { opacity: 0; transform: translate(-10px, -6px) skewX(18deg) scale(1.1); filter: blur(8px) drop-shadow(-6px 0 0 #00ffff) drop-shadow(6px 0 0 #ff0055); }
-      30% { opacity: 0.9; transform: translate(6px, 3px) skewX(-12deg); filter: blur(2px) drop-shadow(4px 0 0 #00ffff) drop-shadow(-4px 0 0 #ff0055); }
+      0% { opacity: 0; transform: translate(-6px, -4px) skewX(10deg) scale(1.02); filter: blur(6px) drop-shadow(-4px 0 0 #00ffff) drop-shadow(4px 0 0 #ff0055); }
+      30% { opacity: 0.9; transform: translate(4px, 2px) skewX(-6deg); filter: blur(1px) drop-shadow(2px 0 0 #00ffff) drop-shadow(-2px 0 0 #ff0055); }
       100% { opacity: 1; transform: translate(0, 0) skewX(0deg) scale(1); filter: blur(0px); }
     }
 
@@ -671,7 +673,7 @@ const htmlContent = `<!DOCTYPE html>
     }
 
     // MATHEMATICAL INVARIANT: Safe Dynamic Font Sizing to Strictly Guarantee 9:16 Mobile Containment
-    function calculateSafeContainedFontSize(text, idealFontSize, maxAllowedWidthPx = 260, fontName = 'sans') {
+    function calculateSafeContainedFontSize(text, idealFontSize, maxAllowedWidthPx = 210, fontName = 'sans') {
       let charFactor = 0.58;
       if (fontName.includes('Bebas') || fontName.includes('Anton') || fontName.includes('Oswald')) {
         charFactor = 0.38; // Condensed display fits more characters
@@ -789,8 +791,8 @@ const htmlContent = `<!DOCTYPE html>
           const baseSize = fStyle.size_px_base || 44;
           const isCardTarget = willUseDelayedCard && (layerIdx === layerAllocations.length - 1 || lSpec.role === "primary_focus_word");
 
-          // Max allowed container width: 270px (or 230px if inside a padded highlight card)
-          const maxAllowedWidth = isCardTarget ? 230 : 270;
+          // Max allowed container width: 210px (or 180px if inside a padded highlight card)
+          const maxAllowedWidth = isCardTarget ? 180 : 210;
           const safeFontSize = calculateSafeContainedFontSize(assignedWords, baseSize, maxAllowedWidth, matchedFamily);
 
           // SUBTLE OVERLAP GUARD: Negative margin must NEVER exceed 12-15% of previous layer font size!
