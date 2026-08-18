@@ -2149,7 +2149,9 @@ const htmlContent = `<!DOCTYPE html>
           switchSideTab('specimen');
         };
 
-        const badgeClass = item.usageCount >= 2 ? 'badge-active' : (item.usageCount === 1 ? '        const barPct = Math.min(100, Math.max(8, item.usageCount * 50));
+        const badgeClass = item.usageCount >= 2 ? 'badge-active' : (item.usageCount === 1 ? 'badge-medium' : 'badge-zero');
+        const badgeText = item.usageCount > 0 ? (item.usageCount + 'x USED') : 'UNUSED (0)';
+        const barPct = Math.min(100, Math.max(8, item.usageCount * 50));
         const barColor = item.usageCount >= 2 ? '#10B981' : (item.usageCount === 1 ? '#00F0FF' : '#FF0055');
 
         div.innerHTML = 
@@ -2201,7 +2203,7 @@ const htmlContent = `<!DOCTYPE html>
         const safeColor = resolveHighContrastColor(st.color);
         const sampleText = applyFontJsonCasing(l.layer_name.replace(/_/g, ' ').toUpperCase(), st.casing);
         previewTextHtml += 
-          '<div style="font-family: \'' + canonical + '\', sans-serif; font-weight: ' + (st.weight || 700) + '; font-style: ' + (st.style || 'normal') + '; font-size: ' + Math.min(32, st.size_px_base || 24) + 'px; color: ' + safeColor + '; letter-spacing: ' + (st.letter_spacing_em || 0) + 'em; text-shadow: 0 2px 10px rgba(0,0,0,0.9); margin-top: ' + (st.vertical_margin_top_px || 0) + 'px; text-align: center;">' +
+          '<div style="font-family: &quot;' + canonical + '&quot;, sans-serif; font-weight: ' + (st.weight || 700) + '; font-style: ' + (st.style || 'normal') + '; font-size: ' + Math.min(32, st.size_px_base || 24) + 'px; color: ' + safeColor + '; letter-spacing: ' + (st.letter_spacing_em || 0) + 'em; text-shadow: 0 2px 10px rgba(0,0,0,0.9); margin-top: ' + (st.vertical_margin_top_px || 0) + 'px; text-align: center;">' +
             sampleText +
           '</div>';
       });
@@ -2243,7 +2245,7 @@ const htmlContent = `<!DOCTYPE html>
         
         const usageMap = computeActiveUsageInSequence(compiledSequence);
         renderUtilizationRanking(currentRankingSort, usageMap);
-        alert('✔ 100-Seed Monte Carlo Complete!\n\nCorpus Profile Coverage: ' + pct + '% (' + totalUsed + ' out of 45 profiles chosen across ' + (numSeeds * 20) + ' chunks).\n\nCheck the Utilization Ranking list to inspect high vs low frequency profiles.');
+        alert('✔ 100-Seed Monte Carlo Complete!\\n\\nCorpus Profile Coverage: ' + pct + '% (' + totalUsed + ' out of 45 profiles chosen across ' + (numSeeds * 20) + ' chunks).\\n\\nCheck the Utilization Ranking list to inspect high vs low frequency profiles.');
       }, 50);
     }
 
