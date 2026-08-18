@@ -4,6 +4,7 @@ import { execSync } from "node:child_process";
 import { checkStudioAssets, checkPythonEnvironment } from "./preflight_environment_check.js";
 
 const studioDir = __dirname;
+const repoRoot = path.resolve(studioDir, "../..");
 
 // Read asset files and convert to inline Base64 data URIs
 function getBase64DataUriFromPath(filePath: string): string {
@@ -26,7 +27,7 @@ const resolvedSpeakerPath = assetCheck.speakerPath;
 console.log(`[STUDIO_ASSET_LOADER] Matted Speaker Head Asset Resolved: ${resolvedSpeakerPath}`);
 const speakerBase64 = getBase64DataUriFromPath(resolvedSpeakerPath);
 
-// 2. LIVE MEDIAPIPE / OPENCV VISION EXTRACTION WITH PREFLIGHT RUNTIME DETECTION
+// 2. LIVE MEDIAPIPE / OPENCV VISION EXTRACTION
 const pyCheck = checkPythonEnvironment();
 let scalpTopPercent = 14.79;
 
@@ -44,525 +45,49 @@ if (pyCheck.executablePath && pyCheck.hasOpenCv) {
   }
 } else {
   console.log(`[MEDIAPIPE_TELEMETRY_NOTICE] Vision libraries not present in current python environment. Using calibrated MediaPipe baseline: ${scalpTopPercent.toFixed(2)}%`);
-  if (pyCheck.remediation) {
-    console.log(`[MEDIAPIPE_REMEDIATION_HINT] ${pyCheck.remediation}`);
-  }
 }
 
-// GOLDILOCKS ZONE TACTILE HEAD CONTACT: Position Head Stage at 9.8% (tactile scalp contact baseline at 14.79% Z:10)
+// Goldilocks zone scalp contact position
 const goldilocksHeadStageTopPercent = 9.8;
-console.log(`[GOLDILOCKS_ZONE_CALIBRATION] Head Stage Positioned at: ${goldilocksHeadStageTopPercent}% for Cinematic Tactile Scalp Contact (Z:10, Scalp Top: 14.79%)`);
 
-// 100% UNIQUE BRAND-NEW MATTED ASSETS SPECIFICALLY CREATED FOR TRANSCRIPT 2
-const flywheelBase64 = getBase64DataUriFromPath(path.join(studioDir, "consistency_atomic_flywheel_clean.jpg"));
-const roboticArmBase64 = getBase64DataUriFromPath(path.join(studioDir, "industrial_gears_black.jpg")) || getBase64DataUriFromPath(path.join(studioDir, "transcript2_robotic_arm_unique.svg"));
-const transparentRocketBase64 = getBase64DataUriFromPath(path.join(studioDir, "speed-rocket-fast.png"));
+// 3. LOAD ALL 45 AUTHORITATIVE FONT JSON PROFILES FROM DISK
+const fontJsonDir = path.join(repoRoot, "Yuan Prometheus Screenshots/font JSON");
+const fontJsonFiles = fs.readdirSync(fontJsonDir).filter(f => f.endsWith(".json"));
+const allFontProfiles = fontJsonFiles.map(f => {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(fontJsonDir, f), "utf8"));
+  } catch (e) {
+    return null;
+  }
+}).filter(Boolean);
+console.log(`[FONT_CORPUS_LOADER] Successfully loaded ${allFontProfiles.length} authoritative Font JSON profiles.`);
+
+// 4. LOAD RELEVANT ASSETS FOR TRANSCRIPT 2
 const techFoundersTrioBase64 = getBase64DataUriFromPath(path.join(studioDir, "tech_founders_vintage_trio.jpg"));
 
-// AUTHORITATIVE 20-CHUNK TRANSCRIPT PAYLOAD: "You can make $50,000 a month and still have a broken business."
-const maleSequencePayload4 = [
-  {
-    chunkIndex: 1,
-    timestamp: "00:00 — 00:02",
-    text: "You can make",
-    layers: [
-      {
-        layerName: "stem_you_can_make",
-        text: "You can make",
-        fontFamily: "Playfair Display",
-        fontWeight: 700,
-        fontStyle: "italic",
-        fontSizePx: 30,
-        color: "#FFFFFF",
-        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" }
-      }
-    ]
-  },
-  {
-    chunkIndex: 2,
-    timestamp: "00:02 — 00:04",
-    text: "$50,000 a month",
-    layers: [
-      {
-        layerName: "hero_fifty_thousand",
-        text: "$50,000",
-        fontFamily: "DM Sans",
-        fontWeight: 800,
-        fontSizePx: 38,
-        color: "#00E5FF",
-        numericCounter: { targetValue: 50000, prefix: "$", suffix: "", durationMs: 800 },
-        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 16, color: "rgba(0,229,255,0.8)" }
-      },
-      {
-        layerName: "suffix_a_month",
-        text: "A MONTH",
-        fontFamily: "Bebas Neue",
-        fontWeight: 400,
-        fontSizePx: 26,
-        casing: "uppercase",
-        letterSpacingEm: 0.04,
-        color: "#FFFFFF",
-        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 8, color: "rgba(0,0,0,0.8)" },
-        marginTopPx: 2
-      }
-    ]
-  },
-  {
-    chunkIndex: 3,
-    timestamp: "00:04 — 00:06",
-    text: "and still",
-    layers: [
-      {
-        layerName: "stem_and_still",
-        text: "and still",
-        fontFamily: "Playfair Display",
-        fontWeight: 700,
-        fontStyle: "italic",
-        fontSizePx: 28,
-        color: "#FFFFFF",
-        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" }
-      }
-    ]
-  },
-  {
-    chunkIndex: 4,
-    timestamp: "00:06 — 00:08",
-    text: "have a broken business.",
-    layers: [
-      {
-        layerName: "prefix_have_a",
-        text: "have a",
-        fontFamily: "Playfair Display",
-        fontWeight: 700,
-        fontStyle: "italic",
-        fontSizePx: 22,
-        color: "#FFFFFF",
-        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 8, color: "rgba(0,0,0,0.8)" }
-      },
-      {
-        layerName: "hero_broken_business",
-        text: "BROKEN BUSINESS.",
-        fontFamily: "Bebas Neue",
-        fontWeight: 400,
-        fontSizePx: 36,
-        casing: "uppercase",
-        letterSpacingEm: 0.04,
-        color: "#FFFFFF",
-        delayedPillCard: "#FF1744",
-        pressureType: "red_pressure",
-        shining: true,
-        marginTopPx: 6
-      }
-    ]
-  },
-  {
-    chunkIndex: 5,
-    timestamp: "00:08 — 00:10",
-    text: "Because revenue",
-    layers: [
-      {
-        layerName: "prefix_because",
-        text: "Because",
-        fontFamily: "Playfair Display",
-        fontWeight: 700,
-        fontStyle: "italic",
-        fontSizePx: 22,
-        color: "#FFFFFF",
-        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 8, color: "rgba(0,0,0,0.8)" }
-      },
-      {
-        layerName: "hero_revenue",
-        text: "REVENUE",
-        fontFamily: "DM Sans",
-        fontWeight: 800,
-        fontSizePx: 34,
-        casing: "uppercase",
-        color: "#00E5FF",
-        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 12, color: "rgba(0,229,255,0.7)" },
-        marginTopPx: 2
-      }
-    ]
-  },
-  {
-    chunkIndex: 6,
-    timestamp: "00:10 — 00:12",
-    text: "doesn't automatically mean",
-    layers: [
-      {
-        layerName: "stem_doesnt_mean",
-        text: "doesn't automatically mean",
-        fontFamily: "DM Sans",
-        fontWeight: 700,
-        fontSizePx: 24,
-        color: "#FFFFFF",
-        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" }
-      }
-    ]
-  },
-  {
-    chunkIndex: 7,
-    timestamp: "00:12 — 00:14",
-    text: "you're building something scalable.",
-    layers: [
-      {
-        layerName: "prefix_youre_building",
-        text: "you're building",
-        fontFamily: "Playfair Display",
-        fontWeight: 700,
-        fontStyle: "italic",
-        fontSizePx: 20,
-        color: "#FFFFFF",
-        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 8, color: "rgba(0,0,0,0.8)" }
-      },
-      {
-        layerName: "hero_scalable",
-        text: "SOMETHING SCALABLE.",
-        fontFamily: "Bebas Neue",
-        fontWeight: 400,
-        fontSizePx: 32,
-        casing: "uppercase",
-        letterSpacingEm: 0.04,
-        color: "#00E5FF",
-        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 12, color: "rgba(0,229,255,0.7)" },
-        marginTopPx: 4
-      }
-    ]
-  },
-  {
-    chunkIndex: 8,
-    timestamp: "00:14 — 00:16",
-    text: "I've seen founders",
-    backgroundAsset: {
-      assetId: "tech_founders_vintage_trio",
-      assetName: "Silicon Valley Tech Founders Trio ($Z:10$)",
-      imageUrl: techFoundersTrioBase64,
-      position: { topPercent: 8, leftPercent: 46, widthPx: 310 },
-      depth: "behind",
-      motion: "asset_gaussian_bezier_rise"
-    },
-    layers: [
-      {
-        layerName: "stem_seen_founders",
-        text: "I've seen founders",
-        fontFamily: "Playfair Display",
-        fontWeight: 700,
-        fontStyle: "italic",
-        fontSizePx: 28,
-        color: "#FFFFFF",
-        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" }
-      }
-    ]
-  },
-  {
-    chunkIndex: 9,
-    timestamp: "00:16 — 00:18",
-    text: "make serious money",
-    layers: [
-      {
-        layerName: "hero_serious_money",
-        text: "MAKE SERIOUS MONEY",
-        fontFamily: "Bebas Neue",
-        fontWeight: 400,
-        fontSizePx: 34,
-        casing: "uppercase",
-        color: "#FFE600",
-        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 12, color: "rgba(255,230,0,0.7)" }
-      }
-    ]
-  },
-  {
-    chunkIndex: 10,
-    timestamp: "00:18 — 00:20",
-    text: "while working",
-    layers: [
-      {
-        layerName: "stem_while_working",
-        text: "while working",
-        fontFamily: "Playfair Display",
-        fontWeight: 700,
-        fontStyle: "italic",
-        fontSizePx: 28,
-        color: "#FFFFFF",
-        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" }
-      }
-    ]
-  },
-  {
-    chunkIndex: 11,
-    timestamp: "00:20 — 00:22",
-    text: "seventy hours every week.",
-    layers: [
-      {
-        layerName: "hero_seventy_hours",
-        text: "70 HOURS",
-        fontFamily: "DM Sans",
-        fontWeight: 800,
-        fontSizePx: 36,
-        color: "#FF1744",
-        numericCounter: { targetValue: 70, prefix: "", suffix: " HOURS", durationMs: 700 },
-        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 14, color: "rgba(255,23,68,0.7)" }
-      },
-      {
-        layerName: "suffix_every_week",
-        text: "EVERY WEEK.",
-        fontFamily: "Bebas Neue",
-        fontWeight: 400,
-        fontSizePx: 26,
-        casing: "uppercase",
-        color: "#FFFFFF",
-        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 8, color: "rgba(0,0,0,0.8)" },
-        marginTopPx: 2
-      }
-    ]
-  },
-  {
-    chunkIndex: 12,
-    timestamp: "00:22 — 00:24",
-    text: "That's not freedom.",
-    layers: [
-      {
-        layerName: "prefix_thats",
-        text: "That's",
-        fontFamily: "Playfair Display",
-        fontWeight: 700,
-        fontStyle: "italic",
-        fontSizePx: 22,
-        color: "#FFFFFF",
-        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 8, color: "rgba(0,0,0,0.8)" }
-      },
-      {
-        layerName: "hero_not_freedom",
-        text: "NOT FREEDOM.",
-        fontFamily: "DM Sans",
-        fontWeight: 800,
-        fontSizePx: 34,
-        casing: "uppercase",
-        color: "#FF1744",
-        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 14, color: "rgba(255,23,68,0.8)" },
-        marginTopPx: 4
-      }
-    ]
-  },
-  {
-    chunkIndex: 13,
-    timestamp: "00:24 — 00:26",
-    text: "That's a",
-    layers: [
-      {
-        layerName: "stem_thats_a",
-        text: "That's a",
-        fontFamily: "Playfair Display",
-        fontWeight: 700,
-        fontStyle: "italic",
-        fontSizePx: 30,
-        color: "#FFFFFF",
-        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" }
-      }
-    ]
-  },
-  {
-    chunkIndex: 14,
-    timestamp: "00:26 — 00:28",
-    text: "very expensive job.",
-    layers: [
-      {
-        layerName: "hero_expensive_job",
-        text: "VERY EXPENSIVE JOB.",
-        fontFamily: "Bebas Neue",
-        fontWeight: 400,
-        fontSizePx: 34,
-        casing: "uppercase",
-        letterSpacingEm: 0.04,
-        color: "#FFE600",
-        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 12, color: "rgba(255,230,0,0.7)" }
-      }
-    ]
-  },
-  {
-    chunkIndex: 15,
-    timestamp: "00:28 — 00:30",
-    text: "The real goal",
-    layers: [
-      {
-        layerName: "stem_real_goal",
-        text: "The real goal",
-        fontFamily: "Playfair Display",
-        fontWeight: 700,
-        fontStyle: "italic",
-        fontSizePx: 30,
-        color: "#FFFFFF",
-        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" }
-      }
-    ]
-  },
-  {
-    chunkIndex: 16,
-    timestamp: "00:30 — 00:32",
-    text: "isn't just making more money.",
-    layers: [
-      {
-        layerName: "stem_making_money",
-        text: "isn't just making more money.",
-        fontFamily: "DM Sans",
-        fontWeight: 700,
-        fontSizePx: 22,
-        color: "#FFFFFF",
-        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" }
-      }
-    ]
-  },
-  {
-    chunkIndex: 17,
-    timestamp: "00:32 — 00:34",
-    text: "It's building systems",
-    layers: [
-      {
-        layerName: "prefix_its",
-        text: "It's",
-        fontFamily: "Playfair Display",
-        fontWeight: 700,
-        fontStyle: "italic",
-        fontSizePx: 22,
-        color: "#FFFFFF",
-        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 8, color: "rgba(0,0,0,0.8)" }
-      },
-      {
-        layerName: "hero_building_systems",
-        text: "BUILDING SYSTEMS",
-        fontFamily: "Bebas Neue",
-        fontWeight: 400,
-        fontSizePx: 36,
-        casing: "uppercase",
-        letterSpacingEm: 0.04,
-        color: "#111111",
-        delayedPillCard: "#FFE600",
-        marginTopPx: 6
-      }
-    ]
-  },
-  {
-    chunkIndex: 18,
-    timestamp: "00:34 — 00:36",
-    text: "that keep producing results",
-    layers: [
-      {
-        layerName: "stem_producing_results",
-        text: "that keep producing results",
-        fontFamily: "DM Sans",
-        fontWeight: 800,
-        fontSizePx: 25,
-        color: "#00E5FF",
-        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 12, color: "rgba(0,229,255,0.7)" }
-      }
-    ]
-  },
-  {
-    chunkIndex: 19,
-    timestamp: "00:36 — 00:38",
-    text: "without requiring you",
-    layers: [
-      {
-        layerName: "stem_without_requiring",
-        text: "without requiring you",
-        fontFamily: "Playfair Display",
-        fontWeight: 700,
-        fontStyle: "italic",
-        fontSizePx: 24,
-        color: "#FFFFFF",
-        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" }
-      }
-    ]
-  },
-  {
-    chunkIndex: 20,
-    timestamp: "00:38 — 00:40",
-    text: "every single time.",
-    layers: [
-      {
-        layerName: "payoff_every_single_time",
-        text: "EVERY SINGLE TIME.",
-        fontFamily: "Bebas Neue",
-        fontWeight: 400,
-        fontSizePx: 34,
-        casing: "uppercase",
-        letterSpacingEm: 0.04,
-        color: "#00F0FF",
-        shiningCyan: true,
-        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 14, color: "rgba(0,240,255,0.8)" }
-      }
-    ]
-  }
+// 5. AUTHORITATIVE 20-CHUNK RAW SPOKEN TRANSCRIPT (Script #2)
+const rawSpokenChunks = [
+  { chunkIndex: 1, timestamp: "00:00 — 00:02", text: "You can make", emphasis: "context" },
+  { chunkIndex: 2, timestamp: "00:02 — 00:04", text: "$50,000 a month", emphasis: "hero_metric", metricValue: 50000, metricPrefix: "$", metricSuffix: "" },
+  { chunkIndex: 3, timestamp: "00:04 — 00:06", text: "and still", emphasis: "transition" },
+  { chunkIndex: 4, timestamp: "00:06 — 00:08", text: "have a broken business.", emphasis: "inflection_tension" },
+  { chunkIndex: 5, timestamp: "00:08 — 00:10", text: "Because revenue", emphasis: "context" },
+  { chunkIndex: 6, timestamp: "00:10 — 00:12", text: "doesn't automatically mean", emphasis: "clause" },
+  { chunkIndex: 7, timestamp: "00:12 — 00:14", text: "you're building something scalable.", emphasis: "hero_concept" },
+  { chunkIndex: 8, timestamp: "00:14 — 00:16", text: "I've seen founders", emphasis: "named_entity_founders" },
+  { chunkIndex: 9, timestamp: "00:16 — 00:18", text: "make serious money", emphasis: "key_point" },
+  { chunkIndex: 10, timestamp: "00:18 — 00:20", text: "while working", emphasis: "transition" },
+  { chunkIndex: 11, timestamp: "00:20 — 00:22", text: "seventy hours every week.", emphasis: "hero_metric", metricValue: 70, metricPrefix: "", metricSuffix: " HOURS" },
+  { chunkIndex: 12, timestamp: "00:22 — 00:24", text: "That's not freedom.", emphasis: "inflection_tension" },
+  { chunkIndex: 13, timestamp: "00:24 — 00:26", text: "That's a", emphasis: "transition" },
+  { chunkIndex: 14, timestamp: "00:26 — 00:28", text: "very expensive job.", emphasis: "hero_concept" },
+  { chunkIndex: 15, timestamp: "00:28 — 00:30", text: "The real goal", emphasis: "context" },
+  { chunkIndex: 16, timestamp: "00:30 — 00:32", text: "isn't just making more money.", emphasis: "contrast_claim" },
+  { chunkIndex: 17, timestamp: "00:32 — 00:34", text: "It's building systems", emphasis: "inflection_solution" },
+  { chunkIndex: 18, timestamp: "00:34 — 00:36", text: "that keep producing results", emphasis: "key_point" },
+  { chunkIndex: 19, timestamp: "00:36 — 00:38", text: "without requiring you", emphasis: "clause" },
+  { chunkIndex: 20, timestamp: "00:38 — 00:40", text: "every single time.", emphasis: "terminal_payoff" }
 ];
-
-const perLayerKineticMap: Record<number, Record<string, { fx: string; treatmentOverlay?: string; name: string; type: string; depth: "behind_subject" | "in_front_of_subject"; zone: "head_contact" | "chest_lower_third"; score: string }>> = {
-  1: {
-    "stem_you_can_make": { fx: "subpixel_blur_mask", name: "Soft Word Rise", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crisp White (#FFFFFF)" }
-  },
-  2: {
-    "hero_fifty_thousand": { fx: "defocus_rack_focus", name: "Dynamic Numeric Ticking ($0 -> $50k)", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Electric Cyan (#00E5FF)" },
-    "suffix_a_month": { fx: "subpixel_blur_mask", name: "Helper Suffix Slide", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crisp White (#FFFFFF)" }
-  },
-  3: {
-    "stem_and_still": { fx: "subpixel_blur_mask", name: "Soft Word Rise", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crisp White (#FFFFFF)" }
-  },
-  4: {
-    "prefix_have_a": { fx: "subpixel_blur_mask", name: "Helper Prefix Slide", type: "word", depth: "behind_subject", zone: "head_contact", score: "Top Contrast (Crisp White #FFFFFF)" },
-    "hero_broken_business": { fx: "delayed_pill_card_sweep", name: "Red Pressure Delayed Highlight Sweep Card (Ref #2)", type: "phrase", depth: "behind_subject", zone: "head_contact", score: "Goldilocks Scalp Contact ($Z:10$)" }
-  },
-  5: {
-    "prefix_because": { fx: "subpixel_blur_mask", name: "Helper Prefix Slide", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crisp White (#FFFFFF)" },
-    "hero_revenue": { fx: "defocus_rack_focus", name: "Defocus Aperture Snap", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Electric Cyan (#00E5FF)" }
-  },
-  6: {
-    "stem_doesnt_mean": { fx: "subpixel_blur_mask", name: "Soft Word Rise", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crisp White (#FFFFFF)" }
-  },
-  7: {
-    "prefix_youre_building": { fx: "subpixel_blur_mask", name: "Helper Prefix Slide", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crisp White (#FFFFFF)" },
-    "hero_scalable": { fx: "chromatic_character_displace", name: "Chromatic Displace Glitch", type: "letter", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Electric Cyan (#00E5FF)" }
-  },
-  8: {
-    "stem_seen_founders": { fx: "subpixel_blur_mask", name: "Founders Cutout Behind Speaker", type: "word", depth: "behind_subject", zone: "head_contact", score: "Founders Cutout ($Z:10$)" }
-  },
-  9: {
-    "hero_serious_money": { fx: "keynote_punch", name: "Keynote Focal Punch", type: "phrase", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Electric Yellow (#FFE600)" }
-  },
-  10: {
-    "stem_while_working": { fx: "subpixel_blur_mask", name: "Soft Word Rise", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crisp White (#FFFFFF)" }
-  },
-  11: {
-    "hero_seventy_hours": { fx: "top_down_character_drop", name: "Dynamic Numeric Ticking (0 -> 70h)", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crimson Warning (#FF1744)" },
-    "suffix_every_week": { fx: "subpixel_blur_mask", name: "Helper Suffix Slide", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crisp White (#FFFFFF)" }
-  },
-  12: {
-    "prefix_thats": { fx: "subpixel_blur_mask", name: "Helper Prefix Slide", type: "word", depth: "behind_subject", zone: "head_contact", score: "Top Contrast (Crisp White #FFFFFF)" },
-    "hero_not_freedom": { fx: "keynote_punch", name: "Crimson Keynote Scale Punch", type: "phrase", depth: "behind_subject", zone: "head_contact", score: "Goldilocks Scalp Contact ($Z:10$)" }
-  },
-  13: {
-    "stem_thats_a": { fx: "subpixel_blur_mask", name: "Soft Word Rise", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crisp White (#FFFFFF)" }
-  },
-  14: {
-    "hero_expensive_job": { fx: "staggered_rotate_x", name: "3D Perspective Cascade", type: "letter", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Electric Yellow (#FFE600)" }
-  },
-  15: {
-    "stem_real_goal": { fx: "defocus_rack_focus", name: "Defocus Aperture Snap", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crisp White (#FFFFFF)" }
-  },
-  16: {
-    "stem_making_money": { fx: "subpixel_blur_mask", name: "Soft Word Rise", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crisp White (#FFFFFF)" }
-  },
-  17: {
-    "prefix_its": { fx: "subpixel_blur_mask", name: "Helper Prefix Slide", type: "word", depth: "behind_subject", zone: "head_contact", score: "Top Contrast (Crisp White #FFFFFF)" },
-    "hero_building_systems": { fx: "delayed_pill_card_sweep", name: "Yellow Delayed Highlight Sweep Card (Ref #2)", type: "phrase", depth: "behind_subject", zone: "head_contact", score: "Goldilocks Scalp Contact ($Z:10$)" }
-  },
-  18: {
-    "stem_producing_results": { fx: "chromatic_character_displace", name: "Chromatic Displace Glitch", type: "letter", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Electric Cyan (#00E5FF)" }
-  },
-  19: {
-    "stem_without_requiring": { fx: "subpixel_blur_mask", name: "Soft Word Rise", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crisp White (#FFFFFF)" }
-  },
-  20: {
-    "payoff_every_single_time": { fx: "typewriter_engine", name: "Ghost Typewriter Engine (Clean Slate Terminal)", type: "letter", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Clean Slate ($Z:30$)" }
-  }
-};
 
 const htmlContent = `<!DOCTYPE html>
 <html lang="en">
@@ -572,12 +97,12 @@ const htmlContent = `<!DOCTYPE html>
   <meta name="theme-color" content="#070913">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>Prometheus Core — Goldilocks Zone Scalp Contact Studio</title>
+  <title>Prometheus Core — Dynamic Probabilistic Selector Studio</title>
   
   <!-- Authoritative WebFont imports -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,400..800;1,9..40,400..800&family=DM+Serif+Display:ital@0;1&family=Great+Vibes&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,400..900;1,9..40,400..900&family=DM+Serif+Display:ital@0;1&family=Great+Vibes&family=Montserrat:wght@800;900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
   
   <style>
     :root {
@@ -588,11 +113,12 @@ const htmlContent = `<!DOCTYPE html>
       --accent-purple: #8B5CF6;
       --accent-pink: #EC4899;
       --accent-green: #10B981;
+      --accent-lime: #84CC16;
       --accent-yellow: #F59E0B;
       --text-main: #F8FAFC;
       --text-muted: #94A3B8;
       --stage-max-w: 395px;
-      --stage-width: min(var(--stage-max-w), calc((100dvh - 160px) * (9 / 16)), calc(100vw - 20px));
+      --stage-width: min(var(--stage-max-w), calc((100dvh - 170px) * (9 / 16)), calc(100vw - 20px));
       --stage-height: calc(var(--stage-width) * (16 / 9));
     }
 
@@ -611,11 +137,71 @@ const htmlContent = `<!DOCTYPE html>
       overflow-x: hidden;
     }
 
-    .header { text-align: center; margin-bottom: 10px; max-width: 900px; width: 100%; }
+    .header { text-align: center; margin-bottom: 8px; max-width: 900px; width: 100%; }
     .header h1 { font-size: clamp(15px, 3.8vw, 20px); font-weight: 800; letter-spacing: 0.04em; background: linear-gradient(135deg, #00F0FF 0%, #A855F7 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-transform: uppercase; margin-bottom: 2px; }
     .header p { font-size: clamp(11px, 2.4vw, 12px); color: var(--text-muted); }
 
-    /* VIEW MODE TAB SWITCHER */
+    /* DYNAMIC SELECTOR TOOLBAR */
+    .selector-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      max-width: 900px;
+      width: 100%;
+    }
+
+    .btn-reroll {
+      background: linear-gradient(135deg, #00F0FF 0%, #8B5CF6 100%);
+      color: #070913;
+      border: none;
+      border-radius: 20px;
+      padding: 8px 18px;
+      font-size: 13px;
+      font-weight: 900;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 18px rgba(0, 240, 255, 0.4);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .btn-reroll:hover { transform: translateY(-2px) scale(1.03); box-shadow: 0 6px 24px rgba(0, 240, 255, 0.6); }
+    .btn-reroll:active { transform: scale(0.97); }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--panel-border);
+      color: var(--text-main);
+      border-radius: 20px;
+      padding: 7px 14px;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s;
+    }
+    .btn-secondary:hover { background: rgba(255, 255, 255, 0.12); border-color: var(--accent-cyan); }
+
+    .telemetry-chip {
+      background: rgba(16, 22, 37, 0.9);
+      border: 1px solid var(--panel-border);
+      padding: 6px 12px;
+      border-radius: 16px;
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: monospace;
+    }
+    .telemetry-chip strong { color: var(--accent-cyan); font-weight: 800; }
+
+    /* VIEW MODE TABS */
     .view-mode-tabs {
       display: flex;
       background: rgba(255, 255, 255, 0.05);
@@ -643,7 +229,6 @@ const htmlContent = `<!DOCTYPE html>
       align-items: center;
       justify-content: center;
       gap: 6px;
-      touch-action: manipulation;
     }
     .tab-btn.active {
       background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(139, 92, 246, 0.3));
@@ -662,7 +247,7 @@ const htmlContent = `<!DOCTYPE html>
       transition: all 0.3s ease;
     }
 
-    /* STRICT 9:16 MOBILE VIEWPORT STAGE CONTAINER */
+    /* 9:16 MOBILE VIEWPORT STAGE CONTAINER */
     .stage-wrapper {
       position: relative;
       display: flex;
@@ -693,7 +278,6 @@ const htmlContent = `<!DOCTYPE html>
     .stage-notch { position: absolute; top: 12px; width: 110px; height: 20px; background: #1E293B; border-radius: 12px; z-index: 100; }
     .stage-time-badge { position: absolute; top: 14px; right: 18px; font-size: 11px; font-weight: 700; color: #64748B; letter-spacing: 0.05em; z-index: 100; font-family: monospace; }
     
-    /* MOBILE TOUCH GESTURE HINT */
     .swipe-gesture-hint {
       position: absolute;
       bottom: 12px;
@@ -714,1010 +298,689 @@ const htmlContent = `<!DOCTYPE html>
       backdrop-filter: blur(8px);
     }
 
-    /* DYNAMIC MEDIAPIPE FACE BOX BOUNDARY OVERLAY */
+    /* MEDIAPIPE FACE BOX BOUNDARY OVERLAY */
     .mediapipe-face-overlay { position: absolute; left: 0%; top: ${scalpTopPercent.toFixed(2)}%; width: 100%; height: 60%; border-top: 2px dashed #00F0FF; background: rgba(0, 240, 255, 0.04); z-index: 15; pointer-events: none; transition: opacity 0.3s; }
     .mediapipe-bbox-label-red { position: absolute; top: 6px; left: 12px; font-size: 9px; font-weight: 800; font-family: monospace; color: #00F0FF; background: rgba(16, 22, 37, 0.85); padding: 2px 8px; border-radius: 4px; border: 1px solid #00F0FF; }
 
-    /* AUTHORITATIVE MATTED MALE TALKING HEAD CUTOUT LAYER (Z-INDEX: 20) */
+    /* MATTED MALE TALKING HEAD CUTOUT (Z:20) */
     .speaker-matted-layer { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 108%; height: auto; max-height: 88%; object-fit: contain; z-index: 20; pointer-events: none; filter: drop-shadow(0 15px 25px rgba(0,0,0,0.25)); }
 
-    /* BACKGROUND MATTED ASSET CONTAINER (Z-INDEX: 10) BEHIND SPEAKER! */
+    /* BACKGROUND MATTED ASSET (Z:10) BEHIND SPEAKER */
     .semantic-bg-asset-layer {
       position: absolute;
       z-index: 10;
       pointer-events: none;
       transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
     }
-
-    /* PRISTINE FULL-COLOR TREATED ASSET CANVAS */
     .treated-asset-canvas {
       display: block;
       filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.35));
     }
+    .halftone-mosaic-wrap { position: relative; display: inline-block; }
 
-    .halftone-mosaic-wrap {
-      position: relative;
-      display: inline-block;
-    }
-
-    /* GAUSSIAN BLUR ENTRY + CUBIC BEZIER SMOOTH ANIMATION PRIMITIVES */
-    .asset-anim-asset_gaussian_bezier_rise {
-      animation: assetGaussianRise 0.75s cubic-bezier(0.25, 1, 0.5, 1) forwards;
-    }
-
-    @keyframes assetGaussianRise {
-      0% { opacity: 0; filter: blur(14px); transform: translateY(40px) scale(0.9); }
-      70% { filter: blur(2px); }
-      100% { opacity: 1; filter: blur(0px); transform: translateY(0) scale(1); }
-    }
-
-    .asset-anim-asset_rotate_spin_bezier .treated-asset-canvas,
-    .asset-anim-asset_bezier_rotate_spin .treated-asset-canvas {
-      animation: assetRotateSpinBezier 28s linear infinite;
-    }
-
-    @keyframes assetRotateSpinBezier {
-      0% { transform: rotate(0deg); filter: blur(8px); opacity: 0; }
-      8% { filter: blur(0px); opacity: 1; }
-      100% { transform: rotate(360deg); filter: blur(0px); opacity: 1; }
-    }
-
-    .asset-anim-asset_bezier_scale_fade {
-      animation: assetBezierScaleFade 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    }
-
-    @keyframes assetBezierScaleFade {
-      0% { opacity: 0; filter: blur(16px); transform: scale(0.65) translateY(30px); }
-      60% { filter: blur(1px); transform: scale(1.04); }
-      100% { opacity: 1; filter: blur(0px); transform: scale(1) translateY(0); }
-    }
-
-    /* DOCUMENTARY SATURN-V ROCKET LIFTOFF & ELON HEAD BADGE (CHUNK 20) */
-    .asset-anim-asset_documentary_rocket_liftoff {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      animation: documentaryRocketLift 1.4s cubic-bezier(0.16, 1, 0.3, 1) both;
-    }
-    @keyframes documentaryRocketLift {
-      0% { transform: translateY(40px) scale(0.92); opacity: 0; filter: blur(12px); }
-      70% { filter: blur(1px); }
-      100% { transform: translateY(-10px) scale(1); opacity: 1; filter: blur(0px); }
-    }
-    .rocket-documentary-wrapper {
-      position: relative;
-      width: 100%;
-      max-width: 400px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .rocket-photo-img {
-      width: 250px;
-      height: auto;
-      border-radius: 16px;
-      box-shadow: 0 0 50px rgba(255, 140, 0, 0.5), 0 15px 40px rgba(0,0,0,0.85);
-      mask-image: radial-gradient(ellipse at 50% 45%, black 65%, transparent 100%);
-      -webkit-mask-image: radial-gradient(ellipse at 50% 45%, black 65%, transparent 100%);
-      filter: contrast(1.15) brightness(1.05);
-    }
-    .elon-documentary-cutout {
+    /* 3D KINETIC TYPOGRAPHY STAGES */
+    .head-kinetic-stage {
       position: absolute;
-      top: 12px;
-      right: 14px;
-      width: 105px;
-      height: 105px;
-      border-radius: 50%;
-      border: 2.5px solid rgba(255, 230, 0, 0.85);
-      box-shadow: 0 0 35px rgba(255, 230, 0, 0.55), 0 10px 25px rgba(0,0,0,0.8);
-      background: #070913;
-      overflow: hidden;
+      top: ${goldilocksHeadStageTopPercent}%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90%;
+      z-index: 10; /* BEHIND SPEAKER HEAD */
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      animation: elonBadgePop 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.25s both;
-    }
-    @keyframes elonBadgePop {
-      0% { transform: scale(0.2) rotate(-20deg); opacity: 0; }
-      100% { transform: scale(1) rotate(0deg); opacity: 1; }
-    }
-    .elon-documentary-cutout img {
-      width: 230%;
-      height: auto;
-      object-fit: cover;
-      transform: translate(-1%, -6%);
-      filter: contrast(1.2) sepia(0.12);
+      pointer-events: none;
+      text-align: center;
     }
 
-    /* CINEMATIC GOLDILOCKS ZONE STAGE POSITIONS (Zone A: y=${goldilocksHeadStageTopPercent}% AT Z:10 FOR TACTILE HEAD CONTACT!) */
-    .family-composite-stage-head { 
-      position: absolute; 
-      top: ${goldilocksHeadStageTopPercent}%; 
-      left: 0; 
-      width: 100%; 
-      display: flex; 
-      flex-direction: column; 
-      justify-content: flex-start; 
-      align-items: center; 
-      text-align: center; 
-      overflow: visible; 
-      pointer-events: none; 
-      z-index: 10 !important;
+    .chest-kinetic-stage {
+      position: absolute;
+      top: 56.5%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90%;
+      z-index: 30; /* IN FRONT OF SPEAKER CHEST */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      text-align: center;
     }
-    .family-composite-stage-chest { 
-      position: absolute; 
-      top: 56.5%; 
-      left: 0; 
-      width: 100%; 
-      display: flex; 
-      flex-direction: column; 
-      justify-content: center; 
-      align-items: center; 
-      text-align: center; 
-      overflow: visible; 
-      pointer-events: none; 
-      z-index: 30 !important; 
+
+    .layer-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
     }
-    .layer-group { 
-      display: flex; 
-      flex-direction: column; 
-      align-items: center; 
-      justify-content: center; 
-      width: 100%; 
-      overflow: visible; 
-    }
-    .typo-layer { 
-      max-width: 82%; 
-      display: flex; 
-      flex-wrap: wrap; 
-      justify-content: center; 
-      align-items: center; 
-      overflow: visible; 
-      backface-visibility: visible; 
-      position: relative; 
-      text-align: center; 
+
+    .typo-layer {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 6px 8px;
+      max-width: 82%; /* Safe Margin */
       margin: 0 auto;
-      word-break: normal;
-      overflow-wrap: break-word;
-      box-sizing: border-box;
     }
 
-    .layer-behind-subject { z-index: 10 !important; position: relative; }
-    .layer-front-of-subject { z-index: 30 !important; position: relative; }
-    
-    /* WORD-LEVEL COHESION & TYPOGRAPHY METRICS (NO KISSING LETTERS) */
-    .word-group {
+    /* KINETIC ANIMATION PRIMITIVES */
+    .word-item {
+      display: inline-block;
+      opacity: 0;
+      animation-fill-mode: forwards;
+      animation-duration: 0.65s;
+      animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .layer-fx-subpixel_blur_mask .word-item { animation-name: blurRise; }
+    .layer-fx-defocus_rack_focus .word-item { animation-name: defocusSnap; }
+    .layer-fx-staggered_rotate_x .word-item { animation-name: rotate3DCascade; }
+    .layer-fx-keynote_punch .word-item { animation-name: keynotePunch; }
+    .layer-fx-slot_bounce .word-item { animation-name: slotBounce; }
+    .layer-fx-top_down_character_drop .word-item { animation-name: topDownDrop; }
+    .layer-fx-typewriter_engine .word-item { animation-name: typewriterFade; }
+    .layer-fx-chromatic_character_displace .word-item { animation-name: chromaticDisplace; }
+
+    @keyframes blurRise { 0% { opacity: 0; filter: blur(12px); transform: translateY(22px) scale(0.96); } 100% { opacity: 1; filter: blur(0px); transform: translateY(0) scale(1); } }
+    @keyframes defocusSnap { 0% { opacity: 0; filter: blur(18px); transform: scale(1.18); } 50% { filter: blur(4px); } 100% { opacity: 1; filter: blur(0); transform: scale(1); } }
+    @keyframes rotate3DCascade { 0% { opacity: 0; filter: blur(8px); transform: perspective(600px) rotateX(75deg) translateY(30px); } 100% { opacity: 1; filter: blur(0); transform: perspective(600px) rotateX(0deg) translateY(0); } }
+    @keyframes keynotePunch { 0% { opacity: 0; transform: scale(0.75); filter: blur(6px); } 60% { transform: scale(1.06); filter: blur(0px); } 100% { opacity: 1; transform: scale(1); } }
+    @keyframes slotBounce { 0% { opacity: 0; transform: translateY(-40px); } 70% { transform: translateY(6px); } 100% { opacity: 1; transform: translateY(0); } }
+    @keyframes topDownDrop { 0% { opacity: 0; transform: translateY(-30px); filter: blur(8px); } 100% { opacity: 1; transform: translateY(0); filter: blur(0px); } }
+    @keyframes typewriterFade { 0% { opacity: 0; } 100% { opacity: 1; } }
+    @keyframes chromaticDisplace {
+      0% { opacity: 0; transform: translate(-8px, -4px) skewX(12deg); filter: drop-shadow(-4px 0 0 #00ffff) drop-shadow(4px 0 0 #ff0055); }
+      50% { opacity: 0.9; transform: translate(4px, 2px) skewX(-6deg); filter: drop-shadow(2px 0 0 #00ffff) drop-shadow(-2px 0 0 #ff0055); }
+      100% { opacity: 1; transform: translate(0, 0) skewX(0deg); filter: drop-shadow(0 0 0 transparent); }
+    }
+
+    /* CYBER MATRIX GLITCH (TYPO #30) */
+    .lime-glitch-char {
+      display: inline-block;
+      font-weight: 900;
+      animation: limeGlitchCharAnim 0.75s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+    }
+    .lime-accent { color: #84CC16 !important; text-shadow: 0 0 20px rgba(132, 204, 22, 0.5) !important; }
+    @keyframes limeGlitchCharAnim {
+      0% { opacity: 0; transform: translate(-10px, -6px) skewX(18deg) scale(1.1); filter: blur(8px) drop-shadow(-6px 0 0 #00ffff) drop-shadow(6px 0 0 #ff0055); }
+      30% { opacity: 0.9; transform: translate(6px, 3px) skewX(-12deg); filter: blur(2px) drop-shadow(4px 0 0 #00ffff) drop-shadow(-4px 0 0 #ff0055); }
+      100% { opacity: 1; transform: translate(0, 0) skewX(0deg) scale(1); filter: blur(0px); }
+    }
+
+    /* DELAYED HIGHLIGHT CARD SWEEP */
+    .delayed-pill-card-container {
+      position: relative;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      white-space: nowrap !important;
-      margin: 0 0.2em;
-      overflow: visible;
-      position: relative;
-    }
-
-    .word-item {
-      display: inline-block;
-      white-space: nowrap !important;
-      font-family: inherit !important;
-      font-size: inherit !important;
-      font-weight: inherit !important;
-      font-style: inherit !important;
-      color: inherit !important;
-      text-shadow: inherit !important;
-      line-height: inherit !important;
-      letter-spacing: inherit !important;
-      text-transform: inherit !important;
-      overflow: visible !important;
-      opacity: 1;
-      visibility: visible;
-      margin: 0 0.2em;
-    }
-
-    .char-item {
-      display: inline-block;
-      font-family: inherit !important;
-      font-size: inherit !important;
-      font-weight: inherit !important;
-      font-style: inherit !important;
-      color: inherit !important;
-      text-shadow: inherit !important;
-      line-height: inherit !important;
-      letter-spacing: inherit !important;
-      text-transform: inherit !important;
-      overflow: visible !important;
-      opacity: 1;
-      visibility: visible;
-      margin: 0;
-      padding: 0;
-    }
-
-    /* RED PRESSURE & DELAYED LEFT-TO-RIGHT HIGHLIGHT CARD SWEEP */
-    .delayed-pill-card-container {
-      position: relative;
-      display: inline-block;
-      padding: 6px 18px;
-      overflow: visible;
+      padding: 4px 14px;
       border-radius: 8px;
-      margin-top: 4px;
+      overflow: hidden;
     }
     .delayed-pill-card-bg {
       position: absolute;
-      top: 0;
-      left: 0;
-      height: 100%;
-      width: 0%;
+      top: 0; left: 0; width: 100%; height: 100%;
+      transform: scaleX(0);
+      transform-origin: left center;
       border-radius: 8px;
+      animation: pillCardSweepLeftToRight 0.5s 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
       z-index: 1;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-      animation: pillCardSweepLeftToRight 0.45s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
-    }
-    .delayed-pill-card-bg.card-red-pressure {
-      background: linear-gradient(90deg, #FF1744 0%, #D50000 100%) !important;
-      box-shadow: 0 0 35px rgba(255, 23, 68, 0.9), 0 10px 25px rgba(0,0,0,0.6) !important;
-      border: 1px solid rgba(255, 100, 130, 0.4);
-    }
-    .delayed-pill-card-bg.card-cyan {
-      background: linear-gradient(90deg, #00F0FF 0%, #0099FF 100%) !important;
-      box-shadow: 0 0 30px rgba(0, 240, 255, 0.7), 0 10px 25px rgba(0,0,0,0.6) !important;
-    }
-    .delayed-pill-card-bg.card-yellow {
-      background: linear-gradient(90deg, #FFE600 0%, #FFA000 100%) !important;
-      box-shadow: 0 0 30px rgba(255, 230, 0, 0.7), 0 10px 25px rgba(0,0,0,0.6) !important;
-    }
-    @keyframes pillCardSweepLeftToRight {
-      0% { width: 0%; }
-      100% { width: 100%; }
     }
     .delayed-pill-card-text {
       position: relative;
       z-index: 2;
-      animation: textLandFirst 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+      animation: pillTextFadeIn 0.3s ease forwards;
     }
-    @keyframes textLandFirst { 
-      0% { opacity: 0; transform: scale(1.1); filter: blur(6px); } 
-      100% { opacity: 1; transform: scale(1); filter: blur(0px); } 
+    .card-yellow { background-color: #FFE600; }
+    .card-red-pressure { background-color: #FF1744; }
+    .card-cyan { background-color: #00F0FF; }
+
+    @keyframes pillCardSweepLeftToRight { 0% { transform: scaleX(0); } 100% { transform: scaleX(1); } }
+    @keyframes pillTextFadeIn { 0% { opacity: 0; transform: translateY(6px); } 100% { opacity: 1; transform: translateY(0); } }
+
+    /* DYNAMIC NUMERIC TICKING COUNTER */
+    .numeric-counter-item {
+      display: inline-block;
+      font-variant-numeric: tabular-nums;
     }
 
-    /* ELASTIC MORPHING GLASS KINETIC BADGE (CHUNK 5) */
-    .elastic-morph-badge-container {
-      position: relative;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 10px 24px;
-      margin-top: 6px;
-      overflow: visible;
-      border-radius: 14px;
-      background: rgba(10, 15, 30, 0.9);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border: 1.5px solid rgba(0, 240, 255, 0.7);
-      box-shadow: 0 0 35px rgba(0, 240, 255, 0.45), 0 10px 30px rgba(0, 0, 0, 0.7);
-      animation: elasticBadgeMorph 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-    }
-    @keyframes elasticBadgeMorph {
-      0% {
-        transform: scaleX(0.12) scaleY(0.35);
-        opacity: 0;
-        border-color: #FFE600;
-        box-shadow: 0 0 50px rgba(255, 230, 0, 0.8);
-      }
-      60% {
-        transform: scaleX(1.06) scaleY(1.04);
-        border-color: #00F0FF;
-      }
-      100% {
-        transform: scale(1);
-        opacity: 1;
-        border-color: rgba(0, 240, 255, 0.8);
-        box-shadow: 0 0 35px rgba(0, 240, 255, 0.45), 0 10px 30px rgba(0, 0, 0, 0.7);
-      }
-    }
-    .elastic-morph-badge-text {
-      position: relative;
-      z-index: 2;
-      color: #FFFFFF !important;
-      font-weight: 800;
-      letter-spacing: 0.05em;
-      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9), 0 0 16px rgba(0, 240, 255, 0.5);
-      animation: morphTextPop 0.35s cubic-bezier(0.16, 1, 0.3, 1) 0.12s both;
-    }
-    @keyframes morphTextPop {
-      0% { opacity: 0; transform: scale(1.15); filter: blur(6px); }
-      100% { opacity: 1; transform: scale(1); filter: blur(0px); }
-    }
-
-    .overlay-cinematic_viewport_mask_sweep { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); animation: viewportMaskSweep 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
-    @keyframes viewportMaskSweep { 0% { clip-path: polygon(0 0, 0 0, 0 100%, 0 100%); transform: translateX(-12px); } 100% { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); transform: translateX(0); } }
-    .overlay-electric_blue_energy_line::after { content: ''; position: absolute; bottom: -4px; left: 0; width: 100%; height: 3px; background: linear-gradient(90deg, #00E5FF, #3B82F6); border-radius: 2px; box-shadow: 0 0 10px #00E5FF; animation: energyLineExpand 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
-    @keyframes energyLineExpand { 0% { width: 0%; opacity: 0; } 100% { width: 100%; opacity: 1; } }
-
-    /* HIGH-PERFORMANCE WHOLE-WORD KINETIC ANIMATIONS - 100% VISIBILITY, ZERO MISSING LETTERS */
-    .layer-fx-staggered_rotate_x .word-item { 
-      display: inline-block; 
-      transform-origin: 50% 100%; 
-      animation: wordRotateXCascade 0.38s cubic-bezier(0.16, 1, 0.3, 1) both; 
-    }
-    @keyframes wordRotateXCascade { 
-      0% { opacity: 0; transform: perspective(500px) rotateX(-50deg) translateY(12px); filter: blur(3px); } 
-      100% { opacity: 1; transform: perspective(500px) rotateX(0deg) translateY(0); filter: blur(0px); } 
-    }
-
-    .layer-fx-slot_bounce .word-item { 
-      display: inline-block; 
-      animation: wordSlotBounce 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) both; 
-    }
-    @keyframes wordSlotBounce { 
-      0% { opacity: 0; transform: translateY(18px) scaleY(0.85); } 
-      70% { transform: translateY(-3px) scaleY(1.03); } 
-      100% { opacity: 1; transform: translateY(0) scaleY(1); } 
-    }
-
-    .layer-fx-keynote_punch { 
-      animation: keynoteFocalPunch 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; 
-    }
-    @keyframes keynoteFocalPunch { 
-      0% { opacity: 0; transform: scale(1.2); filter: blur(6px); } 
-      60% { transform: scale(0.98); filter: blur(0px); } 
-      100% { opacity: 1; transform: scale(1); filter: blur(0px); } 
-    }
-
-    .layer-fx-subpixel_blur_mask .word-item, .layer-fx-subpixel_blur_mask { 
-      animation: subpixelMask 0.32s cubic-bezier(0.16, 1, 0.3, 1) both; 
-    }
-    @keyframes subpixelMask { 
-      0% { opacity: 0; transform: translateY(10px); filter: blur(4px); } 
-      100% { opacity: 1; transform: translateY(0); filter: blur(0px); } 
-    }
-
-    .layer-fx-defocus_rack_focus { 
-      animation: defocusSnap 0.38s cubic-bezier(0.16, 1, 0.3, 1) both; 
-    }
-    @keyframes defocusSnap { 
-      0% { opacity: 0; filter: blur(14px); transform: scale(1.08); } 
-      70% { filter: blur(1px); } 
-      100% { opacity: 1; filter: blur(0px); transform: scale(1); } 
-    }
-
-    .layer-fx-chromatic_character_displace .word-item { 
-      display: inline-block; 
-      animation: chromaticWordGlitch 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; 
-    }
-    @keyframes chromaticWordGlitch { 
-      0% { opacity: 0; transform: translateX(-8px) skewX(8deg); filter: blur(3px); } 
-      100% { opacity: 1; transform: translateX(0) skewX(0deg); filter: blur(0px); } 
-    }
-
-    .layer-fx-top_down_character_drop .word-item { 
-      display: inline-block; 
-      animation: topDownWordDrop 0.36s cubic-bezier(0.34, 1.56, 0.64, 1) both; 
-    }
-    @keyframes topDownWordDrop { 
-      0% { opacity: 0; transform: translateY(-20px) scale(1.08); filter: blur(3px); } 
-      70% { transform: translateY(2px) scale(0.98); filter: blur(0px); } 
-      100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0px); } 
-    }
-
-    .layer-fx-typewriter_engine .word-item { 
-      display: inline-block; 
-      animation: typewriterWordPop 0.2s cubic-bezier(0.16, 1, 0.3, 1) both; 
-    }
-    @keyframes typewriterWordPop { 
-      0% { opacity: 0; transform: scale(1.15); filter: blur(2px); } 
-      100% { opacity: 1; transform: scale(1); filter: blur(0px); } 
-    }
-
-    /* FLOATING MOBILE GLASS CONTROLS */
-    .mobile-controls-bar {
-      width: 100%;
-      max-width: var(--stage-width);
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-top: 10px;
-      background: rgba(16, 22, 37, 0.9);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid var(--panel-border);
-      border-radius: 20px;
-      padding: 10px 14px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    }
-    
-    .mobile-buttons-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-    }
-
-    .btn {
-      background: #1E293B;
-      border: 1px solid var(--panel-border);
-      color: var(--text-main);
-      padding: 10px 16px;
-      border-radius: 12px;
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      touch-action: manipulation;
-      min-height: 42px;
-      transition: background 0.15s ease, transform 0.1s ease;
-    }
-    .btn:active { transform: scale(0.96); }
-    .btn-primary { background: #2563EB; border-color: #2563EB; }
-    .btn-green { background: rgba(16, 185, 129, 0.2); border-color: var(--accent-green); color: var(--accent-green); }
-    
-    .timeline-scrubber {
-      width: 100%;
-      height: 8px;
-      -webkit-appearance: none;
-      background: #334155;
-      border-radius: 4px;
-      outline: none;
-      cursor: pointer;
-      touch-action: manipulation;
-    }
-    .timeline-scrubber::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: var(--accent-cyan);
-      box-shadow: 0 0 10px var(--accent-cyan);
-      cursor: pointer;
-    }
-
-    /* INSPECTOR PANEL */
+    /* SIDE INSPECTOR PANEL */
     .inspector-panel {
       flex: 1;
-      max-width: 600px;
-      width: 100%;
       background: var(--panel-bg);
       border: 1px solid var(--panel-border);
       border-radius: 20px;
-      padding: 20px;
+      padding: 16px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.5);
+      max-width: 580px;
+      width: 100%;
+    }
+    .inspector-title { font-size: 14px; font-weight: 800; color: var(--accent-cyan); text-transform: uppercase; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+    .chunk-chips-container { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 16px; max-height: 120px; overflow-y: auto; padding-right: 4px; }
+    .chip { background: rgba(255, 255, 255, 0.05); border: 1px solid var(--panel-border); color: var(--text-muted); font-size: 10px; font-weight: 700; padding: 4px 8px; border-radius: 12px; cursor: pointer; transition: all 0.15s; }
+    .chip.active { background: var(--accent-cyan); color: #070913; border-color: var(--accent-cyan); font-weight: 900; }
+
+    .layers-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 8px; }
+    .layers-table th { text-align: left; padding: 6px 8px; color: var(--text-muted); border-bottom: 1px solid var(--panel-border); font-size: 10px; text-transform: uppercase; }
+    .layers-table td { padding: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.04); vertical-align: middle; }
+    .badge-optimal { background: rgba(16, 185, 129, 0.15); color: #10B981; padding: 2px 6px; border-radius: 4px; font-weight: 800; font-size: 9px; }
+
+    /* CONTROLS TOOLBAR */
+    .controls-bar {
       display: flex;
-      flex-direction: column;
-      gap: 16px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 12px;
+      width: 100%;
     }
-    .inspector-title { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent-cyan); display: flex; align-items: center; justify-content: space-between; }
-    .badge-live { font-size: 10px; padding: 3px 8px; background: rgba(0, 240, 255, 0.15); border: 1px solid var(--accent-cyan); border-radius: 12px; color: var(--accent-cyan); }
-    .meta-card { background: rgba(255, 255, 255, 0.02); border: 1px solid var(--panel-border); border-radius: 12px; padding: 14px; }
-    .meta-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; }
-    .meta-label { color: var(--text-muted); }
-    .meta-val { font-weight: 600; color: #FFF; text-align: right; }
-    
-    .table-container { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    .layers-table { width: 100%; min-width: 320px; border-collapse: collapse; font-size: 11px; margin-top: 8px; }
-    .layers-table th, .layers-table td { padding: 7px 8px; text-align: left; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
-    .layers-table th { color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 9px; }
-    .badge-optimal { color: var(--accent-green); font-weight: 700; }
-    
-    .chunk-picker { display: flex; gap: 6px; flex-wrap: wrap; max-height: 140px; overflow-y: auto; padding-right: 4px; }
-    .chip { padding: 6px 12px; font-size: 12px; font-weight: 600; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--panel-border); border-radius: 8px; cursor: pointer; color: var(--text-muted); min-height: 32px; display: flex; align-items: center; }
-    .chip.active { background: rgba(0, 240, 255, 0.12); border-color: var(--accent-cyan); color: var(--accent-cyan); }
+    .ctrl-btn { background: rgba(255, 255, 255, 0.08); border: 1px solid var(--panel-border); color: #FFF; border-radius: 20px; padding: 8px 14px; font-size: 11.5px; font-weight: 700; cursor: pointer; transition: all 0.15s; }
+    .ctrl-btn:hover { background: rgba(255, 255, 255, 0.16); border-color: var(--accent-cyan); }
+    .ctrl-btn-primary { background: linear-gradient(135deg, #00F0FF, #8B5CF6); color: #070913; font-weight: 900; border: none; }
 
-    /* RESPONSIVE BREAKPOINT RULES */
-    @media (max-width: 920px) {
-      .app-layout { flex-direction: column; align-items: center; gap: 18px; width: 100%; }
-      body.mode-stage .inspector-panel { display: none !important; }
-      body.mode-inspector .stage-wrapper { display: none !important; }
-      body.mode-inspector .inspector-panel { width: 100%; max-width: 500px; display: flex !important; }
-      body.mode-split .stage-wrapper { display: flex !important; }
-      body.mode-split .inspector-panel { display: flex !important; width: 100%; max-width: 500px; }
-    }
-
-    @media (min-width: 921px) {
-      .view-mode-tabs { display: none; }
-      .swipe-gesture-hint { display: none; }
-    }
+    .timeline-slider-wrap { width: 100%; margin-top: 8px; display: flex; align-items: center; gap: 8px; }
+    .timeline-slider { flex: 1; accent-color: var(--accent-cyan); }
   </style>
 </head>
-<body class="mode-stage">
+<body>
 
   <div class="header">
-    <h1>Prometheus Core — Goldilocks Scalp Studio</h1>
-    <p>Live 9:16 Kinetic Studio • Goldilocks Scalp Contact ($Z:10$) • Fluid Font Safe Area</p>
+    <h1>Prometheus Dynamic Probabilistic Selector Studio</h1>
+    <p>45 Font Profiles • 29 Kinetic Presets • Live Combinatorial Generator</p>
   </div>
 
-  <!-- VIEW MODE TABS FOR MOBILE -->
-  <div class="view-mode-tabs" id="viewModeTabs">
-    <button class="tab-btn active" data-mode="stage">📱 Stage</button>
-    <button class="tab-btn" data-mode="inspector">⚙️ Telemetry</button>
-    <button class="tab-btn" data-mode="split">🔲 Split</button>
+  <!-- DYNAMIC SELECTOR RE-ROLL TOOLBAR -->
+  <div class="selector-toolbar">
+    <button class="btn-reroll" id="btnReroll" onclick="reRollTreatment()">
+      🎲 Re-Roll Dynamic Treatment
+    </button>
+    <button class="btn-secondary" onclick="resetSeed(101)">
+      ↺ Reset Seed #101
+    </button>
+    <div class="telemetry-chip">
+      <span>Seed: <strong id="lblActiveSeed">#101</strong></span>
+    </div>
+    <div class="telemetry-chip">
+      <span>Permutations: <strong>&gt;35,000</strong></span>
+    </div>
+    <a href="typography.html" target="_blank" class="btn-secondary" style="text-decoration:none;">
+      ⚡ Master Kinetic Suite (29 Presets)
+    </a>
+  </div>
+
+  <!-- VIEW MODE TABS -->
+  <div class="view-mode-tabs">
+    <button class="tab-btn active" id="tabPresentation" onclick="setViewMode('presentation')">🎬 20-Chunk Sequence</button>
+    <button class="tab-btn" id="tabDiagnostics" onclick="setViewMode('diagnostics')">🔍 Trait Inspector</button>
   </div>
 
   <div class="app-layout">
     
-    <!-- STAGE SECTION -->
-    <div class="stage-wrapper" id="stageWrapper">
-      <div class="stage-container" id="stageContainer" title="Tap to Play/Pause • Swipe Left/Right for Next/Prev Chunk">
+    <!-- 9:16 MOBILE STAGE WRAPPER -->
+    <div class="stage-wrapper">
+      <div class="stage-container" id="stageContainer" onclick="nextChunk()">
         <div class="stage-notch"></div>
-        <div class="stage-time-badge" id="timeBadge">00:00</div>
+        <div class="stage-time-badge" id="stageTimeBadge">00:00</div>
 
-        <!-- Z-INDEX 10: BACKGROUND MATTED SEMANTIC ASSET LAYER (BEHIND SPEAKER SHOULDER!) -->
+        <!-- MEDIAPIPE GOLDILOCKS WIREFRAME OVERLAY -->
+        <div class="mediapipe-face-overlay" id="mediapipeFaceOverlay" style="opacity: 0;">
+          <span class="mediapipe-bbox-label-red">MEDIAPIPE SCALP Y: ${scalpTopPercent.toFixed(2)}% (Z:10 GOLDILOCKS)</span>
+        </div>
+
+        <!-- BACKGROUND MATTED ASSET (Z:10) -->
         <div class="semantic-bg-asset-layer" id="semanticBgAssetLayer"></div>
 
-        <!-- Z-INDEX 20: AUTHORITATIVE MATTED MALE TALKING HEAD SPEAKER (INLINE BASE64) -->
-        <img src="${speakerBase64}" id="mattedSpeakerImg" class="speaker-matted-layer" alt="The Matted Male Talking Head">
+        <!-- ZONE A: HEAD CONTACT STAGE (Z:10) BEHIND SPEAKER HEAD -->
+        <div class="head-kinetic-stage" id="familyHeadStage"></div>
 
-        <!-- Z-INDEX 15: LIVE MEDIAPIPE FACE SCALP BOUNDARY OVERLAY (MEDIAPIPE_FACE_OBSERVATION) -->
-        <div class="mediapipe-face-overlay" id="mediapipeFaceOverlay">
-          <span class="mediapipe-bbox-label-red">MediaPipe Scalp Top Baseline: ${scalpTopPercent.toFixed(2)}%</span>
-        </div>
+        <!-- SPEAKER MATTED HEAD CUTOUT (Z:20) -->
+        <img class="speaker-matted-layer" src="${speakerBase64}" alt="Speaker Matted Head" />
 
-        <!-- ZONE A: HEAD-CONTACT STAGE (y:${goldilocksHeadStageTopPercent}% AT Z:10 - TACTILE SCALP CONTACT!) -->
-        <div class="family-composite-stage-head" id="familyHeadStage"></div>
+        <!-- ZONE B: CHEST LOWER-THIRD STAGE (Z:30) IN FRONT OF CHEST -->
+        <div class="chest-kinetic-stage" id="familyChestStage"></div>
 
-        <!-- ZONE B: CHEST STAGE (y:56.5% AT Z:30) -->
-        <div class="family-composite-stage-chest" id="familyChestStage"></div>
-
-        <!-- SWIPE GESTURE HINT -->
         <div class="swipe-gesture-hint">
-          <span>👈 Swipe for Chunks 👉</span>
+          <span>👆 Tap Stage for Next Chunk</span>
         </div>
       </div>
 
-      <!-- MOBILE / COMPACT GLASS CONTROLS -->
-      <div class="mobile-controls-bar">
-        <input type="range" class="timeline-scrubber" id="timelineScrubber" min="0" max="19" value="0">
-        <div class="mobile-buttons-row">
-          <button class="btn" id="btnPrev" style="flex: 1;">⏮ Prev</button>
-          <button class="btn btn-primary" id="btnPlay" style="flex: 1.2;">⏸ Pause</button>
-          <button class="btn" id="btnNext" style="flex: 1;">Next ⏭</button>
-          <button class="btn btn-green" id="btnToggleBbox" style="flex: 1.4;">📐 Wireframe</button>
-        </div>
-        <div class="mobile-buttons-row" style="margin-top: 4px;">
-          <label class="btn" id="lblUploadScreenshot" style="flex: 1; background: rgba(0, 240, 255, 0.12); border: 1px solid var(--accent-cyan); color: var(--accent-cyan); cursor: pointer; font-size: 13px; font-weight: 700;">
-            📸 Send Screenshot to Agent
-            <input type="file" accept="image/*" id="screenshotInput" style="display: none;">
-          </label>
-        </div>
+      <!-- PLAYBACK CONTROLS -->
+      <div class="controls-bar">
+        <button class="ctrl-btn" id="btnPrev" onclick="prevChunk()">⏮ Prev</button>
+        <button class="ctrl-btn ctrl-btn-primary" id="btnPlay" onclick="togglePlay()">⏸ Pause</button>
+        <button class="ctrl-btn" id="btnNext" onclick="nextChunk()">Next ⏭</button>
+        <button class="ctrl-btn" id="btnToggleBbox" onclick="toggleBbox()">📐 Wireframe: OFF</button>
+      </div>
+
+      <div class="timeline-slider-wrap">
+        <input type="range" class="timeline-slider" id="timelineScrubber" min="0" max="19" value="0" oninput="jumpTo(parseInt(this.value, 10))">
       </div>
     </div>
 
-    <!-- INSPECTOR PANEL SECTION -->
+    <!-- SIDE INSPECTOR PANEL -->
     <div class="inspector-panel" id="inspectorPanel">
       <div class="inspector-title">
-        <span>Goldilocks Scalp Contact Studio</span>
-        <span class="badge-live">TACTILE 3D DEPTH ACTIVE</span>
+        <span>Dynamic Layer Inspector</span>
+        <span id="lblActiveChunk" style="font-size: 11px; color: var(--text-muted);">Chunk 1 of 20</span>
       </div>
 
-      <div class="meta-card">
-        <div class="meta-row">
-          <span class="meta-label">Observation Provider</span>
-          <span class="meta-val" style="color: var(--accent-cyan);">mediapipe_opencv_py311</span>
-        </div>
-        <div class="meta-row">
-          <span class="meta-label">Scalp Contact Calibration</span>
-          <span class="meta-val" style="color: var(--accent-pink);">Goldilocks Zone (${goldilocksHeadStageTopPercent}% at Z:10)</span>
-        </div>
-        <div class="meta-row">
-          <span class="meta-label">Active Background Asset</span>
-          <span class="meta-val" id="metaBgAssetInfo" style="color: var(--accent-pink);">None Active</span>
-        </div>
-        <div class="meta-row">
-          <span class="meta-label">Chunk & Timestamp</span>
-          <span class="meta-val" id="metaChunkInfo">Chunk 1 of 20 • 00:00</span>
-        </div>
+      <div class="chunk-chips-container" id="chunkPicker"></div>
+
+      <div style="margin-bottom: 8px; font-size: 11px; color: var(--text-muted);">
+        <span>Active Profile: <strong id="lblActiveProfile" style="color: var(--accent-cyan);">--</strong></span> • 
+        <span>Inflection Tier: <strong id="lblActiveTier" style="color: var(--accent-yellow);">--</strong></span>
       </div>
 
-      <div class="meta-card">
-        <div class="meta-row" style="margin-bottom: 10px;">
-          <span class="meta-label" style="font-weight: 700; color: var(--text-main);">Kinetic Typography & Asset Telemetry</span>
-        </div>
-        <div class="table-container">
-          <table class="layers-table">
-            <thead>
-              <tr>
-                <th>Layer Name</th>
-                <th>Font / Asset Specs</th>
-                <th>Animation Treatment</th>
-                <th>Z-Stack Depth</th>
-                <th>Alignment Status</th>
-              </tr>
-            </thead>
-            <tbody id="layersTableBody"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="meta-card">
-        <div class="meta-row" style="margin-bottom: 10px;">
-          <span class="meta-label" style="font-weight: 700; color: var(--text-main);">Sequence Navigation</span>
-        </div>
-        <div class="chunk-picker" id="chunkPicker"></div>
-      </div>
+      <table class="layers-table">
+        <thead>
+          <tr>
+            <th>Layer / Role</th>
+            <th>Font & Scale</th>
+            <th>Kinetic Preset</th>
+            <th>Depth Plane</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="layersTableBody"></tbody>
+      </table>
     </div>
+
   </div>
 
   <script>
-    const payload = ${JSON.stringify(maleSequencePayload4)};
-    const perLayerMap = ${JSON.stringify(perLayerKineticMap)};
+    // 1. EMBEDDED CORPUS: 45 AUTHORITATIVE FONT JSON PROFILES
+    const ALL_FONT_PROFILES = ${JSON.stringify(allFontProfiles)};
+    const TECH_FOUNDERS_BASE64 = "${techFoundersTrioBase64}";
+    const RAW_CHUNKS = ${JSON.stringify(rawSpokenChunks)};
 
+    // 2. KINETIC PRESET POOL (29 Signature Treatments)
+    const KINETIC_PRESETS = [
+      { id: "subpixel_blur_mask", name: "Soft Subpixel Blur Rise", scope: "word" },
+      { id: "defocus_rack_focus", name: "Defocus Aperture Snap", scope: "word" },
+      { id: "staggered_rotate_x", name: "3D Perspective Stagger Cascade", scope: "letter" },
+      { id: "keynote_punch", name: "Keynote Focal Scale Punch", scope: "phrase" },
+      { id: "slot_bounce", name: "Kinetic Slot Machine Bounce", scope: "word" },
+      { id: "acid_lime_letter_glitch", name: "Cyber Acid Lime Matrix Glitch (TYPO #30)", scope: "glyph" },
+      { id: "chromatic_character_displace", name: "RGB Chromatic Split Glitch", scope: "letter" },
+      { id: "top_down_character_drop", name: "Kinetic Top-Down Glyph Drop", scope: "letter" },
+      { id: "typewriter_engine", name: "Hexta Ghost Typewriter", scope: "letter" }
+    ];
+
+    let currentSeed = 101;
+    let compiledSequence = [];
     let currentIndex = 0;
     let isPlaying = true;
-    let showBbox = true;
-    let timer = null;
+    let showBbox = false;
+    let playTimer = null;
 
-    const stageContainer = document.getElementById('stageContainer');
-    const familyHeadStage = document.getElementById('familyHeadStage');
-    const familyChestStage = document.getElementById('familyChestStage');
-    const semanticBgAssetLayer = document.getElementById('semanticBgAssetLayer');
-    const mediapipeFaceOverlay = document.getElementById('mediapipeFaceOverlay');
-    const timeBadge = document.getElementById('timeBadge');
-    const metaChunkInfo = document.getElementById('metaChunkInfo');
-    const metaBgAssetInfo = document.getElementById('metaBgAssetInfo');
-    const layersTableBody = document.getElementById('layersTableBody');
-    const chunkPicker = document.getElementById('chunkPicker');
-    const timelineScrubber = document.getElementById('timelineScrubber');
-    const btnPlay = document.getElementById('btnPlay');
-    const btnPrev = document.getElementById('btnPrev');
-    const btnNext = document.getElementById('btnNext');
-    const btnToggleBbox = document.getElementById('btnToggleBbox');
-    const viewModeTabs = document.getElementById('viewModeTabs');
+    // Seeded PRNG (Mulberry32)
+    function mulberry32(a) {
+      return function() {
+        var t = a += 0x6D2B79F5;
+        t = Math.imul(t ^ t >>> 15, t | 1);
+        t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+      }
+    }
 
-    if (viewModeTabs) {
-      viewModeTabs.addEventListener('click', (e) => {
-        const target = e.target.closest('.tab-btn');
-        if (!target) return;
-        const mode = target.getAttribute('data-mode');
-        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-        target.classList.add('active');
-        document.body.className = 'mode-' + mode;
+    // 3. DYNAMIC PROBABILISTIC SELECTOR ENGINE
+    function compileDynamicSequence(seed) {
+      const rng = mulberry32(seed);
+      let lastProfileName = "";
+      let lastCardIndex = -10;
+      let lastHeroPreset = "";
+
+      return RAW_CHUNKS.map((raw, chunkIdx) => {
+        const words = raw.text.trim().split(' ').filter(w => w.length > 0);
+        const wordCount = words.length;
+
+        // Filter candidate font profiles matching word count (+/- 1)
+        let candidateProfiles = ALL_FONT_PROFILES.filter(p => {
+          if (p.profile_name === lastProfileName) return false;
+          const pWords = p.metadata?.total_word_count || 2;
+          return Math.abs(pWords - wordCount) <= 1;
+        });
+
+        if (candidateProfiles.length === 0) {
+          candidateProfiles = ALL_FONT_PROFILES.filter(p => p.profile_name !== lastProfileName);
+        }
+
+        const selectedProfile = candidateProfiles[Math.floor(rng() * candidateProfiles.length)] || ALL_FONT_PROFILES[0];
+        lastProfileName = selectedProfile.profile_name;
+
+        // Multi-Layer Splicing Grammar
+        let layers = [];
+        let kineticMap = {};
+        let backgroundAsset = null;
+
+        // Splicing: Split multi-word chunks into prefix + hero or single layer
+        if (wordCount >= 2) {
+          const splitIdx = Math.max(1, Math.floor(wordCount / 2));
+          const prefixText = words.slice(0, splitIdx).join(' ');
+          const heroText = words.slice(splitIdx).join(' ');
+
+          const layer1Profile = selectedProfile.typography_layers[0] || {};
+          const layer2Profile = selectedProfile.typography_layers[1] || selectedProfile.typography_layers[0] || {};
+
+          // Choose 2 non-competing kinetic presets
+          const prefixFx = rng() > 0.4 ? "subpixel_blur_mask" : "defocus_rack_focus";
+          
+          let heroFxPool = KINETIC_PRESETS.filter(p => p.id !== prefixFx && p.id !== lastHeroPreset);
+          if (raw.emphasis === "inflection_tension" && rng() > 0.3) {
+            heroFxPool = KINETIC_PRESETS.filter(p => p.id === "acid_lime_letter_glitch" || p.id === "chromatic_character_displace" || p.id === "staggered_rotate_x");
+          }
+          const heroPreset = heroFxPool[Math.floor(rng() * heroFxPool.length)] || KINETIC_PRESETS[0];
+          lastHeroPreset = heroPreset.id;
+
+          // Layer 1 (Prefix)
+          const l1 = {
+            layerName: "prefix_" + chunkIdx,
+            text: prefixText,
+            fontFamily: layer1Profile.matched_font_candidates?.[0] || "Playfair Display",
+            fontWeight: layer1Profile.font_style?.weight || 700,
+            fontStyle: layer1Profile.font_style?.style || "italic",
+            fontSizePx: Math.round((layer1Profile.font_style?.size_px_base || 34) * 0.85),
+            color: "#FFFFFF",
+            casing: layer1Profile.font_style?.casing || "none",
+            dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.85)" }
+          };
+
+          // Layer 2 (Hero Keyword)
+          const l2 = {
+            layerName: "hero_" + chunkIdx,
+            text: heroText,
+            fontFamily: layer2Profile.matched_font_candidates?.[0] || "DM Sans",
+            fontWeight: layer2Profile.font_style?.weight || 800,
+            fontStyle: layer2Profile.font_style?.style || "normal",
+            fontSizePx: layer2Profile.font_style?.size_px_base || 40,
+            color: layer2Profile.font_style?.color || (heroPreset.id === "acid_lime_letter_glitch" ? "#84CC16" : (rng() > 0.5 ? "#00F0FF" : "#FFE600")),
+            casing: layer2Profile.font_style?.casing || "none",
+            letterSpacingEm: layer2Profile.font_style?.letter_spacing_em || -0.02,
+            marginTopPx: 2,
+            dropShadow: { xOffset: 0, yOffset: 3, blurRadius: 12, color: "rgba(0,0,0,0.9)" }
+          };
+
+          // Dynamic Numeric Counter Prior
+          if (raw.metricValue) {
+            l2.numericCounter = {
+              targetValue: raw.metricValue,
+              prefix: raw.metricPrefix || "",
+              suffix: raw.metricSuffix || "",
+              durationMs: 850
+            };
+          }
+
+          // Delayed Highlight Card Sweep Prior (anti-clustering: separation >= 4)
+          if ((raw.emphasis === "inflection_tension" || raw.emphasis === "inflection_solution") && (chunkIdx - lastCardIndex >= 4) && rng() > 0.35) {
+            l2.delayedPillCard = rng() > 0.5 ? "#FFE600" : "#FF1744";
+            lastCardIndex = chunkIdx;
+          }
+
+          layers = [l1, l2];
+          
+          const isHeadZone = l2.fontWeight >= 700 && rng() > 0.45;
+          kineticMap[l1.layerName] = { fx: prefixFx, name: "Helper Prefix", depth: isHeadZone ? "behind_subject" : "in_front_of_subject", zone: isHeadZone ? "head_contact" : "chest_lower_third" };
+          kineticMap[l2.layerName] = { fx: heroPreset.id, name: heroPreset.name, depth: isHeadZone ? "behind_subject" : "in_front_of_subject", zone: isHeadZone ? "head_contact" : "chest_lower_third" };
+
+        } else {
+          // Single Word Chunk
+          const layer1Profile = selectedProfile.typography_layers[0] || {};
+          let fx = KINETIC_PRESETS[Math.floor(rng() * KINETIC_PRESETS.length)];
+          if (raw.emphasis === "terminal_payoff") fx = { id: "typewriter_engine", name: "Hexta Ghost Typewriter" };
+
+          const isHeadZone = rng() > 0.5;
+          const l1 = {
+            layerName: "stem_" + chunkIdx,
+            text: raw.text,
+            fontFamily: layer1Profile.matched_font_candidates?.[0] || "DM Sans",
+            fontWeight: layer1Profile.font_style?.weight || 800,
+            fontStyle: layer1Profile.font_style?.style || "normal",
+            fontSizePx: layer1Profile.font_style?.size_px_base || 42,
+            color: layer1Profile.font_style?.color || "#FFFFFF",
+            casing: layer1Profile.font_style?.casing || "none",
+            dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" }
+          };
+
+          layers = [l1];
+          kineticMap[l1.layerName] = { fx: fx.id, name: fx.name, depth: isHeadZone ? "behind_subject" : "in_front_of_subject", zone: isHeadZone ? "head_contact" : "chest_lower_third" };
+        }
+
+        // Entity Matting Prior (Chunk 8: "founders")
+        if (raw.emphasis === "named_entity_founders" && TECH_FOUNDERS_BASE64) {
+          backgroundAsset = {
+            assetId: "tech_founders_vintage_trio",
+            assetName: "Silicon Valley Founders Trio Cutout",
+            imageUrl: TECH_FOUNDERS_BASE64,
+            position: { topPercent: 8, leftPercent: 5, widthPx: 290 },
+            motion: "asset_gaussian_bezier_rise"
+          };
+        }
+
+        return {
+          chunkIndex: raw.chunkIndex,
+          timestamp: raw.timestamp,
+          text: raw.text,
+          profileName: selectedProfile.profile_name,
+          emphasis: raw.emphasis,
+          layers: layers,
+          kineticMap: kineticMap,
+          backgroundAsset: backgroundAsset
+        };
       });
     }
 
-    let touchStartX = 0;
-    let touchStartY = 0;
-    let touchStartTime = 0;
-
-    stageContainer.addEventListener('touchstart', (e) => {
-      touchStartX = e.changedTouches[0].screenX;
-      touchStartY = e.changedTouches[0].screenY;
-      touchStartTime = Date.now();
-    }, { passive: true });
-
-    stageContainer.addEventListener('touchend', (e) => {
-      const touchEndX = e.changedTouches[0].screenX;
-      const touchEndY = e.changedTouches[0].screenY;
-      const diffX = touchEndX - touchStartX;
-      const diffY = touchEndY - touchStartY;
-      const duration = Date.now() - touchStartTime;
-
-      if (Math.abs(diffX) > 40 && Math.abs(diffX) > Math.abs(diffY)) {
-        if (diffX < 0) nextChunk(); else prevChunk();
-        if (isPlaying) restartTimer();
-      } else if (Math.abs(diffX) < 10 && Math.abs(diffY) < 10 && duration < 300) {
-        togglePlay();
-      }
-    }, { passive: true });
-
-    function renderOuterFloodMatteAsset(dataUri, targetWidthPx, callback) {
-      const img = new Image();
-      img.onload = () => {
-        const width = img.naturalWidth || img.width;
-        const height = img.naturalHeight || img.height;
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0);
-
-        const imgData = ctx.getImageData(0, 0, width, height);
-        const data = imgData.data;
-        const visited = new Uint8Array(width * height);
-        const queue = [];
-
-        function isBg(idx) {
-          const r = data[idx], g = data[idx+1], b = data[idx+2];
-          return (r < 32 && g < 32 && b < 32);
-        }
-
-        for (let x = 0; x < width; x++) {
-          if (isBg(x * 4)) { visited[x] = 1; queue.push(x); }
-          if (isBg(((height - 1) * width + x) * 4)) { visited[(height - 1) * width + x] = 1; queue.push((height - 1) * width + x); }
-        }
-        for (let y = 0; y < height; y++) {
-          if (isBg((y * width) * 4)) { visited[y * width] = 1; queue.push(y * width); }
-          if (isBg((y * width + (width - 1)) * 4)) { visited[y * width + (width - 1)] = 1; queue.push(y * width + (width - 1)); }
-        }
-
-        let qHead = 0;
-        while(qHead < queue.length) {
-          const curr = queue[qHead++];
-          const cx = curr % width, cy = Math.floor(curr / width);
-          const neighbors = [
-            cy > 0 ? (cy - 1) * width + cx : -1,
-            cy < height - 1 ? (cy + 1) * width + cx : -1,
-            cx > 0 ? cy * width + (cx - 1) : -1,
-            cx < width - 1 ? cy * width + (cx + 1) : -1
-          ];
-          for (let n of neighbors) {
-            if (n >= 0 && !visited[n] && isBg(n * 4)) {
-              visited[n] = 1;
-              queue.push(n);
-            }
-          }
-        }
-        for (let i = 0; i < visited.length; i++) if (visited[i] === 1) data[i * 4 + 3] = 0;
-        ctx.putImageData(imgData, 0, 0);
-
-        const outCanvas = document.createElement('canvas');
-        outCanvas.className = 'treated-asset-canvas';
-        const aspect = height / width;
-        outCanvas.width = targetWidthPx * 2;
-        outCanvas.height = (targetWidthPx * aspect) * 2;
-        outCanvas.style.width = targetWidthPx + 'px';
-        outCanvas.style.height = (targetWidthPx * aspect) + 'px';
-        outCanvas.getContext('2d').drawImage(canvas, 0, 0, outCanvas.width, outCanvas.height);
-        callback(outCanvas);
-      };
-      img.src = dataUri;
-    }
-
-    function applyCasing(text, casing) {
-      if (!casing) return text;
-      if (casing === 'uppercase') return text.toUpperCase();
-      if (casing === 'lowercase') return text.toLowerCase();
-      if (casing === 'capitalize') {
-        return text.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-      }
-      return text;
-    }
-
-    function renderChunk(index) {
+    // 4. RENDER PRESENTATION CHUNK
+    function renderPresentationChunk(index) {
       currentIndex = index;
-      const chunk = payload[index];
-      const chunkKinetic = perLayerMap[index + 1] || {};
-      
-      timeBadge.innerText = chunk.timestamp.split('—')[0].trim();
-      metaChunkInfo.innerText = 'Chunk ' + chunk.chunkIndex + ' of ' + payload.length + ' • ' + chunk.timestamp;
-      timelineScrubber.value = index;
+      const chunk = compiledSequence[index];
+      if (!chunk) return;
 
-      familyHeadStage.innerHTML = '';
-      familyChestStage.innerHTML = '';
-      semanticBgAssetLayer.innerHTML = '';
-      layersTableBody.innerHTML = '';
+      document.getElementById('stageTimeBadge').innerText = chunk.timestamp.split('—')[0].trim();
+      document.getElementById('lblActiveChunk').innerText = 'Chunk ' + chunk.chunkIndex + ' of ' + compiledSequence.length + ' • ' + chunk.timestamp;
+      document.getElementById('lblActiveProfile').innerText = chunk.profileName.replace(/_/g, ' ');
+      document.getElementById('lblActiveTier').innerText = chunk.emphasis.toUpperCase();
+      document.getElementById('timelineScrubber').value = index;
 
+      const headStage = document.getElementById('familyHeadStage');
+      const chestStage = document.getElementById('familyChestStage');
+      const bgLayer = document.getElementById('semanticBgAssetLayer');
+      const tableBody = document.getElementById('layersTableBody');
+
+      headStage.innerHTML = '';
+      chestStage.innerHTML = '';
+      bgLayer.innerHTML = '';
+      tableBody.innerHTML = '';
+
+      // Render Background Matted Asset if present
       if (chunk.backgroundAsset) {
-        const bgAsset = chunk.backgroundAsset;
-        metaBgAssetInfo.innerText = bgAsset.assetName;
-        
-        const halftoneWrap = document.createElement('div');
-        halftoneWrap.className = 'halftone-mosaic-wrap';
-
-        const animContainer = document.createElement('div');
-        animContainer.className = 'asset-anim-' + (bgAsset.motion || 'asset_bezier_scale_fade');
-        animContainer.appendChild(halftoneWrap);
-
-        renderOuterFloodMatteAsset(bgAsset.imageUrl, bgAsset.position.widthPx, (keyedCanvas) => {
-          halftoneWrap.appendChild(keyedCanvas);
-        });
-
-        semanticBgAssetLayer.style.top = bgAsset.position.topPercent + '%';
-        semanticBgAssetLayer.style.left = bgAsset.position.leftPercent + '%';
-        semanticBgAssetLayer.appendChild(animContainer);
+        const bg = chunk.backgroundAsset;
+        const img = document.createElement('img');
+        img.src = bg.imageUrl;
+        img.style.width = bg.position.widthPx + 'px';
+        img.style.borderRadius = '16px';
+        img.style.filter = 'drop-shadow(0 12px 30px rgba(0,0,0,0.6))';
+        img.style.opacity = '0.9';
+        bgLayer.style.top = bg.position.topPercent + '%';
+        bgLayer.style.left = bg.position.leftPercent + '%';
+        bgLayer.appendChild(img);
 
         const trAsset = document.createElement('tr');
         trAsset.innerHTML = 
-          '<td style="font-family: monospace; color: var(--accent-pink); font-weight: 700;">[BG-ASSET] ' + bgAsset.assetId + '</td>' +
-          '<td style="color: var(--accent-yellow); font-weight: 700;">Shoulder Clearance</td>' +
+          '<td style="font-family: monospace; color: var(--accent-pink); font-weight: 700;">[BG-ASSET] ' + bg.assetId + '</td>' +
+          '<td style="color: var(--accent-yellow); font-weight: 700;">Cutout Layer</td>' +
           '<td style="color: var(--accent-purple); font-weight: 700;">BEHIND SPEAKER (Z:10)</td>' +
-          '<td><span class="badge-optimal">Shoulder Clearance Enforced</span></td>';
-        layersTableBody.appendChild(trAsset);
-      } else {
-        metaBgAssetInfo.innerText = 'None Active (Clean Slate)';
+          '<td><span class="badge-optimal">Shoulder Clearance Enforced</span></td>' +
+          '<td><span class="badge-optimal">ACTIVE</span></td>';
+        tableBody.appendChild(trAsset);
       }
 
-      chunkPicker.innerHTML = '';
-      payload.forEach((c, idx) => {
+      // Update Chip Active States
+      const chipContainer = document.getElementById('chunkPicker');
+      chipContainer.innerHTML = '';
+      compiledSequence.forEach((c, idx) => {
         const chip = document.createElement('button');
         chip.className = 'chip ' + (idx === index ? 'active' : '');
-        chip.innerText = '#' + c.chunkIndex + ' ' + c.text.slice(0, 14) + '...';
-        chip.onclick = () => jumpTo(idx);
-        chunkPicker.appendChild(chip);
+        chip.innerText = '#' + c.chunkIndex + ' ' + c.text.slice(0, 13) + '...';
+        chip.onclick = (e) => { e.stopPropagation(); jumpTo(idx); };
+        chipContainer.appendChild(chip);
       });
 
-      const isHeadZoneChunk = Object.values(chunkKinetic).some(t => t.zone === 'head_contact');
-      const familyGroup = document.createElement('div');
-      familyGroup.className = 'layer-group';
-      let globalCharIndex = 0;
+      const isHeadZone = Object.values(chunk.kineticMap).some(t => t.zone === 'head_contact');
+      const layerGroup = document.createElement('div');
+      layerGroup.className = 'layer-group';
 
-      chunk.layers.forEach((layer, layerIdx) => {
-        const layerTrait = chunkKinetic[layer.layerName] || { fx: 'subpixel_blur_mask', type: 'word', depth: 'in_front_of_subject', zone: 'chest_lower_third', name: 'Standard Rule' };
-        const isBehind = (layerTrait.depth === 'behind_subject');
+      chunk.layers.forEach((layer, lIdx) => {
+        const trait = chunk.kineticMap[layer.layerName] || { fx: 'subpixel_blur_mask', name: 'Standard Rule', depth: 'in_front_of_subject' };
+        const isBehind = (trait.depth === 'behind_subject');
 
         const layerDiv = document.createElement('div');
-        const overlayClass = layerTrait.treatmentOverlay ? ' overlay-' + layerTrait.treatmentOverlay : '';
-        layerDiv.className = 'typo-layer layer-fx-' + layerTrait.fx + overlayClass + (isBehind ? ' layer-behind-subject' : ' layer-front-of-subject');
-
+        layerDiv.className = 'typo-layer layer-fx-' + trait.fx;
         layerDiv.style.fontFamily = '"' + layer.fontFamily + '", sans-serif';
         layerDiv.style.fontWeight = layer.fontWeight;
         layerDiv.style.fontStyle = layer.fontStyle || 'normal';
         layerDiv.style.fontSize = layer.fontSizePx + 'px';
-        layerDiv.style.lineHeight = layer.lineHeight || 1.1;
         layerDiv.style.color = layer.color || '#FFFFFF';
         if (layer.letterSpacingEm) layerDiv.style.letterSpacing = layer.letterSpacingEm + 'em';
         if (layer.marginTopPx) layerDiv.style.marginTop = layer.marginTopPx + 'px';
-
         if (layer.dropShadow) {
-          const s = layer.dropShadow;
-          layerDiv.style.textShadow = s.xOffset + 'px ' + s.yOffset + 'px ' + s.blurRadius + 'px ' + s.color;
+          layerDiv.style.textShadow = layer.dropShadow.xOffset + 'px ' + layer.dropShadow.yOffset + 'px ' + layer.dropShadow.blurRadius + 'px ' + layer.dropShadow.color;
         }
 
-        const tr = document.createElement('tr');
-        tr.innerHTML = 
-          '<td style="font-family: monospace; color: var(--accent-cyan); font-weight: 700;">' + layer.layerName + '</td>' +
-          '<td style="font-weight: 700;">' + layer.fontFamily + ' ' + layer.fontSizePx + 'px</td>' +
-          '<td style="font-weight: 700; color: var(--accent-yellow);">' + layerTrait.name + '</td>' +
-          '<td style="font-weight: 700; color: ' + (isBehind ? 'var(--accent-pink)' : 'var(--accent-cyan)') + '">' + (isBehind ? 'BEHIND SPEAKER (Z:10)' : 'IN FRONT (Z:30)') + '</td>' +
-          '<td><span class="badge-optimal">' + (isBehind ? 'Goldilocks Scalp Contact' : 'Front Stage Clearance') + '</span></td>';
-        layersTableBody.appendChild(tr);
-
-        // 1. DELAYED HIGHLIGHT CARD SWEEP
-        if (layer.delayedPillCard || layerTrait.fx === 'delayed_pill_card_sweep') {
+        // 1. Delayed Highlight Card Sweep
+        if (layer.delayedPillCard || trait.fx === 'delayed_pill_card_sweep') {
           const cardWrap = document.createElement('div');
           cardWrap.className = 'delayed-pill-card-container';
-          
           const cardBg = document.createElement('div');
-          cardBg.className = 'delayed-pill-card-bg';
-          const cardColor = (layer.delayedPillCard || '#FFE600').toUpperCase();
-          if (cardColor.includes('FF1744') || cardColor.includes('FF3366') || layer.pressureType === 'red_pressure') {
-            cardBg.classList.add('card-red-pressure');
-          } else if (cardColor.includes('00F0FF') || cardColor.includes('00E5FF')) {
-            cardBg.classList.add('card-cyan');
-          } else if (cardColor.includes('FFE600') || cardColor.includes('FFD700')) {
-            cardBg.classList.add('card-yellow');
-          } else {
-            cardBg.style.backgroundColor = layer.delayedPillCard || '#FFE600';
-          }
-          
+          cardBg.className = 'delayed-pill-card-bg ' + (layer.delayedPillCard === '#FF1744' ? 'card-red-pressure' : 'card-yellow');
           const cardText = document.createElement('span');
           cardText.className = 'delayed-pill-card-text';
-          cardText.innerText = applyCasing(layer.text, layer.casing);
-          cardText.style.color = layer.color || '#FFFFFF';
-          if (layer.delayedPillCard && layer.delayedPillCard.includes('FFE600')) {
-            cardText.style.color = '#111111'; // Dark contrast on bright yellow
-          }
-
+          cardText.innerText = layer.text;
+          cardText.style.color = layer.delayedPillCard === '#FFE600' ? '#111111' : '#FFFFFF';
           cardWrap.appendChild(cardBg);
           cardWrap.appendChild(cardText);
           layerDiv.appendChild(cardWrap);
 
-        // 2. DYNAMIC NUMERIC TICKING COUNTER
+        // 2. Cyber Matrix Glitch (TYPO #30)
+        } else if (trait.fx === 'acid_lime_letter_glitch') {
+          Array.from(layer.text).forEach((ch, chIdx) => {
+            const span = document.createElement('span');
+            span.className = 'lime-glitch-char lime-accent';
+            span.style.animationDelay = (chIdx * 0.04) + 's';
+            span.innerText = ch;
+            layerDiv.appendChild(span);
+          });
+
+        // 3. Dynamic Numeric Ticker
         } else if (layer.numericCounter) {
-          const counterWrap = document.createElement('span');
-          counterWrap.className = 'numeric-counter-item word-item';
+          const counterSpan = document.createElement('span');
+          counterSpan.className = 'numeric-counter-item word-item';
           const nc = layer.numericCounter;
-          const prefix = nc.prefix || '';
-          const suffix = nc.suffix || '';
-          const target = nc.targetValue || 50000;
-          const duration = nc.durationMs || 900;
-          
-          counterWrap.innerText = prefix + '0' + suffix;
-          layerDiv.appendChild(counterWrap);
-          
+          counterSpan.innerText = nc.prefix + '0' + nc.suffix;
+          layerDiv.appendChild(counterSpan);
+
           const startTime = performance.now();
-          function tickCounter(now) {
-            const progress = Math.min(1, (now - startTime) / duration);
-            const easeOut = 1 - Math.pow(1 - progress, 3);
-            const currentVal = Math.floor(easeOut * target);
-            counterWrap.innerText = prefix + currentVal.toLocaleString() + suffix;
-            if (progress < 1) {
-              requestAnimationFrame(tickCounter);
-            } else {
-              counterWrap.innerText = prefix + target.toLocaleString() + suffix;
-            }
+          function tick(now) {
+            const prog = Math.min(1, (now - startTime) / nc.durationMs);
+            const val = Math.floor((1 - Math.pow(1 - prog, 3)) * nc.targetValue);
+            counterSpan.innerText = nc.prefix + val.toLocaleString() + nc.suffix;
+            if (prog < 1) requestAnimationFrame(tick);
+            else counterSpan.innerText = nc.prefix + nc.targetValue.toLocaleString() + nc.suffix;
           }
-          requestAnimationFrame(tickCounter);
+          requestAnimationFrame(tick);
 
-        // 3. STANDARD KINETIC ANIMATION TREATMENTS (WHOLE-WORD COHESIVE SYSTEM)
+        // 4. Standard Kinetic Word Animation
         } else {
-          const rawText = applyCasing(layer.text, layer.casing);
-          const words = rawText.trim().split(' ').filter(w => w.length > 0);
-
+          const words = layer.text.split(' ');
           words.forEach((w, wIdx) => {
-            const wordSpan = document.createElement('span');
-            wordSpan.className = 'word-item';
-            wordSpan.innerText = w;
-            wordSpan.style.animationDelay = (wIdx * 0.07) + 's';
-            layerDiv.appendChild(wordSpan);
+            const span = document.createElement('span');
+            span.className = 'word-item';
+            span.innerText = w;
+            span.style.animationDelay = (wIdx * 0.07) + 's';
+            layerDiv.appendChild(span);
           });
         }
 
-        familyGroup.appendChild(layerDiv);
+        layerGroup.appendChild(layerDiv);
+
+        // Populate Inspector Table Row
+        const tr = document.createElement('tr');
+        tr.innerHTML = 
+          '<td style="font-family: monospace; color: var(--accent-cyan); font-weight: 700;">' + layer.layerName + '</td>' +
+          '<td style="font-weight: 700;">' + layer.fontFamily + ' ' + layer.fontSizePx + 'px</td>' +
+          '<td style="font-weight: 700; color: var(--accent-yellow);">' + trait.name + '</td>' +
+          '<td style="font-weight: 700; color: ' + (isBehind ? 'var(--accent-pink)' : 'var(--accent-cyan)') + '">' + (isBehind ? 'BEHIND SPEAKER (Z:10)' : 'IN FRONT (Z:30)') + '</td>' +
+          '<td><span class="badge-optimal">' + (isBehind ? 'Goldilocks Scalp' : 'Clearance Verified') + '</span></td>';
+        tableBody.appendChild(tr);
       });
 
-      if (isHeadZoneChunk) {
-        familyHeadStage.appendChild(familyGroup);
+      if (isHeadZone) {
+        headStage.appendChild(layerGroup);
       } else {
-        familyChestStage.appendChild(familyGroup);
+        chestStage.appendChild(layerGroup);
       }
     }
 
-    const screenshotInput = document.getElementById('screenshotInput');
-    const lblUploadScreenshot = document.getElementById('lblUploadScreenshot');
-    if (screenshotInput) {
-      screenshotInput.onchange = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        if (lblUploadScreenshot) lblUploadScreenshot.innerText = '⏳ Uploading...';
-        const reader = new FileReader();
-        reader.onload = async () => {
-          try {
-            const res = await fetch('/api/upload_screenshot', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ dataUrl: reader.result })
-            });
-            if (res.ok) {
-              if (lblUploadScreenshot) lblUploadScreenshot.innerText = '✅ Screenshot Sent to Agent!';
-              alert('📸 Screenshot received by agent! The agent will inspect it directly.');
-            } else {
-              if (lblUploadScreenshot) lblUploadScreenshot.innerText = '❌ Upload Failed';
-              alert('Upload failed: ' + res.statusText);
-            }
-          } catch (err) {
-            if (lblUploadScreenshot) lblUploadScreenshot.innerText = '❌ Upload Error';
-            alert('Upload error: ' + err.message);
-          }
-        };
-        reader.readAsDataURL(file);
-      };
+    // 5. RE-ROLL & SEED MANAGEMENT
+    function reRollTreatment() {
+      currentSeed = Math.floor(Math.random() * 90000) + 100;
+      document.getElementById('lblActiveSeed').innerText = '#' + currentSeed;
+      compiledSequence = compileDynamicSequence(currentSeed);
+      renderPresentationChunk(currentIndex);
+      if (isPlaying) restartTimer();
     }
 
-    // Global Clipboard Paste Support (Ctrl+V / Cmd+V anywhere on the page)
-    window.addEventListener('paste', (e) => {
-      const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
-      if (!items) return;
-      for (const item of items) {
-        if (item.type.indexOf('image') !== -1) {
-          const file = item.getAsFile();
-          if (file) {
-            if (lblUploadScreenshot) lblUploadScreenshot.innerText = '⏳ Pasting Screenshot...';
-            const reader = new FileReader();
-            reader.onload = async () => {
-              try {
-                const res = await fetch('/api/upload_screenshot', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ dataUrl: reader.result })
-                });
-                if (res.ok) {
-                  if (lblUploadScreenshot) lblUploadScreenshot.innerText = '✅ Screenshot Sent to Agent!';
-                  alert('📸 Screenshot pasted & received by agent! The agent will inspect it directly.');
-                }
-              } catch (err) {}
-            };
-            reader.readAsDataURL(file);
-          }
-          break;
-        }
-      }
-    });
+    function resetSeed(seedNum) {
+      currentSeed = seedNum;
+      document.getElementById('lblActiveSeed').innerText = '#' + currentSeed;
+      compiledSequence = compileDynamicSequence(currentSeed);
+      renderPresentationChunk(0);
+      if (isPlaying) restartTimer();
+    }
 
-    function jumpTo(idx) { renderChunk(idx); if (isPlaying) restartTimer(); }
-    function nextChunk() { renderChunk((currentIndex + 1) % payload.length); }
-    function prevChunk() { renderChunk((currentIndex - 1 + payload.length) % payload.length); }
-    function togglePlay() { isPlaying = !isPlaying; btnPlay.innerText = isPlaying ? '⏸ Pause' : '▶ Play'; if (isPlaying) restartTimer(); else clearInterval(timer); }
-    function toggleBbox() { showBbox = !showBbox; mediapipeFaceOverlay.style.opacity = showBbox ? '1' : '0'; btnToggleBbox.innerText = '📐 Wireframe: ' + (showBbox ? 'ON' : 'OFF'); }
-    function restartTimer() { clearInterval(timer); timer = setInterval(nextChunk, 2400); }
+    function jumpTo(idx) {
+      renderPresentationChunk(idx);
+      if (isPlaying) restartTimer();
+    }
 
-    btnPlay.onclick = togglePlay;
-    btnNext.onclick = () => { nextChunk(); if (isPlaying) restartTimer(); };
-    btnPrev.onclick = () => { prevChunk(); if (isPlaying) restartTimer(); };
-    btnToggleBbox.onclick = toggleBbox;
-    timelineScrubber.oninput = (e) => jumpTo(parseInt(e.target.value, 10));
+    function nextChunk() {
+      renderPresentationChunk((currentIndex + 1) % compiledSequence.length);
+    }
 
-    renderChunk(0);
+    function prevChunk() {
+      renderPresentationChunk((currentIndex - 1 + compiledSequence.length) % compiledSequence.length);
+    }
+
+    function togglePlay() {
+      isPlaying = !isPlaying;
+      document.getElementById('btnPlay').innerText = isPlaying ? '⏸ Pause' : '▶ Play';
+      if (isPlaying) restartTimer();
+      else clearInterval(playTimer);
+    }
+
+    function toggleBbox() {
+      showBbox = !showBbox;
+      document.getElementById('mediapipeFaceOverlay').style.opacity = showBbox ? '1' : '0';
+      document.getElementById('btnToggleBbox').innerText = '📐 Wireframe: ' + (showBbox ? 'ON' : 'OFF');
+    }
+
+    function restartTimer() {
+      clearInterval(playTimer);
+      playTimer = setInterval(nextChunk, 2400);
+    }
+
+    function setViewMode(mode) {
+      document.getElementById('tabPresentation').classList.toggle('active', mode === 'presentation');
+      document.getElementById('tabDiagnostics').classList.toggle('active', mode === 'diagnostics');
+      document.getElementById('inspectorPanel').style.display = (mode === 'diagnostics' || window.innerWidth > 900) ? 'block' : 'none';
+    }
+
+    // INITIAL BOOTSTRAP
+    compiledSequence = compileDynamicSequence(currentSeed);
+    renderPresentationChunk(0);
     restartTimer();
   </script>
 </body>
@@ -1725,5 +988,4 @@ const htmlContent = `<!DOCTYPE html>
 
 const outHtmlPath = path.join(studioDir, "typography_treatment_presentation.html");
 fs.writeFileSync(outHtmlPath, htmlContent);
-console.log("SUCCESSFULLY_BUILT_GOLDILOCKS_SCALP_CONTACT_STUDIO:", outHtmlPath);
-
+console.log("SUCCESSFULLY_BUILT_PROBABILISTIC_SELECTOR_STUDIO:", outHtmlPath);
