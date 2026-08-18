@@ -32,7 +32,7 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Prometheus — Discrete Sound Design & Variant Control Studio</title>
+  <title>Prometheus — Interactive Micro-Looping & Sound Variant Studio</title>
   <style>
     :root {
       --bg-dark: #070913;
@@ -59,7 +59,7 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
     }
     .container {
       width: 100%;
-      max-width: 1240px;
+      max-width: 1260px;
       display: flex;
       flex-direction: column;
       gap: 14px;
@@ -84,10 +84,10 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
 
     .studio-grid {
       display: grid;
-      grid-template-columns: minmax(320px, 420px) 1fr;
+      grid-template-columns: minmax(320px, 430px) 1fr;
       gap: 16px;
     }
-    @media (max-width: 900px) {
+    @media (max-width: 920px) {
       .studio-grid { grid-template-columns: 1fr; }
     }
 
@@ -113,8 +113,40 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
       justify-content: center;
       box-shadow: 0 10px 40px rgba(0,0,0,0.9);
       margin: 0 auto;
+      position: relative;
     }
     .player-wrap video { width: 100%; height: 100%; object-fit: contain; display: block; }
+
+    /* LOOP BADGE BANNER */
+    .loop-banner {
+      display: none;
+      background: rgba(0, 240, 255, 0.15);
+      border: 1px solid var(--accent-cyan);
+      color: #FFF;
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 11.5px;
+      font-weight: 700;
+      margin-top: 10px;
+      justify-content: space-between;
+      align-items: center;
+      animation: pulseGlow 2s infinite alternate;
+    }
+    @keyframes pulseGlow {
+      from { box-shadow: 0 0 8px rgba(0, 240, 255, 0.2); }
+      to { box-shadow: 0 0 16px rgba(0, 240, 255, 0.6); }
+    }
+    .btn-decouple {
+      background: rgba(255, 0, 85, 0.25);
+      border: 1px solid #FF0055;
+      color: #FF0055;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 10.5px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .btn-decouple:hover { background: #FF0055; color: #FFF; }
 
     .controls-row {
       margin-top: 12px;
@@ -155,7 +187,7 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
       align-items: center;
       flex-wrap: wrap;
     }
-    .tab-btn-group { display: flex; gap: 8px; }
+    .tab-btn-group { display: flex; gap: 8px; align-items: center; }
     .tab-btn {
       background: rgba(255, 255, 255, 0.06);
       border: 1px solid var(--panel-border);
@@ -172,6 +204,20 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
       border-color: var(--accent-cyan);
       font-weight: 900;
     }
+    
+    .loop-toggle-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.06);
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent-cyan);
+    }
+    .loop-toggle-wrap input { cursor: pointer; }
+
     .btn-rebake {
       background: linear-gradient(135deg, var(--accent-yellow), var(--accent-pink));
       color: #070913;
@@ -200,8 +246,10 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
     table { width: 100%; border-collapse: collapse; font-size: 11px; font-family: monospace; }
     th { background: rgba(0, 240, 255, 0.08); color: var(--accent-cyan); padding: 8px 10px; text-align: left; position: sticky; top: 0; z-index: 2; border-bottom: 1px solid rgba(255,255,255,0.1); }
     td { padding: 6px 10px; border-bottom: 1px solid rgba(255,255,255,0.04); color: var(--text-muted); vertical-align: middle; }
-    tr:hover td { background: rgba(255, 255, 255, 0.05); color: #FFF; }
+    tr { cursor: pointer; transition: background 0.15s; }
+    tr:hover td { background: rgba(255, 255, 255, 0.06); color: #FFF; }
     tr.active-row td { background: rgba(0, 240, 255, 0.22); color: #FFF; font-weight: 700; }
+    tr.loop-locked td { background: rgba(255, 0, 85, 0.2); border-left: 3px solid #FF0055; color: #FFF; }
 
     .tag { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 800; text-transform: uppercase; }
     .tag-text { background: rgba(255, 230, 0, 0.2); color: #FFE600; border: 1px solid rgba(255, 230, 0, 0.4); }
@@ -209,7 +257,7 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
     .tag-ui { background: rgba(139, 92, 246, 0.2); color: #8B5CF6; border: 1px solid rgba(139, 92, 246, 0.4); }
 
     .variant-select {
-      background: rgba(15, 23, 42, 0.9);
+      background: rgba(15, 23, 42, 0.95);
       border: 1px solid rgba(255, 255, 255, 0.2);
       color: #FFF;
       padding: 3px 6px;
@@ -254,8 +302,8 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
   <div class="container">
     
     <div class="header-card">
-      <h1>Prometheus Discrete Sound Design & Variant Studio</h1>
-      <p>Zero Background Clutter • Discrete Text Clicks, Whooshes & UI Pops • Interactive Variant Switching</p>
+      <h1>Prometheus Discrete Sound Design & Micro-Looping Studio</h1>
+      <p>Click Any Cue to Seek & Micro-Loop • Real-Time Variant Auditioning • Decouple On Demand</p>
     </div>
 
     <div class="studio-grid">
@@ -266,6 +314,15 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
           <video id="studioVideo" src="/video_with_real_sfx.mp4" controls playsinline preload="auto"></video>
         </div>
         
+        <!-- MICRO-LOOP STATUS BANNER -->
+        <div class="loop-banner" id="loopBanner">
+          <div>
+            🔁 <strong>Micro-Loop Active:</strong> <span id="loopRangeText">00:00.00 - 00:00.00</span>
+            <div style="font-size:10px; color:#A5F3FC;" id="loopCueName">Visual Trigger Name</div>
+          </div>
+          <button class="btn-decouple" onclick="decoupleLoop()">✕ Decouple Loop</button>
+        </div>
+
         <div class="controls-row">
           <div style="display:flex; gap:6px;">
             <button class="mode-switch-btn active" id="btnSfxMode" onclick="setAudioTrack('sfx')">
@@ -289,6 +346,10 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
           <div class="tab-btn-group">
             <button class="tab-btn active" id="tabTableBtn" onclick="showTab('table')">📊 Sound Treatments (282 Cues)</button>
             <button class="tab-btn" id="tabJsonBtn" onclick="showTab('json')">{ } Authoritative JSON</button>
+            
+            <label class="loop-toggle-wrap" title="Auto-loop video section when clicking on any cue">
+              <input type="checkbox" id="chkAutoLoop" checked> Auto-Loop on Click
+            </label>
           </div>
           
           <button class="btn-rebake" id="btnRebake" onclick="rebakeAudioTrack()">
@@ -329,8 +390,14 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
   <script>
     const video = document.getElementById('studioVideo');
     const auditionPlayer = document.getElementById('auditionPlayer');
+    const chkAutoLoop = document.getElementById('chkAutoLoop');
+    const loopBanner = document.getElementById('loopBanner');
+    const loopRangeText = document.getElementById('loopRangeText');
+    const loopCueName = document.getElementById('loopCueName');
+
     let soundManifest = null;
     let lastActiveIdx = -1;
+    let activeLoopRange = null; // { start: number, end: number, cueIndex: number } | null
 
     async function loadData() {
       try {
@@ -357,20 +424,55 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
         \`).join('');
 
         return \`
-          <tr id="row-\${idx}">
-            <td><strong style="color:#FFF; cursor:pointer;" onclick="seekVideo(\${t.timestampSeconds})">\${t.timestampSeconds.toFixed(2)}s</strong></td>
+          <tr id="row-\${idx}" onclick="handleRowClick(event, \${idx})">
+            <td><strong style="color:#FFF;">\${t.timestampSeconds.toFixed(2)}s</strong></td>
             <td><span class="tag \${tagClass}">\${t.soundDesign.category}</span></td>
             <td><strong>\${t.visualTrigger.elementName}</strong><br><span style="font-size:10px; color:#64748B;">\${t.visualTrigger.description}</span></td>
             <td>
-              <select class="variant-select" onchange="changeVariant(\${idx}, this.value)">
+              <select class="variant-select" onclick="event.stopPropagation()" onchange="changeVariant(\${idx}, this.value)">
                 \${optionsHtml}
               </select>
             </td>
             <td>\${panStr}</td>
-            <td><button class="btn-audition" onclick="auditionCurrentVariant(\${idx})">▶ Play</button></td>
+            <td><button class="btn-audition" onclick="event.stopPropagation(); auditionCurrentVariant(\${idx})">▶ Play</button></td>
           </tr>
         \`;
       }).join('');
+    }
+
+    // Row click handler: Seek & Micro-Loop
+    function handleRowClick(event, cueIndex) {
+      const t = soundManifest.treatments[cueIndex];
+      const cueTime = t.timestampSeconds;
+      const dur = t.soundDesign.durationEstimateSec || 0.35;
+
+      const preRoll = 0.25;
+      const postRoll = 0.40;
+      const start = Math.max(0, cueTime - preRoll);
+      const end = Math.min(video.duration || 60.1, cueTime + dur + postRoll);
+
+      if (chkAutoLoop.checked) {
+        activeLoopRange = { start, end, cueIndex };
+        loopBanner.style.display = 'flex';
+        loopRangeText.innerText = start.toFixed(2) + 's ➔ ' + end.toFixed(2) + 's';
+        loopCueName.innerText = t.visualTrigger.elementName + ' (' + t.soundDesign.soundName + ')';
+      } else {
+        decoupleLoop();
+      }
+
+      // Highlight active loop row
+      document.querySelectorAll('tr.loop-locked').forEach(r => r.classList.remove('loop-locked'));
+      const row = document.getElementById('row-' + cueIndex);
+      if (row) row.classList.add('loop-locked');
+
+      video.currentTime = start;
+      video.play();
+    }
+
+    function decoupleLoop() {
+      activeLoopRange = null;
+      loopBanner.style.display = 'none';
+      document.querySelectorAll('tr.loop-locked').forEach(r => r.classList.remove('loop-locked'));
     }
 
     function changeVariant(cueIndex, variantIndex) {
@@ -386,6 +488,11 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
 
       // Audition immediately
       auditionSingleAudio(v.audioUrl);
+
+      // If this cue is currently looping, update banner label
+      if (activeLoopRange && activeLoopRange.cueIndex === cueIndex) {
+        loopCueName.innerText = t.visualTrigger.elementName + ' (' + v.label + ')';
+      }
 
       // Save to server
       fetch('/api/update_variant', {
@@ -443,11 +550,6 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
       }
     }
 
-    function seekVideo(sec) {
-      video.currentTime = sec;
-      video.play();
-    }
-
     function auditionSingleAudio(url) {
       auditionPlayer.src = url;
       auditionPlayer.play();
@@ -471,12 +573,21 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
       if (wasPlaying) video.play();
     }
 
-    // High performance O(1) row highlighting
+    // High performance O(1) row highlighting & Seamless Micro-Looping
     video.addEventListener('timeupdate', () => {
       const cur = video.currentTime;
       const min = Math.floor(cur / 60);
       const sec = (cur % 60).toFixed(2);
       document.getElementById('lblTime').innerText = (min < 10 ? '0' : '') + min + ':' + (sec < 10 ? '0' : '') + sec;
+
+      // Handle Active Micro-Looping
+      if (activeLoopRange) {
+        if (cur >= activeLoopRange.end || cur < activeLoopRange.start - 0.15) {
+          video.currentTime = activeLoopRange.start;
+          video.play();
+          return;
+        }
+      }
 
       if (!soundManifest || !soundManifest.treatments) return;
 
@@ -500,7 +611,9 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
         const newRow = document.getElementById('row-' + bestIdx);
         if (newRow) {
           newRow.classList.add('active-row');
-          newRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          if (!activeLoopRange) {
+            newRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
         }
         lastActiveIdx = bestIdx;
       }
@@ -513,9 +626,6 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
 
 function createServerInstance(port: number) {
   const s = http.createServer((req, res) => {
-    let decodedUrl = req.url || "";
-    try { decodedUrl = decodeURIComponent(req.url || ""); } catch {}
-
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, POST, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "*");
@@ -624,6 +734,10 @@ function createServerInstance(port: number) {
         return;
       }
     }
+
+    // Static Audio Routing for SOUND FX Library
+    let decodedUrl = req.url || "";
+    try { decodedUrl = decodeURIComponent(req.url || ""); } catch {}
 
     // Typography Treatment Presentation Studio
     if ((req.method === "GET" || req.method === "HEAD") && 
@@ -798,7 +912,7 @@ function createServerInstance(port: number) {
   });
 
   s.listen(port, "0.0.0.0", () => {
-    console.log(`  🚀 Discrete Sound Design & Variant Studio on Port ${port}: http://16.192.95.115:${port}/`);
+    console.log(`  🚀 Interactive Micro-Looping Studio on Port ${port}: http://16.192.95.115:${port}/`);
   });
   s.on("error", (e) => {
     console.warn(`[PORT_WARN] Port ${port} (${e.message})`);
