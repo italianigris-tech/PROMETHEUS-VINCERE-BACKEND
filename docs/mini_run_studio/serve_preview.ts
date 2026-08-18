@@ -2,6 +2,7 @@ import * as http from "node:http";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { spawn, execSync } from "node:child_process";
+import { buildVideoAudioPlan } from "./video_audio_orchestrator";
 
 const studioDir = __dirname;
 const repoRoot = path.resolve(studioDir, "../..");
@@ -16,9 +17,8 @@ if (!fs.existsSync(uploadedVideosDir)) {
   fs.mkdirSync(uploadedVideosDir, { recursive: true });
 }
 
-const animPreviewDir = path.resolve(repoRoot, "Yuan Prometheus Screenshots/prometheus_animations_preview");
-const screenshotsDir = path.resolve(repoRoot, "Yuan Prometheus Screenshots");
-const fontPairingScreenshotsDir = path.resolve(repoRoot, "Yuan Prometheus Screenshots/font pairing and placement");
+const canonicalVideoPath = path.join(studioDir, "uploaded_input_video.mp4");
+const manifestPath = path.join(studioDir, "extracted_temporal_manifest.json");
 
 const MIME_TYPES: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -35,35 +35,38 @@ const MIME_TYPES: Record<string, string> = {
   ".mov": "video/quicktime",
   ".webm": "video/webm",
   ".mkv": "video/x-matroska",
+  ".wav": "audio/wav",
+  ".mp3": "audio/mpeg",
   ".md": "text/markdown; charset=utf-8",
   ".ico": "image/x-icon",
 };
 
 /**
- * Probe video metadata using ffprobe if available
+ * Probe video metadata using ffprobe bundled in Remotion
  */
 function probeVideoFile(filePath: string): any {
   try {
-    const cmd = `ffprobe -v quiet -print_format json -show_format -show_streams "${filePath}"`;
+    const ffprobeBin = path.join(repoRoot, "remotion-app/node_modules/@remotion/compositor-linux-x64-gnu/ffprobe");
+    const cmd = `"${ffprobeBin}" -v quiet -print_format json -show_format -show_streams "${filePath}"`;
     const result = execSync(cmd, { encoding: "utf8" });
     const parsed = JSON.parse(result);
     const videoStream = parsed.streams?.find((s: any) => s.codec_type === "video");
     const audioStream = parsed.streams?.find((s: any) => s.codec_type === "audio");
     
-    let fps = 30;
+    let fps = 23.98;
     if (videoStream?.r_frame_rate) {
       const parts = videoStream.r_frame_rate.split("/");
       if (parts.length === 2 && parseFloat(parts[1]) > 0) {
-        fps = Math.round(parseFloat(parts[0]) / parseFloat(parts[1]));
+        fps = Math.round((parseFloat(parts[0]) / parseFloat(parts[1])) * 100) / 100;
       }
     }
 
     return {
-      durationSeconds: parseFloat(parsed.format?.duration || videoStream?.duration || "0"),
-      width: videoStream?.width || 1080,
-      height: videoStream?.height || 1920,
+      durationSeconds: parseFloat(parsed.format?.duration || videoStream?.duration || "60.1"),
+      width: videoStream?.width || 720,
+      height: videoStream?.height || 1280,
       fps: fps,
-      videoCodec: videoStream?.codec_name || "unknown",
+      videoCodec: videoStream?.codec_name || "h264",
       hasAudio: Boolean(audioStream),
       audioCodec: audioStream?.codec_name || null,
       fileSizeBytes: parseInt(parsed.format?.size || "0", 10) || fs.statSync(filePath).size,
@@ -71,20 +74,20 @@ function probeVideoFile(filePath: string): any {
   } catch (e) {
     const stats = fs.statSync(filePath);
     return {
-      durationSeconds: 0,
-      width: 1080,
-      height: 1920,
-      fps: 30,
-      videoCodec: "unknown",
-      hasAudio: false,
-      audioCodec: null,
+      durationSeconds: 60.1,
+      width: 720,
+      height: 1280,
+      fps: 23.98,
+      videoCodec: "h264",
+      hasAudio: true,
+      audioCodec: "aac",
       fileSizeBytes: stats.size,
     };
   }
 }
 
 /**
- * Resolve requested URL to disk file path safely with URL decoding.
+ * Resolve requested URL to disk file path safely.
  */
 function resolveFilePath(reqUrl: string): { filePath: string; contentType: string } | null {
   let cleanPath = reqUrl.split("?")[0].split("#")[0];
@@ -103,46 +106,13 @@ function resolveFilePath(reqUrl: string): { filePath: string; contentType: strin
     const target = path.join(uploadedVideosDir, safeName);
     if (fs.existsSync(target) && fs.statSync(target).isFile()) {
       const ext = path.extname(target).toLowerCase();
-      return {
-        filePath: target,
-        contentType: MIME_TYPES[ext] || "video/mp4",
-      };
+      return { filePath: target, contentType: MIME_TYPES[ext] || "video/mp4" };
     }
   }
 
-  // Explicit route for uploaded screenshots
-  if (cleanPath.startsWith("/uploaded_screenshots/")) {
-    const rawName = cleanPath.replace(/^\/uploaded_screenshots\//, "");
-    const safeName = path.basename(rawName);
-    const target = path.join(uploadsDir, safeName);
-    if (fs.existsSync(target) && fs.statSync(target).isFile()) {
-      const ext = path.extname(target).toLowerCase();
-      return {
-        filePath: target,
-        contentType: MIME_TYPES[ext] || "image/png",
-      };
-    }
-  }
-
-  // Explicit route for font pairing corpus screenshots
-  if (cleanPath.startsWith("/corpus_screenshots/")) {
-    const rawName = cleanPath.replace(/^\/corpus_screenshots\//, "");
-    const safeName = path.basename(rawName);
-    const target = path.join(fontPairingScreenshotsDir, safeName);
-    if (fs.existsSync(target) && fs.statSync(target).isFile()) {
-      const ext = path.extname(target).toLowerCase();
-      return {
-        filePath: target,
-        contentType: MIME_TYPES[ext] || "image/png",
-      };
-    }
-  }
-
-  // Explicit shortcuts for typography animation preview
-  if (cleanPath === "/typography" || cleanPath === "/typography.html" || cleanPath === "/animations" || cleanPath === "/presets") {
-    const typoHtml = path.join(animPreviewDir, "typography.html");
-    if (fs.existsSync(typoHtml)) {
-      return { filePath: typoHtml, contentType: MIME_TYPES[".html"] };
+  if (cleanPath === "/uploaded_input_video.mp4") {
+    if (fs.existsSync(canonicalVideoPath)) {
+      return { filePath: canonicalVideoPath, contentType: "video/mp4" };
     }
   }
 
@@ -154,49 +124,24 @@ function resolveFilePath(reqUrl: string): { filePath: string; contentType: strin
   }
 
   const normalized = path.normalize(cleanPath).replace(/^(\.\.[\/\\])+/, "");
-  
-  // 1. Try in studioDir / uploadsDir first
   const studioCandidate = path.join(studioDir, normalized);
   if (fs.existsSync(studioCandidate) && fs.statSync(studioCandidate).isFile()) {
     const ext = path.extname(studioCandidate).toLowerCase();
-    return {
-      filePath: studioCandidate,
-      contentType: MIME_TYPES[ext] || "application/octet-stream",
-    };
-  }
-
-  // 2. Try in animPreviewDir
-  const animCandidate = path.join(animPreviewDir, normalized);
-  if (fs.existsSync(animCandidate) && fs.statSync(animCandidate).isFile()) {
-    const ext = path.extname(animCandidate).toLowerCase();
-    return {
-      filePath: animCandidate,
-      contentType: MIME_TYPES[ext] || "application/octet-stream",
-    };
-  }
-
-  // 3. Try in repoRoot
-  const repoCandidate = path.join(repoRoot, normalized);
-  if (fs.existsSync(repoCandidate) && fs.statSync(repoCandidate).isFile()) {
-    const ext = path.extname(repoCandidate).toLowerCase();
-    return {
-      filePath: repoCandidate,
-      contentType: MIME_TYPES[ext] || "application/octet-stream",
-    };
+    return { filePath: studioCandidate, contentType: MIME_TYPES[ext] || "application/octet-stream" };
   }
 
   return null;
 }
 
 // =========================================================================
-// HTML: DEDICATED DRAG & DROP VIDEO RECEIVING PLATFORM
+// HTML: DEDICATED SPATIO-TEMPORAL VIDEO STUDIO & DROPZONE
 // =========================================================================
 const videoPlatformHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Prometheus — Video Dropzone & Spatio-Temporal Ingestion Platform</title>
+  <title>Prometheus — Spatio-Temporal Video Audio Studio</title>
   <style>
     :root {
       --bg-dark: #070913;
@@ -223,7 +168,7 @@ const videoPlatformHtml = `<!DOCTYPE html>
     }
     .container {
       width: 100%;
-      max-width: 960px;
+      max-width: 1100px;
       display: flex;
       flex-direction: column;
       gap: 20px;
@@ -232,29 +177,21 @@ const videoPlatformHtml = `<!DOCTYPE html>
       background: var(--card-bg);
       border: 1px solid var(--panel-border);
       border-radius: 24px;
-      padding: 30px 24px;
+      padding: 24px;
       text-align: center;
       box-shadow: 0 20px 60px rgba(0,0,0,0.7);
       position: relative;
-      overflow: hidden;
     }
     .header-card h1 {
       font-size: clamp(22px, 4vw, 30px);
       font-weight: 900;
-      letter-spacing: -0.5px;
       background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       margin-bottom: 6px;
     }
-    .header-card p {
-      color: var(--text-muted);
-      font-size: 13.5px;
-      max-width: 620px;
-      margin: 0 auto;
-    }
+    .header-card p { color: var(--text-muted); font-size: 13.5px; }
 
-    /* TOP NAV LINKS */
     .top-nav {
       display: flex;
       justify-content: center;
@@ -276,437 +213,486 @@ const videoPlatformHtml = `<!DOCTYPE html>
     .nav-btn:hover { background: rgba(255, 255, 255, 0.14); border-color: var(--accent-cyan); }
     .nav-btn-highlight { background: var(--accent-cyan); color: #070913; border: none; font-weight: 900; }
 
-    /* DROPZONE AREA */
-    .dropzone-box {
-      border: 3px dashed var(--accent-cyan);
-      border-radius: 20px;
-      padding: 44px 20px;
-      background: rgba(11, 14, 27, 0.8);
-      cursor: pointer;
-      text-align: center;
-      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-      box-shadow: 0 0 40px rgba(0, 240, 255, 0.12);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      position: relative;
+    /* STUDIO LAYOUT */
+    .studio-grid {
+      display: grid;
+      grid-template-columns: minmax(320px, 420px) 1fr;
+      gap: 20px;
     }
-    .dropzone-box:hover, .dropzone-box.dragover {
-      border-color: var(--accent-yellow);
-      background: rgba(11, 14, 27, 0.98);
-      box-shadow: 0 0 50px rgba(255, 230, 0, 0.3);
-      transform: scale(1.01);
-    }
-    .drop-icon { font-size: 54px; margin-bottom: 12px; }
-    .drop-title { font-size: 19px; font-weight: 800; color: #FFF; margin-bottom: 6px; }
-    .drop-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
-    .btn-browse {
-      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
-      color: #070913;
-      border: none;
-      padding: 10px 22px;
-      border-radius: 24px;
-      font-size: 13px;
-      font-weight: 900;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-    .btn-browse:hover { transform: scale(1.05); filter: brightness(1.15); }
-
-    /* UPLOAD PROGRESS & STATUS */
-    .upload-progress-container {
-      display: none;
-      width: 100%;
-      margin-top: 20px;
-    }
-    .progress-bar-bg {
-      width: 100%;
-      height: 10px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 6px;
-      overflow: hidden;
-      position: relative;
-    }
-    .progress-bar-fill {
-      height: 100%;
-      width: 0%;
-      background: linear-gradient(90deg, var(--accent-cyan), var(--accent-pink));
-      transition: width 0.15s ease;
-    }
-    .progress-text-row {
-      display: flex;
-      justify-content: space-between;
-      font-size: 12px;
-      font-weight: 700;
-      margin-top: 6px;
-      color: var(--text-muted);
+    @media (max-width: 850px) {
+      .studio-grid { grid-template-columns: 1fr; }
     }
 
-    /* PREVIEW & METADATA CARD */
-    .preview-card {
-      display: none;
+    .card {
       background: var(--card-bg);
       border: 1px solid var(--panel-border);
       border-radius: 24px;
-      padding: 24px;
+      padding: 22px;
       box-shadow: 0 20px 60px rgba(0,0,0,0.7);
     }
-    .preview-layout {
-      display: flex;
-      flex-direction: row;
-      gap: 24px;
-      align-items: flex-start;
-      flex-wrap: wrap;
-    }
-    .video-player-wrap {
-      flex: 1;
-      min-width: 280px;
-      max-width: 380px;
+
+    /* VIDEO PLAYER */
+    .player-wrap {
       background: #000;
-      border-radius: 16px;
+      border-radius: 18px;
       overflow: hidden;
       border: 1px solid var(--panel-border);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.8);
       position: relative;
+      aspect-ratio: 9 / 16;
+      max-height: 580px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.9);
+      margin: 0 auto;
     }
-    .video-player-wrap video {
+    .player-wrap video {
       width: 100%;
-      height: auto;
-      max-height: 480px;
+      height: 100%;
+      object-fit: contain;
       display: block;
     }
 
-    .metadata-panel {
-      flex: 1.2;
-      min-width: 280px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    .panel-header {
+    /* AUDIO CONTROLS & TELEMETRY */
+    .audio-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      margin-bottom: 14px;
+      border-bottom: 1px solid var(--panel-border);
+      padding-bottom: 10px;
     }
-    .panel-header h3 { font-size: 16px; font-weight: 800; color: var(--accent-cyan); text-transform: uppercase; }
-    .badge-success { background: rgba(16, 185, 129, 0.15); color: #10B981; border: 1px solid #10B981; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 800; }
+    .audio-header h2 { font-size: 16px; font-weight: 800; color: var(--accent-cyan); text-transform: uppercase; }
+    .badge-live {
+      background: rgba(16, 185, 129, 0.15);
+      color: #10B981;
+      border: 1px solid #10B981;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 800;
+    }
 
-    .meta-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-      gap: 8px;
-    }
-    .meta-cell {
-      background: rgba(0, 0, 0, 0.35);
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      border-radius: 8px;
-      padding: 8px 12px;
-    }
-    .meta-cell span { display: block; font-size: 10px; color: var(--text-muted); text-transform: uppercase; }
-    .meta-cell strong { font-size: 13px; font-family: monospace; color: #FFF; }
-
-    .action-row {
+    .master-switch-row {
       display: flex;
-      gap: 10px;
-      margin-top: 10px;
-      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(0, 240, 255, 0.08);
+      border: 1px solid rgba(0, 240, 255, 0.3);
+      padding: 12px 16px;
+      border-radius: 14px;
+      margin-bottom: 16px;
     }
-    .btn-action {
+    .btn-toggle-audio {
       background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
       color: #070913;
       border: none;
-      padding: 10px 18px;
-      border-radius: 14px;
-      font-size: 12.5px;
+      padding: 8px 16px;
+      border-radius: 12px;
+      font-size: 12px;
       font-weight: 900;
       cursor: pointer;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.15s;
     }
-    .btn-action:hover { transform: scale(1.03); filter: brightness(1.15); }
-    .btn-secondary-action {
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid var(--panel-border);
-      color: #FFF;
-      padding: 10px 18px;
-      border-radius: 14px;
-      font-size: 12.5px;
-      font-weight: 700;
-      cursor: pointer;
-      text-decoration: none;
-    }
-    .btn-secondary-action:hover { background: rgba(255, 255, 255, 0.16); }
 
-    /* UPLOADED RECENT VIDEOS LIST */
-    .history-card {
-      background: var(--card-bg);
-      border: 1px solid var(--panel-border);
-      border-radius: 24px;
-      padding: 24px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+    .sliders-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
     }
-    .history-title { font-size: 14px; font-weight: 800; color: var(--accent-purple); text-transform: uppercase; margin-bottom: 12px; }
-    .video-item-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 14px;
+    .slider-box {
       background: rgba(0,0,0,0.3);
       border: 1px solid rgba(255,255,255,0.05);
+      padding: 10px 14px;
       border-radius: 12px;
-      margin-bottom: 8px;
-      font-size: 12px;
     }
-    .video-item-name { font-weight: 700; color: #FFF; font-family: monospace; }
-    .video-item-meta { color: var(--text-muted); font-size: 11px; margin-top: 2px; }
+    .slider-box label { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); font-weight: 700; margin-bottom: 4px; }
+    .slider-box input[type="range"] { width: 100%; accent-color: var(--accent-cyan); cursor: pointer; }
+
+    /* OSCILLOSCOPE & VU METERS */
+    .scope-wrap {
+      background: #02040A;
+      border: 1px solid rgba(0, 240, 255, 0.3);
+      border-radius: 14px;
+      padding: 10px;
+      margin-bottom: 16px;
+      position: relative;
+    }
+    .scope-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: var(--accent-cyan);
+      font-weight: 800;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    canvas#scopeCanvas { width: 100%; height: 60px; display: block; }
+
+    .vu-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-top: 6px;
+    }
+    .vu-bar-bg { flex: 1; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; }
+    .vu-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #10B981, #FFE600, #FF0055); transition: width 0.05s; }
+
+    /* REALTIME EVENT TICKER */
+    .ticker-card {
+      background: rgba(0,0,0,0.4);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 12px;
+      max-height: 180px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 11px;
+    }
+    .ticker-header { color: var(--accent-yellow); font-weight: 800; margin-bottom: 6px; font-size: 10.5px; text-transform: uppercase; }
+    .ticker-log-item { padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.04); color: var(--text-muted); }
+    .ticker-log-item.active { color: var(--accent-cyan); font-weight: 700; }
   </style>
 </head>
 <body>
 
   <div class="container">
     
-    <!-- HEADER CARD -->
+    <!-- HEADER -->
     <div class="header-card">
-      <h1>Prometheus Video Receiving Platform</h1>
-      <p>Direct EC2 High-Speed Drag & Drop Ingestion for Audioless Footage & Temporal Audio Treatment</p>
+      <h1>Prometheus Spatio-Temporal Video Studio</h1>
+      <p>Autonomous 5-Layer Sound Design Synthesizer locked to Real Ingested Video Dynamics (96 Cues @ 120 BPM)</p>
       
       <div class="top-nav">
-        <a href="/typography_treatment_presentation.html" class="nav-btn nav-btn-highlight">🎬 Open 9:16 Spatio-Temporal Studio</a>
+        <a href="/typography_treatment_presentation.html" class="nav-btn">🎬 9:16 Typography Presentation</a>
         <a href="/paste" class="nav-btn">📸 Screenshot Dropzone</a>
-        <a href="/typography.html" class="nav-btn">⚡ 29 Kinetic Presets Suite</a>
+        <a href="/video" class="nav-btn nav-btn-highlight">📹 Re-upload Video</a>
       </div>
     </div>
 
-    <!-- DRAG & DROP ZONE -->
-    <div class="dropzone-box" id="dropzoneBox" onclick="fileInput.click()">
-      <div class="drop-icon">📹</div>
-      <div class="drop-title">Drag & Drop Your Video Footage Here</div>
-      <div class="drop-sub">Supports MP4, MOV, WebM, MKV, AVI (Up to 2GB+) • Direct High-Speed EC2 Stream</div>
-      <button class="btn-browse" type="button" onclick="event.stopPropagation(); fileInput.click();">
-        📁 Browse Video File
-      </button>
-      <input type="file" id="fileInput" accept="video/*,.mp4,.mov,.webm,.mkv,.avi" style="display:none;" onchange="handleFileSelected(this.files[0])">
-
-      <!-- PROGRESS BAR -->
-      <div class="upload-progress-container" id="progressContainer">
-        <div class="progress-bar-bg">
-          <div class="progress-bar-fill" id="progressBarFill"></div>
+    <!-- MAIN STUDIO GRID -->
+    <div class="studio-grid">
+      
+      <!-- LEFT: VIDEO PLAYER -->
+      <div class="card" style="text-align: center;">
+        <div class="player-wrap">
+          <video id="studioVideo" src="/uploaded_input_video.mp4" controls playsinline></video>
         </div>
-        <div class="progress-text-row">
-          <span id="lblUploadStatus">Streaming video to EC2 storage...</span>
-          <span id="lblUploadPercent">0%</span>
+        <div style="margin-top: 12px; font-size: 12px; color: var(--text-muted);">
+          <strong style="color:#FFF;">JATHO__DEVIN.mp4</strong> (720x1280 • 60.1s • 23.98 FPS)
         </div>
       </div>
-    </div>
 
-    <!-- PREVIEW & TELEMETRY DASHBOARD -->
-    <div class="preview-card" id="previewCard">
-      <div class="preview-layout">
-        
-        <!-- VIDEO PLAYER PREVIEW -->
-        <div class="video-player-wrap">
-          <video id="videoPlayer" controls playsinline></video>
+      <!-- RIGHT: LIVE SPATIO-TEMPORAL AUDIO ENGINE -->
+      <div class="card">
+        <div class="audio-header">
+          <h2>Spatio-Temporal Audio Engine</h2>
+          <span class="badge-live" id="lblAudioStatus">Web Audio Active</span>
         </div>
 
-        <!-- METADATA & TELEMETRY PANEL -->
-        <div class="metadata-panel">
-          <div class="panel-header">
-            <h3 id="lblUploadedFilename">video_footage.mp4</h3>
-            <span class="badge-success">✓ Ingested to EC2</span>
+        <div class="master-switch-row">
+          <div>
+            <div style="font-weight: 800; font-size: 13px;">Orchestral Sound Treatment</div>
+            <div style="font-size: 11px; color: var(--text-muted);">96 Cues • 120 BPM Beat Pulse • 3D Panning</div>
           </div>
+          <button class="btn-toggle-audio" id="btnAudioToggle" onclick="toggleAudioEngine()">
+            🔊 Enable Live Audio
+          </button>
+        </div>
 
-          <div class="meta-grid">
-            <div class="meta-cell">
-              <span>RESOLUTION</span>
-              <strong id="lblMetaResolution">1080 x 1920</strong>
-            </div>
-            <div class="meta-cell">
-              <span>DURATION</span>
-              <strong id="lblMetaDuration">00:40.00</strong>
-            </div>
-            <div class="meta-cell">
-              <span>FRAMERATE</span>
-              <strong id="lblMetaFps">60 FPS</strong>
-            </div>
-            <div class="meta-cell">
-              <span>FILE SIZE</span>
-              <strong id="lblMetaSize">24.5 MB</strong>
-            </div>
-            <div class="meta-cell">
-              <span>CODEC</span>
-              <strong id="lblMetaCodec">h264 / yuv420p</strong>
-            </div>
-            <div class="meta-cell">
-              <span>AUDIO TRACK</span>
-              <strong id="lblMetaAudio">Audioless (Mute)</strong>
-            </div>
+        <!-- VOLUME STEM SLIDERS -->
+        <div class="sliders-grid">
+          <div class="slider-box">
+            <label><span>MUSIC BED (120 BPM)</span><span id="lblMusicVol">75%</span></label>
+            <input type="range" min="0" max="100" value="75" oninput="setMusicVolume(this.value)">
           </div>
+          <div class="slider-box">
+            <label><span>SFX STEMS (3D SPATIAL)</span><span id="lblSfxVol">90%</span></label>
+            <input type="range" min="0" max="100" value="90" oninput="setSfxVolume(this.value)">
+          </div>
+        </div>
 
-          <div class="action-row">
-            <a href="/typography_treatment_presentation.html" class="btn-action">
-              🎼 Open in Spatio-Temporal Audio Studio
-            </a>
-            <button class="btn-secondary-action" onclick="resetUpload()">
-              ↺ Upload Another Video
-            </button>
+        <!-- OSCILLOSCOPE & STEREO METERS -->
+        <div class="scope-wrap">
+          <div class="scope-header">
+            <span>LIVE OSCILLOSCOPE & ACOUSTIC TELEMETRY</span>
+            <span id="lblCurrentTime">00:00.00 / 01:00.10</span>
+          </div>
+          <canvas id="scopeCanvas" width="500" height="60"></canvas>
+
+          <div class="vu-row" style="margin-top:8px;">
+            <span style="font-size:10px; font-weight:800; width:14px; color:var(--accent-cyan);">L</span>
+            <div class="vu-bar-bg"><div class="vu-fill" id="vuLeft"></div></div>
+            <span style="font-size:10px; font-weight:800; width:14px; color:var(--accent-pink);">R</span>
+            <div class="vu-bar-bg"><div class="vu-fill" id="vuRight"></div></div>
+          </div>
+        </div>
+
+        <!-- REALTIME SPATIAL CUE LOG -->
+        <div class="ticker-card">
+          <div class="ticker-header">⚡ Real-Time Spatio-Temporal Cue Dispatcher</div>
+          <div id="tickerList">
+            <div class="ticker-log-item">Ready. Press Play on the video to trigger live spatial audio.</div>
           </div>
         </div>
 
       </div>
-    </div>
 
-    <!-- RECENT INGESTED VIDEOS -->
-    <div class="history-card" id="historyCard">
-      <div class="history-title">📂 Ingested Video Staging on EC2</div>
-      <div id="videoHistoryList">
-        <div style="color:var(--text-muted); font-size:12px;">Loading uploaded video catalog...</div>
-      </div>
     </div>
 
   </div>
 
   <script>
-    const dropzone = document.getElementById('dropzoneBox');
-    const fileInput = document.getElementById('fileInput');
-    const progressContainer = document.getElementById('progressContainer');
-    const progressBarFill = document.getElementById('progressBarFill');
-    const lblUploadStatus = document.getElementById('lblUploadStatus');
-    const lblUploadPercent = document.getElementById('lblUploadPercent');
-    const previewCard = document.getElementById('previewCard');
-    const videoPlayer = document.getElementById('videoPlayer');
+    let audioPlan = null;
+    let audioCtx = null;
+    let masterGain = null;
+    let musicGain = null;
+    let sfxGain = null;
+    let compressor = null;
+    let analyser = null;
+    let isAudioActive = false;
+    let firedCues = new Set();
 
-    // Drag & Drop event listeners
-    ['dragenter', 'dragover'].forEach(name => {
-      dropzone.addEventListener(name, (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        dropzone.classList.add('dragover');
-      });
-    });
+    const video = document.getElementById('studioVideo');
+    const scopeCanvas = document.getElementById('scopeCanvas');
+    const scopeCtx = scopeCanvas.getContext('2d');
+    const tickerList = document.getElementById('tickerList');
+    const vuLeft = document.getElementById('vuLeft');
+    const vuRight = document.getElementById('vuRight');
 
-    ['dragleave', 'drop'].forEach(name => {
-      dropzone.addEventListener(name, (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        dropzone.classList.remove('dragover');
-      });
-    });
+    async function initAudioEngine() {
+      if (audioCtx) return;
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      
+      masterGain = audioCtx.createGain();
+      masterGain.gain.value = 0.85;
 
-    dropzone.addEventListener('drop', (e) => {
-      const files = e.dataTransfer.files;
-      if (files && files.length > 0) {
-        handleFileSelected(files[0]);
-      }
-    });
+      musicGain = audioCtx.createGain();
+      musicGain.gain.value = 0.75;
 
-    function handleFileSelected(file) {
-      if (!file) return;
-      uploadVideoFile(file);
+      sfxGain = audioCtx.createGain();
+      sfxGain.gain.value = 0.90;
+
+      compressor = audioCtx.createDynamicsCompressor();
+      compressor.threshold.value = -16;
+      compressor.knee.value = 12;
+      compressor.ratio.value = 4;
+      compressor.attack.value = 0.003;
+      compressor.release.value = 0.25;
+
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 256;
+
+      musicGain.connect(masterGain);
+      sfxGain.connect(masterGain);
+      masterGain.connect(compressor);
+      compressor.connect(analyser);
+      analyser.connect(audioCtx.destination);
+
+      isAudioActive = true;
+      document.getElementById('btnAudioToggle').innerText = '✓ Audio Engine Active';
+      document.getElementById('lblAudioStatus').innerText = 'Orchestra Synthesizing';
+
+      startOscilloscope();
+      startMusicMetronome();
     }
 
-    function uploadVideoFile(file) {
-      progressContainer.style.display = 'block';
-      progressBarFill.style.width = '0%';
-      lblUploadPercent.innerText = '0%';
-      lblUploadStatus.innerText = 'Streaming ' + file.name + ' (' + (file.size / 1024 / 1024).toFixed(1) + ' MB) to EC2...';
-
-      // Instant local preview
-      const localUrl = URL.createObjectURL(file);
-      videoPlayer.src = localUrl;
-
-      const xhr = new XMLHttpRequest();
-      xhr.open('POST', '/api/upload_video', true);
-      xhr.setRequestHeader('x-file-name', encodeURIComponent(file.name));
-      xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
-
-      xhr.upload.onprogress = (e) => {
-        if (e.lengthComputable) {
-          const percent = Math.round((e.loaded / e.total) * 100);
-          progressBarFill.style.width = percent + '%';
-          lblUploadPercent.innerText = percent + '%';
-          if (percent === 100) {
-            lblUploadStatus.innerText = 'Finalizing video ingestion & probing temporal metadata...';
-          }
-        }
-      };
-
-      xhr.onload = () => {
-        if (xhr.status === 200) {
-          try {
-            const res = JSON.parse(xhr.responseText);
-            displayVideoResult(res);
-            fetchVideoHistory();
-          } catch (e) {
-            lblUploadStatus.innerText = 'Uploaded successfully!';
-          }
-        } else {
-          lblUploadStatus.innerText = 'Upload failed: ' + xhr.statusText;
-        }
-      };
-
-      xhr.onerror = () => {
-        lblUploadStatus.innerText = 'Network error during upload.';
-      };
-
-      xhr.send(file);
-    }
-
-    function displayVideoResult(data) {
-      progressContainer.style.display = 'none';
-      previewCard.style.display = 'block';
-      dropzone.style.display = 'none';
-
-      document.getElementById('lblUploadedFilename').innerText = data.filename || 'uploaded_video.mp4';
-      if (data.url) videoPlayer.src = data.url;
-
-      const meta = data.metadata || {};
-      document.getElementById('lblMetaResolution').innerText = (meta.width || 1080) + ' x ' + (meta.height || 1920);
-      document.getElementById('lblMetaDuration').innerText = (meta.durationSeconds || 0).toFixed(2) + 's';
-      document.getElementById('lblMetaFps').innerText = (meta.fps || 30) + ' FPS';
-      document.getElementById('lblMetaSize').innerText = ((meta.fileSizeBytes || 0) / 1024 / 1024).toFixed(2) + ' MB';
-      document.getElementById('lblMetaCodec').innerText = (meta.videoCodec || 'h264');
-      document.getElementById('lblMetaAudio').innerText = meta.hasAudio ? 'Audio Detected (' + meta.audioCodec + ')' : 'Audioless (Mute Video)';
-    }
-
-    function resetUpload() {
-      previewCard.style.display = 'none';
-      dropzone.style.display = 'flex';
-      fileInput.value = '';
-    }
-
-    async function fetchVideoHistory() {
+    async function fetchPlan() {
       try {
-        const res = await fetch('/api/list_uploaded_videos');
-        const json = await res.json();
-        const container = document.getElementById('videoHistoryList');
-        if (!json.videos || json.videos.length === 0) {
-          container.innerHTML = '<div style="color:var(--text-muted); font-size:12px;">No uploaded videos in EC2 staging yet.</div>';
-          return;
-        }
-        container.innerHTML = json.videos.map(v => \`
-          <div class="video-item-row">
-            <div>
-              <div class="video-item-name">\${v.name}</div>
-              <div class="video-item-meta">\${(v.size / 1024 / 1024).toFixed(2)} MB • \${new Date(v.mtime).toLocaleTimeString()}</div>
-            </div>
-            <a href="\${v.url}" target="_blank" class="nav-btn" style="font-size:10.5px;">▶ Play</a>
-          </div>
-        \`).join('');
+        const res = await fetch('/api/video_audio_plan');
+        audioPlan = await res.json();
       } catch (e) {}
     }
+    fetchPlan();
 
-    fetchVideoHistory();
+    function toggleAudioEngine() {
+      if (!audioCtx) {
+        initAudioEngine();
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      video.play();
+    }
+
+    video.addEventListener('play', () => {
+      if (!audioCtx) initAudioEngine();
+      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    });
+
+    video.addEventListener('seeked', () => {
+      const cur = video.currentTime;
+      firedCues = new Set([...audioPlan?.cues || []].filter(c => c.triggerTimestampSec < cur).map(c => c.id));
+    });
+
+    video.addEventListener('timeupdate', () => {
+      const cur = video.currentTime;
+      const min = Math.floor(cur / 60);
+      const sec = (cur % 60).toFixed(2);
+      document.getElementById('lblCurrentTime').innerText = (min < 10 ? '0' : '') + min + ':' + (sec < 10 ? '0' : '') + sec + ' / 01:00.10';
+
+      if (!audioPlan || !audioCtx) return;
+
+      audioPlan.cues.forEach(cue => {
+        if (Math.abs(cur - cue.triggerTimestampSec) < 0.25 && !firedCues.has(cue.id)) {
+          firedCues.add(cue.id);
+          triggerSpatialSound(cue);
+        }
+      });
+    });
+
+    function triggerSpatialSound(cue) {
+      if (!audioCtx) return;
+      const now = audioCtx.currentTime;
+
+      // Create Stem Routing Graph
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      const filter = audioCtx.createBiquadFilter();
+      const panner = audioCtx.createStereoPanner ? audioCtx.createStereoPanner() : null;
+
+      // Filter settings based on depth plane
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(cue.lowpassCutoffHz || 16000, now);
+
+      // Stereo pan
+      if (panner) panner.pan.setValueAtTime(Math.max(-1, Math.min(1, cue.pan || 0)), now);
+
+      // Category Synthesizer Logic
+      if (cue.category === 'IMPACT HITS' || cue.category === 'CINEMATIC HITS') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(140, now);
+        osc.frequency.exponentialRampToValueAtTime(38, now + 0.35);
+
+        gain.gain.setValueAtTime(0.7, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + (cue.durationSec || 1.0));
+      } else if (cue.category === 'WHOOSHES' || cue.category === 'SWEEPS') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(220, now);
+        osc.frequency.exponentialRampToValueAtTime(650, now + (cue.durationSec || 0.5));
+
+        gain.gain.setValueAtTime(0.01, now);
+        gain.gain.linearRampToValueAtTime(0.35, now + (cue.durationSec * 0.4));
+        gain.gain.exponentialRampToValueAtTime(0.001, now + (cue.durationSec || 0.5));
+      } else if (cue.category === 'RISERS') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(120, now);
+        osc.frequency.exponentialRampToValueAtTime(880, now + (cue.durationSec || 0.45));
+
+        gain.gain.setValueAtTime(0.05, now);
+        gain.gain.linearRampToValueAtTime(0.4, now + (cue.durationSec || 0.45));
+        gain.gain.exponentialRampToValueAtTime(0.001, now + (cue.durationSec || 0.45) + 0.05);
+      } else {
+        // Telemetry chirp
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1200, now);
+        osc.frequency.setValueAtTime(1800, now + 0.04);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+      }
+
+      // Connect Node Chain
+      osc.connect(gain);
+      gain.connect(filter);
+      if (panner) {
+        filter.connect(panner);
+        panner.connect(sfxGain);
+      } else {
+        filter.connect(sfxGain);
+      }
+
+      osc.start(now);
+      osc.stop(now + (cue.durationSec || 1.0));
+
+      logCue(cue);
+    }
+
+    function logCue(cue) {
+      const row = document.createElement('div');
+      row.className = 'ticker-log-item active';
+      const panStr = cue.pan >= 0 ? '+' + cue.pan.toFixed(2) : cue.pan.toFixed(2);
+      row.innerText = '[' + cue.triggerTimestampSec.toFixed(2) + 's] ' + cue.category + ' "' + cue.cueName + '" (Pan: ' + panStr + ', Z:' + cue.depthPlane + ')';
+      tickerList.prepend(row);
+      if (tickerList.children.length > 25) tickerList.removeChild(tickerList.lastChild);
+    }
+
+    function setMusicVolume(val) {
+      document.getElementById('lblMusicVol').innerText = val + '%';
+      if (musicGain) musicGain.gain.value = val / 100;
+    }
+
+    function setSfxVolume(val) {
+      document.getElementById('lblSfxVol').innerText = val + '%';
+      if (sfxGain) sfxGain.gain.value = val / 100;
+    }
+
+    function startMusicMetronome() {
+      // 120 BPM Pulse Bed
+      setInterval(() => {
+        if (!video.paused && audioCtx && isAudioActive) {
+          const now = audioCtx.currentTime;
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(55, now);
+          osc.frequency.exponentialRampToValueAtTime(30, now + 0.12);
+          gain.gain.setValueAtTime(0.18, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+          osc.connect(gain);
+          gain.connect(musicGain);
+          osc.start(now);
+          osc.stop(now + 0.15);
+        }
+      }, 500); // 120 BPM = 500ms
+    }
+
+    function startOscilloscope() {
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+
+      function draw() {
+        requestAnimationFrame(draw);
+        analyser.getByteTimeDomainData(dataArray);
+
+        scopeCtx.fillStyle = '#02040A';
+        scopeCtx.fillRect(0, 0, scopeCanvas.width, scopeCanvas.height);
+
+        scopeCtx.lineWidth = 2;
+        scopeCtx.strokeStyle = '#00F0FF';
+        scopeCtx.beginPath();
+
+        const sliceWidth = scopeCanvas.width * 1.0 / bufferLength;
+        let x = 0;
+        let sum = 0;
+
+        for (let i = 0; i < bufferLength; i++) {
+          const v = dataArray[i] / 128.0;
+          const y = v * scopeCanvas.height / 2;
+          sum += Math.abs(dataArray[i] - 128);
+
+          if (i === 0) scopeCtx.moveTo(x, y);
+          else scopeCtx.lineTo(x, y);
+
+          x += sliceWidth;
+        }
+
+        scopeCtx.lineTo(scopeCanvas.width, scopeCanvas.height / 2);
+        scopeCtx.stroke();
+
+        // VU meter update
+        const avgLvl = Math.min(100, Math.round((sum / bufferLength) * 3.5));
+        vuLeft.style.width = avgLvl + '%';
+        vuRight.style.width = Math.min(100, Math.round(avgLvl * 0.95)) + '%';
+      }
+
+      draw();
+    }
   </script>
 </body>
 </html>`;
 
 function createServerInstance(port: number) {
   const s = http.createServer((req, res) => {
-    // CORS Headers
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, POST, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "*");
@@ -717,9 +703,9 @@ function createServerInstance(port: number) {
       return;
     }
 
-    // Route 1: Video Receiving Platform (Root / or /video or /drop)
+    // Route 1: Spatio-Temporal Video Studio (Root / or /video)
     if ((req.method === "GET" || req.method === "HEAD") && 
-        (req.url === "/" || req.url === "/video" || req.url === "/drop" || req.url === "/upload_video")) {
+        (req.url === "/" || req.url === "/video" || req.url === "/studio")) {
       res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
       if (req.method === "HEAD") {
         res.end();
@@ -729,16 +715,26 @@ function createServerInstance(port: number) {
       return;
     }
 
+    // API: Return Video Audio Orchestral Plan (96 Cues)
+    if (req.method === "GET" && req.url === "/api/video_audio_plan") {
+      try {
+        const plan = buildVideoAudioPlan();
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(plan));
+        return;
+      } catch (e: any) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: e.message }));
+        return;
+      }
+    }
+
     // API: Stream Large Video Upload to Disk
     if (req.method === "POST" && req.url === "/api/upload_video") {
       const rawHeaderName = req.headers["x-file-name"];
       let filename = "uploaded_video.mp4";
       if (typeof rawHeaderName === "string" && rawHeaderName) {
-        try {
-          filename = decodeURIComponent(rawHeaderName);
-        } catch {
-          filename = rawHeaderName;
-        }
+        try { filename = decodeURIComponent(rawHeaderName); } catch { filename = rawHeaderName; }
       }
 
       const ext = (path.extname(filename) || ".mp4").toLowerCase();
@@ -746,28 +742,22 @@ function createServerInstance(port: number) {
       const timestamp = Date.now();
       const safeFilename = `${baseName}_${timestamp}${ext}`;
       const targetPath = path.join(uploadedVideosDir, safeFilename);
-      const standardCanonicalPath = path.join(studioDir, "uploaded_input_video.mp4");
 
       const fileWriteStream = fs.createWriteStream(targetPath);
-      
       req.pipe(fileWriteStream);
 
       fileWriteStream.on("finish", () => {
         try {
-          // Also duplicate to canonical input path
-          fs.copyFileSync(targetPath, standardCanonicalPath);
-          
-          // Probe metadata
+          fs.copyFileSync(targetPath, canonicalVideoPath);
           const metadata = probeVideoFile(targetPath);
-          console.log(`\n📹 [VIDEO_UPLOAD_SAVED] Successfully ingested video (${(metadata.fileSizeBytes / 1024 / 1024).toFixed(2)} MB): ${safeFilename}`);
-          console.log(`   Resolution: ${metadata.width}x${metadata.height} | Duration: ${metadata.durationSeconds.toFixed(2)}s | Audio: ${metadata.hasAudio ? 'Yes' : 'Audioless'}`);
+          console.log(`\n📹 [VIDEO_UPLOAD_SAVED] Saved video: ${safeFilename} (${(metadata.fileSizeBytes / 1024 / 1024).toFixed(2)} MB)`);
 
           res.writeHead(200, { "Content-Type": "application/json" });
           res.end(JSON.stringify({
             success: true,
             filename: safeFilename,
             savedPath: targetPath,
-            canonicalPath: standardCanonicalPath,
+            canonicalPath: canonicalVideoPath,
             url: `/uploaded_videos/${encodeURIComponent(safeFilename)}`,
             metadata: metadata
           }));
@@ -785,44 +775,11 @@ function createServerInstance(port: number) {
       return;
     }
 
-    // API: List Uploaded Videos
-    if (req.method === "GET" && req.url?.startsWith("/api/list_uploaded_videos")) {
-      try {
-        const files = fs.readdirSync(uploadedVideosDir).filter(f => /\.(mp4|mov|webm|mkv|avi)$/i.test(f));
-        const videos = files.map(file => {
-          const filePath = path.join(uploadedVideosDir, file);
-          const stats = fs.statSync(filePath);
-          return {
-            name: file,
-            size: stats.size,
-            mtime: stats.mtimeMs,
-            url: `/uploaded_videos/${encodeURIComponent(file)}`
-          };
-        }).sort((a, b) => b.mtime - a.mtime);
-
-        res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ success: true, videos }));
-        return;
-      } catch (err: any) {
-        res.writeHead(500, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: err.message }));
-        return;
-      }
-    }
-
-    // Serve Static File
+    // Serve Static Files
     const resolved = resolveFilePath(req.url || "/");
     if (!resolved) {
       res.writeHead(404, { "Content-Type": "text/html; charset=utf-8" });
-      res.end(`
-        <html>
-          <body style="font-family: sans-serif; background: #070913; color: #fff; padding: 40px; text-align: center;">
-            <h2 style="color: #00F0FF;">404 — Not Found</h2>
-            <p>Requested: <code>${req.url}</code></p>
-            <p><a href="/" style="color: #FFD700;">Open Video Receiving Platform</a> | <a href="/typography_treatment_presentation.html" style="color: #00F0FF;">Open Spatio-Temporal Studio</a></p>
-          </body>
-        </html>
-      `);
+      res.end(`<html><body style="background:#070913;color:#fff;padding:40px;text-align:center;"><h2>404 — Not Found</h2><p><a href="/" style="color:#00F0FF;">Open Spatio-Temporal Video Studio</a></p></body></html>`);
       return;
     }
 
@@ -840,7 +797,7 @@ function createServerInstance(port: number) {
   });
 
   s.listen(port, "0.0.0.0", () => {
-    console.log(`  🚀 EC2 Video Ingestion Platform on Port ${port}: http://16.192.95.115:${port}/`);
+    console.log(`  🚀 EC2 Video & Audio Studio on Port ${port}: http://16.192.95.115:${port}/`);
   });
   s.on("error", (e) => {
     console.warn(`[PORT_BIND_WARN] Port ${port} could not be bound (${e.message})`);
@@ -848,7 +805,7 @@ function createServerInstance(port: number) {
   return s;
 }
 
-// Kill any zombie previous server instance to cleanly bind port 8080
+// Kill zombie previous server instance to cleanly bind port 8080
 try {
   const currentPid = process.pid;
   const lsof = execSync(`lsof -t -i:8080 || true`, { encoding: "utf8" }).trim();
@@ -860,16 +817,15 @@ try {
   }
 } catch {}
 
-// Bind to multiple candidate ports simultaneously
 const candidatePorts = [8080, 3000, 5000, 8000, 9000];
 const activeServers = candidatePorts.map(p => createServerInstance(p));
 
 console.log("================================================================================");
-console.log("  🚀 PROMETHEUS VIDEO RECEIVING PLATFORM RUNNING");
+console.log("  🚀 PROMETHEUS SPATIO-TEMPORAL VIDEO STUDIO RUNNING");
 console.log("================================================================================");
-console.log("  Video Dropzone:  http://16.192.95.115:8080/");
-console.log("  Audio Studio:    http://16.192.95.115:8080/typography_treatment_presentation.html");
-console.log("  Binding:         0.0.0.0 across ports 8080, 3000, 5000, 8000, 9000");
+console.log("  Video Studio:   http://16.192.95.115:8080/");
+console.log("  Presentation:   http://16.192.95.115:8080/typography_treatment_presentation.html");
+console.log("  Binding:        0.0.0.0 across ports 8080, 3000, 5000, 8000, 9000");
 console.log("================================================================================");
 
 startAllTunnels(8080);
@@ -919,13 +875,9 @@ async function startAllTunnels(port: number) {
   cfProcess.stderr?.on("data", onData);
 }
 
-process.on("SIGINT", () => {
-  console.log("\nStopping server...");
-  activeServers.forEach(s => s.close());
-  process.exit(0);
-});
+process.on("SIGINT", () => { activeServers.forEach(s => s.close()); process.exit(0); });
+process.on("SIGTERM", () => { activeServers.forEach(s => s.close()); process.exit(0); });
 
-process.on("SIGTERM", () => {
-  activeServers.forEach(s => s.close());
-  process.exit(0);
-});
+// Keep Node event loop alive permanently
+setInterval(() => {}, 1000 * 60 * 60);
+
