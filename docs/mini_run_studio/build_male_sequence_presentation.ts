@@ -856,6 +856,9 @@ const htmlContent = `<!DOCTYPE html>
             : "DM Sans";
 
           // Exact Size from Font JSON
+          const baseSize = fStyle.size_px_base || 44;
+          const isCardTarget = willUseDelayedCard && (layerIdx === layerAllocations.length - 1 || lSpec.role === "primary_focus_word");
+
           // Exact Casing from Font JSON
           const textWithCasing = applyFontJsonCasing(assignedWords, fStyle.casing);
 
