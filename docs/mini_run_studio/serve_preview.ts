@@ -36,8 +36,25 @@ const screenshotsDir = path.resolve(repoRoot, "Yuan Prometheus Screenshots");
  */
 function resolveFilePath(reqUrl: string): { filePath: string; contentType: string } | null {
   let cleanPath = reqUrl.split("?")[0].split("#")[0];
+  try {
+    cleanPath = decodeURIComponent(cleanPath);
+  } catch {}
   if (cleanPath === "/" || cleanPath === "") {
     cleanPath = "/typography_treatment_presentation.html";
+  }
+
+  // Direct route for uploaded screenshots
+  if (cleanPath.startsWith("/uploaded_screenshots/")) {
+    const rawName = cleanPath.replace(/^\/uploaded_screenshots\//, "");
+    const safeName = path.basename(rawName);
+    const target = path.join(uploadsDir, safeName);
+    if (fs.existsSync(target) && fs.statSync(target).isFile()) {
+      const ext = path.extname(target).toLowerCase();
+      return {
+        filePath: target,
+        contentType: MIME_TYPES[ext] || "image/png",
+      };
+    }
   }
 
   // Explicit shortcuts for typography animation preview
@@ -515,15 +532,31 @@ const server = http.createServer((req, res) => {
         const sizeKb = Math.round(img.size / 1024);
         const dateStr = new Date(img.mtime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
-        item.innerHTML = 
-          '<button class="btn-delete-item" onclick="deleteImage(\\'' + img.name + '\\')" title="Delete screenshot">✕</button>' +
-          '<div class="image-thumb-wrap" onclick="window.open(\\'' + img.url + '\\', \\'_blank\\')">' +
-            '<img src="' + img.url + '" alt="' + img.name + '" loading="lazy">' +
-          '</div>' +
-          '<div class="image-meta">' +
-            '<div class="image-name" title="' + img.name + '">' + img.name + '</div>' +
-            '<div class="image-info"><span>' + sizeKb + ' KB</span><span>' + dateStr + '</span></div>' +
-          '</div>';
+        const delBtn = document.createElement('button');
+        delBtn.className = 'btn-delete-item';
+        delBtn.innerText = '✕';
+        delBtn.title = 'Delete screenshot';
+        delBtn.onclick = (e) => { e.stopPropagation(); deleteImage(img.name); };
+
+        const thumbWrap = document.createElement('div');
+        thumbWrap.className = 'image-thumb-wrap';
+        thumbWrap.onclick = () => window.open(img.url, '_blank');
+
+        const imgEl = document.createElement('img');
+        imgEl.src = img.url;
+        imgEl.alt = img.name;
+        imgEl.loading = 'lazy';
+        thumbWrap.appendChild(imgEl);
+
+        const meta = document.createElement('div');
+        meta.className = 'image-meta';
+        meta.innerHTML = 
+          '<div class="image-name" title="' + img.name + '">' + img.name + '</div>' +
+          '<div class="image-info"><span>' + sizeKb + ' KB</span><span>' + dateStr + '</span></div>';
+
+        item.appendChild(delBtn);
+        item.appendChild(thumbWrap);
+        item.appendChild(meta);
         imageGrid.appendChild(item);
       });
     }
@@ -552,8 +585,9 @@ const server = http.createServer((req, res) => {
       }
     }
 
-    // Initial Gallery Load
+    // Initial Gallery Load & 2.5s Polling
     fetchGallery();
+    setInterval(fetchGallery, 2500);
   </script>
 </body>
 </html>`);
