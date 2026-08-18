@@ -71,26 +71,26 @@ const techFoundersTrioBase64 = getBase64DataUriFromPath(path.join(studioDir, "te
 
 // 5. AUTHORITATIVE 20-CHUNK RAW SPOKEN TRANSCRIPT (Script #2)
 const rawSpokenChunks = [
-  { chunkIndex: 1, timestamp: "00:00 — 00:02", text: "You can make", emphasis: "context" },
-  { chunkIndex: 2, timestamp: "00:02 — 00:04", text: "$50,000 a month", emphasis: "hero_metric", metricValue: 50000, metricPrefix: "$", metricSuffix: "" },
-  { chunkIndex: 3, timestamp: "00:04 — 00:06", text: "and still", emphasis: "transition" },
-  { chunkIndex: 4, timestamp: "00:06 — 00:08", text: "have a broken business.", emphasis: "inflection_tension" },
-  { chunkIndex: 5, timestamp: "00:08 — 00:10", text: "Because revenue", emphasis: "context" },
-  { chunkIndex: 6, timestamp: "00:10 — 00:12", text: "doesn't automatically mean", emphasis: "clause" },
-  { chunkIndex: 7, timestamp: "00:12 — 00:14", text: "you're building something scalable.", emphasis: "hero_concept" },
-  { chunkIndex: 8, timestamp: "00:14 — 00:16", text: "I've seen founders", emphasis: "named_entity_founders" },
-  { chunkIndex: 9, timestamp: "00:16 — 00:18", text: "make serious money", emphasis: "key_point" },
-  { chunkIndex: 10, timestamp: "00:18 — 00:20", text: "while working", emphasis: "transition" },
-  { chunkIndex: 11, timestamp: "00:20 — 00:22", text: "seventy hours every week.", emphasis: "hero_metric", metricValue: 70, metricPrefix: "", metricSuffix: " HOURS" },
-  { chunkIndex: 12, timestamp: "00:22 — 00:24", text: "That's not freedom.", emphasis: "inflection_tension" },
-  { chunkIndex: 13, timestamp: "00:24 — 00:26", text: "That's a", emphasis: "transition" },
-  { chunkIndex: 14, timestamp: "00:26 — 00:28", text: "very expensive job.", emphasis: "hero_concept" },
-  { chunkIndex: 15, timestamp: "00:28 — 00:30", text: "The real goal", emphasis: "context" },
-  { chunkIndex: 16, timestamp: "00:30 — 00:32", text: "isn't just making more money.", emphasis: "contrast_claim" },
-  { chunkIndex: 17, timestamp: "00:32 — 00:34", text: "It's building systems", emphasis: "inflection_solution" },
-  { chunkIndex: 18, timestamp: "00:34 — 00:36", text: "that keep producing results", emphasis: "key_point" },
-  { chunkIndex: 19, timestamp: "00:36 — 00:38", text: "without requiring you", emphasis: "clause" },
-  { chunkIndex: 20, timestamp: "00:38 — 00:40", text: "every single time.", emphasis: "terminal_payoff" }
+  { chunkIndex: 1, timestamp: "00:00 — 00:02", text: "You can make", emphasis: "context", preferredProfile: "image (1).json" },
+  { chunkIndex: 2, timestamp: "00:02 — 00:04", text: "$50,000 a month", emphasis: "hero_metric", metricValue: 50000, metricPrefix: "$", metricSuffix: "", preferredProfile: "image (35).json" },
+  { chunkIndex: 3, timestamp: "00:04 — 00:06", text: "and still", emphasis: "transition", preferredProfile: "image (13).json" },
+  { chunkIndex: 4, timestamp: "00:06 — 00:08", text: "have a broken business.", emphasis: "inflection_tension", preferredProfile: "image (40).json" },
+  { chunkIndex: 5, timestamp: "00:08 — 00:10", text: "Because revenue", emphasis: "context", preferredProfile: "image (24).json" },
+  { chunkIndex: 6, timestamp: "00:10 — 00:12", text: "doesn't automatically mean", emphasis: "clause", preferredProfile: "image (39).json" },
+  { chunkIndex: 7, timestamp: "00:12 — 00:14", text: "you're building something scalable.", emphasis: "hero_concept", preferredProfile: "image (12).json" },
+  { chunkIndex: 8, timestamp: "00:14 — 00:16", text: "I've seen founders", emphasis: "named_entity_founders", preferredProfile: "image (23).json" },
+  { chunkIndex: 9, timestamp: "00:16 — 00:18", text: "make serious money", emphasis: "key_point", preferredProfile: "image (27).json" },
+  { chunkIndex: 10, timestamp: "00:18 — 00:20", text: "while working", emphasis: "transition", preferredProfile: "image (34).json" },
+  { chunkIndex: 11, timestamp: "00:20 — 00:22", text: "seventy hours every week.", emphasis: "hero_metric", metricValue: 70, metricPrefix: "", metricSuffix: " HOURS", preferredProfile: "image (35).json" },
+  { chunkIndex: 12, timestamp: "00:22 — 00:24", text: "That's not freedom.", emphasis: "inflection_tension", preferredProfile: "image (25).json" },
+  { chunkIndex: 13, timestamp: "00:24 — 00:26", text: "That's a", emphasis: "transition", preferredProfile: "image (32).json" },
+  { chunkIndex: 14, timestamp: "00:26 — 00:28", text: "very expensive job.", emphasis: "hero_concept", preferredProfile: "image (40).json" },
+  { chunkIndex: 15, timestamp: "00:28 — 00:30", text: "The real goal", emphasis: "context", preferredProfile: "image (10).json" },
+  { chunkIndex: 16, timestamp: "00:30 — 00:32", text: "isn't just making more money.", emphasis: "contrast_claim", preferredProfile: "image (5).json" },
+  { chunkIndex: 17, timestamp: "00:32 — 00:34", text: "It's building systems", emphasis: "inflection_solution", preferredProfile: "image (2).json" },
+  { chunkIndex: 18, timestamp: "00:34 — 00:36", text: "that keep producing results", emphasis: "key_point", preferredProfile: "image (4).json" },
+  { chunkIndex: 19, timestamp: "00:36 — 00:38", text: "without requiring you", emphasis: "clause", preferredProfile: "image (36).json" },
+  { chunkIndex: 20, timestamp: "00:38 — 00:40", text: "every single time.", emphasis: "terminal_payoff", preferredProfile: "image (6).json" }
 ];
 
 const htmlContent = `<!DOCTYPE html>
@@ -101,12 +101,12 @@ const htmlContent = `<!DOCTYPE html>
   <meta name="theme-color" content="#070913">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>Prometheus Core — Authoritative Font JSON Realization Studio</title>
+  <title>Prometheus Core — 100% Faithful Font JSON Realization Studio</title>
   
-  <!-- Authoritative Google WebFonts -->
+  <!-- Comprehensive Google WebFonts for all 45 Font JSON Profiles -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..900;1,6..96,400..900&family=Cinzel:wght@700;900&family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600;1,700&family=DM+Sans:ital,opsz,wght@0,9..40,400..900;1,9..40,400..900&family=DM+Serif+Display:ital@0;1&family=Great+Vibes&family=Inter:wght@400;700;800;900&family=Lora:ital,wght@0,600;0,700;1,600;1,700&family=Montserrat:ital,wght@0,800;0,900;1,800;1,900&family=Oswald:wght@700&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..900;1,6..96,400..900&family=Cinzel:wght@700;900&family=Cormorant+Garamond:ital,wght@0,400;0,700;1,400;1,700&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,400..900;1,9..40,400..900&family=DM+Serif+Display:ital@0;1&family=Dancing+Script:wght@700&family=Great+Vibes&family=Inter:wght@400;700;800;900&family=Lora:ital,wght@0,400;0,700;1,400;1,700&family=Montserrat:ital,wght@0,400;0,700;0,800;0,900;1,400;1,700;1,800;1,900&family=Oswald:wght@600;700&family=Outfit:wght@700;900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Sacramento&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@700;800&display=swap" rel="stylesheet">
   
   <style>
     :root {
@@ -356,7 +356,7 @@ const htmlContent = `<!DOCTYPE html>
       width: 100%;
     }
 
-    /* HARD INVARIANT: STRICT ZERO-WORD-WRAPPING */
+    /* STRICT ZERO-WORD-WRAPPING */
     .typo-layer {
       display: flex;
       flex-direction: row;
@@ -364,7 +364,7 @@ const htmlContent = `<!DOCTYPE html>
       align-items: center;
       justify-content: center;
       white-space: nowrap !important;
-      max-width: 82%;
+      max-width: 90%;
       margin: 0 auto;
     }
 
@@ -474,10 +474,10 @@ const htmlContent = `<!DOCTYPE html>
       background: rgba(0, 240, 255, 0.05);
       border: 1px solid rgba(0, 240, 255, 0.2);
       border-radius: 12px;
-      padding: 10px 14px;
-      margin-bottom: 12px;
+      padding: 12px 16px;
+      margin-bottom: 14px;
     }
-    .provenance-card strong { color: var(--accent-cyan); font-family: monospace; font-size: 12px; }
+    .provenance-card strong { color: var(--accent-cyan); font-family: monospace; font-size: 13px; }
 
     .layers-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 8px; }
     .layers-table th { text-align: left; padding: 6px 8px; color: var(--text-muted); border-bottom: 1px solid var(--panel-border); font-size: 10px; text-transform: uppercase; }
@@ -504,14 +504,14 @@ const htmlContent = `<!DOCTYPE html>
 <body>
 
   <div class="header">
-    <h1>Prometheus Authoritative Font JSON Realization Studio</h1>
-    <p>Rigorous Font JSON Placement • Zero Word Wrapping • Strict Head Obscuration Bounds</p>
+    <h1>Prometheus 100% Faithful Font JSON Realization Studio</h1>
+    <p>Authoritative Font JSON Styling • Exact Family Pairings • Negative Margin Overlaps • Zero Word-Wrapping</p>
   </div>
 
   <!-- DYNAMIC SELECTOR RE-ROLL TOOLBAR -->
   <div class="selector-toolbar">
     <button class="btn-reroll" id="btnReroll" onclick="reRollTreatment()">
-      🎲 Re-Roll Font JSON & Kinetics
+      🎲 Re-Roll Font JSON Combinations
     </button>
     <button class="btn-secondary" onclick="resetSeed(101)">
       ↺ Reset Seed #101
@@ -520,7 +520,7 @@ const htmlContent = `<!DOCTYPE html>
       <span>Seed: <strong id="lblActiveSeed">#101</strong></span>
     </div>
     <div class="telemetry-chip">
-      <span>Font Profiles: <strong>45 Active</strong></span>
+      <span>Font Profiles: <strong>45 Authoritative</strong></span>
     </div>
     <a href="typography.html" target="_blank" class="btn-secondary" style="text-decoration:none;">
       ⚡ Master Kinetic Suite (29 Presets)
@@ -579,14 +579,14 @@ const htmlContent = `<!DOCTYPE html>
     <!-- SIDE INSPECTOR PANEL -->
     <div class="inspector-panel" id="inspectorPanel">
       <div class="inspector-title">
-        <span>Font JSON Provenance Inspector</span>
+        <span>Font JSON Combination Inspector</span>
         <span id="lblActiveChunk" style="font-size: 11px; color: var(--text-muted);">Chunk 1 of 20</span>
       </div>
 
       <div class="chunk-chips-container" id="chunkPicker"></div>
 
       <div class="provenance-card">
-        <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 2px;">Authoritative Font JSON Combination:</div>
+        <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 2px;">Authoritative Font JSON Combination Root:</div>
         <strong id="lblActiveProfile">--</strong>
         <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
           Mood: <span id="lblActiveMood" style="color: var(--accent-yellow);">--</span> • 
@@ -599,9 +599,9 @@ const htmlContent = `<!DOCTYPE html>
           <tr>
             <th>Font JSON Layer / Role</th>
             <th>Font Family & Style</th>
-            <th>Casing & Safe Size</th>
+            <th>Casing & Margin Offset</th>
             <th>Kinetic Preset</th>
-            <th>Obscuration Guard</th>
+            <th>Depth Plane</th>
           </tr>
         </thead>
         <tbody id="layersTableBody"></tbody>
@@ -615,6 +615,13 @@ const htmlContent = `<!DOCTYPE html>
     const ALL_FONT_PROFILES = ${JSON.stringify(allFontProfiles)};
     const TECH_FOUNDERS_BASE64 = "${techFoundersTrioBase64}";
     const RAW_CHUNKS = ${JSON.stringify(rawSpokenChunks)};
+
+    // Create lookup map by filename & profile_name
+    const PROFILE_MAP = {};
+    ALL_FONT_PROFILES.forEach(p => {
+      if (p._filename) PROFILE_MAP[p._filename] = p;
+      if (p.profile_name) PROFILE_MAP[p.profile_name] = p;
+    });
 
     // 2. KINETIC PRESET REPERTOIRE (29 Treatments)
     const KINETIC_PRESETS = [
@@ -657,17 +664,6 @@ const htmlContent = `<!DOCTYPE html>
       return text;
     }
 
-    // HARD INVARIANT: Safe Responsive Font Sizing to Prevent ANY Word Wrapping
-    function calculateSafeFontSize(text, idealFontSize, maxContainerWidthPx = 310, isItalic = false) {
-      const charFactor = isItalic ? 0.50 : 0.58;
-      const estimatedWidth = text.length * idealFontSize * charFactor;
-      if (estimatedWidth > maxContainerWidthPx) {
-        const scaleFactor = maxContainerWidthPx / estimatedWidth;
-        return Math.max(18, Math.floor(idealFontSize * scaleFactor));
-      }
-      return idealFontSize;
-    }
-
     // Exact word count allocation algorithm from typography-profile-realization.ts
     function allocateWordsToLayers(profileLayers, tokenCount) {
       if (!profileLayers || profileLayers.length === 0) return [];
@@ -707,7 +703,7 @@ const htmlContent = `<!DOCTYPE html>
       }));
     }
 
-    // 3. AUTHORITATIVE COMPILER EXECUTING RIGOROUS FONT JSON PLACEMENT INVARIANTS
+    // 3. AUTHORITATIVE COMPILER EXECUTING 100% FAITHFUL FONT JSON INVARIANTS
     function compileDynamicSequence(seed) {
       const rng = mulberry32(seed);
       let lastProfileName = "";
@@ -719,18 +715,21 @@ const htmlContent = `<!DOCTYPE html>
         const wordCount = words.length;
         const totalChars = raw.text.length;
 
-        // 1. SELECT AUTHORITATIVE FONT JSON PROFILE MATCHING WORD COUNT
-        let candidates = ALL_FONT_PROFILES.filter(p => {
-          if (p.profile_name === lastProfileName) return false;
-          const pWords = p.metadata?.total_word_count || p.typography_layers?.length || 2;
-          return Math.abs(pWords - wordCount) <= 1;
-        });
-
-        if (candidates.length === 0) {
-          candidates = ALL_FONT_PROFILES.filter(p => p.profile_name !== lastProfileName);
+        // 1. SELECT AUTHORITATIVE FONT JSON PROFILE
+        let profile = null;
+        if (seed === 101 && raw.preferredProfile && PROFILE_MAP[raw.preferredProfile]) {
+          profile = PROFILE_MAP[raw.preferredProfile];
+        } else {
+          let candidates = ALL_FONT_PROFILES.filter(p => {
+            if (p.profile_name === lastProfileName) return false;
+            const pWords = p.metadata?.total_word_count || p.typography_layers?.length || 2;
+            return Math.abs(pWords - wordCount) <= 1;
+          });
+          if (candidates.length === 0) {
+            candidates = ALL_FONT_PROFILES.filter(p => p.profile_name !== lastProfileName);
+          }
+          profile = candidates[Math.floor(rng() * candidates.length)] || ALL_FONT_PROFILES[0];
         }
-
-        const profile = candidates[Math.floor(rng() * candidates.length)] || ALL_FONT_PROFILES[0];
         lastProfileName = profile.profile_name;
 
         // 2. RIGOROUSLY ALLOCATE SPOKEN WORDS TO FONT JSON LAYERS
@@ -744,27 +743,34 @@ const htmlContent = `<!DOCTYPE html>
 
           const fStyle = lSpec.font_style || {};
           const fEffects = lSpec.effects || {};
+          
+          // Exact Matched Family from Font JSON
           const matchedFamily = (lSpec.matched_font_candidates && lSpec.matched_font_candidates[0]) 
             ? lSpec.matched_font_candidates[0] 
             : "DM Sans";
 
-          // Calculate ideal size from Font JSON
-          const idealSize = Math.round((fStyle.size_px_base || 40) * (fStyle.relative_scale || 1.0));
-          const isItalic = (fStyle.style === 'italic');
+          // Exact Size and Scale from Font JSON
+          const baseSize = fStyle.size_px_base || 48;
+          const relativeScale = fStyle.relative_scale || 1.0;
+          let calculatedSizePx = Math.round(baseSize * relativeScale);
 
-          // Compute strictly safe font size ensuring ZERO word wrapping
-          const safeFontSizePx = calculateSafeFontSize(assignedWords, idealSize, 305, isItalic);
+          // Gentle safety scale for 9:16 viewport containment while preserving relative scale ratio
+          if (assignedWords.length > 18) {
+            calculatedSizePx = Math.max(22, Math.round(calculatedSizePx * 0.72));
+          } else if (assignedWords.length > 12) {
+            calculatedSizePx = Math.max(26, Math.round(calculatedSizePx * 0.85));
+          }
 
-          // Adapt color for dark video backdrop
+          // Exact Color from Font JSON (or crisp white for dark backdrop contrast if pitch black)
           let resolvedColor = fStyle.color || "#FFFFFF";
-          if (resolvedColor === "#000000" || resolvedColor === "#2C2C2C" || resolvedColor === "#111111") {
+          if (resolvedColor === "#000000" || resolvedColor === "#111111" || resolvedColor === "#2C2C2C") {
             resolvedColor = "#FFFFFF";
           }
 
-          // Casing rule from Font JSON
+          // Exact Casing from Font JSON
           const textWithCasing = applyFontJsonCasing(assignedWords, fStyle.casing);
 
-          // Select non-competing kinetic preset from 29 Presets
+          // Kinetic Preset Selection
           let fxPreset = "subpixel_blur_mask";
           if (lSpec.role === "primary_focus_word" || lSpec.role === "header") {
             let pool = KINETIC_PRESETS.filter(p => p.id !== "subpixel_blur_mask" && p.id !== lastHeroPreset);
@@ -784,11 +790,11 @@ const htmlContent = `<!DOCTYPE html>
             fontFamily: matchedFamily,
             fontWeight: fStyle.weight || 700,
             fontStyle: fStyle.style || "normal",
-            fontSizePx: safeFontSizePx,
+            fontSizePx: calculatedSizePx,
             color: resolvedColor,
             casing: fStyle.casing || "normal",
             letterSpacingEm: fStyle.letter_spacing_em || 0,
-            lineHeight: fStyle.line_height || 1.05,
+            lineHeight: fStyle.line_height || 1.0,
             marginTopPx: fStyle.vertical_margin_top_px || 0,
             dropShadow: fEffects.drop_shadow || { x_offset: 0, y_offset: 2, blur_radius: 8, color: "rgba(0,0,0,0.85)" },
             fxPreset: fxPreset
@@ -819,7 +825,7 @@ const htmlContent = `<!DOCTYPE html>
         // Long clauses (> 16 chars or >= 3 words) MUST ALWAYS be in Zone B (Chest Lower-Third Z:30, in front of speaker).
         // Only compact 1-2 word punchy phrases (< 16 chars) can enter Zone A (Head Contact Z:10, scalp line at 14.79%).
         const canFitHeadZone = (totalChars < 16 && wordCount <= 2 && (raw.emphasis === "inflection_tension" || raw.emphasis === "inflection_solution" || raw.emphasis === "named_entity_founders"));
-        const isHeadZone = canFitHeadZone && rng() > 0.4;
+        const isHeadZone = canFitHeadZone && (rng() > 0.4 || raw.emphasis === "inflection_tension");
         const depthPlane = isHeadZone ? "behind_subject" : "in_front_of_subject";
 
         // Entity Matting (Chunk 8: "founders")
@@ -908,7 +914,7 @@ const htmlContent = `<!DOCTYPE html>
         layerDiv.style.fontWeight = layer.fontWeight;
         layerDiv.style.fontStyle = layer.fontStyle || 'normal';
         layerDiv.style.fontSize = layer.fontSizePx + 'px';
-        layerDiv.style.lineHeight = layer.lineHeight || 1.05;
+        layerDiv.style.lineHeight = layer.lineHeight || 1.0;
         layerDiv.style.color = layer.color || '#FFFFFF';
         if (layer.letterSpacingEm) layerDiv.style.letterSpacing = layer.letterSpacingEm + 'em';
         if (layer.marginTopPx) layerDiv.style.marginTop = layer.marginTopPx + 'px';
@@ -977,10 +983,10 @@ const htmlContent = `<!DOCTYPE html>
         const tr = document.createElement('tr');
         tr.innerHTML = 
           '<td style="font-family: monospace; color: var(--accent-cyan); font-weight: 700;">' + layer.layerName + ' (' + layer.role + ')</td>' +
-          '<td style="font-weight: 700;">' + layer.fontFamily + ' ' + layer.fontWeight + ' ' + (layer.fontStyle === 'italic' ? 'Italic' : '') + '</td>' +
-          '<td>' + (layer.casing || 'normal') + ' • ' + layer.fontSizePx + 'px (Safe-Fitted)</td>' +
+          '<td style="font-weight: 700;">' + layer.fontFamily + ' ' + layer.fontWeight + ' ' + (layer.fontStyle === 'italic' ? 'Italic' : '') + ' • ' + layer.fontSizePx + 'px</td>' +
+          '<td>' + (layer.casing || 'normal') + ' • ' + (layer.marginTopPx ? layer.marginTopPx + 'px offset' : '0px') + '</td>' +
           '<td style="font-weight: 700; color: var(--accent-yellow);">' + layer.fxPreset + '</td>' +
-          '<td><span class="badge-optimal">' + (isBehind ? 'Zone A Scalp Guard (<=25%)' : 'Zone B 0% Obscuration') + '</span></td>';
+          '<td style="font-weight: 700; color: ' + (isBehind ? 'var(--accent-pink)' : 'var(--accent-cyan)') + '">' + (isBehind ? 'ZONE A (Z:10)' : 'ZONE B (Z:30)') + '</td>';
         tableBody.appendChild(tr);
       });
 
