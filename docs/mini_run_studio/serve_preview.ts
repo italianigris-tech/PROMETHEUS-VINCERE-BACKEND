@@ -492,7 +492,7 @@ const server = http.createServer((req, res) => {
 
     async function fetchGallery() {
       try {
-        const res = await fetch('/api/list_uploaded_screenshots');
+        const res = await fetch('/api/list_uploaded_screenshots?t=' + Date.now());
         const data = await res.json();
         renderGallery(data.images || []);
       } catch (err) {
@@ -571,8 +571,11 @@ const server = http.createServer((req, res) => {
           const base64Data = json.dataUrl.replace(/^data:image\/\w+;base64,/, "");
           const buffer = Buffer.from(base64Data, "base64");
           
-          const rawFilename = json.filename || ("screenshot_" + Date.now() + ".png");
-          const safeFilename = rawFilename.replace(/[^a-zA-Z0-9._-]/g, "_");
+          const ext = (path.extname(json.filename || ".png") || ".png").toLowerCase();
+          const baseName = path.basename(json.filename || "screenshot", ext).replace(/[^a-zA-Z0-9_-]/g, "_");
+          const timestamp = Date.now();
+          const randomId = Math.random().toString(36).substring(2, 6);
+          const safeFilename = `${baseName}_${timestamp}_${randomId}${ext}`;
           const targetUploadPath = path.join(uploadsDir, safeFilename);
           
           fs.writeFileSync(targetUploadPath, buffer);
@@ -581,7 +584,7 @@ const server = http.createServer((req, res) => {
           const legacyPath = path.join(studioDir, "user_clipboard_screenshot.png");
           fs.writeFileSync(legacyPath, buffer);
           
-          console.log(`\n📸 [BATCH_UPLOAD_SAVED] Saved image (${buffer.length} bytes): ${targetUploadPath}`);
+          console.log(`\n📸 [BATCH_UPLOAD_SAVED] Saved image (${buffer.length} bytes): ${safeFilename}`);
           res.writeHead(200, { "Content-Type": "application/json" });
           res.end(JSON.stringify({ success: true, filename: safeFilename, savedPath: targetUploadPath }));
           return;
