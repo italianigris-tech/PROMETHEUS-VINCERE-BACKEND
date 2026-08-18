@@ -594,20 +594,23 @@
     }
 
     // MATHEMATICAL INVARIANT: Safe Dynamic Font Sizing to Strictly Guarantee 9:16 Mobile Containment
-    function calculateSafeContainedFontSize(text, idealFontSize, maxAllowedWidthPx = 210, fontName = 'sans') {
-      let charFactor = 0.58;
+    function calculateSafeContainedFontSize(text, idealFontSize, maxAllowedWidthPx = 185, fontName = 'sans', casing = 'normal', letterSpacingEm = 0) {
+      const isUpper = (casing === 'uppercase' || text === text.toUpperCase());
+      let charFactor = isUpper ? 0.65 : 0.50;
+      
       if (fontName.includes('Bebas') || fontName.includes('Anton') || fontName.includes('Oswald')) {
-        charFactor = 0.38; // Condensed display fits more characters
+        charFactor = isUpper ? 0.46 : 0.38;
       } else if (fontName.includes('Great Vibes') || fontName.includes('Dancing') || fontName.includes('Sacramento')) {
-        charFactor = 0.46; // Cursive script
+        charFactor = isUpper ? 0.55 : 0.44;
       } else if (fontName.includes('Playfair') || fontName.includes('Bodoni') || fontName.includes('Cinzel') || fontName.includes('Cormorant')) {
-        charFactor = 0.52; // Serif / Didone
+        charFactor = isUpper ? 0.60 : 0.48;
       }
 
-      const estimatedWidth = text.length * idealFontSize * charFactor;
+      const effectiveCharRatio = charFactor + (letterSpacingEm || 0);
+      const estimatedWidth = text.length * idealFontSize * effectiveCharRatio;
       if (estimatedWidth > maxAllowedWidthPx) {
         const scaleFactor = maxAllowedWidthPx / estimatedWidth;
-        return Math.max(16, Math.floor(idealFontSize * scaleFactor));
+        return Math.max(14, Math.floor(idealFontSize * scaleFactor));
       }
       return idealFontSize;
     }
@@ -720,12 +723,12 @@
             : "DM Sans";
 
           // Exact Size from Font JSON
-          const baseSize = fStyle.size_px_base || 44;
-          const isCardTarget = willUseDelayedCard && (layerIdx === layerAllocations.length - 1 || lSpec.role === "primary_focus_word");
+          // Exact Casing from Font JSON
+          const textWithCasing = applyFontJsonCasing(assignedWords, fStyle.casing);
 
-          // Max allowed container width: 210px (or 180px if inside a padded highlight card)
-          const maxAllowedWidth = isCardTarget ? 180 : 210;
-          const safeFontSize = calculateSafeContainedFontSize(assignedWords, baseSize, maxAllowedWidth, matchedFamily);
+          // Max allowed container width: 185px (or 160px if inside a padded highlight card)
+          const maxAllowedWidth = isCardTarget ? 160 : 185;
+          const safeFontSize = calculateSafeContainedFontSize(textWithCasing, baseSize, maxAllowedWidth, matchedFamily, fStyle.casing, fStyle.letter_spacing_em);
 
           // SUBTLE OVERLAP GUARD: Negative margin must NEVER exceed 12-15% of previous layer font size!
           let rawMarginTop = fStyle.vertical_margin_top_px || 0;
@@ -741,9 +744,6 @@
           if (resolvedColor === "#000000" || resolvedColor === "#111111" || resolvedColor === "#2C2C2C") {
             resolvedColor = "#FFFFFF";
           }
-
-          // Exact Casing from Font JSON
-          const textWithCasing = applyFontJsonCasing(assignedWords, fStyle.casing);
 
           // Kinetic Preset Selection
           let fxPreset = "subpixel_blur_mask";
