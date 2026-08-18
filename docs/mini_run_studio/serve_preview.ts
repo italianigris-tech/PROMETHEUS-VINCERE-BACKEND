@@ -22,8 +22,11 @@ const MIME_TYPES: Record<string, string> = {
   ".ico": "image/x-icon",
 };
 
+const animPreviewDir = path.resolve(repoRoot, "Yuan Prometheus Screenshots/prometheus_animations_preview");
+const screenshotsDir = path.resolve(repoRoot, "Yuan Prometheus Screenshots");
+
 /**
- * Resolve requested URL to disk file path across studioDir and repoRoot.
+ * Resolve requested URL to disk file path across studioDir, animPreviewDir, screenshotsDir, and repoRoot.
  */
 function resolveFilePath(reqUrl: string): { filePath: string; contentType: string } | null {
   let cleanPath = reqUrl.split("?")[0].split("#")[0];
@@ -31,9 +34,24 @@ function resolveFilePath(reqUrl: string): { filePath: string; contentType: strin
     cleanPath = "/typography_treatment_presentation.html";
   }
 
+  // Explicit shortcuts for typography animation preview
+  if (cleanPath === "/typography" || cleanPath === "/typography.html" || cleanPath === "/animations" || cleanPath === "/presets") {
+    const typoHtml = path.join(animPreviewDir, "typography.html");
+    if (fs.existsSync(typoHtml)) {
+      return { filePath: typoHtml, contentType: MIME_TYPES[".html"] };
+    }
+  }
+
+  if (cleanPath === "/dashboard" || cleanPath === "/overview" || cleanPath === "/anim-index" || cleanPath === "/anim-index.html") {
+    const indexHtml = path.join(animPreviewDir, "index.html");
+    if (fs.existsSync(indexHtml)) {
+      return { filePath: indexHtml, contentType: MIME_TYPES[".html"] };
+    }
+  }
+
   const normalized = path.normalize(cleanPath).replace(/^(\.\.[\/\\])+/, "");
   
-  // Try in studioDir first
+  // 1. Try in studioDir first
   const studioCandidate = path.join(studioDir, normalized);
   if (fs.existsSync(studioCandidate) && fs.statSync(studioCandidate).isFile()) {
     const ext = path.extname(studioCandidate).toLowerCase();
@@ -43,7 +61,27 @@ function resolveFilePath(reqUrl: string): { filePath: string; contentType: strin
     };
   }
 
-  // Try in repoRoot
+  // 2. Try in animPreviewDir
+  const animCandidate = path.join(animPreviewDir, normalized);
+  if (fs.existsSync(animCandidate) && fs.statSync(animCandidate).isFile()) {
+    const ext = path.extname(animCandidate).toLowerCase();
+    return {
+      filePath: animCandidate,
+      contentType: MIME_TYPES[ext] || "application/octet-stream",
+    };
+  }
+
+  // 3. Try in screenshotsDir
+  const screenshotsCandidate = path.join(screenshotsDir, normalized);
+  if (fs.existsSync(screenshotsCandidate) && fs.statSync(screenshotsCandidate).isFile()) {
+    const ext = path.extname(screenshotsCandidate).toLowerCase();
+    return {
+      filePath: screenshotsCandidate,
+      contentType: MIME_TYPES[ext] || "application/octet-stream",
+    };
+  }
+
+  // 4. Try in repoRoot
   const repoCandidate = path.join(repoRoot, normalized);
   if (fs.existsSync(repoCandidate) && fs.statSync(repoCandidate).isFile()) {
     const ext = path.extname(repoCandidate).toLowerCase();
