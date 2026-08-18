@@ -5,7 +5,6 @@ import { spawn } from "node:child_process";
 
 const studioDir = __dirname;
 const repoRoot = path.resolve(studioDir, "../..");
-const PORT = parseInt(process.env.PORT || "8080", 10);
 
 const uploadsDir = path.join(studioDir, "uploaded_screenshots");
 if (!fs.existsSync(uploadsDir)) {
@@ -133,27 +132,7 @@ function resolveFilePath(reqUrl: string): { filePath: string; contentType: strin
   return null;
 }
 
-// 1. Create HTTP Server
-const server = http.createServer((req, res) => {
-  // CORS Headers
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "*");
-
-  if (req.method === "OPTIONS") {
-    res.writeHead(204);
-    res.end();
-    return;
-  }
-
-  // Serve Interactive Multi-Screenshot Clipboard Paste & Upload Dropzone Page
-  if ((req.method === "GET" || req.method === "HEAD") && (req.url === "/paste" || req.url === "/upload" || req.url === "/paste/")) {
-    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-    if (req.method === "HEAD") {
-      res.end();
-      return;
-    }
-    res.end(`<!DOCTYPE html>
+const pasteHtmlContent = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -469,7 +448,7 @@ const server = http.createServer((req, res) => {
       }
     };
 
-    // Global Clipboard Paste Support (Handles Multiple Pasted Images in a Row)
+    // Global Clipboard Paste Support
     window.addEventListener('paste', (e) => {
       const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
       if (!items) return;
@@ -505,7 +484,6 @@ const server = http.createServer((req, res) => {
       statusBar.innerText = '⏳ Uploading ' + files.length + ' image(s)...';
       statusBar.style.color = '#FFE600';
 
-      // 1. Optimistic instant preview in gallery
       files.forEach((file, idx) => {
         const localUrl = URL.createObjectURL(file);
         const optimisticName = file.name || ('screenshot_' + Date.now() + '_' + (idx+1) + '.png');
@@ -522,7 +500,6 @@ const server = http.createServer((req, res) => {
         renderGallery(localUploadedImages, true);
       }
 
-      // 2. Perform background uploads
       let successCount = 0;
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
@@ -674,185 +651,216 @@ const server = http.createServer((req, res) => {
     fetchCorpusGallery();
   </script>
 </body>
-</html>`);
-    return;
-  }
+</html>`;
 
-  // API 1: Upload Screenshot (Handles Single or Batch)
-  if (req.method === "POST" && req.url === "/api/upload_screenshot") {
-    let body = "";
-    req.on("data", chunk => { body += chunk; });
-    req.on("end", () => {
-      try {
-        const json = JSON.parse(body);
-        if (json.dataUrl) {
-          const base64Data = json.dataUrl.replace(/^data:image\/\w+;base64,/, "");
-          const buffer = Buffer.from(base64Data, "base64");
-          
-          const ext = (path.extname(json.filename || ".png") || ".png").toLowerCase();
-          const baseName = path.basename(json.filename || "screenshot", ext).replace(/[^a-zA-Z0-9_-]/g, "_");
-          const timestamp = Date.now();
-          const randomId = Math.random().toString(36).substring(2, 6);
-          const safeFilename = `${baseName}_${timestamp}_${randomId}${ext}`;
-          const targetUploadPath = path.join(uploadsDir, safeFilename);
-          
-          fs.writeFileSync(targetUploadPath, buffer);
-          
-          // Also update legacy single clipboard file for compatibility
-          const legacyPath = path.join(studioDir, "user_clipboard_screenshot.png");
-          fs.writeFileSync(legacyPath, buffer);
-          
-          console.log(`\n📸 [BATCH_UPLOAD_SAVED] Saved image (${buffer.length} bytes): ${safeFilename}`);
-          res.writeHead(200, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ success: true, filename: safeFilename, savedPath: targetUploadPath }));
-          return;
-        }
-        res.writeHead(400, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: "Missing dataUrl" }));
-      } catch (err: any) {
-        res.writeHead(500, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: err.message }));
+function createServerInstance(port: number) {
+  const s = http.createServer((req, res) => {
+    // CORS Headers
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "*");
+
+    if (req.method === "OPTIONS") {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+
+    // Serve Interactive Multi-Screenshot Clipboard Paste & Upload Dropzone Page
+    if ((req.method === "GET" || req.method === "HEAD") && (req.url === "/paste" || req.url === "/upload" || req.url === "/paste/")) {
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+      if (req.method === "HEAD") {
+        res.end();
+        return;
       }
-    });
-    return;
-  }
-
-  // API 2: List Uploaded Screenshots
-  if (req.method === "GET" && req.url?.startsWith("/api/list_uploaded_screenshots")) {
-    try {
-      const files = fs.readdirSync(uploadsDir);
-      const images = files.map(file => {
-        const filePath = path.join(uploadsDir, file);
-        const stats = fs.statSync(filePath);
-        return {
-          name: file,
-          size: stats.size,
-          mtime: stats.mtimeMs,
-          url: `/uploaded_screenshots/${encodeURIComponent(file)}`
-        };
-      }).sort((a, b) => b.mtime - a.mtime);
-
-      res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ success: true, images }));
-      return;
-    } catch (err: any) {
-      res.writeHead(500, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: err.message }));
+      res.end(pasteHtmlContent);
       return;
     }
-  }
 
-  // API 3: List Corpus Screenshots (All 45 Font Pairing Screenshots)
-  if (req.method === "GET" && req.url?.startsWith("/api/list_corpus_screenshots")) {
-    try {
-      const files = fs.readdirSync(fontPairingScreenshotsDir).filter(f => /\.(png|jpg|jpeg|webp)$/i.test(f));
-      const images = files.map(file => {
-        const filePath = path.join(fontPairingScreenshotsDir, file);
-        const stats = fs.statSync(filePath);
-        return {
-          name: file,
-          size: stats.size,
-          mtime: stats.mtimeMs,
-          url: `/corpus_screenshots/${encodeURIComponent(file)}`
-        };
-      });
-
-      res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ success: true, images }));
-      return;
-    } catch (err: any) {
-      res.writeHead(500, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: err.message }));
-      return;
-    }
-  }
-
-  // API 4: Delete Specific Uploaded Screenshot
-  if (req.method === "POST" && req.url === "/api/delete_uploaded_screenshot") {
-    let body = "";
-    req.on("data", chunk => { body += chunk; });
-    req.on("end", () => {
-      try {
-        const json = JSON.parse(body);
-        if (json.filename) {
-          const safeFilename = path.basename(json.filename);
-          const targetPath = path.join(uploadsDir, safeFilename);
-          if (fs.existsSync(targetPath)) {
-            fs.unlinkSync(targetPath);
-            console.log(`🗑️ [IMAGE_DELETED] Deleted: ${safeFilename}`);
+    // API 1: Upload Screenshot (Handles Single or Batch)
+    if (req.method === "POST" && req.url === "/api/upload_screenshot") {
+      let body = "";
+      req.on("data", chunk => { body += chunk; });
+      req.on("end", () => {
+        try {
+          const json = JSON.parse(body);
+          if (json.dataUrl) {
+            const base64Data = json.dataUrl.replace(/^data:image\/\w+;base64,/, "");
+            const buffer = Buffer.from(base64Data, "base64");
+            
+            const ext = (path.extname(json.filename || ".png") || ".png").toLowerCase();
+            const baseName = path.basename(json.filename || "screenshot", ext).replace(/[^a-zA-Z0-9_-]/g, "_");
+            const timestamp = Date.now();
+            const randomId = Math.random().toString(36).substring(2, 6);
+            const safeFilename = `${baseName}_${timestamp}_${randomId}${ext}`;
+            const targetUploadPath = path.join(uploadsDir, safeFilename);
+            
+            fs.writeFileSync(targetUploadPath, buffer);
+            
+            const legacyPath = path.join(studioDir, "user_clipboard_screenshot.png");
+            fs.writeFileSync(legacyPath, buffer);
+            
+            console.log(`\n📸 [BATCH_UPLOAD_SAVED] Saved image (${buffer.length} bytes): ${safeFilename}`);
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ success: true, filename: safeFilename, savedPath: targetUploadPath }));
+            return;
           }
-          res.writeHead(200, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ success: true }));
-          return;
+          res.writeHead(400, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Missing dataUrl" }));
+        } catch (err: any) {
+          res.writeHead(500, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: err.message }));
         }
-        res.writeHead(400, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: "Missing filename" }));
+      });
+      return;
+    }
+
+    // API 2: List Uploaded Screenshots
+    if (req.method === "GET" && req.url?.startsWith("/api/list_uploaded_screenshots")) {
+      try {
+        const files = fs.readdirSync(uploadsDir);
+        const images = files.map(file => {
+          const filePath = path.join(uploadsDir, file);
+          const stats = fs.statSync(filePath);
+          return {
+            name: file,
+            size: stats.size,
+            mtime: stats.mtimeMs,
+            url: `/uploaded_screenshots/${encodeURIComponent(file)}`
+          };
+        }).sort((a, b) => b.mtime - a.mtime);
+
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ success: true, images }));
+        return;
       } catch (err: any) {
         res.writeHead(500, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ error: err.message }));
+        return;
       }
-    });
-    return;
-  }
+    }
 
-  // API 5: Clear All Uploaded Screenshots
-  if (req.method === "POST" && req.url === "/api/clear_uploaded_screenshots") {
-    try {
-      const files = fs.readdirSync(uploadsDir);
-      files.forEach(f => {
-        try { fs.unlinkSync(path.join(uploadsDir, f)); } catch {}
+    // API 3: List Corpus Screenshots (All 45 Font Pairing Screenshots)
+    if (req.method === "GET" && req.url?.startsWith("/api/list_corpus_screenshots")) {
+      try {
+        const files = fs.readdirSync(fontPairingScreenshotsDir).filter(f => /\.(png|jpg|jpeg|webp)$/i.test(f));
+        const images = files.map(file => {
+          const filePath = path.join(fontPairingScreenshotsDir, file);
+          const stats = fs.statSync(filePath);
+          return {
+            name: file,
+            size: stats.size,
+            mtime: stats.mtimeMs,
+            url: `/corpus_screenshots/${encodeURIComponent(file)}`
+          };
+        });
+
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ success: true, images }));
+        return;
+      } catch (err: any) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: err.message }));
+        return;
+      }
+    }
+
+    // API 4: Delete Specific Uploaded Screenshot
+    if (req.method === "POST" && req.url === "/api/delete_uploaded_screenshot") {
+      let body = "";
+      req.on("data", chunk => { body += chunk; });
+      req.on("end", () => {
+        try {
+          const json = JSON.parse(body);
+          if (json.filename) {
+            const safeFilename = path.basename(json.filename);
+            const targetPath = path.join(uploadsDir, safeFilename);
+            if (fs.existsSync(targetPath)) {
+              fs.unlinkSync(targetPath);
+              console.log(`🗑️ [IMAGE_DELETED] Deleted: ${safeFilename}`);
+            }
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ success: true }));
+            return;
+          }
+          res.writeHead(400, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Missing filename" }));
+        } catch (err: any) {
+          res.writeHead(500, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: err.message }));
+        }
       });
-      console.log(`🗑️ [ALL_IMAGES_CLEARED] Cleared all uploaded screenshots.`);
-      res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ success: true }));
-      return;
-    } catch (err: any) {
-      res.writeHead(500, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: err.message }));
       return;
     }
-  }
 
-  const resolved = resolveFilePath(req.url || "/");
-  if (!resolved) {
-    res.writeHead(404, { "Content-Type": "text/html; charset=utf-8" });
-    res.end(`
-      <html>
-        <body style="font-family: sans-serif; background: #070913; color: #fff; padding: 40px; text-align: center;">
-          <h2 style="color: #00F0FF;">404 — Not Found</h2>
-          <p>Requested: <code>${req.url}</code></p>
-          <p><a href="/typography_treatment_presentation.html" style="color: #FFD700;">Open Typography Treatment Presentation Studio</a></p>
-        </body>
-      </html>
-    `);
-    return;
-  }
+    // API 5: Clear All Uploaded Screenshots
+    if (req.method === "POST" && req.url === "/api/clear_uploaded_screenshots") {
+      try {
+        const files = fs.readdirSync(uploadsDir);
+        files.forEach(f => {
+          try { fs.unlinkSync(path.join(uploadsDir, f)); } catch {}
+        });
+        console.log(`🗑️ [ALL_IMAGES_CLEARED] Cleared all uploaded screenshots.`);
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ success: true }));
+        return;
+      } catch (err: any) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: err.message }));
+        return;
+      }
+    }
 
-  try {
-    const stream = fs.createReadStream(resolved.filePath);
-    res.writeHead(200, {
-      "Content-Type": resolved.contentType,
-      "Cache-Control": "no-cache",
-    });
-    stream.pipe(res);
-  } catch (err: any) {
-    res.writeHead(500, { "Content-Type": "text/plain" });
-    res.end(`Internal Server Error: ${err.message}`);
-  }
-});
+    const resolved = resolveFilePath(req.url || "/");
+    if (!resolved) {
+      res.writeHead(404, { "Content-Type": "text/html; charset=utf-8" });
+      res.end(`
+        <html>
+          <body style="font-family: sans-serif; background: #070913; color: #fff; padding: 40px; text-align: center;">
+            <h2 style="color: #00F0FF;">404 — Not Found</h2>
+            <p>Requested: <code>${req.url}</code></p>
+            <p><a href="/typography_treatment_presentation.html" style="color: #FFD700;">Open Typography Treatment Presentation Studio</a></p>
+          </body>
+        </html>
+      `);
+      return;
+    }
 
-server.listen(PORT, "0.0.0.0", () => {
-  console.log("================================================================================");
-  console.log(`  🚀 MINI-RUN STUDIO LOCAL HTTP SERVER LISTENING ON PORT ${PORT}`);
-  console.log("================================================================================");
-  console.log(`  Presentation:  http://localhost:${PORT}/typography_treatment_presentation.html`);
-  console.log(`  Batch Paste:   http://localhost:${PORT}/paste`);
-  console.log(`  Binding:       http://0.0.0.0:${PORT}`);
-  console.log("================================================================================");
-  console.log("  Opening Cloudflare HTTPS Mobile Tunnel...");
+    try {
+      const stream = fs.createReadStream(resolved.filePath);
+      res.writeHead(200, {
+        "Content-Type": resolved.contentType,
+        "Cache-Control": "no-cache",
+      });
+      stream.pipe(res);
+    } catch (err: any) {
+      res.writeHead(500, { "Content-Type": "text/plain" });
+      res.end(`Internal Server Error: ${err.message}`);
+    }
+  });
 
-  startAllTunnels(PORT);
-});
+  s.listen(port, "0.0.0.0", () => {
+    console.log(`  🚀 EC2 Live HTTP Server on Port ${port}: http://16.192.95.115:${port}/typography_treatment_presentation.html`);
+  });
+  s.on("error", (e) => {
+    console.warn(`[PORT_BIND_WARN] Port ${port} could not be bound (${e.message})`);
+  });
+  return s;
+}
+
+// Bind to multiple candidate ports simultaneously
+const candidatePorts = [8080, 3000, 5000, 8000, 9000];
+const activeServers = candidatePorts.map(p => createServerInstance(p));
+
+console.log("================================================================================");
+console.log("  🚀 MINI-RUN STUDIO MULTI-PORT EC2 SERVER RUNNING");
+console.log("================================================================================");
+console.log("  Presentation:  http://16.192.95.115:8080/typography_treatment_presentation.html");
+console.log("  Batch Paste:   http://16.192.95.115:8080/paste");
+console.log("  Binding:       0.0.0.0 across ports 8080, 3000, 5000, 8000, 9000");
+console.log("================================================================================");
+
+startAllTunnels(8080);
 
 /**
  * Start all tunnel options.
@@ -922,11 +930,11 @@ async function startAllTunnels(port: number) {
 
 process.on("SIGINT", () => {
   console.log("\nStopping server...");
-  server.close();
+  activeServers.forEach(s => s.close());
   process.exit(0);
 });
 
 process.on("SIGTERM", () => {
-  server.close();
+  activeServers.forEach(s => s.close());
   process.exit(0);
 });
