@@ -86,6 +86,8 @@ function probeVideoFile(filePath: string): any {
   }
 }
 
+const fontPairingScreenshotsDir = path.join(repoRoot, "Yuan Prometheus Screenshots/font pairing and placement");
+
 /**
  * Resolve requested URL to disk file path safely.
  */
@@ -107,6 +109,28 @@ function resolveFilePath(reqUrl: string): { filePath: string; contentType: strin
     if (fs.existsSync(target) && fs.statSync(target).isFile()) {
       const ext = path.extname(target).toLowerCase();
       return { filePath: target, contentType: MIME_TYPES[ext] || "video/mp4" };
+    }
+  }
+
+  // Explicit route for uploaded screenshots
+  if (cleanPath.startsWith("/uploaded_screenshots/")) {
+    const rawName = cleanPath.replace(/^\/uploaded_screenshots\//, "");
+    const safeName = path.basename(rawName);
+    const target = path.join(uploadsDir, safeName);
+    if (fs.existsSync(target) && fs.statSync(target).isFile()) {
+      const ext = path.extname(target).toLowerCase();
+      return { filePath: target, contentType: MIME_TYPES[ext] || "image/png" };
+    }
+  }
+
+  // Explicit route for font pairing corpus screenshots
+  if (cleanPath.startsWith("/corpus_screenshots/")) {
+    const rawName = cleanPath.replace(/^\/corpus_screenshots\//, "");
+    const safeName = path.basename(rawName);
+    const target = path.join(fontPairingScreenshotsDir, safeName);
+    if (fs.existsSync(target) && fs.statSync(target).isFile()) {
+      const ext = path.extname(target).toLowerCase();
+      return { filePath: target, contentType: MIME_TYPES[ext] || "image/png" };
     }
   }
 
@@ -691,6 +715,536 @@ const videoPlatformHtml = `<!DOCTYPE html>
 </body>
 </html>`;
 
+// =========================================================================
+// HTML: DEDICATED SCREENSHOT DROPZONE & COMPARISON GALLERY (/paste)
+// =========================================================================
+const pasteHtmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Prometheus — Screenshot Gallery & Comparison Portal</title>
+  <style>
+    :root {
+      --bg-dark: #070913;
+      --card-bg: rgba(14, 19, 38, 0.95);
+      --accent-cyan: #00F0FF;
+      --accent-pink: #FF0055;
+      --accent-purple: #8B5CF6;
+      --accent-yellow: #FFE600;
+      --accent-green: #10B981;
+      --text-main: #FFFFFF;
+      --text-muted: #8E9BAE;
+      --panel-border: rgba(255, 255, 255, 0.1);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg-dark);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 60px;
+    }
+    .header {
+      width: 100%;
+      max-width: 1100px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--panel-border);
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .header h1 {
+      font-size: 22px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #00F0FF 0%, #8B5CF6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .nav-links {
+      display: flex;
+      gap: 10px;
+    }
+    .nav-btn {
+      background: rgba(255,255,255,0.06);
+      color: #FFF;
+      text-decoration: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      border: 1px solid var(--panel-border);
+      transition: all 0.2s ease;
+    }
+    .nav-btn:hover {
+      background: var(--accent-cyan);
+      color: #000;
+      border-color: var(--accent-cyan);
+    }
+    .container {
+      width: 100%;
+      max-width: 1100px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    .dropzone-card {
+      background: var(--card-bg);
+      border: 2px dashed rgba(0, 240, 255, 0.35);
+      border-radius: 16px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+    .dropzone-card:hover, .dropzone-card.drag-over {
+      border-color: var(--accent-cyan);
+      background: rgba(0, 240, 255, 0.04);
+      transform: translateY(-2px);
+    }
+    .dropzone-icon {
+      font-size: 42px;
+      margin-bottom: 12px;
+    }
+    .dropzone-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .dropzone-subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .status-bar {
+      margin-top: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      min-height: 20px;
+    }
+    .tabs-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .tab-group {
+      display: flex;
+      gap: 8px;
+    }
+    .tab-btn {
+      background: rgba(255,255,255,0.05);
+      color: var(--text-muted);
+      border: 1px solid var(--panel-border);
+      padding: 8px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 700;
+      transition: all 0.2s;
+    }
+    .tab-btn.active {
+      background: var(--accent-cyan);
+      color: #000;
+      border-color: var(--accent-cyan);
+    }
+    .action-group {
+      display: flex;
+      gap: 8px;
+    }
+    .btn-action {
+      background: rgba(255, 0, 85, 0.12);
+      color: #FF0055;
+      border: 1px solid rgba(255, 0, 85, 0.3);
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+      transition: all 0.2s;
+    }
+    .btn-action:hover {
+      background: #FF0055;
+      color: #FFF;
+    }
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+    }
+    .gallery-item {
+      background: var(--card-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      transition: all 0.2s;
+    }
+    .gallery-item:hover {
+      border-color: rgba(0, 240, 255, 0.5);
+      transform: translateY(-2px);
+    }
+    .thumb-wrap {
+      width: 100%;
+      height: 240px;
+      background: #02040A;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      cursor: pointer;
+    }
+    .thumb-img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      transition: transform 0.2s;
+    }
+    .gallery-item:hover .thumb-img {
+      transform: scale(1.03);
+    }
+    .item-meta {
+      padding: 10px 12px;
+      font-size: 12px;
+      background: rgba(0,0,0,0.3);
+      border-top: 1px solid var(--panel-border);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .item-name {
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--text-main);
+    }
+    .item-info {
+      display: flex;
+      justify-content: space-between;
+      color: var(--text-muted);
+      font-size: 11px;
+    }
+    .btn-delete-item {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: rgba(0, 0, 0, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #FFF;
+      border-radius: 50%;
+      width: 26px;
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.2s;
+      z-index: 5;
+    }
+    .btn-delete-item:hover {
+      background: #FF0055;
+      border-color: #FF0055;
+    }
+    /* Lightbox Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.92);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-overlay.active {
+      display: flex;
+    }
+    .modal-img {
+      max-width: 90vw;
+      max-height: 90vh;
+      object-fit: contain;
+      border-radius: 8px;
+      box-shadow: 0 0 40px rgba(0, 240, 255, 0.2);
+    }
+    .modal-close {
+      position: absolute;
+      top: 20px;
+      right: 24px;
+      background: rgba(255,255,255,0.1);
+      border: none;
+      color: #FFF;
+      font-size: 28px;
+      cursor: pointer;
+      padding: 4px 14px;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>📸 Prometheus — Screenshot Dropzone & Comparison Gallery</h1>
+    <div class="nav-links">
+      <a href="/" class="nav-btn">📹 Video Studio</a>
+      <a href="/typography_treatment_presentation.html" class="nav-btn">✨ Presentation Studio</a>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="dropzone-card" id="dropzone" onclick="document.getElementById('fileInput').click()">
+      <div class="dropzone-icon">📋</div>
+      <div class="dropzone-title">Click to Upload, Drag & Drop, or Press <kbd style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;">Ctrl+V</kbd> to Paste</div>
+      <div class="dropzone-subtitle">Drop screenshots of typography, layout violations, or reference alignments</div>
+      <div class="status-bar" id="statusBar"></div>
+      <input type="file" id="fileInput" multiple accept="image/*" style="display: none;">
+    </div>
+
+    <div class="tabs-bar">
+      <div class="tab-group">
+        <button class="tab-btn active" id="tabUploads" onclick="switchTab('uploads')">Uploaded Screenshots (<span id="uploadsCount">0</span>)</button>
+        <button class="tab-btn" id="tabCorpus" onclick="switchTab('corpus')">Font Corpus 45 References (<span id="corpusCount">45</span>)</button>
+      </div>
+      <div class="action-group">
+        <button class="btn-action" onclick="clearAllUploads()">🗑️ Clear All Uploads</button>
+      </div>
+    </div>
+
+    <div class="gallery-grid" id="galleryGrid"></div>
+  </div>
+
+  <div class="modal-overlay" id="modalOverlay" onclick="closeModal()">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <img src="" class="modal-img" id="modalImg" onclick="event.stopPropagation()">
+  </div>
+
+  <script>
+    let currentTab = 'uploads';
+    let localUploads = [];
+    let localCorpus = [];
+
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    const statusBar = document.getElementById('statusBar');
+    const galleryGrid = document.getElementById('galleryGrid');
+    const uploadsCount = document.getElementById('uploadsCount');
+    const corpusCount = document.getElementById('corpusCount');
+    const modalOverlay = document.getElementById('modalOverlay');
+    const modalImg = document.getElementById('modalImg');
+
+    // Clipboard Paste Listener
+    window.addEventListener('paste', async (e) => {
+      const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+      const files = [];
+      for (const item of items) {
+        if (item.type.indexOf('image') !== -1) {
+          const blob = item.getAsFile();
+          files.push(blob);
+        }
+      }
+      if (files.length > 0) {
+        e.preventDefault();
+        await uploadFiles(files);
+      }
+    });
+
+    // Drag & Drop
+    dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+    dropzone.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('drag-over');
+      const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+      if (files.length > 0) await uploadFiles(files);
+    });
+
+    fileInput.addEventListener('change', async (e) => {
+      const files = Array.from(e.target.files);
+      if (files.length > 0) await uploadFiles(files);
+      fileInput.value = '';
+    });
+
+    async function uploadFiles(files) {
+      statusBar.innerText = '⏳ Uploading ' + files.length + ' image(s)...';
+      statusBar.style.color = 'var(--accent-cyan)';
+
+      const payloadFiles = [];
+      for (const f of files) {
+        const dataUrl = await readFileAsDataUrl(f);
+        payloadFiles.push({ filename: f.name || 'pasted_image.png', dataUrl: dataUrl });
+      }
+
+      try {
+        const res = await fetch('/api/upload-paste', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ files: payloadFiles })
+        });
+        const data = await res.json();
+        if (data.success) {
+          statusBar.innerText = '✔ Successfully uploaded ' + (data.count || files.length) + ' image(s)!';
+          statusBar.style.color = 'var(--accent-green)';
+          await fetchUploads();
+          switchTab('uploads');
+        } else {
+          statusBar.innerText = '✖ Upload failed: ' + (data.error || 'Unknown error');
+          statusBar.style.color = 'var(--accent-pink)';
+        }
+      } catch (err) {
+        statusBar.innerText = '✖ Upload error: ' + err.message;
+        statusBar.style.color = 'var(--accent-pink)';
+      }
+    }
+
+    function readFileAsDataUrl(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function switchTab(tab) {
+      currentTab = tab;
+      document.getElementById('tabUploads').classList.toggle('active', tab === 'uploads');
+      document.getElementById('tabCorpus').classList.toggle('active', tab === 'corpus');
+      renderCurrentTab();
+    }
+
+    function renderCurrentTab() {
+      if (currentTab === 'uploads') {
+        renderGrid(localUploads, true);
+      } else {
+        renderGrid(localCorpus, false);
+      }
+    }
+
+    async function fetchUploads() {
+      try {
+        const res = await fetch('/api/list_uploaded_screenshots?t=' + Date.now());
+        const data = await res.json();
+        localUploads = data.images || [];
+        uploadsCount.innerText = localUploads.length;
+        if (currentTab === 'uploads') renderCurrentTab();
+      } catch (err) {
+        console.error('Fetch uploads failed:', err);
+      }
+    }
+
+    async function fetchCorpus() {
+      try {
+        const res = await fetch('/api/list_corpus_screenshots?t=' + Date.now());
+        const data = await res.json();
+        localCorpus = data.images || [];
+        corpusCount.innerText = localCorpus.length;
+        if (currentTab === 'corpus') renderCurrentTab();
+      } catch (err) {
+        console.error('Fetch corpus failed:', err);
+      }
+    }
+
+    function renderGrid(images, allowDelete) {
+      galleryGrid.innerHTML = '';
+      if (images.length === 0) {
+        galleryGrid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 40px;">No images in this gallery yet. Paste or drop images above!</div>';
+        return;
+      }
+
+      images.forEach(img => {
+        const item = document.createElement('div');
+        item.className = 'gallery-item';
+
+        if (allowDelete) {
+          const delBtn = document.createElement('button');
+          delBtn.className = 'btn-delete-item';
+          delBtn.innerText = '✕';
+          delBtn.title = 'Delete screenshot';
+          delBtn.onclick = (e) => { e.stopPropagation(); deleteImage(img.name); };
+          item.appendChild(delBtn);
+        }
+
+        const thumbWrap = document.createElement('div');
+        thumbWrap.className = 'thumb-wrap';
+        thumbWrap.onclick = () => openModal(img.url);
+
+        const imgEl = document.createElement('img');
+        imgEl.src = img.url;
+        imgEl.className = 'thumb-img';
+        imgEl.loading = 'lazy';
+        thumbWrap.appendChild(imgEl);
+
+        const meta = document.createElement('div');
+        meta.className = 'item-meta';
+        const sizeKb = Math.round((img.size || 0) / 1024);
+        const dateStr = img.mtime ? new Date(img.mtime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '';
+        meta.innerHTML = 
+          '<div class="item-name" title="' + img.name + '">' + img.name + '</div>' +
+          '<div class="item-info"><span>' + sizeKb + ' KB</span><span>' + dateStr + '</span></div>';
+
+        item.appendChild(thumbWrap);
+        item.appendChild(meta);
+        galleryGrid.appendChild(item);
+      });
+    }
+
+    async function deleteImage(name) {
+      if (!confirm('Delete ' + name + '?')) return;
+      try {
+        await fetch('/api/delete_uploaded_screenshot', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename: name })
+        });
+        await fetchUploads();
+      } catch (err) {
+        alert('Delete failed: ' + err.message);
+      }
+    }
+
+    async function clearAllUploads() {
+      if (!confirm('Clear all uploaded screenshots?')) return;
+      try {
+        await fetch('/api/clear_uploaded_screenshots', { method: 'POST' });
+        localUploads = [];
+        uploadsCount.innerText = '0';
+        renderCurrentTab();
+      } catch (err) {
+        alert('Clear failed: ' + err.message);
+      }
+    }
+
+    function openModal(url) {
+      modalImg.src = url;
+      modalOverlay.classList.add('active');
+    }
+
+    function closeModal() {
+      modalOverlay.classList.remove('active');
+      modalImg.src = '';
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeModal();
+    });
+
+    // Boot
+    fetchUploads();
+    fetchCorpus();
+    setInterval(fetchUploads, 3000);
+  </script>
+</body>
+</html>`;
+
 function createServerInstance(port: number) {
   const s = http.createServer((req, res) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
@@ -713,6 +1267,157 @@ function createServerInstance(port: number) {
       }
       res.end(videoPlatformHtml);
       return;
+    }
+
+    // Route 2: Screenshot Dropzone & Comparison Gallery (/paste)
+    if ((req.method === "GET" || req.method === "HEAD") && 
+        (req.url === "/paste" || req.url === "/paste/")) {
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+      if (req.method === "HEAD") {
+        res.end();
+        return;
+      }
+      res.end(pasteHtmlContent);
+      return;
+    }
+
+    // API: Batch Upload Pasted Screenshots
+    if (req.method === "POST" && req.url === "/api/upload-paste") {
+      let body = "";
+      req.on("data", chunk => { body += chunk; });
+      req.on("end", () => {
+        try {
+          const parsed = JSON.parse(body);
+          const incomingFiles = Array.isArray(parsed.files) ? parsed.files : [parsed];
+          const savedResults = [];
+
+          for (const item of incomingFiles) {
+            const dataUrl = item.dataUrl || item.base64 || item.image;
+            if (!dataUrl) continue;
+            const matches = dataUrl.match(/^data:image\/([a-zA-Z0-9\+\-]+);base64,(.+)$/);
+            if (!matches) continue;
+
+            const format = matches[1].toLowerCase().replace("jpeg", "jpg");
+            const base64Data = matches[2];
+            const buffer = Buffer.from(base64Data, "base64");
+
+            const rawOriginal = item.filename || item.name || "screenshot";
+            const ext = path.extname(rawOriginal) || `.${format}`;
+            const base = path.basename(rawOriginal, ext).replace(/[^a-zA-Z0-9_-]/g, "_");
+            const timestamp = Date.now();
+            const randomSuffix = Math.random().toString(36).substring(2, 6);
+            const safeName = `${base}_${timestamp}_${randomSuffix}${ext}`;
+            const targetPath = path.join(uploadsDir, safeName);
+
+            fs.writeFileSync(targetPath, buffer);
+            console.log(`\n📸 [BATCH_UPLOAD_SAVED] Saved screenshot (${buffer.length} bytes): ${safeName}`);
+            savedResults.push({ name: safeName, size: buffer.length, url: `/uploaded_screenshots/${encodeURIComponent(safeName)}` });
+          }
+
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ success: true, count: savedResults.length, files: savedResults }));
+        } catch (err: any) {
+          res.writeHead(500, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: err.message }));
+        }
+      });
+      return;
+    }
+
+    // API: List Uploaded Screenshots
+    if (req.method === "GET" && req.url?.startsWith("/api/list_uploaded_screenshots")) {
+      try {
+        const files = fs.readdirSync(uploadsDir).filter(f => /\.(png|jpg|jpeg|webp)$/i.test(f));
+        const images = files.map(file => {
+          const filePath = path.join(uploadsDir, file);
+          const stats = fs.statSync(filePath);
+          return {
+            name: file,
+            size: stats.size,
+            mtime: stats.mtimeMs,
+            url: `/uploaded_screenshots/${encodeURIComponent(file)}`
+          };
+        }).sort((a, b) => b.mtime - a.mtime);
+
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ success: true, images }));
+        return;
+      } catch (err: any) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: err.message }));
+        return;
+      }
+    }
+
+    // API: List Corpus Reference Screenshots (45 Font Pairings)
+    if (req.method === "GET" && req.url?.startsWith("/api/list_corpus_screenshots")) {
+      try {
+        const files = fs.readdirSync(fontPairingScreenshotsDir).filter(f => /\.(png|jpg|jpeg|webp)$/i.test(f));
+        const images = files.map(file => {
+          const filePath = path.join(fontPairingScreenshotsDir, file);
+          const stats = fs.statSync(filePath);
+          return {
+            name: file,
+            size: stats.size,
+            mtime: stats.mtimeMs,
+            url: `/corpus_screenshots/${encodeURIComponent(file)}`
+          };
+        }).sort((a, b) => {
+          const numA = parseInt(a.name.match(/\d+/)?.[0] || "0", 10);
+          const numB = parseInt(b.name.match(/\d+/)?.[0] || "0", 10);
+          return numA - numB;
+        });
+
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ success: true, images }));
+        return;
+      } catch (err: any) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: err.message }));
+        return;
+      }
+    }
+
+    // API: Delete Specific Uploaded Screenshot
+    if (req.method === "POST" && req.url === "/api/delete_uploaded_screenshot") {
+      let body = "";
+      req.on("data", chunk => { body += chunk; });
+      req.on("end", () => {
+        try {
+          const { filename } = JSON.parse(body);
+          if (!filename) throw new Error("Filename missing");
+          const safeName = path.basename(filename);
+          const target = path.join(uploadsDir, safeName);
+          if (fs.existsSync(target)) {
+            fs.unlinkSync(target);
+            console.log(`\n🗑️ [IMAGE_DELETED] Deleted: ${safeName}`);
+          }
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ success: true }));
+        } catch (err: any) {
+          res.writeHead(500, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: err.message }));
+        }
+      });
+      return;
+    }
+
+    // API: Clear All Uploaded Screenshots
+    if (req.method === "POST" && req.url === "/api/clear_uploaded_screenshots") {
+      try {
+        const files = fs.readdirSync(uploadsDir);
+        files.forEach(f => {
+          try { fs.unlinkSync(path.join(uploadsDir, f)); } catch {}
+        });
+        console.log(`\n🗑️ [ALL_IMAGES_CLEARED] Cleared all uploaded screenshots.`);
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ success: true }));
+        return;
+      } catch (err: any) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: err.message }));
+        return;
+      }
     }
 
     // API: Return Video Audio Orchestral Plan (96 Cues)
