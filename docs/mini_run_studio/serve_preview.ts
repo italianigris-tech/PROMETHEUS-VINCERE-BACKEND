@@ -447,6 +447,10 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
 
     // Row click handler: Seek & Micro-Loop
     function handleRowClick(event, cueIndex) {
+      seekAndLoopCue(cueIndex);
+    }
+
+    function seekAndLoopCue(cueIndex) {
       const t = soundManifest.treatments[cueIndex];
       const cueTime = t.timestampSeconds;
       const dur = t.soundDesign.durationEstimateSec || 0.35;
@@ -470,8 +474,9 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
       const row = document.getElementById('row-' + cueIndex);
       if (row) row.classList.add('loop-locked');
 
+      // Unmute video if muted by browser and scrub to exact time
       video.currentTime = start;
-      video.play();
+      video.play().catch(() => {});
     }
 
     function decoupleLoop() {
@@ -491,13 +496,11 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
       t.soundDesign.gainDb = v.gainDb;
       t.soundDesign.durationEstimateSec = v.durationSec;
 
+      // Automatically scrub video to this cue and start micro-looping
+      seekAndLoopCue(cueIndex);
+
       // Audition immediately
       auditionSingleAudio(v.audioUrl);
-
-      // If this cue is currently looping, update banner label
-      if (activeLoopRange && activeLoopRange.cueIndex === cueIndex) {
-        loopCueName.innerText = t.visualTrigger.elementName + ' (' + v.label + ')';
-      }
 
       // Save to server
       fetch('/api/update_variant', {
@@ -511,8 +514,14 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
     function auditionCurrentVariant(cueIndex) {
       const t = soundManifest.treatments[cueIndex];
       const v = t.soundDesign.variants[t.soundDesign.selectedVariantIndex || 0];
+
+      // Automatically scrub video to this cue and start micro-looping
+      seekAndLoopCue(cueIndex);
+
+      // Audition single audio asset
       auditionSingleAudio(v.audioUrl);
     }
+
 
     async function rebakeAudioTrack() {
       const btn = document.getElementById('btnRebake');
@@ -628,6 +637,32 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
   </script>
 </body>
 </html>`;
+
+function extractBinaryPayload(buffer: Buffer, contentType?: string): { data: Buffer; filename?: string } {
+  if (!contentType || !contentType.includes("multipart/form-data")) {
+    return { data: buffer };
+  }
+  const boundaryMatch = contentType.match(/boundary=([^;]+)/i);
+  if (!boundaryMatch) return { data: buffer };
+  const boundary = boundaryMatch[1].trim().replace(/^["']|["']$/g, "");
+  const boundaryBuffer = Buffer.from(`--${boundary}`);
+  
+  const headerEndIndex = buffer.indexOf(Buffer.from("\r\n\r\n"));
+  if (headerEndIndex === -1) return { data: buffer };
+  
+  const headerText = buffer.subarray(0, headerEndIndex).toString("utf8");
+  const filenameMatch = headerText.match(/filename="([^"]+)"/i) || headerText.match(/filename=([^;\r\n]+)/i);
+  const parsedFilename = filenameMatch ? filenameMatch[1].trim() : undefined;
+  
+  const fileStart = headerEndIndex + 4;
+  const nextBoundaryIndex = buffer.indexOf(boundaryBuffer, fileStart);
+  const fileEnd = nextBoundaryIndex !== -1 ? nextBoundaryIndex - 2 : buffer.length;
+  
+  return {
+    data: buffer.subarray(fileStart, fileEnd),
+    filename: parsedFilename
+  };
+}
 
 function createServerInstance(port: number) {
   const s = http.createServer((req, res) => {
@@ -771,18 +806,117 @@ function createServerInstance(port: number) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Screenshot Dropzone & Reference Gallery</title>
   <style>
-    :root { --bg-dark: #070913; --card-bg: rgba(14, 19, 38, 0.95); --accent-cyan: #00F0FF; --panel-border: rgba(255, 255, 255, 0.1); }
+    :root { 
+      --bg-dark: #070913; 
+      --card-bg: rgba(14, 19, 38, 0.95); 
+      --accent-cyan: #00F0FF; 
+      --accent-pink: #FF0055;
+      --accent-green: #10B981;
+      --panel-border: rgba(255, 255, 255, 0.1); 
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: var(--bg-dark); color: #FFF; font-family: -apple-system, sans-serif; padding: 20px; }
+    body { 
+      background: var(--bg-dark); 
+      color: #FFF; 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+      padding: 20px; 
+      min-height: 100vh;
+    }
     .header { text-align: center; margin-bottom: 24px; }
-    .header h1 { font-size: 24px; color: var(--accent-cyan); }
-    .nav-links { display: flex; justify-content: center; gap: 12px; margin-top: 10px; }
-    .nav-links a { color: #8E9BAE; text-decoration: none; padding: 6px 12px; background: rgba(255,255,255,0.05); border-radius: 6px; font-size: 13px; }
-    .nav-links a:hover { color: #FFF; background: rgba(255,255,255,0.1); }
-    .dropzone { border: 2px dashed var(--accent-cyan); border-radius: 12px; padding: 40px 20px; text-align: center; margin-bottom: 24px; background: rgba(0, 240, 255, 0.03); cursor: pointer; }
-    .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
-    .item-card { background: var(--card-bg); border: 1px solid var(--panel-border); border-radius: 12px; overflow: hidden; padding: 12px; }
-    .item-card img { width: 100%; height: auto; border-radius: 8px; }
+    .header h1 { 
+      font-size: 24px; 
+      background: linear-gradient(135deg, var(--accent-cyan), #C084FC);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 4px;
+    }
+    .nav-links { display: flex; justify-content: center; gap: 10px; margin-top: 10px; }
+    .nav-links a { 
+      color: #8E9BAE; 
+      text-decoration: none; 
+      padding: 6px 14px; 
+      background: rgba(255,255,255,0.05); 
+      border: 1px solid var(--panel-border);
+      border-radius: 8px; 
+      font-size: 12px; 
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .nav-links a:hover { color: #FFF; background: rgba(255,255,255,0.12); border-color: var(--accent-cyan); }
+    
+    .dropzone { 
+      border: 2px dashed var(--accent-cyan); 
+      border-radius: 16px; 
+      padding: 44px 24px; 
+      text-align: center; 
+      margin-bottom: 24px; 
+      background: rgba(0, 240, 255, 0.03); 
+      cursor: pointer; 
+      transition: all 0.2s;
+      position: relative;
+    }
+    .dropzone.dragover { 
+      background: rgba(0, 240, 255, 0.12); 
+      border-color: #FFF;
+      transform: scale(1.01); 
+    }
+    .dropzone h3 { font-size: 18px; color: #FFF; margin-bottom: 8px; }
+    .dropzone p { color: #8E9BAE; font-size: 13px; }
+
+    #statusBanner {
+      display: none;
+      padding: 10px 16px;
+      border-radius: 8px;
+      margin-bottom: 18px;
+      font-size: 13px;
+      font-weight: 600;
+      text-align: center;
+    }
+    .status-uploading { background: rgba(0, 240, 255, 0.15); color: var(--accent-cyan); border: 1px solid var(--accent-cyan); }
+    .status-success { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); border: 1px solid var(--accent-green); }
+    .status-error { background: rgba(255, 0, 85, 0.15); color: var(--accent-pink); border: 1px solid var(--accent-pink); }
+
+    .gallery-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .gallery-header h2 { font-size: 16px; color: #E2E8F0; }
+
+    .gallery { 
+      display: grid; 
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
+      gap: 16px; 
+    }
+    .item-card { 
+      background: var(--card-bg); 
+      border: 1px solid var(--panel-border); 
+      border-radius: 12px; 
+      overflow: hidden; 
+      padding: 12px; 
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: transform 0.2s;
+    }
+    .item-card:hover { transform: translateY(-2px); border-color: rgba(0, 240, 255, 0.3); }
+    .item-card img { 
+      width: 100%; 
+      height: 240px; 
+      object-fit: contain; 
+      background: #02040A; 
+      border-radius: 8px; 
+    }
+    .item-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: #8E9BAE;
+      font-family: monospace;
+      word-break: break-all;
+    }
   </style>
 </head>
 <body>
@@ -791,39 +925,125 @@ function createServerInstance(port: number) {
     <div class="nav-links">
       <a href="/">🎵 Sound Studio</a>
       <a href="/typo">🔤 Typography Studio (/typo)</a>
-      <a href="/paste" style="color: var(--accent-cyan); font-weight: bold;">📸 Screenshots (/paste)</a>
+      <a href="/paste" style="color: var(--accent-cyan); font-weight: bold; border-color: var(--accent-cyan);">📸 Screenshots (/paste)</a>
     </div>
   </div>
+
+  <div id="statusBanner"></div>
+
   <div class="dropzone" id="dropzone">
-    <h3>📋 Paste Screenshot (Ctrl+V) or Drag & Drop Images Here</h3>
-    <p style="color: #8E9BAE; font-size: 12px; margin-top: 6px;">Instantly uploads and logs to server for automated analysis</p>
+    <h3>📋 Paste (Ctrl+V), Drag & Drop, or Click to Upload</h3>
+    <p>Upload review screenshots for automated bounding box and visual analysis</p>
+    <input type="file" id="filePicker" multiple accept="image/*" style="display: none;" />
   </div>
+
+  <div class="gallery-header">
+    <h2 id="galleryCount">Gallery Images (0)</h2>
+    <button onclick="loadGallery()" style="background: rgba(255,255,255,0.06); border: 1px solid var(--panel-border); color: #FFF; padding: 4px 10px; border-radius: 6px; font-size: 11px; cursor: pointer;">🔄 Refresh</button>
+  </div>
+
   <div class="gallery" id="gallery"></div>
+
   <script>
-    async function loadGallery() {
-      const res = await fetch('/api/list_uploaded_screenshots');
-      const files = await res.json();
-      const gal = document.getElementById('gallery');
-      gal.innerHTML = '';
-      files.forEach(f => {
-        const d = document.createElement('div');
-        d.className = 'item-card';
-        d.innerHTML = '<img src="/uploaded_screenshots/' + f + '" /><div style="font-size:11px; color:#8E9BAE; margin-top:6px; word-break:break-all;">' + f + '</div>';
-        gal.appendChild(d);
-      });
+    const banner = document.getElementById('statusBanner');
+    const dropzone = document.getElementById('dropzone');
+    const filePicker = document.getElementById('filePicker');
+
+    function showStatus(msg, type = 'uploading') {
+      banner.className = 'status-' + type;
+      banner.innerText = msg;
+      banner.style.display = 'block';
+      if (type !== 'uploading') {
+        setTimeout(() => { banner.style.display = 'none'; }, 4000);
+      }
     }
+
+    async function loadGallery() {
+      try {
+        const res = await fetch('/api/list_uploaded_screenshots?t=' + Date.now());
+        const files = await res.json();
+        const gal = document.getElementById('gallery');
+        document.getElementById('galleryCount').innerText = 'Gallery Images (' + files.length + ')';
+        gal.innerHTML = '';
+        files.forEach(f => {
+          const d = document.createElement('div');
+          d.className = 'item-card';
+          d.innerHTML = 
+            '<a href="/uploaded_screenshots/' + f + '" target="_blank">' +
+              '<img src="/uploaded_screenshots/' + f + '" loading="lazy" />' +
+            '</a>' +
+            '<div class="item-info">' +
+              '<span>' + f + '</span>' +
+            '</div>';
+          gal.appendChild(d);
+        });
+      } catch (e) {
+        console.error("Failed to load gallery:", e);
+      }
+    }
+
+    async function uploadSingleFile(file) {
+      if (!file) return;
+      const cleanName = (file.name || ('paste_' + Date.now() + '.png')).replace(/[^a-zA-Z0-9._-]/g, '_');
+      showStatus('⏳ Uploading ' + cleanName + '...', 'uploading');
+
+      try {
+        const res = await fetch('/api/upload-paste?filename=' + encodeURIComponent(cleanName), {
+          method: 'POST',
+          headers: { 'Content-Type': file.type || 'image/png' },
+          body: file
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+          showStatus('✓ Uploaded ' + (data.filename || cleanName), 'success');
+          loadGallery();
+        } else {
+          showStatus('❌ Upload failed: ' + (data.error || 'Server error'), 'error');
+        }
+      } catch (e) {
+        showStatus('❌ Upload error: ' + e.message, 'error');
+      }
+    }
+
+    async function handleFiles(fileList) {
+      if (!fileList || fileList.length === 0) return;
+      for (let i = 0; i < fileList.length; i++) {
+        await uploadSingleFile(fileList[i]);
+      }
+    }
+
+    // Click to upload
+    dropzone.addEventListener('click', () => filePicker.click());
+    filePicker.addEventListener('change', (e) => handleFiles(e.target.files));
+
+    // Drag & Drop
+    ['dragenter', 'dragover'].forEach(name => {
+      window.addEventListener(name, (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+    });
+    ['dragleave', 'drop'].forEach(name => {
+      window.addEventListener(name, (e) => { e.preventDefault(); dropzone.classList.remove('dragover'); });
+    });
+    window.addEventListener('drop', (e) => {
+      e.preventDefault();
+      if (e.dataTransfer && e.dataTransfer.files) {
+        handleFiles(e.dataTransfer.files);
+      }
+    });
+
+    // Clipboard Paste
     window.addEventListener('paste', async (e) => {
-      const items = e.clipboardData.items;
+      const items = e.clipboardData?.items;
+      if (!items) return;
       for (let item of items) {
         if (item.type.indexOf('image') !== -1) {
           const blob = item.getAsFile();
-          const fd = new FormData();
-          fd.append('file', blob, 'paste_' + Date.now() + '.png');
-          await fetch('/api/upload-paste', { method: 'POST', body: fd });
-          loadGallery();
+          if (blob) {
+            await uploadSingleFile(blob);
+          }
         }
       }
     });
+
     loadGallery();
   </script>
 </body>
@@ -834,18 +1054,39 @@ function createServerInstance(port: number) {
       return;
     }
 
-    // API: Upload Paste Screenshot
-    if (req.method === "POST" && req.url === "/api/upload-paste") {
+    // API: Upload Paste / Drag & Drop Screenshot
+    if (req.method === "POST" && req.url?.startsWith("/api/upload-paste")) {
       const chunks: Buffer[] = [];
       req.on("data", chunk => chunks.push(chunk));
       req.on("end", () => {
-        const body = Buffer.concat(chunks);
-        const uploadDir = path.join(studioDir, "uploaded_screenshots");
-        if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-        const fn = "paste_" + Date.now() + ".png";
-        fs.writeFileSync(path.join(uploadDir, fn), body);
-        res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ status: "success", filename: fn }));
+        try {
+          const rawBuffer = Buffer.concat(chunks);
+          const contentType = req.headers["content-type"] || "";
+          
+          let parsedFilename: string | undefined;
+          try {
+            const urlObj = new URL(req.url || "", "http://localhost");
+            parsedFilename = urlObj.searchParams.get("filename") || undefined;
+          } catch {}
+
+          const { data, filename: multipartFilename } = extractBinaryPayload(rawBuffer, contentType);
+          const finalFilename = parsedFilename || multipartFilename || ("paste_" + Date.now() + ".png");
+          const safeFilename = finalFilename.replace(/[^a-zA-Z0-9._-]/g, "_");
+
+          const uploadDir = path.join(studioDir, "uploaded_screenshots");
+          if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+          
+          const targetPath = path.join(uploadDir, safeFilename);
+          fs.writeFileSync(targetPath, data);
+
+          console.log(`📸 [UPLOAD_SUCCESS] Saved screenshot: ${safeFilename} (${data.length} bytes)`);
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ status: "success", filename: safeFilename, bytes: data.length }));
+        } catch (e: any) {
+          console.error("❌ [UPLOAD_ERROR]", e);
+          res.writeHead(500, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ status: "error", error: e.message }));
+        }
       });
       return;
     }
