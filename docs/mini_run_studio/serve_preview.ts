@@ -12,6 +12,10 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
+const animPreviewDir = path.resolve(repoRoot, "Yuan Prometheus Screenshots/prometheus_animations_preview");
+const screenshotsDir = path.resolve(repoRoot, "Yuan Prometheus Screenshots");
+const fontPairingScreenshotsDir = path.resolve(repoRoot, "Yuan Prometheus Screenshots/font pairing and placement");
+
 const MIME_TYPES: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
   ".css": "text/css; charset=utf-8",
@@ -28,26 +32,38 @@ const MIME_TYPES: Record<string, string> = {
   ".ico": "image/x-icon",
 };
 
-const animPreviewDir = path.resolve(repoRoot, "Yuan Prometheus Screenshots/prometheus_animations_preview");
-const screenshotsDir = path.resolve(repoRoot, "Yuan Prometheus Screenshots");
-
 /**
- * Resolve requested URL to disk file path across studioDir, animPreviewDir, screenshotsDir, uploadsDir, and repoRoot.
+ * Resolve requested URL to disk file path safely with URL decoding.
  */
 function resolveFilePath(reqUrl: string): { filePath: string; contentType: string } | null {
   let cleanPath = reqUrl.split("?")[0].split("#")[0];
   try {
     cleanPath = decodeURIComponent(cleanPath);
   } catch {}
+
   if (cleanPath === "/" || cleanPath === "") {
     cleanPath = "/typography_treatment_presentation.html";
   }
 
-  // Direct route for uploaded screenshots
+  // Explicit route for uploaded screenshots
   if (cleanPath.startsWith("/uploaded_screenshots/")) {
     const rawName = cleanPath.replace(/^\/uploaded_screenshots\//, "");
     const safeName = path.basename(rawName);
     const target = path.join(uploadsDir, safeName);
+    if (fs.existsSync(target) && fs.statSync(target).isFile()) {
+      const ext = path.extname(target).toLowerCase();
+      return {
+        filePath: target,
+        contentType: MIME_TYPES[ext] || "image/png",
+      };
+    }
+  }
+
+  // Explicit route for font pairing corpus screenshots
+  if (cleanPath.startsWith("/corpus_screenshots/")) {
+    const rawName = cleanPath.replace(/^\/corpus_screenshots\//, "");
+    const safeName = path.basename(rawName);
+    const target = path.join(fontPairingScreenshotsDir, safeName);
     if (fs.existsSync(target) && fs.statSync(target).isFile()) {
       const ext = path.extname(target).toLowerCase();
       return {
@@ -169,7 +185,7 @@ const server = http.createServer((req, res) => {
     }
     .container {
       width: 100%;
-      max-width: 920px;
+      max-width: 1000px;
       display: flex;
       flex-direction: column;
       gap: 20px;
@@ -227,7 +243,7 @@ const server = http.createServer((req, res) => {
       min-height: 24px;
     }
 
-    /* BATCH GALLERY SECTION */
+    /* GALLERY TABS */
     .gallery-card {
       background: var(--card-bg);
       border: 1px solid var(--panel-border);
@@ -235,32 +251,38 @@ const server = http.createServer((req, res) => {
       padding: 24px;
       box-shadow: 0 20px 50px rgba(0,0,0,0.6);
     }
-    .gallery-header {
+    .gallery-nav-tabs {
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 10px;
+      gap: 8px;
       margin-bottom: 18px;
       border-bottom: 1px solid var(--panel-border);
       padding-bottom: 12px;
-    }
-    .gallery-title {
-      font-size: 16px;
-      font-weight: 800;
-      color: var(--accent-cyan);
-      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
       align-items: center;
+    }
+    .tab-group {
+      display: flex;
       gap: 8px;
     }
-    .gallery-badge {
-      background: rgba(0, 240, 255, 0.15);
-      color: var(--accent-cyan);
-      padding: 2px 8px;
-      border-radius: 12px;
-      font-size: 12px;
-      font-family: monospace;
+    .tab-button {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--panel-border);
+      color: var(--text-muted);
+      border-radius: 20px;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.2s;
     }
+    .tab-button.active {
+      background: var(--accent-cyan);
+      color: #070913;
+      border-color: var(--accent-cyan);
+      box-shadow: 0 2px 10px rgba(0, 240, 255, 0.3);
+    }
+
     .gallery-actions {
       display: flex;
       align-items: center;
@@ -287,11 +309,11 @@ const server = http.createServer((req, res) => {
     /* IMAGE GRID */
     .image-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
       gap: 16px;
     }
     .image-item {
-      background: rgba(7, 9, 19, 0.8);
+      background: rgba(7, 9, 19, 0.85);
       border: 1px solid var(--panel-border);
       border-radius: 14px;
       overflow: hidden;
@@ -307,7 +329,7 @@ const server = http.createServer((req, res) => {
     }
     .image-thumb-wrap {
       width: 100%;
-      height: 160px;
+      height: 180px;
       background: #04050a;
       display: flex;
       align-items: center;
@@ -346,18 +368,19 @@ const server = http.createServer((req, res) => {
       position: absolute;
       top: 6px;
       right: 6px;
-      background: rgba(0, 0, 0, 0.7);
+      background: rgba(0, 0, 0, 0.8);
       border: 1px solid rgba(255, 255, 255, 0.2);
       color: #FFF;
       border-radius: 50%;
-      width: 24px;
-      height: 24px;
+      width: 26px;
+      height: 26px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 12px;
+      font-size: 13px;
       cursor: pointer;
       transition: all 0.2s;
+      z-index: 10;
     }
     .btn-delete-item:hover { background: #FF3366; border-color: #FF3366; transform: scale(1.1); }
 
@@ -381,7 +404,7 @@ const server = http.createServer((req, res) => {
   <div class="container">
     
     <div class="header-card">
-      <h1>📸 Batch Screenshot Upload & Paste Dropzone</h1>
+      <h1>📸 Batch Screenshot Upload & Multi-Image Dropzone</h1>
       <p>
         Drop <b>multiple screenshots</b> at once, select a batch of files, or press <b style="color: var(--accent-yellow);">Ctrl+V / Cmd+V</b> repeatedly to paste a ton of images!
       </p>
@@ -389,7 +412,7 @@ const server = http.createServer((req, res) => {
       <div class="dropzone" id="dropzone">
         <div class="dropzone-icon">📥</div>
         <div class="dropzone-title">Drop Multiple Images or Click to Browse Batch</div>
-        <div class="dropzone-sub">Supports pasting multiple clipboard items & bulk file uploads (PNG, JPG, WebP)</div>
+        <div class="dropzone-sub">Supports multi-paste (Ctrl+V) & bulk file uploads (PNG, JPG, WebP)</div>
         <input type="file" id="fileInput" accept="image/*" multiple style="display: none;">
       </div>
 
@@ -398,20 +421,24 @@ const server = http.createServer((req, res) => {
 
     <!-- LIVE UPLOADED GALLERY -->
     <div class="gallery-card">
-      <div class="gallery-header">
-        <div class="gallery-title">
-          <span>Uploaded Screenshots Gallery</span>
-          <span id="galleryCountBadge" class="gallery-badge">0 Images</span>
+      <div class="gallery-nav-tabs">
+        <div class="tab-group">
+          <button class="tab-button active" id="tabUploads" onclick="switchGalleryTab('uploads')">
+            📥 Newly Uploaded Screenshots (<span id="uploadsCount">0</span>)
+          </button>
+          <button class="tab-button" id="tabCorpus" onclick="switchGalleryTab('corpus')">
+            📚 Prometheus Font Pairing Corpus (<span id="corpusCount">45</span>)
+          </button>
         </div>
-        <div class="gallery-actions">
-          <button class="btn-action" onclick="fetchGallery()">🔄 Refresh</button>
-          <button class="btn-action btn-danger" onclick="clearAllGallery()">🗑️ Clear All</button>
+        <div class="gallery-actions" id="galleryActionsWrap">
+          <button class="btn-action" onclick="refreshCurrentTab()">🔄 Refresh</button>
+          <button class="btn-action btn-danger" onclick="clearAllUploads()">🗑️ Clear Uploads</button>
         </div>
       </div>
 
       <div id="imageGrid" class="image-grid">
         <div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 30px;">
-          No screenshots uploaded yet. Paste or drop images above!
+          Loading gallery...
         </div>
       </div>
     </div>
@@ -428,7 +455,11 @@ const server = http.createServer((req, res) => {
     const fileInput = document.getElementById('fileInput');
     const statusBar = document.getElementById('statusBar');
     const imageGrid = document.getElementById('imageGrid');
-    const countBadge = document.getElementById('galleryCountBadge');
+    const uploadsCountBadge = document.getElementById('uploadsCount');
+    const corpusCountBadge = document.getElementById('corpusCount');
+
+    let currentTab = 'uploads';
+    let localUploadedImages = [];
 
     dropzone.onclick = () => fileInput.click();
 
@@ -438,7 +469,7 @@ const server = http.createServer((req, res) => {
       }
     };
 
-    // Global Clipboard Paste Support (Handles 1 or Multiple Pasted Images in a Row)
+    // Global Clipboard Paste Support (Handles Multiple Pasted Images in a Row)
     window.addEventListener('paste', (e) => {
       const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
       if (!items) return;
@@ -468,11 +499,30 @@ const server = http.createServer((req, res) => {
       }
     });
 
+    // Handle batch files with INSTANT optimistic local preview + background server upload
     async function handleBatchFiles(files) {
       if (files.length === 0) return;
       statusBar.innerText = '⏳ Uploading ' + files.length + ' image(s)...';
       statusBar.style.color = '#FFE600';
 
+      // 1. Optimistic instant preview in gallery
+      files.forEach((file, idx) => {
+        const localUrl = URL.createObjectURL(file);
+        const optimisticName = file.name || ('screenshot_' + Date.now() + '_' + (idx+1) + '.png');
+        localUploadedImages.unshift({
+          name: optimisticName,
+          size: file.size,
+          mtime: Date.now(),
+          url: localUrl,
+          isLocal: true
+        });
+      });
+
+      if (currentTab === 'uploads') {
+        renderGallery(localUploadedImages, true);
+      }
+
+      // 2. Perform background uploads
       let successCount = 0;
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
@@ -495,7 +545,7 @@ const server = http.createServer((req, res) => {
 
       statusBar.innerText = '✅ ' + successCount + ' of ' + files.length + ' image(s) uploaded successfully!';
       statusBar.style.color = '#10B981';
-      fetchGallery();
+      fetchUploadsGallery();
     }
 
     function readFileAsDataUrl(file) {
@@ -507,20 +557,51 @@ const server = http.createServer((req, res) => {
       });
     }
 
-    async function fetchGallery() {
-      try {
-        const res = await fetch('/api/list_uploaded_screenshots?t=' + Date.now());
-        const data = await res.json();
-        renderGallery(data.images || []);
-      } catch (err) {
-        console.error("Failed to fetch gallery:", err);
+    function switchGalleryTab(tab) {
+      currentTab = tab;
+      document.getElementById('tabUploads').classList.toggle('active', tab === 'uploads');
+      document.getElementById('tabCorpus').classList.toggle('active', tab === 'corpus');
+      refreshCurrentTab();
+    }
+
+    function refreshCurrentTab() {
+      if (currentTab === 'uploads') {
+        fetchUploadsGallery();
+      } else {
+        fetchCorpusGallery();
       }
     }
 
-    function renderGallery(images) {
-      countBadge.innerText = images.length + ' Image' + (images.length === 1 ? '' : 's');
+    async function fetchUploadsGallery() {
+      try {
+        const res = await fetch('/api/list_uploaded_screenshots?t=' + Date.now());
+        const data = await res.json();
+        localUploadedImages = data.images || [];
+        uploadsCountBadge.innerText = localUploadedImages.length;
+        if (currentTab === 'uploads') {
+          renderGallery(localUploadedImages, true);
+        }
+      } catch (err) {
+        console.error("Failed to fetch uploads gallery:", err);
+      }
+    }
+
+    async function fetchCorpusGallery() {
+      try {
+        const res = await fetch('/api/list_corpus_screenshots?t=' + Date.now());
+        const data = await res.json();
+        corpusCountBadge.innerText = data.images.length;
+        if (currentTab === 'corpus') {
+          renderGallery(data.images || [], false);
+        }
+      } catch (err) {
+        console.error("Failed to fetch corpus gallery:", err);
+      }
+    }
+
+    function renderGallery(images, allowDelete) {
       if (images.length === 0) {
-        imageGrid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 30px;">No screenshots uploaded yet. Paste or drop images above!</div>';
+        imageGrid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 30px;">No screenshots in this gallery yet. Paste or drop images above!</div>';
         return;
       }
 
@@ -529,14 +610,17 @@ const server = http.createServer((req, res) => {
         const item = document.createElement('div');
         item.className = 'image-item';
 
-        const sizeKb = Math.round(img.size / 1024);
-        const dateStr = new Date(img.mtime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const sizeKb = Math.round((img.size || 0) / 1024);
+        const dateStr = img.mtime ? new Date(img.mtime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '';
 
-        const delBtn = document.createElement('button');
-        delBtn.className = 'btn-delete-item';
-        delBtn.innerText = '✕';
-        delBtn.title = 'Delete screenshot';
-        delBtn.onclick = (e) => { e.stopPropagation(); deleteImage(img.name); };
+        if (allowDelete) {
+          const delBtn = document.createElement('button');
+          delBtn.className = 'btn-delete-item';
+          delBtn.innerText = '✕';
+          delBtn.title = 'Delete screenshot';
+          delBtn.onclick = (e) => { e.stopPropagation(); deleteImage(img.name); };
+          item.appendChild(delBtn);
+        }
 
         const thumbWrap = document.createElement('div');
         thumbWrap.className = 'image-thumb-wrap';
@@ -554,7 +638,6 @@ const server = http.createServer((req, res) => {
           '<div class="image-name" title="' + img.name + '">' + img.name + '</div>' +
           '<div class="image-info"><span>' + sizeKb + ' KB</span><span>' + dateStr + '</span></div>';
 
-        item.appendChild(delBtn);
         item.appendChild(thumbWrap);
         item.appendChild(meta);
         imageGrid.appendChild(item);
@@ -569,25 +652,26 @@ const server = http.createServer((req, res) => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ filename: name })
         });
-        fetchGallery();
+        fetchUploadsGallery();
       } catch (err) {
         alert('Delete failed: ' + err.message);
       }
     }
 
-    async function clearAllGallery() {
+    async function clearAllUploads() {
       if (!confirm('Clear all uploaded screenshots?')) return;
       try {
         await fetch('/api/clear_uploaded_screenshots', { method: 'POST' });
-        fetchGallery();
+        localUploadedImages = [];
+        fetchUploadsGallery();
       } catch (err) {
         alert('Clear failed: ' + err.message);
       }
     }
 
-    // Initial Gallery Load & 2.5s Polling
-    fetchGallery();
-    setInterval(fetchGallery, 2500);
+    // Initial Gallery Load
+    fetchUploadsGallery();
+    fetchCorpusGallery();
   </script>
 </body>
 </html>`);
@@ -634,7 +718,7 @@ const server = http.createServer((req, res) => {
   }
 
   // API 2: List Uploaded Screenshots
-  if (req.method === "GET" && req.url === "/api/list_uploaded_screenshots") {
+  if (req.method === "GET" && req.url?.startsWith("/api/list_uploaded_screenshots")) {
     try {
       const files = fs.readdirSync(uploadsDir);
       const images = files.map(file => {
@@ -658,7 +742,32 @@ const server = http.createServer((req, res) => {
     }
   }
 
-  // API 3: Delete Specific Uploaded Screenshot
+  // API 3: List Corpus Screenshots (All 45 Font Pairing Screenshots)
+  if (req.method === "GET" && req.url?.startsWith("/api/list_corpus_screenshots")) {
+    try {
+      const files = fs.readdirSync(fontPairingScreenshotsDir).filter(f => /\.(png|jpg|jpeg|webp)$/i.test(f));
+      const images = files.map(file => {
+        const filePath = path.join(fontPairingScreenshotsDir, file);
+        const stats = fs.statSync(filePath);
+        return {
+          name: file,
+          size: stats.size,
+          mtime: stats.mtimeMs,
+          url: `/corpus_screenshots/${encodeURIComponent(file)}`
+        };
+      });
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ success: true, images }));
+      return;
+    } catch (err: any) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+      return;
+    }
+  }
+
+  // API 4: Delete Specific Uploaded Screenshot
   if (req.method === "POST" && req.url === "/api/delete_uploaded_screenshot") {
     let body = "";
     req.on("data", chunk => { body += chunk; });
@@ -686,7 +795,7 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // API 4: Clear All Uploaded Screenshots
+  // API 5: Clear All Uploaded Screenshots
   if (req.method === "POST" && req.url === "/api/clear_uploaded_screenshots") {
     try {
       const files = fs.readdirSync(uploadsDir);
@@ -746,7 +855,7 @@ server.listen(PORT, "0.0.0.0", () => {
 });
 
 /**
- * Start all tunnel options (Fixed Subdomain Localtunnel, Cloudflare Tunnel, and Direct EC2 IP).
+ * Start all tunnel options.
  */
 async function startAllTunnels(port: number) {
   let publicIp = "16.192.95.115";
@@ -793,7 +902,7 @@ async function startAllTunnels(port: number) {
   cfProcess.stdout?.on("data", onData);
   cfProcess.stderr?.on("data", onData);
 
-  // 3. Launch Pinggy Tunnel (Parallel High-Reliability HTTPS)
+  // 3. Launch Pinggy Tunnel
   const pinggyProcess = spawn("ssh", ["-o", "StrictHostKeyChecking=no", "-p", "443", "-R0:localhost:8080", "a.pinggy.io"], {
     shell: true,
     stdio: ["ignore", "pipe", "pipe"],
