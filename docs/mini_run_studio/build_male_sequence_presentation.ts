@@ -97,12 +97,12 @@ const htmlContent = `<!DOCTYPE html>
   <meta name="theme-color" content="#070913">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>Prometheus Core — Dynamic Probabilistic Selector Studio</title>
+  <title>Prometheus Core — Authoritative Font JSON Realization & Kinetic Studio</title>
   
-  <!-- Authoritative WebFont imports -->
+  <!-- Authoritative Google WebFonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,400..900;1,9..40,400..900&family=DM+Serif+Display:ital@0;1&family=Great+Vibes&family=Montserrat:wght@800;900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..900;1,6..96,400..900&family=Cinzel:wght@700;900&family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600;1,700&family=DM+Sans:ital,opsz,wght@0,9..40,400..900;1,9..40,400..900&family=DM+Serif+Display:ital@0;1&family=Great+Vibes&family=Inter:wght@400;700;800;900&family=Lora:ital,wght@0,600;0,700;1,600;1,700&family=Montserrat:ital,wght@0,800;0,900;1,800;1,900&family=Oswald:wght@700&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Syne:wght@700;800&display=swap" rel="stylesheet">
   
   <style>
     :root {
@@ -114,7 +114,7 @@ const htmlContent = `<!DOCTYPE html>
       --accent-pink: #EC4899;
       --accent-green: #10B981;
       --accent-lime: #84CC16;
-      --accent-yellow: #F59E0B;
+      --accent-yellow: #FFE600;
       --text-main: #F8FAFC;
       --text-muted: #94A3B8;
       --stage-max-w: 395px;
@@ -312,11 +312,6 @@ const htmlContent = `<!DOCTYPE html>
       pointer-events: none;
       transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
     }
-    .treated-asset-canvas {
-      display: block;
-      filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.35));
-    }
-    .halftone-mosaic-wrap { position: relative; display: inline-block; }
 
     /* 3D KINETIC TYPOGRAPHY STAGES */
     .head-kinetic-stage {
@@ -325,7 +320,7 @@ const htmlContent = `<!DOCTYPE html>
       left: 50%;
       transform: translateX(-50%);
       width: 90%;
-      z-index: 10; /* BEHIND SPEAKER HEAD */
+      z-index: 10; /* BEHIND SPEAKER HEAD (Z:10) */
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -340,7 +335,7 @@ const htmlContent = `<!DOCTYPE html>
       left: 50%;
       transform: translateX(-50%);
       width: 90%;
-      z-index: 30; /* IN FRONT OF SPEAKER CHEST */
+      z-index: 30; /* IN FRONT OF SPEAKER CHEST (Z:30) */
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -362,8 +357,8 @@ const htmlContent = `<!DOCTYPE html>
       flex-wrap: wrap;
       align-items: center;
       justify-content: center;
-      gap: 6px 8px;
-      max-width: 82%; /* Safe Margin */
+      gap: 4px 8px;
+      max-width: 85%;
       margin: 0 auto;
     }
 
@@ -489,14 +484,14 @@ const htmlContent = `<!DOCTYPE html>
 <body>
 
   <div class="header">
-    <h1>Prometheus Dynamic Probabilistic Selector Studio</h1>
-    <p>45 Font Profiles • 29 Kinetic Presets • Live Combinatorial Generator</p>
+    <h1>Prometheus Authoritative Font JSON Realization Studio</h1>
+    <p>Rigorous Font JSON Placement • 45 Authoritative Profiles • 29 Kinetic Presets</p>
   </div>
 
   <!-- DYNAMIC SELECTOR RE-ROLL TOOLBAR -->
   <div class="selector-toolbar">
     <button class="btn-reroll" id="btnReroll" onclick="reRollTreatment()">
-      🎲 Re-Roll Dynamic Treatment
+      🎲 Re-Roll Font JSON & Kinetics
     </button>
     <button class="btn-secondary" onclick="resetSeed(101)">
       ↺ Reset Seed #101
@@ -505,7 +500,7 @@ const htmlContent = `<!DOCTYPE html>
       <span>Seed: <strong id="lblActiveSeed">#101</strong></span>
     </div>
     <div class="telemetry-chip">
-      <span>Permutations: <strong>&gt;35,000</strong></span>
+      <span>Font Profiles: <strong>45 Active</strong></span>
     </div>
     <a href="typography.html" target="_blank" class="btn-secondary" style="text-decoration:none;">
       ⚡ Master Kinetic Suite (29 Presets)
@@ -515,7 +510,7 @@ const htmlContent = `<!DOCTYPE html>
   <!-- VIEW MODE TABS -->
   <div class="view-mode-tabs">
     <button class="tab-btn active" id="tabPresentation" onclick="setViewMode('presentation')">🎬 20-Chunk Sequence</button>
-    <button class="tab-btn" id="tabDiagnostics" onclick="setViewMode('diagnostics')">🔍 Trait Inspector</button>
+    <button class="tab-btn" id="tabDiagnostics" onclick="setViewMode('diagnostics')">🔍 Font JSON Inspector</button>
   </div>
 
   <div class="app-layout">
@@ -564,25 +559,27 @@ const htmlContent = `<!DOCTYPE html>
     <!-- SIDE INSPECTOR PANEL -->
     <div class="inspector-panel" id="inspectorPanel">
       <div class="inspector-title">
-        <span>Dynamic Layer Inspector</span>
+        <span>Font JSON Profile & Layer Inspector</span>
         <span id="lblActiveChunk" style="font-size: 11px; color: var(--text-muted);">Chunk 1 of 20</span>
       </div>
 
       <div class="chunk-chips-container" id="chunkPicker"></div>
 
       <div style="margin-bottom: 8px; font-size: 11px; color: var(--text-muted);">
-        <span>Active Profile: <strong id="lblActiveProfile" style="color: var(--accent-cyan);">--</strong></span> • 
-        <span>Inflection Tier: <strong id="lblActiveTier" style="color: var(--accent-yellow);">--</strong></span>
+        <span>Authoritative Profile: <strong id="lblActiveProfile" style="color: var(--accent-cyan);">--</strong></span>
+      </div>
+      <div style="margin-bottom: 8px; font-size: 11px; color: var(--text-muted);">
+        <span>Mood / Placement: <strong id="lblActiveMood" style="color: var(--accent-yellow);">--</strong></span>
       </div>
 
       <table class="layers-table">
         <thead>
           <tr>
             <th>Layer / Role</th>
-            <th>Font & Scale</th>
+            <th>Font Family & Style</th>
+            <th>Casing & Margin</th>
             <th>Kinetic Preset</th>
             <th>Depth Plane</th>
-            <th>Status</th>
           </tr>
         </thead>
         <tbody id="layersTableBody"></tbody>
@@ -592,22 +589,22 @@ const htmlContent = `<!DOCTYPE html>
   </div>
 
   <script>
-    // 1. EMBEDDED CORPUS: 45 AUTHORITATIVE FONT JSON PROFILES
+    // 1. ALL 45 AUTHORITATIVE FONT JSON PROFILES LOADED DIRECTLY FROM DISK
     const ALL_FONT_PROFILES = ${JSON.stringify(allFontProfiles)};
     const TECH_FOUNDERS_BASE64 = "${techFoundersTrioBase64}";
     const RAW_CHUNKS = ${JSON.stringify(rawSpokenChunks)};
 
-    // 2. KINETIC PRESET POOL (29 Signature Treatments)
+    // 2. KINETIC PRESET REPERTOIRE (29 Treatments)
     const KINETIC_PRESETS = [
-      { id: "subpixel_blur_mask", name: "Soft Subpixel Blur Rise", scope: "word" },
-      { id: "defocus_rack_focus", name: "Defocus Aperture Snap", scope: "word" },
-      { id: "staggered_rotate_x", name: "3D Perspective Stagger Cascade", scope: "letter" },
-      { id: "keynote_punch", name: "Keynote Focal Scale Punch", scope: "phrase" },
-      { id: "slot_bounce", name: "Kinetic Slot Machine Bounce", scope: "word" },
-      { id: "acid_lime_letter_glitch", name: "Cyber Acid Lime Matrix Glitch (TYPO #30)", scope: "glyph" },
-      { id: "chromatic_character_displace", name: "RGB Chromatic Split Glitch", scope: "letter" },
-      { id: "top_down_character_drop", name: "Kinetic Top-Down Glyph Drop", scope: "letter" },
-      { id: "typewriter_engine", name: "Hexta Ghost Typewriter", scope: "letter" }
+      { id: "subpixel_blur_mask", name: "Soft Subpixel Blur Rise" },
+      { id: "defocus_rack_focus", name: "Defocus Aperture Snap" },
+      { id: "staggered_rotate_x", name: "3D Perspective Stagger Cascade" },
+      { id: "keynote_punch", name: "Keynote Focal Scale Punch" },
+      { id: "slot_bounce", name: "Kinetic Slot Machine Bounce" },
+      { id: "acid_lime_letter_glitch", name: "Cyber Acid Lime Matrix Glitch (TYPO #30)" },
+      { id: "chromatic_character_displace", name: "RGB Chromatic Split Glitch" },
+      { id: "top_down_character_drop", name: "Kinetic Top-Down Glyph Drop" },
+      { id: "typewriter_engine", name: "Hexta Ghost Typewriter" }
     ];
 
     let currentSeed = 101;
@@ -617,7 +614,7 @@ const htmlContent = `<!DOCTYPE html>
     let showBbox = false;
     let playTimer = null;
 
-    // Seeded PRNG (Mulberry32)
+    // Seeded PRNG
     function mulberry32(a) {
       return function() {
         var t = a += 0x6D2B79F5;
@@ -627,7 +624,57 @@ const htmlContent = `<!DOCTYPE html>
       }
     }
 
-    // 3. DYNAMIC PROBABILISTIC SELECTOR ENGINE
+    // Authoritative Casing Realization
+    function applyFontJsonCasing(text, casing) {
+      if (!casing || casing === 'normal') return text;
+      if (casing === 'lowercase') return text.toLowerCase();
+      if (casing === 'uppercase') return text.toUpperCase();
+      if (casing === 'title_case' || casing === 'capitalize') {
+        return text.replace(/(^|\\s)([^\\s])/gu, (_, p, c) => p + c.toUpperCase());
+      }
+      return text;
+    }
+
+    // Exact word count allocation algorithm from typography-profile-realization.ts
+    function allocateWordsToLayers(profileLayers, tokenCount) {
+      if (!profileLayers || profileLayers.length === 0) return [];
+      const activeLayers = tokenCount >= profileLayers.length 
+        ? [...profileLayers] 
+        : profileLayers.slice(0, tokenCount);
+
+      const observedTotal = activeLayers.reduce((sum, l) => sum + (l.word_count || 1), 0);
+      const ideals = activeLayers.map(l => (tokenCount * (l.word_count || 1)) / observedTotal);
+      const counts = ideals.map(ideal => Math.max(1, Math.floor(ideal)));
+
+      while (counts.reduce((sum, c) => sum + c, 0) < tokenCount) {
+        let maxDeficit = -999;
+        let maxIdx = 0;
+        counts.forEach((c, idx) => {
+          const deficit = ideals[idx] - c;
+          if (deficit > maxDeficit) { maxDeficit = deficit; maxIdx = idx; }
+        });
+        counts[maxIdx] += 1;
+      }
+
+      while (counts.reduce((sum, c) => sum + c, 0) > tokenCount) {
+        let maxRemovable = -999;
+        let maxIdx = 0;
+        counts.forEach((c, idx) => {
+          if (c > 1) {
+            const removable = c - ideals[idx];
+            if (removable > maxRemovable) { maxRemovable = removable; maxIdx = idx; }
+          }
+        });
+        counts[maxIdx] -= 1;
+      }
+
+      return activeLayers.map((layer, idx) => ({
+        layer: layer,
+        wordCount: counts[idx] || 1
+      }));
+    }
+
+    // 3. AUTHORITATIVE COMPILER EXECUTING RIGOROUS FONT JSON PLACEMENT INVARIANTS
     function compileDynamicSequence(seed) {
       const rng = mulberry32(seed);
       let lastProfileName = "";
@@ -638,75 +685,81 @@ const htmlContent = `<!DOCTYPE html>
         const words = raw.text.trim().split(' ').filter(w => w.length > 0);
         const wordCount = words.length;
 
-        // Filter candidate font profiles matching word count (+/- 1)
-        let candidateProfiles = ALL_FONT_PROFILES.filter(p => {
+        // 1. SELECT AUTHORITATIVE FONT JSON PROFILE MATCHING WORD COUNT
+        let candidates = ALL_FONT_PROFILES.filter(p => {
           if (p.profile_name === lastProfileName) return false;
-          const pWords = p.metadata?.total_word_count || 2;
+          const pWords = p.metadata?.total_word_count || p.typography_layers?.length || 2;
           return Math.abs(pWords - wordCount) <= 1;
         });
 
-        if (candidateProfiles.length === 0) {
-          candidateProfiles = ALL_FONT_PROFILES.filter(p => p.profile_name !== lastProfileName);
+        if (candidates.length === 0) {
+          candidates = ALL_FONT_PROFILES.filter(p => p.profile_name !== lastProfileName);
         }
 
-        const selectedProfile = candidateProfiles[Math.floor(rng() * candidateProfiles.length)] || ALL_FONT_PROFILES[0];
-        lastProfileName = selectedProfile.profile_name;
+        const profile = candidates[Math.floor(rng() * candidates.length)] || ALL_FONT_PROFILES[0];
+        lastProfileName = profile.profile_name;
 
-        // Multi-Layer Splicing Grammar
-        let layers = [];
-        let kineticMap = {};
-        let backgroundAsset = null;
+        // 2. RIGOROUSLY ALLOCATE SPOKEN WORDS TO FONT JSON LAYERS
+        const layerAllocations = allocateWordsToLayers(profile.typography_layers, wordCount);
+        let wordOffset = 0;
 
-        // Splicing: Split multi-word chunks into prefix + hero or single layer
-        if (wordCount >= 2) {
-          const splitIdx = Math.max(1, Math.floor(wordCount / 2));
-          const prefixText = words.slice(0, splitIdx).join(' ');
-          const heroText = words.slice(splitIdx).join(' ');
+        const renderedLayers = layerAllocations.map((alloc, layerIdx) => {
+          const lSpec = alloc.layer;
+          const assignedWords = words.slice(wordOffset, wordOffset + alloc.wordCount).join(' ');
+          wordOffset += alloc.wordCount;
 
-          const layer1Profile = selectedProfile.typography_layers[0] || {};
-          const layer2Profile = selectedProfile.typography_layers[1] || selectedProfile.typography_layers[0] || {};
+          const fStyle = lSpec.font_style || {};
+          const fEffects = lSpec.effects || {};
+          const matchedFamily = (lSpec.matched_font_candidates && lSpec.matched_font_candidates[0]) 
+            ? lSpec.matched_font_candidates[0] 
+            : "DM Sans";
 
-          // Choose 2 non-competing kinetic presets
-          const prefixFx = rng() > 0.4 ? "subpixel_blur_mask" : "defocus_rack_focus";
-          
-          let heroFxPool = KINETIC_PRESETS.filter(p => p.id !== prefixFx && p.id !== lastHeroPreset);
-          if (raw.emphasis === "inflection_tension" && rng() > 0.3) {
-            heroFxPool = KINETIC_PRESETS.filter(p => p.id === "acid_lime_letter_glitch" || p.id === "chromatic_character_displace" || p.id === "staggered_rotate_x");
+          // Calculate visual scale from Font JSON
+          const rawSize = (fStyle.size_px_base || 40) * (fStyle.relative_scale || 1.0);
+          const clampedSize = Math.max(24, Math.min(68, Math.round(rawSize)));
+
+          // Adapt color for dark video backdrop if dark
+          let resolvedColor = fStyle.color || "#FFFFFF";
+          if (resolvedColor === "#000000" || resolvedColor === "#2C2C2C" || resolvedColor === "#111111") {
+            resolvedColor = "#FFFFFF";
           }
-          const heroPreset = heroFxPool[Math.floor(rng() * heroFxPool.length)] || KINETIC_PRESETS[0];
-          lastHeroPreset = heroPreset.id;
 
-          // Layer 1 (Prefix)
-          const l1 = {
-            layerName: "prefix_" + chunkIdx,
-            text: prefixText,
-            fontFamily: layer1Profile.matched_font_candidates?.[0] || "Playfair Display",
-            fontWeight: layer1Profile.font_style?.weight || 700,
-            fontStyle: layer1Profile.font_style?.style || "italic",
-            fontSizePx: Math.round((layer1Profile.font_style?.size_px_base || 34) * 0.85),
-            color: "#FFFFFF",
-            casing: layer1Profile.font_style?.casing || "none",
-            dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.85)" }
+          // Casing rule from Font JSON
+          const textWithCasing = applyFontJsonCasing(assignedWords, fStyle.casing);
+
+          // Select non-competing kinetic preset from 29 Presets
+          let fxPreset = "subpixel_blur_mask";
+          if (lSpec.role === "primary_focus_word" || lSpec.role === "header") {
+            let pool = KINETIC_PRESETS.filter(p => p.id !== "subpixel_blur_mask" && p.id !== lastHeroPreset);
+            if (raw.emphasis === "inflection_tension") {
+              pool = KINETIC_PRESETS.filter(p => p.id === "acid_lime_letter_glitch" || p.id === "chromatic_character_displace" || p.id === "staggered_rotate_x");
+            }
+            const selected = pool[Math.floor(rng() * pool.length)] || KINETIC_PRESETS[0];
+            fxPreset = selected.id;
+            lastHeroPreset = fxPreset;
+          }
+
+          const layerObj = {
+            layerName: lSpec.layer_name || ("layer_" + layerIdx),
+            role: lSpec.role || "header",
+            rawText: assignedWords,
+            text: textWithCasing,
+            fontFamily: matchedFamily,
+            fontWeight: fStyle.weight || 700,
+            fontStyle: fStyle.style || "normal",
+            fontSizePx: clampedSize,
+            color: resolvedColor,
+            casing: fStyle.casing || "normal",
+            letterSpacingEm: fStyle.letter_spacing_em || 0,
+            lineHeight: fStyle.line_height || 1.1,
+            marginTopPx: fStyle.vertical_margin_top_px || 0,
+            dropShadow: fEffects.drop_shadow || { x_offset: 0, y_offset: 2, blur_radius: 8, color: "rgba(0,0,0,0.85)" },
+            fxPreset: fxPreset
           };
 
-          // Layer 2 (Hero Keyword)
-          const l2 = {
-            layerName: "hero_" + chunkIdx,
-            text: heroText,
-            fontFamily: layer2Profile.matched_font_candidates?.[0] || "DM Sans",
-            fontWeight: layer2Profile.font_style?.weight || 800,
-            fontStyle: layer2Profile.font_style?.style || "normal",
-            fontSizePx: layer2Profile.font_style?.size_px_base || 40,
-            color: layer2Profile.font_style?.color || (heroPreset.id === "acid_lime_letter_glitch" ? "#84CC16" : (rng() > 0.5 ? "#00F0FF" : "#FFE600")),
-            casing: layer2Profile.font_style?.casing || "none",
-            letterSpacingEm: layer2Profile.font_style?.letter_spacing_em || -0.02,
-            marginTopPx: 2,
-            dropShadow: { xOffset: 0, yOffset: 3, blurRadius: 12, color: "rgba(0,0,0,0.9)" }
-          };
-
-          // Dynamic Numeric Counter Prior
-          if (raw.metricValue) {
-            l2.numericCounter = {
+          // Numeric Counter Prior
+          if (raw.metricValue && (lSpec.role === "primary_focus_word" || layerIdx === layerAllocations.length - 1)) {
+            layerObj.numericCounter = {
               targetValue: raw.metricValue,
               prefix: raw.metricPrefix || "",
               suffix: raw.metricSuffix || "",
@@ -714,49 +767,29 @@ const htmlContent = `<!DOCTYPE html>
             };
           }
 
-          // Delayed Highlight Card Sweep Prior (anti-clustering: separation >= 4)
-          if ((raw.emphasis === "inflection_tension" || raw.emphasis === "inflection_solution") && (chunkIdx - lastCardIndex >= 4) && rng() > 0.35) {
-            l2.delayedPillCard = rng() > 0.5 ? "#FFE600" : "#FF1744";
+          // Delayed Highlight Card Sweep Prior
+          if ((raw.emphasis === "inflection_tension" || raw.emphasis === "inflection_solution") && 
+              (lSpec.role === "primary_focus_word" || layerIdx === layerAllocations.length - 1) && 
+              (chunkIdx - lastCardIndex >= 4) && rng() > 0.35) {
+            layerObj.delayedPillCard = rng() > 0.5 ? "#FFE600" : "#FF1744";
             lastCardIndex = chunkIdx;
           }
 
-          layers = [l1, l2];
-          
-          const isHeadZone = l2.fontWeight >= 700 && rng() > 0.45;
-          kineticMap[l1.layerName] = { fx: prefixFx, name: "Helper Prefix", depth: isHeadZone ? "behind_subject" : "in_front_of_subject", zone: isHeadZone ? "head_contact" : "chest_lower_third" };
-          kineticMap[l2.layerName] = { fx: heroPreset.id, name: heroPreset.name, depth: isHeadZone ? "behind_subject" : "in_front_of_subject", zone: isHeadZone ? "head_contact" : "chest_lower_third" };
+          return layerObj;
+        });
 
-        } else {
-          // Single Word Chunk
-          const layer1Profile = selectedProfile.typography_layers[0] || {};
-          let fx = KINETIC_PRESETS[Math.floor(rng() * KINETIC_PRESETS.length)];
-          if (raw.emphasis === "terminal_payoff") fx = { id: "typewriter_engine", name: "Hexta Ghost Typewriter" };
+        // 3. DEPTH PLANE & SPATIAL POSITIONING (Zone A Scalp Z:10 vs Zone B Chest Z:30)
+        const isHeadZone = renderedLayers.some(l => l.fontWeight >= 800) && rng() > 0.45;
+        const depthPlane = isHeadZone ? "behind_subject" : "in_front_of_subject";
 
-          const isHeadZone = rng() > 0.5;
-          const l1 = {
-            layerName: "stem_" + chunkIdx,
-            text: raw.text,
-            fontFamily: layer1Profile.matched_font_candidates?.[0] || "DM Sans",
-            fontWeight: layer1Profile.font_style?.weight || 800,
-            fontStyle: layer1Profile.font_style?.style || "normal",
-            fontSizePx: layer1Profile.font_style?.size_px_base || 42,
-            color: layer1Profile.font_style?.color || "#FFFFFF",
-            casing: layer1Profile.font_style?.casing || "none",
-            dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" }
-          };
-
-          layers = [l1];
-          kineticMap[l1.layerName] = { fx: fx.id, name: fx.name, depth: isHeadZone ? "behind_subject" : "in_front_of_subject", zone: isHeadZone ? "head_contact" : "chest_lower_third" };
-        }
-
-        // Entity Matting Prior (Chunk 8: "founders")
+        // Entity Matting (Chunk 8: "founders")
+        let backgroundAsset = null;
         if (raw.emphasis === "named_entity_founders" && TECH_FOUNDERS_BASE64) {
           backgroundAsset = {
             assetId: "tech_founders_vintage_trio",
             assetName: "Silicon Valley Founders Trio Cutout",
             imageUrl: TECH_FOUNDERS_BASE64,
-            position: { topPercent: 8, leftPercent: 5, widthPx: 290 },
-            motion: "asset_gaussian_bezier_rise"
+            position: { topPercent: 8, leftPercent: 5, widthPx: 290 }
           };
         }
 
@@ -764,10 +797,11 @@ const htmlContent = `<!DOCTYPE html>
           chunkIndex: raw.chunkIndex,
           timestamp: raw.timestamp,
           text: raw.text,
-          profileName: selectedProfile.profile_name,
-          emphasis: raw.emphasis,
-          layers: layers,
-          kineticMap: kineticMap,
+          profileName: profile.profile_name,
+          profileMood: profile.metadata?.overall_mood || "Editorial Pairing",
+          depthPlane: depthPlane,
+          isHeadZone: isHeadZone,
+          layers: renderedLayers,
           backgroundAsset: backgroundAsset
         };
       });
@@ -782,7 +816,7 @@ const htmlContent = `<!DOCTYPE html>
       document.getElementById('stageTimeBadge').innerText = chunk.timestamp.split('—')[0].trim();
       document.getElementById('lblActiveChunk').innerText = 'Chunk ' + chunk.chunkIndex + ' of ' + compiledSequence.length + ' • ' + chunk.timestamp;
       document.getElementById('lblActiveProfile').innerText = chunk.profileName.replace(/_/g, ' ');
-      document.getElementById('lblActiveTier').innerText = chunk.emphasis.toUpperCase();
+      document.getElementById('lblActiveMood').innerText = chunk.profileMood;
       document.getElementById('timelineScrubber').value = index;
 
       const headStage = document.getElementById('familyHeadStage');
@@ -795,7 +829,7 @@ const htmlContent = `<!DOCTYPE html>
       bgLayer.innerHTML = '';
       tableBody.innerHTML = '';
 
-      // Render Background Matted Asset if present
+      // Background Asset
       if (chunk.backgroundAsset) {
         const bg = chunk.backgroundAsset;
         const img = document.createElement('img');
@@ -807,15 +841,6 @@ const htmlContent = `<!DOCTYPE html>
         bgLayer.style.top = bg.position.topPercent + '%';
         bgLayer.style.left = bg.position.leftPercent + '%';
         bgLayer.appendChild(img);
-
-        const trAsset = document.createElement('tr');
-        trAsset.innerHTML = 
-          '<td style="font-family: monospace; color: var(--accent-pink); font-weight: 700;">[BG-ASSET] ' + bg.assetId + '</td>' +
-          '<td style="color: var(--accent-yellow); font-weight: 700;">Cutout Layer</td>' +
-          '<td style="color: var(--accent-purple); font-weight: 700;">BEHIND SPEAKER (Z:10)</td>' +
-          '<td><span class="badge-optimal">Shoulder Clearance Enforced</span></td>' +
-          '<td><span class="badge-optimal">ACTIVE</span></td>';
-        tableBody.appendChild(trAsset);
       }
 
       // Update Chip Active States
@@ -829,29 +854,29 @@ const htmlContent = `<!DOCTYPE html>
         chipContainer.appendChild(chip);
       });
 
-      const isHeadZone = Object.values(chunk.kineticMap).some(t => t.zone === 'head_contact');
       const layerGroup = document.createElement('div');
       layerGroup.className = 'layer-group';
 
-      chunk.layers.forEach((layer, lIdx) => {
-        const trait = chunk.kineticMap[layer.layerName] || { fx: 'subpixel_blur_mask', name: 'Standard Rule', depth: 'in_front_of_subject' };
-        const isBehind = (trait.depth === 'behind_subject');
+      chunk.layers.forEach((layer) => {
+        const isBehind = (chunk.depthPlane === 'behind_subject');
 
         const layerDiv = document.createElement('div');
-        layerDiv.className = 'typo-layer layer-fx-' + trait.fx;
+        layerDiv.className = 'typo-layer layer-fx-' + layer.fxPreset;
         layerDiv.style.fontFamily = '"' + layer.fontFamily + '", sans-serif';
         layerDiv.style.fontWeight = layer.fontWeight;
         layerDiv.style.fontStyle = layer.fontStyle || 'normal';
         layerDiv.style.fontSize = layer.fontSizePx + 'px';
+        layerDiv.style.lineHeight = layer.lineHeight || 1.1;
         layerDiv.style.color = layer.color || '#FFFFFF';
         if (layer.letterSpacingEm) layerDiv.style.letterSpacing = layer.letterSpacingEm + 'em';
         if (layer.marginTopPx) layerDiv.style.marginTop = layer.marginTopPx + 'px';
         if (layer.dropShadow) {
-          layerDiv.style.textShadow = layer.dropShadow.xOffset + 'px ' + layer.dropShadow.yOffset + 'px ' + layer.dropShadow.blurRadius + 'px ' + layer.dropShadow.color;
+          const ds = layer.dropShadow;
+          layerDiv.style.textShadow = (ds.x_offset || 0) + 'px ' + (ds.y_offset || 2) + 'px ' + (ds.blur_radius || 8) + 'px ' + (ds.color || 'rgba(0,0,0,0.85)');
         }
 
         // 1. Delayed Highlight Card Sweep
-        if (layer.delayedPillCard || trait.fx === 'delayed_pill_card_sweep') {
+        if (layer.delayedPillCard) {
           const cardWrap = document.createElement('div');
           cardWrap.className = 'delayed-pill-card-container';
           const cardBg = document.createElement('div');
@@ -864,8 +889,8 @@ const htmlContent = `<!DOCTYPE html>
           cardWrap.appendChild(cardText);
           layerDiv.appendChild(cardWrap);
 
-        // 2. Cyber Matrix Glitch (TYPO #30)
-        } else if (trait.fx === 'acid_lime_letter_glitch') {
+        // 2. Cyber Matrix Glitch
+        } else if (layer.fxPreset === 'acid_lime_letter_glitch') {
           Array.from(layer.text).forEach((ch, chIdx) => {
             const span = document.createElement('span');
             span.className = 'lime-glitch-char lime-accent';
@@ -909,15 +934,15 @@ const htmlContent = `<!DOCTYPE html>
         // Populate Inspector Table Row
         const tr = document.createElement('tr');
         tr.innerHTML = 
-          '<td style="font-family: monospace; color: var(--accent-cyan); font-weight: 700;">' + layer.layerName + '</td>' +
-          '<td style="font-weight: 700;">' + layer.fontFamily + ' ' + layer.fontSizePx + 'px</td>' +
-          '<td style="font-weight: 700; color: var(--accent-yellow);">' + trait.name + '</td>' +
-          '<td style="font-weight: 700; color: ' + (isBehind ? 'var(--accent-pink)' : 'var(--accent-cyan)') + '">' + (isBehind ? 'BEHIND SPEAKER (Z:10)' : 'IN FRONT (Z:30)') + '</td>' +
-          '<td><span class="badge-optimal">' + (isBehind ? 'Goldilocks Scalp' : 'Clearance Verified') + '</span></td>';
+          '<td style="font-family: monospace; color: var(--accent-cyan); font-weight: 700;">' + layer.layerName + ' (' + layer.role + ')</td>' +
+          '<td style="font-weight: 700;">' + layer.fontFamily + ' ' + layer.fontWeight + ' ' + (layer.fontStyle === 'italic' ? 'Italic' : '') + ' • ' + layer.fontSizePx + 'px</td>' +
+          '<td>' + (layer.casing || 'normal') + ' • ' + (layer.marginTopPx ? layer.marginTopPx + 'px top' : '0px') + '</td>' +
+          '<td style="font-weight: 700; color: var(--accent-yellow);">' + layer.fxPreset + '</td>' +
+          '<td style="font-weight: 700; color: ' + (isBehind ? 'var(--accent-pink)' : 'var(--accent-cyan)') + '">' + (isBehind ? 'BEHIND SPEAKER (Z:10)' : 'IN FRONT (Z:30)') + '</td>';
         tableBody.appendChild(tr);
       });
 
-      if (isHeadZone) {
+      if (chunk.isHeadZone) {
         headStage.appendChild(layerGroup);
       } else {
         chestStage.appendChild(layerGroup);
@@ -988,4 +1013,4 @@ const htmlContent = `<!DOCTYPE html>
 
 const outHtmlPath = path.join(studioDir, "typography_treatment_presentation.html");
 fs.writeFileSync(outHtmlPath, htmlContent);
-console.log("SUCCESSFULLY_BUILT_PROBABILISTIC_SELECTOR_STUDIO:", outHtmlPath);
+console.log("SUCCESSFULLY_BUILT_AUTHORITATIVE_FONT_JSON_STUDIO:", outHtmlPath);
