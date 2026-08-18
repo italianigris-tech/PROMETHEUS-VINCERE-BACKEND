@@ -926,7 +926,7 @@ function createServerInstance(port: number) {
     .dropzone { 
       border: 2px dashed var(--accent-cyan); 
       border-radius: 16px; 
-      padding: 40px 24px; 
+      padding: 36px 24px; 
       text-align: center; 
       margin-bottom: 24px; 
       background: rgba(0, 240, 255, 0.03); 
@@ -940,7 +940,32 @@ function createServerInstance(port: number) {
       transform: scale(1.01); 
     }
     .dropzone h3 { font-size: 18px; color: #FFF; margin-bottom: 8px; }
-    .dropzone p { color: #8E9BAE; font-size: 13px; }
+    .dropzone p { color: #8E9BAE; font-size: 13px; margin-bottom: 14px; }
+
+    .dropzone-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .btn-dropzone-action {
+      background: rgba(0, 240, 255, 0.12);
+      border: 1px solid var(--accent-cyan);
+      color: var(--accent-cyan);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .btn-dropzone-action:hover {
+      background: var(--accent-cyan);
+      color: #070913;
+    }
 
     #statusBanner {
       display: none;
@@ -1044,7 +1069,7 @@ function createServerInstance(port: number) {
     }
   </style>
 </head>
-<body>
+<body tabindex="0">
   <div class="header">
     <h1>📸 Screenshot Dropzone & Review Gallery</h1>
     <div class="nav-links">
@@ -1057,8 +1082,12 @@ function createServerInstance(port: number) {
   <div id="statusBanner"></div>
 
   <div class="dropzone" id="dropzone">
-    <h3>📋 Paste (Ctrl+V), Drag & Drop, or Click to Upload</h3>
-    <p>Upload review screenshots for automated bounding box and visual analysis</p>
+    <h3>📋 Paste (Ctrl+V / ⌘V), Drag & Drop, or Click to Upload</h3>
+    <p>Upload review screenshots for automated bounding box and typography analysis</p>
+    <div class="dropzone-buttons">
+      <button class="btn-dropzone-action" type="button" onclick="event.stopPropagation(); pasteFromClipboardApi();">📋 Paste from Clipboard</button>
+      <button class="btn-dropzone-action" type="button" onclick="event.stopPropagation(); filePicker.click();">📂 Choose Images...</button>
+    </div>
     <input type="file" id="filePicker" multiple accept="image/*" style="display: none;" />
   </div>
 
@@ -1102,7 +1131,7 @@ function createServerInstance(port: number) {
           d.className = 'item-card';
           d.innerHTML = 
             '<a href="/uploaded_screenshots/' + f + '" target="_blank">' +
-              '<img src="/uploaded_screenshots/' + f + '" loading="lazy" />' +
+              '<img src="/uploaded_screenshots/' + f + '?t=' + Date.now() + '" loading="lazy" />' +
             '</a>' +
             '<div class="item-info">' +
               '<span>' + f + '</span>' +
@@ -1123,7 +1152,7 @@ function createServerInstance(port: number) {
       try {
         const res = await fetch('/api/upload-paste?filename=' + encodeURIComponent(cleanName), {
           method: 'POST',
-          headers: { 'Content-Type': file.type || 'image/png' },
+          headers: { 'Content-Type': file.type || 'application/octet-stream' },
           body: file
         });
         const data = await res.json();
@@ -1142,6 +1171,32 @@ function createServerInstance(port: number) {
       if (!fileList || fileList.length === 0) return;
       for (let i = 0; i < fileList.length; i++) {
         await uploadSingleFile(fileList[i]);
+      }
+    }
+
+    async function pasteFromClipboardApi() {
+      try {
+        if (!navigator.clipboard || !navigator.clipboard.read) {
+          showStatus('Please press Ctrl+V / ⌘V directly to paste', 'uploading');
+          return;
+        }
+        const clipboardItems = await navigator.clipboard.read();
+        let found = false;
+        for (const item of clipboardItems) {
+          for (const type of item.types) {
+            if (type.startsWith('image/')) {
+              const blob = await item.getType(type);
+              await uploadSingleFile(blob);
+              found = true;
+              break;
+            }
+          }
+        }
+        if (!found) {
+          showStatus('No image in clipboard. Press Ctrl+V / ⌘V to paste.', 'error');
+        }
+      } catch (err) {
+        showStatus('Clipboard permission: Press Ctrl+V / ⌘V directly to paste', 'uploading');
       }
     }
 
@@ -1190,9 +1245,11 @@ function createServerInstance(port: number) {
     // Drag & Drop
     ['dragenter', 'dragover'].forEach(name => {
       window.addEventListener(name, (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+      document.addEventListener(name, (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
     });
     ['dragleave', 'drop'].forEach(name => {
       window.addEventListener(name, (e) => { e.preventDefault(); dropzone.classList.remove('dragover'); });
+      document.addEventListener(name, (e) => { e.preventDefault(); dropzone.classList.remove('dragover'); });
     });
     window.addEventListener('drop', (e) => {
       e.preventDefault();
@@ -1201,19 +1258,38 @@ function createServerInstance(port: number) {
       }
     });
 
-    // Clipboard Paste
-    window.addEventListener('paste', async (e) => {
-      const items = e.clipboardData?.items;
-      if (!items) return;
-      for (let item of items) {
-        if (item.type.indexOf('image') !== -1) {
-          const blob = item.getAsFile();
-          if (blob) {
-            await uploadSingleFile(blob);
+    // Comprehensive Clipboard Paste Handling (Window, Document & Body)
+    async function onGlobalPaste(e) {
+      const cd = e.clipboardData || window.clipboardData;
+      if (!cd) return;
+      
+      // Check files first
+      if (cd.files && cd.files.length > 0) {
+        e.preventDefault();
+        await handleFiles(cd.files);
+        return;
+      }
+      
+      // Check items
+      if (cd.items && cd.items.length > 0) {
+        const files = [];
+        for (let i = 0; i < cd.items.length; i++) {
+          const item = cd.items[i];
+          if (item.kind === 'file' || item.type.indexOf('image') !== -1) {
+            const f = item.getAsFile();
+            if (f) files.push(f);
           }
         }
+        if (files.length > 0) {
+          e.preventDefault();
+          await handleFiles(files);
+        }
       }
-    });
+    }
+
+    window.addEventListener('paste', onGlobalPaste);
+    document.addEventListener('paste', onGlobalPaste);
+    document.body.addEventListener('paste', onGlobalPaste);
 
     loadGallery();
     setInterval(loadGallery, 2000);
