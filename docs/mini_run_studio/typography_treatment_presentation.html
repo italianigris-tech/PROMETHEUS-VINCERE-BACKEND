@@ -263,7 +263,7 @@
       width: 100%;
     }
 
-    /* INLINE HORIZONTAL COMPOUND LAYOUT (PORTfolio, Unearth, Drop Cap) */
+    /* INLINE HORIZONTAL COMPOUND LAYOUT (STRICTLY ONLY FOR 1-WORD COMPOUND SYLLABLES) */
     .layer-group.layout-inline-horizontal {
       flex-direction: row !important;
       align-items: baseline !important;
@@ -273,33 +273,36 @@
     }
     .layer-group.layout-inline-horizontal .typo-layer {
       display: inline-flex !important;
-      margin-top: 0 !important;
-      margin-bottom: 0 !important;
-      margin-left: 0 !important;
-      margin-right: 0 !important;
+      margin: 0 !important;
     }
 
-    /* STRICT HORIZONTAL CONTAINMENT & ZERO WORD CUTTING */
+    /* STRICT HORIZONTAL CONTAINMENT & PREVENT WORD SPACING COLLAPSE */
     .typo-layer {
       display: flex;
       flex-direction: row;
-      flex-wrap: nowrap !important;
-      align-items: center;
+      flex-wrap: wrap !important;
+      align-items: baseline;
       justify-content: center;
-      white-space: nowrap !important;
+      white-space: normal !important;
       max-width: 100%;
       margin-left: auto;
       margin-right: auto;
+      gap: 0.28em;
+      line-height: 1.15;
     }
 
-    /* KINETIC ANIMATION PRIMITIVES */
+    /* KINETIC ANIMATION PRIMITIVES & INDIVIDUAL WORD SPACING */
     .word-item {
       display: inline-block;
       white-space: nowrap !important;
+      margin-right: 0.26em;
       opacity: 0;
       animation-fill-mode: forwards;
       animation-duration: 0.65s;
       animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .word-item:last-child {
+      margin-right: 0 !important;
     }
 
     .layer-fx-subpixel_blur_mask .word-item { animation-name: blurRise; }
@@ -308,7 +311,6 @@
     .layer-fx-keynote_punch .word-item { animation-name: keynotePunch; }
     .layer-fx-slot_bounce .word-item { animation-name: slotBounce; }
     .layer-fx-top_down_character_drop .word-item { animation-name: topDownDrop; }
-    .layer-fx-typewriter_engine .word-item { animation-name: typewriterFade; }
     .layer-fx-chromatic_character_displace .word-item { animation-name: chromaticDisplace; }
 
     @keyframes blurRise { 0% { opacity: 0; filter: blur(10px); transform: translateY(16px) scale(0.97); } 100% { opacity: 1; filter: blur(0px); transform: translateY(0) scale(1); } }
@@ -317,11 +319,99 @@
     @keyframes keynotePunch { 0% { opacity: 0; transform: scale(0.88); filter: blur(4px); } 60% { transform: scale(1.02); filter: blur(0px); } 100% { opacity: 1; transform: scale(1); } }
     @keyframes slotBounce { 0% { opacity: 0; transform: translateY(-30px); } 70% { transform: translateY(4px); } 100% { opacity: 1; transform: translateY(0); } }
     @keyframes topDownDrop { 0% { opacity: 0; transform: translateY(-24px); filter: blur(6px); } 100% { opacity: 1; transform: translateY(0); filter: blur(0px); } }
-    @keyframes typewriterFade { 0% { opacity: 0; } 100% { opacity: 1; } }
     @keyframes chromaticDisplace {
       0% { opacity: 0; transform: translate(-6px, -3px) skewX(8deg); filter: drop-shadow(-3px 0 0 #00ffff) drop-shadow(3px 0 0 #ff0055); }
       50% { opacity: 0.9; transform: translate(3px, 1px) skewX(-4deg); filter: drop-shadow(1px 0 0 #00ffff) drop-shadow(-1px 0 0 #ff0055); }
       100% { opacity: 1; transform: translate(0, 0) skewX(0deg); filter: drop-shadow(0 0 0 transparent); }
+    }
+
+    /* 1. TYPEWRITER MONO CARET EFFECT */
+    .typewriter-char {
+      display: inline-block;
+      opacity: 0;
+      animation: typeCharFade 0.05s forwards;
+    }
+    .typewriter-caret {
+      display: inline-block;
+      color: #00F0FF;
+      font-weight: 900;
+      margin-left: 2px;
+      animation: blinkCaretAnim 0.7s infinite;
+    }
+    @keyframes typeCharFade { 0% { opacity: 0; transform: translateY(2px); } 100% { opacity: 1; transform: translateY(0); } }
+    @keyframes blinkCaretAnim { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+    /* 2. CINEMATIC VIEWPORT MASK SWEEP */
+    .viewport-mask-sweep-wrap {
+      position: relative;
+      display: inline-block;
+      overflow: hidden;
+      max-width: 100%;
+    }
+    .viewport-mask-sweep-text {
+      animation: maskSweepReveal 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .viewport-mask-sweep-bar {
+      position: absolute;
+      top: 0; left: 0; width: 3px; height: 100%;
+      background: #00F0FF;
+      box-shadow: 0 0 12px #00F0FF, 0 0 4px #FFF;
+      animation: maskBarMove 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes maskSweepReveal {
+      0% { clip-path: polygon(0 0, 0 0, 0 100%, 0 100%); }
+      100% { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
+    }
+    @keyframes maskBarMove {
+      0% { left: 0%; opacity: 1; }
+      90% { left: 100%; opacity: 1; }
+      100% { left: 100%; opacity: 0; }
+    }
+
+    /* 3. DYNAMIC STAGGERED SPRING CASCADE 44 */
+    .spring-cascade-char {
+      display: inline-block;
+      opacity: 0;
+      animation: springCascadeAnim 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+    @keyframes springCascadeAnim {
+      0% { opacity: 0; transform: translateY(24px) scale(0.6) perspective(400px) rotateX(45deg); filter: blur(6px); }
+      70% { transform: translateY(-3px) scale(1.04) perspective(400px) rotateX(-5deg); filter: blur(0px); }
+      100% { opacity: 1; transform: translateY(0) scale(1) perspective(400px) rotateX(0deg); filter: blur(0px); }
+    }
+
+    /* 4. GLOW SEARCH INPUT & PARSING CARET */
+    .search-capsule-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(0, 240, 255, 0.08);
+      border: 1.5px solid #00F0FF;
+      box-shadow: 0 0 20px rgba(0, 240, 255, 0.35);
+      border-radius: 30px;
+      padding: 6px 16px;
+      margin: 4px auto;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+    .search-capsule-icon { font-size: 13px; color: #00F0FF; }
+
+    /* 5. MOTION PRIMITIVE SKELETAL GLYPH SLOT */
+    .glyph-slot-wrap {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      perspective: 400px;
+      height: 1.25em;
+    }
+    .glyph-slot-char {
+      display: inline-block;
+      animation: slotCharSpin 0.65s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+    }
+    @keyframes slotCharSpin {
+      0% { transform: translateY(-120%) perspective(300px) rotateX(-90deg); opacity: 0; filter: blur(4px); }
+      100% { transform: translateY(0) perspective(300px) rotateX(0deg); opacity: 1; filter: blur(0); }
     }
 
     /* CYBER MATRIX GLITCH (TYPO #30) */
@@ -370,6 +460,10 @@
     .card-yellow { background-color: #FFE600; }
     .card-red-pressure { background-color: #FF1744; }
     .card-cyan { background-color: #00F0FF; }
+    .card-lavender { background-color: #C084FC; box-shadow: 0 0 18px rgba(192, 132, 252, 0.5); }
+
+    @keyframes pillCardSweepLeftToRight { 0% { transform: scaleX(0); } 100% { transform: scaleX(1); } }
+    @keyframes pillTextFadeIn { 0% { opacity: 0; transform: translateY(4px); } 100% { opacity: 1; transform: translateY(0); } }
 
     @keyframes pillCardSweepLeftToRight { 0% { transform: scaleX(0); } 100% { transform: scaleX(1); } }
     @keyframes pillTextFadeIn { 0% { opacity: 0; transform: translateY(4px); } 100% { opacity: 1; transform: translateY(0); } }
@@ -917,7 +1011,7 @@
       if (p.profile_name) PROFILE_MAP[p.profile_name] = p;
     });
 
-    // 2. KINETIC PRESET REPERTOIRE (29 Treatments)
+    // 2. KINETIC PRESET REPERTOIRE (Authoritative Motion Engines)
     const KINETIC_PRESETS = [
       { id: "subpixel_blur_mask", name: "Soft Subpixel Blur Rise" },
       { id: "defocus_rack_focus", name: "Defocus Aperture Snap" },
@@ -927,7 +1021,11 @@
       { id: "acid_lime_letter_glitch", name: "Cyber Acid Lime Matrix Glitch (TYPO #30)" },
       { id: "chromatic_character_displace", name: "RGB Chromatic Split Glitch" },
       { id: "top_down_character_drop", name: "Kinetic Top-Down Glyph Drop" },
-      { id: "typewriter_engine", name: "Hexta Ghost Typewriter" }
+      { id: "typewriter_mono_caret", name: "Hexta Terminal Typewriter + Caret" },
+      { id: "viewport_mask_sweep", name: "Cinematic Viewport Mask Sweep" },
+      { id: "staggered_glyph_slot", name: "Motion Primitive Skeletal Glyphs Slot" },
+      { id: "spring_character_cascade", name: "Dynamic Staggered Craft Cascade 44" },
+      { id: "glow_search_input_caret", name: "Glow Search Input & Parsing Caret" }
     ];
 
     let currentSeed = 101;
@@ -1108,25 +1206,26 @@
           let candidates = ALL_FONT_PROFILES.filter(p => {
             if (p.profile_name === lastProfileName) return false;
             const pWords = p.metadata?.total_word_count || p.typography_layers?.length || 2;
-            const isInlineCompound = (p.profile_name.includes("Portfolio") || p.profile_name.includes("Unearth") || p.profile_name.includes("Drop_Cap"));
+            const isCompoundProfile = (p.profile_name.includes("Portfolio") || p.profile_name.includes("Unearth") || p.profile_name.includes("Drop_Cap"));
             
-            // Invariant: Never assign 1-word inline compound profile to multi-word clauses
-            if (wordCount >= 3 && isInlineCompound) return false;
+            // Invariant: Never assign 1-word compound syllable profile to multi-word clauses
+            if (wordCount >= 2 && isCompoundProfile) return false;
             if (wordCount <= 2 && pWords >= 5) return false;
 
             return Math.abs(pWords - wordCount) <= (wordCount >= 4 ? 1 : 0);
           });
           if (candidates.length === 0) {
             candidates = ALL_FONT_PROFILES.filter(p => {
-              const isInlineCompound = (p.profile_name.includes("Portfolio") || p.profile_name.includes("Unearth"));
-              return wordCount >= 3 ? !isInlineCompound : true;
+              const isCompoundProfile = (p.profile_name.includes("Portfolio") || p.profile_name.includes("Unearth") || p.profile_name.includes("Drop_Cap"));
+              return wordCount >= 2 ? !isCompoundProfile : true;
             });
           }
           profile = candidates[Math.floor(rng() * candidates.length)] || ALL_FONT_PROFILES[0];
         }
         lastProfileName = profile.profile_name;
 
-        const isInlineCompound = (profile.profile_name.includes("Portfolio") || profile.profile_name.includes("Unearth") || profile.profile_name.includes("Drop_Cap"));
+        // INLINE HORIZONTAL IS STRICTLY PERMITTED ONLY FOR SINGLE COMPOUND WORDS (1 word split across syllables)
+        const isInlineCompound = (wordCount === 1 && (profile.profile_name.includes("Portfolio") || profile.profile_name.includes("Unearth") || profile.profile_name.includes("Drop_Cap")));
 
         // 2. RIGOROUSLY ALLOCATE SPOKEN WORDS TO FONT JSON LAYERS
         const layerAllocations = allocateWordsToLayers(profile.typography_layers, wordCount);
@@ -1139,9 +1238,12 @@
         if ((raw.emphasis === "inflection_tension" || raw.emphasis === "inflection_solution") && 
             (chunkIdx - lastCardIndex >= 4) && (seed === 101 ? (raw.emphasis === "inflection_tension") : (rng() > 0.35))) {
           willUseDelayedCard = true;
-          cardColor = (raw.emphasis === "inflection_tension") ? "#FFE600" : "#00F0FF";
+          cardColor = (raw.emphasis === "inflection_tension") ? "#FFE600" : "#C084FC";
           lastCardIndex = chunkIdx;
         }
+
+        // STRICT INVARIANT: Exactly ONE hero layer per chunk can receive a delayed highlight card
+        let cardAssignedInChunk = false;
 
         const renderedLayers = layerAllocations.map((alloc, layerIdx) => {
           const lSpec = alloc.layer;
@@ -1158,7 +1260,8 @@
 
           // Exact Size from Font JSON
           const baseSize = fStyle.size_px_base || 44;
-          const isCardTarget = willUseDelayedCard && (layerIdx === layerAllocations.length - 1 || lSpec.role === "primary_focus_word");
+          const isCardTarget = willUseDelayedCard && !cardAssignedInChunk && (lSpec.role === "primary_focus_word" || layerIdx === 0);
+          if (isCardTarget) cardAssignedInChunk = true;
 
           // Exact Casing from Font JSON
           const textWithCasing = applyFontJsonCasing(assignedWords, fStyle.casing);
@@ -1179,15 +1282,42 @@
           // WCAG Contrast Compliance: Promote low-luminance dark/grey tones to crisp white or bright accent
           let resolvedColor = resolveHighContrastColor(fStyle.color);
 
-          // Kinetic Preset Selection
+          // Kinetic Preset Selection (Full 13 Motion Engines Palette)
           let fxPreset = "subpixel_blur_mask";
           if (lSpec.role === "primary_focus_word" || lSpec.role === "header") {
-            let pool = KINETIC_PRESETS.filter(p => p.id !== "subpixel_blur_mask" && p.id !== lastHeroPreset);
-            if (raw.emphasis === "inflection_tension") {
-              pool = KINETIC_PRESETS.filter(p => p.id === "acid_lime_letter_glitch" || p.id === "chromatic_character_displace" || p.id === "staggered_rotate_x");
+            if (seed === 101) {
+              if (chunkIdx === 0) fxPreset = "defocus_rack_focus";
+              else if (chunkIdx === 1) fxPreset = "keynote_punch";
+              else if (chunkIdx === 2) fxPreset = "glow_search_input_caret";
+              else if (chunkIdx === 3) fxPreset = "viewport_mask_sweep";
+              else if (chunkIdx === 4) fxPreset = "keynote_punch";
+              else if (chunkIdx === 5) fxPreset = "slot_bounce";
+              else if (chunkIdx === 6) fxPreset = "typewriter_mono_caret";
+              else if (chunkIdx === 7) fxPreset = "spring_character_cascade";
+              else if (chunkIdx === 8) fxPreset = "staggered_glyph_slot";
+              else if (chunkIdx === 9) fxPreset = "acid_lime_letter_glitch";
+              else if (chunkIdx === 10) fxPreset = "chromatic_character_displace";
+              else if (chunkIdx === 11) fxPreset = "staggered_rotate_x";
+              else if (chunkIdx === 12) fxPreset = "top_down_character_drop";
+              else if (chunkIdx === 13) fxPreset = "typewriter_mono_caret";
+              else if (chunkIdx === 14) fxPreset = "viewport_mask_sweep";
+              else if (chunkIdx === 15) fxPreset = "glow_search_input_caret";
+              else if (chunkIdx === 16) fxPreset = "spring_character_cascade";
+              else if (chunkIdx === 17) fxPreset = "staggered_glyph_slot";
+              else if (chunkIdx === 18) fxPreset = "acid_lime_letter_glitch";
+              else fxPreset = "keynote_punch";
+            } else {
+              let pool = KINETIC_PRESETS.filter(p => p.id !== "subpixel_blur_mask" && p.id !== lastHeroPreset);
+              if (raw.emphasis === "inflection_tension") {
+                pool = KINETIC_PRESETS.filter(p => p.id === "acid_lime_letter_glitch" || p.id === "chromatic_character_displace" || p.id === "typewriter_mono_caret" || p.id === "staggered_rotate_x");
+              } else if (raw.emphasis === "hero_concept" || raw.emphasis === "key_point") {
+                pool = KINETIC_PRESETS.filter(p => p.id === "viewport_mask_sweep" || p.id === "staggered_glyph_slot" || p.id === "spring_character_cascade" || p.id === "keynote_punch");
+              } else if (raw.emphasis === "contrast_claim" || raw.emphasis === "named_entity_founders") {
+                pool = KINETIC_PRESETS.filter(p => p.id === "glow_search_input_caret" || p.id === "slot_bounce" || p.id === "defocus_rack_focus");
+              }
+              const selected = pool[Math.floor(rng() * pool.length)] || KINETIC_PRESETS[0];
+              fxPreset = selected.id;
             }
-            const selected = pool[Math.floor(rng() * pool.length)] || KINETIC_PRESETS[0];
-            fxPreset = selected.id;
             lastHeroPreset = fxPreset;
           }
 
@@ -1336,26 +1466,107 @@
           const cardWrap = document.createElement('div');
           cardWrap.className = 'delayed-pill-card-container';
           const cardBg = document.createElement('div');
-          cardBg.className = 'delayed-pill-card-bg ' + (layer.delayedPillCard === '#FF1744' ? 'card-red-pressure' : 'card-yellow');
+          let bgClass = 'card-yellow';
+          let textColor = '#111111';
+          if (layer.delayedPillCard === '#FF1744') { bgClass = 'card-red-pressure'; textColor = '#FFFFFF'; }
+          else if (layer.delayedPillCard === '#00F0FF') { bgClass = 'card-cyan'; textColor = '#070913'; }
+          else if (layer.delayedPillCard === '#C084FC') { bgClass = 'card-lavender'; textColor = '#070913'; }
+          cardBg.className = 'delayed-pill-card-bg ' + bgClass;
+          
           const cardText = document.createElement('span');
           cardText.className = 'delayed-pill-card-text';
           cardText.innerText = layer.text;
-          cardText.style.color = layer.delayedPillCard === '#FFE600' ? '#111111' : '#FFFFFF';
+          cardText.style.color = textColor;
           cardWrap.appendChild(cardBg);
           cardWrap.appendChild(cardText);
           layerDiv.appendChild(cardWrap);
 
-        // 2. Cyber Matrix Glitch
+        // 2. Hexta Terminal Typewriter + Caret
+        } else if (layer.fxPreset === 'typewriter_mono_caret') {
+          Array.from(layer.text).forEach((ch, chIdx) => {
+            const span = document.createElement('span');
+            span.className = 'typewriter-char';
+            span.style.animationDelay = (chIdx * 0.045) + 's';
+            span.innerText = ch === ' ' ? ' ' : ch;
+            layerDiv.appendChild(span);
+          });
+          const caret = document.createElement('span');
+          caret.className = 'typewriter-caret';
+          caret.innerText = '|';
+          layerDiv.appendChild(caret);
+
+        // 3. Cinematic Viewport Mask Sweep
+        } else if (layer.fxPreset === 'viewport_mask_sweep') {
+          const sweepWrap = document.createElement('div');
+          sweepWrap.className = 'viewport-mask-sweep-wrap';
+          const sweepText = document.createElement('div');
+          sweepText.className = 'viewport-mask-sweep-text';
+          sweepText.innerText = layer.text;
+          const sweepBar = document.createElement('div');
+          sweepBar.className = 'viewport-mask-sweep-bar';
+          sweepWrap.appendChild(sweepText);
+          sweepWrap.appendChild(sweepBar);
+          layerDiv.appendChild(sweepWrap);
+
+        // 4. Motion Primitive Skeletal Glyphs Slot
+        } else if (layer.fxPreset === 'staggered_glyph_slot') {
+          const slotWrap = document.createElement('div');
+          slotWrap.className = 'glyph-slot-wrap';
+          Array.from(layer.text).forEach((ch, chIdx) => {
+            const span = document.createElement('span');
+            span.className = 'glyph-slot-char';
+            span.style.animationDelay = (chIdx * 0.045) + 's';
+            span.innerText = ch === ' ' ? ' ' : ch;
+            slotWrap.appendChild(span);
+          });
+          layerDiv.appendChild(slotWrap);
+
+        // 5. Glow Search Input & Parsing Caret
+        } else if (layer.fxPreset === 'glow_search_input_caret') {
+          const capsule = document.createElement('div');
+          capsule.className = 'search-capsule-wrap';
+          const icon = document.createElement('span');
+          icon.className = 'search-capsule-icon';
+          icon.innerText = '🔍';
+          capsule.appendChild(icon);
+
+          const textWrap = document.createElement('span');
+          Array.from(layer.text).forEach((ch, chIdx) => {
+            const span = document.createElement('span');
+            span.className = 'typewriter-char';
+            span.style.animationDelay = (chIdx * 0.04) + 's';
+            span.innerText = ch === ' ' ? ' ' : ch;
+            textWrap.appendChild(span);
+          });
+          capsule.appendChild(textWrap);
+
+          const caret = document.createElement('span');
+          caret.className = 'typewriter-caret';
+          caret.innerText = '|';
+          capsule.appendChild(caret);
+          layerDiv.appendChild(capsule);
+
+        // 6. Dynamic Staggered Craft Cascade 44
+        } else if (layer.fxPreset === 'spring_character_cascade') {
+          Array.from(layer.text).forEach((ch, chIdx) => {
+            const span = document.createElement('span');
+            span.className = 'spring-cascade-char';
+            span.style.animationDelay = (chIdx * 0.035) + 's';
+            span.innerText = ch === ' ' ? ' ' : ch;
+            layerDiv.appendChild(span);
+          });
+
+        // 7. Cyber Matrix Glitch (TYPO #30)
         } else if (layer.fxPreset === 'acid_lime_letter_glitch') {
           Array.from(layer.text).forEach((ch, chIdx) => {
             const span = document.createElement('span');
             span.className = 'lime-glitch-char lime-accent';
             span.style.animationDelay = (chIdx * 0.04) + 's';
-            span.innerText = ch;
+            span.innerText = ch === ' ' ? ' ' : ch;
             layerDiv.appendChild(span);
           });
 
-        // 3. Dynamic Numeric Ticker
+        // 8. Dynamic Numeric Ticker
         } else if (layer.numericCounter) {
           const counterSpan = document.createElement('span');
           counterSpan.className = 'numeric-counter-item word-item';
@@ -1373,7 +1584,7 @@
           }
           requestAnimationFrame(tick);
 
-        // 4. Standard Kinetic Word Animation
+        // 9. Standard Kinetic Word Animation (with explicit space preservation)
         } else {
           const words = layer.text.split(' ');
           words.forEach((w, wIdx) => {
