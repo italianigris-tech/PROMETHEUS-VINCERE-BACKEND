@@ -856,12 +856,14 @@ async function startAllTunnels(port: number) {
     shell: true,
     stdio: ["ignore", "pipe", "pipe"],
   });
+  ltProcess.on("error", (e) => console.warn("[TUNNEL_WARN] Localtunnel error:", e.message));
 
   // 2. Launch Cloudflare Tunnel
   const cfProcess = spawn("npx", ["-y", "cloudflared", "tunnel", "--url", `http://127.0.0.1:${port}`], {
     shell: true,
     stdio: ["ignore", "pipe", "pipe"],
   });
+  cfProcess.on("error", (e) => console.warn("[TUNNEL_WARN] Cloudflare error:", e.message));
 
   const onData = (data: Buffer) => {
     const text = data.toString();
@@ -877,7 +879,14 @@ async function startAllTunnels(port: number) {
 
 process.on("SIGINT", () => { activeServers.forEach(s => s.close()); process.exit(0); });
 process.on("SIGTERM", () => { activeServers.forEach(s => s.close()); process.exit(0); });
+process.on("uncaughtException", (err) => {
+  console.error("[SERVER_UNCAUGHT_EXCEPTION]", err);
+});
+process.on("unhandledRejection", (reason) => {
+  console.error("[SERVER_UNHANDLED_REJECTION]", reason);
+});
 
-// Keep Node event loop alive permanently
-setInterval(() => {}, 1000 * 60 * 60);
-
+// Strongly referenced heartbeat to keep Node event loop alive 24/7
+setInterval(() => {
+  // 30s heartbeat
+}, 30000);
