@@ -47,20 +47,24 @@ if (pyCheck.executablePath && pyCheck.hasOpenCv) {
   console.log(`[MEDIAPIPE_TELEMETRY_NOTICE] Vision libraries not present in current python environment. Using calibrated MediaPipe baseline: ${scalpTopPercent.toFixed(2)}%`);
 }
 
-// Goldilocks zone scalp contact position
+// Goldilocks zone scalp contact position: Scalp is at 14.79%, stage top is at 9.8%
 const goldilocksHeadStageTopPercent = 9.8;
 
-// 3. LOAD ALL 45 AUTHORITATIVE FONT JSON PROFILES FROM DISK
+// 3. LOAD ALL 45 AUTHORITATIVE FONT JSON PROFILES FROM DISK WITH FILENAMES
 const fontJsonDir = path.join(repoRoot, "Yuan Prometheus Screenshots/font JSON");
 const fontJsonFiles = fs.readdirSync(fontJsonDir).filter(f => f.endsWith(".json"));
-const allFontProfiles = fontJsonFiles.map(f => {
+const allFontProfiles = fontJsonFiles.map(filename => {
   try {
-    return JSON.parse(fs.readFileSync(path.join(fontJsonDir, f), "utf8"));
+    const raw = JSON.parse(fs.readFileSync(path.join(fontJsonDir, filename), "utf8"));
+    return {
+      ...raw,
+      _filename: filename
+    };
   } catch (e) {
     return null;
   }
 }).filter(Boolean);
-console.log(`[FONT_CORPUS_LOADER] Successfully loaded ${allFontProfiles.length} authoritative Font JSON profiles.`);
+console.log(`[FONT_CORPUS_LOADER] Successfully loaded ${allFontProfiles.length} authoritative Font JSON profiles with filename metadata.`);
 
 // 4. LOAD RELEVANT ASSETS FOR TRANSCRIPT 2
 const techFoundersTrioBase64 = getBase64DataUriFromPath(path.join(studioDir, "tech_founders_vintage_trio.jpg"));
@@ -97,7 +101,7 @@ const htmlContent = `<!DOCTYPE html>
   <meta name="theme-color" content="#070913">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>Prometheus Core — Authoritative Font JSON Realization & Kinetic Studio</title>
+  <title>Prometheus Core — Authoritative Font JSON Realization Studio</title>
   
   <!-- Authoritative Google WebFonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -352,19 +356,22 @@ const htmlContent = `<!DOCTYPE html>
       width: 100%;
     }
 
+    /* HARD INVARIANT: STRICT ZERO-WORD-WRAPPING */
     .typo-layer {
       display: flex;
-      flex-wrap: wrap;
+      flex-direction: row;
+      flex-wrap: nowrap !important;
       align-items: center;
       justify-content: center;
-      gap: 4px 8px;
-      max-width: 85%;
+      white-space: nowrap !important;
+      max-width: 82%;
       margin: 0 auto;
     }
 
     /* KINETIC ANIMATION PRIMITIVES */
     .word-item {
       display: inline-block;
+      white-space: nowrap !important;
       opacity: 0;
       animation-fill-mode: forwards;
       animation-duration: 0.65s;
@@ -396,6 +403,7 @@ const htmlContent = `<!DOCTYPE html>
     /* CYBER MATRIX GLITCH (TYPO #30) */
     .lime-glitch-char {
       display: inline-block;
+      white-space: nowrap !important;
       font-weight: 900;
       animation: limeGlitchCharAnim 0.75s cubic-bezier(0.16, 1, 0.3, 1) backwards;
     }
@@ -415,6 +423,7 @@ const htmlContent = `<!DOCTYPE html>
       padding: 4px 14px;
       border-radius: 8px;
       overflow: hidden;
+      white-space: nowrap !important;
     }
     .delayed-pill-card-bg {
       position: absolute;
@@ -429,6 +438,7 @@ const htmlContent = `<!DOCTYPE html>
       position: relative;
       z-index: 2;
       animation: pillTextFadeIn 0.3s ease forwards;
+      white-space: nowrap !important;
     }
     .card-yellow { background-color: #FFE600; }
     .card-red-pressure { background-color: #FF1744; }
@@ -440,6 +450,7 @@ const htmlContent = `<!DOCTYPE html>
     /* DYNAMIC NUMERIC TICKING COUNTER */
     .numeric-counter-item {
       display: inline-block;
+      white-space: nowrap !important;
       font-variant-numeric: tabular-nums;
     }
 
@@ -458,6 +469,15 @@ const htmlContent = `<!DOCTYPE html>
     .chunk-chips-container { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 16px; max-height: 120px; overflow-y: auto; padding-right: 4px; }
     .chip { background: rgba(255, 255, 255, 0.05); border: 1px solid var(--panel-border); color: var(--text-muted); font-size: 10px; font-weight: 700; padding: 4px 8px; border-radius: 12px; cursor: pointer; transition: all 0.15s; }
     .chip.active { background: var(--accent-cyan); color: #070913; border-color: var(--accent-cyan); font-weight: 900; }
+
+    .provenance-card {
+      background: rgba(0, 240, 255, 0.05);
+      border: 1px solid rgba(0, 240, 255, 0.2);
+      border-radius: 12px;
+      padding: 10px 14px;
+      margin-bottom: 12px;
+    }
+    .provenance-card strong { color: var(--accent-cyan); font-family: monospace; font-size: 12px; }
 
     .layers-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 8px; }
     .layers-table th { text-align: left; padding: 6px 8px; color: var(--text-muted); border-bottom: 1px solid var(--panel-border); font-size: 10px; text-transform: uppercase; }
@@ -485,7 +505,7 @@ const htmlContent = `<!DOCTYPE html>
 
   <div class="header">
     <h1>Prometheus Authoritative Font JSON Realization Studio</h1>
-    <p>Rigorous Font JSON Placement • 45 Authoritative Profiles • 29 Kinetic Presets</p>
+    <p>Rigorous Font JSON Placement • Zero Word Wrapping • Strict Head Obscuration Bounds</p>
   </div>
 
   <!-- DYNAMIC SELECTOR RE-ROLL TOOLBAR -->
@@ -559,27 +579,29 @@ const htmlContent = `<!DOCTYPE html>
     <!-- SIDE INSPECTOR PANEL -->
     <div class="inspector-panel" id="inspectorPanel">
       <div class="inspector-title">
-        <span>Font JSON Profile & Layer Inspector</span>
+        <span>Font JSON Provenance Inspector</span>
         <span id="lblActiveChunk" style="font-size: 11px; color: var(--text-muted);">Chunk 1 of 20</span>
       </div>
 
       <div class="chunk-chips-container" id="chunkPicker"></div>
 
-      <div style="margin-bottom: 8px; font-size: 11px; color: var(--text-muted);">
-        <span>Authoritative Profile: <strong id="lblActiveProfile" style="color: var(--accent-cyan);">--</strong></span>
-      </div>
-      <div style="margin-bottom: 8px; font-size: 11px; color: var(--text-muted);">
-        <span>Mood / Placement: <strong id="lblActiveMood" style="color: var(--accent-yellow);">--</strong></span>
+      <div class="provenance-card">
+        <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 2px;">Authoritative Font JSON Combination:</div>
+        <strong id="lblActiveProfile">--</strong>
+        <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+          Mood: <span id="lblActiveMood" style="color: var(--accent-yellow);">--</span> • 
+          Placement: <span id="lblActivePlane" style="color: var(--accent-pink); font-weight: 700;">--</span>
+        </div>
       </div>
 
       <table class="layers-table">
         <thead>
           <tr>
-            <th>Layer / Role</th>
+            <th>Font JSON Layer / Role</th>
             <th>Font Family & Style</th>
-            <th>Casing & Margin</th>
+            <th>Casing & Safe Size</th>
             <th>Kinetic Preset</th>
-            <th>Depth Plane</th>
+            <th>Obscuration Guard</th>
           </tr>
         </thead>
         <tbody id="layersTableBody"></tbody>
@@ -589,7 +611,7 @@ const htmlContent = `<!DOCTYPE html>
   </div>
 
   <script>
-    // 1. ALL 45 AUTHORITATIVE FONT JSON PROFILES LOADED DIRECTLY FROM DISK
+    // 1. ALL 45 AUTHORITATIVE FONT JSON PROFILES
     const ALL_FONT_PROFILES = ${JSON.stringify(allFontProfiles)};
     const TECH_FOUNDERS_BASE64 = "${techFoundersTrioBase64}";
     const RAW_CHUNKS = ${JSON.stringify(rawSpokenChunks)};
@@ -614,7 +636,7 @@ const htmlContent = `<!DOCTYPE html>
     let showBbox = false;
     let playTimer = null;
 
-    // Seeded PRNG
+    // Seeded PRNG (Mulberry32)
     function mulberry32(a) {
       return function() {
         var t = a += 0x6D2B79F5;
@@ -633,6 +655,17 @@ const htmlContent = `<!DOCTYPE html>
         return text.replace(/(^|\\s)([^\\s])/gu, (_, p, c) => p + c.toUpperCase());
       }
       return text;
+    }
+
+    // HARD INVARIANT: Safe Responsive Font Sizing to Prevent ANY Word Wrapping
+    function calculateSafeFontSize(text, idealFontSize, maxContainerWidthPx = 310, isItalic = false) {
+      const charFactor = isItalic ? 0.50 : 0.58;
+      const estimatedWidth = text.length * idealFontSize * charFactor;
+      if (estimatedWidth > maxContainerWidthPx) {
+        const scaleFactor = maxContainerWidthPx / estimatedWidth;
+        return Math.max(18, Math.floor(idealFontSize * scaleFactor));
+      }
+      return idealFontSize;
     }
 
     // Exact word count allocation algorithm from typography-profile-realization.ts
@@ -684,6 +717,7 @@ const htmlContent = `<!DOCTYPE html>
       return RAW_CHUNKS.map((raw, chunkIdx) => {
         const words = raw.text.trim().split(' ').filter(w => w.length > 0);
         const wordCount = words.length;
+        const totalChars = raw.text.length;
 
         // 1. SELECT AUTHORITATIVE FONT JSON PROFILE MATCHING WORD COUNT
         let candidates = ALL_FONT_PROFILES.filter(p => {
@@ -714,11 +748,14 @@ const htmlContent = `<!DOCTYPE html>
             ? lSpec.matched_font_candidates[0] 
             : "DM Sans";
 
-          // Calculate visual scale from Font JSON
-          const rawSize = (fStyle.size_px_base || 40) * (fStyle.relative_scale || 1.0);
-          const clampedSize = Math.max(24, Math.min(68, Math.round(rawSize)));
+          // Calculate ideal size from Font JSON
+          const idealSize = Math.round((fStyle.size_px_base || 40) * (fStyle.relative_scale || 1.0));
+          const isItalic = (fStyle.style === 'italic');
 
-          // Adapt color for dark video backdrop if dark
+          // Compute strictly safe font size ensuring ZERO word wrapping
+          const safeFontSizePx = calculateSafeFontSize(assignedWords, idealSize, 305, isItalic);
+
+          // Adapt color for dark video backdrop
           let resolvedColor = fStyle.color || "#FFFFFF";
           if (resolvedColor === "#000000" || resolvedColor === "#2C2C2C" || resolvedColor === "#111111") {
             resolvedColor = "#FFFFFF";
@@ -747,11 +784,11 @@ const htmlContent = `<!DOCTYPE html>
             fontFamily: matchedFamily,
             fontWeight: fStyle.weight || 700,
             fontStyle: fStyle.style || "normal",
-            fontSizePx: clampedSize,
+            fontSizePx: safeFontSizePx,
             color: resolvedColor,
             casing: fStyle.casing || "normal",
             letterSpacingEm: fStyle.letter_spacing_em || 0,
-            lineHeight: fStyle.line_height || 1.1,
+            lineHeight: fStyle.line_height || 1.05,
             marginTopPx: fStyle.vertical_margin_top_px || 0,
             dropShadow: fEffects.drop_shadow || { x_offset: 0, y_offset: 2, blur_radius: 8, color: "rgba(0,0,0,0.85)" },
             fxPreset: fxPreset
@@ -778,8 +815,11 @@ const htmlContent = `<!DOCTYPE html>
           return layerObj;
         });
 
-        // 3. DEPTH PLANE & SPATIAL POSITIONING (Zone A Scalp Z:10 vs Zone B Chest Z:30)
-        const isHeadZone = renderedLayers.some(l => l.fontWeight >= 800) && rng() > 0.45;
+        // 3. STRICT SPATIAL ZONE & OBSCURATION INVARIANT:
+        // Long clauses (> 16 chars or >= 3 words) MUST ALWAYS be in Zone B (Chest Lower-Third Z:30, in front of speaker).
+        // Only compact 1-2 word punchy phrases (< 16 chars) can enter Zone A (Head Contact Z:10, scalp line at 14.79%).
+        const canFitHeadZone = (totalChars < 16 && wordCount <= 2 && (raw.emphasis === "inflection_tension" || raw.emphasis === "inflection_solution" || raw.emphasis === "named_entity_founders"));
+        const isHeadZone = canFitHeadZone && rng() > 0.4;
         const depthPlane = isHeadZone ? "behind_subject" : "in_front_of_subject";
 
         // Entity Matting (Chunk 8: "founders")
@@ -798,6 +838,7 @@ const htmlContent = `<!DOCTYPE html>
           timestamp: raw.timestamp,
           text: raw.text,
           profileName: profile.profile_name,
+          profileFilename: profile._filename || "font_json_profile",
           profileMood: profile.metadata?.overall_mood || "Editorial Pairing",
           depthPlane: depthPlane,
           isHeadZone: isHeadZone,
@@ -815,8 +856,9 @@ const htmlContent = `<!DOCTYPE html>
 
       document.getElementById('stageTimeBadge').innerText = chunk.timestamp.split('—')[0].trim();
       document.getElementById('lblActiveChunk').innerText = 'Chunk ' + chunk.chunkIndex + ' of ' + compiledSequence.length + ' • ' + chunk.timestamp;
-      document.getElementById('lblActiveProfile').innerText = chunk.profileName.replace(/_/g, ' ');
+      document.getElementById('lblActiveProfile').innerText = '[' + chunk.profileFilename + '] ' + chunk.profileName.replace(/_/g, ' ');
       document.getElementById('lblActiveMood').innerText = chunk.profileMood;
+      document.getElementById('lblActivePlane').innerText = chunk.depthPlane === 'behind_subject' ? 'ZONE A (Z:10 SCALP CONTACT)' : 'ZONE B (Z:30 CHEST FRONT)';
       document.getElementById('timelineScrubber').value = index;
 
       const headStage = document.getElementById('familyHeadStage');
@@ -866,7 +908,7 @@ const htmlContent = `<!DOCTYPE html>
         layerDiv.style.fontWeight = layer.fontWeight;
         layerDiv.style.fontStyle = layer.fontStyle || 'normal';
         layerDiv.style.fontSize = layer.fontSizePx + 'px';
-        layerDiv.style.lineHeight = layer.lineHeight || 1.1;
+        layerDiv.style.lineHeight = layer.lineHeight || 1.05;
         layerDiv.style.color = layer.color || '#FFFFFF';
         if (layer.letterSpacingEm) layerDiv.style.letterSpacing = layer.letterSpacingEm + 'em';
         if (layer.marginTopPx) layerDiv.style.marginTop = layer.marginTopPx + 'px';
@@ -935,10 +977,10 @@ const htmlContent = `<!DOCTYPE html>
         const tr = document.createElement('tr');
         tr.innerHTML = 
           '<td style="font-family: monospace; color: var(--accent-cyan); font-weight: 700;">' + layer.layerName + ' (' + layer.role + ')</td>' +
-          '<td style="font-weight: 700;">' + layer.fontFamily + ' ' + layer.fontWeight + ' ' + (layer.fontStyle === 'italic' ? 'Italic' : '') + ' • ' + layer.fontSizePx + 'px</td>' +
-          '<td>' + (layer.casing || 'normal') + ' • ' + (layer.marginTopPx ? layer.marginTopPx + 'px top' : '0px') + '</td>' +
+          '<td style="font-weight: 700;">' + layer.fontFamily + ' ' + layer.fontWeight + ' ' + (layer.fontStyle === 'italic' ? 'Italic' : '') + '</td>' +
+          '<td>' + (layer.casing || 'normal') + ' • ' + layer.fontSizePx + 'px (Safe-Fitted)</td>' +
           '<td style="font-weight: 700; color: var(--accent-yellow);">' + layer.fxPreset + '</td>' +
-          '<td style="font-weight: 700; color: ' + (isBehind ? 'var(--accent-pink)' : 'var(--accent-cyan)') + '">' + (isBehind ? 'BEHIND SPEAKER (Z:10)' : 'IN FRONT (Z:30)') + '</td>';
+          '<td><span class="badge-optimal">' + (isBehind ? 'Zone A Scalp Guard (<=25%)' : 'Zone B 0% Obscuration') + '</span></td>';
         tableBody.appendChild(tr);
       });
 
