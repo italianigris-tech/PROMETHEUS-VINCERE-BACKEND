@@ -56,7 +56,7 @@ console.log(`[GOLDILOCKS_ZONE_CALIBRATION] Head Stage Positioned at: ${goldilock
 // 100% UNIQUE BRAND-NEW MATTED ASSETS SPECIFICALLY CREATED FOR TRANSCRIPT 2
 const flywheelBase64 = getBase64DataUriFromPath(path.join(studioDir, "consistency_atomic_flywheel_clean.jpg"));
 const roboticArmBase64 = getBase64DataUriFromPath(path.join(studioDir, "industrial_gears_black.jpg")) || getBase64DataUriFromPath(path.join(studioDir, "transcript2_robotic_arm_unique.svg"));
-const vintageRocketBase64 = getBase64DataUriFromPath(path.join(studioDir, "vintage_rocket_launch.jpg"));
+const transparentRocketBase64 = getBase64DataUriFromPath(path.join(studioDir, "speed-rocket-fast.png"));
 const techFoundersTrioBase64 = getBase64DataUriFromPath(path.join(studioDir, "tech_founders_vintage_trio.jpg"));
 
 // AUTHORITATIVE 20-CHUNK TRANSCRIPT PAYLOAD 4: "Most businesses don't have a growth problem."
@@ -177,10 +177,10 @@ const maleSequencePayload4 = [
       {
         layerName: "stem_getting_customers",
         text: "Because getting customers",
-        fontFamily: "DM Serif Display",
-        fontWeight: 400,
+        fontFamily: "Playfair Display",
+        fontWeight: 700,
         fontStyle: "italic",
-        fontSizePx: 26,
+        fontSizePx: 24,
         color: "#FFFFFF",
         dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" }
       }
@@ -196,11 +196,11 @@ const maleSequencePayload4 = [
         text: "IS ONE THING.",
         fontFamily: "Bebas Neue",
         fontWeight: 400,
-        fontSizePx: 36,
+        fontSizePx: 34,
         casing: "uppercase",
         color: "#FFFFFF",
         dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" },
-        marginTopPx: 8
+        marginTopPx: 6
       }
     ]
   },
@@ -208,21 +208,13 @@ const maleSequencePayload4 = [
     chunkIndex: 8,
     timestamp: "00:14 — 00:16",
     text: "Keeping the machine running",
-    backgroundAsset: {
-      assetId: "transcript2_robotic_arm_unique",
-      assetName: "Unique Robotic Assembly Arm Cutout",
-      imageUrl: roboticArmBase64,
-      position: { topPercent: 12, leftPercent: 4, widthPx: 360 },
-      depth: "behind",
-      motion: "asset_rotate_spin_bezier"
-    },
     layers: [
       {
         layerName: "stem_machine_running",
         text: "Keeping the machine running",
         fontFamily: "DM Sans",
         fontWeight: 700,
-        fontSizePx: 24,
+        fontSizePx: 25,
         color: "#FFFFFF",
         dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" }
       }
@@ -442,10 +434,10 @@ const maleSequencePayload4 = [
     timestamp: "00:38 — 00:40",
     text: "That's how businesses scale.",
     backgroundAsset: {
-      assetId: "causal_flood_matted_rocket_launch",
-      assetName: "Causal Flood-Matted Rocket Launch Cutout ($Z:10$)",
-      imageUrl: vintageRocketBase64,
-      position: { topPercent: 6, leftPercent: 44, widthPx: 330 },
+      assetId: "transparent_rocket_cutout",
+      assetName: "100% Transparent Isolated Rocket Cutout ($Z:10$)",
+      imageUrl: transparentRocketBase64,
+      position: { topPercent: 8, leftPercent: 52, widthPx: 230 },
       depth: "behind",
       motion: "asset_documentary_rocket_liftoff"
     },
@@ -502,7 +494,7 @@ const perLayerKineticMap: Record<number, Record<string, { fx: string; treatmentO
     "hero_one_thing": { fx: "keynote_punch", name: "Keynote Focal Punch", type: "phrase", depth: "behind_subject", zone: "head_contact", score: "Goldilocks Scalp Contact ($Z:10$)" }
   },
   8: {
-    "stem_machine_running": { fx: "slot_bounce", name: "Kinetic Slot Bounce", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Robotic Arm Cutout ($Z:10$)" }
+    "stem_machine_running": { fx: "subpixel_blur_mask", name: "Soft Word Rise", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crisp White (#FFFFFF)" }
   },
   9: {
     "hero_completely_different": { fx: "staggered_rotate_x", name: "3D Cascade", type: "letter", depth: "behind_subject", zone: "head_contact", score: "Goldilocks Scalp Contact ($Z:10$)" }
@@ -541,7 +533,7 @@ const perLayerKineticMap: Record<number, Record<string, { fx: string; treatmentO
   },
   20: {
     "prefix_thats_how": { fx: "subpixel_blur_mask", name: "Controlled Detachment Prefix", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Chest Zone ($Z:30$)" },
-    "payoff_businesses_scale": { fx: "typewriter_engine", name: "Ghost Typewriter Engine + Causal Rocket Liftoff", type: "letter", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Flood-Matted Rocket ($Z:10$)" }
+    "payoff_businesses_scale": { fx: "typewriter_engine", name: "Ghost Typewriter Engine + Rocket Liftoff", type: "letter", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Transparent Rocket Cutout ($Z:10$)" }
   }
 };
 
@@ -572,8 +564,8 @@ const htmlContent = `<!DOCTYPE html>
       --accent-yellow: #F59E0B;
       --text-main: #F8FAFC;
       --text-muted: #94A3B8;
-      --stage-max-w: 415px;
-      --stage-width: min(var(--stage-max-w), calc(100vw - 20px));
+      --stage-max-w: 395px;
+      --stage-width: min(var(--stage-max-w), calc((100dvh - 160px) * (9 / 16)), calc(100vw - 20px));
       --stage-height: calc(var(--stage-width) * (16 / 9));
     }
 
@@ -588,13 +580,13 @@ const htmlContent = `<!DOCTYPE html>
       flex-direction: column;
       align-items: center;
       justify-content: flex-start;
-      padding: max(12px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+      padding: max(10px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
       overflow-x: hidden;
     }
 
-    .header { text-align: center; margin-bottom: 12px; max-width: 900px; width: 100%; }
-    .header h1 { font-size: clamp(16px, 4vw, 22px); font-weight: 800; letter-spacing: 0.04em; background: linear-gradient(135deg, #00F0FF 0%, #A855F7 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-transform: uppercase; margin-bottom: 4px; }
-    .header p { font-size: clamp(11px, 2.5vw, 13px); color: var(--text-muted); }
+    .header { text-align: center; margin-bottom: 10px; max-width: 900px; width: 100%; }
+    .header h1 { font-size: clamp(15px, 3.8vw, 20px); font-weight: 800; letter-spacing: 0.04em; background: linear-gradient(135deg, #00F0FF 0%, #A855F7 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-transform: uppercase; margin-bottom: 2px; }
+    .header p { font-size: clamp(11px, 2.4vw, 12px); color: var(--text-muted); }
 
     /* VIEW MODE TAB SWITCHER */
     .view-mode-tabs {
@@ -604,8 +596,8 @@ const htmlContent = `<!DOCTYPE html>
       border-radius: 30px;
       padding: 3px;
       gap: 4px;
-      margin-bottom: 14px;
-      max-width: 440px;
+      margin-bottom: 12px;
+      max-width: 420px;
       width: 100%;
       box-shadow: 0 4px 16px rgba(0,0,0,0.4);
     }
@@ -614,9 +606,9 @@ const htmlContent = `<!DOCTYPE html>
       background: transparent;
       border: none;
       color: var(--text-muted);
-      padding: 8px 12px;
+      padding: 7px 10px;
       border-radius: 24px;
-      font-size: 12px;
+      font-size: 11.5px;
       font-weight: 700;
       cursor: pointer;
       transition: all 0.2s ease;
@@ -635,7 +627,7 @@ const htmlContent = `<!DOCTYPE html>
 
     .app-layout {
       display: flex;
-      gap: 28px;
+      gap: 24px;
       max-width: 1240px;
       width: 100%;
       align-items: flex-start;
@@ -643,7 +635,7 @@ const htmlContent = `<!DOCTYPE html>
       transition: all 0.3s ease;
     }
 
-    /* CLEAN DARK STAGE CANVAS CONTAINER */
+    /* STRICT 9:16 MOBILE VIEWPORT STAGE CONTAINER */
     .stage-wrapper {
       position: relative;
       display: flex;
@@ -656,18 +648,16 @@ const htmlContent = `<!DOCTYPE html>
       position: relative;
       width: var(--stage-width);
       height: var(--stage-height);
-      max-height: 82vh;
-      max-height: 82dvh;
       aspect-ratio: 9 / 16;
       background: linear-gradient(180deg, #070913 0%, #0F172A 100%);
-      border-radius: clamp(24px, 6vw, 40px);
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 0 clamp(4px, 1.5vw, 10px) #1E293B;
-      overflow: hidden;
+      border-radius: clamp(24px, 6vw, 36px);
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95), 0 0 0 clamp(4px, 1.2vw, 8px) #1E293B;
+      overflow: hidden !important;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      padding: 36px 20px;
+      padding: 30px 16px;
       perspective: 1000px;
       user-select: none;
       touch-action: pan-y;
@@ -850,7 +840,7 @@ const htmlContent = `<!DOCTYPE html>
       overflow: visible; 
     }
     .typo-layer { 
-      max-width: 92%; 
+      max-width: 82%; 
       display: flex; 
       flex-wrap: wrap; 
       justify-content: center; 
@@ -860,6 +850,9 @@ const htmlContent = `<!DOCTYPE html>
       position: relative; 
       text-align: center; 
       margin: 0 auto;
+      word-break: normal;
+      overflow-wrap: break-word;
+      box-sizing: border-box;
     }
 
     .layer-behind-subject { z-index: 10 !important; position: relative; }
@@ -871,7 +864,7 @@ const htmlContent = `<!DOCTYPE html>
       align-items: center;
       justify-content: center;
       white-space: nowrap !important;
-      margin: 0 0.22em;
+      margin: 0 0.2em;
       overflow: visible;
       position: relative;
     }
