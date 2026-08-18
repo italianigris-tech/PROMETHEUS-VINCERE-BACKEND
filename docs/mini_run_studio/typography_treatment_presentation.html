@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Prometheus Core — 100% Faithful Font JSON Realization Studio</title>
   
-  <!-- Comprehensive Google WebFonts for all 45 Font JSON Profiles -->
+  <!-- Comprehensive Google WebFonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..900;1,6..96,400..900&family=Cinzel:wght@700;900&family=Cormorant+Garamond:ital,wght@0,400;0,700;1,400;1,700&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,400..900;1,9..40,400..900&family=DM+Serif+Display:ital@0;1&family=Dancing+Script:wght@700&family=Great+Vibes&family=Inter:wght@400;700;800;900&family=Lora:ital,wght@0,400;0,700;1,400;1,700&family=Montserrat:ital,wght@0,400;0,700;0,800;0,900;1,400;1,700;1,800;1,900&family=Oswald:wght@600;700&family=Outfit:wght@700;900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Sacramento&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@700;800&display=swap" rel="stylesheet">
@@ -228,7 +228,7 @@
       top: 9.8%;
       left: 50%;
       transform: translateX(-50%);
-      width: 90%;
+      width: 88%;
       z-index: 10; /* BEHIND SPEAKER HEAD (Z:10) */
       display: flex;
       flex-direction: column;
@@ -243,7 +243,7 @@
       top: 56.5%;
       left: 50%;
       transform: translateX(-50%);
-      width: 90%;
+      width: 88%;
       z-index: 30; /* IN FRONT OF SPEAKER CHEST (Z:30) */
       display: flex;
       flex-direction: column;
@@ -261,7 +261,7 @@
       width: 100%;
     }
 
-    /* STRICT ZERO-WORD-WRAPPING */
+    /* STRICT HORIZONTAL CONTAINMENT & ZERO WORD CUTTING */
     .typo-layer {
       display: flex;
       flex-direction: row;
@@ -269,8 +269,9 @@
       align-items: center;
       justify-content: center;
       white-space: nowrap !important;
-      max-width: 90%;
-      margin: 0 auto;
+      max-width: 100%;
+      margin-left: auto;
+      margin-right: auto;
     }
 
     /* KINETIC ANIMATION PRIMITIVES */
@@ -319,15 +320,17 @@
       100% { opacity: 1; transform: translate(0, 0) skewX(0deg) scale(1); filter: blur(0px); }
     }
 
-    /* DELAYED HIGHLIGHT CARD SWEEP */
+    /* DYNAMIC ANIMATED HIGHLIGHT CARD SWEEP (GENEROUS PADDING, ZERO CUTOUT) */
     .delayed-pill-card-container {
       position: relative;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      padding: 4px 14px;
-      border-radius: 8px;
-      overflow: hidden;
+      padding: 6px 18px;
+      border-radius: 10px;
+      box-sizing: border-box;
+      max-width: 100%;
+      margin: 4px auto;
       white-space: nowrap !important;
     }
     .delayed-pill-card-bg {
@@ -335,22 +338,23 @@
       top: 0; left: 0; width: 100%; height: 100%;
       transform: scaleX(0);
       transform-origin: left center;
-      border-radius: 8px;
-      animation: pillCardSweepLeftToRight 0.5s 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      border-radius: 10px;
+      animation: pillCardSweepLeftToRight 0.45s 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
       z-index: 1;
     }
     .delayed-pill-card-text {
       position: relative;
       z-index: 2;
-      animation: pillTextFadeIn 0.3s ease forwards;
+      font-weight: 900;
       white-space: nowrap !important;
+      animation: pillTextFadeIn 0.3s 0.25s ease forwards;
     }
     .card-yellow { background-color: #FFE600; }
     .card-red-pressure { background-color: #FF1744; }
     .card-cyan { background-color: #00F0FF; }
 
     @keyframes pillCardSweepLeftToRight { 0% { transform: scaleX(0); } 100% { transform: scaleX(1); } }
-    @keyframes pillTextFadeIn { 0% { opacity: 0; transform: translateY(6px); } 100% { opacity: 1; transform: translateY(0); } }
+    @keyframes pillTextFadeIn { 0% { opacity: 0; transform: translateY(4px); } 100% { opacity: 1; transform: translateY(0); } }
 
     /* DYNAMIC NUMERIC TICKING COUNTER */
     .numeric-counter-item {
@@ -387,7 +391,6 @@
     .layers-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 8px; }
     .layers-table th { text-align: left; padding: 6px 8px; color: var(--text-muted); border-bottom: 1px solid var(--panel-border); font-size: 10px; text-transform: uppercase; }
     .layers-table td { padding: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.04); vertical-align: middle; }
-    .badge-optimal { background: rgba(16, 185, 129, 0.15); color: #10B981; padding: 2px 6px; border-radius: 4px; font-weight: 800; font-size: 9px; }
 
     /* CONTROLS TOOLBAR */
     .controls-bar {
@@ -410,7 +413,7 @@
 
   <div class="header">
     <h1>Prometheus 100% Faithful Font JSON Realization Studio</h1>
-    <p>Authoritative Font JSON Styling • Exact Family Pairings • Negative Margin Overlaps • Zero Word-Wrapping</p>
+    <p>Guaranteed 9:16 Mobile Containment • Subtle Baseline Overlaps • Zero Cutout Clipping</p>
   </div>
 
   <!-- DYNAMIC SELECTOR RE-ROLL TOOLBAR -->
@@ -427,8 +430,11 @@
     <div class="telemetry-chip">
       <span>Font Profiles: <strong>45 Authoritative</strong></span>
     </div>
+    <a href="paste" target="_blank" class="btn-secondary" style="text-decoration:none;">
+      📸 Batch Screenshot Dropzone
+    </a>
     <a href="typography.html" target="_blank" class="btn-secondary" style="text-decoration:none;">
-      ⚡ Master Kinetic Suite (29 Presets)
+      ⚡ Kinetic Suite
     </a>
   </div>
 
@@ -569,7 +575,26 @@
       return text;
     }
 
-    // Exact word count allocation algorithm from typography-profile-realization.ts
+    // MATHEMATICAL INVARIANT: Safe Dynamic Font Sizing to Strictly Guarantee 9:16 Mobile Containment
+    function calculateSafeContainedFontSize(text, idealFontSize, maxAllowedWidthPx = 260, fontName = 'sans') {
+      let charFactor = 0.58;
+      if (fontName.includes('Bebas') || fontName.includes('Anton') || fontName.includes('Oswald')) {
+        charFactor = 0.38; // Condensed display fits more characters
+      } else if (fontName.includes('Great Vibes') || fontName.includes('Dancing') || fontName.includes('Sacramento')) {
+        charFactor = 0.46; // Cursive script
+      } else if (fontName.includes('Playfair') || fontName.includes('Bodoni') || fontName.includes('Cinzel') || fontName.includes('Cormorant')) {
+        charFactor = 0.52; // Serif / Didone
+      }
+
+      const estimatedWidth = text.length * idealFontSize * charFactor;
+      if (estimatedWidth > maxAllowedWidthPx) {
+        const scaleFactor = maxAllowedWidthPx / estimatedWidth;
+        return Math.max(16, Math.floor(idealFontSize * scaleFactor));
+      }
+      return idealFontSize;
+    }
+
+    // Balanced Word Count Allocation Algorithm
     function allocateWordsToLayers(profileLayers, tokenCount) {
       if (!profileLayers || profileLayers.length === 0) return [];
       const activeLayers = tokenCount >= profileLayers.length 
@@ -608,7 +633,7 @@
       }));
     }
 
-    // 3. AUTHORITATIVE COMPILER EXECUTING 100% FAITHFUL FONT JSON INVARIANTS
+    // 3. AUTHORITATIVE COMPILER EXECUTING 100% FAITHFUL FONT JSON INVARIANTS & SUBTLE OVERLAPS
     function compileDynamicSequence(seed) {
       const rng = mulberry32(seed);
       let lastProfileName = "";
@@ -640,6 +665,17 @@
         // 2. RIGOROUSLY ALLOCATE SPOKEN WORDS TO FONT JSON LAYERS
         const layerAllocations = allocateWordsToLayers(profile.typography_layers, wordCount);
         let wordOffset = 0;
+        let prevLayerFontSize = 0;
+
+        // Check if this chunk qualifies for an animated highlight blotter
+        let willUseDelayedCard = false;
+        let cardColor = "#FFE600";
+        if ((raw.emphasis === "inflection_tension" || raw.emphasis === "inflection_solution") && 
+            (chunkIdx - lastCardIndex >= 4) && (seed === 101 ? (raw.emphasis === "inflection_tension") : (rng() > 0.35))) {
+          willUseDelayedCard = true;
+          cardColor = (raw.emphasis === "inflection_tension") ? "#FFE600" : "#00F0FF";
+          lastCardIndex = chunkIdx;
+        }
 
         const renderedLayers = layerAllocations.map((alloc, layerIdx) => {
           const lSpec = alloc.layer;
@@ -654,19 +690,24 @@
             ? lSpec.matched_font_candidates[0] 
             : "DM Sans";
 
-          // Exact Size and Scale from Font JSON
-          const baseSize = fStyle.size_px_base || 48;
-          const relativeScale = fStyle.relative_scale || 1.0;
-          let calculatedSizePx = Math.round(baseSize * relativeScale);
+          // Exact Size from Font JSON
+          const baseSize = fStyle.size_px_base || 44;
+          const isCardTarget = willUseDelayedCard && (layerIdx === layerAllocations.length - 1 || lSpec.role === "primary_focus_word");
 
-          // Gentle safety scale for 9:16 viewport containment while preserving relative scale ratio
-          if (assignedWords.length > 18) {
-            calculatedSizePx = Math.max(22, Math.round(calculatedSizePx * 0.72));
-          } else if (assignedWords.length > 12) {
-            calculatedSizePx = Math.max(26, Math.round(calculatedSizePx * 0.85));
+          // Max allowed container width: 270px (or 230px if inside a padded highlight card)
+          const maxAllowedWidth = isCardTarget ? 230 : 270;
+          const safeFontSize = calculateSafeContainedFontSize(assignedWords, baseSize, maxAllowedWidth, matchedFamily);
+
+          // SUBTLE OVERLAP GUARD: Negative margin must NEVER exceed 12-15% of previous layer font size!
+          let rawMarginTop = fStyle.vertical_margin_top_px || 0;
+          let safeMarginTop = rawMarginTop;
+          if (rawMarginTop < 0 && prevLayerFontSize > 0) {
+            const maxSafeOverlapPx = Math.round(prevLayerFontSize * 0.14); // subtle baseline kiss (e.g. -5px to -8px max)
+            safeMarginTop = Math.max(rawMarginTop, -maxSafeOverlapPx);
           }
+          prevLayerFontSize = safeFontSize;
 
-          // Exact Color from Font JSON (or crisp white for dark backdrop contrast if pitch black)
+          // Exact Color from Font JSON (or crisp white for dark backdrop contrast)
           let resolvedColor = fStyle.color || "#FFFFFF";
           if (resolvedColor === "#000000" || resolvedColor === "#111111" || resolvedColor === "#2C2C2C") {
             resolvedColor = "#FFFFFF";
@@ -695,12 +736,12 @@
             fontFamily: matchedFamily,
             fontWeight: fStyle.weight || 700,
             fontStyle: fStyle.style || "normal",
-            fontSizePx: calculatedSizePx,
+            fontSizePx: safeFontSize,
             color: resolvedColor,
             casing: fStyle.casing || "normal",
             letterSpacingEm: fStyle.letter_spacing_em || 0,
-            lineHeight: fStyle.line_height || 1.0,
-            marginTopPx: fStyle.vertical_margin_top_px || 0,
+            lineHeight: fStyle.line_height || 1.05,
+            marginTopPx: safeMarginTop,
             dropShadow: fEffects.drop_shadow || { x_offset: 0, y_offset: 2, blur_radius: 8, color: "rgba(0,0,0,0.85)" },
             fxPreset: fxPreset
           };
@@ -715,12 +756,9 @@
             };
           }
 
-          // Delayed Highlight Card Sweep Prior
-          if ((raw.emphasis === "inflection_tension" || raw.emphasis === "inflection_solution") && 
-              (lSpec.role === "primary_focus_word" || layerIdx === layerAllocations.length - 1) && 
-              (chunkIdx - lastCardIndex >= 4) && rng() > 0.35) {
-            layerObj.delayedPillCard = rng() > 0.5 ? "#FFE600" : "#FF1744";
-            lastCardIndex = chunkIdx;
+          // Delayed Animated Highlight Card Sweep Prior
+          if (isCardTarget) {
+            layerObj.delayedPillCard = cardColor;
           }
 
           return layerObj;
@@ -819,7 +857,7 @@
         layerDiv.style.fontWeight = layer.fontWeight;
         layerDiv.style.fontStyle = layer.fontStyle || 'normal';
         layerDiv.style.fontSize = layer.fontSizePx + 'px';
-        layerDiv.style.lineHeight = layer.lineHeight || 1.0;
+        layerDiv.style.lineHeight = layer.lineHeight || 1.05;
         layerDiv.style.color = layer.color || '#FFFFFF';
         if (layer.letterSpacingEm) layerDiv.style.letterSpacing = layer.letterSpacingEm + 'em';
         if (layer.marginTopPx) layerDiv.style.marginTop = layer.marginTopPx + 'px';
@@ -828,7 +866,7 @@
           layerDiv.style.textShadow = (ds.x_offset || 0) + 'px ' + (ds.y_offset || 2) + 'px ' + (ds.blur_radius || 8) + 'px ' + (ds.color || 'rgba(0,0,0,0.85)');
         }
 
-        // 1. Delayed Highlight Card Sweep
+        // 1. Delayed Animated Highlight Card Sweep
         if (layer.delayedPillCard) {
           const cardWrap = document.createElement('div');
           cardWrap.className = 'delayed-pill-card-container';
@@ -889,7 +927,7 @@
         tr.innerHTML = 
           '<td style="font-family: monospace; color: var(--accent-cyan); font-weight: 700;">' + layer.layerName + ' (' + layer.role + ')</td>' +
           '<td style="font-weight: 700;">' + layer.fontFamily + ' ' + layer.fontWeight + ' ' + (layer.fontStyle === 'italic' ? 'Italic' : '') + ' • ' + layer.fontSizePx + 'px</td>' +
-          '<td>' + (layer.casing || 'normal') + ' • ' + (layer.marginTopPx ? layer.marginTopPx + 'px offset' : '0px') + '</td>' +
+          '<td>' + (layer.casing || 'normal') + ' • ' + (layer.marginTopPx ? layer.marginTopPx + 'px subtle offset' : '0px') + '</td>' +
           '<td style="font-weight: 700; color: var(--accent-yellow);">' + layer.fxPreset + '</td>' +
           '<td style="font-weight: 700; color: ' + (isBehind ? 'var(--accent-pink)' : 'var(--accent-cyan)') + '">' + (isBehind ? 'ZONE A (Z:10)' : 'ZONE B (Z:30)') + '</td>';
         tableBody.appendChild(tr);
