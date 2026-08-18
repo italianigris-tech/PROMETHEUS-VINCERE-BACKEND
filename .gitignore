@@ -95,3 +95,4 @@ CONSOLIDATED.env
 .vite/
 .codex-temp/
 artifacts/
+docs/mini_run_studio/*.mp4

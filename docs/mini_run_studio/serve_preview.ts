@@ -1,7 +1,7 @@
 import * as http from "node:http";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { spawn } from "node:child_process";
+import { spawn, execSync } from "node:child_process";
 
 const studioDir = __dirname;
 const repoRoot = path.resolve(studioDir, "../..");
@@ -9,6 +9,11 @@ const repoRoot = path.resolve(studioDir, "../..");
 const uploadsDir = path.join(studioDir, "uploaded_screenshots");
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+const uploadedVideosDir = path.join(studioDir, "uploaded_videos");
+if (!fs.existsSync(uploadedVideosDir)) {
+  fs.mkdirSync(uploadedVideosDir, { recursive: true });
 }
 
 const animPreviewDir = path.resolve(repoRoot, "Yuan Prometheus Screenshots/prometheus_animations_preview");
@@ -27,9 +32,56 @@ const MIME_TYPES: Record<string, string> = {
   ".webp": "image/webp",
   ".svg": "image/svg+xml",
   ".mp4": "video/mp4",
+  ".mov": "video/quicktime",
+  ".webm": "video/webm",
+  ".mkv": "video/x-matroska",
   ".md": "text/markdown; charset=utf-8",
   ".ico": "image/x-icon",
 };
+
+/**
+ * Probe video metadata using ffprobe if available
+ */
+function probeVideoFile(filePath: string): any {
+  try {
+    const cmd = `ffprobe -v quiet -print_format json -show_format -show_streams "${filePath}"`;
+    const result = execSync(cmd, { encoding: "utf8" });
+    const parsed = JSON.parse(result);
+    const videoStream = parsed.streams?.find((s: any) => s.codec_type === "video");
+    const audioStream = parsed.streams?.find((s: any) => s.codec_type === "audio");
+    
+    let fps = 30;
+    if (videoStream?.r_frame_rate) {
+      const parts = videoStream.r_frame_rate.split("/");
+      if (parts.length === 2 && parseFloat(parts[1]) > 0) {
+        fps = Math.round(parseFloat(parts[0]) / parseFloat(parts[1]));
+      }
+    }
+
+    return {
+      durationSeconds: parseFloat(parsed.format?.duration || videoStream?.duration || "0"),
+      width: videoStream?.width || 1080,
+      height: videoStream?.height || 1920,
+      fps: fps,
+      videoCodec: videoStream?.codec_name || "unknown",
+      hasAudio: Boolean(audioStream),
+      audioCodec: audioStream?.codec_name || null,
+      fileSizeBytes: parseInt(parsed.format?.size || "0", 10) || fs.statSync(filePath).size,
+    };
+  } catch (e) {
+    const stats = fs.statSync(filePath);
+    return {
+      durationSeconds: 0,
+      width: 1080,
+      height: 1920,
+      fps: 30,
+      videoCodec: "unknown",
+      hasAudio: false,
+      audioCodec: null,
+      fileSizeBytes: stats.size,
+    };
+  }
+}
 
 /**
  * Resolve requested URL to disk file path safely with URL decoding.
@@ -41,7 +93,21 @@ function resolveFilePath(reqUrl: string): { filePath: string; contentType: strin
   } catch {}
 
   if (cleanPath === "/" || cleanPath === "") {
-    cleanPath = "/typography_treatment_presentation.html";
+    cleanPath = "/video";
+  }
+
+  // Explicit route for uploaded videos
+  if (cleanPath.startsWith("/uploaded_videos/")) {
+    const rawName = cleanPath.replace(/^\/uploaded_videos\//, "");
+    const safeName = path.basename(rawName);
+    const target = path.join(uploadedVideosDir, safeName);
+    if (fs.existsSync(target) && fs.statSync(target).isFile()) {
+      const ext = path.extname(target).toLowerCase();
+      return {
+        filePath: target,
+        contentType: MIME_TYPES[ext] || "video/mp4",
+      };
+    }
   }
 
   // Explicit route for uploaded screenshots
@@ -80,10 +146,10 @@ function resolveFilePath(reqUrl: string): { filePath: string; contentType: strin
     }
   }
 
-  if (cleanPath === "/dashboard" || cleanPath === "/overview" || cleanPath === "/anim-index" || cleanPath === "/anim-index.html") {
-    const indexHtml = path.join(animPreviewDir, "index.html");
-    if (fs.existsSync(indexHtml)) {
-      return { filePath: indexHtml, contentType: MIME_TYPES[".html"] };
+  if (cleanPath === "/studio" || cleanPath === "/presentation") {
+    const presHtml = path.join(studioDir, "typography_treatment_presentation.html");
+    if (fs.existsSync(presHtml)) {
+      return { filePath: presHtml, contentType: MIME_TYPES[".html"] };
     }
   }
 
@@ -109,17 +175,7 @@ function resolveFilePath(reqUrl: string): { filePath: string; contentType: strin
     };
   }
 
-  // 3. Try in screenshotsDir
-  const screenshotsCandidate = path.join(screenshotsDir, normalized);
-  if (fs.existsSync(screenshotsCandidate) && fs.statSync(screenshotsCandidate).isFile()) {
-    const ext = path.extname(screenshotsCandidate).toLowerCase();
-    return {
-      filePath: screenshotsCandidate,
-      contentType: MIME_TYPES[ext] || "application/octet-stream",
-    };
-  }
-
-  // 4. Try in repoRoot
+  // 3. Try in repoRoot
   const repoCandidate = path.join(repoRoot, normalized);
   if (fs.existsSync(repoCandidate) && fs.statSync(repoCandidate).isFile()) {
     const ext = path.extname(repoCandidate).toLowerCase();
@@ -132,39 +188,42 @@ function resolveFilePath(reqUrl: string): { filePath: string; contentType: strin
   return null;
 }
 
-const pasteHtmlContent = `<!DOCTYPE html>
+// =========================================================================
+// HTML: DEDICATED DRAG & DROP VIDEO RECEIVING PLATFORM
+// =========================================================================
+const videoPlatformHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Batch Screenshot Dropzone & Multi-Image Gallery</title>
+  <title>Prometheus — Video Dropzone & Spatio-Temporal Ingestion Platform</title>
   <style>
     :root {
       --bg-dark: #070913;
-      --card-bg: rgba(15, 23, 42, 0.85);
+      --card-bg: rgba(14, 19, 38, 0.95);
       --accent-cyan: #00F0FF;
-      --accent-yellow: #FFE600;
+      --accent-pink: #FF0055;
       --accent-purple: #8B5CF6;
-      --accent-pink: #EC4899;
+      --accent-yellow: #FFE600;
       --accent-green: #10B981;
-      --text-muted: #94A3B8;
+      --text-main: #FFFFFF;
+      --text-muted: #8E9BAE;
       --panel-border: rgba(255, 255, 255, 0.1);
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       background: var(--bg-dark);
-      color: #fff;
+      color: var(--text-main);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", sans-serif;
-      padding: 24px 16px;
+      min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
-      min-height: 100vh;
-      line-height: 1.5;
+      padding: 24px 16px;
     }
     .container {
       width: 100%;
-      max-width: 1000px;
+      max-width: 960px;
       display: flex;
       flex-direction: column;
       gap: 20px;
@@ -172,483 +231,475 @@ const pasteHtmlContent = `<!DOCTYPE html>
     .header-card {
       background: var(--card-bg);
       border: 1px solid var(--panel-border);
-      border-radius: 20px;
-      padding: 28px 24px;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+      border-radius: 24px;
+      padding: 30px 24px;
       text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.7);
       position: relative;
+      overflow: hidden;
     }
     .header-card h1 {
-      font-size: clamp(20px, 4vw, 26px);
+      font-size: clamp(22px, 4vw, 30px);
       font-weight: 900;
+      letter-spacing: -0.5px;
       background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       margin-bottom: 6px;
-      letter-spacing: -0.02em;
     }
     .header-card p {
       color: var(--text-muted);
       font-size: 13.5px;
+      max-width: 620px;
+      margin: 0 auto;
     }
-    .dropzone {
+
+    /* TOP NAV LINKS */
+    .top-nav {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+    .nav-btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--panel-border);
+      color: #FFF;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 11.5px;
+      font-weight: 700;
+      text-decoration: none;
+      transition: all 0.15s;
+    }
+    .nav-btn:hover { background: rgba(255, 255, 255, 0.14); border-color: var(--accent-cyan); }
+    .nav-btn-highlight { background: var(--accent-cyan); color: #070913; border: none; font-weight: 900; }
+
+    /* DROPZONE AREA */
+    .dropzone-box {
       border: 3px dashed var(--accent-cyan);
-      border-radius: 16px;
-      padding: 36px 20px;
-      margin-top: 18px;
-      background: rgba(7, 9, 19, 0.6);
+      border-radius: 20px;
+      padding: 44px 20px;
+      background: rgba(11, 14, 27, 0.8);
       cursor: pointer;
+      text-align: center;
       transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-      box-shadow: 0 0 30px rgba(0, 240, 255, 0.15);
+      box-shadow: 0 0 40px rgba(0, 240, 255, 0.12);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
+      position: relative;
     }
-    .dropzone:hover, .dropzone.dragover {
+    .dropzone-box:hover, .dropzone-box.dragover {
       border-color: var(--accent-yellow);
-      background: rgba(7, 9, 19, 0.95);
-      box-shadow: 0 0 40px rgba(255, 230, 0, 0.35);
+      background: rgba(11, 14, 27, 0.98);
+      box-shadow: 0 0 50px rgba(255, 230, 0, 0.3);
       transform: scale(1.01);
     }
-    .dropzone-icon { font-size: 44px; margin-bottom: 8px; }
-    .dropzone-title { font-size: 17px; font-weight: 800; color: #FFF; margin-bottom: 4px; }
-    .dropzone-sub { color: #64748B; font-size: 12.5px; }
-
-    .status-bar {
-      margin-top: 14px;
-      font-size: 14px;
-      font-weight: 700;
-      min-height: 24px;
-    }
-
-    /* GALLERY TABS */
-    .gallery-card {
-      background: var(--card-bg);
-      border: 1px solid var(--panel-border);
-      border-radius: 20px;
-      padding: 24px;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.6);
-    }
-    .gallery-nav-tabs {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 18px;
-      border-bottom: 1px solid var(--panel-border);
-      padding-bottom: 12px;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .tab-group {
-      display: flex;
-      gap: 8px;
-    }
-    .tab-button {
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid var(--panel-border);
-      color: var(--text-muted);
-      border-radius: 20px;
-      padding: 8px 16px;
-      font-size: 13px;
-      font-weight: 800;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .tab-button.active {
-      background: var(--accent-cyan);
+    .drop-icon { font-size: 54px; margin-bottom: 12px; }
+    .drop-title { font-size: 19px; font-weight: 800; color: #FFF; margin-bottom: 6px; }
+    .drop-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
+    .btn-browse {
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
       color: #070913;
-      border-color: var(--accent-cyan);
-      box-shadow: 0 2px 10px rgba(0, 240, 255, 0.3);
-    }
-
-    .gallery-actions {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .btn-action {
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid var(--panel-border);
-      color: #FFF;
-      border-radius: 12px;
-      padding: 6px 12px;
-      font-size: 12px;
-      font-weight: 700;
+      border: none;
+      padding: 10px 22px;
+      border-radius: 24px;
+      font-size: 13px;
+      font-weight: 900;
       cursor: pointer;
       transition: all 0.15s;
     }
-    .btn-action:hover {
-      background: rgba(255, 255, 255, 0.15);
-      border-color: var(--accent-cyan);
-    }
-    .btn-danger { color: #FF3366; }
-    .btn-danger:hover { background: rgba(255, 51, 102, 0.15); border-color: #FF3366; }
+    .btn-browse:hover { transform: scale(1.05); filter: brightness(1.15); }
 
-    /* IMAGE GRID */
-    .image-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: 16px;
+    /* UPLOAD PROGRESS & STATUS */
+    .upload-progress-container {
+      display: none;
+      width: 100%;
+      margin-top: 20px;
     }
-    .image-item {
-      background: rgba(7, 9, 19, 0.85);
-      border: 1px solid var(--panel-border);
-      border-radius: 14px;
+    .progress-bar-bg {
+      width: 100%;
+      height: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
       overflow: hidden;
-      display: flex;
-      flex-direction: column;
       position: relative;
-      transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
     }
-    .image-item:hover {
-      transform: translateY(-3px);
-      border-color: var(--accent-cyan);
-      box-shadow: 0 8px 24px rgba(0, 240, 255, 0.2);
-    }
-    .image-thumb-wrap {
-      width: 100%;
-      height: 180px;
-      background: #04050a;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-      cursor: pointer;
-    }
-    .image-thumb-wrap img {
-      width: 100%;
+    .progress-bar-fill {
       height: 100%;
-      object-fit: contain;
-      transition: transform 0.3s;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent-cyan), var(--accent-pink));
+      transition: width 0.15s ease;
     }
-    .image-item:hover .image-thumb-wrap img { transform: scale(1.05); }
-    .image-meta {
-      padding: 10px;
-      font-size: 11px;
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-    }
-    .image-name {
-      font-weight: 700;
-      color: #FFF;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .image-info {
-      color: var(--text-muted);
-      font-size: 10px;
+    .progress-text-row {
       display: flex;
       justify-content: space-between;
+      font-size: 12px;
+      font-weight: 700;
+      margin-top: 6px;
+      color: var(--text-muted);
     }
-    .btn-delete-item {
-      position: absolute;
-      top: 6px;
-      right: 6px;
-      background: rgba(0, 0, 0, 0.8);
-      border: 1px solid rgba(255, 255, 255, 0.2);
+
+    /* PREVIEW & METADATA CARD */
+    .preview-card {
+      display: none;
+      background: var(--card-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+    }
+    .preview-layout {
+      display: flex;
+      flex-direction: row;
+      gap: 24px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+    .video-player-wrap {
+      flex: 1;
+      min-width: 280px;
+      max-width: 380px;
+      background: #000;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--panel-border);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+      position: relative;
+    }
+    .video-player-wrap video {
+      width: 100%;
+      height: auto;
+      max-height: 480px;
+      display: block;
+    }
+
+    .metadata-panel {
+      flex: 1.2;
+      min-width: 280px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .panel-header h3 { font-size: 16px; font-weight: 800; color: var(--accent-cyan); text-transform: uppercase; }
+    .badge-success { background: rgba(16, 185, 129, 0.15); color: #10B981; border: 1px solid #10B981; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 800; }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 8px;
+    }
+    .meta-cell {
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 8px 12px;
+    }
+    .meta-cell span { display: block; font-size: 10px; color: var(--text-muted); text-transform: uppercase; }
+    .meta-cell strong { font-size: 13px; font-family: monospace; color: #FFF; }
+
+    .action-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+    .btn-action {
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+      color: #070913;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 14px;
+      font-size: 12.5px;
+      font-weight: 900;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s;
+    }
+    .btn-action:hover { transform: scale(1.03); filter: brightness(1.15); }
+    .btn-secondary-action {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--panel-border);
       color: #FFF;
-      border-radius: 50%;
-      width: 26px;
-      height: 26px;
+      padding: 10px 18px;
+      border-radius: 14px;
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .btn-secondary-action:hover { background: rgba(255, 255, 255, 0.16); }
+
+    /* UPLOADED RECENT VIDEOS LIST */
+    .history-card {
+      background: var(--card-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+    }
+    .history-title { font-size: 14px; font-weight: 800; color: var(--accent-purple); text-transform: uppercase; margin-bottom: 12px; }
+    .video-item-row {
       display: flex;
       align-items: center;
-      justify-content: center;
-      font-size: 13px;
-      cursor: pointer;
-      transition: all 0.2s;
-      z-index: 10;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 12px;
+      margin-bottom: 8px;
+      font-size: 12px;
     }
-    .btn-delete-item:hover { background: #FF3366; border-color: #FF3366; transform: scale(1.1); }
-
-    .nav-links {
-      display: flex;
-      justify-content: center;
-      gap: 16px;
-      margin-top: 10px;
-    }
-    .nav-link {
-      color: var(--text-muted);
-      text-decoration: none;
-      font-size: 13.5px;
-      font-weight: 600;
-      transition: color 0.2s;
-    }
-    .nav-link:hover { color: var(--accent-cyan); }
+    .video-item-name { font-weight: 700; color: #FFF; font-family: monospace; }
+    .video-item-meta { color: var(--text-muted); font-size: 11px; margin-top: 2px; }
   </style>
 </head>
 <body>
+
   <div class="container">
     
+    <!-- HEADER CARD -->
     <div class="header-card">
-      <h1>📸 Batch Screenshot Upload & Multi-Image Dropzone</h1>
-      <p>
-        Drop <b>multiple screenshots</b> at once, select a batch of files, or press <b style="color: var(--accent-yellow);">Ctrl+V / Cmd+V</b> repeatedly to paste a ton of images!
-      </p>
-
-      <div class="dropzone" id="dropzone">
-        <div class="dropzone-icon">📥</div>
-        <div class="dropzone-title">Drop Multiple Images or Click to Browse Batch</div>
-        <div class="dropzone-sub">Supports multi-paste (Ctrl+V) & bulk file uploads (PNG, JPG, WebP)</div>
-        <input type="file" id="fileInput" accept="image/*" multiple style="display: none;">
+      <h1>Prometheus Video Receiving Platform</h1>
+      <p>Direct EC2 High-Speed Drag & Drop Ingestion for Audioless Footage & Temporal Audio Treatment</p>
+      
+      <div class="top-nav">
+        <a href="/typography_treatment_presentation.html" class="nav-btn nav-btn-highlight">🎬 Open 9:16 Spatio-Temporal Studio</a>
+        <a href="/paste" class="nav-btn">📸 Screenshot Dropzone</a>
+        <a href="/typography.html" class="nav-btn">⚡ 29 Kinetic Presets Suite</a>
       </div>
-
-      <div id="statusBar" class="status-bar"></div>
     </div>
 
-    <!-- LIVE UPLOADED GALLERY -->
-    <div class="gallery-card">
-      <div class="gallery-nav-tabs">
-        <div class="tab-group">
-          <button class="tab-button active" id="tabUploads" onclick="switchGalleryTab('uploads')">
-            📥 Newly Uploaded Screenshots (<span id="uploadsCount">0</span>)
-          </button>
-          <button class="tab-button" id="tabCorpus" onclick="switchGalleryTab('corpus')">
-            📚 Prometheus Font Pairing Corpus (<span id="corpusCount">45</span>)
-          </button>
-        </div>
-        <div class="gallery-actions" id="galleryActionsWrap">
-          <button class="btn-action" onclick="refreshCurrentTab()">🔄 Refresh</button>
-          <button class="btn-action btn-danger" onclick="clearAllUploads()">🗑️ Clear Uploads</button>
-        </div>
-      </div>
+    <!-- DRAG & DROP ZONE -->
+    <div class="dropzone-box" id="dropzoneBox" onclick="fileInput.click()">
+      <div class="drop-icon">📹</div>
+      <div class="drop-title">Drag & Drop Your Video Footage Here</div>
+      <div class="drop-sub">Supports MP4, MOV, WebM, MKV, AVI (Up to 2GB+) • Direct High-Speed EC2 Stream</div>
+      <button class="btn-browse" type="button" onclick="event.stopPropagation(); fileInput.click();">
+        📁 Browse Video File
+      </button>
+      <input type="file" id="fileInput" accept="video/*,.mp4,.mov,.webm,.mkv,.avi" style="display:none;" onchange="handleFileSelected(this.files[0])">
 
-      <div id="imageGrid" class="image-grid">
-        <div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 30px;">
-          Loading gallery...
+      <!-- PROGRESS BAR -->
+      <div class="upload-progress-container" id="progressContainer">
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="progressBarFill"></div>
+        </div>
+        <div class="progress-text-row">
+          <span id="lblUploadStatus">Streaming video to EC2 storage...</span>
+          <span id="lblUploadPercent">0%</span>
         </div>
       </div>
     </div>
 
-    <div class="nav-links">
-      <a href="/typography_treatment_presentation.html" class="nav-link">🎬 Presentation Studio</a>
-      <a href="/typography.html" class="nav-link">⚡ Kinetic Presets Suite</a>
+    <!-- PREVIEW & TELEMETRY DASHBOARD -->
+    <div class="preview-card" id="previewCard">
+      <div class="preview-layout">
+        
+        <!-- VIDEO PLAYER PREVIEW -->
+        <div class="video-player-wrap">
+          <video id="videoPlayer" controls playsinline></video>
+        </div>
+
+        <!-- METADATA & TELEMETRY PANEL -->
+        <div class="metadata-panel">
+          <div class="panel-header">
+            <h3 id="lblUploadedFilename">video_footage.mp4</h3>
+            <span class="badge-success">✓ Ingested to EC2</span>
+          </div>
+
+          <div class="meta-grid">
+            <div class="meta-cell">
+              <span>RESOLUTION</span>
+              <strong id="lblMetaResolution">1080 x 1920</strong>
+            </div>
+            <div class="meta-cell">
+              <span>DURATION</span>
+              <strong id="lblMetaDuration">00:40.00</strong>
+            </div>
+            <div class="meta-cell">
+              <span>FRAMERATE</span>
+              <strong id="lblMetaFps">60 FPS</strong>
+            </div>
+            <div class="meta-cell">
+              <span>FILE SIZE</span>
+              <strong id="lblMetaSize">24.5 MB</strong>
+            </div>
+            <div class="meta-cell">
+              <span>CODEC</span>
+              <strong id="lblMetaCodec">h264 / yuv420p</strong>
+            </div>
+            <div class="meta-cell">
+              <span>AUDIO TRACK</span>
+              <strong id="lblMetaAudio">Audioless (Mute)</strong>
+            </div>
+          </div>
+
+          <div class="action-row">
+            <a href="/typography_treatment_presentation.html" class="btn-action">
+              🎼 Open in Spatio-Temporal Audio Studio
+            </a>
+            <button class="btn-secondary-action" onclick="resetUpload()">
+              ↺ Upload Another Video
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- RECENT INGESTED VIDEOS -->
+    <div class="history-card" id="historyCard">
+      <div class="history-title">📂 Ingested Video Staging on EC2</div>
+      <div id="videoHistoryList">
+        <div style="color:var(--text-muted); font-size:12px;">Loading uploaded video catalog...</div>
+      </div>
     </div>
 
   </div>
 
   <script>
-    const dropzone = document.getElementById('dropzone');
+    const dropzone = document.getElementById('dropzoneBox');
     const fileInput = document.getElementById('fileInput');
-    const statusBar = document.getElementById('statusBar');
-    const imageGrid = document.getElementById('imageGrid');
-    const uploadsCountBadge = document.getElementById('uploadsCount');
-    const corpusCountBadge = document.getElementById('corpusCount');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressBarFill = document.getElementById('progressBarFill');
+    const lblUploadStatus = document.getElementById('lblUploadStatus');
+    const lblUploadPercent = document.getElementById('lblUploadPercent');
+    const previewCard = document.getElementById('previewCard');
+    const videoPlayer = document.getElementById('videoPlayer');
 
-    let currentTab = 'uploads';
-    let localUploadedImages = [];
-
-    dropzone.onclick = () => fileInput.click();
-
-    fileInput.onchange = (e) => {
-      if (e.target.files && e.target.files.length > 0) {
-        handleBatchFiles(Array.from(e.target.files));
-      }
-    };
-
-    // Global Clipboard Paste Support
-    window.addEventListener('paste', (e) => {
-      const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
-      if (!items) return;
-      const imageFiles = [];
-      for (const item of items) {
-        if (item.type.indexOf('image') !== -1) {
-          const file = item.getAsFile();
-          if (file) imageFiles.push(file);
-        }
-      }
-      if (imageFiles.length > 0) {
-        handleBatchFiles(imageFiles);
-      }
-    });
-
+    // Drag & Drop event listeners
     ['dragenter', 'dragover'].forEach(name => {
-      dropzone.addEventListener(name, (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+      dropzone.addEventListener(name, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropzone.classList.add('dragover');
+      });
     });
+
     ['dragleave', 'drop'].forEach(name => {
-      dropzone.addEventListener(name, (e) => { e.preventDefault(); dropzone.classList.remove('dragover'); });
+      dropzone.addEventListener(name, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropzone.classList.remove('dragover');
+      });
     });
+
     dropzone.addEventListener('drop', (e) => {
-      e.preventDefault();
-      dropzone.classList.remove('dragover');
-      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-        handleBatchFiles(Array.from(e.dataTransfer.files));
+      const files = e.dataTransfer.files;
+      if (files && files.length > 0) {
+        handleFileSelected(files[0]);
       }
     });
 
-    // Handle batch files with INSTANT optimistic local preview + background server upload
-    async function handleBatchFiles(files) {
-      if (files.length === 0) return;
-      statusBar.innerText = '⏳ Uploading ' + files.length + ' image(s)...';
-      statusBar.style.color = '#FFE600';
+    function handleFileSelected(file) {
+      if (!file) return;
+      uploadVideoFile(file);
+    }
 
-      files.forEach((file, idx) => {
-        const localUrl = URL.createObjectURL(file);
-        const optimisticName = file.name || ('screenshot_' + Date.now() + '_' + (idx+1) + '.png');
-        localUploadedImages.unshift({
-          name: optimisticName,
-          size: file.size,
-          mtime: Date.now(),
-          url: localUrl,
-          isLocal: true
-        });
-      });
+    function uploadVideoFile(file) {
+      progressContainer.style.display = 'block';
+      progressBarFill.style.width = '0%';
+      lblUploadPercent.innerText = '0%';
+      lblUploadStatus.innerText = 'Streaming ' + file.name + ' (' + (file.size / 1024 / 1024).toFixed(1) + ' MB) to EC2...';
 
-      if (currentTab === 'uploads') {
-        renderGallery(localUploadedImages, true);
-      }
+      // Instant local preview
+      const localUrl = URL.createObjectURL(file);
+      videoPlayer.src = localUrl;
 
-      let successCount = 0;
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        try {
-          const dataUrl = await readFileAsDataUrl(file);
-          const res = await fetch('/api/upload_screenshot', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              dataUrl: dataUrl,
-              filename: file.name || ('screenshot_' + Date.now() + '_' + (i+1) + '.png')
-            })
-          });
-          const json = await res.json();
-          if (json.success) successCount++;
-        } catch (err) {
-          console.error("Upload error for file:", file.name, err);
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/api/upload_video', true);
+      xhr.setRequestHeader('x-file-name', encodeURIComponent(file.name));
+      xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const percent = Math.round((e.loaded / e.total) * 100);
+          progressBarFill.style.width = percent + '%';
+          lblUploadPercent.innerText = percent + '%';
+          if (percent === 100) {
+            lblUploadStatus.innerText = 'Finalizing video ingestion & probing temporal metadata...';
+          }
         }
-      }
+      };
 
-      statusBar.innerText = '✅ ' + successCount + ' of ' + files.length + ' image(s) uploaded successfully!';
-      statusBar.style.color = '#10B981';
-      fetchUploadsGallery();
-    }
-
-    function readFileAsDataUrl(file) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-    }
-
-    function switchGalleryTab(tab) {
-      currentTab = tab;
-      document.getElementById('tabUploads').classList.toggle('active', tab === 'uploads');
-      document.getElementById('tabCorpus').classList.toggle('active', tab === 'corpus');
-      refreshCurrentTab();
-    }
-
-    function refreshCurrentTab() {
-      if (currentTab === 'uploads') {
-        fetchUploadsGallery();
-      } else {
-        fetchCorpusGallery();
-      }
-    }
-
-    async function fetchUploadsGallery() {
-      try {
-        const res = await fetch('/api/list_uploaded_screenshots?t=' + Date.now());
-        const data = await res.json();
-        localUploadedImages = data.images || [];
-        uploadsCountBadge.innerText = localUploadedImages.length;
-        if (currentTab === 'uploads') {
-          renderGallery(localUploadedImages, true);
+      xhr.onload = () => {
+        if (xhr.status === 200) {
+          try {
+            const res = JSON.parse(xhr.responseText);
+            displayVideoResult(res);
+            fetchVideoHistory();
+          } catch (e) {
+            lblUploadStatus.innerText = 'Uploaded successfully!';
+          }
+        } else {
+          lblUploadStatus.innerText = 'Upload failed: ' + xhr.statusText;
         }
-      } catch (err) {
-        console.error("Failed to fetch uploads gallery:", err);
-      }
+      };
+
+      xhr.onerror = () => {
+        lblUploadStatus.innerText = 'Network error during upload.';
+      };
+
+      xhr.send(file);
     }
 
-    async function fetchCorpusGallery() {
+    function displayVideoResult(data) {
+      progressContainer.style.display = 'none';
+      previewCard.style.display = 'block';
+      dropzone.style.display = 'none';
+
+      document.getElementById('lblUploadedFilename').innerText = data.filename || 'uploaded_video.mp4';
+      if (data.url) videoPlayer.src = data.url;
+
+      const meta = data.metadata || {};
+      document.getElementById('lblMetaResolution').innerText = (meta.width || 1080) + ' x ' + (meta.height || 1920);
+      document.getElementById('lblMetaDuration').innerText = (meta.durationSeconds || 0).toFixed(2) + 's';
+      document.getElementById('lblMetaFps').innerText = (meta.fps || 30) + ' FPS';
+      document.getElementById('lblMetaSize').innerText = ((meta.fileSizeBytes || 0) / 1024 / 1024).toFixed(2) + ' MB';
+      document.getElementById('lblMetaCodec').innerText = (meta.videoCodec || 'h264');
+      document.getElementById('lblMetaAudio').innerText = meta.hasAudio ? 'Audio Detected (' + meta.audioCodec + ')' : 'Audioless (Mute Video)';
+    }
+
+    function resetUpload() {
+      previewCard.style.display = 'none';
+      dropzone.style.display = 'flex';
+      fileInput.value = '';
+    }
+
+    async function fetchVideoHistory() {
       try {
-        const res = await fetch('/api/list_corpus_screenshots?t=' + Date.now());
-        const data = await res.json();
-        corpusCountBadge.innerText = data.images.length;
-        if (currentTab === 'corpus') {
-          renderGallery(data.images || [], false);
+        const res = await fetch('/api/list_uploaded_videos');
+        const json = await res.json();
+        const container = document.getElementById('videoHistoryList');
+        if (!json.videos || json.videos.length === 0) {
+          container.innerHTML = '<div style="color:var(--text-muted); font-size:12px;">No uploaded videos in EC2 staging yet.</div>';
+          return;
         }
-      } catch (err) {
-        console.error("Failed to fetch corpus gallery:", err);
-      }
+        container.innerHTML = json.videos.map(v => \`
+          <div class="video-item-row">
+            <div>
+              <div class="video-item-name">\${v.name}</div>
+              <div class="video-item-meta">\${(v.size / 1024 / 1024).toFixed(2)} MB • \${new Date(v.mtime).toLocaleTimeString()}</div>
+            </div>
+            <a href="\${v.url}" target="_blank" class="nav-btn" style="font-size:10.5px;">▶ Play</a>
+          </div>
+        \`).join('');
+      } catch (e) {}
     }
 
-    function renderGallery(images, allowDelete) {
-      if (images.length === 0) {
-        imageGrid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 30px;">No screenshots in this gallery yet. Paste or drop images above!</div>';
-        return;
-      }
-
-      imageGrid.innerHTML = '';
-      images.forEach(img => {
-        const item = document.createElement('div');
-        item.className = 'image-item';
-
-        const sizeKb = Math.round((img.size || 0) / 1024);
-        const dateStr = img.mtime ? new Date(img.mtime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '';
-
-        if (allowDelete) {
-          const delBtn = document.createElement('button');
-          delBtn.className = 'btn-delete-item';
-          delBtn.innerText = '✕';
-          delBtn.title = 'Delete screenshot';
-          delBtn.onclick = (e) => { e.stopPropagation(); deleteImage(img.name); };
-          item.appendChild(delBtn);
-        }
-
-        const thumbWrap = document.createElement('div');
-        thumbWrap.className = 'image-thumb-wrap';
-        thumbWrap.onclick = () => window.open(img.url, '_blank');
-
-        const imgEl = document.createElement('img');
-        imgEl.src = img.url;
-        imgEl.alt = img.name;
-        imgEl.loading = 'lazy';
-        thumbWrap.appendChild(imgEl);
-
-        const meta = document.createElement('div');
-        meta.className = 'image-meta';
-        meta.innerHTML = 
-          '<div class="image-name" title="' + img.name + '">' + img.name + '</div>' +
-          '<div class="image-info"><span>' + sizeKb + ' KB</span><span>' + dateStr + '</span></div>';
-
-        item.appendChild(thumbWrap);
-        item.appendChild(meta);
-        imageGrid.appendChild(item);
-      });
-    }
-
-    async function deleteImage(name) {
-      if (!confirm('Delete ' + name + '?')) return;
-      try {
-        await fetch('/api/delete_uploaded_screenshot', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filename: name })
-        });
-        fetchUploadsGallery();
-      } catch (err) {
-        alert('Delete failed: ' + err.message);
-      }
-    }
-
-    async function clearAllUploads() {
-      if (!confirm('Clear all uploaded screenshots?')) return;
-      try {
-        await fetch('/api/clear_uploaded_screenshots', { method: 'POST' });
-        localUploadedImages = [];
-        fetchUploadsGallery();
-      } catch (err) {
-        alert('Clear failed: ' + err.message);
-      }
-    }
-
-    // Initial Gallery Load
-    fetchUploadsGallery();
-    fetchCorpusGallery();
+    fetchVideoHistory();
   </script>
 </body>
 </html>`;
@@ -666,72 +717,91 @@ function createServerInstance(port: number) {
       return;
     }
 
-    // Serve Interactive Multi-Screenshot Clipboard Paste & Upload Dropzone Page
-    if ((req.method === "GET" || req.method === "HEAD") && (req.url === "/paste" || req.url === "/upload" || req.url === "/paste/")) {
+    // Route 1: Video Receiving Platform (Root / or /video or /drop)
+    if ((req.method === "GET" || req.method === "HEAD") && 
+        (req.url === "/" || req.url === "/video" || req.url === "/drop" || req.url === "/upload_video")) {
       res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
       if (req.method === "HEAD") {
         res.end();
         return;
       }
-      res.end(pasteHtmlContent);
+      res.end(videoPlatformHtml);
       return;
     }
 
-    // API 1: Upload Screenshot (Handles Single or Batch)
-    if (req.method === "POST" && req.url === "/api/upload_screenshot") {
-      let body = "";
-      req.on("data", chunk => { body += chunk; });
-      req.on("end", () => {
+    // API: Stream Large Video Upload to Disk
+    if (req.method === "POST" && req.url === "/api/upload_video") {
+      const rawHeaderName = req.headers["x-file-name"];
+      let filename = "uploaded_video.mp4";
+      if (typeof rawHeaderName === "string" && rawHeaderName) {
         try {
-          const json = JSON.parse(body);
-          if (json.dataUrl) {
-            const base64Data = json.dataUrl.replace(/^data:image\/\w+;base64,/, "");
-            const buffer = Buffer.from(base64Data, "base64");
-            
-            const ext = (path.extname(json.filename || ".png") || ".png").toLowerCase();
-            const baseName = path.basename(json.filename || "screenshot", ext).replace(/[^a-zA-Z0-9_-]/g, "_");
-            const timestamp = Date.now();
-            const randomId = Math.random().toString(36).substring(2, 6);
-            const safeFilename = `${baseName}_${timestamp}_${randomId}${ext}`;
-            const targetUploadPath = path.join(uploadsDir, safeFilename);
-            
-            fs.writeFileSync(targetUploadPath, buffer);
-            
-            const legacyPath = path.join(studioDir, "user_clipboard_screenshot.png");
-            fs.writeFileSync(legacyPath, buffer);
-            
-            console.log(`\n📸 [BATCH_UPLOAD_SAVED] Saved image (${buffer.length} bytes): ${safeFilename}`);
-            res.writeHead(200, { "Content-Type": "application/json" });
-            res.end(JSON.stringify({ success: true, filename: safeFilename, savedPath: targetUploadPath }));
-            return;
-          }
-          res.writeHead(400, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ error: "Missing dataUrl" }));
+          filename = decodeURIComponent(rawHeaderName);
+        } catch {
+          filename = rawHeaderName;
+        }
+      }
+
+      const ext = (path.extname(filename) || ".mp4").toLowerCase();
+      const baseName = path.basename(filename, ext).replace(/[^a-zA-Z0-9_-]/g, "_");
+      const timestamp = Date.now();
+      const safeFilename = `${baseName}_${timestamp}${ext}`;
+      const targetPath = path.join(uploadedVideosDir, safeFilename);
+      const standardCanonicalPath = path.join(studioDir, "uploaded_input_video.mp4");
+
+      const fileWriteStream = fs.createWriteStream(targetPath);
+      
+      req.pipe(fileWriteStream);
+
+      fileWriteStream.on("finish", () => {
+        try {
+          // Also duplicate to canonical input path
+          fs.copyFileSync(targetPath, standardCanonicalPath);
+          
+          // Probe metadata
+          const metadata = probeVideoFile(targetPath);
+          console.log(`\n📹 [VIDEO_UPLOAD_SAVED] Successfully ingested video (${(metadata.fileSizeBytes / 1024 / 1024).toFixed(2)} MB): ${safeFilename}`);
+          console.log(`   Resolution: ${metadata.width}x${metadata.height} | Duration: ${metadata.durationSeconds.toFixed(2)}s | Audio: ${metadata.hasAudio ? 'Yes' : 'Audioless'}`);
+
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({
+            success: true,
+            filename: safeFilename,
+            savedPath: targetPath,
+            canonicalPath: standardCanonicalPath,
+            url: `/uploaded_videos/${encodeURIComponent(safeFilename)}`,
+            metadata: metadata
+          }));
         } catch (err: any) {
           res.writeHead(500, { "Content-Type": "application/json" });
           res.end(JSON.stringify({ error: err.message }));
         }
       });
+
+      fileWriteStream.on("error", (err) => {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: err.message }));
+      });
+
       return;
     }
 
-    // API 2: List Uploaded Screenshots
-    if (req.method === "GET" && req.url?.startsWith("/api/list_uploaded_screenshots")) {
+    // API: List Uploaded Videos
+    if (req.method === "GET" && req.url?.startsWith("/api/list_uploaded_videos")) {
       try {
-        const files = fs.readdirSync(uploadsDir);
-        const images = files.map(file => {
-          const filePath = path.join(uploadsDir, file);
+        const files = fs.readdirSync(uploadedVideosDir).filter(f => /\.(mp4|mov|webm|mkv|avi)$/i.test(f));
+        const videos = files.map(file => {
+          const filePath = path.join(uploadedVideosDir, file);
           const stats = fs.statSync(filePath);
           return {
             name: file,
             size: stats.size,
             mtime: stats.mtimeMs,
-            url: `/uploaded_screenshots/${encodeURIComponent(file)}`
+            url: `/uploaded_videos/${encodeURIComponent(file)}`
           };
         }).sort((a, b) => b.mtime - a.mtime);
 
         res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ success: true, images }));
+        res.end(JSON.stringify({ success: true, videos }));
         return;
       } catch (err: any) {
         res.writeHead(500, { "Content-Type": "application/json" });
@@ -740,77 +810,7 @@ function createServerInstance(port: number) {
       }
     }
 
-    // API 3: List Corpus Screenshots (All 45 Font Pairing Screenshots)
-    if (req.method === "GET" && req.url?.startsWith("/api/list_corpus_screenshots")) {
-      try {
-        const files = fs.readdirSync(fontPairingScreenshotsDir).filter(f => /\.(png|jpg|jpeg|webp)$/i.test(f));
-        const images = files.map(file => {
-          const filePath = path.join(fontPairingScreenshotsDir, file);
-          const stats = fs.statSync(filePath);
-          return {
-            name: file,
-            size: stats.size,
-            mtime: stats.mtimeMs,
-            url: `/corpus_screenshots/${encodeURIComponent(file)}`
-          };
-        });
-
-        res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ success: true, images }));
-        return;
-      } catch (err: any) {
-        res.writeHead(500, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: err.message }));
-        return;
-      }
-    }
-
-    // API 4: Delete Specific Uploaded Screenshot
-    if (req.method === "POST" && req.url === "/api/delete_uploaded_screenshot") {
-      let body = "";
-      req.on("data", chunk => { body += chunk; });
-      req.on("end", () => {
-        try {
-          const json = JSON.parse(body);
-          if (json.filename) {
-            const safeFilename = path.basename(json.filename);
-            const targetPath = path.join(uploadsDir, safeFilename);
-            if (fs.existsSync(targetPath)) {
-              fs.unlinkSync(targetPath);
-              console.log(`🗑️ [IMAGE_DELETED] Deleted: ${safeFilename}`);
-            }
-            res.writeHead(200, { "Content-Type": "application/json" });
-            res.end(JSON.stringify({ success: true }));
-            return;
-          }
-          res.writeHead(400, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ error: "Missing filename" }));
-        } catch (err: any) {
-          res.writeHead(500, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ error: err.message }));
-        }
-      });
-      return;
-    }
-
-    // API 5: Clear All Uploaded Screenshots
-    if (req.method === "POST" && req.url === "/api/clear_uploaded_screenshots") {
-      try {
-        const files = fs.readdirSync(uploadsDir);
-        files.forEach(f => {
-          try { fs.unlinkSync(path.join(uploadsDir, f)); } catch {}
-        });
-        console.log(`🗑️ [ALL_IMAGES_CLEARED] Cleared all uploaded screenshots.`);
-        res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ success: true }));
-        return;
-      } catch (err: any) {
-        res.writeHead(500, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: err.message }));
-        return;
-      }
-    }
-
+    // Serve Static File
     const resolved = resolveFilePath(req.url || "/");
     if (!resolved) {
       res.writeHead(404, { "Content-Type": "text/html; charset=utf-8" });
@@ -819,7 +819,7 @@ function createServerInstance(port: number) {
           <body style="font-family: sans-serif; background: #070913; color: #fff; padding: 40px; text-align: center;">
             <h2 style="color: #00F0FF;">404 — Not Found</h2>
             <p>Requested: <code>${req.url}</code></p>
-            <p><a href="/typography_treatment_presentation.html" style="color: #FFD700;">Open Typography Treatment Presentation Studio</a></p>
+            <p><a href="/" style="color: #FFD700;">Open Video Receiving Platform</a> | <a href="/typography_treatment_presentation.html" style="color: #00F0FF;">Open Spatio-Temporal Studio</a></p>
           </body>
         </html>
       `);
@@ -840,7 +840,7 @@ function createServerInstance(port: number) {
   });
 
   s.listen(port, "0.0.0.0", () => {
-    console.log(`  🚀 EC2 Live HTTP Server on Port ${port}: http://16.192.95.115:${port}/typography_treatment_presentation.html`);
+    console.log(`  🚀 EC2 Video Ingestion Platform on Port ${port}: http://16.192.95.115:${port}/`);
   });
   s.on("error", (e) => {
     console.warn(`[PORT_BIND_WARN] Port ${port} could not be bound (${e.message})`);
@@ -848,16 +848,28 @@ function createServerInstance(port: number) {
   return s;
 }
 
+// Kill any zombie previous server instance to cleanly bind port 8080
+try {
+  const currentPid = process.pid;
+  const lsof = execSync(`lsof -t -i:8080 || true`, { encoding: "utf8" }).trim();
+  if (lsof) {
+    const pids = lsof.split("\n").map(p => parseInt(p.trim(), 10)).filter(p => p && p !== currentPid);
+    pids.forEach(pid => {
+      try { process.kill(pid, "SIGTERM"); } catch {}
+    });
+  }
+} catch {}
+
 // Bind to multiple candidate ports simultaneously
 const candidatePorts = [8080, 3000, 5000, 8000, 9000];
 const activeServers = candidatePorts.map(p => createServerInstance(p));
 
 console.log("================================================================================");
-console.log("  🚀 MINI-RUN STUDIO MULTI-PORT EC2 SERVER RUNNING");
+console.log("  🚀 PROMETHEUS VIDEO RECEIVING PLATFORM RUNNING");
 console.log("================================================================================");
-console.log("  Presentation:  http://16.192.95.115:8080/typography_treatment_presentation.html");
-console.log("  Batch Paste:   http://16.192.95.115:8080/paste");
-console.log("  Binding:       0.0.0.0 across ports 8080, 3000, 5000, 8000, 9000");
+console.log("  Video Dropzone:  http://16.192.95.115:8080/");
+console.log("  Audio Studio:    http://16.192.95.115:8080/typography_treatment_presentation.html");
+console.log("  Binding:         0.0.0.0 across ports 8080, 3000, 5000, 8000, 9000");
 console.log("================================================================================");
 
 startAllTunnels(8080);
@@ -873,24 +885,21 @@ async function startAllTunnels(port: number) {
   } catch {}
 
   const fixedSubdomain = process.env.TUNNEL_SUBDOMAIN || "prometheus-kinetic-studio";
-  const permanentLocaltunnelUrl = `https://${fixedSubdomain}.loca.lt/typography_treatment_presentation.html`;
-  const directEc2Url = `http://${publicIp}:${port}/typography_treatment_presentation.html`;
+  const permanentLocaltunnelUrl = `https://${fixedSubdomain}.loca.lt/`;
+  const directEc2Url = `http://${publicIp}:${port}/`;
 
   console.log("\n================================================================================");
-  console.log("  🌐 PERMANENT ACCESS URLS FOR MOBILE & DESKTOP");
+  console.log("  🌐 ACCESS URLS FOR VIDEO DROPZONE PLATFORM");
   console.log("================================================================================");
-  console.log(`  1. Permanent Fixed Subdomain: \x1b[32m\x1b[1m${permanentLocaltunnelUrl}\x1b[0m`);
-  console.log(`  2. Direct EC2 Permanent IP:    \x1b[36m\x1b[1m${directEc2Url}\x1b[0m`);
+  console.log(`  1. Direct EC2 IP (Port 8080):  \x1b[36m\x1b[1m${directEc2Url}\x1b[0m`);
+  console.log(`  2. Fixed Subdomain Tunnel:    \x1b[32m\x1b[1m${permanentLocaltunnelUrl}\x1b[0m`);
   console.log("--------------------------------------------------------------------------------");
-  console.log("  Establishing Cloudflare Zero-Config HTTPS Tunnel...");
 
   // 1. Launch Fixed Subdomain Localtunnel
   const ltProcess = spawn("npx", ["-y", "localtunnel", "--port", `${port}`, "--subdomain", fixedSubdomain], {
     shell: true,
     stdio: ["ignore", "pipe", "pipe"],
   });
-  ltProcess.stdout?.on("data", () => {});
-  ltProcess.stderr?.on("data", () => {});
 
   // 2. Launch Cloudflare Tunnel
   const cfProcess = spawn("npx", ["-y", "cloudflared", "tunnel", "--url", `http://127.0.0.1:${port}`], {
@@ -903,29 +912,11 @@ async function startAllTunnels(port: number) {
     const match = text.match(/https:\/\/[a-zA-Z0-9-]+\.trycloudflare\.com/i);
     if (match) {
       const cfBase = match[0];
-      console.log(`\n  ⚡ Cloudflare HTTPS Studio: \x1b[35m\x1b[1m${cfBase}/typography_treatment_presentation.html\x1b[0m`);
-      console.log(`  ⚡ Cloudflare HTTPS Paste:  \x1b[33m\x1b[1m${cfBase}/paste\x1b[0m`);
+      console.log(`  ⚡ Cloudflare HTTPS Dropzone: \x1b[35m\x1b[1m${cfBase}/\x1b[0m`);
     }
   };
   cfProcess.stdout?.on("data", onData);
   cfProcess.stderr?.on("data", onData);
-
-  // 3. Launch Pinggy Tunnel
-  const pinggyProcess = spawn("ssh", ["-o", "StrictHostKeyChecking=no", "-p", "443", "-R0:localhost:8080", "a.pinggy.io"], {
-    shell: true,
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-
-  pinggyProcess.stdout?.on("data", (data: Buffer) => {
-    const text = data.toString();
-    const match = text.match(/https:\/\/[a-zA-Z0-9-]+\.free\.pinggy\.net/i) || text.match(/https:\/\/[a-zA-Z0-9-]+\.run\.pinggy-free\.link/i);
-    if (match) {
-      const pinggyUrl = `${match[0]}/typography_treatment_presentation.html`;
-      const pasteUrl = `${match[0]}/paste`;
-      console.log(`  🌐 Pinggy HTTPS Studio:     \x1b[36m\x1b[1m${pinggyUrl}\x1b[0m`);
-      console.log(`  🌐 Pinggy HTTPS Paste:      \x1b[33m\x1b[1m${pasteUrl}\x1b[0m\n`);
-    }
-  });
 }
 
 process.on("SIGINT", () => {
