@@ -520,6 +520,279 @@ const htmlContent = `<!DOCTYPE html>
 
     .timeline-slider-wrap { width: 100%; margin-top: 8px; display: flex; align-items: center; gap: 8px; }
     .timeline-slider { flex: 1; accent-color: var(--accent-cyan); }
+
+    /* =========================================================================
+       COMBINATION GRAPH & ANALYTICS LAB STYLES
+       ========================================================================= */
+    .analytics-lab-panel {
+      width: 100%;
+      max-width: 1240px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .kpi-banner {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      width: 100%;
+    }
+    .kpi-card {
+      background: var(--card-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 14px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+      position: relative;
+    }
+    .kpi-label { font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; }
+    .kpi-val { font-size: 22px; font-weight: 900; font-family: monospace; }
+    .kpi-sub { font-size: 11px; color: var(--text-muted); }
+    .btn-action-kpi {
+      margin-top: 6px;
+      background: linear-gradient(135deg, #FFE600, #FF0055);
+      color: #070913;
+      border: none;
+      border-radius: 8px;
+      padding: 5px 10px;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-action-kpi:hover { transform: translateY(-1px); box-shadow: 0 2px 10px rgba(255, 230, 0, 0.4); }
+
+    .lab-controls-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      background: rgba(14, 19, 38, 0.6);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 10px 14px;
+    }
+    .filter-group { display: flex; flex-wrap: wrap; gap: 6px; }
+    .filter-chip {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--panel-border);
+      color: var(--text-muted);
+      border-radius: 16px;
+      padding: 5px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .filter-chip.active {
+      background: var(--accent-cyan);
+      color: #070913;
+      border-color: var(--accent-cyan);
+      box-shadow: 0 2px 8px rgba(0, 240, 255, 0.3);
+    }
+    .search-wrap { display: flex; align-items: center; }
+    .graph-search-input {
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 6px 12px;
+      color: #FFF;
+      font-size: 12px;
+      width: 240px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .graph-search-input:focus { border-color: var(--accent-cyan); }
+
+    .analytics-workspace-grid {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 20px;
+      width: 100%;
+    }
+    @media (max-width: 950px) {
+      .analytics-workspace-grid { grid-template-columns: 1fr; }
+    }
+
+    .graph-container-card {
+      background: var(--card-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 16px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      border-bottom: 1px solid var(--panel-border);
+      padding-bottom: 10px;
+    }
+    .card-title { font-size: 14px; font-weight: 800; color: #FFF; }
+    .card-legend { display: flex; align-items: center; gap: 10px; font-size: 10.5px; color: var(--text-muted); }
+    .legend-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+    .svg-graph-wrapper {
+      width: 100%;
+      height: 560px;
+      background: radial-gradient(circle at center, #0B1124 0%, #030611 100%);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+    }
+    .graph-hint { font-size: 11px; color: var(--text-muted); text-align: center; }
+
+    .analytics-side-col {
+      background: var(--card-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 16px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      height: 640px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .side-tab-bar {
+      display: flex;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--panel-border);
+      border-radius: 20px;
+      padding: 2px;
+      gap: 4px;
+    }
+    .side-tab-btn {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 6px 10px;
+      border-radius: 16px;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .side-tab-btn.active {
+      background: var(--accent-cyan);
+      color: #070913;
+      font-weight: 800;
+    }
+    .side-content-panel {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-right: 4px;
+    }
+    .ranking-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 6px;
+      flex-wrap: wrap;
+    }
+    .sort-btn {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--panel-border);
+      color: var(--text-muted);
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 10px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .sort-btn.active { background: rgba(0, 240, 255, 0.2); color: var(--accent-cyan); border-color: var(--accent-cyan); }
+
+    .ranking-item {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .ranking-item:hover {
+      background: rgba(0, 240, 255, 0.06);
+      border-color: var(--accent-cyan);
+      transform: translateX(2px);
+    }
+    .ranking-item-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .rank-name { font-size: 12px; font-weight: 700; color: #FFF; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 190px; }
+    .rank-badge {
+      font-size: 10px;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-family: monospace;
+    }
+    .badge-active { background: rgba(16, 185, 129, 0.2); color: #10B981; border: 1px solid #10B981; }
+    .badge-medium { background: rgba(255, 230, 0, 0.2); color: #FFE600; border: 1px solid #FFE600; }
+    .badge-zero { background: rgba(255, 0, 85, 0.2); color: #FF0055; border: 1px solid #FF0055; }
+
+    .rank-bar-bg { width: 100%; height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
+    .rank-bar-fill { height: 100%; border-radius: 3px; transition: width 0.3s ease; }
+
+    .rank-sub-info { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--text-muted); }
+
+    /* SPECIMEN CARD STYLES */
+    .specimen-card-box {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .specimen-header {
+      border-bottom: 1px solid var(--panel-border);
+      padding-bottom: 10px;
+    }
+    .specimen-profile-name { font-size: 15px; font-weight: 800; color: var(--accent-cyan); }
+    .specimen-mood { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
+    .specimen-preview-stage {
+      background: #000000;
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 160px;
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+      position: relative;
+    }
+    .specimen-layers-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .specimen-layer-row {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 11px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
   </style>
 </head>
 <body>
@@ -555,12 +828,13 @@ const htmlContent = `<!DOCTYPE html>
   <div class="view-mode-tabs">
     <button class="tab-btn active" id="tabPresentation" onclick="setViewMode('presentation')">🎬 20-Chunk Sequence</button>
     <button class="tab-btn" id="tabDiagnostics" onclick="setViewMode('diagnostics')">🔍 Font JSON Inspector</button>
+    <button class="tab-btn" id="tabAnalytics" onclick="setViewMode('analytics')">📊 Combination Graph & Lab</button>
   </div>
 
   <div class="app-layout">
     
     <!-- 9:16 MOBILE STAGE WRAPPER -->
-    <div class="stage-wrapper">
+    <div class="stage-wrapper" id="stageWrapper">
       <div class="stage-container" id="stageContainer" onclick="nextChunk()">
         <div class="stage-notch"></div>
         <div class="stage-time-badge" id="stageTimeBadge">00:00</div>
@@ -630,6 +904,97 @@ const htmlContent = `<!DOCTYPE html>
         </thead>
         <tbody id="layersTableBody"></tbody>
       </table>
+    </div>
+
+    <!-- COMBINATION GRAPH & ANALYTICS LAB PANEL -->
+    <div class="analytics-lab-panel" id="analyticsLabPanel" style="display: none;">
+      <!-- TOP STATS KPI ROW -->
+      <div class="kpi-banner">
+        <div class="kpi-card">
+          <div class="kpi-label">Corpus Total Profiles</div>
+          <div class="kpi-val" style="color: var(--accent-cyan);">45 Profiles</div>
+          <div class="kpi-sub">Authoritative Font JSONs</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Active in Current Run</div>
+          <div class="kpi-val" id="kpiActiveCount" style="color: var(--accent-green);">-- Unique</div>
+          <div class="kpi-sub" id="kpiActiveRate">Current Seed Sequence</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Under-Utilized Profiles</div>
+          <div class="kpi-val" id="kpiUnderCount" style="color: var(--accent-pink);">-- Profiles</div>
+          <div class="kpi-sub">0 or 1 appearance in sequence</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">100-Run Monte Carlo Simulation</div>
+          <div class="kpi-val" id="kpiSimCoverage" style="color: var(--accent-yellow);">Ready</div>
+          <button class="btn-action-kpi" onclick="runMonteCarloSimulation(100)">⚡ Simulate 100 Runs</button>
+        </div>
+      </div>
+
+      <!-- TOOLBAR & FILTER CONTROLS -->
+      <div class="lab-controls-bar">
+        <div class="filter-group">
+          <button class="filter-chip active" id="fltAll" onclick="filterGraph('all')">All 45 Profiles (45)</button>
+          <button class="filter-chip" id="fltActive" onclick="filterGraph('active')">🟢 Active in Seed</button>
+          <button class="filter-chip" id="fltUnder" onclick="filterGraph('under')">🔴 Under-Utilized (&lt; 2)</button>
+          <button class="filter-chip" id="fltZero" onclick="filterGraph('zero')">⭕ Zero Usage</button>
+          <button class="filter-chip" id="fltSerif" onclick="filterGraph('serif')">Editorial Serif</button>
+          <button class="filter-chip" id="fltSans" onclick="filterGraph('sans')">Bold Sans</button>
+          <button class="filter-chip" id="fltScript" onclick="filterGraph('script')">Script / Flourish</button>
+        </div>
+        <div class="search-wrap">
+          <input type="text" id="graphSearchInput" class="graph-search-input" placeholder="🔍 Filter by font or profile..." oninput="handleGraphSearch(this.value)">
+        </div>
+      </div>
+
+      <!-- MAIN 2-COLUMN ANALYTICS WORKSPACE -->
+      <div class="analytics-workspace-grid">
+        <!-- LEFT: INTERACTIVE NETWORK GRAPH -->
+        <div class="graph-container-card">
+          <div class="card-header">
+            <div class="card-title">🕸️ Font Pairing & Profile Combination Network Graph</div>
+            <div class="card-legend">
+              <span class="legend-dot" style="background:#00F0FF;"></span> Active Profile
+              <span class="legend-dot" style="background:#8B5CF6;"></span> Serif Font
+              <span class="legend-dot" style="background:#10B981;"></span> Sans Font
+              <span class="legend-dot" style="background:#FF0055;"></span> Script Font
+            </div>
+          </div>
+          <div class="svg-graph-wrapper" id="svgGraphWrapper">
+            <svg id="networkGraphSvg" width="100%" height="560" viewBox="0 0 920 560"></svg>
+          </div>
+          <div class="graph-hint">💡 Hover or click any Profile (circle) or Font (diamond) node to inspect pairing details and live specimen.</div>
+        </div>
+
+        <!-- RIGHT: UTILIZATION HISTOGRAM & DEEP SPECIMEN INSPECTOR -->
+        <div class="analytics-side-col">
+          <!-- TABS: RANKING vs PROFILE SPECIMEN -->
+          <div class="side-tab-bar">
+            <button class="side-tab-btn active" id="sideTabRanking" onclick="switchSideTab('ranking')">📊 Utilization Ranking</button>
+            <button class="side-tab-btn" id="sideTabSpecimen" onclick="switchSideTab('specimen')">🔬 Profile Specimen</button>
+          </div>
+
+          <!-- PANEL 1: UTILIZATION RANKING HISTOGRAM -->
+          <div class="side-content-panel" id="panelRanking">
+            <div class="ranking-toolbar">
+              <span style="font-size: 11px; color: var(--text-muted);">Sort by:</span>
+              <button class="sort-btn active" id="sortUsageDesc" onclick="sortRanking('usage_desc')">Usage (High ↓)</button>
+              <button class="sort-btn" id="sortUsageAsc" onclick="sortRanking('usage_asc')">Usage (Low ↑ / Gaps)</button>
+              <button class="sort-btn" id="sortWordCount" onclick="sortRanking('words')">Word Count</button>
+            </div>
+            <div class="ranking-list" id="rankingListContainer"></div>
+          </div>
+
+          <!-- PANEL 2: DEEP PROFILE SPECIMEN INSPECTOR -->
+          <div class="side-content-panel" id="panelSpecimen" style="display: none;">
+            <div id="specimenEmpty" style="text-align: center; padding: 40px 10px; color: var(--text-muted);">
+              Click any profile node in the network graph or item in the ranking list to inspect its full Font JSON layer hierarchy and live rendered specimen.
+            </div>
+            <div id="specimenCard" style="display: none;"></div>
+          </div>
+        </div>
+      </div>
     </div>
 
   </div>
@@ -1186,7 +1551,489 @@ const htmlContent = `<!DOCTYPE html>
     function setViewMode(mode) {
       document.getElementById('tabPresentation').classList.toggle('active', mode === 'presentation');
       document.getElementById('tabDiagnostics').classList.toggle('active', mode === 'diagnostics');
-      document.getElementById('inspectorPanel').style.display = (mode === 'diagnostics' || window.innerWidth > 900) ? 'block' : 'none';
+      document.getElementById('tabAnalytics').classList.toggle('active', mode === 'analytics');
+
+      if (mode === 'analytics') {
+        document.getElementById('stageWrapper').style.display = 'none';
+        document.getElementById('inspectorPanel').style.display = 'none';
+        document.getElementById('analyticsLabPanel').style.display = 'flex';
+        initAnalyticsLab();
+      } else if (mode === 'diagnostics') {
+        document.getElementById('stageWrapper').style.display = 'flex';
+        document.getElementById('inspectorPanel').style.display = 'block';
+        document.getElementById('analyticsLabPanel').style.display = 'none';
+      } else {
+        document.getElementById('stageWrapper').style.display = 'flex';
+        document.getElementById('inspectorPanel').style.display = (window.innerWidth > 900) ? 'block' : 'none';
+        document.getElementById('analyticsLabPanel').style.display = 'none';
+      }
+    }
+
+    // =========================================================================
+    // 6. COMBINATION GRAPH & ANALYTICS LAB ENGINE
+    // =========================================================================
+    let currentFilter = 'all';
+    let currentSearchQuery = '';
+    let currentRankingSort = 'usage_desc';
+    let multiRunSimulationResults = null;
+
+    // Build unique font families list and style categorization
+    const ALL_FONTS_MAP = {};
+    const ALL_PROFILES_DATA = ALL_FONT_PROFILES.map((p, idx) => {
+      const pFonts = [];
+      (p.typography_layers || []).forEach(l => {
+        const f = (l.matched_font_candidates && l.matched_font_candidates[0]) ? l.matched_font_candidates[0] : 'DM Sans';
+        pFonts.push(f);
+        if (!ALL_FONTS_MAP[f]) {
+          let category = 'serif';
+          if (f.includes('Sans') || f.includes('Inter') || f.includes('Montserrat') || f.includes('Bebas') || f.includes('Impact')) category = 'sans';
+          if (f.includes('Script') || f.includes('Vibes') || f.includes('Dancing') || f.includes('Kalam')) category = 'script';
+          if (f.includes('Courier') || f.includes('VT323')) category = 'mono';
+          ALL_FONTS_MAP[f] = { name: f, category: category, usedBy: [] };
+        }
+        ALL_FONTS_MAP[f].usedBy.push(p._filename || p.profile_name);
+      });
+
+      return {
+        id: p._filename || ('profile_' + idx),
+        filename: p._filename || ('profile_' + idx),
+        name: p.profile_name || p._filename || 'Profile',
+        wordCount: p.metadata?.total_word_count || p.typography_layers?.length || 2,
+        mood: p.metadata?.overall_mood || 'Editorial Pairing',
+        fonts: pFonts,
+        layers: p.typography_layers || []
+      };
+    });
+
+    const UNIQUE_FONTS = Object.values(ALL_FONTS_MAP);
+
+    function computeActiveUsageInSequence(sequence) {
+      const usageMap = {};
+      ALL_PROFILES_DATA.forEach(p => { usageMap[p.filename] = 0; });
+      sequence.forEach(chunk => {
+        if (usageMap[chunk.profileFilename] !== undefined) {
+          usageMap[chunk.profileFilename] += 1;
+        }
+      });
+      return usageMap;
+    }
+
+    function initAnalyticsLab() {
+      const usageMap = computeActiveUsageInSequence(compiledSequence);
+      const activeProfiles = Object.keys(usageMap).filter(k => usageMap[k] > 0);
+      const underUtilizedProfiles = Object.keys(usageMap).filter(k => usageMap[k] < 2);
+      
+      document.getElementById('kpiActiveCount').innerText = activeProfiles.length + ' / 45';
+      document.getElementById('kpiActiveRate').innerText = Math.round((activeProfiles.length / 45) * 100) + '% Coverage in Seed #' + currentSeed;
+      document.getElementById('kpiUnderCount').innerText = underUtilizedProfiles.length + ' Profiles';
+
+      renderNetworkGraph(usageMap);
+      renderUtilizationRanking(currentRankingSort, usageMap);
+    }
+
+    function renderNetworkGraph(usageMap) {
+      const svg = document.getElementById('networkGraphSvg');
+      svg.innerHTML = '';
+
+      const W = 920, H = 560;
+      const cx = W / 2, cy = H / 2;
+      const rFonts = 145;
+      const rProfiles = 245;
+
+      const fontCategoryColors = {
+        serif: '#8B5CF6',
+        sans: '#10B981',
+        script: '#FF0055',
+        mono: '#FFE600'
+      };
+
+      // 1. Calculate Font Coordinates (Inner Orbit)
+      const fontPositions = {};
+      UNIQUE_FONTS.forEach((fObj, idx) => {
+        const angle = (idx / UNIQUE_FONTS.length) * 2 * Math.PI - Math.PI / 2;
+        fontPositions[fObj.name] = {
+          x: cx + rFonts * Math.cos(angle),
+          y: cy + rFonts * Math.sin(angle),
+          data: fObj
+        };
+      });
+
+      // 2. Calculate Profile Coordinates (Outer Orbit)
+      const profilePositions = {};
+      ALL_PROFILES_DATA.forEach((pObj, idx) => {
+        const angle = (idx / ALL_PROFILES_DATA.length) * 2 * Math.PI - Math.PI / 2;
+        profilePositions[pObj.filename] = {
+          x: cx + rProfiles * Math.cos(angle),
+          y: cy + rProfiles * Math.sin(angle),
+          data: pObj
+        };
+      });
+
+      // Filter logic
+      const filteredProfiles = ALL_PROFILES_DATA.filter(p => {
+        const usage = usageMap[p.filename] || 0;
+        if (currentFilter === 'active' && usage === 0) return false;
+        if (currentFilter === 'under' && usage >= 2) return false;
+        if (currentFilter === 'zero' && usage > 0) return false;
+        if (currentFilter === 'serif' && !p.fonts.some(f => ALL_FONTS_MAP[f]?.category === 'serif')) return false;
+        if (currentFilter === 'sans' && !p.fonts.some(f => ALL_FONTS_MAP[f]?.category === 'sans')) return false;
+        if (currentFilter === 'script' && !p.fonts.some(f => ALL_FONTS_MAP[f]?.category === 'script')) return false;
+        if (currentSearchQuery) {
+          const q = currentSearchQuery.toLowerCase();
+          const matchName = p.name.toLowerCase().includes(q) || p.filename.toLowerCase().includes(q);
+          const matchFont = p.fonts.some(f => f.toLowerCase().includes(q));
+          if (!matchName && !matchFont) return false;
+        }
+        return true;
+      });
+
+      const activeProfileFilenames = new Set(filteredProfiles.map(p => p.filename));
+
+      // Container groups for SVG
+      const linksGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      const nodesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      svg.appendChild(linksGroup);
+      svg.appendChild(nodesGroup);
+
+      // Draw Orbit Guides
+      const innerOrbit = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      innerOrbit.setAttribute('cx', cx);
+      innerOrbit.setAttribute('cy', cy);
+      innerOrbit.setAttribute('r', rFonts);
+      innerOrbit.setAttribute('fill', 'none');
+      innerOrbit.setAttribute('stroke', 'rgba(255,255,255,0.04)');
+      innerOrbit.setAttribute('stroke-dasharray', '4 4');
+      linksGroup.appendChild(innerOrbit);
+
+      const outerOrbit = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      outerOrbit.setAttribute('cx', cx);
+      outerOrbit.setAttribute('cy', cy);
+      outerOrbit.setAttribute('r', rProfiles);
+      outerOrbit.setAttribute('fill', 'none');
+      outerOrbit.setAttribute('stroke', 'rgba(255,255,255,0.04)');
+      linksGroup.appendChild(outerOrbit);
+
+      // 3. Draw Links (Curves from Profile to its Fonts)
+      ALL_PROFILES_DATA.forEach(p => {
+        const pPos = profilePositions[p.filename];
+        const isProfileActiveInFilter = activeProfileFilenames.has(p.filename);
+        const usage = usageMap[p.filename] || 0;
+
+        p.fonts.forEach(fName => {
+          const fPos = fontPositions[fName];
+          if (!fPos) return;
+
+          const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          const mx = cx * 0.4 + (pPos.x + fPos.x) * 0.3;
+          const my = cy * 0.4 + (pPos.y + fPos.y) * 0.3;
+          const d = 'M ' + pPos.x + ' ' + pPos.y + ' Q ' + mx + ' ' + my + ' ' + fPos.x + ' ' + fPos.y;
+
+          path.setAttribute('d', d);
+          path.setAttribute('fill', 'none');
+          path.setAttribute('class', 'graph-link link-profile-' + p.filename.replace(/[^a-zA-Z0-9]/g, '_') + ' link-font-' + fName.replace(/[^a-zA-Z0-9]/g, '_'));
+          
+          if (usage > 0 && isProfileActiveInFilter) {
+            path.setAttribute('stroke', '#00F0FF');
+            path.setAttribute('stroke-width', usage >= 2 ? '2.5' : '1.5');
+            path.setAttribute('stroke-opacity', '0.6');
+          } else if (isProfileActiveInFilter) {
+            path.setAttribute('stroke', 'rgba(255,255,255,0.12)');
+            path.setAttribute('stroke-width', '0.8');
+            path.setAttribute('stroke-opacity', '0.3');
+          } else {
+            path.setAttribute('stroke', 'rgba(255,255,255,0.02)');
+            path.setAttribute('stroke-width', '0.5');
+            path.setAttribute('stroke-opacity', '0.05');
+          }
+
+          linksGroup.appendChild(path);
+        });
+      });
+
+      // 4. Draw Font Nodes (Inner Ring)
+      UNIQUE_FONTS.forEach(fObj => {
+        const pos = fontPositions[fObj.name];
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        g.setAttribute('class', 'graph-node font-node');
+        g.style.cursor = 'pointer';
+
+        const color = fontCategoryColors[fObj.category] || '#FFF';
+
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('x', pos.x - 6);
+        rect.setAttribute('y', pos.y - 6);
+        rect.setAttribute('width', '12');
+        rect.setAttribute('height', '12');
+        rect.setAttribute('transform', 'rotate(45 ' + pos.x + ' ' + pos.y + ')');
+        rect.setAttribute('fill', color);
+        rect.setAttribute('stroke', '#070913');
+        rect.setAttribute('stroke-width', '2');
+        g.appendChild(rect);
+
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', pos.x);
+        text.setAttribute('y', pos.y + (pos.y > cy ? 16 : -10));
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('font-size', '9.5');
+        text.setAttribute('font-weight', '700');
+        text.setAttribute('fill', '#E2E8F0');
+        text.setAttribute('font-family', '-apple-system, sans-serif');
+        text.textContent = fObj.name;
+        g.appendChild(text);
+
+        g.addEventListener('mouseenter', () => highlightFontNode(fObj.name));
+        g.addEventListener('mouseleave', () => resetGraphHighlight(usageMap));
+        nodesGroup.appendChild(g);
+      });
+
+      // 5. Draw Profile Nodes (Outer Ring)
+      ALL_PROFILES_DATA.forEach(pObj => {
+        const pos = profilePositions[pObj.filename];
+        const isProfileActiveInFilter = activeProfileFilenames.has(pObj.filename);
+        const usage = usageMap[pObj.filename] || 0;
+
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        g.setAttribute('class', 'graph-node profile-node profile-node-' + pObj.filename.replace(/[^a-zA-Z0-9]/g, '_'));
+        g.style.cursor = 'pointer';
+        g.style.opacity = isProfileActiveInFilter ? '1' : '0.15';
+
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', pos.x);
+        circle.setAttribute('cy', pos.y);
+        circle.setAttribute('r', usage > 0 ? '9' : '6');
+        
+        if (usage > 0) {
+          circle.setAttribute('fill', '#00F0FF');
+          circle.setAttribute('stroke', '#FFF');
+          circle.setAttribute('stroke-width', '2');
+          circle.setAttribute('filter', 'drop-shadow(0 0 6px rgba(0,240,255,0.8))');
+        } else {
+          circle.setAttribute('fill', '#1A233A');
+          circle.setAttribute('stroke', '#FF0055');
+          circle.setAttribute('stroke-width', '1.5');
+          circle.setAttribute('stroke-dasharray', '2 2');
+        }
+        g.appendChild(circle);
+
+        if (usage > 0) {
+          const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          t.setAttribute('x', pos.x);
+          t.setAttribute('y', pos.y + 3);
+          t.setAttribute('text-anchor', 'middle');
+          t.setAttribute('font-size', '8');
+          t.setAttribute('font-weight', '900');
+          t.setAttribute('fill', '#070913');
+          t.textContent = usage + 'x';
+          g.appendChild(t);
+        }
+
+        const numId = pObj.filename.match(/\d+/)?.[0] || '';
+        const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        const angle = Math.atan2(pos.y - cy, pos.x - cx);
+        const lx = pos.x + 14 * Math.cos(angle);
+        const ly = pos.y + 14 * Math.sin(angle);
+        label.setAttribute('x', lx);
+        label.setAttribute('y', ly + 3);
+        label.setAttribute('text-anchor', pos.x > cx ? 'start' : 'end');
+        label.setAttribute('font-size', '9');
+        label.setAttribute('font-weight', usage > 0 ? '800' : '500');
+        label.setAttribute('fill', usage > 0 ? '#00F0FF' : '#8E9BAE');
+        label.textContent = '#' + numId;
+        g.appendChild(label);
+
+        g.addEventListener('mouseenter', () => highlightProfileNode(pObj.filename));
+        g.addEventListener('mouseleave', () => resetGraphHighlight(usageMap));
+        g.addEventListener('click', () => {
+          showProfileSpecimen(pObj.filename);
+          switchSideTab('specimen');
+        });
+
+        nodesGroup.appendChild(g);
+      });
+    }
+
+    function highlightFontNode(fontName) {
+      const sanitized = fontName.replace(/[^a-zA-Z0-9]/g, '_');
+      document.querySelectorAll('.graph-link').forEach(el => el.style.opacity = '0.04');
+      document.querySelectorAll('.link-font-' + sanitized).forEach(el => {
+        el.style.opacity = '1';
+        el.style.stroke = '#8B5CF6';
+        el.style.strokeWidth = '3';
+      });
+    }
+
+    function highlightProfileNode(filename) {
+      const sanitized = filename.replace(/[^a-zA-Z0-9]/g, '_');
+      document.querySelectorAll('.graph-link').forEach(el => el.style.opacity = '0.04');
+      document.querySelectorAll('.link-profile-' + sanitized).forEach(el => {
+        el.style.opacity = '1';
+        el.style.stroke = '#00F0FF';
+        el.style.strokeWidth = '3';
+      });
+    }
+
+    function resetGraphHighlight(usageMap) {
+      document.querySelectorAll('.graph-link').forEach(el => {
+        el.style.opacity = '';
+        el.style.stroke = '';
+        el.style.strokeWidth = '';
+      });
+    }
+
+    function filterGraph(category) {
+      currentFilter = category;
+      document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+      const activeBtn = document.getElementById('flt' + category.charAt(0).toUpperCase() + category.slice(1));
+      if (activeBtn) activeBtn.classList.add('active');
+      const usageMap = computeActiveUsageInSequence(compiledSequence);
+      renderNetworkGraph(usageMap);
+    }
+
+    function handleGraphSearch(query) {
+      currentSearchQuery = query;
+      const usageMap = computeActiveUsageInSequence(compiledSequence);
+      renderNetworkGraph(usageMap);
+    }
+
+    function switchSideTab(tab) {
+      document.getElementById('sideTabRanking').classList.toggle('active', tab === 'ranking');
+      document.getElementById('sideTabSpecimen').classList.toggle('active', tab === 'specimen');
+      document.getElementById('panelRanking').style.display = tab === 'ranking' ? 'flex' : 'none';
+      document.getElementById('panelSpecimen').style.display = tab === 'specimen' ? 'flex' : 'none';
+    }
+
+    function sortRanking(mode) {
+      currentRankingSort = mode;
+      document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+      if (mode === 'usage_desc') document.getElementById('sortUsageDesc').classList.add('active');
+      if (mode === 'usage_asc') document.getElementById('sortUsageAsc').classList.add('active');
+      if (mode === 'words') document.getElementById('sortWordCount').classList.add('active');
+      const usageMap = computeActiveUsageInSequence(compiledSequence);
+      renderUtilizationRanking(mode, usageMap);
+    }
+
+    function renderUtilizationRanking(sortMode, usageMap) {
+      const container = document.getElementById('rankingListContainer');
+      container.innerHTML = '';
+
+      let list = [...ALL_PROFILES_DATA].map(p => ({
+        ...p,
+        usageCount: usageMap[p.filename] || 0,
+        simUsage: multiRunSimulationResults ? (multiRunSimulationResults[p.filename] || 0) : null
+      }));
+
+      if (sortMode === 'usage_desc') {
+        list.sort((a, b) => b.usageCount - a.usageCount || a.wordCount - b.wordCount);
+      } else if (sortMode === 'usage_asc') {
+        list.sort((a, b) => a.usageCount - b.usageCount || a.wordCount - b.wordCount);
+      } else if (sortMode === 'words') {
+        list.sort((a, b) => a.wordCount - b.wordCount || b.usageCount - a.usageCount);
+      }
+
+      list.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'ranking-item';
+        div.onclick = () => {
+          showProfileSpecimen(item.filename);
+          switchSideTab('specimen');
+        };
+
+        const badgeClass = item.usageCount >= 2 ? 'badge-active' : (item.usageCount === 1 ? '        const barPct = Math.min(100, Math.max(8, item.usageCount * 50));
+        const barColor = item.usageCount >= 2 ? '#10B981' : (item.usageCount === 1 ? '#00F0FF' : '#FF0055');
+
+        div.innerHTML = 
+          '<div class="ranking-item-top">' +
+            '<div class="rank-name" title="' + item.name + '"><strong>[' + item.filename + ']</strong> ' + item.name.replace(/_/g, ' ') + '</div>' +
+            '<span class="rank-badge ' + badgeClass + '">' + badgeText + '</span>' +
+          '</div>' +
+          '<div class="rank-bar-bg">' +
+            '<div class="rank-bar-fill" style="width: ' + barPct + '%; background: ' + barColor + ';"></div>' +
+          '</div>' +
+          '<div class="rank-sub-info">' +
+            '<span>Capacity: <strong>' + item.wordCount + ' words</strong> (' + item.layers.length + ' layers)</span>' +
+            '<span style="color: var(--accent-cyan); font-family: monospace;">' + item.fonts.join(' + ') + '</span>' +
+          '</div>';
+        container.appendChild(div);
+      });
+    }
+
+    function showProfileSpecimen(filename) {
+      const p = PROFILE_MAP[filename] || ALL_PROFILES_DATA.find(x => x.filename === filename);
+      if (!p) return;
+
+      document.getElementById('specimenEmpty').style.display = 'none';
+      const card = document.getElementById('specimenCard');
+      card.style.display = 'flex';
+      card.className = 'specimen-card-box';
+
+      const layers = p.typography_layers || [];
+      let layersHtml = '';
+      layers.forEach((l, lIdx) => {
+        const font = (l.matched_font_candidates && l.matched_font_candidates[0]) ? l.matched_font_candidates[0] : 'DM Sans';
+        const st = l.font_style || {};
+        layersHtml += 
+          '<div class="specimen-layer-row">' +
+            '<div style="display:flex; justify-content:space-between; color: var(--accent-cyan); font-weight:700;">' +
+              '<span>Layer ' + (lIdx + 1) + ': ' + (l.layer_name || l.role) + '</span>' +
+              '<span style="color: var(--accent-yellow);">' + l.role + '</span>' +
+            '</div>' +
+            '<div>Font: <strong>' + font + '</strong> (' + (st.weight || 700) + ' ' + (st.style || 'normal') + ') • Size: ' + (st.size_px_base || 40) + 'px</div>' +
+            '<div style="color: var(--text-muted);">Casing: ' + (st.casing || 'normal') + ' • Margin: ' + (st.vertical_margin_top_px || 0) + 'px • Color: ' + (st.color || '#FFF') + '</div>' +
+          '</div>';
+      });
+
+      let previewTextHtml = '';
+      layers.forEach(l => {
+        const font = (l.matched_font_candidates && l.matched_font_candidates[0]) ? l.matched_font_candidates[0] : 'DM Sans';
+        const canonical = resolveCanonicalGoogleFontFamily(font);
+        const st = l.font_style || {};
+        const safeColor = resolveHighContrastColor(st.color);
+        const sampleText = applyFontJsonCasing(l.layer_name.replace(/_/g, ' ').toUpperCase(), st.casing);
+        previewTextHtml += 
+          '<div style="font-family: \'' + canonical + '\', sans-serif; font-weight: ' + (st.weight || 700) + '; font-style: ' + (st.style || 'normal') + '; font-size: ' + Math.min(32, st.size_px_base || 24) + 'px; color: ' + safeColor + '; letter-spacing: ' + (st.letter_spacing_em || 0) + 'em; text-shadow: 0 2px 10px rgba(0,0,0,0.9); margin-top: ' + (st.vertical_margin_top_px || 0) + 'px; text-align: center;">' +
+            sampleText +
+          '</div>';
+      });
+
+      card.innerHTML = 
+        '<div class="specimen-header">' +
+          '<div class="specimen-profile-name">[' + (p._filename || filename) + '] ' + p.profile_name.replace(/_/g, ' ') + '</div>' +
+          '<div class="specimen-mood">Mood: <strong>' + (p.metadata?.overall_mood || 'Editorial Pairing') + '</strong> • Word Count: <strong>' + (p.metadata?.total_word_count || layers.length) + ' words</strong></div>' +
+        '</div>' +
+        '<div class="specimen-preview-stage">' +
+          previewTextHtml +
+        '</div>' +
+        '<div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--text-muted);">Font JSON Layer Specifications:</div>' +
+        '<div class="specimen-layers-list">' +
+          layersHtml +
+        '</div>';
+    }
+
+    function runMonteCarloSimulation(numSeeds = 100) {
+      document.getElementById('kpiSimCoverage').innerText = 'Simulating...';
+      setTimeout(() => {
+        const simCounts = {};
+        ALL_PROFILES_DATA.forEach(p => { simCounts[p.filename] = 0; });
+
+        for (let s = 1; s <= numSeeds; s++) {
+          const testSeed = (s * 7919) % 99999 + 10;
+          const seq = compileDynamicSequence(testSeed);
+          seq.forEach(chunk => {
+            if (simCounts[chunk.profileFilename] !== undefined) {
+              simCounts[chunk.profileFilename] += 1;
+            }
+          });
+        }
+
+        multiRunSimulationResults = simCounts;
+        const totalUsed = Object.values(simCounts).filter(v => v > 0).length;
+        const pct = Math.round((totalUsed / 45) * 100);
+        document.getElementById('kpiSimCoverage').innerText = pct + '% (' + totalUsed + '/45)';
+        
+        const usageMap = computeActiveUsageInSequence(compiledSequence);
+        renderUtilizationRanking(currentRankingSort, usageMap);
+        alert('✔ 100-Seed Monte Carlo Complete!\n\nCorpus Profile Coverage: ' + pct + '% (' + totalUsed + ' out of 45 profiles chosen across ' + (numSeeds * 20) + ' chunks).\n\nCheck the Utilization Ranking list to inspect high vs low frequency profiles.');
+      }, 50);
     }
 
     // INITIAL BOOTSTRAP
