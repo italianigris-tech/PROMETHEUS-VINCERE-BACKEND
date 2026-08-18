@@ -1943,7 +1943,7 @@
           g.appendChild(t);
         }
 
-        const numId = pObj.filename.match(/d+/)?.[0] || '';
+        const numId = pObj.filename.match(/\d+/)?.[0] || '';
         const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         const angle = Math.atan2(pos.y - cy, pos.x - cx);
         const lx = pos.x + 14 * Math.cos(angle);
