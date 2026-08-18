@@ -1,0 +1,1139 @@
+{
+  "videoMetadata": {
+    "filePath": "/home/ec2-user/PROMETHEUS-CORE-BACKEND/docs/mini_run_studio/uploaded_input_video.mp4",
+    "width": 720,
+    "height": 1280,
+    "fps": 23.98,
+    "totalFrames": 1441,
+    "durationSeconds": 60.1,
+    "aspectRatio": "9:16"
+  },
+  "sceneCuts": [
+    {
+      "timestampSeconds": 4.755,
+      "frame": 114,
+      "score": 0.442,
+      "type": "hard_scene_cut"
+    },
+    {
+      "timestampSeconds": 7.257,
+      "frame": 174,
+      "score": 0.43,
+      "type": "hard_scene_cut"
+    },
+    {
+      "timestampSeconds": 8.926,
+      "frame": 214,
+      "score": 0.48,
+      "type": "hard_scene_cut"
+    },
+    {
+      "timestampSeconds": 15.098,
+      "frame": 362,
+      "score": 0.616,
+      "type": "hard_scene_cut"
+    },
+    {
+      "timestampSeconds": 20.854,
+      "frame": 500,
+      "score": 0.614,
+      "type": "hard_scene_cut"
+    },
+    {
+      "timestampSeconds": 26.944,
+      "frame": 646,
+      "score": 0.89,
+      "type": "hard_scene_cut"
+    },
+    {
+      "timestampSeconds": 42.793,
+      "frame": 1026,
+      "score": 0.45,
+      "type": "hard_scene_cut"
+    },
+    {
+      "timestampSeconds": 50.3,
+      "frame": 1206,
+      "score": 0.45,
+      "type": "hard_scene_cut"
+    },
+    {
+      "timestampSeconds": 52.219,
+      "frame": 1252,
+      "score": 0.599,
+      "type": "hard_scene_cut"
+    }
+  ],
+  "zoomEvents": [
+    {
+      "timestampSeconds": 0.083,
+      "frame": 2,
+      "type": "zoom_in_punch",
+      "magnitude": 1.421
+    },
+    {
+      "timestampSeconds": 1.001,
+      "frame": 24,
+      "type": "zoom_in_punch",
+      "magnitude": 0.68
+    },
+    {
+      "timestampSeconds": 2.336,
+      "frame": 56,
+      "type": "zoom_out_pull",
+      "magnitude": 3.619
+    },
+    {
+      "timestampSeconds": 4.922,
+      "frame": 118,
+      "type": "zoom_out_pull",
+      "magnitude": 4.011
+    },
+    {
+      "timestampSeconds": 6.173,
+      "frame": 148,
+      "type": "zoom_out_pull",
+      "magnitude": 1.8
+    },
+    {
+      "timestampSeconds": 6.34,
+      "frame": 152,
+      "type": "zoom_in_punch",
+      "magnitude": 0.704
+    },
+    {
+      "timestampSeconds": 6.757,
+      "frame": 162,
+      "type": "zoom_in_punch",
+      "magnitude": 0.597
+    },
+    {
+      "timestampSeconds": 8.842,
+      "frame": 212,
+      "type": "zoom_out_pull",
+      "magnitude": 0.926
+    },
+    {
+      "timestampSeconds": 9.343,
+      "frame": 224,
+      "type": "zoom_out_pull",
+      "magnitude": 3.241
+    },
+    {
+      "timestampSeconds": 10.093,
+      "frame": 242,
+      "type": "zoom_out_pull",
+      "magnitude": 2.907
+    },
+    {
+      "timestampSeconds": 10.26,
+      "frame": 246,
+      "type": "zoom_in_punch",
+      "magnitude": 2.18
+    },
+    {
+      "timestampSeconds": 12.095,
+      "frame": 290,
+      "type": "zoom_out_pull",
+      "magnitude": 0.549
+    },
+    {
+      "timestampSeconds": 12.262,
+      "frame": 294,
+      "type": "zoom_in_punch",
+      "magnitude": 0.654
+    },
+    {
+      "timestampSeconds": 12.763,
+      "frame": 306,
+      "type": "zoom_in_punch",
+      "magnitude": 0.501
+    },
+    {
+      "timestampSeconds": 14.932,
+      "frame": 358,
+      "type": "zoom_in_punch",
+      "magnitude": 0.699
+    },
+    {
+      "timestampSeconds": 17.017,
+      "frame": 408,
+      "type": "zoom_out_pull",
+      "magnitude": 0.885
+    },
+    {
+      "timestampSeconds": 20.687,
+      "frame": 496,
+      "type": "zoom_in_punch",
+      "magnitude": 0.778
+    },
+    {
+      "timestampSeconds": 20.771,
+      "frame": 498,
+      "type": "zoom_out_pull",
+      "magnitude": 2.128
+    },
+    {
+      "timestampSeconds": 21.438,
+      "frame": 514,
+      "type": "zoom_out_pull",
+      "magnitude": 1.337
+    },
+    {
+      "timestampSeconds": 21.772,
+      "frame": 522,
+      "type": "zoom_in_punch",
+      "magnitude": 0.794
+    },
+    {
+      "timestampSeconds": 22.356,
+      "frame": 536,
+      "type": "zoom_in_punch",
+      "magnitude": 1.616
+    },
+    {
+      "timestampSeconds": 23.19,
+      "frame": 556,
+      "type": "zoom_in_punch",
+      "magnitude": 0.537
+    },
+    {
+      "timestampSeconds": 23.69,
+      "frame": 568,
+      "type": "zoom_in_punch",
+      "magnitude": 1.281
+    },
+    {
+      "timestampSeconds": 24.358,
+      "frame": 584,
+      "type": "zoom_in_punch",
+      "magnitude": 0.841
+    },
+    {
+      "timestampSeconds": 26.944,
+      "frame": 646,
+      "type": "zoom_in_punch",
+      "magnitude": 0.478
+    },
+    {
+      "timestampSeconds": 27.027,
+      "frame": 648,
+      "type": "zoom_out_pull",
+      "magnitude": 1.246
+    },
+    {
+      "timestampSeconds": 27.444,
+      "frame": 658,
+      "type": "zoom_out_pull",
+      "magnitude": 0.57
+    },
+    {
+      "timestampSeconds": 27.861,
+      "frame": 668,
+      "type": "zoom_in_punch",
+      "magnitude": 0.755
+    },
+    {
+      "timestampSeconds": 28.779,
+      "frame": 690,
+      "type": "zoom_in_punch",
+      "magnitude": 0.937
+    },
+    {
+      "timestampSeconds": 29.446,
+      "frame": 706,
+      "type": "zoom_in_punch",
+      "magnitude": 0.973
+    },
+    {
+      "timestampSeconds": 29.53,
+      "frame": 708,
+      "type": "zoom_out_pull",
+      "magnitude": 1.411
+    },
+    {
+      "timestampSeconds": 29.696,
+      "frame": 712,
+      "type": "zoom_in_punch",
+      "magnitude": 1.015
+    },
+    {
+      "timestampSeconds": 31.031,
+      "frame": 744,
+      "type": "zoom_in_punch",
+      "magnitude": 0.701
+    },
+    {
+      "timestampSeconds": 32.366,
+      "frame": 776,
+      "type": "zoom_in_punch",
+      "magnitude": 0.746
+    },
+    {
+      "timestampSeconds": 32.533,
+      "frame": 780,
+      "type": "zoom_out_pull",
+      "magnitude": 0.954
+    },
+    {
+      "timestampSeconds": 33.283,
+      "frame": 798,
+      "type": "zoom_in_punch",
+      "magnitude": 0.762
+    },
+    {
+      "timestampSeconds": 33.367,
+      "frame": 800,
+      "type": "zoom_out_pull",
+      "magnitude": 1.081
+    },
+    {
+      "timestampSeconds": 33.45,
+      "frame": 802,
+      "type": "zoom_in_punch",
+      "magnitude": 0.674
+    },
+    {
+      "timestampSeconds": 33.534,
+      "frame": 804,
+      "type": "zoom_out_pull",
+      "magnitude": 2.572
+    },
+    {
+      "timestampSeconds": 34.117,
+      "frame": 818,
+      "type": "zoom_out_pull",
+      "magnitude": 0.81
+    },
+    {
+      "timestampSeconds": 34.368,
+      "frame": 824,
+      "type": "zoom_in_punch",
+      "magnitude": 0.55
+    },
+    {
+      "timestampSeconds": 34.868,
+      "frame": 836,
+      "type": "zoom_out_pull",
+      "magnitude": 0.845
+    },
+    {
+      "timestampSeconds": 36.203,
+      "frame": 868,
+      "type": "zoom_out_pull",
+      "magnitude": 2.872
+    },
+    {
+      "timestampSeconds": 36.62,
+      "frame": 878,
+      "type": "zoom_out_pull",
+      "magnitude": 1.0
+    },
+    {
+      "timestampSeconds": 37.371,
+      "frame": 896,
+      "type": "zoom_in_punch",
+      "magnitude": 0.654
+    },
+    {
+      "timestampSeconds": 38.956,
+      "frame": 934,
+      "type": "zoom_in_punch",
+      "magnitude": 1.447
+    },
+    {
+      "timestampSeconds": 39.456,
+      "frame": 946,
+      "type": "zoom_out_pull",
+      "magnitude": 0.758
+    },
+    {
+      "timestampSeconds": 40.04,
+      "frame": 960,
+      "type": "zoom_out_pull",
+      "magnitude": 0.453
+    },
+    {
+      "timestampSeconds": 40.791,
+      "frame": 978,
+      "type": "zoom_in_punch",
+      "magnitude": 0.728
+    },
+    {
+      "timestampSeconds": 41.124,
+      "frame": 986,
+      "type": "zoom_out_pull",
+      "magnitude": 1.142
+    },
+    {
+      "timestampSeconds": 42.793,
+      "frame": 1026,
+      "type": "zoom_out_pull",
+      "magnitude": 2.672
+    },
+    {
+      "timestampSeconds": 43.293,
+      "frame": 1038,
+      "type": "zoom_out_pull",
+      "magnitude": 0.639
+    },
+    {
+      "timestampSeconds": 46.88,
+      "frame": 1124,
+      "type": "zoom_in_punch",
+      "magnitude": 5.917
+    },
+    {
+      "timestampSeconds": 47.297,
+      "frame": 1134,
+      "type": "zoom_in_punch",
+      "magnitude": 0.939
+    },
+    {
+      "timestampSeconds": 48.549,
+      "frame": 1164,
+      "type": "zoom_out_pull",
+      "magnitude": 0.833
+    },
+    {
+      "timestampSeconds": 48.966,
+      "frame": 1174,
+      "type": "zoom_out_pull",
+      "magnitude": 0.503
+    },
+    {
+      "timestampSeconds": 49.55,
+      "frame": 1188,
+      "type": "zoom_out_pull",
+      "magnitude": 0.553
+    },
+    {
+      "timestampSeconds": 50.3,
+      "frame": 1206,
+      "type": "zoom_in_punch",
+      "magnitude": 0.709
+    },
+    {
+      "timestampSeconds": 52.052,
+      "frame": 1248,
+      "type": "zoom_out_pull",
+      "magnitude": 0.651
+    },
+    {
+      "timestampSeconds": 52.135,
+      "frame": 1250,
+      "type": "zoom_in_punch",
+      "magnitude": 1.084
+    },
+    {
+      "timestampSeconds": 52.803,
+      "frame": 1266,
+      "type": "zoom_out_pull",
+      "magnitude": 1.413
+    },
+    {
+      "timestampSeconds": 52.97,
+      "frame": 1270,
+      "type": "zoom_in_punch",
+      "magnitude": 1.338
+    },
+    {
+      "timestampSeconds": 53.387,
+      "frame": 1280,
+      "type": "zoom_out_pull",
+      "magnitude": 1.792
+    },
+    {
+      "timestampSeconds": 53.47,
+      "frame": 1282,
+      "type": "zoom_in_punch",
+      "magnitude": 1.403
+    },
+    {
+      "timestampSeconds": 53.887,
+      "frame": 1292,
+      "type": "zoom_out_pull",
+      "magnitude": 1.176
+    },
+    {
+      "timestampSeconds": 54.054,
+      "frame": 1296,
+      "type": "zoom_in_punch",
+      "magnitude": 1.032
+    },
+    {
+      "timestampSeconds": 55.138,
+      "frame": 1322,
+      "type": "zoom_out_pull",
+      "magnitude": 2.054
+    },
+    {
+      "timestampSeconds": 56.223,
+      "frame": 1348,
+      "type": "zoom_out_pull",
+      "magnitude": 0.936
+    },
+    {
+      "timestampSeconds": 59.226,
+      "frame": 1420,
+      "type": "zoom_out_pull",
+      "magnitude": 0.686
+    }
+  ],
+  "panEvents": [
+    {
+      "timestampSeconds": 0.167,
+      "frame": 4,
+      "type": "camera_pan_left",
+      "panVelocity": -1.458,
+      "stereoPanTarget": -0.49
+    },
+    {
+      "timestampSeconds": 4.588,
+      "frame": 110,
+      "type": "camera_pan_left",
+      "panVelocity": -2.733,
+      "stereoPanTarget": -0.91
+    },
+    {
+      "timestampSeconds": 5.005,
+      "frame": 120,
+      "type": "camera_pan_left",
+      "panVelocity": -2.512,
+      "stereoPanTarget": -0.84
+    },
+    {
+      "timestampSeconds": 5.506,
+      "frame": 132,
+      "type": "camera_pan_right",
+      "panVelocity": 1.491,
+      "stereoPanTarget": 0.5
+    },
+    {
+      "timestampSeconds": 9.343,
+      "frame": 224,
+      "type": "camera_pan_left",
+      "panVelocity": -4.324,
+      "stereoPanTarget": -1.0
+    },
+    {
+      "timestampSeconds": 10.093,
+      "frame": 242,
+      "type": "camera_pan_left",
+      "panVelocity": -6.55,
+      "stereoPanTarget": -1.0
+    },
+    {
+      "timestampSeconds": 13.347,
+      "frame": 320,
+      "type": "camera_pan_right",
+      "panVelocity": 2.36,
+      "stereoPanTarget": 0.79
+    },
+    {
+      "timestampSeconds": 25.025,
+      "frame": 600,
+      "type": "camera_pan_right",
+      "panVelocity": 1.669,
+      "stereoPanTarget": 0.56
+    },
+    {
+      "timestampSeconds": 28.779,
+      "frame": 690,
+      "type": "camera_pan_left",
+      "panVelocity": -1.302,
+      "stereoPanTarget": -0.43
+    },
+    {
+      "timestampSeconds": 29.446,
+      "frame": 706,
+      "type": "camera_pan_left",
+      "panVelocity": -2.762,
+      "stereoPanTarget": -0.92
+    },
+    {
+      "timestampSeconds": 33.283,
+      "frame": 798,
+      "type": "camera_pan_left",
+      "panVelocity": -2.713,
+      "stereoPanTarget": -0.9
+    },
+    {
+      "timestampSeconds": 33.45,
+      "frame": 802,
+      "type": "camera_pan_right",
+      "panVelocity": 5.704,
+      "stereoPanTarget": 1.0
+    },
+    {
+      "timestampSeconds": 38.789,
+      "frame": 930,
+      "type": "camera_pan_left",
+      "panVelocity": -1.273,
+      "stereoPanTarget": -0.42
+    },
+    {
+      "timestampSeconds": 40.791,
+      "frame": 978,
+      "type": "camera_pan_left",
+      "panVelocity": -2.264,
+      "stereoPanTarget": -0.75
+    },
+    {
+      "timestampSeconds": 40.874,
+      "frame": 980,
+      "type": "camera_pan_right",
+      "panVelocity": 1.478,
+      "stereoPanTarget": 0.49
+    },
+    {
+      "timestampSeconds": 42.626,
+      "frame": 1022,
+      "type": "camera_pan_right",
+      "panVelocity": 1.525,
+      "stereoPanTarget": 0.51
+    },
+    {
+      "timestampSeconds": 46.88,
+      "frame": 1124,
+      "type": "camera_pan_left",
+      "panVelocity": -2.907,
+      "stereoPanTarget": -0.97
+    },
+    {
+      "timestampSeconds": 50.3,
+      "frame": 1206,
+      "type": "camera_pan_right",
+      "panVelocity": 2.03,
+      "stereoPanTarget": 0.68
+    },
+    {
+      "timestampSeconds": 57.558,
+      "frame": 1380,
+      "type": "camera_pan_right",
+      "panVelocity": 1.522,
+      "stereoPanTarget": 0.51
+    }
+  ],
+  "visualBursts": [
+    {
+      "timestampSeconds": 0.083,
+      "frame": 2,
+      "type": "kinetic_visual_burst",
+      "intensity": 2.267
+    },
+    {
+      "timestampSeconds": 2.336,
+      "frame": 56,
+      "type": "kinetic_visual_burst",
+      "intensity": 6.337
+    },
+    {
+      "timestampSeconds": 4.588,
+      "frame": 110,
+      "type": "kinetic_visual_burst",
+      "intensity": 6.287
+    },
+    {
+      "timestampSeconds": 5.005,
+      "frame": 120,
+      "type": "kinetic_visual_burst",
+      "intensity": 6.207
+    },
+    {
+      "timestampSeconds": 5.756,
+      "frame": 138,
+      "type": "kinetic_visual_burst",
+      "intensity": 2.117
+    },
+    {
+      "timestampSeconds": 6.173,
+      "frame": 148,
+      "type": "kinetic_visual_burst",
+      "intensity": 2.567
+    },
+    {
+      "timestampSeconds": 7.257,
+      "frame": 174,
+      "type": "kinetic_visual_burst",
+      "intensity": 4.052
+    },
+    {
+      "timestampSeconds": 9.259,
+      "frame": 222,
+      "type": "kinetic_visual_burst",
+      "intensity": 4.137
+    },
+    {
+      "timestampSeconds": 10.093,
+      "frame": 242,
+      "type": "kinetic_visual_burst",
+      "intensity": 7.221
+    },
+    {
+      "timestampSeconds": 11.345,
+      "frame": 272,
+      "type": "kinetic_visual_burst",
+      "intensity": 2.497
+    },
+    {
+      "timestampSeconds": 12.262,
+      "frame": 294,
+      "type": "kinetic_visual_burst",
+      "intensity": 2.572
+    },
+    {
+      "timestampSeconds": 13.347,
+      "frame": 320,
+      "type": "kinetic_visual_burst",
+      "intensity": 3.986
+    },
+    {
+      "timestampSeconds": 14.932,
+      "frame": 358,
+      "type": "kinetic_visual_burst",
+      "intensity": 2.263
+    },
+    {
+      "timestampSeconds": 15.349,
+      "frame": 368,
+      "type": "kinetic_visual_burst",
+      "intensity": 2.353
+    },
+    {
+      "timestampSeconds": 16.6,
+      "frame": 398,
+      "type": "kinetic_visual_burst",
+      "intensity": 3.577
+    },
+    {
+      "timestampSeconds": 19.102,
+      "frame": 458,
+      "type": "kinetic_visual_burst",
+      "intensity": 3.235
+    },
+    {
+      "timestampSeconds": 20.687,
+      "frame": 496,
+      "type": "kinetic_visual_burst",
+      "intensity": 3.2
+    },
+    {
+      "timestampSeconds": 22.356,
+      "frame": 536,
+      "type": "kinetic_visual_burst",
+      "intensity": 2.227
+    },
+    {
+      "timestampSeconds": 23.607,
+      "frame": 566,
+      "type": "kinetic_visual_burst",
+      "intensity": 4.727
+    },
+    {
+      "timestampSeconds": 24.358,
+      "frame": 584,
+      "type": "kinetic_visual_burst",
+      "intensity": 3.134
+    },
+    {
+      "timestampSeconds": 25.025,
+      "frame": 600,
+      "type": "kinetic_visual_burst",
+      "intensity": 4.945
+    },
+    {
+      "timestampSeconds": 26.944,
+      "frame": 646,
+      "type": "kinetic_visual_burst",
+      "intensity": 2.819
+    },
+    {
+      "timestampSeconds": 27.861,
+      "frame": 668,
+      "type": "kinetic_visual_burst",
+      "intensity": 2.181
+    },
+    {
+      "timestampSeconds": 28.779,
+      "frame": 690,
+      "type": "kinetic_visual_burst",
+      "intensity": 2.034
+    },
+    {
+      "timestampSeconds": 29.446,
+      "frame": 706,
+      "type": "kinetic_visual_burst",
+      "intensity": 3.24
+    },
+    {
+      "timestampSeconds": 32.282,
+      "frame": 774,
+      "type": "kinetic_visual_burst",
+      "intensity": 2.418
+    },
+    {
+      "timestampSeconds": 33.283,
+      "frame": 798,
+      "type": "kinetic_visual_burst",
+      "intensity": 7.784
+    },
+    {
+      "timestampSeconds": 33.7,
+      "frame": 808,
+      "type": "kinetic_visual_burst",
+      "intensity": 3.141
+    },
+    {
+      "timestampSeconds": 36.119,
+      "frame": 866,
+      "type": "kinetic_visual_burst",
+      "intensity": 2.151
+    },
+    {
+      "timestampSeconds": 36.537,
+      "frame": 876,
+      "type": "kinetic_visual_burst",
+      "intensity": 2.022
+    },
+    {
+      "timestampSeconds": 38.789,
+      "frame": 930,
+      "type": "kinetic_visual_burst",
+      "intensity": 3.644
+    },
+    {
+      "timestampSeconds": 39.206,
+      "frame": 940,
+      "type": "kinetic_visual_burst",
+      "intensity": 2.128
+    },
+    {
+      "timestampSeconds": 40.791,
+      "frame": 978,
+      "type": "kinetic_visual_burst",
+      "intensity": 6.425
+    },
+    {
+      "timestampSeconds": 41.208,
+      "frame": 988,
+      "type": "kinetic_visual_burst",
+      "intensity": 2.22
+    },
+    {
+      "timestampSeconds": 42.626,
+      "frame": 1022,
+      "type": "kinetic_visual_burst",
+      "intensity": 4.195
+    },
+    {
+      "timestampSeconds": 46.797,
+      "frame": 1122,
+      "type": "kinetic_visual_burst",
+      "intensity": 2.857
+    },
+    {
+      "timestampSeconds": 47.214,
+      "frame": 1132,
+      "type": "kinetic_visual_burst",
+      "intensity": 2.681
+    },
+    {
+      "timestampSeconds": 50.3,
+      "frame": 1206,
+      "type": "kinetic_visual_burst",
+      "intensity": 5.44
+    },
+    {
+      "timestampSeconds": 52.052,
+      "frame": 1248,
+      "type": "kinetic_visual_burst",
+      "intensity": 2.541
+    },
+    {
+      "timestampSeconds": 52.803,
+      "frame": 1266,
+      "type": "kinetic_visual_burst",
+      "intensity": 2.756
+    },
+    {
+      "timestampSeconds": 53.387,
+      "frame": 1280,
+      "type": "kinetic_visual_burst",
+      "intensity": 3.507
+    },
+    {
+      "timestampSeconds": 53.887,
+      "frame": 1292,
+      "type": "kinetic_visual_burst",
+      "intensity": 2.426
+    },
+    {
+      "timestampSeconds": 54.555,
+      "frame": 1308,
+      "type": "kinetic_visual_burst",
+      "intensity": 4.086
+    },
+    {
+      "timestampSeconds": 55.138,
+      "frame": 1322,
+      "type": "kinetic_visual_burst",
+      "intensity": 2.665
+    },
+    {
+      "timestampSeconds": 57.558,
+      "frame": 1380,
+      "type": "kinetic_visual_burst",
+      "intensity": 4.215
+    }
+  ],
+  "audioEnergyPeaks": [
+    {
+      "timestampSeconds": 0.1,
+      "type": "vocal_energy_peak",
+      "intensity": 0.74
+    },
+    {
+      "timestampSeconds": 0.9,
+      "type": "vocal_energy_peak",
+      "intensity": 0.55
+    },
+    {
+      "timestampSeconds": 2.5,
+      "type": "vocal_energy_peak",
+      "intensity": 0.6
+    },
+    {
+      "timestampSeconds": 3.2,
+      "type": "vocal_energy_peak",
+      "intensity": 0.64
+    },
+    {
+      "timestampSeconds": 4.6,
+      "type": "vocal_energy_peak",
+      "intensity": 0.67
+    },
+    {
+      "timestampSeconds": 5.4,
+      "type": "vocal_energy_peak",
+      "intensity": 0.53
+    },
+    {
+      "timestampSeconds": 6.0,
+      "type": "vocal_energy_peak",
+      "intensity": 0.55
+    },
+    {
+      "timestampSeconds": 8.8,
+      "type": "vocal_energy_peak",
+      "intensity": 0.7
+    },
+    {
+      "timestampSeconds": 10.6,
+      "type": "vocal_energy_peak",
+      "intensity": 0.54
+    },
+    {
+      "timestampSeconds": 13.3,
+      "type": "vocal_energy_peak",
+      "intensity": 1.0
+    },
+    {
+      "timestampSeconds": 14.8,
+      "type": "vocal_energy_peak",
+      "intensity": 0.58
+    },
+    {
+      "timestampSeconds": 19.1,
+      "type": "vocal_energy_peak",
+      "intensity": 0.57
+    },
+    {
+      "timestampSeconds": 20.6,
+      "type": "vocal_energy_peak",
+      "intensity": 0.63
+    },
+    {
+      "timestampSeconds": 22.6,
+      "type": "vocal_energy_peak",
+      "intensity": 0.8
+    },
+    {
+      "timestampSeconds": 23.7,
+      "type": "vocal_energy_peak",
+      "intensity": 0.64
+    },
+    {
+      "timestampSeconds": 25.1,
+      "type": "vocal_energy_peak",
+      "intensity": 0.64
+    },
+    {
+      "timestampSeconds": 25.7,
+      "type": "vocal_energy_peak",
+      "intensity": 0.57
+    },
+    {
+      "timestampSeconds": 27.0,
+      "type": "vocal_energy_peak",
+      "intensity": 0.63
+    },
+    {
+      "timestampSeconds": 28.9,
+      "type": "vocal_energy_peak",
+      "intensity": 0.57
+    },
+    {
+      "timestampSeconds": 29.6,
+      "type": "vocal_energy_peak",
+      "intensity": 0.55
+    },
+    {
+      "timestampSeconds": 33.5,
+      "type": "vocal_energy_peak",
+      "intensity": 0.71
+    },
+    {
+      "timestampSeconds": 34.6,
+      "type": "vocal_energy_peak",
+      "intensity": 0.55
+    },
+    {
+      "timestampSeconds": 36.1,
+      "type": "vocal_energy_peak",
+      "intensity": 0.61
+    },
+    {
+      "timestampSeconds": 36.7,
+      "type": "vocal_energy_peak",
+      "intensity": 0.67
+    },
+    {
+      "timestampSeconds": 37.6,
+      "type": "vocal_energy_peak",
+      "intensity": 0.58
+    },
+    {
+      "timestampSeconds": 38.7,
+      "type": "vocal_energy_peak",
+      "intensity": 0.61
+    },
+    {
+      "timestampSeconds": 39.4,
+      "type": "vocal_energy_peak",
+      "intensity": 0.56
+    },
+    {
+      "timestampSeconds": 43.0,
+      "type": "vocal_energy_peak",
+      "intensity": 0.54
+    },
+    {
+      "timestampSeconds": 44.9,
+      "type": "vocal_energy_peak",
+      "intensity": 0.54
+    },
+    {
+      "timestampSeconds": 46.9,
+      "type": "vocal_energy_peak",
+      "intensity": 0.55
+    },
+    {
+      "timestampSeconds": 48.6,
+      "type": "vocal_energy_peak",
+      "intensity": 0.6
+    },
+    {
+      "timestampSeconds": 50.3,
+      "type": "vocal_energy_peak",
+      "intensity": 0.55
+    },
+    {
+      "timestampSeconds": 52.0,
+      "type": "vocal_energy_peak",
+      "intensity": 0.7
+    },
+    {
+      "timestampSeconds": 52.6,
+      "type": "vocal_energy_peak",
+      "intensity": 0.59
+    },
+    {
+      "timestampSeconds": 53.4,
+      "type": "vocal_energy_peak",
+      "intensity": 0.7
+    },
+    {
+      "timestampSeconds": 55.0,
+      "type": "vocal_energy_peak",
+      "intensity": 0.64
+    },
+    {
+      "timestampSeconds": 56.0,
+      "type": "vocal_energy_peak",
+      "intensity": 0.58
+    },
+    {
+      "timestampSeconds": 57.5,
+      "type": "vocal_energy_peak",
+      "intensity": 0.62
+    }
+  ],
+  "speechPauses": [
+    {
+      "timestampSeconds": 20.3,
+      "type": "speech_gap_pause",
+      "intensity": 0.0101
+    },
+    {
+      "timestampSeconds": 26.7,
+      "type": "speech_gap_pause",
+      "intensity": 0.0131
+    },
+    {
+      "timestampSeconds": 33.3,
+      "type": "speech_gap_pause",
+      "intensity": 0.006
+    },
+    {
+      "timestampSeconds": 40.7,
+      "type": "speech_gap_pause",
+      "intensity": 0.0077
+    },
+    {
+      "timestampSeconds": 42.4,
+      "type": "speech_gap_pause",
+      "intensity": 0.0114
+    },
+    {
+      "timestampSeconds": 46.3,
+      "type": "speech_gap_pause",
+      "intensity": 0.0026
+    },
+    {
+      "timestampSeconds": 49.4,
+      "type": "speech_gap_pause",
+      "intensity": 0.003
+    },
+    {
+      "timestampSeconds": 54.8,
+      "type": "speech_gap_pause",
+      "intensity": 0.0131
+    },
+    {
+      "timestampSeconds": 57.1,
+      "type": "speech_gap_pause",
+      "intensity": 0.0143
+    },
+    {
+      "timestampSeconds": 58.9,
+      "type": "speech_gap_pause",
+      "intensity": 0.006
+    },
+    {
+      "timestampSeconds": 60.0,
+      "type": "speech_gap_pause",
+      "intensity": 0.0143
+    }
+  ]
+}

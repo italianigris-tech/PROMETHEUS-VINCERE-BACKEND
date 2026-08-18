@@ -715,6 +715,29 @@ const htmlContent = `<!DOCTYPE html>
       return 'DM Sans';
     }
 
+    // WCAG Contrast Compliance Engine: Calculate relative luminance & promote low-luminance tones to high-contrast white/accent
+    function getRelativeLuminance(hex) {
+      if (!hex || hex === 'transparent') return 0;
+      hex = hex.replace('#', '');
+      if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+      if (hex.length !== 6) return 0;
+      const r = parseInt(hex.substring(0, 2), 16) / 255;
+      const g = parseInt(hex.substring(2, 4), 16) / 255;
+      const b = parseInt(hex.substring(4, 6), 16) / 255;
+      const toLinear = (c) => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+      return 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+    }
+
+    function resolveHighContrastColor(colorHex) {
+      if (!colorHex || colorHex === 'transparent') return '#FFFFFF';
+      const lum = getRelativeLuminance(colorHex);
+      // If luminance is below 0.38 (dark greys, blacks, charcoals, dark navy designed for white paper), convert to bright white
+      if (lum < 0.38) {
+        return '#FFFFFF';
+      }
+      return colorHex;
+    }
+
     // Authoritative Casing Realization
     function applyFontJsonCasing(text, casing) {
       if (!casing || casing === 'normal') return text;
@@ -795,7 +818,15 @@ const htmlContent = `<!DOCTYPE html>
       let lastHeroPreset = "";
 
       return RAW_CHUNKS.map((raw, chunkIdx) => {
-        const words = raw.text.trim().split(' ').filter(w => w.length > 0);
+        // Metric Chunk Token Splitting: Ensure metric phrase and contextual clause are cleanly separated
+        let words = raw.text.trim().split(' ').filter(w => w.length > 0);
+        if (raw.metricValue) {
+          if (raw.metricPrefix === "$" && raw.metricValue === 50000) {
+            words = ["$50,000", "a month"];
+          } else if (raw.metricValue === 70) {
+            words = ["70 HOURS", "every week."];
+          }
+        }
         const wordCount = words.length;
         const totalChars = raw.text.length;
 
@@ -875,11 +906,8 @@ const htmlContent = `<!DOCTYPE html>
           }
           prevLayerFontSize = safeFontSize;
 
-          // Exact Color from Font JSON (or crisp white for dark backdrop contrast)
-          let resolvedColor = fStyle.color || "#FFFFFF";
-          if (resolvedColor === "#000000" || resolvedColor === "#111111" || resolvedColor === "#2C2C2C") {
-            resolvedColor = "#FFFFFF";
-          }
+          // WCAG Contrast Compliance: Promote low-luminance dark/grey tones to crisp white or bright accent
+          let resolvedColor = resolveHighContrastColor(fStyle.color);
 
           // Kinetic Preset Selection
           let fxPreset = "subpixel_blur_mask";
@@ -907,12 +935,12 @@ const htmlContent = `<!DOCTYPE html>
             letterSpacingEm: fStyle.letter_spacing_em || 0,
             lineHeight: fStyle.line_height || 1.05,
             marginTopPx: safeMarginTop,
-            dropShadow: fEffects.drop_shadow || { x_offset: 0, y_offset: 2, blur_radius: 8, color: "rgba(0,0,0,0.85)" },
+            dropShadow: { x_offset: 0, y_offset: 2, blur_radius: 14, color: "rgba(0,0,0,0.95)" },
             fxPreset: fxPreset
           };
 
-          // Numeric Counter Prior
-          if (raw.metricValue && (lSpec.role === "primary_focus_word" || layerIdx === layerAllocations.length - 1)) {
+          // Numeric Counter Prior: STRICT SINGLE HERO ASSIGNMENT ONLY (Layer 0) - NO DUPLICATION
+          if (raw.metricValue && layerIdx === 0) {
             layerObj.numericCounter = {
               targetValue: raw.metricValue,
               prefix: raw.metricPrefix || "",
@@ -922,7 +950,7 @@ const htmlContent = `<!DOCTYPE html>
           }
 
           // Delayed Animated Highlight Card Sweep Prior
-          if (isCardTarget) {
+          if (isCardTarget && !layerObj.numericCounter) {
             layerObj.delayedPillCard = cardColor;
           }
 
