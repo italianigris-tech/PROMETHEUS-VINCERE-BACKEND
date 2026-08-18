@@ -426,6 +426,27 @@
       },
       "cost": { "domNodes": 3, "filters": 2 },
       "readabilityLimits": { "maxWords": 3 }
+    },
+    {
+      "id": "trait_acid_lime_letter_glitch",
+      "name": "Cyber Acid Lime Grotesque Letter-by-Letter Matrix Glitch",
+      "sourcePhenotype": "TYPO #30 (acid-lime-letter-glitch)",
+      "concern": "MotionPhysics",
+      "targetScope": "glyph",
+      "targetRoles": ["hero", "accent"],
+      "ownsChannels": ["transform.translate", "filter.dropShadow", "text.color", "opacity", "clipPath"],
+      "requires": ["glyph-segmentation"],
+      "conflictsWith": [],
+      "renderMode": "frame-deterministic",
+      "execution": { "status": "contract_only" },
+      "frameExpression": {
+        "glitchJitterX": "sin((frame - glyphIndex * 2.2) * 14) * max(0, 10 - (frame / 20) * 10)",
+        "glitchJitterY": "cos((frame - glyphIndex * 2.2) * 12) * max(0, 6 - (frame / 20) * 6)",
+        "opacity": "clamp((frame / 12), 0, 1)",
+        "rgbDisplace": "max(0, 8 - (frame / 18) * 8)"
+      },
+      "cost": { "domNodes": 10, "filters": 1 },
+      "readabilityLimits": { "maxWords": 3 }
     }
   ]
 }

@@ -11,10 +11,10 @@ import {
 } from "./typography-profile-corpus.js";
 
 describe("MAUL typography profile corpus", () => {
-  it("loads all 44 observed profiles with internally consistent counts", () => {
+  it("loads all 45 observed profiles with internally consistent counts", () => {
     const profiles = loadTypographyProfileCorpus();
 
-    expect(profiles).toHaveLength(44);
+    expect(profiles).toHaveLength(45);
     for (const profile of profiles) {
       expect(profile.sourceSha256).toMatch(/^[a-f0-9]{64}$/);
       expect(profile.metadata.perWordCharacterCounts).toHaveLength(

@@ -27,8 +27,8 @@ describe("MAUL reference typography policy", () => {
       .map((entry) => entry.filename)
       .sort((left, right) => left.localeCompare(right));
 
-    expect(REFERENCE_TYPOGRAPHY_CORPUS).toHaveLength(44);
-    expect(new Set(corpusFiles).size).toBe(44);
+    expect(REFERENCE_TYPOGRAPHY_CORPUS).toHaveLength(45);
+    expect(new Set(corpusFiles).size).toBe(45);
     expect(corpusFiles).toEqual(suppliedFiles);
     for (const entry of REFERENCE_TYPOGRAPHY_CORPUS) {
       const digest = createHash("sha256")

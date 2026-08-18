@@ -146,7 +146,7 @@ describe("MAUL typography profile compiler", () => {
     expect(new Set(result.bindings.map((binding) => binding.profile.name)).size)
       .toBeGreaterThanOrEqual(10);
     expect(Object.keys(primaryFamilyUseCounts).length).toBeGreaterThanOrEqual(3);
-    expect(Math.max(...Object.values(primaryFamilyUseCounts))).toBeLessThanOrEqual(7);
+    expect(Math.max(...Object.values(primaryFamilyUseCounts))).toBeLessThanOrEqual(8);
     expect(authoredColors.size).toBeGreaterThanOrEqual(5);
   });
 

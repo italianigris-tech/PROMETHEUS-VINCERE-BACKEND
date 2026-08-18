@@ -1,0 +1,113 @@
+{
+  "profile_name": "Fake_Drone_Electric_Lime_Heavy_Grotesque_Pairing",
+  "version": "1.0.0",
+  "metadata": {
+    "target_aspect_ratio": "9:16",
+    "overall_mood": "High-Energy Tech Noir, Heavy Grotesque Contrast, Acid Lime Accent, Viral Reel Impact",
+    "casing_strategy": "lowercase_all",
+    "total_word_count": 2,
+    "total_character_count": 9,
+    "per_word_character_counts": [
+      {
+        "word": "fake",
+        "character_count": 4
+      },
+      {
+        "word": "drone",
+        "character_count": 5
+      }
+    ]
+  },
+  "layout_rules": {
+    "horizontal_alignment": "center",
+    "vertical_position": "center",
+    "bottom_margin_percent": 20,
+    "max_width_percent": 85,
+    "scrim_overlay": {
+      "enabled": false,
+      "type": "none",
+      "opacity": 0,
+      "color": "#000000"
+    }
+  },
+  "typography_layers": [
+    {
+      "layer_name": "stem_white_grotesque",
+      "role": "header",
+      "font_classification": "Heavy Geometric Grotesque Sans",
+      "matched_font_candidates": [
+        "DM Sans",
+        "Montserrat",
+        "Inter",
+        "Helvetica Neue"
+      ],
+      "font_style": {
+        "weight": 900,
+        "style": "normal",
+        "casing": "lowercase",
+        "color": "#FFFFFF",
+        "size_px_base": 54,
+        "relative_scale": 1.0,
+        "letter_spacing_em": -0.04,
+        "line_height": 0.92,
+        "vertical_margin_top_px": 0
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 3,
+          "blur_radius": 8,
+          "color": "rgba(0, 0, 0, 0.45)"
+        }
+      },
+      "sample_text": "fake",
+      "word_count": 1,
+      "character_count": 4,
+      "per_word_character_counts": [
+        {
+          "word": "fake",
+          "character_count": 4
+        }
+      ]
+    },
+    {
+      "layer_name": "hero_lime_accent",
+      "role": "primary_focus_word",
+      "font_classification": "Ultra-Bold Tight-Stacked Grotesque Sans",
+      "matched_font_candidates": [
+        "DM Sans",
+        "Montserrat",
+        "Inter",
+        "Arial Black"
+      ],
+      "font_style": {
+        "weight": 900,
+        "style": "normal",
+        "casing": "lowercase",
+        "color": "#84CC16",
+        "size_px_base": 54,
+        "relative_scale": 1.0,
+        "letter_spacing_em": -0.04,
+        "line_height": 0.88,
+        "vertical_margin_top_px": -12
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 3,
+          "blur_radius": 10,
+          "color": "rgba(132, 204, 22, 0.35)"
+        }
+      },
+      "sample_text": "drone",
+      "word_count": 1,
+      "character_count": 5,
+      "per_word_character_counts": [
+        {
+          "word": "drone",
+          "character_count": 5
+        }
+      ]
+    }
+  ]
+}

@@ -70,6 +70,7 @@ export const REFERENCE_TYPOGRAPHY_CORPUS: readonly ReferenceTypographyObservatio
   observation({filename: "image (38).png", sha256: "5812483a3d455e72541734101b5278eddfbd4232331719ee06cc0ae89ba67cba", grammarId: "script_over_foundation"}),
   observation({filename: "image (39).png", sha256: "a9566bcf16e27098bf27ca602bf2b1cef88a48ed4cd097486b3edda7eba72bbe", grammarId: "stacked_support_hero"}),
   observation({filename: "image (4).png", sha256: "62c7d3cc83302d75cfcccadb74ea1001067c5ad2f9c5dda61968cda396341c89", grammarId: "script_over_foundation"}),
+  observation({filename: "image (40).png", sha256: "921dcfec302ce61a3be27ba4d7f0f628ec800726c76e2f5ca87f88918a9a57f1", grammarId: "stacked_support_hero"}),
   observation({filename: "image (5).png", sha256: "37fb3fd477d3d65731efc93be00345e924e48c60e7143f1dd0df5161631f48af", grammarId: "annotated_keyword", annotation: "underline"}),
   observation({filename: "image (6).png", sha256: "f364c031a2883dbfd9c2bef410ee8ba2a08324e95cd7f65039ac465239fc9b1f", grammarId: "quiet_luxury"}),
   observation({filename: "image (7).png", sha256: "6c3ea6892701933b743bb4acace555c4db65c12c0e42858a7bd9c181753f3072", grammarId: "script_over_foundation"}),
