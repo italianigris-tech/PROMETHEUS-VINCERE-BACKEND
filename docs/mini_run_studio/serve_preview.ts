@@ -59,7 +59,7 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
     }
     .container {
       width: 100%;
-      max-width: 1260px;
+      max-width: 1280px;
       display: flex;
       flex-direction: column;
       gap: 14px;
@@ -84,7 +84,7 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
 
     .studio-grid {
       display: grid;
-      grid-template-columns: minmax(320px, 430px) 1fr;
+      grid-template-columns: minmax(320px, 440px) 1fr;
       gap: 16px;
     }
     @media (max-width: 920px) {
@@ -117,6 +117,21 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
     }
     .player-wrap video { width: 100%; height: 100%; object-fit: contain; display: block; }
 
+    /* FRAME & TIME READOUT */
+    .frame-readout-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(0,0,0,0.5);
+      border: 1px solid var(--panel-border);
+      padding: 6px 12px;
+      border-radius: 8px;
+      margin-top: 10px;
+      font-family: monospace;
+      font-size: 12px;
+    }
+    .frame-readout-bar strong { color: var(--accent-cyan); }
+
     /* LOOP BADGE BANNER */
     .loop-banner {
       display: none;
@@ -127,7 +142,7 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
       border-radius: 10px;
       font-size: 11.5px;
       font-weight: 700;
-      margin-top: 10px;
+      margin-top: 8px;
       justify-content: space-between;
       align-items: center;
       animation: pulseGlow 2s infinite alternate;
@@ -149,7 +164,7 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
     .btn-decouple:hover { background: #FF0055; color: #FFF; }
 
     .controls-row {
-      margin-top: 12px;
+      margin-top: 10px;
       display: flex;
       gap: 8px;
       align-items: center;
@@ -247,9 +262,9 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
     th { background: rgba(0, 240, 255, 0.08); color: var(--accent-cyan); padding: 8px 10px; text-align: left; position: sticky; top: 0; z-index: 2; border-bottom: 1px solid rgba(255,255,255,0.1); }
     td { padding: 6px 10px; border-bottom: 1px solid rgba(255,255,255,0.04); color: var(--text-muted); vertical-align: middle; }
     tr { cursor: pointer; transition: background 0.15s; }
-    tr:hover td { background: rgba(255, 255, 255, 0.06); color: #FFF; }
+    tr:hover td { background: rgba(255, 255, 255, 0.08); color: #FFF; }
     tr.active-row td { background: rgba(0, 240, 255, 0.22); color: #FFF; font-weight: 700; }
-    tr.loop-locked td { background: rgba(255, 0, 85, 0.2); border-left: 3px solid #FF0055; color: #FFF; }
+    tr.loop-locked td { background: rgba(255, 0, 85, 0.25); border-left: 4px solid #FF0055; color: #FFF; font-weight: 700; }
 
     .tag { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 800; text-transform: uppercase; }
     .tag-text { background: rgba(255, 230, 0, 0.2); color: #FFE600; border: 1px solid rgba(255, 230, 0, 0.4); }
@@ -260,7 +275,7 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
       background: rgba(15, 23, 42, 0.95);
       border: 1px solid rgba(255, 255, 255, 0.2);
       color: #FFF;
-      padding: 3px 6px;
+      padding: 4px 6px;
       border-radius: 6px;
       font-size: 10px;
       font-family: monospace;
@@ -273,7 +288,7 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
       background: rgba(255, 255, 255, 0.08);
       border: 1px solid var(--panel-border);
       color: var(--accent-cyan);
-      padding: 2px 8px;
+      padding: 3px 8px;
       border-radius: 6px;
       font-size: 10px;
       cursor: pointer;
@@ -303,12 +318,7 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
     
     <div class="header-card">
       <h1>Prometheus Discrete Sound Design & Micro-Looping Studio</h1>
-      <p>Click Any Cue to Seek & Micro-Loop • Real-Time Variant Auditioning • Decouple On Demand</p>
-      <div style="display: flex; justify-content: center; gap: 10px; margin-top: 10px;">
-        <a href="/" style="color: var(--accent-cyan); text-decoration: none; padding: 4px 10px; background: rgba(0, 240, 255, 0.1); border: 1px solid var(--accent-cyan); border-radius: 6px; font-size: 11px; font-weight: 700;">🎵 Sound Studio</a>
-        <a href="/typo" style="color: #FFF; text-decoration: none; padding: 4px 10px; background: rgba(255,255,255,0.05); border: 1px solid var(--panel-border); border-radius: 6px; font-size: 11px; font-weight: 700;">🔤 Typography Studio (/typo)</a>
-        <a href="/paste" style="color: #FFF; text-decoration: none; padding: 4px 10px; background: rgba(255,255,255,0.05); border: 1px solid var(--panel-border); border-radius: 6px; font-size: 11px; font-weight: 700;">📸 Screenshots (/paste)</a>
-      </div>
+      <p>HTTP 206 Byte-Range Streaming Enabled • Click Any Cue to Auto-Scrub & Micro-Loop</p>
     </div>
 
     <div class="studio-grid">
@@ -317,6 +327,12 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
       <div class="card">
         <div class="player-wrap">
           <video id="studioVideo" src="/video_with_real_sfx.mp4" controls playsinline preload="auto"></video>
+        </div>
+
+        <!-- FRAME & TIME READOUT -->
+        <div class="frame-readout-bar">
+          <div>TIME: <strong id="lblTime">00:00.00</strong></div>
+          <div>FRAME: <strong id="lblFrame">#0</strong> (23.98 FPS)</div>
         </div>
         
         <!-- MICRO-LOOP STATUS BANNER -->
@@ -338,8 +354,8 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
             </button>
           </div>
 
-          <div style="font-size: 11.5px; color: var(--text-muted);">
-            <strong id="lblTime">00:00.00</strong> / 01:00.10
+          <div style="font-size: 11px; color: #10B981; font-weight: 700;">
+            ✓ HTTP 206 Seek Ready
           </div>
         </div>
       </div>
@@ -399,6 +415,8 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
     const loopBanner = document.getElementById('loopBanner');
     const loopRangeText = document.getElementById('loopRangeText');
     const loopCueName = document.getElementById('loopCueName');
+    const lblTime = document.getElementById('lblTime');
+    const lblFrame = document.getElementById('lblFrame');
 
     let soundManifest = null;
     let lastActiveIdx = -1;
@@ -451,11 +469,12 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
     }
 
     function seekAndLoopCue(cueIndex) {
+      if (!soundManifest || !soundManifest.treatments) return;
       const t = soundManifest.treatments[cueIndex];
       const cueTime = t.timestampSeconds;
       const dur = t.soundDesign.durationEstimateSec || 0.35;
 
-      const preRoll = 0.25;
+      const preRoll = 0.20;
       const postRoll = 0.40;
       const start = Math.max(0, cueTime - preRoll);
       const end = Math.min(video.duration || 60.1, cueTime + dur + postRoll);
@@ -472,11 +491,23 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
       // Highlight active loop row
       document.querySelectorAll('tr.loop-locked').forEach(r => r.classList.remove('loop-locked'));
       const row = document.getElementById('row-' + cueIndex);
-      if (row) row.classList.add('loop-locked');
+      if (row) {
+        row.classList.add('loop-locked');
+        row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
 
-      // Unmute video if muted by browser and scrub to exact time
-      video.currentTime = start;
-      video.play().catch(() => {});
+      // Force video seek and playback
+      try {
+        video.currentTime = start;
+        const playPromise = video.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(e => {
+            // If browser autoplay policy blocks unmuted audio, mute and play video visually
+            video.muted = true;
+            video.play();
+          });
+        }
+      } catch (e) {}
     }
 
     function decoupleLoop() {
@@ -522,7 +553,6 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
       auditionSingleAudio(v.audioUrl);
     }
 
-
     async function rebakeAudioTrack() {
       const btn = document.getElementById('btnRebake');
       btn.innerText = '⏳ Mixing...';
@@ -566,7 +596,7 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
 
     function auditionSingleAudio(url) {
       auditionPlayer.src = url;
-      auditionPlayer.play();
+      auditionPlayer.play().catch(() => {});
     }
 
     function setAudioTrack(mode) {
@@ -592,13 +622,14 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
       const cur = video.currentTime;
       const min = Math.floor(cur / 60);
       const sec = (cur % 60).toFixed(2);
-      document.getElementById('lblTime').innerText = (min < 10 ? '0' : '') + min + ':' + (sec < 10 ? '0' : '') + sec;
+      lblTime.innerText = (min < 10 ? '0' : '') + min + ':' + (sec < 10 ? '0' : '') + sec;
+      lblFrame.innerText = '#' + Math.floor(cur * 23.976);
 
       // Handle Active Micro-Looping
       if (activeLoopRange) {
         if (cur >= activeLoopRange.end || cur < activeLoopRange.start - 0.15) {
           video.currentTime = activeLoopRange.start;
-          video.play();
+          video.play().catch(() => {});
           return;
         }
       }
@@ -662,6 +693,48 @@ function extractBinaryPayload(buffer: Buffer, contentType?: string): { data: Buf
     data: buffer.subarray(fileStart, fileEnd),
     filename: parsedFilename
   };
+}
+
+function streamVideoWithRange(req: http.IncomingMessage, res: http.ServerResponse, filePath: string) {
+  if (!fs.existsSync(filePath)) {
+    res.writeHead(404, { "Content-Type": "text/plain" });
+    res.end("Not Found");
+    return;
+  }
+
+  const stat = fs.statSync(filePath);
+  const fileSize = stat.size;
+  const range = req.headers.range;
+
+  if (range) {
+    const parts = range.replace(/bytes=/, "").split("-");
+    const start = parseInt(parts[0], 10);
+    const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+    const chunksize = (end - start) + 1;
+    const file = fs.createReadStream(filePath, { start, end });
+    const head = {
+      "Content-Range": `bytes ${start}-${end}/${fileSize}`,
+      "Accept-Ranges": "bytes",
+      "Content-Length": chunksize,
+      "Content-Type": "video/mp4",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, HEAD, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "*",
+    };
+    res.writeHead(206, head);
+    file.pipe(res);
+  } else {
+    const head = {
+      "Content-Length": fileSize,
+      "Content-Type": "video/mp4",
+      "Accept-Ranges": "bytes",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, HEAD, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "*",
+    };
+    res.writeHead(200, head);
+    fs.createReadStream(filePath).pipe(res);
+  }
 }
 
 function createServerInstance(port: number) {
@@ -747,37 +820,37 @@ function createServerInstance(port: number) {
       return;
     }
 
-    // Baked Video with Real SFX Audio
+    // Baked Video with Real SFX Audio (HTTP 206 Partial Content Range Stream)
     if (req.url?.startsWith("/video_with_real_sfx.mp4")) {
-      if (fs.existsSync(sfxVideoPath)) {
-        const stat = fs.statSync(sfxVideoPath);
-        res.writeHead(200, {
-          "Content-Type": "video/mp4",
-          "Content-Length": stat.size,
-          "Cache-Control": "no-cache"
-        });
-        fs.createReadStream(sfxVideoPath).pipe(res);
-        return;
-      }
+      streamVideoWithRange(req, res, sfxVideoPath);
+      return;
     }
 
-    // Muted Raw Video
+    // Muted Raw Video (HTTP 206 Partial Content Range Stream)
     if (req.url?.startsWith("/uploaded_input_video.mp4")) {
-      if (fs.existsSync(mutedVideoPath)) {
-        const stat = fs.statSync(mutedVideoPath);
-        res.writeHead(200, {
-          "Content-Type": "video/mp4",
-          "Content-Length": stat.size,
-          "Cache-Control": "public, max-age=3600"
-        });
-        fs.createReadStream(mutedVideoPath).pipe(res);
-        return;
-      }
+      streamVideoWithRange(req, res, mutedVideoPath);
+      return;
     }
 
     // Static Audio Routing for SOUND FX Library
     let decodedUrl = req.url || "";
     try { decodedUrl = decodeURIComponent(req.url || ""); } catch {}
+
+    if (decodedUrl.startsWith("/SOUND FX/")) {
+      const relPath = decodedUrl.replace(/^\/SOUND FX\//, "");
+      const fullPath = path.join(soundFxDir, relPath);
+      if (fs.existsSync(fullPath) && fs.statSync(fullPath).isFile()) {
+        const ext = path.extname(fullPath).toLowerCase();
+        const stat = fs.statSync(fullPath);
+        res.writeHead(200, {
+          "Content-Type": MIME_TYPES[ext] || "audio/wav",
+          "Content-Length": stat.size,
+          "Cache-Control": "public, max-age=3600"
+        });
+        fs.createReadStream(fullPath).pipe(res);
+        return;
+      }
+    }
 
     // Typography Treatment Presentation Studio (/typo)
     if ((req.method === "GET" || req.method === "HEAD") && 
@@ -798,7 +871,7 @@ function createServerInstance(port: number) {
 
     // Screenshot Dropzone & Reference Comparison Gallery (/paste)
     if ((req.method === "GET" || req.method === "HEAD") && 
-        (req.url === "/paste" || req.url === "/dropzone" || req.url === "/screenshots")) {
+        (req.url === "/paste" || req.url === "/dropzone" || req.url === "/screenshots" || req.url?.startsWith("/paste?"))) {
       const dropzoneHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1092,7 +1165,7 @@ function createServerInstance(port: number) {
     }
 
     // API: List Uploaded Screenshots
-    if (req.method === "GET" && req.url === "/api/list_uploaded_screenshots") {
+    if (req.method === "GET" && (req.url === "/api/list_uploaded_screenshots" || req.url?.startsWith("/api/list_uploaded_screenshots"))) {
       const uploadDir = path.join(studioDir, "uploaded_screenshots");
       if (fs.existsSync(uploadDir)) {
         const files = fs.readdirSync(uploadDir).filter(f => f.endsWith(".png") || f.endsWith(".jpg"));
