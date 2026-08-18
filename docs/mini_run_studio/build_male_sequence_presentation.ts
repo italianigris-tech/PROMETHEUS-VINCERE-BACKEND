@@ -59,21 +59,21 @@ const roboticArmBase64 = getBase64DataUriFromPath(path.join(studioDir, "industri
 const transparentRocketBase64 = getBase64DataUriFromPath(path.join(studioDir, "speed-rocket-fast.png"));
 const techFoundersTrioBase64 = getBase64DataUriFromPath(path.join(studioDir, "tech_founders_vintage_trio.jpg"));
 
-// AUTHORITATIVE 20-CHUNK TRANSCRIPT PAYLOAD 4: "Most businesses don't have a growth problem."
+// AUTHORITATIVE 20-CHUNK TRANSCRIPT PAYLOAD: "Most businesses don't fail because the founder isn't working hard."
 const maleSequencePayload4 = [
   {
     chunkIndex: 1,
     timestamp: "00:00 — 00:02",
-    text: "Most businesses",
+    text: "Most businesses don't fail",
     layers: [
       {
-        layerName: "stem_most_businesses",
-        text: "Most businesses",
+        layerName: "stem_businesses_dont_fail",
+        text: "Most businesses don't fail",
         fontFamily: "Playfair Display",
         fontWeight: 700,
         fontStyle: "italic",
-        fontSizePx: 34,
-        letterSpacingEm: 0.03,
+        fontSizePx: 28,
+        letterSpacingEm: 0.02,
         color: "#FFFFFF",
         dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 12, color: "rgba(0,0,0,0.95)" }
       }
@@ -82,27 +82,39 @@ const maleSequencePayload4 = [
   {
     chunkIndex: 2,
     timestamp: "00:02 — 00:04",
-    text: "don't have",
+    text: "because the founder",
     layers: [
       {
-        layerName: "stem_dont_have",
-        text: "don't have",
+        layerName: "prefix_because_the",
+        text: "because the",
+        fontFamily: "Playfair Display",
+        fontWeight: 700,
+        fontStyle: "italic",
+        fontSizePx: 20,
+        color: "#FFFFFF",
+        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 8, color: "rgba(0,0,0,0.8)" }
+      },
+      {
+        layerName: "stem_founder",
+        text: "FOUNDER",
         fontFamily: "DM Sans",
         fontWeight: 800,
-        fontSizePx: 34,
+        fontSizePx: 32,
+        casing: "uppercase",
         color: "#00E5FF",
-        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" }
+        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 12, color: "rgba(0,229,255,0.6)" },
+        marginTopPx: 4
       }
     ]
   },
   {
     chunkIndex: 3,
     timestamp: "00:04 — 00:06",
-    text: "a growth problem.",
+    text: "isn't working hard.",
     layers: [
       {
-        layerName: "prefix_a",
-        text: "a",
+        layerName: "prefix_isnt",
+        text: "isn't",
         fontFamily: "Playfair Display",
         fontWeight: 700,
         fontStyle: "italic",
@@ -111,8 +123,8 @@ const maleSequencePayload4 = [
         dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 8, color: "rgba(0,0,0,0.8)" }
       },
       {
-        layerName: "hero_growth_problem",
-        text: "GROWTH PROBLEM.",
+        layerName: "hero_working_hard",
+        text: "WORKING HARD.",
         fontFamily: "Bebas Neue",
         fontWeight: 400,
         fontSizePx: 36,
@@ -127,27 +139,28 @@ const maleSequencePayload4 = [
   {
     chunkIndex: 4,
     timestamp: "00:06 — 00:08",
-    text: "They have",
+    text: "They fail",
     layers: [
       {
-        layerName: "stem_they_have",
-        text: "They have",
+        layerName: "hero_they_fail",
+        text: "THEY FAIL",
         fontFamily: "DM Sans",
-        fontWeight: 700,
-        fontSizePx: 32,
-        color: "#FFFFFF",
-        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" }
+        fontWeight: 800,
+        fontSizePx: 34,
+        casing: "uppercase",
+        color: "#FF1744",
+        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 14, color: "rgba(255,23,68,0.7)" }
       }
     ]
   },
   {
     chunkIndex: 5,
     timestamp: "00:08 — 00:10",
-    text: "a consistency problem.",
+    text: "because everything depends",
     layers: [
       {
-        layerName: "prefix_a_consistency",
-        text: "a",
+        layerName: "prefix_because_everything",
+        text: "because everything",
         fontFamily: "Playfair Display",
         fontWeight: 700,
         fontStyle: "italic",
@@ -156,15 +169,15 @@ const maleSequencePayload4 = [
         dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 8, color: "rgba(0,0,0,0.8)" }
       },
       {
-        layerName: "hero_consistency_problem",
-        text: "CONSISTENCY PROBLEM.",
+        layerName: "hero_depends",
+        text: "DEPENDS",
         fontFamily: "DM Sans",
         fontWeight: 800,
         fontSizePx: 32,
         casing: "uppercase",
         letterSpacingEm: 0.04,
-        color: "#FFFFFF",
-        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 12, color: "rgba(0,0,0,0.95)" },
+        color: "#00E5FF",
+        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 12, color: "rgba(0,229,255,0.7)" },
         marginTopPx: 4
       }
     ]
@@ -172,80 +185,11 @@ const maleSequencePayload4 = [
   {
     chunkIndex: 6,
     timestamp: "00:10 — 00:12",
-    text: "Because getting customers",
+    text: "on one person.",
     layers: [
       {
-        layerName: "stem_getting_customers",
-        text: "Because getting customers",
-        fontFamily: "Playfair Display",
-        fontWeight: 700,
-        fontStyle: "italic",
-        fontSizePx: 24,
-        color: "#FFFFFF",
-        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" }
-      }
-    ]
-  },
-  {
-    chunkIndex: 7,
-    timestamp: "00:12 — 00:14",
-    text: "is one thing.",
-    layers: [
-      {
-        layerName: "hero_one_thing",
-        text: "IS ONE THING.",
-        fontFamily: "Bebas Neue",
-        fontWeight: 400,
-        fontSizePx: 34,
-        casing: "uppercase",
-        color: "#FFFFFF",
-        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" },
-        marginTopPx: 6
-      }
-    ]
-  },
-  {
-    chunkIndex: 8,
-    timestamp: "00:14 — 00:16",
-    text: "Keeping the machine running",
-    layers: [
-      {
-        layerName: "stem_machine_running",
-        text: "Keeping the machine running",
-        fontFamily: "DM Sans",
-        fontWeight: 700,
-        fontSizePx: 25,
-        color: "#FFFFFF",
-        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" }
-      }
-    ]
-  },
-  {
-    chunkIndex: 9,
-    timestamp: "00:16 — 00:18",
-    text: "is something completely different.",
-    layers: [
-      {
-        layerName: "hero_completely_different",
-        text: "COMPLETELY DIFFERENT.",
-        fontFamily: "Bebas Neue",
-        fontWeight: 400,
-        fontSizePx: 30,
-        casing: "uppercase",
-        color: "#00E5FF",
-        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" },
-        marginTopPx: 8
-      }
-    ]
-  },
-  {
-    chunkIndex: 10,
-    timestamp: "00:18 — 00:20",
-    text: "And honestly,",
-    layers: [
-      {
-        layerName: "prefix_and",
-        text: "And",
+        layerName: "prefix_on",
+        text: "on",
         fontFamily: "Playfair Display",
         fontWeight: 700,
         fontStyle: "italic",
@@ -254,76 +198,128 @@ const maleSequencePayload4 = [
         dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 8, color: "rgba(0,0,0,0.8)" }
       },
       {
-        layerName: "stem_honestly",
-        text: "honestly,",
-        fontFamily: "DM Serif Display",
+        layerName: "hero_one_person",
+        text: "ONE PERSON.",
+        fontFamily: "Bebas Neue",
         fontWeight: 400,
-        fontStyle: "italic",
-        fontSizePx: 30,
-        color: "#FFE600",
-        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" },
+        fontSizePx: 36,
+        casing: "uppercase",
+        letterSpacingEm: 0.04,
+        color: "#111111",
+        delayedPillCard: "#00F0FF",
         marginTopPx: 6
       }
     ]
   },
   {
-    chunkIndex: 11,
-    timestamp: "00:20 — 00:22",
-    text: "that's where",
+    chunkIndex: 7,
+    timestamp: "00:12 — 00:14",
+    text: "You become",
     layers: [
       {
-        layerName: "stem_thats_where",
-        text: "that's where",
-        fontFamily: "DM Sans",
-        fontWeight: 800,
-        fontSizePx: 30,
-        color: "#00E5FF",
-        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" }
-      }
-    ]
-  },
-  {
-    chunkIndex: 12,
-    timestamp: "00:22 — 00:24",
-    text: "most founders struggle.",
-    layers: [
-      {
-        layerName: "hero_founders_struggle",
-        text: "MOST FOUNDERS STRUGGLE.",
-        fontFamily: "Bebas Neue",
-        fontWeight: 400,
-        fontSizePx: 30,
-        casing: "uppercase",
-        color: "#111111",
-        delayedPillCard: "#00F0FF",
-        marginTopPx: 8
-      }
-    ]
-  },
-  {
-    chunkIndex: 13,
-    timestamp: "00:24 — 00:26",
-    text: "They build everything",
-    layers: [
-      {
-        layerName: "stem_build_everything",
-        text: "They build everything",
-        fontFamily: "DM Sans",
+        layerName: "stem_you_become",
+        text: "You become",
+        fontFamily: "Playfair Display",
         fontWeight: 700,
-        fontSizePx: 26,
+        fontStyle: "italic",
+        fontSizePx: 30,
         color: "#FFFFFF",
         dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" }
       }
     ]
   },
   {
-    chunkIndex: 14,
-    timestamp: "00:26 — 00:28",
-    text: "around themselves,",
+    chunkIndex: 8,
+    timestamp: "00:14 — 00:16",
+    text: "the salesperson,",
     layers: [
       {
-        layerName: "stem_around_themselves",
-        text: "around themselves,",
+        layerName: "prefix_the_sales",
+        text: "the",
+        fontFamily: "Playfair Display",
+        fontWeight: 700,
+        fontStyle: "italic",
+        fontSizePx: 20,
+        color: "#FFFFFF",
+        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 8, color: "rgba(0,0,0,0.8)" }
+      },
+      {
+        layerName: "hero_salesperson",
+        text: "SALESPERSON,",
+        fontFamily: "Bebas Neue",
+        fontWeight: 400,
+        fontSizePx: 34,
+        casing: "uppercase",
+        color: "#00E5FF",
+        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,229,255,0.7)" },
+        marginTopPx: 4
+      }
+    ]
+  },
+  {
+    chunkIndex: 9,
+    timestamp: "00:16 — 00:18",
+    text: "the manager,",
+    layers: [
+      {
+        layerName: "prefix_the_mgr",
+        text: "the",
+        fontFamily: "Playfair Display",
+        fontWeight: 700,
+        fontStyle: "italic",
+        fontSizePx: 20,
+        color: "#FFFFFF",
+        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 8, color: "rgba(0,0,0,0.8)" }
+      },
+      {
+        layerName: "hero_manager",
+        text: "MANAGER,",
+        fontFamily: "Bebas Neue",
+        fontWeight: 400,
+        fontSizePx: 34,
+        casing: "uppercase",
+        color: "#FFE600",
+        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(255,230,0,0.7)" },
+        marginTopPx: 4
+      }
+    ]
+  },
+  {
+    chunkIndex: 10,
+    timestamp: "00:18 — 00:20",
+    text: "the problem solver,",
+    layers: [
+      {
+        layerName: "prefix_the_ps",
+        text: "the",
+        fontFamily: "Playfair Display",
+        fontWeight: 700,
+        fontStyle: "italic",
+        fontSizePx: 20,
+        color: "#FFFFFF",
+        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 8, color: "rgba(0,0,0,0.8)" }
+      },
+      {
+        layerName: "hero_problem_solver",
+        text: "PROBLEM SOLVER,",
+        fontFamily: "Bebas Neue",
+        fontWeight: 400,
+        fontSizePx: 32,
+        casing: "uppercase",
+        color: "#FFFFFF",
+        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" },
+        marginTopPx: 4
+      }
+    ]
+  },
+  {
+    chunkIndex: 11,
+    timestamp: "00:20 — 00:22",
+    text: "and eventually,",
+    layers: [
+      {
+        layerName: "stem_and_eventually",
+        text: "and eventually,",
         fontFamily: "Playfair Display",
         fontWeight: 700,
         fontStyle: "italic",
@@ -334,28 +330,12 @@ const maleSequencePayload4 = [
     ]
   },
   {
-    chunkIndex: 15,
-    timestamp: "00:28 — 00:30",
-    text: "then wonder why",
+    chunkIndex: 12,
+    timestamp: "00:22 — 00:24",
+    text: "the bottleneck.",
     layers: [
       {
-        layerName: "stem_wonder_why",
-        text: "then wonder why",
-        fontFamily: "DM Sans",
-        fontWeight: 700,
-        fontSizePx: 28,
-        color: "#FFFFFF",
-        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" }
-      }
-    ]
-  },
-  {
-    chunkIndex: 16,
-    timestamp: "00:30 — 00:32",
-    text: "the business can't scale.",
-    layers: [
-      {
-        layerName: "prefix_the",
+        layerName: "prefix_the_bn",
         text: "the",
         fontFamily: "Playfair Display",
         fontWeight: 700,
@@ -365,11 +345,11 @@ const maleSequencePayload4 = [
         dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 8, color: "rgba(0,0,0,0.8)" }
       },
       {
-        layerName: "hero_business_cant_scale",
-        text: "BUSINESS CAN'T SCALE.",
+        layerName: "hero_bottleneck",
+        text: "BOTTLENECK.",
         fontFamily: "Bebas Neue",
         fontWeight: 400,
-        fontSizePx: 34,
+        fontSizePx: 36,
         casing: "uppercase",
         letterSpacingEm: 0.04,
         color: "#FFFFFF",
@@ -381,58 +361,172 @@ const maleSequencePayload4 = [
     ]
   },
   {
-    chunkIndex: 17,
-    timestamp: "00:32 — 00:34",
-    text: "You need systems",
+    chunkIndex: 13,
+    timestamp: "00:24 — 00:26",
+    text: "That's when",
     layers: [
       {
-        layerName: "stem_need_systems",
-        text: "You need systems",
+        layerName: "stem_thats_when",
+        text: "That's when",
         fontFamily: "DM Sans",
+        fontWeight: 800,
+        fontSizePx: 30,
+        color: "#00E5FF",
+        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" }
+      }
+    ]
+  },
+  {
+    chunkIndex: 14,
+    timestamp: "00:26 — 00:28",
+    text: "growth starts becoming painful.",
+    layers: [
+      {
+        layerName: "stem_growth_starts",
+        text: "growth starts becoming",
+        fontFamily: "Playfair Display",
         fontWeight: 700,
-        fontSizePx: 28,
+        fontStyle: "italic",
+        fontSizePx: 22,
         color: "#FFFFFF",
         dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" }
+      },
+      {
+        layerName: "hero_painful",
+        text: "PAINFUL.",
+        fontFamily: "Bebas Neue",
+        fontWeight: 400,
+        fontSizePx: 34,
+        casing: "uppercase",
+        color: "#FF1744",
+        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 12, color: "rgba(255,23,68,0.7)" },
+        marginTopPx: 4
+      }
+    ]
+  },
+  {
+    chunkIndex: 15,
+    timestamp: "00:28 — 00:30",
+    text: "Because every new client",
+    layers: [
+      {
+        layerName: "stem_every_new_client",
+        text: "Because every new client",
+        fontFamily: "Playfair Display",
+        fontWeight: 700,
+        fontStyle: "italic",
+        fontSizePx: 24,
+        color: "#FFFFFF",
+        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" }
+      }
+    ]
+  },
+  {
+    chunkIndex: 16,
+    timestamp: "00:30 — 00:32",
+    text: "creates more work",
+    layers: [
+      {
+        layerName: "prefix_creates",
+        text: "creates",
+        fontFamily: "Playfair Display",
+        fontWeight: 700,
+        fontStyle: "italic",
+        fontSizePx: 22,
+        color: "#FFFFFF",
+        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 8, color: "rgba(0,0,0,0.8)" }
+      },
+      {
+        layerName: "hero_more_work",
+        text: "MORE WORK",
+        fontFamily: "Bebas Neue",
+        fontWeight: 400,
+        fontSizePx: 36,
+        casing: "uppercase",
+        letterSpacingEm: 0.04,
+        color: "#111111",
+        delayedPillCard: "#FFE600",
+        marginTopPx: 6
+      }
+    ]
+  },
+  {
+    chunkIndex: 17,
+    timestamp: "00:32 — 00:34",
+    text: "instead of more capacity.",
+    layers: [
+      {
+        layerName: "stem_instead_of",
+        text: "instead of",
+        fontFamily: "Playfair Display",
+        fontWeight: 700,
+        fontStyle: "italic",
+        fontSizePx: 20,
+        color: "#FFFFFF",
+        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 8, color: "rgba(0,0,0,0.8)" }
+      },
+      {
+        layerName: "hero_more_capacity",
+        text: "MORE CAPACITY.",
+        fontFamily: "DM Sans",
+        fontWeight: 800,
+        fontSizePx: 30,
+        casing: "uppercase",
+        color: "#00E5FF",
+        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 12, color: "rgba(0,229,255,0.7)" },
+        marginTopPx: 4
       }
     ]
   },
   {
     chunkIndex: 18,
     timestamp: "00:34 — 00:36",
-    text: "that create momentum",
+    text: "So stop asking",
     layers: [
       {
-        layerName: "hero_create_momentum",
-        text: "CREATE MOMENTUM",
-        fontFamily: "Bebas Neue",
-        fontWeight: 400,
+        layerName: "hero_stop_asking",
+        text: "SO STOP ASKING",
+        fontFamily: "DM Sans",
+        fontWeight: 800,
         fontSizePx: 32,
-        color: "#00E5FF",
-        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" },
-        marginTopPx: 4
+        casing: "uppercase",
+        color: "#FF1744",
+        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 12, color: "rgba(255,23,68,0.7)" }
       }
     ]
   },
   {
     chunkIndex: 19,
     timestamp: "00:36 — 00:38",
-    text: "even when you're not involved.",
+    text: "how you can work harder.",
     layers: [
       {
-        layerName: "stem_not_involved",
-        text: "even when you're not involved.",
-        fontFamily: "DM Sans",
+        layerName: "stem_how_you_can",
+        text: "how you can",
+        fontFamily: "Playfair Display",
         fontWeight: 700,
-        fontSizePx: 20,
+        fontStyle: "italic",
+        fontSizePx: 22,
         color: "#FFFFFF",
-        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" }
+        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 8, color: "rgba(0,0,0,0.8)" }
+      },
+      {
+        layerName: "stem_work_harder",
+        text: "WORK HARDER.",
+        fontFamily: "Bebas Neue",
+        fontWeight: 400,
+        fontSizePx: 32,
+        casing: "uppercase",
+        color: "#94A3B8",
+        dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 10, color: "rgba(0,0,0,0.9)" },
+        marginTopPx: 4
       }
     ]
   },
   {
     chunkIndex: 20,
     timestamp: "00:38 — 00:40",
-    text: "That's how businesses scale.",
+    text: "Ask what can work without you.",
     backgroundAsset: {
       assetId: "transparent_rocket_cutout",
       assetName: "100% Transparent Isolated Rocket Cutout ($Z:10$)",
@@ -443,18 +537,18 @@ const maleSequencePayload4 = [
     },
     layers: [
       {
-        layerName: "prefix_thats_how",
-        text: "That's how",
+        layerName: "prefix_ask_what",
+        text: "Ask what can",
         fontFamily: "Playfair Display",
         fontWeight: 700,
         fontStyle: "italic",
-        fontSizePx: 24,
+        fontSizePx: 22,
         color: "#FFFFFF",
         dropShadow: { xOffset: 0, yOffset: 2, blurRadius: 8, color: "rgba(0,0,0,0.8)" }
       },
       {
-        layerName: "payoff_businesses_scale",
-        text: "BUSINESSES SCALE.",
+        layerName: "payoff_work_without_you",
+        text: "WORK WITHOUT YOU.",
         fontFamily: "Bebas Neue",
         fontWeight: 400,
         fontSizePx: 34,
@@ -471,69 +565,77 @@ const maleSequencePayload4 = [
 
 const perLayerKineticMap: Record<number, Record<string, { fx: string; treatmentOverlay?: string; name: string; type: string; depth: "behind_subject" | "in_front_of_subject"; zone: "head_contact" | "chest_lower_third"; score: string }>> = {
   1: {
-    "stem_most_businesses": { fx: "defocus_rack_focus", name: "Defocus Aperture Snap", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crisp White (#FFFFFF)" }
+    "stem_businesses_dont_fail": { fx: "defocus_rack_focus", name: "Defocus Aperture Snap", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crisp White (#FFFFFF)" }
   },
   2: {
-    "stem_dont_have": { fx: "chromatic_character_displace", name: "Chromatic Displace Glitch", type: "letter", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Electric Cyan (#00E5FF)" }
+    "prefix_because_the": { fx: "subpixel_blur_mask", name: "Helper Prefix Slide", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crisp White (#FFFFFF)" },
+    "stem_founder": { fx: "chromatic_character_displace", name: "Chromatic Displace Glitch", type: "letter", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Electric Cyan (#00E5FF)" }
   },
   3: {
-    "prefix_a": { fx: "subpixel_blur_mask", name: "Helper Prefix Slide", type: "word", depth: "behind_subject", zone: "head_contact", score: "Top Contrast (Crisp White #FFFFFF)" },
-    "hero_growth_problem": { fx: "delayed_pill_card_sweep", name: "Delayed Highlight Sweep Card (Ref #2)", type: "phrase", depth: "behind_subject", zone: "head_contact", score: "Goldilocks Scalp Contact ($Z:10$)" }
+    "prefix_isnt": { fx: "subpixel_blur_mask", name: "Helper Prefix Slide", type: "word", depth: "behind_subject", zone: "head_contact", score: "Top Contrast (Crisp White #FFFFFF)" },
+    "hero_working_hard": { fx: "delayed_pill_card_sweep", name: "Yellow Delayed Highlight Sweep Card (Ref #2)", type: "phrase", depth: "behind_subject", zone: "head_contact", score: "Goldilocks Scalp Contact ($Z:10$)" }
   },
   4: {
-    "stem_they_have": { fx: "top_down_character_drop", name: "Top-Down Character Drop Engine", type: "letter", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Character Drop" }
+    "hero_they_fail": { fx: "top_down_character_drop", name: "Top-Down Character Drop Engine", type: "letter", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crimson Warning (#FF1744)" }
   },
   5: {
-    "prefix_a_consistency": { fx: "subpixel_blur_mask", name: "Helper Prefix Slide", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crisp White (#FFFFFF)" },
-    "hero_consistency_problem": { fx: "defocus_rack_focus", name: "Defocus Aperture Snap", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crisp White (#FFFFFF)" }
+    "prefix_because_everything": { fx: "subpixel_blur_mask", name: "Helper Prefix Slide", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crisp White (#FFFFFF)" },
+    "hero_depends": { fx: "defocus_rack_focus", name: "Defocus Aperture Snap", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Electric Cyan (#00E5FF)" }
   },
   6: {
-    "stem_getting_customers": { fx: "subpixel_blur_mask", name: "Soft Word Rise", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crisp White (#FFFFFF)" }
+    "prefix_on": { fx: "subpixel_blur_mask", name: "Helper Prefix Slide", type: "word", depth: "behind_subject", zone: "head_contact", score: "Top Contrast (Crisp White #FFFFFF)" },
+    "hero_one_person": { fx: "delayed_pill_card_sweep", name: "Cyan Delayed Highlight Sweep Card (Ref #2)", type: "phrase", depth: "behind_subject", zone: "head_contact", score: "Goldilocks Scalp Contact ($Z:10$)" }
   },
   7: {
-    "hero_one_thing": { fx: "keynote_punch", name: "Keynote Focal Punch", type: "phrase", depth: "behind_subject", zone: "head_contact", score: "Goldilocks Scalp Contact ($Z:10$)" }
+    "stem_you_become": { fx: "subpixel_blur_mask", name: "Soft Word Rise", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crisp White (#FFFFFF)" }
   },
   8: {
-    "stem_machine_running": { fx: "subpixel_blur_mask", name: "Soft Word Rise", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crisp White (#FFFFFF)" }
+    "prefix_the_sales": { fx: "subpixel_blur_mask", name: "Helper Prefix Slide", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crisp White (#FFFFFF)" },
+    "hero_salesperson": { fx: "staggered_rotate_x", name: "3D Cascade", type: "letter", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Electric Cyan (#00E5FF)" }
   },
   9: {
-    "hero_completely_different": { fx: "staggered_rotate_x", name: "3D Cascade", type: "letter", depth: "behind_subject", zone: "head_contact", score: "Goldilocks Scalp Contact ($Z:10$)" }
+    "prefix_the_mgr": { fx: "subpixel_blur_mask", name: "Helper Prefix Slide", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crisp White (#FFFFFF)" },
+    "hero_manager": { fx: "keynote_punch", name: "Keynote Focal Punch", type: "phrase", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Electric Yellow (#FFE600)" }
   },
   10: {
-    "prefix_and": { fx: "subpixel_blur_mask", name: "Helper Prefix Slide", type: "word", depth: "behind_subject", zone: "head_contact", score: "Top Contrast (Crisp White #FFFFFF)" },
-    "stem_honestly": { fx: "defocus_rack_focus", name: "Defocus Aperture Snap", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Electric Yellow (#FFE600)" }
+    "prefix_the_ps": { fx: "subpixel_blur_mask", name: "Helper Prefix Slide", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crisp White (#FFFFFF)" },
+    "hero_problem_solver": { fx: "chromatic_character_displace", name: "Chromatic Displace Glitch", type: "letter", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crisp White (#FFFFFF)" }
   },
   11: {
-    "stem_thats_where": { fx: "chromatic_character_displace", name: "Chromatic Displace Glitch", type: "letter", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Electric Cyan (#00E5FF)" }
+    "stem_and_eventually": { fx: "subpixel_blur_mask", name: "Soft Word Rise", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crisp White (#FFFFFF)" }
   },
   12: {
-    "hero_founders_struggle": { fx: "delayed_pill_card_sweep", name: "Cyan Delayed Highlight Sweep Card (Ref #2)", type: "phrase", depth: "behind_subject", zone: "head_contact", score: "Goldilocks Scalp Contact ($Z:10$)" }
+    "prefix_the_bn": { fx: "subpixel_blur_mask", name: "Helper Prefix Slide", type: "word", depth: "behind_subject", zone: "head_contact", score: "Top Contrast (Crisp White #FFFFFF)" },
+    "hero_bottleneck": { fx: "delayed_pill_card_sweep", name: "Red Pressure Delayed Highlight Sweep Card (Ref #2)", type: "phrase", depth: "behind_subject", zone: "head_contact", score: "Goldilocks Scalp Contact ($Z:10$)" }
   },
   13: {
-    "stem_build_everything": { fx: "subpixel_blur_mask", name: "Soft Word Rise", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crisp White (#FFFFFF)" }
+    "stem_thats_when": { fx: "defocus_rack_focus", name: "Defocus Aperture Snap", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Electric Cyan (#00E5FF)" }
   },
   14: {
-    "stem_around_themselves": { fx: "subpixel_blur_mask", name: "Soft Word Rise", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crisp White (#FFFFFF)" }
+    "stem_growth_starts": { fx: "subpixel_blur_mask", name: "Soft Word Rise", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crisp White (#FFFFFF)" },
+    "hero_painful": { fx: "top_down_character_drop", name: "Top-Down Character Drop Engine", type: "letter", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crimson Warning (#FF1744)" }
   },
   15: {
-    "stem_wonder_why": { fx: "top_down_character_drop", name: "Top-Down Character Drop Engine", type: "letter", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Character Drop" }
+    "stem_every_new_client": { fx: "subpixel_blur_mask", name: "Soft Word Rise", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crisp White (#FFFFFF)" }
   },
   16: {
-    "prefix_the": { fx: "subpixel_blur_mask", name: "Helper Prefix Slide", type: "word", depth: "behind_subject", zone: "head_contact", score: "Top Contrast (Crisp White #FFFFFF)" },
-    "hero_business_cant_scale": { fx: "delayed_pill_card_sweep", name: "Red Pressure Delayed Highlight Sweep Card (Ref #2)", type: "phrase", depth: "behind_subject", zone: "head_contact", score: "Goldilocks Scalp Contact ($Z:10$)" }
+    "prefix_creates": { fx: "subpixel_blur_mask", name: "Helper Prefix Slide", type: "word", depth: "behind_subject", zone: "head_contact", score: "Top Contrast (Crisp White #FFFFFF)" },
+    "hero_more_work": { fx: "delayed_pill_card_sweep", name: "Yellow Delayed Highlight Sweep Card (Ref #2)", type: "phrase", depth: "behind_subject", zone: "head_contact", score: "Goldilocks Scalp Contact ($Z:10$)" }
   },
   17: {
-    "stem_need_systems": { fx: "subpixel_blur_mask", name: "Soft Word Rise", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crisp White (#FFFFFF)" }
+    "prefix_instead_of": { fx: "subpixel_blur_mask", name: "Helper Prefix Slide", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crisp White (#FFFFFF)" },
+    "hero_more_capacity": { fx: "defocus_rack_focus", name: "Defocus Aperture Snap", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Electric Cyan (#00E5FF)" }
   },
   18: {
-    "hero_create_momentum": { fx: "staggered_rotate_x", treatmentOverlay: "electric_blue_energy_line", name: "3D Cascade + Energy Line", type: "letter", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Cyan Momentum (#00E5FF)" }
+    "hero_stop_asking": { fx: "keynote_punch", name: "Keynote Focal Punch", type: "phrase", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crimson Warning (#FF1744)" }
   },
   19: {
-    "stem_not_involved": { fx: "subpixel_blur_mask", name: "Soft Word Rise", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crisp White (#FFFFFF)" }
+    "stem_how_you_can": { fx: "subpixel_blur_mask", name: "Soft Word Rise", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Crisp White (#FFFFFF)" },
+    "stem_work_harder": { fx: "staggered_rotate_x", name: "3D Cascade", type: "letter", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Muted Tech Slate (#94A3B8)" }
   },
   20: {
-    "prefix_thats_how": { fx: "subpixel_blur_mask", name: "Controlled Detachment Prefix", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Chest Zone ($Z:30$)" },
-    "payoff_businesses_scale": { fx: "typewriter_engine", name: "Ghost Typewriter Engine + Rocket Liftoff", type: "letter", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Transparent Rocket Cutout ($Z:10$)" }
+    "prefix_ask_what": { fx: "subpixel_blur_mask", name: "Controlled Detachment Prefix", type: "word", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Chest Zone ($Z:30$)" },
+    "payoff_work_without_you": { fx: "typewriter_engine", name: "Ghost Typewriter Engine + Transparent Rocket Liftoff", type: "letter", depth: "in_front_of_subject", zone: "chest_lower_third", score: "Transparent Rocket Cutout ($Z:10$)" }
   }
 };
 
