@@ -355,7 +355,7 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
           </div>
 
           <div style="font-size: 11px; color: #10B981; font-weight: 700;">
-            ✓ HTTP 206 Seek Ready
+            ✓ HTTP 206 Range Enabled
           </div>
         </div>
       </div>
@@ -421,6 +421,7 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
     let soundManifest = null;
     let lastActiveIdx = -1;
     let activeLoopRange = null; // { start: number, end: number, cueIndex: number } | null
+    let isSeekingTarget = false;
 
     async function loadData() {
       try {
@@ -463,7 +464,6 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
       }).join('');
     }
 
-    // Row click handler: Seek & Micro-Loop
     function handleRowClick(event, cueIndex) {
       seekAndLoopCue(cueIndex);
     }
@@ -479,8 +479,10 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
       const start = Math.max(0, cueTime - preRoll);
       const end = Math.min(video.duration || 60.1, cueTime + dur + postRoll);
 
+      // Instantly update the loop range
+      activeLoopRange = { start, end, cueIndex };
+
       if (chkAutoLoop.checked) {
-        activeLoopRange = { start, end, cueIndex };
         loopBanner.style.display = 'flex';
         loopRangeText.innerText = start.toFixed(2) + 's ➔ ' + end.toFixed(2) + 's';
         loopCueName.innerText = t.visualTrigger.elementName + ' (' + t.soundDesign.soundName + ')';
@@ -496,19 +498,21 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
         row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }
 
-      // Force video seek and playback
-      try {
-        video.currentTime = start;
-        const playPromise = video.play();
-        if (playPromise !== undefined) {
-          playPromise.catch(e => {
-            // If browser autoplay policy blocks unmuted audio, mute and play video visually
-            video.muted = true;
-            video.play();
-          });
-        }
-      } catch (e) {}
+      // Force video seek to new target
+      isSeekingTarget = true;
+      video.currentTime = start;
+      const playPromise = video.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(e => {
+          video.muted = true;
+          video.play();
+        });
+      }
     }
+
+    video.addEventListener('seeked', () => {
+      isSeekingTarget = false;
+    });
 
     function decoupleLoop() {
       activeLoopRange = null;
@@ -619,17 +623,18 @@ const ultraLightStudioHtml = `<!DOCTYPE html>
 
     // High performance O(1) row highlighting & Seamless Micro-Looping
     video.addEventListener('timeupdate', () => {
+      if (video.seeking || isSeekingTarget) return;
+
       const cur = video.currentTime;
       const min = Math.floor(cur / 60);
       const sec = (cur % 60).toFixed(2);
       lblTime.innerText = (min < 10 ? '0' : '') + min + ':' + (sec < 10 ? '0' : '') + sec;
       lblFrame.innerText = '#' + Math.floor(cur * 23.976);
 
-      // Handle Active Micro-Looping
+      // Handle Active Micro-Looping (Only loop forward when reaching end of window)
       if (activeLoopRange) {
-        if (cur >= activeLoopRange.end || cur < activeLoopRange.start - 0.15) {
+        if (cur >= activeLoopRange.end) {
           video.currentTime = activeLoopRange.start;
-          video.play().catch(() => {});
           return;
         }
       }
@@ -877,7 +882,7 @@ function createServerInstance(port: number) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Screenshot Dropzone & Reference Gallery</title>
+  <title>Screenshot Dropzone & Review Gallery</title>
   <style>
     :root { 
       --bg-dark: #070913; 
@@ -885,6 +890,7 @@ function createServerInstance(port: number) {
       --accent-cyan: #00F0FF; 
       --accent-pink: #FF0055;
       --accent-green: #10B981;
+      --accent-red: #EF4444;
       --panel-border: rgba(255, 255, 255, 0.1); 
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -920,7 +926,7 @@ function createServerInstance(port: number) {
     .dropzone { 
       border: 2px dashed var(--accent-cyan); 
       border-radius: 16px; 
-      padding: 44px 24px; 
+      padding: 40px 24px; 
       text-align: center; 
       margin-bottom: 24px; 
       background: rgba(0, 240, 255, 0.03); 
@@ -954,8 +960,37 @@ function createServerInstance(port: number) {
       justify-content: space-between;
       align-items: center;
       margin-bottom: 14px;
+      flex-wrap: wrap;
+      gap: 10px;
     }
     .gallery-header h2 { font-size: 16px; color: #E2E8F0; }
+    .gallery-actions { display: flex; gap: 8px; align-items: center; }
+    
+    .btn-action {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--panel-border);
+      color: #FFF;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s;
+    }
+    .btn-action:hover { background: rgba(255,255,255,0.12); }
+    .btn-delete-all {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: rgba(239, 68, 68, 0.4);
+      color: #F87171;
+    }
+    .btn-delete-all:hover {
+      background: rgba(239, 68, 68, 0.3);
+      border-color: #EF4444;
+      color: #FFF;
+    }
 
     .gallery { 
       display: grid; 
@@ -972,6 +1007,7 @@ function createServerInstance(port: number) {
       flex-direction: column;
       gap: 8px;
       transition: transform 0.2s;
+      position: relative;
     }
     .item-card:hover { transform: translateY(-2px); border-color: rgba(0, 240, 255, 0.3); }
     .item-card img { 
@@ -989,6 +1025,22 @@ function createServerInstance(port: number) {
       color: #8E9BAE;
       font-family: monospace;
       word-break: break-all;
+      gap: 6px;
+    }
+    .btn-card-del {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #F87171;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .btn-card-del:hover {
+      background: #EF4444;
+      color: #FFF;
     }
   </style>
 </head>
@@ -1012,7 +1064,10 @@ function createServerInstance(port: number) {
 
   <div class="gallery-header">
     <h2 id="galleryCount">Gallery Images (0)</h2>
-    <button onclick="loadGallery()" style="background: rgba(255,255,255,0.06); border: 1px solid var(--panel-border); color: #FFF; padding: 4px 10px; border-radius: 6px; font-size: 11px; cursor: pointer;">🔄 Refresh</button>
+    <div class="gallery-actions">
+      <button class="btn-action" onclick="loadGallery()">🔄 Refresh</button>
+      <button class="btn-action btn-delete-all" onclick="deleteAllImages()">🗑️ Delete All Images</button>
+    </div>
   </div>
 
   <div class="gallery" id="gallery"></div>
@@ -1038,6 +1093,10 @@ function createServerInstance(port: number) {
         const gal = document.getElementById('gallery');
         document.getElementById('galleryCount').innerText = 'Gallery Images (' + files.length + ')';
         gal.innerHTML = '';
+        if (files.length === 0) {
+          gal.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #8E9BAE; padding: 40px;">No screenshots uploaded yet. Paste (Ctrl+V) or drag images above.</div>';
+          return;
+        }
         files.forEach(f => {
           const d = document.createElement('div');
           d.className = 'item-card';
@@ -1047,6 +1106,7 @@ function createServerInstance(port: number) {
             '</a>' +
             '<div class="item-info">' +
               '<span>' + f + '</span>' +
+              '<button class="btn-card-del" onclick="deleteSingleImage(\'' + f + '\')">🗑️ Delete</button>' +
             '</div>';
           gal.appendChild(d);
         });
@@ -1082,6 +1142,44 @@ function createServerInstance(port: number) {
       if (!fileList || fileList.length === 0) return;
       for (let i = 0; i < fileList.length; i++) {
         await uploadSingleFile(fileList[i]);
+      }
+    }
+
+    async function deleteSingleImage(filename) {
+      if (!confirm('Delete screenshot: ' + filename + '?')) return;
+      showStatus('⏳ Deleting ' + filename + '...', 'uploading');
+      try {
+        const res = await fetch('/api/delete_screenshot', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename })
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+          showStatus('✓ Deleted ' + filename, 'success');
+          loadGallery();
+        } else {
+          showStatus('❌ Delete failed: ' + (data.error || 'Unknown error'), 'error');
+        }
+      } catch (e) {
+        showStatus('❌ Delete error: ' + e.message, 'error');
+      }
+    }
+
+    async function deleteAllImages() {
+      if (!confirm('⚠️ Are you sure you want to DELETE ALL uploaded screenshots? This cannot be undone.')) return;
+      showStatus('⏳ Deleting all screenshots...', 'uploading');
+      try {
+        const res = await fetch('/api/delete_all_screenshots', { method: 'POST' });
+        const data = await res.json();
+        if (data.status === 'success') {
+          showStatus('✓ All screenshots deleted (' + data.deletedCount + ' removed)', 'success');
+          loadGallery();
+        } else {
+          showStatus('❌ Delete all failed: ' + (data.error || 'Unknown error'), 'error');
+        }
+      } catch (e) {
+        showStatus('❌ Delete all error: ' + e.message, 'error');
       }
     }
 
@@ -1164,11 +1262,77 @@ function createServerInstance(port: number) {
       return;
     }
 
+    // API: Delete Single Screenshot
+    if (req.method === "POST" && (req.url === "/api/delete_screenshot" || req.url?.startsWith("/api/delete_screenshot"))) {
+      let body = "";
+      req.on("data", chunk => { body += chunk; });
+      req.on("end", () => {
+        try {
+          let filename = "";
+          try {
+            const parsed = JSON.parse(body);
+            filename = parsed.filename;
+          } catch {
+            const urlObj = new URL(req.url || "", "http://localhost");
+            filename = urlObj.searchParams.get("filename") || "";
+          }
+
+          if (!filename) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ status: "error", error: "Missing filename" }));
+            return;
+          }
+
+          const safeFilename = path.basename(filename);
+          const uploadDir = path.join(studioDir, "uploaded_screenshots");
+          const filePath = path.join(uploadDir, safeFilename);
+
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+            console.log(`🗑️ [DELETE_SUCCESS] Deleted single screenshot: ${safeFilename}`);
+          }
+
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ status: "success", filename: safeFilename }));
+        } catch (e: any) {
+          console.error("❌ [DELETE_ERROR]", e);
+          res.writeHead(500, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ status: "error", error: e.message }));
+        }
+      });
+      return;
+    }
+
+    // API: Delete ALL Screenshots
+    if (req.method === "POST" && (req.url === "/api/delete_all_screenshots" || req.url?.startsWith("/api/delete_all_screenshots"))) {
+      try {
+        const uploadDir = path.join(studioDir, "uploaded_screenshots");
+        let count = 0;
+        if (fs.existsSync(uploadDir)) {
+          const files = fs.readdirSync(uploadDir);
+          files.forEach(f => {
+            if (f.endsWith(".png") || f.endsWith(".jpg") || f.endsWith(".jpeg") || f.endsWith(".webp")) {
+              fs.unlinkSync(path.join(uploadDir, f));
+              count++;
+            }
+          });
+        }
+        console.log(`🗑️ [DELETE_ALL_SUCCESS] Deleted ${count} screenshots from uploaded_screenshots/`);
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ status: "success", deletedCount: count }));
+      } catch (e: any) {
+        console.error("❌ [DELETE_ALL_ERROR]", e);
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ status: "error", error: e.message }));
+      }
+      return;
+    }
+
     // API: List Uploaded Screenshots
     if (req.method === "GET" && (req.url === "/api/list_uploaded_screenshots" || req.url?.startsWith("/api/list_uploaded_screenshots"))) {
       const uploadDir = path.join(studioDir, "uploaded_screenshots");
       if (fs.existsSync(uploadDir)) {
-        const files = fs.readdirSync(uploadDir).filter(f => f.endsWith(".png") || f.endsWith(".jpg"));
+        const files = fs.readdirSync(uploadDir).filter(f => f.endsWith(".png") || f.endsWith(".jpg") || f.endsWith(".jpeg") || f.endsWith(".webp"));
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(JSON.stringify(files));
       } else {
