@@ -6,6 +6,9 @@ Pipeline endpoints:
     POST /api/pipeline/chunk         3-word-priority transcript chunking (max 5)
     POST /api/pipeline/video_chunker FFmpeg break of the video into parts
     POST /api/pipeline/matte         FFmpeg segment cut (+buffer) -> RVM matte_worker
+    POST /api/pipeline/render        Enqueue a full 9:16 mini-run render (transcribe ->
+                                     editorial timeline -> typography burn -> H.264 encode)
+    GET  /api/pipeline/job/<jobId>   Poll a render's status/progress and final MP4 URL
 
 Everything else is proxied to the Node studio on 127.0.0.1:<node_studio_port>.
 """
@@ -16,6 +19,7 @@ import hashlib
 import http.client
 import json
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -391,6 +395,85 @@ def handle_matte(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 
+def _pipeline_module():
+    """Import the production pipeline package, path-safe on the Modal container.
+
+    The gateway runs with cwd = APP_ROOT, where ``mini_run_pipeline`` is bundled;
+    locally the repo root is already importable. Returns the package module.
+    """
+    import sys
+
+    cwd = os.getcwd()
+    if cwd and cwd not in sys.path:
+        sys.path.insert(0, cwd)
+    import mini_run_pipeline  # noqa: F401
+
+    return mini_run_pipeline
+
+
+def normalize_source(source: Any) -> Any:
+    """Accept both source conventions used across the pipeline surface."""
+    if isinstance(source, dict) and not any(
+        key in source for key in ("path", "url", "sourceUrl", "sourcePath", "filePath")
+    ):
+        if source.get("inputUrl"):
+            return {**source, "url": source["inputUrl"]}
+    return source
+
+
+def handle_render(payload: dict[str, Any]) -> dict[str, Any]:
+    """Enqueue a full 9:16 mini-run render job end to end.
+
+    Accepts ``{source, metadata, design, selectedWindow, targetChunkWords,
+    maxChunkWords, jobId, audio}``. Returns ``{jobId, status, pipeline,
+    pipelineJobId}`` so the caller can poll ``GET /api/pipeline/job/<jobId>``
+    for progress and the final MP4 ``outputUrl``. The render runs on a worker
+    thread in this gateway process: source resolved, transcript timed, dead air
+    cut, studio typography burned in, optional SFX/soundtrack baked
+    (``audio``: ``{music?, cueBus?}`` — see ``render.render_audio_mix``), and
+    the result H.264-encoded (9:16 canvas) and mirrored to R2.
+    """
+    from mini_run_pipeline import pipeline as pipeline_mod
+
+    source = normalize_source(payload.get("source"))
+    if not source:
+        raise ValueError("render requires source (path or http(s) URL, or {path/url/inputUrl}).")
+
+    metadata = dict(payload.get("metadata") or {})
+    # Forward classify-relevant top-level fields into the metadata so the call is
+    # routed short-form vs long-form correctly.
+    for key in ("pipeline", "durationSec", "durationMs", "width", "height"):
+        if payload.get(key) is not None and key not in metadata:
+            metadata[key] = payload[key]
+
+    design = payload.get("design") or {}
+    if isinstance(design, dict):
+        # Default the composed canvas to a 9:16 portrait output unless the caller
+        # supplies explicit canvas dimensions (MUST be portrait aspect for shorts).
+        design = dict(design)
+        if not design.get("canvasWidth") and not design.get("canvasHeight"):
+            design["canvasWidth"] = 1080
+            design["canvasHeight"] = 1920
+
+    options = {
+        "design": design,
+        "audio": payload.get("audio"),
+        "selectedWindow": payload.get("selectedWindow"),
+        "targetChunkWords": payload.get("targetChunkWords"),
+        "maxChunkWords": payload.get("maxChunkWords"),
+    }
+    options = {key: value for key, value in options.items() if value is not None}
+
+    return pipeline_mod.create_pipeline_job(
+        source,
+        job_id=payload.get("jobId"),
+        metadata=metadata,
+        options=options,
+        artifact_root=str(ARTIFACT_ROOT),
+        start_worker=True,
+    )
+
+
 # ---------------------------------------------------------------------------
 # HTTP gateway (pipeline routes + reverse proxy to the Node studio)
 # ---------------------------------------------------------------------------
@@ -400,6 +483,7 @@ PIPELINE_ROUTES = {
     "/api/pipeline/chunk": handle_chunk,
     "/api/pipeline/video_chunker": handle_video_chunker,
     "/api/pipeline/matte": handle_matte,
+    "/api/pipeline/render": handle_render,
 }
 
 
@@ -464,6 +548,31 @@ class GatewayHandler(BaseHTTPRequestHandler):
         if path == "/health":
             self._send_json(200, {"ok": True, "service": "prometheus-mini-run-studio"})
             return
+        job_match = re.match(r"^/api/pipeline/job/([A-Za-z0-9_:\-]+)$", path)
+        if job_match:
+            job_id = job_match.group(1)
+            try:
+                from mini_run_pipeline import pipeline as pipeline_mod
+
+                envelope = pipeline_mod.get_pipeline_job(job_id)
+                if envelope is None:
+                    self._send_json(404, {"ok": False, "jobId": job_id, "error": "job not found"})
+                    return
+                self._send_json(
+                    200,
+                    {
+                        "ok": True,
+                        "jobId": job_id,
+                        "state": envelope.get("_state"),
+                        "status": envelope.get("_state"),
+                        "returnvalue": envelope.get("returnvalue"),
+                        "failedReason": envelope.get("failedReason"),
+                    },
+                )
+                return
+            except Exception as error:  # noqa: BLE001 - gateway boundary
+                self._send_error_json(500, str(error))
+                return
         self._forward_to_studio("GET", self.path)
 
     def do_HEAD(self) -> None:

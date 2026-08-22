@@ -9,6 +9,9 @@ Ties the package together into one production-parity job:
     4. build the editorial timeline (protected pauses preserved, dead air cut),
     5. chunk the transcript on silence-aware boundaries with output timings,
     6. compose the final MP4 via parallel slice workers,
+    6b. optional audio bake: voice + looped music bed + timed SFX cues (the
+       ``audio`` render option) are mixed deterministically and muxed into the
+       same MP4 as one 48 kHz stereo AAC track — no real-time DOM capture,
     7. publish to R2 + mark the Supabase ``mini_run_jobs`` row completed.
 
 Degrades gracefully: without R2/Supabase credentials the pipeline still runs
@@ -188,6 +191,7 @@ def create_pipeline_job(
     queue_backend: Optional[Any] = None,
     artifact_root: str = DEFAULT_ARTIFACT_ROOT,
     start_worker: bool = False,
+    options: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Create + enqueue a mini-run pipeline job.
 
@@ -210,6 +214,11 @@ def create_pipeline_job(
         "pipelineJobId": classify.pipeline_job_id(decision["pipeline"], job_id, source_sha256),
         "createdAtMs": int(time.time() * 1000),
     }
+    # Render options (design, selected window, chunk params) ride on the job
+    # envelope so the worker composes the final MP4 exactly as requested. These
+    # are merged *before* enqueueing so a fast worker never reads a partial job.
+    if options:
+        data.update(options)
 
     queue = queue_backend or jobs.create_job_queue()
     queue.enqueue(PIPELINE_JOB_NAME, data, job_id=job_id)
@@ -357,12 +366,16 @@ def execute_pipeline_job(
 
     # 6) compose the final MP4 via parallel slice workers.
     design = data.get("design") or None
+    audio = data.get("audio") or None
+    if audio is not None and not isinstance(audio, dict):
+        raise ValueError("audio option must be an object: {music?, cueBus?}")
     output_root = artifact_root / "media" / "mini-run" / "renders" / job_id
     render_receipt = render.render_final_video(
         source_path=str(source_path),
         timeline=timeline,
         chunks=chunked,
         design=design,
+        audio=audio,
         output_root=str(output_root),
         job_id=job_id,
         slice_executor=slice_executor,

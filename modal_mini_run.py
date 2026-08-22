@@ -60,6 +60,7 @@ studio_image = (
         f"{APP_ROOT / 'remotion-app/node_modules/@remotion/compositor-linux-x64-gnu/ffmpeg'}",
     )
     .add_local_file(local("mini_run_gateway.py"), f"{APP_ROOT}/mini_run_gateway.py", copy=True)
+    .add_local_dir(local("mini_run_pipeline"), f"{APP_ROOT}/mini_run_pipeline", copy=True, ignore=source_ignore)
     .add_local_dir(local("docs/mini_run_studio"), f"{STUDIO_ROOT}", copy=True, ignore=source_ignore)
     .add_local_dir(local("SOUND FX"), f"{APP_ROOT / 'SOUND FX'}", copy=True)
     .workdir(str(APP_ROOT))
