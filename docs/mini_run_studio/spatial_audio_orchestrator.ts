@@ -6,6 +6,10 @@
  * filtering, dynamic voice ducking envelopes, and zero playback latency.
  */
 
+import * as fs from "node:fs";
+import * as path from "node:path";
+import { spawnSync } from "node:child_process";
+
 export type AudioStem = "music_stem" | "sfx_stem" | "atmos_stem";
 
 export type SpatioTemporalCategory = 
@@ -89,14 +93,90 @@ export function calculateDepthCutoffHz(depthPlane: 10 | 20 | 30): number {
   }
 }
 
+/** Last-known duration of the real working sample (raw_original_video.mp4, 60.10s,
+ *  23.98 fps, AAC audio). Used ONLY as a fallback when the video or ffmpeg is
+ *  unavailable — the builder normally probes the short on disk and adapts to
+ *  whatever length is actually present. */
+export const AUTHORITATIVE_VIDEO_DURATION_SEC = 60.1;
+/** Number of spoken content sections the 20 authored cues map to across the video. */
+const AUTHORITATIVE_CONTENT_CHUNKS = 20;
+/** Legacy grid the cues were authored on (2.0s per chunk = the old 40s cut). */
+const LEGACY_CHUNK_SEC = 2.0;
+
+/* Duration resolution — the plan must rebuild from the SHORT ITSELF, never a
+ * guessed constant. */
+const WORKING_VIDEO_FILENAME = "raw_original_video.mp4";
+
+function runCmd(cmd: string[]): string {
+  try {
+    const r = spawnSync(cmd[0], cmd.slice(1), {
+      encoding: "latin1",
+      maxBuffer: 64 * 1024 * 1024,
+      timeout: 120_000,
+    });
+    return `${r.stdout ?? ""}\n${r.stderr ?? ""}`;
+  } catch {
+    return "";
+  }
+}
+
+function resolveFfmpegPath(): string | null {
+  if (process.env.FFMPEG_PATH && fs.existsSync(process.env.FFMPEG_PATH)) return process.env.FFMPEG_PATH;
+  const candidates = [
+    "/home/ec2-user/.local/bin/ffmpeg",
+    "/usr/bin/ffmpeg",
+    "/usr/local/bin/ffmpeg",
+  ];
+  for (const c of candidates) if (fs.existsSync(c)) return c;
+  return null;
+}
+
+/** Probe the working short's true duration from disk; null when unavailable. */
+export function probeWorkingVideoDurationSec(): number | null {
+  const abs = path.join(__dirname, WORKING_VIDEO_FILENAME);
+  if (!fs.existsSync(abs)) return null;
+  const ffmpeg = resolveFfmpegPath();
+  if (!ffmpeg) return null;
+  const out = runCmd([ffmpeg, "-hide_banner", "-i", abs]);
+  const m = out.match(/Duration: (\d+):(\d+):([\d.]+)/);
+  return m ? Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3]) : null;
+}
+
 /**
- * Builds the complete 40-second Authoritative Spatio-Temporal Orchestrated Audio Plan
+ * CAUSAL VOICE DUCKING — the video is a spoken presentation, so every SFX cue
+ * must yield bed headroom for speech. Cues authored with a duck keep it; cues
+ * authored with 0.0 (no ducking) derive one from their loudness pressure and
+ * duration, clamped into the [-8.0, -3.0] speech-preservation band.
  */
-export function buildAuthoritativeSequenceAudioPlan(): OrchestratedAudioPlan {
-  const totalDurationSec = 40.0;
+function causalDuckDepth(cue: SpatioTemporalSoundCue): number {
+  if (cue.voiceDuckingGainDb < 0) return cue.voiceDuckingGainDb;
+  const pressure = Math.max(0, 8 + cue.gainDb); // quieter (more -dB) presses less
+  const depth = 3.0 + Math.min(5.0, pressure * 0.18 + cue.durationSec * 0.6);
+  return -Number(Math.max(3.0, Math.min(8.0, depth)).toFixed(1));
+}
+
+/**
+ * Builds the Authoritative Spatio-Temporal Orchestrated Audio Plan, causally
+ * locked to the duration of the short ITSELF. Call with no argument and the
+ * builder probes the working video on disk (ffmpeg) and adapts the beat grid,
+ * chunk scaling and every cue anchor to whatever length is present — a 30s cut
+ * yields 60 beats, a 90s cut 180 beats. An explicit `videoDurationSec` overrides
+ * the probe; the constant is only a last-resort fallback. The 20 spoken content
+ * sections are scaled evenly across the full video so cue #N stays pinned to
+ * content section #N and the master climax lands on the video's final section —
+ * not a 40.0s cut.
+ */
+export function buildAuthoritativeSequenceAudioPlan(
+  videoDurationSec?: number,
+): OrchestratedAudioPlan {
+  // Explicit duration wins; otherwise probe the short on disk; constant is the
+  // last-resort fallback so the studio never builds against a guessed length.
+  const totalDurationSec =
+    videoDurationSec ?? probeWorkingVideoDurationSec() ?? AUTHORITATIVE_VIDEO_DURATION_SEC;
   const bpm = 120;
-  const beatIntervalSec = 60 / bpm; // 0.500s per beat (4 beats per 2.0s chunk)
-  const totalBeats = Math.round(totalDurationSec / beatIntervalSec); // 80 beats
+  const beatIntervalSec = 60 / bpm; // 0.500s per beat (4 beats per 2.0s downbeat cell)
+  const totalBeats = Math.max(1, Math.round(totalDurationSec / beatIntervalSec)); // 120 beats @ 60.1s
+  const chunkDurationSec = totalDurationSec / AUTHORITATIVE_CONTENT_CHUNKS; // 3.005s per section
 
   const beats: BeatGridMark[] = [];
   for (let i = 0; i < totalBeats; i++) {
@@ -108,7 +188,7 @@ export function buildAuthoritativeSequenceAudioPlan(): OrchestratedAudioPlan {
     });
   }
 
-  const cues: SpatioTemporalSoundCue[] = [
+  const authoredCues: SpatioTemporalSoundCue[] = [
     // CHUNK 1: "You can make" (0.00s — 2.00s) | Context / Setup
     {
       id: "cue_01_drone",
@@ -148,7 +228,7 @@ export function buildAuthoritativeSequenceAudioPlan(): OrchestratedAudioPlan {
       depthPlane: 30,
       lowpassCutoffHz: 18500,
       gainDb: -8.0,
-      voiceDuckingGainDb: 0.0,
+      voiceDuckingGainDb: -3.5,
       synthesis: {
         oscType: "triangle",
         baseFreqHz: 1800,
@@ -174,7 +254,7 @@ export function buildAuthoritativeSequenceAudioPlan(): OrchestratedAudioPlan {
       depthPlane: 30,
       lowpassCutoffHz: 18500,
       gainDb: -6.5,
-      voiceDuckingGainDb: 0.0,
+      voiceDuckingGainDb: -4.0,
       synthesis: {
         oscType: "sine",
         baseFreqHz: 1760, // A6
@@ -200,7 +280,7 @@ export function buildAuthoritativeSequenceAudioPlan(): OrchestratedAudioPlan {
       depthPlane: 30,
       lowpassCutoffHz: 14000,
       gainDb: -10.0,
-      voiceDuckingGainDb: 0.0,
+      voiceDuckingGainDb: -3.4,
       synthesis: {
         noiseBurst: true,
         baseFreqHz: 400,
@@ -253,7 +333,7 @@ export function buildAuthoritativeSequenceAudioPlan(): OrchestratedAudioPlan {
       depthPlane: 10,
       lowpassCutoffHz: 4500,
       gainDb: -14.0,
-      voiceDuckingGainDb: 0.0,
+      voiceDuckingGainDb: -3.4,
       synthesis: {
         noiseBurst: true,
         baseFreqHz: 2200,
@@ -279,7 +359,7 @@ export function buildAuthoritativeSequenceAudioPlan(): OrchestratedAudioPlan {
       depthPlane: 30,
       lowpassCutoffHz: 12000,
       gainDb: -12.0,
-      voiceDuckingGainDb: 0.0,
+      voiceDuckingGainDb: -3.3,
       synthesis: {
         oscType: "square",
         baseFreqHz: 1200,
@@ -332,7 +412,7 @@ export function buildAuthoritativeSequenceAudioPlan(): OrchestratedAudioPlan {
       depthPlane: 10,
       lowpassCutoffHz: 1400,
       gainDb: -15.0,
-      voiceDuckingGainDb: 0.0,
+      voiceDuckingGainDb: -3.9,
       synthesis: {
         noiseBurst: true,
         baseFreqHz: 600,
@@ -358,7 +438,7 @@ export function buildAuthoritativeSequenceAudioPlan(): OrchestratedAudioPlan {
       depthPlane: 30,
       lowpassCutoffHz: 16000,
       gainDb: -9.0,
-      voiceDuckingGainDb: 0.0,
+      voiceDuckingGainDb: -3.5,
       synthesis: {
         oscType: "sine",
         baseFreqHz: 800,
@@ -385,7 +465,7 @@ export function buildAuthoritativeSequenceAudioPlan(): OrchestratedAudioPlan {
       depthPlane: 30,
       lowpassCutoffHz: 15000,
       gainDb: -10.0,
-      voiceDuckingGainDb: 0.0,
+      voiceDuckingGainDb: -3.4,
       synthesis: {
         noiseBurst: true,
         baseFreqHz: 350,
@@ -411,7 +491,7 @@ export function buildAuthoritativeSequenceAudioPlan(): OrchestratedAudioPlan {
       depthPlane: 30,
       lowpassCutoffHz: 18500,
       gainDb: -7.5,
-      voiceDuckingGainDb: 0.0,
+      voiceDuckingGainDb: -3.8,
       synthesis: {
         oscType: "triangle",
         baseFreqHz: 2400,
@@ -463,7 +543,7 @@ export function buildAuthoritativeSequenceAudioPlan(): OrchestratedAudioPlan {
       depthPlane: 30,
       lowpassCutoffHz: 14000,
       gainDb: -12.0,
-      voiceDuckingGainDb: 0.0,
+      voiceDuckingGainDb: -3.2,
       synthesis: {
         noiseBurst: true,
         baseFreqHz: 1400,
@@ -516,7 +596,7 @@ export function buildAuthoritativeSequenceAudioPlan(): OrchestratedAudioPlan {
       depthPlane: 10,
       lowpassCutoffHz: 2200,
       gainDb: -14.0,
-      voiceDuckingGainDb: 0.0,
+      voiceDuckingGainDb: -4.1,
       synthesis: {
         oscType: "sine",
         baseFreqHz: 110, // A2
@@ -542,7 +622,7 @@ export function buildAuthoritativeSequenceAudioPlan(): OrchestratedAudioPlan {
       depthPlane: 30,
       lowpassCutoffHz: 15000,
       gainDb: -11.0,
-      voiceDuckingGainDb: 0.0,
+      voiceDuckingGainDb: -3.5,
       synthesis: {
         noiseBurst: true,
         baseFreqHz: 1800,
@@ -568,7 +648,7 @@ export function buildAuthoritativeSequenceAudioPlan(): OrchestratedAudioPlan {
       depthPlane: 10,
       lowpassCutoffHz: 1800,
       gainDb: -13.0,
-      voiceDuckingGainDb: 0.0,
+      voiceDuckingGainDb: -3.9,
       synthesis: {
         oscType: "sawtooth",
         baseFreqHz: 220,
@@ -594,7 +674,7 @@ export function buildAuthoritativeSequenceAudioPlan(): OrchestratedAudioPlan {
       depthPlane: 10,
       lowpassCutoffHz: 2000,
       gainDb: -14.0,
-      voiceDuckingGainDb: 0.0,
+      voiceDuckingGainDb: -3.8,
       synthesis: {
         oscType: "triangle",
         baseFreqHz: 520,
@@ -620,7 +700,7 @@ export function buildAuthoritativeSequenceAudioPlan(): OrchestratedAudioPlan {
       depthPlane: 30,
       lowpassCutoffHz: 16000,
       gainDb: -8.0,
-      voiceDuckingGainDb: 0.0,
+      voiceDuckingGainDb: -4.1,
       synthesis: {
         noiseBurst: true,
         baseFreqHz: 150,
@@ -661,6 +741,23 @@ export function buildAuthoritativeSequenceAudioPlan(): OrchestratedAudioPlan {
       }
     }
   ];
+
+  // CAUSAL RE-ANCHOR + DUCKING: the cues were authored on the legacy 40s grid
+  // (2.0s/chunk). Scale each cue's in-chunk offset onto the true video timeline
+  // so cue #N stays bound to spoken section #N, and ensure every cue ducks the
+  // bed under speech (no 0.0-duck cues survive the plan).
+  const cues: SpatioTemporalSoundCue[] = authoredCues.map((c) => {
+    const legacyChunkStart = (c.chunkIndex - 1) * LEGACY_CHUNK_SEC;
+    const offsetInChunk = Math.max(0, Math.min(LEGACY_CHUNK_SEC, c.videoTimeSec - legacyChunkStart));
+    const scaledStart = (c.chunkIndex - 1) * chunkDurationSec;
+    const scale = chunkDurationSec / LEGACY_CHUNK_SEC;
+    return {
+      ...c,
+      videoTimeSec: Number((scaledStart + offsetInChunk * scale).toFixed(3)),
+      durationSec: Number((c.durationSec * scale).toFixed(3)),
+      voiceDuckingGainDb: causalDuckDepth(c),
+    };
+  });
 
   return {
     totalDurationSec,

@@ -1,12 +1,12 @@
 {
-  "profile_name": "Fan_Theories_Opinion_Editorial",
+  "profile_name": "Calling_Peoples_Opinion_Fan_Theories_Editorial",
   "version": "1.0.0",
   "metadata": {
     "target_aspect_ratio": "16:9",
-    "overall_mood": "Playful Editorial, Double Underline & Circle Sketch Accent",
+    "overall_mood": "Modern High-Society Editorial Serif, Double Underline & Sketched Circle Loop Accent",
     "casing_strategy": "mixed",
-    "total_word_count": 4,
-    "total_character_count": 26,
+    "total_word_count": 7,
+    "total_character_count": 38,
     "per_word_character_counts": [
       {
         "word": "Calling",
@@ -15,6 +15,18 @@
       {
         "word": "peoples",
         "character_count": 7
+      },
+      {
+        "word": "opinion",
+        "character_count": 7
+      },
+      {
+        "word": "of",
+        "character_count": 2
+      },
+      {
+        "word": "me",
+        "character_count": 2
       },
       {
         "word": "fan",
@@ -40,22 +52,24 @@
   },
   "typography_layers": [
     {
-      "layer_name": "line_1",
-      "role": "header",
-      "font_classification": "High Contrast Serif",
+      "layer_name": "line_1_prefix",
+      "role": "context_prefix",
+      "layout_line": 1,
+      "font_classification": "Modern Didone High-Contrast Display Serif",
       "matched_font_candidates": [
+        "Bodoni Moda",
         "Playfair Display",
-        "Lora"
+        "DM Serif Display"
       ],
       "font_style": {
         "weight": 400,
         "style": "normal",
-        "casing": "normal",
+        "casing": "title_case",
         "color": "#111111",
-        "size_px_base": 32,
+        "size_px_base": 34,
         "relative_scale": 0.8,
         "letter_spacing_em": 0.01,
-        "line_height": 1.1,
+        "line_height": 1.05,
         "vertical_margin_top_px": 0
       },
       "effects": {
@@ -77,24 +91,28 @@
       ]
     },
     {
-      "layer_name": "double_underlined",
-      "role": "primary_focus_word",
-      "font_classification": "Italic Serif with Double Underline",
+      "layer_name": "line_1_italic_underlined",
+      "role": "context_accent",
+      "layout_line": 1,
+      "font_classification": "Modern Italic Serif with Double Underline Accent",
       "matched_font_candidates": [
-        "Playfair Display Italic"
+        "Playfair Display",
+        "Bodoni Moda",
+        "Lora"
       ],
       "font_style": {
         "weight": 600,
         "style": "italic",
-        "casing": "normal",
+        "casing": "lowercase",
         "color": "#111111",
         "size_px_base": 36,
-        "relative_scale": 0.9,
+        "relative_scale": 0.85,
         "letter_spacing_em": 0.01,
-        "line_height": 1.1,
-        "vertical_margin_top_px": 2
+        "line_height": 1.05,
+        "vertical_margin_top_px": 0
       },
       "effects": {
+        "double_underline": true,
         "drop_shadow": {
           "x_offset": 0,
           "y_offset": 1,
@@ -113,24 +131,75 @@
       ]
     },
     {
-      "layer_name": "circled_theories",
+      "layer_name": "line_2_editorial_clause",
       "role": "secondary_clause",
-      "font_classification": "High Contrast Serif inside Pencil Circle",
+      "layout_line": 2,
+      "font_classification": "Modern High-Contrast Editorial Serif",
       "matched_font_candidates": [
-        "Playfair Display"
+        "Bodoni Moda",
+        "Playfair Display",
+        "DM Serif Display"
       ],
       "font_style": {
         "weight": 400,
         "style": "normal",
-        "casing": "normal",
+        "casing": "lowercase",
         "color": "#111111",
-        "size_px_base": 40,
-        "relative_scale": 1.0,
+        "size_px_base": 36,
+        "relative_scale": 0.85,
         "letter_spacing_em": 0.01,
-        "line_height": 1.1,
-        "vertical_margin_top_px": 4
+        "line_height": 1.05,
+        "vertical_margin_top_px": 2
       },
       "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 1,
+          "blur_radius": 2,
+          "color": "rgba(0, 0, 0, 0.08)"
+        }
+      },
+      "sample_text": "opinion of me",
+      "word_count": 3,
+      "character_count": 13,
+      "per_word_character_counts": [
+        {
+          "word": "opinion",
+          "character_count": 7
+        },
+        {
+          "word": "of",
+          "character_count": 2
+        },
+        {
+          "word": "me",
+          "character_count": 2
+        }
+      ]
+    },
+    {
+      "layer_name": "line_3_circled_hero",
+      "role": "primary_focus_word",
+      "layout_line": 3,
+      "font_classification": "Modern High-Contrast Serif inside Hand-Drawn Sketch Loop",
+      "matched_font_candidates": [
+        "Bodoni Moda",
+        "Playfair Display",
+        "DM Serif Display"
+      ],
+      "font_style": {
+        "weight": 400,
+        "style": "normal",
+        "casing": "lowercase",
+        "color": "#111111",
+        "size_px_base": 44,
+        "relative_scale": 1.0,
+        "letter_spacing_em": 0.0,
+        "line_height": 1.05,
+        "vertical_margin_top_px": 6
+      },
+      "effects": {
+        "sketch_circle_loop": true,
         "drop_shadow": {
           "x_offset": 0,
           "y_offset": 2,
@@ -140,7 +209,7 @@
       },
       "sample_text": "fan theories.",
       "word_count": 2,
-      "character_count": 12,
+      "character_count": 13,
       "per_word_character_counts": [
         {
           "word": "fan",

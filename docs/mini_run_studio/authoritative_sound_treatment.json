@@ -1,0 +1,2072 @@
+{
+  "metadata": {
+    "generatedAt": "2026-08-21T14:12:27.821Z",
+    "videoFile": "raw_original_video.mp4",
+    "totalVisualEventsTreated": 32,
+    "soundDesignPhilosophy": "SEMANTIC_GROUPING_AND_LUXURY_RESTRAINT (Consistent timbre across sibling asset groups within breath phases)",
+    "soundtrackBedSource": "soundtrack_governance_engine.ts → soundtrack_proof_bed.wav (governed −14 LUFS / −1.5 dBTP)",
+    "bedMixRequired": true,
+    "averageInterEventGapSec": 1.84,
+    "discreteCategoriesUsed": [
+      "TEXT",
+      "WHOOSHES",
+      "SWOOSHES",
+      "TRANSITIONS",
+      "UI INTERFACE",
+      "DATA TELEMETRY",
+      "MECHANICAL CLICKS"
+    ],
+    "tightMicroTimingEnforced": true,
+    "transientOnsetDetectionEnabled": true
+  },
+  "treatments": [
+    {
+      "id": "treatment-1",
+      "timestampSeconds": 2.085,
+      "frame": 50,
+      "groupName": "General Narrative Anchor",
+      "visualTrigger": {
+        "type": "ui_card_reveal",
+        "elementName": "UI Card / Pill Highlight",
+        "description": "Visual element entrance at (53.8%, 72.1%) [Area: 3931px]",
+        "screenXPercent": 53.8,
+        "screenYPercent": 72.1
+      },
+      "soundDesign": {
+        "category": "DATA TELEMETRY",
+        "soundName": "Display Digit Blip",
+        "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav",
+        "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav",
+        "stereoPan": 0.09,
+        "depthPlane": 20,
+        "lowpassCutoffHz": 16000,
+        "gainDb": -7,
+        "durationEstimateSec": 0.18,
+        "selectionReason": "Hero card / metric revelation (UI Card / Pill Highlight) at depth plane 20, magnitude 3.93 — telemetry click caused by asset prominence.",
+        "selectedVariantIndex": 0,
+        "variants": [
+          {
+            "variantId": "ui-display-digit",
+            "label": "Display Digit Blip",
+            "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav",
+            "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav",
+            "category": "DATA TELEMETRY",
+            "gainDb": -7,
+            "durationSec": 0.18
+          },
+          {
+            "variantId": "ui-micro-click",
+            "label": "UI Micro Click",
+            "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3",
+            "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3",
+            "category": "UI INTERFACE",
+            "gainDb": -6.5,
+            "durationSec": 0.16
+          },
+          {
+            "variantId": "ui-data-reveal",
+            "label": "Data Reveal Sound",
+            "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3",
+            "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3",
+            "category": "DATA TELEMETRY",
+            "gainDb": -7,
+            "durationSec": 0.2
+          },
+          {
+            "variantId": "ui-generdyn-gui",
+            "label": "Modern GUI Pop",
+            "soundFile": "SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav",
+            "audioUrl": "/SOUND%20FX/UI%20INTERFACE/Generdyn%20-%20GUI%20-%2001.wav",
+            "category": "UI INTERFACE",
+            "gainDb": -7,
+            "durationSec": 0.18
+          }
+        ]
+      }
+    },
+    {
+      "id": "treatment-2",
+      "timestampSeconds": 4.588,
+      "frame": 110,
+      "groupName": "General Narrative Anchor",
+      "visualTrigger": {
+        "type": "scene_cut",
+        "elementName": "Scene Cut #1",
+        "description": "Hard scene transition (Visual divergence: 0.67)",
+        "screenXPercent": 50,
+        "screenYPercent": 50
+      },
+      "soundDesign": {
+        "category": "SWOOSHES",
+        "soundName": "Jump Swish Swoosh",
+        "soundFile": "SOUND FX/SWOOSHES/ES_Jump Swish - SFX Producer.mp3",
+        "audioUrl": "/SOUND%20FX/SWOOSHES/ES_Jump%20Swish%20-%20SFX%20Producer.mp3",
+        "stereoPan": 0,
+        "depthPlane": 30,
+        "lowpassCutoffHz": 16000,
+        "gainDb": -6,
+        "durationEstimateSec": 0.85,
+        "selectionReason": "Pillar scene transition / whip pan (Scene Cut #1) travelling to X=50% — whoosh variant caused by the pan's on-screen position.",
+        "selectedVariantIndex": 0,
+        "variants": [
+          {
+            "variantId": "whoosh-jump-swish",
+            "label": "Jump Swish Swoosh",
+            "soundFile": "SOUND FX/SWOOSHES/ES_Jump Swish - SFX Producer.mp3",
+            "audioUrl": "/SOUND%20FX/SWOOSHES/ES_Jump%20Swish%20-%20SFX%20Producer.mp3",
+            "category": "SWOOSHES",
+            "gainDb": -6,
+            "durationSec": 0.85
+          },
+          {
+            "variantId": "whoosh-hi-end-crisp",
+            "label": "Hi-End Crisp Whoosh",
+            "soundFile": "SOUND FX/WHOOSHES/Hi End - Whoosh - (Nikko Hunt's S.D.Essentials).wav",
+            "audioUrl": "/SOUND%20FX/WHOOSHES/Hi%20End%20-%20Whoosh%20-%20(Nikko%20Hunt's%20S.D.Essentials).wav",
+            "category": "WHOOSHES",
+            "gainDb": -6.5,
+            "durationSec": 0.9
+          },
+          {
+            "variantId": "whoosh-simple-02",
+            "label": "Simple Subtle Whoosh",
+            "soundFile": "SOUND FX/WHOOSHES/dragon-studio-simple-whoosh-02-433006.mp3",
+            "audioUrl": "/SOUND%20FX/WHOOSHES/dragon-studio-simple-whoosh-02-433006.mp3",
+            "category": "WHOOSHES",
+            "gainDb": -7,
+            "durationSec": 0.75
+          },
+          {
+            "variantId": "trans-flashback",
+            "label": "Cinematic Transition Snap",
+            "soundFile": "SOUND FX/TRANSITIONS/dragon-studio-cinematic-flashback-transition-463199.mp3",
+            "audioUrl": "/SOUND%20FX/TRANSITIONS/dragon-studio-cinematic-flashback-transition-463199.mp3",
+            "category": "TRANSITIONS",
+            "gainDb": -5.5,
+            "durationSec": 0.65
+          }
+        ]
+      }
+    },
+    {
+      "id": "treatment-3",
+      "timestampSeconds": 6.423,
+      "frame": 154,
+      "groupName": "General Narrative Anchor",
+      "visualTrigger": {
+        "type": "typography_text_pop",
+        "elementName": "Kinetic Typography Header",
+        "description": "Visual element entrance at (48.3%, 52.4%) [Area: 7596px]",
+        "screenXPercent": 48.3,
+        "screenYPercent": 52.4
+      },
+      "soundDesign": {
+        "category": "MECHANICAL CLICKS",
+        "soundName": "Mechanical Shutter Accent",
+        "soundFile": "SOUND FX/MECHANICAL CLICKS/camera-shutter-18399.mp3",
+        "audioUrl": "/SOUND%20FX/MECHANICAL%20CLICKS/camera-shutter-18399.mp3",
+        "stereoPan": -0.04,
+        "depthPlane": 30,
+        "lowpassCutoffHz": 18500,
+        "gainDb": -7.5,
+        "durationEstimateSec": 0.2,
+        "selectionReason": "Hero headline entrance (Kinetic Typography Header) at (48.3%, 52.4%) — keystroke variant caused by headline phrasing & position. Discrete tactile click with zero duration spill.",
+        "selectedVariantIndex": 3,
+        "variants": [
+          {
+            "variantId": "text-typewriter-classic",
+            "label": "Typewriter Single Strike",
+            "soundFile": "SOUND FX/TEXT/type-writing-6834.mp3",
+            "audioUrl": "/SOUND%20FX/TEXT/type-writing-6834.mp3",
+            "category": "TEXT",
+            "gainDb": -6,
+            "durationSec": 0.22
+          },
+          {
+            "variantId": "text-studio-keystroke",
+            "label": "Mechanical Keyboard Tap",
+            "soundFile": "SOUND FX/TEXT/dragon-studio-typing-with-keyboard-435489.mp3",
+            "audioUrl": "/SOUND%20FX/TEXT/dragon-studio-typing-with-keyboard-435489.mp3",
+            "category": "TEXT",
+            "gainDb": -6.5,
+            "durationSec": 0.2
+          },
+          {
+            "variantId": "text-fast-keystroke",
+            "label": "Fast Tactile Click",
+            "soundFile": "SOUND FX/TEXT/virtualzero-keyboard-typing-fast-371229.mp3",
+            "audioUrl": "/SOUND%20FX/TEXT/virtualzero-keyboard-typing-fast-371229.mp3",
+            "category": "TEXT",
+            "gainDb": -7,
+            "durationSec": 0.18
+          },
+          {
+            "variantId": "text-mechanical-shutter",
+            "label": "Mechanical Shutter Accent",
+            "soundFile": "SOUND FX/MECHANICAL CLICKS/camera-shutter-18399.mp3",
+            "audioUrl": "/SOUND%20FX/MECHANICAL%20CLICKS/camera-shutter-18399.mp3",
+            "category": "MECHANICAL CLICKS",
+            "gainDb": -7.5,
+            "durationSec": 0.2
+          }
+        ]
+      }
+    },
+    {
+      "id": "treatment-4",
+      "timestampSeconds": 7.257,
+      "frame": 174,
+      "groupName": "General Narrative Anchor",
+      "visualTrigger": {
+        "type": "scene_cut",
+        "elementName": "Scene Cut #2",
+        "description": "Hard scene transition (Visual divergence: 0.43)",
+        "screenXPercent": 50,
+        "screenYPercent": 50
+      },
+      "soundDesign": {
+        "category": "WHOOSHES",
+        "soundName": "Hi-End Crisp Whoosh",
+        "soundFile": "SOUND FX/WHOOSHES/Hi End - Whoosh - (Nikko Hunt's S.D.Essentials).wav",
+        "audioUrl": "/SOUND%20FX/WHOOSHES/Hi%20End%20-%20Whoosh%20-%20(Nikko%20Hunt's%20S.D.Essentials).wav",
+        "stereoPan": 0,
+        "depthPlane": 30,
+        "lowpassCutoffHz": 16000,
+        "gainDb": -6.5,
+        "durationEstimateSec": 0.9,
+        "selectionReason": "Pillar scene transition / whip pan (Scene Cut #2) travelling to X=50% — whoosh variant caused by the pan's on-screen position.",
+        "selectedVariantIndex": 1,
+        "variants": [
+          {
+            "variantId": "whoosh-jump-swish",
+            "label": "Jump Swish Swoosh",
+            "soundFile": "SOUND FX/SWOOSHES/ES_Jump Swish - SFX Producer.mp3",
+            "audioUrl": "/SOUND%20FX/SWOOSHES/ES_Jump%20Swish%20-%20SFX%20Producer.mp3",
+            "category": "SWOOSHES",
+            "gainDb": -6,
+            "durationSec": 0.85
+          },
+          {
+            "variantId": "whoosh-hi-end-crisp",
+            "label": "Hi-End Crisp Whoosh",
+            "soundFile": "SOUND FX/WHOOSHES/Hi End - Whoosh - (Nikko Hunt's S.D.Essentials).wav",
+            "audioUrl": "/SOUND%20FX/WHOOSHES/Hi%20End%20-%20Whoosh%20-%20(Nikko%20Hunt's%20S.D.Essentials).wav",
+            "category": "WHOOSHES",
+            "gainDb": -6.5,
+            "durationSec": 0.9
+          },
+          {
+            "variantId": "whoosh-simple-02",
+            "label": "Simple Subtle Whoosh",
+            "soundFile": "SOUND FX/WHOOSHES/dragon-studio-simple-whoosh-02-433006.mp3",
+            "audioUrl": "/SOUND%20FX/WHOOSHES/dragon-studio-simple-whoosh-02-433006.mp3",
+            "category": "WHOOSHES",
+            "gainDb": -7,
+            "durationSec": 0.75
+          },
+          {
+            "variantId": "trans-flashback",
+            "label": "Cinematic Transition Snap",
+            "soundFile": "SOUND FX/TRANSITIONS/dragon-studio-cinematic-flashback-transition-463199.mp3",
+            "audioUrl": "/SOUND%20FX/TRANSITIONS/dragon-studio-cinematic-flashback-transition-463199.mp3",
+            "category": "TRANSITIONS",
+            "gainDb": -5.5,
+            "durationSec": 0.65
+          }
+        ]
+      }
+    },
+    {
+      "id": "treatment-5",
+      "timestampSeconds": 9.176,
+      "frame": 220,
+      "groupName": "Dual Character Entry Group (09s - 11s)",
+      "visualTrigger": {
+        "type": "ui_card_reveal",
+        "elementName": "Character Asset #1 (Right Entry)",
+        "description": "Visual element entrance at (86.8%, 84.5%) [Area: 9297px]",
+        "screenXPercent": 86.8,
+        "screenYPercent": 84.5
+      },
+      "soundDesign": {
+        "category": "DATA TELEMETRY",
+        "soundName": "Display Digit Blip",
+        "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav",
+        "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav",
+        "stereoPan": 0.75,
+        "depthPlane": 20,
+        "lowpassCutoffHz": 16000,
+        "gainDb": -7,
+        "durationEstimateSec": 0.18,
+        "selectionReason": "Sibling asset #1 entering from the right with Display Digit Blip (Panned Right).",
+        "selectedVariantIndex": 0,
+        "variants": [
+          {
+            "variantId": "ui-display-digit",
+            "label": "Display Digit Blip",
+            "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav",
+            "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav",
+            "category": "DATA TELEMETRY",
+            "gainDb": -7,
+            "durationSec": 0.18
+          },
+          {
+            "variantId": "ui-micro-click",
+            "label": "UI Micro Click",
+            "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3",
+            "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3",
+            "category": "UI INTERFACE",
+            "gainDb": -6.5,
+            "durationSec": 0.16
+          },
+          {
+            "variantId": "ui-data-reveal",
+            "label": "Data Reveal Sound",
+            "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3",
+            "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3",
+            "category": "DATA TELEMETRY",
+            "gainDb": -7,
+            "durationSec": 0.2
+          },
+          {
+            "variantId": "ui-generdyn-gui",
+            "label": "Modern GUI Pop",
+            "soundFile": "SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav",
+            "audioUrl": "/SOUND%20FX/UI%20INTERFACE/Generdyn%20-%20GUI%20-%2001.wav",
+            "category": "UI INTERFACE",
+            "gainDb": -7,
+            "durationSec": 0.18
+          }
+        ]
+      }
+    },
+    {
+      "id": "treatment-6",
+      "timestampSeconds": 10.969,
+      "frame": 263,
+      "groupName": "Dual Character Entry Group (09s - 11s)",
+      "visualTrigger": {
+        "type": "asset_intro",
+        "elementName": "Character Asset #2 (Left Sibling Entry)",
+        "description": "Visual element entrance at (42.1%, 50.2%) [Area: 3788px]",
+        "screenXPercent": 42.1,
+        "screenYPercent": 50.2
+      },
+      "soundDesign": {
+        "category": "DATA TELEMETRY",
+        "soundName": "Display Digit Blip",
+        "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav",
+        "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav",
+        "stereoPan": -0.75,
+        "depthPlane": 30,
+        "lowpassCutoffHz": 16000,
+        "gainDb": -7,
+        "durationEstimateSec": 0.18,
+        "selectionReason": "Sibling asset #2 entering from the left with matching Display Digit Blip (Panned Left) for semantic timbre consistency.",
+        "selectedVariantIndex": 0,
+        "variants": [
+          {
+            "variantId": "ui-display-digit",
+            "label": "Display Digit Blip",
+            "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav",
+            "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav",
+            "category": "DATA TELEMETRY",
+            "gainDb": -7,
+            "durationSec": 0.18
+          },
+          {
+            "variantId": "ui-micro-click",
+            "label": "UI Micro Click",
+            "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3",
+            "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3",
+            "category": "UI INTERFACE",
+            "gainDb": -6.5,
+            "durationSec": 0.16
+          },
+          {
+            "variantId": "ui-data-reveal",
+            "label": "Data Reveal Sound",
+            "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3",
+            "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3",
+            "category": "DATA TELEMETRY",
+            "gainDb": -7,
+            "durationSec": 0.2
+          },
+          {
+            "variantId": "ui-generdyn-gui",
+            "label": "Modern GUI Pop",
+            "soundFile": "SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav",
+            "audioUrl": "/SOUND%20FX/UI%20INTERFACE/Generdyn%20-%20GUI%20-%2001.wav",
+            "category": "UI INTERFACE",
+            "gainDb": -7,
+            "durationSec": 0.18
+          }
+        ]
+      }
+    },
+    {
+      "id": "treatment-7",
+      "timestampSeconds": 13.305,
+      "frame": 319,
+      "groupName": "General Narrative Anchor",
+      "visualTrigger": {
+        "type": "asset_intro",
+        "elementName": "Graphic Sticker / Icon Asset",
+        "description": "Visual element entrance at (51.0%, 55.4%) [Area: 42637px]",
+        "screenXPercent": 51,
+        "screenYPercent": 55.4
+      },
+      "soundDesign": {
+        "category": "UI INTERFACE",
+        "soundName": "UI Micro Click",
+        "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3",
+        "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3",
+        "stereoPan": 0.02,
+        "depthPlane": 20,
+        "lowpassCutoffHz": 16000,
+        "gainDb": -6.5,
+        "durationEstimateSec": 0.16,
+        "selectionReason": "Hero card / metric revelation (Graphic Sticker / Icon Asset) at depth plane 20, magnitude 42.64 — telemetry click caused by asset prominence.",
+        "selectedVariantIndex": 1,
+        "variants": [
+          {
+            "variantId": "ui-display-digit",
+            "label": "Display Digit Blip",
+            "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav",
+            "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav",
+            "category": "DATA TELEMETRY",
+            "gainDb": -7,
+            "durationSec": 0.18
+          },
+          {
+            "variantId": "ui-micro-click",
+            "label": "UI Micro Click",
+            "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3",
+            "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3",
+            "category": "UI INTERFACE",
+            "gainDb": -6.5,
+            "durationSec": 0.16
+          },
+          {
+            "variantId": "ui-data-reveal",
+            "label": "Data Reveal Sound",
+            "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3",
+            "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3",
+            "category": "DATA TELEMETRY",
+            "gainDb": -7,
+            "durationSec": 0.2
+          },
+          {
+            "variantId": "ui-generdyn-gui",
+            "label": "Modern GUI Pop",
+            "soundFile": "SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav",
+            "audioUrl": "/SOUND%20FX/UI%20INTERFACE/Generdyn%20-%20GUI%20-%2001.wav",
+            "category": "UI INTERFACE",
+            "gainDb": -7,
+            "durationSec": 0.18
+          }
+        ]
+      }
+    },
+    {
+      "id": "treatment-8",
+      "timestampSeconds": 15.098,
+      "frame": 362,
+      "groupName": "General Narrative Anchor",
+      "visualTrigger": {
+        "type": "scene_cut",
+        "elementName": "Scene Cut #3",
+        "description": "Hard scene transition (Visual divergence: 0.47)",
+        "screenXPercent": 50,
+        "screenYPercent": 50
+      },
+      "soundDesign": {
+        "category": "WHOOSHES",
+        "soundName": "Simple Subtle Whoosh",
+        "soundFile": "SOUND FX/WHOOSHES/dragon-studio-simple-whoosh-02-433006.mp3",
+        "audioUrl": "/SOUND%20FX/WHOOSHES/dragon-studio-simple-whoosh-02-433006.mp3",
+        "stereoPan": 0,
+        "depthPlane": 30,
+        "lowpassCutoffHz": 16000,
+        "gainDb": -7,
+        "durationEstimateSec": 0.75,
+        "selectionReason": "Pillar scene transition / whip pan (Scene Cut #3) travelling to X=50% — whoosh variant caused by the pan's on-screen position.",
+        "selectedVariantIndex": 2,
+        "variants": [
+          {
+            "variantId": "whoosh-jump-swish",
+            "label": "Jump Swish Swoosh",
+            "soundFile": "SOUND FX/SWOOSHES/ES_Jump Swish - SFX Producer.mp3",
+            "audioUrl": "/SOUND%20FX/SWOOSHES/ES_Jump%20Swish%20-%20SFX%20Producer.mp3",
+            "category": "SWOOSHES",
+            "gainDb": -6,
+            "durationSec": 0.85
+          },
+          {
+            "variantId": "whoosh-hi-end-crisp",
+            "label": "Hi-End Crisp Whoosh",
+            "soundFile": "SOUND FX/WHOOSHES/Hi End - Whoosh - (Nikko Hunt's S.D.Essentials).wav",
+            "audioUrl": "/SOUND%20FX/WHOOSHES/Hi%20End%20-%20Whoosh%20-%20(Nikko%20Hunt's%20S.D.Essentials).wav",
+            "category": "WHOOSHES",
+            "gainDb": -6.5,
+            "durationSec": 0.9
+          },
+          {
+            "variantId": "whoosh-simple-02",
+            "label": "Simple Subtle Whoosh",
+            "soundFile": "SOUND FX/WHOOSHES/dragon-studio-simple-whoosh-02-433006.mp3",
+            "audioUrl": "/SOUND%20FX/WHOOSHES/dragon-studio-simple-whoosh-02-433006.mp3",
+            "category": "WHOOSHES",
+            "gainDb": -7,
+            "durationSec": 0.75
+          },
+          {
+            "variantId": "trans-flashback",
+            "label": "Cinematic Transition Snap",
+            "soundFile": "SOUND FX/TRANSITIONS/dragon-studio-cinematic-flashback-transition-463199.mp3",
+            "audioUrl": "/SOUND%20FX/TRANSITIONS/dragon-studio-cinematic-flashback-transition-463199.mp3",
+            "category": "TRANSITIONS",
+            "gainDb": -5.5,
+            "durationSec": 0.65
+          }
+        ]
+      }
+    },
+    {
+      "id": "treatment-9",
+      "timestampSeconds": 16.558,
+      "frame": 397,
+      "groupName": "Metric Comparison Group (16s - 19s)",
+      "visualTrigger": {
+        "type": "ui_card_reveal",
+        "elementName": "UI Card / Pill Highlight",
+        "description": "Visual element entrance at (86.1%, 69.1%) [Area: 7474px]",
+        "screenXPercent": 86.1,
+        "screenYPercent": 69.1
+      },
+      "soundDesign": {
+        "category": "DATA TELEMETRY",
+        "soundName": "Data Reveal Sound",
+        "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3",
+        "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3",
+        "stereoPan": 0.7,
+        "depthPlane": 20,
+        "lowpassCutoffHz": 16000,
+        "gainDb": -7,
+        "durationEstimateSec": 0.2,
+        "selectionReason": "Metric Card A entering with Data Reveal Sound (Panned Right).",
+        "selectedVariantIndex": 2,
+        "variants": [
+          {
+            "variantId": "ui-display-digit",
+            "label": "Display Digit Blip",
+            "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav",
+            "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav",
+            "category": "DATA TELEMETRY",
+            "gainDb": -7,
+            "durationSec": 0.18
+          },
+          {
+            "variantId": "ui-micro-click",
+            "label": "UI Micro Click",
+            "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3",
+            "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3",
+            "category": "UI INTERFACE",
+            "gainDb": -6.5,
+            "durationSec": 0.16
+          },
+          {
+            "variantId": "ui-data-reveal",
+            "label": "Data Reveal Sound",
+            "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3",
+            "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3",
+            "category": "DATA TELEMETRY",
+            "gainDb": -7,
+            "durationSec": 0.2
+          },
+          {
+            "variantId": "ui-generdyn-gui",
+            "label": "Modern GUI Pop",
+            "soundFile": "SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav",
+            "audioUrl": "/SOUND%20FX/UI%20INTERFACE/Generdyn%20-%20GUI%20-%2001.wav",
+            "category": "UI INTERFACE",
+            "gainDb": -7,
+            "durationSec": 0.18
+          }
+        ]
+      }
+    },
+    {
+      "id": "treatment-10",
+      "timestampSeconds": 18.31,
+      "frame": 439,
+      "groupName": "Metric Comparison Group (16s - 19s)",
+      "visualTrigger": {
+        "type": "typography_text_pop",
+        "elementName": "Kinetic Typography Header",
+        "description": "Visual element entrance at (53.8%, 50.6%) [Area: 4048px]",
+        "screenXPercent": 53.8,
+        "screenYPercent": 50.6
+      },
+      "soundDesign": {
+        "category": "DATA TELEMETRY",
+        "soundName": "Data Reveal Sound",
+        "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3",
+        "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3",
+        "stereoPan": -0.7,
+        "depthPlane": 30,
+        "lowpassCutoffHz": 16000,
+        "gainDb": -7,
+        "durationEstimateSec": 0.2,
+        "selectionReason": "Metric Card B entering with matching Data Reveal Sound (Panned Left).",
+        "selectedVariantIndex": 2,
+        "variants": [
+          {
+            "variantId": "ui-display-digit",
+            "label": "Display Digit Blip",
+            "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav",
+            "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav",
+            "category": "DATA TELEMETRY",
+            "gainDb": -7,
+            "durationSec": 0.18
+          },
+          {
+            "variantId": "ui-micro-click",
+            "label": "UI Micro Click",
+            "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3",
+            "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3",
+            "category": "UI INTERFACE",
+            "gainDb": -6.5,
+            "durationSec": 0.16
+          },
+          {
+            "variantId": "ui-data-reveal",
+            "label": "Data Reveal Sound",
+            "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3",
+            "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3",
+            "category": "DATA TELEMETRY",
+            "gainDb": -7,
+            "durationSec": 0.2
+          },
+          {
+            "variantId": "ui-generdyn-gui",
+            "label": "Modern GUI Pop",
+            "soundFile": "SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav",
+            "audioUrl": "/SOUND%20FX/UI%20INTERFACE/Generdyn%20-%20GUI%20-%2001.wav",
+            "category": "UI INTERFACE",
+            "gainDb": -7,
+            "durationSec": 0.18
+          }
+        ]
+      }
+    },
+    {
+      "id": "treatment-11",
+      "timestampSeconds": 20.854,
+      "frame": 500,
+      "groupName": "General Narrative Anchor",
+      "visualTrigger": {
+        "type": "scene_cut",
+        "elementName": "Scene Cut #4",
+        "description": "Hard scene transition (Visual divergence: 0.45)",
+        "screenXPercent": 50,
+        "screenYPercent": 50
+      },
+      "soundDesign": {
+        "category": "TRANSITIONS",
+        "soundName": "Cinematic Transition Snap",
+        "soundFile": "SOUND FX/TRANSITIONS/dragon-studio-cinematic-flashback-transition-463199.mp3",
+        "audioUrl": "/SOUND%20FX/TRANSITIONS/dragon-studio-cinematic-flashback-transition-463199.mp3",
+        "stereoPan": 0,
+        "depthPlane": 30,
+        "lowpassCutoffHz": 16000,
+        "gainDb": -5.5,
+        "durationEstimateSec": 0.65,
+        "selectionReason": "Pillar scene transition / whip pan (Scene Cut #4) travelling to X=50% — whoosh variant caused by the pan's on-screen position.",
+        "selectedVariantIndex": 3,
+        "variants": [
+          {
+            "variantId": "whoosh-jump-swish",
+            "label": "Jump Swish Swoosh",
+            "soundFile": "SOUND FX/SWOOSHES/ES_Jump Swish - SFX Producer.mp3",
+            "audioUrl": "/SOUND%20FX/SWOOSHES/ES_Jump%20Swish%20-%20SFX%20Producer.mp3",
+            "category": "SWOOSHES",
+            "gainDb": -6,
+            "durationSec": 0.85
+          },
+          {
+            "variantId": "whoosh-hi-end-crisp",
+            "label": "Hi-End Crisp Whoosh",
+            "soundFile": "SOUND FX/WHOOSHES/Hi End - Whoosh - (Nikko Hunt's S.D.Essentials).wav",
+            "audioUrl": "/SOUND%20FX/WHOOSHES/Hi%20End%20-%20Whoosh%20-%20(Nikko%20Hunt's%20S.D.Essentials).wav",
+            "category": "WHOOSHES",
+            "gainDb": -6.5,
+            "durationSec": 0.9
+          },
+          {
+            "variantId": "whoosh-simple-02",
+            "label": "Simple Subtle Whoosh",
+            "soundFile": "SOUND FX/WHOOSHES/dragon-studio-simple-whoosh-02-433006.mp3",
+            "audioUrl": "/SOUND%20FX/WHOOSHES/dragon-studio-simple-whoosh-02-433006.mp3",
+            "category": "WHOOSHES",
+            "gainDb": -7,
+            "durationSec": 0.75
+          },
+          {
+            "variantId": "trans-flashback",
+            "label": "Cinematic Transition Snap",
+            "soundFile": "SOUND FX/TRANSITIONS/dragon-studio-cinematic-flashback-transition-463199.mp3",
+            "audioUrl": "/SOUND%20FX/TRANSITIONS/dragon-studio-cinematic-flashback-transition-463199.mp3",
+            "category": "TRANSITIONS",
+            "gainDb": -5.5,
+            "durationSec": 0.65
+          }
+        ]
+      }
+    },
+    {
+      "id": "treatment-12",
+      "timestampSeconds": 23.607,
+      "frame": 566,
+      "groupName": "Dual Pillar Cards (23s - 26s)",
+      "visualTrigger": {
+        "type": "ui_card_reveal",
+        "elementName": "UI Card / Pill Highlight",
+        "description": "Visual element entrance at (50.0%, 61.8%) [Area: 15917px]",
+        "screenXPercent": 50,
+        "screenYPercent": 61.8
+      },
+      "soundDesign": {
+        "category": "UI INTERFACE",
+        "soundName": "UI Micro Click",
+        "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3",
+        "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3",
+        "stereoPan": -0.6,
+        "depthPlane": 20,
+        "lowpassCutoffHz": 16000,
+        "gainDb": -6.5,
+        "durationEstimateSec": 0.16,
+        "selectionReason": "Pillar Card 1 with UI Micro Click (Panned Left).",
+        "selectedVariantIndex": 1,
+        "variants": [
+          {
+            "variantId": "ui-display-digit",
+            "label": "Display Digit Blip",
+            "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav",
+            "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav",
+            "category": "DATA TELEMETRY",
+            "gainDb": -7,
+            "durationSec": 0.18
+          },
+          {
+            "variantId": "ui-micro-click",
+            "label": "UI Micro Click",
+            "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3",
+            "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3",
+            "category": "UI INTERFACE",
+            "gainDb": -6.5,
+            "durationSec": 0.16
+          },
+          {
+            "variantId": "ui-data-reveal",
+            "label": "Data Reveal Sound",
+            "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3",
+            "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3",
+            "category": "DATA TELEMETRY",
+            "gainDb": -7,
+            "durationSec": 0.2
+          },
+          {
+            "variantId": "ui-generdyn-gui",
+            "label": "Modern GUI Pop",
+            "soundFile": "SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav",
+            "audioUrl": "/SOUND%20FX/UI%20INTERFACE/Generdyn%20-%20GUI%20-%2001.wav",
+            "category": "UI INTERFACE",
+            "gainDb": -7,
+            "durationSec": 0.18
+          }
+        ]
+      }
+    },
+    {
+      "id": "treatment-13",
+      "timestampSeconds": 25.025,
+      "frame": 600,
+      "groupName": "Dual Pillar Cards (23s - 26s)",
+      "visualTrigger": {
+        "type": "asset_intro",
+        "elementName": "Graphic Sticker / Icon Asset",
+        "description": "Visual element entrance at (69.9%, 35.5%) [Area: 3887px]",
+        "screenXPercent": 69.9,
+        "screenYPercent": 35.5
+      },
+      "soundDesign": {
+        "category": "UI INTERFACE",
+        "soundName": "UI Micro Click",
+        "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3",
+        "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3",
+        "stereoPan": 0.6,
+        "depthPlane": 20,
+        "lowpassCutoffHz": 16000,
+        "gainDb": -6.5,
+        "durationEstimateSec": 0.16,
+        "selectionReason": "Pillar Card 2 with matching UI Micro Click (Panned Right).",
+        "selectedVariantIndex": 1,
+        "variants": [
+          {
+            "variantId": "ui-display-digit",
+            "label": "Display Digit Blip",
+            "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav",
+            "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav",
+            "category": "DATA TELEMETRY",
+            "gainDb": -7,
+            "durationSec": 0.18
+          },
+          {
+            "variantId": "ui-micro-click",
+            "label": "UI Micro Click",
+            "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3",
+            "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3",
+            "category": "UI INTERFACE",
+            "gainDb": -6.5,
+            "durationSec": 0.16
+          },
+          {
+            "variantId": "ui-data-reveal",
+            "label": "Data Reveal Sound",
+            "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3",
+            "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3",
+            "category": "DATA TELEMETRY",
+            "gainDb": -7,
+            "durationSec": 0.2
+          },
+          {
+            "variantId": "ui-generdyn-gui",
+            "label": "Modern GUI Pop",
+            "soundFile": "SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav",
+            "audioUrl": "/SOUND%20FX/UI%20INTERFACE/Generdyn%20-%20GUI%20-%2001.wav",
+            "category": "UI INTERFACE",
+            "gainDb": -7,
+            "durationSec": 0.18
+          }
+        ]
+      }
+    },
+    {
+      "id": "treatment-14",
+      "timestampSeconds": 26.902,
+      "frame": 645,
+      "groupName": "General Narrative Anchor",
+      "visualTrigger": {
+        "type": "scene_cut",
+        "elementName": "Scene Cut #5",
+        "description": "Hard scene transition (Visual divergence: 0.89)",
+        "screenXPercent": 50,
+        "screenYPercent": 50
+      },
+      "soundDesign": {
+        "category": "SWOOSHES",
+        "soundName": "Jump Swish Swoosh",
+        "soundFile": "SOUND FX/SWOOSHES/ES_Jump Swish - SFX Producer.mp3",
+        "audioUrl": "/SOUND%20FX/SWOOSHES/ES_Jump%20Swish%20-%20SFX%20Producer.mp3",
+        "stereoPan": 0,
+        "depthPlane": 30,
+        "lowpassCutoffHz": 16000,
+        "gainDb": -6,
+        "durationEstimateSec": 0.85,
+        "selectionReason": "Pillar scene transition / whip pan (Scene Cut #5) travelling to X=50% — whoosh variant caused by the pan's on-screen position.",
+        "selectedVariantIndex": 0,
+        "variants": [
+          {
+            "variantId": "whoosh-jump-swish",
+            "label": "Jump Swish Swoosh",
+            "soundFile": "SOUND FX/SWOOSHES/ES_Jump Swish - SFX Producer.mp3",
+            "audioUrl": "/SOUND%20FX/SWOOSHES/ES_Jump%20Swish%20-%20SFX%20Producer.mp3",
+            "category": "SWOOSHES",
+            "gainDb": -6,
+            "durationSec": 0.85
+          },
+          {
+            "variantId": "whoosh-hi-end-crisp",
+            "label": "Hi-End Crisp Whoosh",
+            "soundFile": "SOUND FX/WHOOSHES/Hi End - Whoosh - (Nikko Hunt's S.D.Essentials).wav",
+            "audioUrl": "/SOUND%20FX/WHOOSHES/Hi%20End%20-%20Whoosh%20-%20(Nikko%20Hunt's%20S.D.Essentials).wav",
+            "category": "WHOOSHES",
+            "gainDb": -6.5,
+            "durationSec": 0.9
+          },
+          {
+            "variantId": "whoosh-simple-02",
+            "label": "Simple Subtle Whoosh",
+            "soundFile": "SOUND FX/WHOOSHES/dragon-studio-simple-whoosh-02-433006.mp3",
+            "audioUrl": "/SOUND%20FX/WHOOSHES/dragon-studio-simple-whoosh-02-433006.mp3",
+            "category": "WHOOSHES",
+            "gainDb": -7,
+            "durationSec": 0.75
+          },
+          {
+            "variantId": "trans-flashback",
+            "label": "Cinematic Transition Snap",
+            "soundFile": "SOUND FX/TRANSITIONS/dragon-studio-cinematic-flashback-transition-463199.mp3",
+            "audioUrl": "/SOUND%20FX/TRANSITIONS/dragon-studio-cinematic-flashback-transition-463199.mp3",
+            "category": "TRANSITIONS",
+            "gainDb": -5.5,
+            "durationSec": 0.65
+          }
+        ]
+      }
+    },
+    {
+      "id": "treatment-15",
+      "timestampSeconds": 27.11,
+      "frame": 650,
+      "groupName": "General Narrative Anchor",
+      "visualTrigger": {
+        "type": "scene_cut",
+        "elementName": "Scene Cut #6",
+        "description": "Hard scene transition (Visual divergence: 0.43)",
+        "screenXPercent": 50,
+        "screenYPercent": 50
+      },
+      "soundDesign": {
+        "category": "WHOOSHES",
+        "soundName": "Hi-End Crisp Whoosh",
+        "soundFile": "SOUND FX/WHOOSHES/Hi End - Whoosh - (Nikko Hunt's S.D.Essentials).wav",
+        "audioUrl": "/SOUND%20FX/WHOOSHES/Hi%20End%20-%20Whoosh%20-%20(Nikko%20Hunt's%20S.D.Essentials).wav",
+        "stereoPan": 0,
+        "depthPlane": 30,
+        "lowpassCutoffHz": 16000,
+        "gainDb": -6.5,
+        "durationEstimateSec": 0.9,
+        "selectionReason": "Pillar scene transition / whip pan (Scene Cut #6) travelling to X=50% — whoosh variant caused by the pan's on-screen position.",
+        "selectedVariantIndex": 1,
+        "variants": [
+          {
+            "variantId": "whoosh-jump-swish",
+            "label": "Jump Swish Swoosh",
+            "soundFile": "SOUND FX/SWOOSHES/ES_Jump Swish - SFX Producer.mp3",
+            "audioUrl": "/SOUND%20FX/SWOOSHES/ES_Jump%20Swish%20-%20SFX%20Producer.mp3",
+            "category": "SWOOSHES",
+            "gainDb": -6,
+            "durationSec": 0.85
+          },
+          {
+            "variantId": "whoosh-hi-end-crisp",
+            "label": "Hi-End Crisp Whoosh",
+            "soundFile": "SOUND FX/WHOOSHES/Hi End - Whoosh - (Nikko Hunt's S.D.Essentials).wav",
+            "audioUrl": "/SOUND%20FX/WHOOSHES/Hi%20End%20-%20Whoosh%20-%20(Nikko%20Hunt's%20S.D.Essentials).wav",
+            "category": "WHOOSHES",
+            "gainDb": -6.5,
+            "durationSec": 0.9
+          },
+          {
+            "variantId": "whoosh-simple-02",
+            "label": "Simple Subtle Whoosh",
+            "soundFile": "SOUND FX/WHOOSHES/dragon-studio-simple-whoosh-02-433006.mp3",
+            "audioUrl": "/SOUND%20FX/WHOOSHES/dragon-studio-simple-whoosh-02-433006.mp3",
+            "category": "WHOOSHES",
+            "gainDb": -7,
+            "durationSec": 0.75
+          },
+          {
+            "variantId": "trans-flashback",
+            "label": "Cinematic Transition Snap",
+            "soundFile": "SOUND FX/TRANSITIONS/dragon-studio-cinematic-flashback-transition-463199.mp3",
+            "audioUrl": "/SOUND%20FX/TRANSITIONS/dragon-studio-cinematic-flashback-transition-463199.mp3",
+            "category": "TRANSITIONS",
+            "gainDb": -5.5,
+            "durationSec": 0.65
+          }
+        ]
+      }
+    },
+    {
+      "id": "treatment-16",
+      "timestampSeconds": 28.779,
+      "frame": 690,
+      "groupName": "General Narrative Anchor",
+      "visualTrigger": {
+        "type": "ui_card_reveal",
+        "elementName": "UI Card / Pill Highlight",
+        "description": "Visual element entrance at (37.9%, 43.5%) [Area: 14078px]",
+        "screenXPercent": 37.9,
+        "screenYPercent": 43.5
+      },
+      "soundDesign": {
+        "category": "DATA TELEMETRY",
+        "soundName": "Display Digit Blip",
+        "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav",
+        "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav",
+        "stereoPan": -0.3,
+        "depthPlane": 20,
+        "lowpassCutoffHz": 16000,
+        "gainDb": -7,
+        "durationEstimateSec": 0.18,
+        "selectionReason": "Hero card / metric revelation (UI Card / Pill Highlight) at depth plane 20, magnitude 14.08 — telemetry click caused by asset prominence.",
+        "selectedVariantIndex": 0,
+        "variants": [
+          {
+            "variantId": "ui-display-digit",
+            "label": "Display Digit Blip",
+            "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav",
+            "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav",
+            "category": "DATA TELEMETRY",
+            "gainDb": -7,
+            "durationSec": 0.18
+          },
+          {
+            "variantId": "ui-micro-click",
+            "label": "UI Micro Click",
+            "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3",
+            "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3",
+            "category": "UI INTERFACE",
+            "gainDb": -6.5,
+            "durationSec": 0.16
+          },
+          {
+            "variantId": "ui-data-reveal",
+            "label": "Data Reveal Sound",
+            "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3",
+            "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3",
+            "category": "DATA TELEMETRY",
+            "gainDb": -7,
+            "durationSec": 0.2
+          },
+          {
+            "variantId": "ui-generdyn-gui",
+            "label": "Modern GUI Pop",
+            "soundFile": "SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav",
+            "audioUrl": "/SOUND%20FX/UI%20INTERFACE/Generdyn%20-%20GUI%20-%2001.wav",
+            "category": "UI INTERFACE",
+            "gainDb": -7,
+            "durationSec": 0.18
+          }
+        ]
+      }
+    },
+    {
+      "id": "treatment-17",
+      "timestampSeconds": 31.365,
+      "frame": 752,
+      "groupName": "General Narrative Anchor",
+      "visualTrigger": {
+        "type": "typography_text_pop",
+        "elementName": "Kinetic Typography Header",
+        "description": "Visual element entrance at (50.1%, 50.2%) [Area: 4324px]",
+        "screenXPercent": 50.1,
+        "screenYPercent": 50.2
+      },
+      "soundDesign": {
+        "category": "TEXT",
+        "soundName": "Mechanical Keyboard Tap",
+        "soundFile": "SOUND FX/TEXT/dragon-studio-typing-with-keyboard-435489.mp3",
+        "audioUrl": "/SOUND%20FX/TEXT/dragon-studio-typing-with-keyboard-435489.mp3",
+        "stereoPan": 0,
+        "depthPlane": 30,
+        "lowpassCutoffHz": 18500,
+        "gainDb": -6.5,
+        "durationEstimateSec": 0.2,
+        "selectionReason": "Hero headline entrance (Kinetic Typography Header) at (50.1%, 50.2%) — keystroke variant caused by headline phrasing & position. Discrete tactile click with zero duration spill.",
+        "selectedVariantIndex": 1,
+        "variants": [
+          {
+            "variantId": "text-typewriter-classic",
+            "label": "Typewriter Single Strike",
+            "soundFile": "SOUND FX/TEXT/type-writing-6834.mp3",
+            "audioUrl": "/SOUND%20FX/TEXT/type-writing-6834.mp3",
+            "category": "TEXT",
+            "gainDb": -6,
+            "durationSec": 0.22
+          },
+          {
+            "variantId": "text-studio-keystroke",
+            "label": "Mechanical Keyboard Tap",
+            "soundFile": "SOUND FX/TEXT/dragon-studio-typing-with-keyboard-435489.mp3",
+            "audioUrl": "/SOUND%20FX/TEXT/dragon-studio-typing-with-keyboard-435489.mp3",
+            "category": "TEXT",
+            "gainDb": -6.5,
+            "durationSec": 0.2
+          },
+          {
+            "variantId": "text-fast-keystroke",
+            "label": "Fast Tactile Click",
+            "soundFile": "SOUND FX/TEXT/virtualzero-keyboard-typing-fast-371229.mp3",
+            "audioUrl": "/SOUND%20FX/TEXT/virtualzero-keyboard-typing-fast-371229.mp3",
+            "category": "TEXT",
+            "gainDb": -7,
+            "durationSec": 0.18
+          },
+          {
+            "variantId": "text-mechanical-shutter",
+            "label": "Mechanical Shutter Accent",
+            "soundFile": "SOUND FX/MECHANICAL CLICKS/camera-shutter-18399.mp3",
+            "audioUrl": "/SOUND%20FX/MECHANICAL%20CLICKS/camera-shutter-18399.mp3",
+            "category": "MECHANICAL CLICKS",
+            "gainDb": -7.5,
+            "durationSec": 0.2
+          }
+        ]
+      }
+    },
+    {
+      "id": "treatment-18",
+      "timestampSeconds": 33.283,
+      "frame": 798,
+      "groupName": "Multi-Sticker Sequence (33s - 37s)",
+      "visualTrigger": {
+        "type": "asset_intro",
+        "elementName": "Graphic Sticker / Icon Asset",
+        "description": "Visual element entrance at (45.8%, 50.1%) [Area: 19407px]",
+        "screenXPercent": 45.8,
+        "screenYPercent": 50.1
+      },
+      "soundDesign": {
+        "category": "UI INTERFACE",
+        "soundName": "Modern GUI Pop",
+        "soundFile": "SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav",
+        "audioUrl": "/SOUND%20FX/UI%20INTERFACE/Generdyn%20-%20GUI%20-%2001.wav",
+        "stereoPan": -0.11,
+        "depthPlane": 20,
+        "lowpassCutoffHz": 16000,
+        "gainDb": -7,
+        "durationEstimateSec": 0.18,
+        "selectionReason": "Consistent Modern GUI Pop for multi-part sticker sequence.",
+        "selectedVariantIndex": 3,
+        "variants": [
+          {
+            "variantId": "ui-display-digit",
+            "label": "Display Digit Blip",
+            "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav",
+            "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav",
+            "category": "DATA TELEMETRY",
+            "gainDb": -7,
+            "durationSec": 0.18
+          },
+          {
+            "variantId": "ui-micro-click",
+            "label": "UI Micro Click",
+            "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3",
+            "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3",
+            "category": "UI INTERFACE",
+            "gainDb": -6.5,
+            "durationSec": 0.16
+          },
+          {
+            "variantId": "ui-data-reveal",
+            "label": "Data Reveal Sound",
+            "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3",
+            "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3",
+            "category": "DATA TELEMETRY",
+            "gainDb": -7,
+            "durationSec": 0.2
+          },
+          {
+            "variantId": "ui-generdyn-gui",
+            "label": "Modern GUI Pop",
+            "soundFile": "SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav",
+            "audioUrl": "/SOUND%20FX/UI%20INTERFACE/Generdyn%20-%20GUI%20-%2001.wav",
+            "category": "UI INTERFACE",
+            "gainDb": -7,
+            "durationSec": 0.18
+          }
+        ]
+      }
+    },
+    {
+      "id": "treatment-19",
+      "timestampSeconds": 34.826,
+      "frame": 835,
+      "groupName": "Multi-Sticker Sequence (33s - 37s)",
+      "visualTrigger": {
+        "type": "ui_card_reveal",
+        "elementName": "UI Card / Pill Highlight",
+        "description": "Visual element entrance at (43.2%, 50.4%) [Area: 3154px]",
+        "screenXPercent": 43.2,
+        "screenYPercent": 50.4
+      },
+      "soundDesign": {
+        "category": "UI INTERFACE",
+        "soundName": "Modern GUI Pop",
+        "soundFile": "SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav",
+        "audioUrl": "/SOUND%20FX/UI%20INTERFACE/Generdyn%20-%20GUI%20-%2001.wav",
+        "stereoPan": -0.17,
+        "depthPlane": 20,
+        "lowpassCutoffHz": 16000,
+        "gainDb": -7,
+        "durationEstimateSec": 0.18,
+        "selectionReason": "Consistent Modern GUI Pop for multi-part sticker sequence.",
+        "selectedVariantIndex": 3,
+        "variants": [
+          {
+            "variantId": "ui-display-digit",
+            "label": "Display Digit Blip",
+            "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav",
+            "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav",
+            "category": "DATA TELEMETRY",
+            "gainDb": -7,
+            "durationSec": 0.18
+          },
+          {
+            "variantId": "ui-micro-click",
+            "label": "UI Micro Click",
+            "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3",
+            "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3",
+            "category": "UI INTERFACE",
+            "gainDb": -6.5,
+            "durationSec": 0.16
+          },
+          {
+            "variantId": "ui-data-reveal",
+            "label": "Data Reveal Sound",
+            "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3",
+            "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3",
+            "category": "DATA TELEMETRY",
+            "gainDb": -7,
+            "durationSec": 0.2
+          },
+          {
+            "variantId": "ui-generdyn-gui",
+            "label": "Modern GUI Pop",
+            "soundFile": "SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav",
+            "audioUrl": "/SOUND%20FX/UI%20INTERFACE/Generdyn%20-%20GUI%20-%2001.wav",
+            "category": "UI INTERFACE",
+            "gainDb": -7,
+            "durationSec": 0.18
+          }
+        ]
+      }
+    },
+    {
+      "id": "treatment-20",
+      "timestampSeconds": 36.245,
+      "frame": 869,
+      "groupName": "Multi-Sticker Sequence (33s - 37s)",
+      "visualTrigger": {
+        "type": "asset_intro",
+        "elementName": "Graphic Sticker / Icon Asset",
+        "description": "Visual element entrance at (28.5%, 85.3%) [Area: 4816px]",
+        "screenXPercent": 28.5,
+        "screenYPercent": 85.3
+      },
+      "soundDesign": {
+        "category": "UI INTERFACE",
+        "soundName": "Modern GUI Pop",
+        "soundFile": "SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav",
+        "audioUrl": "/SOUND%20FX/UI%20INTERFACE/Generdyn%20-%20GUI%20-%2001.wav",
+        "stereoPan": -0.54,
+        "depthPlane": 20,
+        "lowpassCutoffHz": 16000,
+        "gainDb": -7,
+        "durationEstimateSec": 0.18,
+        "selectionReason": "Consistent Modern GUI Pop for multi-part sticker sequence.",
+        "selectedVariantIndex": 3,
+        "variants": [
+          {
+            "variantId": "ui-display-digit",
+            "label": "Display Digit Blip",
+            "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav",
+            "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav",
+            "category": "DATA TELEMETRY",
+            "gainDb": -7,
+            "durationSec": 0.18
+          },
+          {
+            "variantId": "ui-micro-click",
+            "label": "UI Micro Click",
+            "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3",
+            "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3",
+            "category": "UI INTERFACE",
+            "gainDb": -6.5,
+            "durationSec": 0.16
+          },
+          {
+            "variantId": "ui-data-reveal",
+            "label": "Data Reveal Sound",
+            "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3",
+            "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3",
+            "category": "DATA TELEMETRY",
+            "gainDb": -7,
+            "durationSec": 0.2
+          },
+          {
+            "variantId": "ui-generdyn-gui",
+            "label": "Modern GUI Pop",
+            "soundFile": "SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav",
+            "audioUrl": "/SOUND%20FX/UI%20INTERFACE/Generdyn%20-%20GUI%20-%2001.wav",
+            "category": "UI INTERFACE",
+            "gainDb": -7,
+            "durationSec": 0.18
+          }
+        ]
+      }
+    },
+    {
+      "id": "treatment-21",
+      "timestampSeconds": 38.789,
+      "frame": 930,
+      "groupName": "General Narrative Anchor",
+      "visualTrigger": {
+        "type": "asset_intro",
+        "elementName": "Graphic Sticker / Icon Asset",
+        "description": "Visual element entrance at (48.3%, 47.9%) [Area: 3077px]",
+        "screenXPercent": 48.3,
+        "screenYPercent": 47.9
+      },
+      "soundDesign": {
+        "category": "UI INTERFACE",
+        "soundName": "Modern GUI Pop",
+        "soundFile": "SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav",
+        "audioUrl": "/SOUND%20FX/UI%20INTERFACE/Generdyn%20-%20GUI%20-%2001.wav",
+        "stereoPan": -0.04,
+        "depthPlane": 20,
+        "lowpassCutoffHz": 16000,
+        "gainDb": -7,
+        "durationEstimateSec": 0.18,
+        "selectionReason": "Hero card / metric revelation (Graphic Sticker / Icon Asset) at depth plane 20, magnitude 3.08 — telemetry click caused by asset prominence.",
+        "selectedVariantIndex": 3,
+        "variants": [
+          {
+            "variantId": "ui-display-digit",
+            "label": "Display Digit Blip",
+            "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav",
+            "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav",
+            "category": "DATA TELEMETRY",
+            "gainDb": -7,
+            "durationSec": 0.18
+          },
+          {
+            "variantId": "ui-micro-click",
+            "label": "UI Micro Click",
+            "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3",
+            "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3",
+            "category": "UI INTERFACE",
+            "gainDb": -6.5,
+            "durationSec": 0.16
+          },
+          {
+            "variantId": "ui-data-reveal",
+            "label": "Data Reveal Sound",
+            "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3",
+            "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3",
+            "category": "DATA TELEMETRY",
+            "gainDb": -7,
+            "durationSec": 0.2
+          },
+          {
+            "variantId": "ui-generdyn-gui",
+            "label": "Modern GUI Pop",
+            "soundFile": "SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav",
+            "audioUrl": "/SOUND%20FX/UI%20INTERFACE/Generdyn%20-%20GUI%20-%2001.wav",
+            "category": "UI INTERFACE",
+            "gainDb": -7,
+            "durationSec": 0.18
+          }
+        ]
+      }
+    },
+    {
+      "id": "treatment-22",
+      "timestampSeconds": 40.791,
+      "frame": 978,
+      "groupName": "General Narrative Anchor",
+      "visualTrigger": {
+        "type": "ui_card_reveal",
+        "elementName": "UI Card / Pill Highlight",
+        "description": "Visual element entrance at (84.6%, 61.3%) [Area: 4227px]",
+        "screenXPercent": 84.6,
+        "screenYPercent": 61.3
+      },
+      "soundDesign": {
+        "category": "DATA TELEMETRY",
+        "soundName": "Data Reveal Sound",
+        "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3",
+        "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3",
+        "stereoPan": 0.86,
+        "depthPlane": 20,
+        "lowpassCutoffHz": 16000,
+        "gainDb": -7,
+        "durationEstimateSec": 0.2,
+        "selectionReason": "Hero card / metric revelation (UI Card / Pill Highlight) at depth plane 20, magnitude 4.23 — telemetry click caused by asset prominence.",
+        "selectedVariantIndex": 2,
+        "variants": [
+          {
+            "variantId": "ui-display-digit",
+            "label": "Display Digit Blip",
+            "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav",
+            "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav",
+            "category": "DATA TELEMETRY",
+            "gainDb": -7,
+            "durationSec": 0.18
+          },
+          {
+            "variantId": "ui-micro-click",
+            "label": "UI Micro Click",
+            "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3",
+            "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3",
+            "category": "UI INTERFACE",
+            "gainDb": -6.5,
+            "durationSec": 0.16
+          },
+          {
+            "variantId": "ui-data-reveal",
+            "label": "Data Reveal Sound",
+            "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3",
+            "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3",
+            "category": "DATA TELEMETRY",
+            "gainDb": -7,
+            "durationSec": 0.2
+          },
+          {
+            "variantId": "ui-generdyn-gui",
+            "label": "Modern GUI Pop",
+            "soundFile": "SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav",
+            "audioUrl": "/SOUND%20FX/UI%20INTERFACE/Generdyn%20-%20GUI%20-%2001.wav",
+            "category": "UI INTERFACE",
+            "gainDb": -7,
+            "durationSec": 0.18
+          }
+        ]
+      }
+    },
+    {
+      "id": "treatment-23",
+      "timestampSeconds": 42.751,
+      "frame": 1025,
+      "groupName": "General Narrative Anchor",
+      "visualTrigger": {
+        "type": "typography_text_pop",
+        "elementName": "Kinetic Typography Header",
+        "description": "Visual element entrance at (30.0%, 55.5%) [Area: 2341px]",
+        "screenXPercent": 30,
+        "screenYPercent": 55.5
+      },
+      "soundDesign": {
+        "category": "TEXT",
+        "soundName": "Fast Tactile Click",
+        "soundFile": "SOUND FX/TEXT/virtualzero-keyboard-typing-fast-371229.mp3",
+        "audioUrl": "/SOUND%20FX/TEXT/virtualzero-keyboard-typing-fast-371229.mp3",
+        "stereoPan": -0.5,
+        "depthPlane": 30,
+        "lowpassCutoffHz": 18500,
+        "gainDb": -7,
+        "durationEstimateSec": 0.18,
+        "selectionReason": "Hero headline entrance (Kinetic Typography Header) at (30%, 55.5%) — keystroke variant caused by headline phrasing & position. Discrete tactile click with zero duration spill.",
+        "selectedVariantIndex": 2,
+        "variants": [
+          {
+            "variantId": "text-typewriter-classic",
+            "label": "Typewriter Single Strike",
+            "soundFile": "SOUND FX/TEXT/type-writing-6834.mp3",
+            "audioUrl": "/SOUND%20FX/TEXT/type-writing-6834.mp3",
+            "category": "TEXT",
+            "gainDb": -6,
+            "durationSec": 0.22
+          },
+          {
+            "variantId": "text-studio-keystroke",
+            "label": "Mechanical Keyboard Tap",
+            "soundFile": "SOUND FX/TEXT/dragon-studio-typing-with-keyboard-435489.mp3",
+            "audioUrl": "/SOUND%20FX/TEXT/dragon-studio-typing-with-keyboard-435489.mp3",
+            "category": "TEXT",
+            "gainDb": -6.5,
+            "durationSec": 0.2
+          },
+          {
+            "variantId": "text-fast-keystroke",
+            "label": "Fast Tactile Click",
+            "soundFile": "SOUND FX/TEXT/virtualzero-keyboard-typing-fast-371229.mp3",
+            "audioUrl": "/SOUND%20FX/TEXT/virtualzero-keyboard-typing-fast-371229.mp3",
+            "category": "TEXT",
+            "gainDb": -7,
+            "durationSec": 0.18
+          },
+          {
+            "variantId": "text-mechanical-shutter",
+            "label": "Mechanical Shutter Accent",
+            "soundFile": "SOUND FX/MECHANICAL CLICKS/camera-shutter-18399.mp3",
+            "audioUrl": "/SOUND%20FX/MECHANICAL%20CLICKS/camera-shutter-18399.mp3",
+            "category": "MECHANICAL CLICKS",
+            "gainDb": -7.5,
+            "durationSec": 0.2
+          }
+        ]
+      }
+    },
+    {
+      "id": "treatment-24",
+      "timestampSeconds": 44.086,
+      "frame": 1057,
+      "groupName": "General Narrative Anchor",
+      "visualTrigger": {
+        "type": "ui_card_reveal",
+        "elementName": "UI Card / Pill Highlight",
+        "description": "Visual element entrance at (51.2%, 47.0%) [Area: 11197px]",
+        "screenXPercent": 51.2,
+        "screenYPercent": 47
+      },
+      "soundDesign": {
+        "category": "DATA TELEMETRY",
+        "soundName": "Display Digit Blip",
+        "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav",
+        "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav",
+        "stereoPan": 0.03,
+        "depthPlane": 20,
+        "lowpassCutoffHz": 16000,
+        "gainDb": -7,
+        "durationEstimateSec": 0.18,
+        "selectionReason": "Hero card / metric revelation (UI Card / Pill Highlight) at depth plane 20, magnitude 11.2 — telemetry click caused by asset prominence.",
+        "selectedVariantIndex": 0,
+        "variants": [
+          {
+            "variantId": "ui-display-digit",
+            "label": "Display Digit Blip",
+            "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav",
+            "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav",
+            "category": "DATA TELEMETRY",
+            "gainDb": -7,
+            "durationSec": 0.18
+          },
+          {
+            "variantId": "ui-micro-click",
+            "label": "UI Micro Click",
+            "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3",
+            "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3",
+            "category": "UI INTERFACE",
+            "gainDb": -6.5,
+            "durationSec": 0.16
+          },
+          {
+            "variantId": "ui-data-reveal",
+            "label": "Data Reveal Sound",
+            "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3",
+            "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3",
+            "category": "DATA TELEMETRY",
+            "gainDb": -7,
+            "durationSec": 0.2
+          },
+          {
+            "variantId": "ui-generdyn-gui",
+            "label": "Modern GUI Pop",
+            "soundFile": "SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav",
+            "audioUrl": "/SOUND%20FX/UI%20INTERFACE/Generdyn%20-%20GUI%20-%2001.wav",
+            "category": "UI INTERFACE",
+            "gainDb": -7,
+            "durationSec": 0.18
+          }
+        ]
+      }
+    },
+    {
+      "id": "treatment-25",
+      "timestampSeconds": 46.797,
+      "frame": 1122,
+      "groupName": "General Narrative Anchor",
+      "visualTrigger": {
+        "type": "asset_intro",
+        "elementName": "Graphic Sticker / Icon Asset",
+        "description": "Visual element entrance at (50.3%, 74.3%) [Area: 3197px]",
+        "screenXPercent": 50.3,
+        "screenYPercent": 74.3
+      },
+      "soundDesign": {
+        "category": "DATA TELEMETRY",
+        "soundName": "Data Reveal Sound",
+        "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3",
+        "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3",
+        "stereoPan": 0.01,
+        "depthPlane": 20,
+        "lowpassCutoffHz": 16000,
+        "gainDb": -7,
+        "durationEstimateSec": 0.2,
+        "selectionReason": "Hero card / metric revelation (Graphic Sticker / Icon Asset) at depth plane 20, magnitude 3.2 — telemetry click caused by asset prominence.",
+        "selectedVariantIndex": 2,
+        "variants": [
+          {
+            "variantId": "ui-display-digit",
+            "label": "Display Digit Blip",
+            "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav",
+            "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav",
+            "category": "DATA TELEMETRY",
+            "gainDb": -7,
+            "durationSec": 0.18
+          },
+          {
+            "variantId": "ui-micro-click",
+            "label": "UI Micro Click",
+            "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3",
+            "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3",
+            "category": "UI INTERFACE",
+            "gainDb": -6.5,
+            "durationSec": 0.16
+          },
+          {
+            "variantId": "ui-data-reveal",
+            "label": "Data Reveal Sound",
+            "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3",
+            "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3",
+            "category": "DATA TELEMETRY",
+            "gainDb": -7,
+            "durationSec": 0.2
+          },
+          {
+            "variantId": "ui-generdyn-gui",
+            "label": "Modern GUI Pop",
+            "soundFile": "SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav",
+            "audioUrl": "/SOUND%20FX/UI%20INTERFACE/Generdyn%20-%20GUI%20-%2001.wav",
+            "category": "UI INTERFACE",
+            "gainDb": -7,
+            "durationSec": 0.18
+          }
+        ]
+      }
+    },
+    {
+      "id": "treatment-26",
+      "timestampSeconds": 48.215,
+      "frame": 1156,
+      "groupName": "General Narrative Anchor",
+      "visualTrigger": {
+        "type": "typography_text_pop",
+        "elementName": "Kinetic Typography Header",
+        "description": "Visual element entrance at (50.3%, 50.2%) [Area: 5048px]",
+        "screenXPercent": 50.3,
+        "screenYPercent": 50.2
+      },
+      "soundDesign": {
+        "category": "MECHANICAL CLICKS",
+        "soundName": "Mechanical Shutter Accent",
+        "soundFile": "SOUND FX/MECHANICAL CLICKS/camera-shutter-18399.mp3",
+        "audioUrl": "/SOUND%20FX/MECHANICAL%20CLICKS/camera-shutter-18399.mp3",
+        "stereoPan": 0.01,
+        "depthPlane": 30,
+        "lowpassCutoffHz": 18500,
+        "gainDb": -7.5,
+        "durationEstimateSec": 0.2,
+        "selectionReason": "Hero headline entrance (Kinetic Typography Header) at (50.3%, 50.2%) — keystroke variant caused by headline phrasing & position. Discrete tactile click with zero duration spill.",
+        "selectedVariantIndex": 3,
+        "variants": [
+          {
+            "variantId": "text-typewriter-classic",
+            "label": "Typewriter Single Strike",
+            "soundFile": "SOUND FX/TEXT/type-writing-6834.mp3",
+            "audioUrl": "/SOUND%20FX/TEXT/type-writing-6834.mp3",
+            "category": "TEXT",
+            "gainDb": -6,
+            "durationSec": 0.22
+          },
+          {
+            "variantId": "text-studio-keystroke",
+            "label": "Mechanical Keyboard Tap",
+            "soundFile": "SOUND FX/TEXT/dragon-studio-typing-with-keyboard-435489.mp3",
+            "audioUrl": "/SOUND%20FX/TEXT/dragon-studio-typing-with-keyboard-435489.mp3",
+            "category": "TEXT",
+            "gainDb": -6.5,
+            "durationSec": 0.2
+          },
+          {
+            "variantId": "text-fast-keystroke",
+            "label": "Fast Tactile Click",
+            "soundFile": "SOUND FX/TEXT/virtualzero-keyboard-typing-fast-371229.mp3",
+            "audioUrl": "/SOUND%20FX/TEXT/virtualzero-keyboard-typing-fast-371229.mp3",
+            "category": "TEXT",
+            "gainDb": -7,
+            "durationSec": 0.18
+          },
+          {
+            "variantId": "text-mechanical-shutter",
+            "label": "Mechanical Shutter Accent",
+            "soundFile": "SOUND FX/MECHANICAL CLICKS/camera-shutter-18399.mp3",
+            "audioUrl": "/SOUND%20FX/MECHANICAL%20CLICKS/camera-shutter-18399.mp3",
+            "category": "MECHANICAL CLICKS",
+            "gainDb": -7.5,
+            "durationSec": 0.2
+          }
+        ]
+      }
+    },
+    {
+      "id": "treatment-27",
+      "timestampSeconds": 50.259,
+      "frame": 1205,
+      "groupName": "General Narrative Anchor",
+      "visualTrigger": {
+        "type": "scene_cut",
+        "elementName": "Scene Cut #7",
+        "description": "Hard scene transition (Visual divergence: 0.46)",
+        "screenXPercent": 50,
+        "screenYPercent": 50
+      },
+      "soundDesign": {
+        "category": "WHOOSHES",
+        "soundName": "Simple Subtle Whoosh",
+        "soundFile": "SOUND FX/WHOOSHES/dragon-studio-simple-whoosh-02-433006.mp3",
+        "audioUrl": "/SOUND%20FX/WHOOSHES/dragon-studio-simple-whoosh-02-433006.mp3",
+        "stereoPan": 0,
+        "depthPlane": 30,
+        "lowpassCutoffHz": 16000,
+        "gainDb": -7,
+        "durationEstimateSec": 0.75,
+        "selectionReason": "Pillar scene transition / whip pan (Scene Cut #7) travelling to X=50% — whoosh variant caused by the pan's on-screen position.",
+        "selectedVariantIndex": 2,
+        "variants": [
+          {
+            "variantId": "whoosh-jump-swish",
+            "label": "Jump Swish Swoosh",
+            "soundFile": "SOUND FX/SWOOSHES/ES_Jump Swish - SFX Producer.mp3",
+            "audioUrl": "/SOUND%20FX/SWOOSHES/ES_Jump%20Swish%20-%20SFX%20Producer.mp3",
+            "category": "SWOOSHES",
+            "gainDb": -6,
+            "durationSec": 0.85
+          },
+          {
+            "variantId": "whoosh-hi-end-crisp",
+            "label": "Hi-End Crisp Whoosh",
+            "soundFile": "SOUND FX/WHOOSHES/Hi End - Whoosh - (Nikko Hunt's S.D.Essentials).wav",
+            "audioUrl": "/SOUND%20FX/WHOOSHES/Hi%20End%20-%20Whoosh%20-%20(Nikko%20Hunt's%20S.D.Essentials).wav",
+            "category": "WHOOSHES",
+            "gainDb": -6.5,
+            "durationSec": 0.9
+          },
+          {
+            "variantId": "whoosh-simple-02",
+            "label": "Simple Subtle Whoosh",
+            "soundFile": "SOUND FX/WHOOSHES/dragon-studio-simple-whoosh-02-433006.mp3",
+            "audioUrl": "/SOUND%20FX/WHOOSHES/dragon-studio-simple-whoosh-02-433006.mp3",
+            "category": "WHOOSHES",
+            "gainDb": -7,
+            "durationSec": 0.75
+          },
+          {
+            "variantId": "trans-flashback",
+            "label": "Cinematic Transition Snap",
+            "soundFile": "SOUND FX/TRANSITIONS/dragon-studio-cinematic-flashback-transition-463199.mp3",
+            "audioUrl": "/SOUND%20FX/TRANSITIONS/dragon-studio-cinematic-flashback-transition-463199.mp3",
+            "category": "TRANSITIONS",
+            "gainDb": -5.5,
+            "durationSec": 0.65
+          }
+        ]
+      }
+    },
+    {
+      "id": "treatment-28",
+      "timestampSeconds": 52.219,
+      "frame": 1252,
+      "groupName": "General Narrative Anchor",
+      "visualTrigger": {
+        "type": "scene_cut",
+        "elementName": "Scene Cut #8",
+        "description": "Hard scene transition (Visual divergence: 0.43)",
+        "screenXPercent": 50,
+        "screenYPercent": 50
+      },
+      "soundDesign": {
+        "category": "TRANSITIONS",
+        "soundName": "Cinematic Transition Snap",
+        "soundFile": "SOUND FX/TRANSITIONS/dragon-studio-cinematic-flashback-transition-463199.mp3",
+        "audioUrl": "/SOUND%20FX/TRANSITIONS/dragon-studio-cinematic-flashback-transition-463199.mp3",
+        "stereoPan": 0,
+        "depthPlane": 30,
+        "lowpassCutoffHz": 16000,
+        "gainDb": -5.5,
+        "durationEstimateSec": 0.65,
+        "selectionReason": "Pillar scene transition / whip pan (Scene Cut #8) travelling to X=50% — whoosh variant caused by the pan's on-screen position.",
+        "selectedVariantIndex": 3,
+        "variants": [
+          {
+            "variantId": "whoosh-jump-swish",
+            "label": "Jump Swish Swoosh",
+            "soundFile": "SOUND FX/SWOOSHES/ES_Jump Swish - SFX Producer.mp3",
+            "audioUrl": "/SOUND%20FX/SWOOSHES/ES_Jump%20Swish%20-%20SFX%20Producer.mp3",
+            "category": "SWOOSHES",
+            "gainDb": -6,
+            "durationSec": 0.85
+          },
+          {
+            "variantId": "whoosh-hi-end-crisp",
+            "label": "Hi-End Crisp Whoosh",
+            "soundFile": "SOUND FX/WHOOSHES/Hi End - Whoosh - (Nikko Hunt's S.D.Essentials).wav",
+            "audioUrl": "/SOUND%20FX/WHOOSHES/Hi%20End%20-%20Whoosh%20-%20(Nikko%20Hunt's%20S.D.Essentials).wav",
+            "category": "WHOOSHES",
+            "gainDb": -6.5,
+            "durationSec": 0.9
+          },
+          {
+            "variantId": "whoosh-simple-02",
+            "label": "Simple Subtle Whoosh",
+            "soundFile": "SOUND FX/WHOOSHES/dragon-studio-simple-whoosh-02-433006.mp3",
+            "audioUrl": "/SOUND%20FX/WHOOSHES/dragon-studio-simple-whoosh-02-433006.mp3",
+            "category": "WHOOSHES",
+            "gainDb": -7,
+            "durationSec": 0.75
+          },
+          {
+            "variantId": "trans-flashback",
+            "label": "Cinematic Transition Snap",
+            "soundFile": "SOUND FX/TRANSITIONS/dragon-studio-cinematic-flashback-transition-463199.mp3",
+            "audioUrl": "/SOUND%20FX/TRANSITIONS/dragon-studio-cinematic-flashback-transition-463199.mp3",
+            "category": "TRANSITIONS",
+            "gainDb": -5.5,
+            "durationSec": 0.65
+          }
+        ]
+      }
+    },
+    {
+      "id": "treatment-29",
+      "timestampSeconds": 53.72,
+      "frame": 1288,
+      "groupName": "General Narrative Anchor",
+      "visualTrigger": {
+        "type": "typography_text_pop",
+        "elementName": "Kinetic Typography Header",
+        "description": "Visual element entrance at (49.2%, 48.8%) [Area: 2317px]",
+        "screenXPercent": 49.2,
+        "screenYPercent": 48.8
+      },
+      "soundDesign": {
+        "category": "TEXT",
+        "soundName": "Typewriter Single Strike",
+        "soundFile": "SOUND FX/TEXT/type-writing-6834.mp3",
+        "audioUrl": "/SOUND%20FX/TEXT/type-writing-6834.mp3",
+        "stereoPan": -0.02,
+        "depthPlane": 30,
+        "lowpassCutoffHz": 18500,
+        "gainDb": -6,
+        "durationEstimateSec": 0.22,
+        "selectionReason": "Hero headline entrance (Kinetic Typography Header) at (49.2%, 48.8%) — keystroke variant caused by headline phrasing & position. Discrete tactile click with zero duration spill.",
+        "selectedVariantIndex": 0,
+        "variants": [
+          {
+            "variantId": "text-typewriter-classic",
+            "label": "Typewriter Single Strike",
+            "soundFile": "SOUND FX/TEXT/type-writing-6834.mp3",
+            "audioUrl": "/SOUND%20FX/TEXT/type-writing-6834.mp3",
+            "category": "TEXT",
+            "gainDb": -6,
+            "durationSec": 0.22
+          },
+          {
+            "variantId": "text-studio-keystroke",
+            "label": "Mechanical Keyboard Tap",
+            "soundFile": "SOUND FX/TEXT/dragon-studio-typing-with-keyboard-435489.mp3",
+            "audioUrl": "/SOUND%20FX/TEXT/dragon-studio-typing-with-keyboard-435489.mp3",
+            "category": "TEXT",
+            "gainDb": -6.5,
+            "durationSec": 0.2
+          },
+          {
+            "variantId": "text-fast-keystroke",
+            "label": "Fast Tactile Click",
+            "soundFile": "SOUND FX/TEXT/virtualzero-keyboard-typing-fast-371229.mp3",
+            "audioUrl": "/SOUND%20FX/TEXT/virtualzero-keyboard-typing-fast-371229.mp3",
+            "category": "TEXT",
+            "gainDb": -7,
+            "durationSec": 0.18
+          },
+          {
+            "variantId": "text-mechanical-shutter",
+            "label": "Mechanical Shutter Accent",
+            "soundFile": "SOUND FX/MECHANICAL CLICKS/camera-shutter-18399.mp3",
+            "audioUrl": "/SOUND%20FX/MECHANICAL%20CLICKS/camera-shutter-18399.mp3",
+            "category": "MECHANICAL CLICKS",
+            "gainDb": -7.5,
+            "durationSec": 0.2
+          }
+        ]
+      }
+    },
+    {
+      "id": "treatment-30",
+      "timestampSeconds": 55.055,
+      "frame": 1320,
+      "groupName": "General Narrative Anchor",
+      "visualTrigger": {
+        "type": "ui_card_reveal",
+        "elementName": "UI Card / Pill Highlight",
+        "description": "Visual element entrance at (49.2%, 54.8%) [Area: 8325px]",
+        "screenXPercent": 49.2,
+        "screenYPercent": 54.8
+      },
+      "soundDesign": {
+        "category": "UI INTERFACE",
+        "soundName": "UI Micro Click",
+        "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3",
+        "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3",
+        "stereoPan": -0.02,
+        "depthPlane": 20,
+        "lowpassCutoffHz": 16000,
+        "gainDb": -6.5,
+        "durationEstimateSec": 0.16,
+        "selectionReason": "Hero card / metric revelation (UI Card / Pill Highlight) at depth plane 20, magnitude 8.33 — telemetry click caused by asset prominence.",
+        "selectedVariantIndex": 1,
+        "variants": [
+          {
+            "variantId": "ui-display-digit",
+            "label": "Display Digit Blip",
+            "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav",
+            "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav",
+            "category": "DATA TELEMETRY",
+            "gainDb": -7,
+            "durationSec": 0.18
+          },
+          {
+            "variantId": "ui-micro-click",
+            "label": "UI Micro Click",
+            "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3",
+            "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3",
+            "category": "UI INTERFACE",
+            "gainDb": -6.5,
+            "durationSec": 0.16
+          },
+          {
+            "variantId": "ui-data-reveal",
+            "label": "Data Reveal Sound",
+            "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3",
+            "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3",
+            "category": "DATA TELEMETRY",
+            "gainDb": -7,
+            "durationSec": 0.2
+          },
+          {
+            "variantId": "ui-generdyn-gui",
+            "label": "Modern GUI Pop",
+            "soundFile": "SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav",
+            "audioUrl": "/SOUND%20FX/UI%20INTERFACE/Generdyn%20-%20GUI%20-%2001.wav",
+            "category": "UI INTERFACE",
+            "gainDb": -7,
+            "durationSec": 0.18
+          }
+        ]
+      }
+    },
+    {
+      "id": "treatment-31",
+      "timestampSeconds": 56.64,
+      "frame": 1358,
+      "groupName": "General Narrative Anchor",
+      "visualTrigger": {
+        "type": "typography_text_pop",
+        "elementName": "Kinetic Typography Header",
+        "description": "Visual element entrance at (54.3%, 52.2%) [Area: 6122px]",
+        "screenXPercent": 54.3,
+        "screenYPercent": 52.2
+      },
+      "soundDesign": {
+        "category": "TEXT",
+        "soundName": "Mechanical Keyboard Tap",
+        "soundFile": "SOUND FX/TEXT/dragon-studio-typing-with-keyboard-435489.mp3",
+        "audioUrl": "/SOUND%20FX/TEXT/dragon-studio-typing-with-keyboard-435489.mp3",
+        "stereoPan": 0.11,
+        "depthPlane": 30,
+        "lowpassCutoffHz": 18500,
+        "gainDb": -6.5,
+        "durationEstimateSec": 0.2,
+        "selectionReason": "Hero headline entrance (Kinetic Typography Header) at (54.3%, 52.2%) — keystroke variant caused by headline phrasing & position. Discrete tactile click with zero duration spill.",
+        "selectedVariantIndex": 1,
+        "variants": [
+          {
+            "variantId": "text-typewriter-classic",
+            "label": "Typewriter Single Strike",
+            "soundFile": "SOUND FX/TEXT/type-writing-6834.mp3",
+            "audioUrl": "/SOUND%20FX/TEXT/type-writing-6834.mp3",
+            "category": "TEXT",
+            "gainDb": -6,
+            "durationSec": 0.22
+          },
+          {
+            "variantId": "text-studio-keystroke",
+            "label": "Mechanical Keyboard Tap",
+            "soundFile": "SOUND FX/TEXT/dragon-studio-typing-with-keyboard-435489.mp3",
+            "audioUrl": "/SOUND%20FX/TEXT/dragon-studio-typing-with-keyboard-435489.mp3",
+            "category": "TEXT",
+            "gainDb": -6.5,
+            "durationSec": 0.2
+          },
+          {
+            "variantId": "text-fast-keystroke",
+            "label": "Fast Tactile Click",
+            "soundFile": "SOUND FX/TEXT/virtualzero-keyboard-typing-fast-371229.mp3",
+            "audioUrl": "/SOUND%20FX/TEXT/virtualzero-keyboard-typing-fast-371229.mp3",
+            "category": "TEXT",
+            "gainDb": -7,
+            "durationSec": 0.18
+          },
+          {
+            "variantId": "text-mechanical-shutter",
+            "label": "Mechanical Shutter Accent",
+            "soundFile": "SOUND FX/MECHANICAL CLICKS/camera-shutter-18399.mp3",
+            "audioUrl": "/SOUND%20FX/MECHANICAL%20CLICKS/camera-shutter-18399.mp3",
+            "category": "MECHANICAL CLICKS",
+            "gainDb": -7.5,
+            "durationSec": 0.2
+          }
+        ]
+      }
+    },
+    {
+      "id": "treatment-32",
+      "timestampSeconds": 59.226,
+      "frame": 1420,
+      "groupName": "General Narrative Anchor",
+      "visualTrigger": {
+        "type": "ui_card_reveal",
+        "elementName": "UI Card / Pill Highlight",
+        "description": "Visual element entrance at (50.3%, 33.8%) [Area: 3281px]",
+        "screenXPercent": 50.3,
+        "screenYPercent": 33.8
+      },
+      "soundDesign": {
+        "category": "DATA TELEMETRY",
+        "soundName": "Data Reveal Sound",
+        "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3",
+        "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3",
+        "stereoPan": 0.01,
+        "depthPlane": 20,
+        "lowpassCutoffHz": 16000,
+        "gainDb": -7,
+        "durationEstimateSec": 0.2,
+        "selectionReason": "Hero card / metric revelation (UI Card / Pill Highlight) at depth plane 20, magnitude 3.28 — telemetry click caused by asset prominence.",
+        "selectedVariantIndex": 2,
+        "variants": [
+          {
+            "variantId": "ui-display-digit",
+            "label": "Display Digit Blip",
+            "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav",
+            "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav",
+            "category": "DATA TELEMETRY",
+            "gainDb": -7,
+            "durationSec": 0.18
+          },
+          {
+            "variantId": "ui-micro-click",
+            "label": "UI Micro Click",
+            "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3",
+            "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3",
+            "category": "UI INTERFACE",
+            "gainDb": -6.5,
+            "durationSec": 0.16
+          },
+          {
+            "variantId": "ui-data-reveal",
+            "label": "Data Reveal Sound",
+            "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3",
+            "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3",
+            "category": "DATA TELEMETRY",
+            "gainDb": -7,
+            "durationSec": 0.2
+          },
+          {
+            "variantId": "ui-generdyn-gui",
+            "label": "Modern GUI Pop",
+            "soundFile": "SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav",
+            "audioUrl": "/SOUND%20FX/UI%20INTERFACE/Generdyn%20-%20GUI%20-%2001.wav",
+            "category": "UI INTERFACE",
+            "gainDb": -7,
+            "durationSec": 0.18
+          }
+        ]
+      }
+    }
+  ]
+}

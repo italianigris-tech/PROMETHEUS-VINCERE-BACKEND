@@ -8,6 +8,7 @@
     "typecheck:maul": "npm --workspace @prometheus/shared-types run build && npm --workspace @prometheus/backend run typecheck && npm --prefix remotion-app run typecheck"
   },
   "devDependencies": {
+    "puppeteer": "^24.43.1",
     "vitest": "^3.1.4"
   }
 }

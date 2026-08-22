@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prometheus — Mixfont Typography Repertoire & Font Hydration Hub</title>
+  
+  <!-- Master Local Font Declarations -->
+  <link rel="stylesheet" href="/fonts/studio_fonts.css">
+  <link rel="stylesheet" href="/fonts/senza_bella.css">
+  
+  <!-- Google Fonts Fallback/Extended CDN -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Anton&family=Bebas+Neue&family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..900;1,6..96,400..900&family=Cormorant+Garamond:ital,wght@0,400..700;1,400..700&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Dancing+Script:wght@400..700&family=Great+Vibes&family=Inter:wght@300;400;600;700;900&family=Oswald:wght@300..700&family=Pinyon+Script&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Press+Start+2P&family=Roboto+Slab:wght@300..900&family=Romanesco&family=Sacramento&family=Sanchez&family=Special+Elite&family=VT323&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-base: #0a0d18;
+      --bg-card: rgba(18, 24, 46, 0.85);
+      --bg-card-border: rgba(255, 255, 255, 0.08);
+      --accent-cyan: #00F0FF;
+      --accent-pink: #FF0055;
+      --accent-purple: #8B5CF6;
+      --accent-yellow: #FFE600;
+      --accent-green: #10B981;
+      --text-main: #F1F5F9;
+      --text-muted: #94A3B8;
+      --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      font-family: var(--font-ui);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 80px;
+      background-image: 
+        radial-gradient(ellipse 60% 40% at 50% 0%, rgba(139, 92, 246, 0.15), transparent 70%),
+        radial-gradient(ellipse 40% 30% at 80% 20%, rgba(0, 240, 255, 0.08), transparent 60%);
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1360px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* Top Navigation Bar */
+    .nav-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 20px;
+      background: var(--bg-card);
+      border: 1px solid var(--bg-card-border);
+      border-radius: 16px;
+      backdrop-filter: blur(12px);
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+    .nav-brand .badge {
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: rgba(0, 240, 255, 0.15);
+      color: var(--accent-cyan);
+      border: 1px solid rgba(0, 240, 255, 0.3);
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+    .nav-links {
+      display: flex;
+      gap: 12px;
+    }
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 8px;
+      transition: all 0.2s;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .nav-links a:hover, .nav-links a.active {
+      color: #fff;
+      background: rgba(255,255,255,0.1);
+      border-color: rgba(255,255,255,0.2);
+    }
+
+    /* Header Hero */
+    .header-hero {
+      text-align: center;
+      padding: 24px 20px;
+      background: linear-gradient(180deg, rgba(26, 33, 62, 0.7) 0%, rgba(14, 19, 38, 0.9) 100%);
+      border: 1px solid var(--bg-card-border);
+      border-radius: 20px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    }
+    .header-hero h1 {
+      font-size: clamp(24px, 4vw, 34px);
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, #FFF 30%, var(--accent-cyan) 70%, var(--accent-purple) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+    }
+    .header-hero p {
+      color: var(--text-muted);
+      font-size: 14px;
+      max-width: 780px;
+      margin: 0 auto 16px;
+      line-height: 1.5;
+    }
+
+    /* Global Controls Bar */
+    .controls-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-card);
+      border: 1px solid var(--bg-card-border);
+      border-radius: 14px;
+      padding: 14px 18px;
+    }
+    .live-input-box {
+      flex: 1;
+      min-width: 280px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 6px 12px;
+    }
+    .live-input-box label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent-cyan);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .live-input-box input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+    }
+    .toggle-group {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .btn-toggle {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 7px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-toggle:hover {
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+    }
+    .btn-toggle.active {
+      background: var(--accent-cyan);
+      color: #000;
+      border-color: var(--accent-cyan);
+      font-weight: 700;
+    }
+
+    /* Grid of Output Re-creations */
+    .repertoire-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(620px, 1fr));
+      gap: 24px;
+    }
+    @media (max-width: 700px) {
+      .repertoire-grid { grid-template-columns: 1fr; }
+    }
+
+    /* Individual Target Card */
+    .target-card {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-card-border);
+      border-radius: 18px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .target-card:hover {
+      border-color: rgba(0, 240, 255, 0.3);
+      transform: translateY(-2px);
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 18px;
+      background: rgba(0,0,0,0.25);
+      border-bottom: 1px solid var(--bg-card-border);
+    }
+    .card-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-title .img-tag {
+      font-size: 11px;
+      background: rgba(139, 92, 246, 0.2);
+      color: #C084FC;
+      border: 1px solid rgba(139, 92, 246, 0.4);
+      padding: 2px 7px;
+      border-radius: 6px;
+    }
+    .card-mood {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    /* Comparison Stage (Side-by-side) */
+    .comparison-stage {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-height: 220px;
+      border-bottom: 1px solid var(--bg-card-border);
+    }
+    @media (max-width: 580px) {
+      .comparison-stage { grid-template-columns: 1fr; }
+    }
+
+    /* Reference Image Column */
+    .ref-column {
+      background: #0f1322;
+      border-right: 1px solid var(--bg-card-border);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    .stage-label {
+      position: absolute;
+      top: 10px;
+      left: 12px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(0,0,0,0.6);
+      color: var(--text-muted);
+    }
+    .ref-column img {
+      max-width: 90%;
+      max-height: 140px;
+      object-fit: contain;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    /* Live Recreated Render Column */
+    .render-column {
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      background: #F4F3EE;
+      color: #111111;
+      transition: background 0.3s, color 0.3s;
+      overflow: hidden;
+    }
+    .render-column.dark-canvas {
+      background: #0b0e1b !important;
+      color: #FFFFFF !important;
+    }
+    .render-column .stage-label {
+      background: rgba(0, 240, 255, 0.15);
+      color: var(--accent-cyan);
+      border: 1px solid rgba(0, 240, 255, 0.3);
+    }
+
+    /* Typography Canvas Wrapper */
+    .typo-canvas {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      user-select: none;
+    }
+
+    /* Card Details Footer */
+    .card-footer {
+      padding: 14px 18px;
+      background: rgba(0,0,0,0.15);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 12px;
+    }
+    .spec-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+    .spec-pill {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 6px;
+      padding: 3px 8px;
+      color: var(--text-muted);
+    }
+    .spec-pill strong {
+      color: #fff;
+    }
+    .font-download-btn {
+      margin-left: auto;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #34D399;
+      font-weight: 700;
+      text-decoration: none;
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s;
+    }
+    .font-download-btn:hover {
+      background: rgba(16, 185, 129, 0.3);
+      color: #fff;
+    }
+
+    /* ════════════════════════════════════════════════════════════
+       TYPOGRAPHIC PRESETS EXACTLY IMPLEMENTING THE 8 TARGET JSONS
+       ════════════════════════════════════════════════════════════ */
+
+    /* Output 1: image (1) — Because Your Brian */
+    .t-style-1-l1 {
+      font-family: 'Playfair Display', serif;
+      font-weight: 400;
+      font-style: italic;
+      font-size: 26px;
+      line-height: 1.1;
+      letter-spacing: 0.02em;
+      opacity: 0.85;
+    }
+    .t-style-1-l2 {
+      font-family: 'Playfair Display', serif;
+      font-weight: 700;
+      font-style: italic;
+      font-size: 58px;
+      line-height: 0.95;
+      letter-spacing: -0.02em;
+      text-shadow: 0 4px 10px rgba(0,0,0,0.12);
+    }
+
+    /* Output 2: image (3) — Giaza Beautifully Delicious */
+    .t-style-3-l1 {
+      font-family: 'Abril Fatface', 'Bodoni Moda', serif;
+      font-weight: 800;
+      font-style: normal;
+      font-size: 54px;
+      line-height: 1.0;
+      letter-spacing: 0.01em;
+    }
+    .t-style-3-l2 {
+      font-family: 'Great Vibes', 'Dancing Script', cursive;
+      font-weight: 400;
+      font-style: italic;
+      font-size: 28px;
+      line-height: 1.1;
+      letter-spacing: 0.05em;
+      margin-top: -8px;
+      opacity: 0.75;
+    }
+
+    /* Output 3: image (4) — EXTENDA Breathing */
+    .t-style-4-l1 {
+      font-family: 'Bebas Neue', 'Anton', 'Oswald', sans-serif;
+      font-weight: 900;
+      font-style: normal;
+      font-size: 68px;
+      line-height: 0.95;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+    .t-style-4-l2 {
+      font-family: 'Sacramento', 'Dancing Script', cursive;
+      font-weight: 400;
+      font-style: italic;
+      font-size: 32px;
+      line-height: 1.0;
+      margin-top: -18px;
+      letter-spacing: 0.04em;
+    }
+
+    /* Output 4: image (6) — the seasons TRUE TYPEWRITER */
+    .t-style-6-l1 {
+      font-family: 'Cormorant Garamond', 'Playfair Display', serif;
+      font-weight: 400;
+      font-style: italic;
+      font-size: 46px;
+      line-height: 1.05;
+      letter-spacing: 0.02em;
+    }
+    .t-style-6-l2 {
+      font-family: 'Special Elite', 'Courier Prime', monospace;
+      font-weight: 500;
+      font-style: normal;
+      font-size: 15px;
+      line-height: 1.2;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      margin-top: 6px;
+      opacity: 0.7;
+    }
+
+    /* Output 5: image (8) — Symphony SANCHEZ */
+    .t-style-8-l1 {
+      font-family: 'Pinyon Script', 'Great Vibes', cursive;
+      font-weight: 400;
+      font-style: italic;
+      font-size: 58px;
+      line-height: 1.1;
+      letter-spacing: 0.03em;
+    }
+    .t-style-8-l2 {
+      font-family: 'Sanchez', 'Roboto Slab', serif;
+      font-weight: 600;
+      font-style: normal;
+      font-size: 18px;
+      line-height: 1.2;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      margin-top: -10px;
+      opacity: 0.8;
+    }
+
+    /* Output 6: image (33) — NEXT gen */
+    .t-style-33-l1 {
+      font-family: 'VT323', 'Press Start 2P', monospace;
+      font-weight: 700;
+      font-style: normal;
+      font-size: 26px;
+      line-height: 1.1;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+    .t-style-33-l2 {
+      font-family: 'Bodoni Moda', 'Playfair Display', serif;
+      font-weight: 900;
+      font-style: italic;
+      font-size: 64px;
+      line-height: 0.9;
+      letter-spacing: -0.02em;
+      margin-top: -4px;
+    }
+
+    /* Output 7: image (35) — 2X REVENUE GROWTH */
+    .t-style-35-l1 {
+      font-family: 'Anton', 'Bebas Neue', sans-serif;
+      font-weight: 900;
+      font-style: normal;
+      font-size: 78px;
+      line-height: 0.88;
+      letter-spacing: 0.01em;
+      text-transform: uppercase;
+    }
+    .t-style-35-l2 {
+      font-family: 'Bebas Neue', 'Oswald', sans-serif;
+      font-weight: 900;
+      font-style: normal;
+      font-size: 26px;
+      line-height: 1.05;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-top: -2px;
+    }
+
+    /* Output 8: image (36) — PRETTY DOESN'T convert. */
+    .t-style-36-l1 {
+      font-family: 'Bebas Neue', 'Anton', 'Oswald', sans-serif;
+      font-weight: 900;
+      font-style: normal;
+      font-size: 58px;
+      line-height: 0.92;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+    .t-style-36-l2 {
+      font-family: 'Playfair Display', 'Bodoni Moda', serif;
+      font-weight: 700;
+      font-style: italic;
+      font-size: 48px;
+      line-height: 0.95;
+      letter-spacing: -0.01em;
+      margin-top: -8px;
+    }
+
+    /* Live Synchronized Editing Helper */
+    .editable-token {
+      outline: none;
+      display: inline-block;
+      min-width: 20px;
+    }
+    .editable-token:focus {
+      background: rgba(0, 240, 255, 0.1);
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    
+    <!-- Top Nav -->
+    <nav class="nav-bar">
+      <div class="nav-brand">
+        <span>⚡ PROMETHEUS MINI RUN</span>
+        <span class="badge">MIXFONT HYDRATION</span>
+      </div>
+      <div class="nav-links">
+        <a href="/typo">🎬 /typo Kinetic & Video Studio</a>
+        <a href="/">🎥 / Video SFX Player</a>
+        <a href="/mixfont" class="active">🎨 /mixfont Testing Hub</a>
+        <a href="/anima">✨ /anima ANIMA Studio</a>
+        <a href="/paste">📸 /paste Gallery</a>
+      </div>
+    </nav>
+
+    <!-- Header Hero -->
+    <header class="header-hero">
+      <h1>Mixfont Repertoire & Font Hydration Hub</h1>
+      <p>
+        Side-by-side visual validation and interactive browser hydration for the 8 priority font pairing targets. 
+        Each style is rendered using the exact local <code>.ttf</code> and <code>.otf</code> font files downloaded into <code>docs/mini_run_studio/fonts/</code>.
+      </p>
+    </header>
+
+    <!-- Global Controls -->
+    <section class="controls-bar">
+      <div class="live-input-box">
+        <label>Custom L1 Text:</label>
+        <input type="text" id="global-l1-input" placeholder="Type custom prefix/header...">
+      </div>
+      <div class="live-input-box">
+        <label>Custom L2 Text:</label>
+        <input type="text" id="global-l2-input" placeholder="Type custom hero/script...">
+      </div>
+      <div class="toggle-group">
+        <button class="btn-toggle active" id="btn-theme-light" onclick="setCanvasTheme('light')">☀️ Light Canvas</button>
+        <button class="btn-toggle" id="btn-theme-dark" onclick="setCanvasTheme('dark')">🌙 Dark Canvas (Video Contrast)</button>
+        <button class="btn-toggle" onclick="resetDefaultTexts()">🔄 Reset Text</button>
+      </div>
+    </section>
+
+    <!-- 8 Targeted Outputs Grid -->
+    <main class="repertoire-grid">
+
+      <!-- 1. Image (1): Because Your Brian -->
+      <article class="target-card" id="card-image-1">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="img-tag">Target 1</span>
+            <span>image (1).png — Because Your Brian</span>
+          </div>
+          <span class="card-mood">Classic Editorial Didone</span>
+        </div>
+        <div class="comparison-stage">
+          <div class="ref-column">
+            <span class="stage-label">Original Reference</span>
+            <img src="/font_pairs/image%20(1).png" alt="image (1).png reference">
+          </div>
+          <div class="render-column" id="canvas-1">
+            <span class="stage-label">Live Web Hydrated</span>
+            <div class="typo-canvas">
+              <div class="t-style-1-l1 target-l1-text" contenteditable="true">Because Your</div>
+              <div class="t-style-1-l2 target-l2-text" contenteditable="true">Brian</div>
+            </div>
+          </div>
+        </div>
+        <div class="card-footer">
+          <div class="spec-row">
+            <span class="spec-pill"><strong>L1 Font:</strong> Playfair Display (Italic 400)</span>
+            <span class="spec-pill"><strong>L2 Font:</strong> Playfair Display (Italic 700)</span>
+            <span class="spec-pill"><strong>Alternate:</strong> Romanesco / Bodoni Moda</span>
+            <a class="font-download-btn" href="/fonts/PlayfairDisplay-Italic-Variable.ttf" download>⬇ Download TTF</a>
+          </div>
+        </div>
+      </article>
+
+      <!-- 2. Image (3): Giaza Beautifully Delicious -->
+      <article class="target-card" id="card-image-3">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="img-tag">Target 2</span>
+            <span>image (3).png — Giaza Beautifully Delicious</span>
+          </div>
+          <span class="card-mood">Luxury Fashion Didone & Calligraphy</span>
+        </div>
+        <div class="comparison-stage">
+          <div class="ref-column">
+            <span class="stage-label">Original Reference</span>
+            <img src="/font_pairs/image%20(3).png" alt="image (3).png reference">
+          </div>
+          <div class="render-column" id="canvas-3">
+            <span class="stage-label">Live Web Hydrated</span>
+            <div class="typo-canvas">
+              <div class="t-style-3-l1 target-l1-text" contenteditable="true">Giaza</div>
+              <div class="t-style-3-l2 target-l2-text" contenteditable="true">Beautifully Delicious</div>
+            </div>
+          </div>
+        </div>
+        <div class="card-footer">
+          <div class="spec-row">
+            <span class="spec-pill"><strong>L1 Font:</strong> Abril Fatface (800) / Bodoni Moda</span>
+            <span class="spec-pill"><strong>L2 Font:</strong> Great Vibes / Dancing Script</span>
+            <a class="font-download-btn" href="/fonts/AbrilFatface-Regular.ttf" download>⬇ Download TTF</a>
+          </div>
+        </div>
+      </article>
+
+      <!-- 3. Image (4): EXTENDA Breathing -->
+      <article class="target-card" id="card-image-4">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="img-tag">Target 3</span>
+            <span>image (4).png — EXTENDA Breathing</span>
+          </div>
+          <span class="card-mood">Compressed Grotesk & Overlay Script</span>
+        </div>
+        <div class="comparison-stage">
+          <div class="ref-column">
+            <span class="stage-label">Original Reference</span>
+            <img src="/font_pairs/image%20(4).png" alt="image (4).png reference">
+          </div>
+          <div class="render-column" id="canvas-4">
+            <span class="stage-label">Live Web Hydrated</span>
+            <div class="typo-canvas">
+              <div class="t-style-4-l1 target-l1-text" contenteditable="true">EXTENDA</div>
+              <div class="t-style-4-l2 target-l2-text" contenteditable="true">Breathing</div>
+            </div>
+          </div>
+        </div>
+        <div class="card-footer">
+          <div class="spec-row">
+            <span class="spec-pill"><strong>L1 Font:</strong> Bebas Neue / Anton / Oswald (900)</span>
+            <span class="spec-pill"><strong>L2 Font:</strong> Sacramento / Dancing Script (400 Italic)</span>
+            <a class="font-download-btn" href="/fonts/BebasNeue-Regular.ttf" download>⬇ Download TTF</a>
+          </div>
+        </div>
+      </article>
+
+      <!-- 4. Image (6): the seasons TRUE TYPEWRITER -->
+      <article class="target-card" id="card-image-6">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="img-tag">Target 4</span>
+            <span>image (6).png — the seasons TRUE TYPEWRITER</span>
+          </div>
+          <span class="card-mood">Delicate Modern Serif & Vintage Typewriter</span>
+        </div>
+        <div class="comparison-stage">
+          <div class="ref-column">
+            <span class="stage-label">Original Reference</span>
+            <img src="/font_pairs/image%20(6).png" alt="image (6).png reference">
+          </div>
+          <div class="render-column" id="canvas-6">
+            <span class="stage-label">Live Web Hydrated</span>
+            <div class="typo-canvas">
+              <div class="t-style-6-l1 target-l1-text" contenteditable="true">the seasons</div>
+              <div class="t-style-6-l2 target-l2-text" contenteditable="true">TRUE TYPEWRITER</div>
+            </div>
+          </div>
+        </div>
+        <div class="card-footer">
+          <div class="spec-row">
+            <span class="spec-pill"><strong>L1 Font:</strong> Cormorant Garamond (Italic 400)</span>
+            <span class="spec-pill"><strong>L2 Font:</strong> Special Elite / Courier Prime (Mono 500)</span>
+            <a class="font-download-btn" href="/fonts/SpecialElite-Regular.ttf" download>⬇ Download TTF</a>
+          </div>
+        </div>
+      </article>
+
+      <!-- 5. Image (8): Symphony SANCHEZ -->
+      <article class="target-card" id="card-image-8">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="img-tag">Target 5</span>
+            <span>image (8).png — Symphony SANCHEZ</span>
+          </div>
+          <span class="card-mood">Flourished Calligraphy & Monospace Slab</span>
+        </div>
+        <div class="comparison-stage">
+          <div class="ref-column">
+            <span class="stage-label">Original Reference</span>
+            <img src="/font_pairs/image%20(8).png" alt="image (8).png reference">
+          </div>
+          <div class="render-column" id="canvas-8">
+            <span class="stage-label">Live Web Hydrated</span>
+            <div class="typo-canvas">
+              <div class="t-style-8-l1 target-l1-text" contenteditable="true">Symphony</div>
+              <div class="t-style-8-l2 target-l2-text" contenteditable="true">SANCHEZ</div>
+            </div>
+          </div>
+        </div>
+        <div class="card-footer">
+          <div class="spec-row">
+            <span class="spec-pill"><strong>L1 Font:</strong> Pinyon Script (Flourished 400)</span>
+            <span class="spec-pill"><strong>L2 Font:</strong> Sanchez / Roboto Slab (600)</span>
+            <a class="font-download-btn" href="/fonts/PinyonScript-Regular.ttf" download>⬇ Download TTF</a>
+          </div>
+        </div>
+      </article>
+
+      <!-- 6. Image (33): NEXT gen -->
+      <article class="target-card" id="card-image-33">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="img-tag">Target 6</span>
+            <span>image (33).png — NEXT gen</span>
+          </div>
+          <span class="card-mood">Retro 8-Bit Pixel & Giant Editorial Serif</span>
+        </div>
+        <div class="comparison-stage">
+          <div class="ref-column">
+            <span class="stage-label">Original Reference</span>
+            <img src="/font_pairs/image%20(33).png" alt="image (33).png reference">
+          </div>
+          <div class="render-column" id="canvas-33">
+            <span class="stage-label">Live Web Hydrated</span>
+            <div class="typo-canvas">
+              <div class="t-style-33-l1 target-l1-text" contenteditable="true">NEXT</div>
+              <div class="t-style-33-l2 target-l2-text" contenteditable="true">gen</div>
+            </div>
+          </div>
+        </div>
+        <div class="card-footer">
+          <div class="spec-row">
+            <span class="spec-pill"><strong>L1 Font:</strong> VT323 / Press Start 2P (Pixel Mono 700)</span>
+            <span class="spec-pill"><strong>L2 Font:</strong> Bodoni Moda (Italic 900)</span>
+            <a class="font-download-btn" href="/fonts/VT323-Regular.ttf" download>⬇ Download TTF</a>
+          </div>
+        </div>
+      </article>
+
+      <!-- 7. Image (35): 2X REVENUE GROWTH -->
+      <article class="target-card" id="card-image-35">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="img-tag">Target 7</span>
+            <span>image (35).png — 2X REVENUE GROWTH</span>
+          </div>
+          <span class="card-mood">Giant Extended Black & Heavy Compressed Grotesk</span>
+        </div>
+        <div class="comparison-stage">
+          <div class="ref-column">
+            <span class="stage-label">Original Reference</span>
+            <img src="/font_pairs/image%20(35).png" alt="image (35).png reference">
+          </div>
+          <div class="render-column" id="canvas-35">
+            <span class="stage-label">Live Web Hydrated</span>
+            <div class="typo-canvas">
+              <div class="t-style-35-l1 target-l1-text" contenteditable="true">2X</div>
+              <div class="t-style-35-l2 target-l2-text" contenteditable="true">REVENUE GROWTH</div>
+            </div>
+          </div>
+        </div>
+        <div class="card-footer">
+          <div class="spec-row">
+            <span class="spec-pill"><strong>L1 Font:</strong> Anton / Bebas Neue (Black 900)</span>
+            <span class="spec-pill"><strong>L2 Font:</strong> Bebas Neue / Oswald (Compressed 900)</span>
+            <a class="font-download-btn" href="/fonts/Anton-Regular.ttf" download>⬇ Download TTF</a>
+          </div>
+        </div>
+      </article>
+
+      <!-- 8. Image (36): PRETTY DOESN'T convert. -->
+      <article class="target-card" id="card-image-36">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="img-tag">Target 8</span>
+            <span>image (36).png — PRETTY DOESN'T convert.</span>
+          </div>
+          <span class="card-mood">Ultra-Tall Condensed Grotesk & Italic Calligraphy</span>
+        </div>
+        <div class="comparison-stage">
+          <div class="ref-column">
+            <span class="stage-label">Original Reference</span>
+            <img src="/font_pairs/image%20(36).png" alt="image (36).png reference">
+          </div>
+          <div class="render-column" id="canvas-36">
+            <span class="stage-label">Live Web Hydrated</span>
+            <div class="typo-canvas">
+              <div class="t-style-36-l1 target-l1-text" contenteditable="true">PRETTY DOESN'T</div>
+              <div class="t-style-36-l2 target-l2-text" contenteditable="true">convert.</div>
+            </div>
+          </div>
+        </div>
+        <div class="card-footer">
+          <div class="spec-row">
+            <span class="spec-pill"><strong>L1 Font:</strong> Bebas Neue / Anton (Tall 900)</span>
+            <span class="spec-pill"><strong>L2 Font:</strong> Playfair Display / Bodoni Moda (Italic 700)</span>
+            <a class="font-download-btn" href="/fonts/PlayfairDisplay-Italic-Variable.ttf" download>⬇ Download TTF</a>
+          </div>
+        </div>
+      </article>
+
+    </main>
+
+  </div>
+
+  <script>
+    const DEFAULT_TEXTS = {
+      1: { l1: "Because Your", l2: "Brian" },
+      3: { l1: "Giaza", l2: "Beautifully Delicious" },
+      4: { l1: "EXTENDA", l2: "Breathing" },
+      6: { l1: "the seasons", l2: "TRUE TYPEWRITER" },
+      8: { l1: "Symphony", l2: "SANCHEZ" },
+      33: { l1: "NEXT", l2: "gen" },
+      35: { l1: "2X", l2: "REVENUE GROWTH" },
+      36: { l1: "PRETTY DOESN'T", l2: "convert." }
+    };
+
+    function setCanvasTheme(theme) {
+      document.querySelectorAll('.render-column').forEach(el => {
+        if (theme === 'dark') {
+          el.classList.add('dark-canvas');
+        } else {
+          el.classList.remove('dark-canvas');
+        }
+      });
+      document.getElementById('btn-theme-light').classList.toggle('active', theme === 'light');
+      document.getElementById('btn-theme-dark').classList.toggle('active', theme === 'dark');
+    }
+
+    function resetDefaultTexts() {
+      Object.keys(DEFAULT_TEXTS).forEach(id => {
+        const card = document.getElementById(`card-image-${id}`);
+        if (card) {
+          const l1 = card.querySelector('.target-l1-text');
+          const l2 = card.querySelector('.target-l2-text');
+          if (l1) l1.innerText = DEFAULT_TEXTS[id].l1;
+          if (l2) l2.innerText = DEFAULT_TEXTS[id].l2;
+        }
+      });
+      document.getElementById('global-l1-input').value = "";
+      document.getElementById('global-l2-input').value = "";
+    }
+
+    // Synchronize global input typing across all 8 cards
+    document.getElementById('global-l1-input').addEventListener('input', (e) => {
+      const val = e.target.value;
+      document.querySelectorAll('.target-l1-text').forEach(el => {
+        if (val.trim()) el.innerText = val;
+      });
+    });
+
+    document.getElementById('global-l2-input').addEventListener('input', (e) => {
+      const val = e.target.value;
+      document.querySelectorAll('.target-l2-text').forEach(el => {
+        if (val.trim()) el.innerText = val;
+      });
+    });
+  </script>
+</body>
+</html>

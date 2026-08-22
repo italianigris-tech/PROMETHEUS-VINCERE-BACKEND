@@ -42,13 +42,15 @@
     {
       "layer_name": "top_condensed",
       "role": "secondary_clause",
-      "font_classification": "Condensed Fine Serif",
+      "font_classification": "Condensed Fine Hairline Serif",
       "matched_font_candidates": [
+        "Senza Bella",
+        "Silver Hairline",
         "Bodoni Moda",
         "Playfair Display"
       ],
       "font_style": {
-        "weight": 400,
+        "weight": 300,
         "style": "normal",
         "casing": "normal",
         "color": "#111111",
@@ -89,6 +91,7 @@
       "role": "header",
       "font_classification": "Giant Heavy Display Serif All-Caps",
       "matched_font_candidates": [
+        "Senza Bella",
         "Bodoni Moda",
         "Abril Fatface"
       ],

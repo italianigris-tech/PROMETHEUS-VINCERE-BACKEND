@@ -91,6 +91,23 @@ font-intelligence/outputs/font-descriptors.jsonl
 
 # Local consolidated deployment env
 CONSOLIDATED.env
+modal.env
+
+# Local Python virtualenv (lib/lib64/share/pyvenv.cfg must never be tracked)
+lib/
+lib64
+share/
+pyvenv.cfg
+
+# Benchmark + upload scratch
+.bench*.bin
+.upload_akimbosa/
+BREAKAGE.md
+
+# Generated render/media output (repo convention: don't commit renders)
+docs/mini_run_studio/uploaded_videos/
+docs/mini_run_studio/video_samples/
+maul-frame-animation-proof.mp4
 
 .vite/
 .codex-temp/

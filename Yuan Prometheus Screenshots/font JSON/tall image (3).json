@@ -1,0 +1,72 @@
+{
+  "profile_name": "Terrance_Extreme_Hairline_Tall",
+  "version": "1.0.0",
+  "metadata": {
+    "target_aspect_ratio": "16:9",
+    "overall_mood": "Extreme Aspect Ratio Ultra-Tall Hairline Condensed, Brutalist Linear",
+    "casing_strategy": "uppercase",
+    "is_tall_font": true,
+    "matte_text_optimized": true,
+    "total_word_count": 1,
+    "total_character_count": 8,
+    "per_word_character_counts": [
+      {
+        "word": "TERRANCE",
+        "character_count": 8
+      }
+    ]
+  },
+  "layout_rules": {
+    "horizontal_alignment": "center",
+    "vertical_position": "center",
+    "bottom_margin_percent": 15,
+    "max_width_percent": 85,
+    "scrim_overlay": {
+      "enabled": false,
+      "type": "none",
+      "opacity": 0,
+      "color": "#FFFFFF"
+    }
+  },
+  "typography_layers": [
+    {
+      "layer_name": "hero_extreme_hairline",
+      "role": "primary_focus_word",
+      "font_classification": "Extreme Aspect Ratio Ultra-Tall Hairline Condensed Sans",
+      "matched_font_candidates": [
+        "Six Caps",
+        "Antonio",
+        "Teko",
+        "Pathway Extreme"
+      ],
+      "font_style": {
+        "weight": 400,
+        "style": "normal",
+        "casing": "uppercase",
+        "color": "#FF3B00",
+        "size_px_base": 76,
+        "relative_scale": 1,
+        "letter_spacing_em": 0.04,
+        "line_height": 0.9,
+        "vertical_margin_top_px": 0
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 2,
+          "blur_radius": 6,
+          "color": "rgba(255, 59, 0, 0.25)"
+        }
+      },
+      "sample_text": "TERRANCE",
+      "word_count": 1,
+      "character_count": 8,
+      "per_word_character_counts": [
+        {
+          "word": "TERRANCE",
+          "character_count": 8
+        }
+      ]
+    }
+  ]
+}

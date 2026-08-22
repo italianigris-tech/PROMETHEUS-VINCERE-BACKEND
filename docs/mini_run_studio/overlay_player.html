@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Matted Overlay Studio — Prometheus</title>
+  <style>
+    :root {
+      --bg-dark: #070913;
+      --card-bg: rgba(14, 19, 38, 0.95);
+      --accent-cyan: #00F0FF;
+      --accent-pink: #FF0055;
+      --accent-purple: #8B5CF6;
+      --accent-green: #10B981;
+      --accent-yellow: #FFE600;
+      --text-main: #FFFFFF;
+      --text-muted: #8E9BAE;
+      --panel-border: rgba(255, 255, 255, 0.1);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg-dark);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px;
+    }
+    .container {
+      width: 100%;
+      max-width: 1280px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .header-card {
+      background: var(--card-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 18px;
+      padding: 16px 24px;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+    }
+    .header-card h1 {
+      font-size: clamp(20px, 3.5vw, 25px);
+      font-weight: 900;
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 2px;
+    }
+    .header-card p { color: var(--text-muted); font-size: 12.5px; }
+
+    .studio-grid {
+      display: grid;
+      grid-template-columns: minmax(320px, 480px) 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 920px) {
+      .studio-grid { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .player-wrap {
+      background: #000;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid var(--panel-border);
+      aspect-ratio: 9 / 16;
+      max-height: 520px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.9);
+      margin: 0 auto;
+      position: relative;
+    }
+    .player-wrap video {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+    #baseVideo { z-index: 0; }
+    #mattedVideo { z-index: 2; }
+    .image-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .image-layer img {
+      position: absolute;
+      max-width: 90%;
+      max-height: 90%;
+      object-fit: contain;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    .image-layer img.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .controls-row {
+      margin-top: 10px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+    .mode-switch-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--panel-border);
+      color: #FFF;
+      padding: 6px 12px;
+      border-radius: 10px;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .mode-switch-btn.active {
+      background: rgba(16, 185, 129, 0.2);
+      border-color: #10B981;
+      color: #10B981;
+      font-weight: 800;
+    }
+
+    .select-control {
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #FFF;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 11.5px;
+      font-family: monospace;
+      cursor: pointer;
+      max-width: 260px;
+    }
+    .select-control:focus { border-color: var(--accent-cyan); outline: none; }
+
+    .btn-tool {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--panel-border);
+      color: #FFF;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .btn-tool:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.25); }
+
+    .layer-badge {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      background: rgba(7, 9, 19, 0.85);
+      border: 1px solid var(--panel-border);
+      color: #FFF;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      backdrop-filter: blur(4px);
+      pointer-events: none;
+      z-index: 10;
+    }
+    .layer-badge.base { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+    .layer-badge.overlay { border-color: var(--accent-pink); color: var(--accent-pink); }
+    .layer-badge.middle { border-color: var(--accent-yellow); color: var(--accent-yellow); }
+
+    .dropzone {
+      border: 2px dashed var(--accent-cyan);
+      border-radius: 14px;
+      padding: 24px;
+      text-align: center;
+      background: rgba(0, 240, 255, 0.03);
+      cursor: pointer;
+      transition: all 0.25s;
+      position: relative;
+      outline: none;
+    }
+    .dropzone:focus-within, .dropzone.active-focus {
+      border-color: #FFF;
+      box-shadow: 0 0 24px rgba(0, 240, 255, 0.4);
+      background: rgba(0, 240, 255, 0.09);
+    }
+    .dropzone.dragover {
+      background: rgba(0, 240, 255, 0.18);
+      border-color: #FFF;
+      transform: scale(1.01);
+      box-shadow: 0 0 30px rgba(0, 240, 255, 0.6);
+    }
+    .dropzone h3 { font-size: 14px; color: #FFF; margin-bottom: 4px; font-weight: 700; }
+    .dropzone p { color: var(--text-muted); font-size: 11.5px; }
+
+    .image-strip {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 8px 0;
+      margin-top: 8px;
+    }
+    .image-strip img {
+      width: 80px;
+      height: 80px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: all 0.2s;
+    }
+    .image-strip img:hover {
+      border-color: var(--accent-cyan);
+      transform: scale(1.05);
+    }
+    .image-strip img.active-asset {
+      border-color: var(--accent-yellow);
+      box-shadow: 0 0 12px rgba(255, 230, 0, 0.4);
+    }
+
+    .frame-readout-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(0,0,0,0.5);
+      border: 1px solid var(--panel-border);
+      padding: 6px 12px;
+      border-radius: 8px;
+      margin-top: 10px;
+      font-family: monospace;
+      font-size: 12px;
+    }
+    .frame-readout-bar strong { color: var(--accent-cyan); }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid var(--accent-green);
+      color: var(--accent-green);
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .status-badge.error {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: #EF4444;
+      color: #FCA5A5;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header-card">
+      <h1>🎭 Matted Overlay Studio</h1>
+      <p>Non-destructive overlay layering • Base video + sliding assets + Matted principal speaker</p>
+    </div>
+
+    <div class="studio-grid">
+      <div class="card">
+        <div class="player-wrap" id="playerWrap">
+          <div class="layer-badge base">BASE</div>
+          <div class="layer-badge middle">ASSETS</div>
+          <div class="layer-badge overlay">MATTED</div>
+          <video id="baseVideo" src="/uploaded_input_video.mp4" controls playsinline preload="auto" crossorigin="anonymous"></video>
+          <div class="image-layer" id="imageLayer"></div>
+          <video id="mattedVideo" playsinline preload="auto" muted crossorigin="anonymous"></video>
+        </div>
+
+        <div class="frame-readout-bar">
+          <div>TIME: <strong id="lblTime">00:00.00</strong></div>
+          <div id="syncStatus" class="status-badge">✓ Synced</div>
+        </div>
+
+        <div class="controls-row">
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <select id="baseVideoSelect" class="select-control" onchange="switchBaseVideo(this.value)">
+              <option value="/uploaded_input_video.mp4">uploaded_input_video.mp4</option>
+              <option value="/raw_original_video.mp4">raw_original_video.mp4</option>
+              <option value="/video_with_real_sfx.mp4">video_with_real_sfx.mp4</option>
+              <option value="/laptop_talking_head_vertical.mp4">laptop_talking_head_vertical.mp4</option>
+            </select>
+            <select id="mattedVideoSelect" class="select-control" onchange="switchMattedVideo(this.value)">
+              <option value="">-- Select Matted Video --</option>
+            </select>
+          </div>
+          <div style="display:flex; gap:6px;">
+            <button class="btn-tool" onclick="syncPlayPause()">⏯ Sync Play/Pause</button>
+            <button class="btn-tool" onclick="document.getElementById('imageFilePicker').click()">🖼 Add Asset</button>
+            <input type="file" id="imageFilePicker" accept="image/*" multiple style="display:none;" onchange="handleImageFiles(this.files)">
+          </div>
+        </div>
+
+        <div class="dropzone" id="imageDropzone" style="margin-top:10px;">
+          <h3>Drag & Drop Images Here</h3>
+          <p>Assets slide between the base video and matted overlay</p>
+        </div>
+
+        <div class="image-strip" id="imageStrip"></div>
+      </div>
+
+      <div class="card">
+        <div style="font-size:13px; color:var(--text-muted); line-height:1.6;">
+          <strong style="color:var(--accent-cyan);">How this works:</strong>
+          <ul style="margin-left:18px; margin-top:8px; display:flex; flex-direction:column; gap:6px;">
+            <li><strong style="color:var(--accent-cyan);">BASE LAYER</strong> — The original "cousin" video without matting.</li>
+            <li><strong style="color:var(--accent-yellow);">ASSET LAYER</strong> — Images you add here slide in behind the principal speaker. Use the controls to fade/slide them.</li>
+            <li><strong style="color:var(--accent-pink);">MATTED LAYER</strong> — The uploaded alpha-matted principal speaker video. Placed on top as a pure overlay.</li>
+          </ul>
+          <p style="margin-top:12px; font-size:11.5px; color:#64748B;">
+            No encoding. No compositing. No burning in. Pure browser-based overlay. Videos stay in separate &lt;video&gt; elements and are synchronized in real-time. You can scrub, loop, and swap assets independently.
+          </p>
+          <div style="margin-top:16px; padding:12px; background:rgba(0,0,0,0.4); border-radius:10px; border:1px solid var(--panel-border);">
+            <div style="font-size:11px; color:var(--text-muted); font-family:monospace;">
+              <div>BASE: <span id="debugBase" style="color:var(--accent-cyan);">uploaded_input_video.mp4</span></div>
+              <div>OVERLAY: <span id="debugOverlay" style="color:var(--accent-pink);">None</span></div>
+              <div>ASSETS: <span id="debugAssets" style="color:var(--accent-yellow);">0 loaded</span></div>
+              <div>SYNC DRIFT: <span id="debugDrift" style="color:var(--accent-green);">0.00s</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const baseVideo = document.getElementById('baseVideo');
+    const mattedVideo = document.getElementById('mattedVideo');
+    const imageLayer = document.getElementById('imageLayer');
+    const imageStrip = document.getElementById('imageStrip');
+    const lblTime = document.getElementById('lblTime');
+    const syncStatus = document.getElementById('syncStatus');
+    const imageDropzone = document.getElementById('imageDropzone');
+
+    let loadedAssets = [];
+    let activeAssetIndex = -1;
+    let isSeekingTarget = false;
+    let mattedVideoUrl = '';
+
+    async function loadMattedVideoList() {
+      try {
+        const res = await fetch('/api/list_uploaded_videos?t=' + Date.now());
+        const data = await res.json();
+        const select = document.getElementById('mattedVideoSelect');
+        select.innerHTML = '<option value="">-- Select Matted Video --</option>' +
+          data.map(item => `<option value="${item.url}">${item.name} (${formatBytes(item.size)})</option>`).join('');
+        if (data.length > 0) {
+          select.value = data[0].url;
+          switchMattedVideo(data[0].url);
+        }
+      } catch (e) {
+        console.error('Failed to load matted videos:', e);
+      }
+    }
+
+    function switchBaseVideo(url) {
+      const wasPlaying = !baseVideo.paused;
+      const curTime = baseVideo.currentTime;
+      baseVideo.src = url;
+      const onMeta = () => {
+        baseVideo.currentTime = curTime;
+        if (wasPlaying) baseVideo.play().catch(() => {});
+        baseVideo.removeEventListener('loadedmetadata', onMeta);
+      };
+      baseVideo.addEventListener('loadedmetadata', onMeta);
+      if (baseVideo.readyState >= 2) onMeta();
+      document.getElementById('debugBase').textContent = url.split('/').pop();
+    }
+
+    function switchMattedVideo(url) {
+      if (!url) {
+        mattedVideo.src = '';
+        mattedVideoUrl = '';
+        document.getElementById('debugOverlay').textContent = 'None';
+        return;
+      }
+      const wasPlaying = !baseVideo.paused;
+      const curTime = baseVideo.currentTime;
+      mattedVideo.src = url;
+      mattedVideoUrl = url;
+      document.getElementById('debugOverlay').textContent = url.split('/').pop();
+      const onMeta = () => {
+        mattedVideo.currentTime = curTime;
+        if (wasPlaying) mattedVideo.play().catch(() => {});
+        mattedVideo.removeEventListener('loadedmetadata', onMeta);
+      };
+      mattedVideo.addEventListener('loadedmetadata', onMeta);
+      if (mattedVideo.readyState >= 2) onMeta();
+    }
+
+    function syncPlayPause() {
+      if (baseVideo.paused) {
+        const playPromise = baseVideo.play();
+        if (playPromise !== undefined) {
+          playPromise.then(() => mattedVideo.play().catch(() => {})).catch(() => {
+            baseVideo.muted = true;
+            baseVideo.play();
+            mattedVideo.play().catch(() => {});
+          });
+        }
+      } else {
+        baseVideo.pause();
+        mattedVideo.pause();
+      }
+    }
+
+    function formatBytes(bytes) {
+      if (!bytes || bytes === 0) return '0 B';
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return (bytes / Math.pow(k, i)).toFixed(1) + ' ' + sizes[i];
+    }
+
+    function handleImageFiles(fileList) {
+      if (!fileList || fileList.length === 0) return;
+      for (let i = 0; i < fileList.length; i++) {
+        const file = fileList[i];
+        if (!file.type.startsWith('image/')) continue;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const url = e.target.result;
+          addAssetToLayer(url, file.name);
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function addAssetToLayer(url, name) {
+      const idx = loadedAssets.length;
+      loadedAssets.push({ url, name, visible: false });
+
+      const img = document.createElement('img');
+      img.src = url;
+      img.alt = name;
+      img.id = 'asset-' + idx;
+      img.style.left = '50%';
+      img.style.top = '50%';
+      img.style.transform = 'translate(-50%, -50%) translateY(20px)';
+      img.style.opacity = '0';
+      imageLayer.appendChild(img);
+
+      const stripItem = document.createElement('img');
+      stripItem.src = url;
+      stripItem.alt = name;
+      stripItem.title = name;
+      stripItem.onclick = () => toggleAsset(idx);
+      stripItem.id = 'strip-' + idx;
+      imageStrip.appendChild(stripItem);
+
+      document.getElementById('debugAssets').textContent = loadedAssets.length + ' loaded';
+      toggleAsset(idx);
+    }
+
+    function toggleAsset(idx) {
+      const img = document.getElementById('asset-' + idx);
+      const stripItem = document.getElementById('strip-' + idx);
+      if (!img) return;
+
+      const isVisible = img.classList.contains('visible');
+      if (isVisible) {
+        img.classList.remove('visible');
+        img.style.opacity = '0';
+        img.style.transform = 'translate(-50%, -50%) translateY(20px)';
+        if (stripItem) stripItem.classList.remove('active-asset');
+      } else {
+        document.querySelectorAll('.image-layer img.visible').forEach(el => {
+          el.classList.remove('visible');
+          el.style.opacity = '0';
+          el.style.transform = 'translate(-50%, -50%) translateY(20px)';
+        });
+        document.querySelectorAll('.image-strip img.active-asset').forEach(el => el.classList.remove('active-asset'));
+
+        img.classList.add('visible');
+        img.style.opacity = '1';
+        img.style.transform = 'translate(-50%, -50%) translateY(0)';
+        if (stripItem) stripItem.classList.add('active-asset');
+      }
+    }
+
+    baseVideo.addEventListener('timeupdate', () => {
+      const cur = baseVideo.currentTime;
+      const min = Math.floor(cur / 60);
+      const sec = (cur % 60).toFixed(2);
+      lblTime.innerText = (min < 10 ? '0' : '') + min + ':' + (sec < 10 ? '0' : '') + sec;
+
+      if (mattedVideo.src && mattedVideo.readyState >= 2) {
+        const drift = Math.abs(baseVideo.currentTime - mattedVideo.currentTime);
+        document.getElementById('debugDrift').textContent = drift.toFixed(3) + 's';
+        if (drift > 0.15 && !isSeekingTarget) {
+          isSeekingTarget = true;
+          mattedVideo.currentTime = baseVideo.currentTime;
+          setTimeout(() => { isSeekingTarget = false; }, 200);
+        }
+        if (drift > 0.05) {
+          syncStatus.textContent = '⚠ Drift ' + drift.toFixed(2) + 's';
+          syncStatus.classList.add('error');
+        } else {
+          syncStatus.textContent = '✓ Synced';
+          syncStatus.classList.remove('error');
+        }
+      }
+    });
+
+    baseVideo.addEventListener('seeked', () => {
+      if (mattedVideo.src && mattedVideo.readyState >= 2) {
+        mattedVideo.currentTime = baseVideo.currentTime;
+      }
+    });
+
+    mattedVideo.addEventListener('seeked', () => {
+      isSeekingTarget = false;
+    });
+
+    baseVideo.addEventListener('play', () => {
+      if (mattedVideo.src && mattedVideo.readyState >= 2) {
+        mattedVideo.play().catch(() => {});
+      }
+    });
+    baseVideo.addEventListener('pause', () => {
+      if (!mattedVideo.paused) mattedVideo.pause();
+    });
+    baseVideo.addEventListener('ended', () => {
+      mattedVideo.pause();
+    });
+
+    const dropzone = imageDropzone;
+    dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      if (e.dataTransfer && e.dataTransfer.files) handleImageFiles(e.dataTransfer.files);
+    });
+    dropzone.addEventListener('click', (e) => {
+      if (e.target.closest('input')) return;
+      document.getElementById('imageFilePicker').click();
+    });
+
+    window.addEventListener('paste', (e) => {
+      const cd = e.clipboardData || window.clipboardData;
+      if (!cd) return;
+      const items = cd.items;
+      if (!items) return;
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.startsWith('image/')) {
+          const file = items[i].getAsFile();
+          if (file) handleImageFiles([file]);
+        }
+      }
+    });
+
+    loadMattedVideoList();
+  </script>
+</body>
+</html>

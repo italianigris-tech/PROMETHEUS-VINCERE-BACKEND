@@ -1,0 +1,72 @@
+{
+  "profile_name": "Growth_UltraCondensed_Pill_Grotesk",
+  "version": "1.0.0",
+  "metadata": {
+    "target_aspect_ratio": "16:9",
+    "overall_mood": "Ultra-Condensed Heavy Rounded Pill Grotesque, Monolithic Height",
+    "casing_strategy": "uppercase",
+    "is_tall_font": true,
+    "matte_text_optimized": true,
+    "total_word_count": 1,
+    "total_character_count": 6,
+    "per_word_character_counts": [
+      {
+        "word": "GROWTH",
+        "character_count": 6
+      }
+    ]
+  },
+  "layout_rules": {
+    "horizontal_alignment": "center",
+    "vertical_position": "center",
+    "bottom_margin_percent": 15,
+    "max_width_percent": 85,
+    "scrim_overlay": {
+      "enabled": false,
+      "type": "none",
+      "opacity": 0,
+      "color": "#000000"
+    }
+  },
+  "typography_layers": [
+    {
+      "layer_name": "hero_rounded_pill",
+      "role": "primary_focus_word",
+      "font_classification": "Ultra-Condensed Heavy Rounded Pill Grotesque",
+      "matched_font_candidates": [
+        "Bebas Neue",
+        "Anton",
+        "Big Shoulders Display",
+        "Oswald"
+      ],
+      "font_style": {
+        "weight": 900,
+        "style": "normal",
+        "casing": "uppercase",
+        "color": "#E65100",
+        "size_px_base": 70,
+        "relative_scale": 1,
+        "letter_spacing_em": 0.01,
+        "line_height": 0.95,
+        "vertical_margin_top_px": 0
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 4,
+          "blur_radius": 10,
+          "color": "rgba(230, 81, 0, 0.4)"
+        }
+      },
+      "sample_text": "GROWTH",
+      "word_count": 1,
+      "character_count": 6,
+      "per_word_character_counts": [
+        {
+          "word": "GROWTH",
+          "character_count": 6
+        }
+      ]
+    }
+  ]
+}

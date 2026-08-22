@@ -1,0 +1,482 @@
+[
+  {
+    "id": "cue_t3_01",
+    "chunkIndex": 1,
+    "timestampSeconds": 0,
+    "frame": 0,
+    "spokenText": "Most founders",
+    "emphasis": "context",
+    "visualTrigger": {
+      "type": "ASSET_HERO_TRIGGER",
+      "elementName": "Most founders",
+      "screenXPercent": 50,
+      "screenYPercent": 40
+    },
+    "soundDesign": {
+      "category": "MECHANICAL CLICKS",
+      "soundName": "Typewriter Single Strike",
+      "soundFile": "SOUND FX/TEXT/type-writing-6834.mp3",
+      "stereoPan": 0,
+      "depthPlane": 30,
+      "lowpassCutoffHz": 18500,
+      "gainDb": -6,
+      "durationEstimateSec": 0.8
+    }
+  },
+  {
+    "id": "cue_t3_02",
+    "chunkIndex": 2,
+    "timestampSeconds": 2,
+    "frame": 60,
+    "spokenText": "don't have",
+    "emphasis": "transition",
+    "visualTrigger": {
+      "type": "TYPOGRAPHY_KINETIC_TRIGGER",
+      "elementName": "don't have",
+      "screenXPercent": 50,
+      "screenYPercent": 40
+    },
+    "soundDesign": {
+      "category": "SWOOSHES",
+      "soundName": "Jump Swish Swoosh",
+      "soundFile": "SOUND FX/SWOOSHES/ES_Jump Swish - SFX Producer.mp3",
+      "stereoPan": 0,
+      "depthPlane": 20,
+      "lowpassCutoffHz": 12000,
+      "gainDb": -7,
+      "durationEstimateSec": 0.8
+    }
+  },
+  {
+    "id": "cue_t3_03",
+    "chunkIndex": 3,
+    "timestampSeconds": 4,
+    "frame": 120,
+    "spokenText": "a growth problem.",
+    "emphasis": "contrast_claim",
+    "visualTrigger": {
+      "type": "TYPOGRAPHY_KINETIC_TRIGGER",
+      "elementName": "a growth problem.",
+      "screenXPercent": 50,
+      "screenYPercent": 40
+    },
+    "soundDesign": {
+      "category": "MECHANICAL CLICKS",
+      "soundName": "Typewriter Single Strike",
+      "soundFile": "SOUND FX/TEXT/type-writing-6834.mp3",
+      "stereoPan": 0,
+      "depthPlane": 30,
+      "lowpassCutoffHz": 18500,
+      "gainDb": -6,
+      "durationEstimateSec": 0.8
+    }
+  },
+  {
+    "id": "cue_t3_04",
+    "chunkIndex": 4,
+    "timestampSeconds": 6,
+    "frame": 180,
+    "spokenText": "They have",
+    "emphasis": "transition",
+    "visualTrigger": {
+      "type": "TYPOGRAPHY_KINETIC_TRIGGER",
+      "elementName": "They have",
+      "screenXPercent": 50,
+      "screenYPercent": 40
+    },
+    "soundDesign": {
+      "category": "SWOOSHES",
+      "soundName": "Jump Swish Swoosh",
+      "soundFile": "SOUND FX/SWOOSHES/ES_Jump Swish - SFX Producer.mp3",
+      "stereoPan": 0,
+      "depthPlane": 20,
+      "lowpassCutoffHz": 12000,
+      "gainDb": -7,
+      "durationEstimateSec": 0.8
+    }
+  },
+  {
+    "id": "cue_t3_05",
+    "chunkIndex": 5,
+    "timestampSeconds": 8,
+    "frame": 240,
+    "spokenText": "a focus problem.",
+    "emphasis": "hero_concept",
+    "visualTrigger": {
+      "type": "ASSET_HERO_TRIGGER",
+      "elementName": "a focus problem.",
+      "screenXPercent": 80,
+      "screenYPercent": 40
+    },
+    "soundDesign": {
+      "category": "IMPACTS",
+      "soundName": "Focus Target Lock Accent",
+      "soundFile": "SOUND FX/IMPACTS/ES_Punch Sub - SFX Producer.mp3",
+      "stereoPan": 0.75,
+      "depthPlane": 10,
+      "lowpassCutoffHz": 1400,
+      "gainDb": -4.5,
+      "durationEstimateSec": 0.8
+    }
+  },
+  {
+    "id": "cue_t3_06",
+    "chunkIndex": 6,
+    "timestampSeconds": 10,
+    "frame": 300,
+    "spokenText": "Because every opportunity",
+    "emphasis": "context",
+    "visualTrigger": {
+      "type": "TYPOGRAPHY_KINETIC_TRIGGER",
+      "elementName": "Because every opportunity",
+      "screenXPercent": 50,
+      "screenYPercent": 40
+    },
+    "soundDesign": {
+      "category": "MECHANICAL CLICKS",
+      "soundName": "Typewriter Single Strike",
+      "soundFile": "SOUND FX/TEXT/type-writing-6834.mp3",
+      "stereoPan": 0,
+      "depthPlane": 30,
+      "lowpassCutoffHz": 18500,
+      "gainDb": -6,
+      "durationEstimateSec": 0.8
+    }
+  },
+  {
+    "id": "cue_t3_07",
+    "chunkIndex": 7,
+    "timestampSeconds": 12,
+    "frame": 360,
+    "spokenText": "looks important",
+    "emphasis": "key_point",
+    "visualTrigger": {
+      "type": "TYPOGRAPHY_KINETIC_TRIGGER",
+      "elementName": "looks important",
+      "screenXPercent": 50,
+      "screenYPercent": 40
+    },
+    "soundDesign": {
+      "category": "MECHANICAL CLICKS",
+      "soundName": "Typewriter Single Strike",
+      "soundFile": "SOUND FX/TEXT/type-writing-6834.mp3",
+      "stereoPan": 0,
+      "depthPlane": 30,
+      "lowpassCutoffHz": 18500,
+      "gainDb": -6,
+      "durationEstimateSec": 0.8
+    }
+  },
+  {
+    "id": "cue_t3_08",
+    "chunkIndex": 8,
+    "timestampSeconds": 14,
+    "frame": 420,
+    "spokenText": "when you haven't",
+    "emphasis": "clause",
+    "visualTrigger": {
+      "type": "TYPOGRAPHY_KINETIC_TRIGGER",
+      "elementName": "when you haven't",
+      "screenXPercent": 50,
+      "screenYPercent": 40
+    },
+    "soundDesign": {
+      "category": "MECHANICAL CLICKS",
+      "soundName": "Typewriter Single Strike",
+      "soundFile": "SOUND FX/TEXT/type-writing-6834.mp3",
+      "stereoPan": 0,
+      "depthPlane": 30,
+      "lowpassCutoffHz": 18500,
+      "gainDb": -6,
+      "durationEstimateSec": 0.8
+    }
+  },
+  {
+    "id": "cue_t3_09",
+    "chunkIndex": 9,
+    "timestampSeconds": 16,
+    "frame": 480,
+    "spokenText": "decided what matters.",
+    "emphasis": "inflection_tension",
+    "visualTrigger": {
+      "type": "TYPOGRAPHY_KINETIC_TRIGGER",
+      "elementName": "decided what matters.",
+      "screenXPercent": 50,
+      "screenYPercent": 40
+    },
+    "soundDesign": {
+      "category": "MECHANICAL CLICKS",
+      "soundName": "Typewriter Single Strike",
+      "soundFile": "SOUND FX/TEXT/type-writing-6834.mp3",
+      "stereoPan": 0,
+      "depthPlane": 30,
+      "lowpassCutoffHz": 18500,
+      "gainDb": -6,
+      "durationEstimateSec": 0.8
+    }
+  },
+  {
+    "id": "cue_t3_10",
+    "chunkIndex": 10,
+    "timestampSeconds": 18,
+    "frame": 540,
+    "spokenText": "So you chase",
+    "emphasis": "transition",
+    "visualTrigger": {
+      "type": "TYPOGRAPHY_KINETIC_TRIGGER",
+      "elementName": "So you chase",
+      "screenXPercent": 50,
+      "screenYPercent": 40
+    },
+    "soundDesign": {
+      "category": "SWOOSHES",
+      "soundName": "Jump Swish Swoosh",
+      "soundFile": "SOUND FX/SWOOSHES/ES_Jump Swish - SFX Producer.mp3",
+      "stereoPan": 0,
+      "depthPlane": 20,
+      "lowpassCutoffHz": 12000,
+      "gainDb": -7,
+      "durationEstimateSec": 0.8
+    }
+  },
+  {
+    "id": "cue_t3_11",
+    "chunkIndex": 11,
+    "timestampSeconds": 20,
+    "frame": 600,
+    "spokenText": "new ideas,",
+    "emphasis": "enumeration_1",
+    "visualTrigger": {
+      "type": "ASSET_HERO_TRIGGER",
+      "elementName": "new ideas,",
+      "screenXPercent": 20,
+      "screenYPercent": 40
+    },
+    "soundDesign": {
+      "category": "WOODBLOCK TICKS",
+      "soundName": "Quadrant Item Step #1",
+      "soundFile": "SOUND FX/TEXT/dragon-studio-typing-with-keyboard-435489.mp3",
+      "stereoPan": -0.75,
+      "depthPlane": 20,
+      "lowpassCutoffHz": 6500,
+      "gainDb": -6,
+      "durationEstimateSec": 0.8
+    }
+  },
+  {
+    "id": "cue_t3_12",
+    "chunkIndex": 12,
+    "timestampSeconds": 22,
+    "frame": 660,
+    "spokenText": "new customers,",
+    "emphasis": "enumeration_2",
+    "visualTrigger": {
+      "type": "ASSET_HERO_TRIGGER",
+      "elementName": "new customers,",
+      "screenXPercent": 20,
+      "screenYPercent": 40
+    },
+    "soundDesign": {
+      "category": "WOODBLOCK TICKS",
+      "soundName": "Quadrant Item Step #2",
+      "soundFile": "SOUND FX/TEXT/dragon-studio-typing-with-keyboard-435489.mp3",
+      "stereoPan": -0.75,
+      "depthPlane": 20,
+      "lowpassCutoffHz": 6500,
+      "gainDb": -6,
+      "durationEstimateSec": 0.8
+    }
+  },
+  {
+    "id": "cue_t3_13",
+    "chunkIndex": 13,
+    "timestampSeconds": 24,
+    "frame": 720,
+    "spokenText": "new strategies,",
+    "emphasis": "enumeration_3",
+    "visualTrigger": {
+      "type": "ASSET_HERO_TRIGGER",
+      "elementName": "new strategies,",
+      "screenXPercent": 20,
+      "screenYPercent": 40
+    },
+    "soundDesign": {
+      "category": "WOODBLOCK TICKS",
+      "soundName": "Quadrant Item Step #3",
+      "soundFile": "SOUND FX/TEXT/dragon-studio-typing-with-keyboard-435489.mp3",
+      "stereoPan": -0.75,
+      "depthPlane": 20,
+      "lowpassCutoffHz": 6500,
+      "gainDb": -6,
+      "durationEstimateSec": 0.8
+    }
+  },
+  {
+    "id": "cue_t3_14",
+    "chunkIndex": 14,
+    "timestampSeconds": 26,
+    "frame": 780,
+    "spokenText": "and new tools.",
+    "emphasis": "enumeration_4",
+    "visualTrigger": {
+      "type": "ASSET_HERO_TRIGGER",
+      "elementName": "and new tools.",
+      "screenXPercent": 20,
+      "screenYPercent": 40
+    },
+    "soundDesign": {
+      "category": "WOODBLOCK TICKS",
+      "soundName": "Quadrant Item Step #4",
+      "soundFile": "SOUND FX/TEXT/dragon-studio-typing-with-keyboard-435489.mp3",
+      "stereoPan": -0.75,
+      "depthPlane": 20,
+      "lowpassCutoffHz": 6500,
+      "gainDb": -6,
+      "durationEstimateSec": 0.8
+    }
+  },
+  {
+    "id": "cue_t3_15",
+    "chunkIndex": 15,
+    "timestampSeconds": 28,
+    "frame": 840,
+    "spokenText": "But eventually,",
+    "emphasis": "transition",
+    "visualTrigger": {
+      "type": "TYPOGRAPHY_KINETIC_TRIGGER",
+      "elementName": "But eventually,",
+      "screenXPercent": 50,
+      "screenYPercent": 40
+    },
+    "soundDesign": {
+      "category": "SWOOSHES",
+      "soundName": "Jump Swish Swoosh",
+      "soundFile": "SOUND FX/SWOOSHES/ES_Jump Swish - SFX Producer.mp3",
+      "stereoPan": 0,
+      "depthPlane": 20,
+      "lowpassCutoffHz": 12000,
+      "gainDb": -7,
+      "durationEstimateSec": 0.8
+    }
+  },
+  {
+    "id": "cue_t3_16",
+    "chunkIndex": 16,
+    "timestampSeconds": 30,
+    "frame": 900,
+    "spokenText": "you realize something.",
+    "emphasis": "inflection_solution",
+    "visualTrigger": {
+      "type": "TYPOGRAPHY_KINETIC_TRIGGER",
+      "elementName": "you realize something.",
+      "screenXPercent": 50,
+      "screenYPercent": 40
+    },
+    "soundDesign": {
+      "category": "MECHANICAL CLICKS",
+      "soundName": "Typewriter Single Strike",
+      "soundFile": "SOUND FX/TEXT/type-writing-6834.mp3",
+      "stereoPan": 0,
+      "depthPlane": 30,
+      "lowpassCutoffHz": 18500,
+      "gainDb": -6,
+      "durationEstimateSec": 0.8
+    }
+  },
+  {
+    "id": "cue_t3_17",
+    "chunkIndex": 17,
+    "timestampSeconds": 32,
+    "frame": 960,
+    "spokenText": "Growth doesn't come",
+    "emphasis": "contrast_claim",
+    "visualTrigger": {
+      "type": "TYPOGRAPHY_KINETIC_TRIGGER",
+      "elementName": "Growth doesn't come",
+      "screenXPercent": 50,
+      "screenYPercent": 40
+    },
+    "soundDesign": {
+      "category": "MECHANICAL CLICKS",
+      "soundName": "Typewriter Single Strike",
+      "soundFile": "SOUND FX/TEXT/type-writing-6834.mp3",
+      "stereoPan": 0,
+      "depthPlane": 30,
+      "lowpassCutoffHz": 18500,
+      "gainDb": -6,
+      "durationEstimateSec": 0.8
+    }
+  },
+  {
+    "id": "cue_t3_18",
+    "chunkIndex": 18,
+    "timestampSeconds": 34,
+    "frame": 1020,
+    "spokenText": "from doing more things.",
+    "emphasis": "key_point",
+    "visualTrigger": {
+      "type": "TYPOGRAPHY_KINETIC_TRIGGER",
+      "elementName": "from doing more things.",
+      "screenXPercent": 50,
+      "screenYPercent": 40
+    },
+    "soundDesign": {
+      "category": "MECHANICAL CLICKS",
+      "soundName": "Typewriter Single Strike",
+      "soundFile": "SOUND FX/TEXT/type-writing-6834.mp3",
+      "stereoPan": 0,
+      "depthPlane": 30,
+      "lowpassCutoffHz": 18500,
+      "gainDb": -6,
+      "durationEstimateSec": 0.8
+    }
+  },
+  {
+    "id": "cue_t3_19",
+    "chunkIndex": 19,
+    "timestampSeconds": 36,
+    "frame": 1080,
+    "spokenText": "It comes from doing",
+    "emphasis": "clause",
+    "visualTrigger": {
+      "type": "TYPOGRAPHY_KINETIC_TRIGGER",
+      "elementName": "It comes from doing",
+      "screenXPercent": 50,
+      "screenYPercent": 40
+    },
+    "soundDesign": {
+      "category": "MECHANICAL CLICKS",
+      "soundName": "Typewriter Single Strike",
+      "soundFile": "SOUND FX/TEXT/type-writing-6834.mp3",
+      "stereoPan": 0,
+      "depthPlane": 30,
+      "lowpassCutoffHz": 18500,
+      "gainDb": -6,
+      "durationEstimateSec": 0.8
+    }
+  },
+  {
+    "id": "cue_t3_20",
+    "chunkIndex": 20,
+    "timestampSeconds": 38,
+    "frame": 1140,
+    "spokenText": "the right things repeatedly.",
+    "emphasis": "terminal_payoff",
+    "visualTrigger": {
+      "type": "ASSET_HERO_TRIGGER",
+      "elementName": "the right things repeatedly.",
+      "screenXPercent": 50,
+      "screenYPercent": 40
+    },
+    "soundDesign": {
+      "category": "ORCHESTRAL CLIMAX",
+      "soundName": "Atomic Compounding Climax Braaam",
+      "soundFile": "SOUND FX/IMPACTS/Braaam - Deep Metal Horn (Sub Drop) - (Nikko Hunt's S.D.Essentials).wav",
+      "stereoPan": 0,
+      "depthPlane": 10,
+      "lowpassCutoffHz": 18500,
+      "gainDb": -3.5,
+      "durationEstimateSec": 0.8
+    }
+  }
+]

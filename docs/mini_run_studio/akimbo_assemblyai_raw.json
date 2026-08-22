@@ -1,0 +1,2657 @@
+{
+  "id": "0781c423-668c-4da3-b218-60aeeb8aa3ae",
+  "language_model": "assemblyai_default",
+  "acoustic_model": "assemblyai_default",
+  "language_code": "en_us",
+  "speech_understanding": null,
+  "translated_texts": null,
+  "status": "completed",
+  "audio_url": "https://cdn.assemblyai.com/upload/cff9c88538e61326d1e4e88094d8048457f99d457e0642e85013c682c4241c29/4b78d034-6d93-424f-8807-f9f94bc45e23",
+  "text": "Over the last 12 months, I've purchased more than 12,000 physical products from eBay.com that I've then resold on Amazon for more than six figures in Pure profit. And the best part is, I've done it all from home. Sometimes in my pajamas, sometimes in my Sunday best. The point is, the choice was mine. Sounds like a dream come true, right? Well, for me it was. However, to be perfectly transparent, growing to this level hasn't been all sunshine and rainbows. While the business has been extremely gratifying, lucrative and financially life changing, the amount of obstacles I encountered every day as I grew my ebay to Amazon business was driving me absolutely nuts. The more items I would purchase on ebay to grow my Amazon business, the more issues I would encounter. And guess what? It was a hundred percent my fault. I literally had no system to handle the various nuances to this specific E2A flipping model. I had no system to track my ebay purchases to know if they were actually being delivered to my house successfully, successfully.",
+  "words": [
+    {
+      "text": "Over",
+      "start": 800,
+      "end": 920,
+      "confidence": 0.98828125,
+      "speaker": "A"
+    },
+    {
+      "text": "the",
+      "start": 920,
+      "end": 1080,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "last",
+      "start": 1080,
+      "end": 1320,
+      "confidence": 0.9995117,
+      "speaker": "A"
+    },
+    {
+      "text": "12",
+      "start": 1320,
+      "end": 1640,
+      "confidence": 0.99951,
+      "speaker": "A"
+    },
+    {
+      "text": "months,",
+      "start": 1640,
+      "end": 2000,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "I've",
+      "start": 2000,
+      "end": 2360,
+      "confidence": 0.97314453,
+      "speaker": "A"
+    },
+    {
+      "text": "purchased",
+      "start": 2360,
+      "end": 2800,
+      "confidence": 0.99934894,
+      "speaker": "A"
+    },
+    {
+      "text": "more",
+      "start": 2800,
+      "end": 3000,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "than",
+      "start": 3000,
+      "end": 3240,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "12,000",
+      "start": 3240,
+      "end": 3920,
+      "confidence": 0.87622,
+      "speaker": "A"
+    },
+    {
+      "text": "physical",
+      "start": 4000,
+      "end": 4560,
+      "confidence": 0.9998372,
+      "speaker": "A"
+    },
+    {
+      "text": "products",
+      "start": 4560,
+      "end": 4920,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "from",
+      "start": 4920,
+      "end": 5200,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "eBay.com",
+      "start": 5200,
+      "end": 6080,
+      "confidence": 0.99406,
+      "speaker": "A"
+    },
+    {
+      "text": "that",
+      "start": 6240,
+      "end": 6520,
+      "confidence": 0.9995117,
+      "speaker": "A"
+    },
+    {
+      "text": "I've",
+      "start": 6520,
+      "end": 6760,
+      "confidence": 0.9991862,
+      "speaker": "A"
+    },
+    {
+      "text": "then",
+      "start": 6760,
+      "end": 6960,
+      "confidence": 0.85058594,
+      "speaker": "A"
+    },
+    {
+      "text": "resold",
+      "start": 6960,
+      "end": 7440,
+      "confidence": 0.9963379,
+      "speaker": "A"
+    },
+    {
+      "text": "on",
+      "start": 7440,
+      "end": 7640,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "Amazon",
+      "start": 7640,
+      "end": 8120,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "for",
+      "start": 8120,
+      "end": 8320,
+      "confidence": 0.9995117,
+      "speaker": "A"
+    },
+    {
+      "text": "more",
+      "start": 8320,
+      "end": 8440,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "than",
+      "start": 8440,
+      "end": 8680,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "six",
+      "start": 8680,
+      "end": 9000,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "figures",
+      "start": 9000,
+      "end": 9400,
+      "confidence": 0.9812012,
+      "speaker": "A"
+    },
+    {
+      "text": "in",
+      "start": 9400,
+      "end": 9640,
+      "confidence": 0.9277344,
+      "speaker": "A"
+    },
+    {
+      "text": "Pure",
+      "start": 9640,
+      "end": 9960,
+      "confidence": 0.9074707,
+      "speaker": "A"
+    },
+    {
+      "text": "profit.",
+      "start": 9960,
+      "end": 10520,
+      "confidence": 0.99975586,
+      "speaker": "A"
+    },
+    {
+      "text": "And",
+      "start": 10520,
+      "end": 10800,
+      "confidence": 0.59228516,
+      "speaker": "A"
+    },
+    {
+      "text": "the",
+      "start": 10800,
+      "end": 11000,
+      "confidence": 0.9995117,
+      "speaker": "A"
+    },
+    {
+      "text": "best",
+      "start": 11000,
+      "end": 11200,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "part",
+      "start": 11200,
+      "end": 11440,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "is,",
+      "start": 11440,
+      "end": 11760,
+      "confidence": 0.99902344,
+      "speaker": "A"
+    },
+    {
+      "text": "I've",
+      "start": 11840,
+      "end": 12160,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "done",
+      "start": 12160,
+      "end": 12280,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "it",
+      "start": 12280,
+      "end": 12480,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "all",
+      "start": 12480,
+      "end": 12720,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "from",
+      "start": 12720,
+      "end": 12960,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "home.",
+      "start": 12960,
+      "end": 13280,
+      "confidence": 0.99853516,
+      "speaker": "A"
+    },
+    {
+      "text": "Sometimes",
+      "start": 13440,
+      "end": 13960,
+      "confidence": 0.9996745,
+      "speaker": "A"
+    },
+    {
+      "text": "in",
+      "start": 13960,
+      "end": 14120,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "my",
+      "start": 14120,
+      "end": 14280,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "pajamas,",
+      "start": 14280,
+      "end": 14960,
+      "confidence": 0.9996338,
+      "speaker": "A"
+    },
+    {
+      "text": "sometimes",
+      "start": 15040,
+      "end": 15640,
+      "confidence": 0.9322917,
+      "speaker": "A"
+    },
+    {
+      "text": "in",
+      "start": 15640,
+      "end": 15880,
+      "confidence": 0.99853516,
+      "speaker": "A"
+    },
+    {
+      "text": "my",
+      "start": 15880,
+      "end": 16080,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "Sunday",
+      "start": 16080,
+      "end": 16399,
+      "confidence": 0.9980469,
+      "speaker": "A"
+    },
+    {
+      "text": "best.",
+      "start": 16480,
+      "end": 16880,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "The",
+      "start": 16960,
+      "end": 17240,
+      "confidence": 0.9995117,
+      "speaker": "A"
+    },
+    {
+      "text": "point",
+      "start": 17240,
+      "end": 17440,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "is,",
+      "start": 17440,
+      "end": 17680,
+      "confidence": 0.9995117,
+      "speaker": "A"
+    },
+    {
+      "text": "the",
+      "start": 17680,
+      "end": 17880,
+      "confidence": 0.99902344,
+      "speaker": "A"
+    },
+    {
+      "text": "choice",
+      "start": 17880,
+      "end": 18160,
+      "confidence": 0.99975586,
+      "speaker": "A"
+    },
+    {
+      "text": "was",
+      "start": 18160,
+      "end": 18480,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "mine.",
+      "start": 18480,
+      "end": 18960,
+      "confidence": 0.99975586,
+      "speaker": "A"
+    },
+    {
+      "text": "Sounds",
+      "start": 19120,
+      "end": 19520,
+      "confidence": 0.9995117,
+      "speaker": "A"
+    },
+    {
+      "text": "like",
+      "start": 19520,
+      "end": 19600,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "a",
+      "start": 19600,
+      "end": 19720,
+      "confidence": 0.9995117,
+      "speaker": "A"
+    },
+    {
+      "text": "dream",
+      "start": 19720,
+      "end": 19960,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "come",
+      "start": 19960,
+      "end": 20160,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "true,",
+      "start": 20160,
+      "end": 20520,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "right?",
+      "start": 20520,
+      "end": 20880,
+      "confidence": 0.9995117,
+      "speaker": "A"
+    },
+    {
+      "text": "Well,",
+      "start": 21280,
+      "end": 21600,
+      "confidence": 0.9980469,
+      "speaker": "A"
+    },
+    {
+      "text": "for",
+      "start": 21600,
+      "end": 21800,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "me",
+      "start": 21800,
+      "end": 21960,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "it",
+      "start": 21960,
+      "end": 22120,
+      "confidence": 0.9995117,
+      "speaker": "A"
+    },
+    {
+      "text": "was.",
+      "start": 22120,
+      "end": 22400,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "However,",
+      "start": 22560,
+      "end": 22960,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "to",
+      "start": 23120,
+      "end": 23400,
+      "confidence": 0.9995117,
+      "speaker": "A"
+    },
+    {
+      "text": "be",
+      "start": 23400,
+      "end": 23600,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "perfectly",
+      "start": 23600,
+      "end": 24240,
+      "confidence": 0.98791504,
+      "speaker": "A"
+    },
+    {
+      "text": "transparent,",
+      "start": 24240,
+      "end": 24960,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "growing",
+      "start": 25200,
+      "end": 25600,
+      "confidence": 0.91015625,
+      "speaker": "A"
+    },
+    {
+      "text": "to",
+      "start": 25600,
+      "end": 25720,
+      "confidence": 0.9995117,
+      "speaker": "A"
+    },
+    {
+      "text": "this",
+      "start": 25720,
+      "end": 25880,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "level",
+      "start": 25880,
+      "end": 26120,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "hasn't",
+      "start": 26120,
+      "end": 26520,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "been",
+      "start": 26520,
+      "end": 26680,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "all",
+      "start": 26680,
+      "end": 26880,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "sunshine",
+      "start": 26880,
+      "end": 27400,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "and",
+      "start": 27400,
+      "end": 27600,
+      "confidence": 0.95214844,
+      "speaker": "A"
+    },
+    {
+      "text": "rainbows.",
+      "start": 27600,
+      "end": 28320,
+      "confidence": 0.99990237,
+      "speaker": "A"
+    },
+    {
+      "text": "While",
+      "start": 28710,
+      "end": 28830,
+      "confidence": 0.99853516,
+      "speaker": "A"
+    },
+    {
+      "text": "the",
+      "start": 28830,
+      "end": 28990,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "business",
+      "start": 28990,
+      "end": 29270,
+      "confidence": 0.9995117,
+      "speaker": "A"
+    },
+    {
+      "text": "has",
+      "start": 29270,
+      "end": 29590,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "been",
+      "start": 29590,
+      "end": 29790,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "extremely",
+      "start": 29790,
+      "end": 30270,
+      "confidence": 0.9991455,
+      "speaker": "A"
+    },
+    {
+      "text": "gratifying,",
+      "start": 30270,
+      "end": 30870,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "lucrative",
+      "start": 30870,
+      "end": 31350,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "and",
+      "start": 31350,
+      "end": 31550,
+      "confidence": 0.9604492,
+      "speaker": "A"
+    },
+    {
+      "text": "financially",
+      "start": 31550,
+      "end": 32270,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "life",
+      "start": 32270,
+      "end": 32550,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "changing,",
+      "start": 32550,
+      "end": 33110,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "the",
+      "start": 33270,
+      "end": 33550,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "amount",
+      "start": 33550,
+      "end": 33790,
+      "confidence": 0.99975586,
+      "speaker": "A"
+    },
+    {
+      "text": "of",
+      "start": 33790,
+      "end": 33990,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "obstacles",
+      "start": 33990,
+      "end": 34550,
+      "confidence": 0.9055176,
+      "speaker": "A"
+    },
+    {
+      "text": "I",
+      "start": 34550,
+      "end": 34750,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "encountered",
+      "start": 34750,
+      "end": 35350,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "every",
+      "start": 35430,
+      "end": 35790,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "day",
+      "start": 35790,
+      "end": 36150,
+      "confidence": 0.9995117,
+      "speaker": "A"
+    },
+    {
+      "text": "as",
+      "start": 36150,
+      "end": 36510,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "I",
+      "start": 36510,
+      "end": 36750,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "grew",
+      "start": 36750,
+      "end": 36990,
+      "confidence": 0.99975586,
+      "speaker": "A"
+    },
+    {
+      "text": "my",
+      "start": 36990,
+      "end": 37150,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "ebay",
+      "start": 37150,
+      "end": 37510,
+      "confidence": 0.9913737,
+      "speaker": "A"
+    },
+    {
+      "text": "to",
+      "start": 37510,
+      "end": 37630,
+      "confidence": 0.9980469,
+      "speaker": "A"
+    },
+    {
+      "text": "Amazon",
+      "start": 37630,
+      "end": 38030,
+      "confidence": 0.9451497,
+      "speaker": "A"
+    },
+    {
+      "text": "business",
+      "start": 38030,
+      "end": 38310,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "was",
+      "start": 38310,
+      "end": 38590,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "driving",
+      "start": 38590,
+      "end": 38910,
+      "confidence": 0.7885742,
+      "speaker": "A"
+    },
+    {
+      "text": "me",
+      "start": 38910,
+      "end": 39230,
+      "confidence": 0.9995117,
+      "speaker": "A"
+    },
+    {
+      "text": "absolutely",
+      "start": 39230,
+      "end": 39990,
+      "confidence": 0.9998047,
+      "speaker": "A"
+    },
+    {
+      "text": "nuts.",
+      "start": 39990,
+      "end": 40550,
+      "confidence": 0.99072266,
+      "speaker": "A"
+    },
+    {
+      "text": "The",
+      "start": 40870,
+      "end": 41150,
+      "confidence": 0.9995117,
+      "speaker": "A"
+    },
+    {
+      "text": "more",
+      "start": 41150,
+      "end": 41310,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "items",
+      "start": 41310,
+      "end": 41670,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "I",
+      "start": 41670,
+      "end": 41790,
+      "confidence": 0.9995117,
+      "speaker": "A"
+    },
+    {
+      "text": "would",
+      "start": 41790,
+      "end": 41950,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "purchase",
+      "start": 41950,
+      "end": 42270,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "on",
+      "start": 42270,
+      "end": 42430,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "ebay",
+      "start": 42430,
+      "end": 42870,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "to",
+      "start": 42870,
+      "end": 43070,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "grow",
+      "start": 43070,
+      "end": 43230,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "my",
+      "start": 43230,
+      "end": 43390,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "Amazon",
+      "start": 43390,
+      "end": 43830,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "business,",
+      "start": 43830,
+      "end": 44150,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "the",
+      "start": 44470,
+      "end": 44789,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "more",
+      "start": 44789,
+      "end": 45070,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "issues",
+      "start": 45070,
+      "end": 45430,
+      "confidence": 0.99902344,
+      "speaker": "A"
+    },
+    {
+      "text": "I",
+      "start": 45590,
+      "end": 45870,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "would",
+      "start": 45870,
+      "end": 46070,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "encounter.",
+      "start": 46070,
+      "end": 46710,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "And",
+      "start": 46710,
+      "end": 47030,
+      "confidence": 0.9975586,
+      "speaker": "A"
+    },
+    {
+      "text": "guess",
+      "start": 47030,
+      "end": 47310,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "what?",
+      "start": 47310,
+      "end": 47590,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "It",
+      "start": 47670,
+      "end": 47950,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "was",
+      "start": 47950,
+      "end": 48110,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "a",
+      "start": 48110,
+      "end": 48270,
+      "confidence": 0.59277344,
+      "speaker": "A"
+    },
+    {
+      "text": "hundred",
+      "start": 48270,
+      "end": 48510,
+      "confidence": 0.6503906,
+      "speaker": "A"
+    },
+    {
+      "text": "percent",
+      "start": 48510,
+      "end": 48870,
+      "confidence": 0.9916992,
+      "speaker": "A"
+    },
+    {
+      "text": "my",
+      "start": 48870,
+      "end": 49190,
+      "confidence": 0.9995117,
+      "speaker": "A"
+    },
+    {
+      "text": "fault.",
+      "start": 49190,
+      "end": 49590,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "I",
+      "start": 49670,
+      "end": 49990,
+      "confidence": 0.9995117,
+      "speaker": "A"
+    },
+    {
+      "text": "literally",
+      "start": 49990,
+      "end": 50350,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "had",
+      "start": 50350,
+      "end": 50550,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "no",
+      "start": 50550,
+      "end": 50830,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "system",
+      "start": 50830,
+      "end": 51150,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "to",
+      "start": 51150,
+      "end": 51390,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "handle",
+      "start": 51390,
+      "end": 51710,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "the",
+      "start": 51710,
+      "end": 51870,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "various",
+      "start": 51870,
+      "end": 52230,
+      "confidence": 0.9995117,
+      "speaker": "A"
+    },
+    {
+      "text": "nuances",
+      "start": 52230,
+      "end": 52790,
+      "confidence": 0.99365234,
+      "speaker": "A"
+    },
+    {
+      "text": "to",
+      "start": 52790,
+      "end": 53070,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "this",
+      "start": 53070,
+      "end": 53270,
+      "confidence": 0.5463867,
+      "speaker": "A"
+    },
+    {
+      "text": "specific",
+      "start": 53270,
+      "end": 53750,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "E2A",
+      "start": 53750,
+      "end": 54470,
+      "confidence": 0.99284,
+      "speaker": "A"
+    },
+    {
+      "text": "flipping",
+      "start": 54470,
+      "end": 54950,
+      "confidence": 0.90201825,
+      "speaker": "A"
+    },
+    {
+      "text": "model.",
+      "start": 54950,
+      "end": 55430,
+      "confidence": 0.99975586,
+      "speaker": "A"
+    },
+    {
+      "text": "I",
+      "start": 55510,
+      "end": 55790,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "had",
+      "start": 55790,
+      "end": 55950,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "no",
+      "start": 55950,
+      "end": 56190,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "system",
+      "start": 56190,
+      "end": 56470,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "to",
+      "start": 56470,
+      "end": 56670,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "track",
+      "start": 56670,
+      "end": 56870,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "my",
+      "start": 56870,
+      "end": 57070,
+      "confidence": 0.9995117,
+      "speaker": "A"
+    },
+    {
+      "text": "ebay",
+      "start": 57070,
+      "end": 57470,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "purchases",
+      "start": 57470,
+      "end": 57870,
+      "confidence": 0.9998372,
+      "speaker": "A"
+    },
+    {
+      "text": "to",
+      "start": 57870,
+      "end": 58110,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "know",
+      "start": 58110,
+      "end": 58230,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "if",
+      "start": 58230,
+      "end": 58310,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "they",
+      "start": 58310,
+      "end": 58430,
+      "confidence": 0.9995117,
+      "speaker": "A"
+    },
+    {
+      "text": "were",
+      "start": 58430,
+      "end": 58630,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "actually",
+      "start": 58630,
+      "end": 58910,
+      "confidence": 0.9995117,
+      "speaker": "A"
+    },
+    {
+      "text": "being",
+      "start": 58910,
+      "end": 59190,
+      "confidence": 0.9995117,
+      "speaker": "A"
+    },
+    {
+      "text": "delivered",
+      "start": 59190,
+      "end": 59630,
+      "confidence": 0.99975586,
+      "speaker": "A"
+    },
+    {
+      "text": "to",
+      "start": 59630,
+      "end": 59750,
+      "confidence": 1.0,
+      "speaker": "A"
+    },
+    {
+      "text": "my",
+      "start": 59750,
+      "end": 59870,
+      "confidence": 0.9995117,
+      "speaker": "A"
+    },
+    {
+      "text": "house",
+      "start": 59870,
+      "end": 60070,
+      "confidence": 0.99902344,
+      "speaker": "A"
+    },
+    {
+      "text": "successfully,",
+      "start": 60070,
+      "end": 60380,
+      "confidence": 0.8261719,
+      "speaker": "A"
+    },
+    {
+      "text": "successfully.",
+      "start": 60450,
+      "end": 61010,
+      "confidence": 0.9744466,
+      "speaker": "A"
+    }
+  ],
+  "utterances": [
+    {
+      "speaker": "A",
+      "text": "Over the last 12 months, I've purchased more than 12,000 physical products from eBay.com that I've then resold on Amazon for more than six figures in Pure profit. And the best part is, I've done it all from home. Sometimes in my pajamas, sometimes in my Sunday best. The point is, the choice was mine. Sounds like a dream come true, right? Well, for me it was. However, to be perfectly transparent, growing to this level hasn't been all sunshine and rainbows. While the business has been extremely gratifying, lucrative and financially life changing, the amount of obstacles I encountered every day as I grew my ebay to Amazon business was driving me absolutely nuts. The more items I would purchase on ebay to grow my Amazon business, the more issues I would encounter. And guess what? It was a hundred percent my fault. I literally had no system to handle the various nuances to this specific E2A flipping model. I had no system to track my ebay purchases to know if they were actually being delivered to my house successfully, successfully.",
+      "confidence": 0.9828976,
+      "start": 800,
+      "end": 61010,
+      "words": [
+        {
+          "text": "Over",
+          "start": 800,
+          "end": 920,
+          "confidence": 0.98828125,
+          "speaker": "A"
+        },
+        {
+          "text": "the",
+          "start": 920,
+          "end": 1080,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "last",
+          "start": 1080,
+          "end": 1320,
+          "confidence": 0.9995117,
+          "speaker": "A"
+        },
+        {
+          "text": "12",
+          "start": 1320,
+          "end": 1640,
+          "confidence": 0.99951,
+          "speaker": "A"
+        },
+        {
+          "text": "months,",
+          "start": 1640,
+          "end": 2000,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "I've",
+          "start": 2000,
+          "end": 2360,
+          "confidence": 0.97314453,
+          "speaker": "A"
+        },
+        {
+          "text": "purchased",
+          "start": 2360,
+          "end": 2800,
+          "confidence": 0.99934894,
+          "speaker": "A"
+        },
+        {
+          "text": "more",
+          "start": 2800,
+          "end": 3000,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "than",
+          "start": 3000,
+          "end": 3240,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "12,000",
+          "start": 3240,
+          "end": 3920,
+          "confidence": 0.87622,
+          "speaker": "A"
+        },
+        {
+          "text": "physical",
+          "start": 4000,
+          "end": 4560,
+          "confidence": 0.9998372,
+          "speaker": "A"
+        },
+        {
+          "text": "products",
+          "start": 4560,
+          "end": 4920,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "from",
+          "start": 4920,
+          "end": 5200,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "eBay.com",
+          "start": 5200,
+          "end": 6080,
+          "confidence": 0.99406,
+          "speaker": "A"
+        },
+        {
+          "text": "that",
+          "start": 6240,
+          "end": 6520,
+          "confidence": 0.9995117,
+          "speaker": "A"
+        },
+        {
+          "text": "I've",
+          "start": 6520,
+          "end": 6760,
+          "confidence": 0.9991862,
+          "speaker": "A"
+        },
+        {
+          "text": "then",
+          "start": 6760,
+          "end": 6960,
+          "confidence": 0.85058594,
+          "speaker": "A"
+        },
+        {
+          "text": "resold",
+          "start": 6960,
+          "end": 7440,
+          "confidence": 0.9963379,
+          "speaker": "A"
+        },
+        {
+          "text": "on",
+          "start": 7440,
+          "end": 7640,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "Amazon",
+          "start": 7640,
+          "end": 8120,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "for",
+          "start": 8120,
+          "end": 8320,
+          "confidence": 0.9995117,
+          "speaker": "A"
+        },
+        {
+          "text": "more",
+          "start": 8320,
+          "end": 8440,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "than",
+          "start": 8440,
+          "end": 8680,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "six",
+          "start": 8680,
+          "end": 9000,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "figures",
+          "start": 9000,
+          "end": 9400,
+          "confidence": 0.9812012,
+          "speaker": "A"
+        },
+        {
+          "text": "in",
+          "start": 9400,
+          "end": 9640,
+          "confidence": 0.9277344,
+          "speaker": "A"
+        },
+        {
+          "text": "Pure",
+          "start": 9640,
+          "end": 9960,
+          "confidence": 0.9074707,
+          "speaker": "A"
+        },
+        {
+          "text": "profit.",
+          "start": 9960,
+          "end": 10520,
+          "confidence": 0.99975586,
+          "speaker": "A"
+        },
+        {
+          "text": "And",
+          "start": 10520,
+          "end": 10800,
+          "confidence": 0.59228516,
+          "speaker": "A"
+        },
+        {
+          "text": "the",
+          "start": 10800,
+          "end": 11000,
+          "confidence": 0.9995117,
+          "speaker": "A"
+        },
+        {
+          "text": "best",
+          "start": 11000,
+          "end": 11200,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "part",
+          "start": 11200,
+          "end": 11440,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "is,",
+          "start": 11440,
+          "end": 11760,
+          "confidence": 0.99902344,
+          "speaker": "A"
+        },
+        {
+          "text": "I've",
+          "start": 11840,
+          "end": 12160,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "done",
+          "start": 12160,
+          "end": 12280,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "it",
+          "start": 12280,
+          "end": 12480,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "all",
+          "start": 12480,
+          "end": 12720,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "from",
+          "start": 12720,
+          "end": 12960,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "home.",
+          "start": 12960,
+          "end": 13280,
+          "confidence": 0.99853516,
+          "speaker": "A"
+        },
+        {
+          "text": "Sometimes",
+          "start": 13440,
+          "end": 13960,
+          "confidence": 0.9996745,
+          "speaker": "A"
+        },
+        {
+          "text": "in",
+          "start": 13960,
+          "end": 14120,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "my",
+          "start": 14120,
+          "end": 14280,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "pajamas,",
+          "start": 14280,
+          "end": 14960,
+          "confidence": 0.9996338,
+          "speaker": "A"
+        },
+        {
+          "text": "sometimes",
+          "start": 15040,
+          "end": 15640,
+          "confidence": 0.9322917,
+          "speaker": "A"
+        },
+        {
+          "text": "in",
+          "start": 15640,
+          "end": 15880,
+          "confidence": 0.99853516,
+          "speaker": "A"
+        },
+        {
+          "text": "my",
+          "start": 15880,
+          "end": 16080,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "Sunday",
+          "start": 16080,
+          "end": 16399,
+          "confidence": 0.9980469,
+          "speaker": "A"
+        },
+        {
+          "text": "best.",
+          "start": 16480,
+          "end": 16880,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "The",
+          "start": 16960,
+          "end": 17240,
+          "confidence": 0.9995117,
+          "speaker": "A"
+        },
+        {
+          "text": "point",
+          "start": 17240,
+          "end": 17440,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "is,",
+          "start": 17440,
+          "end": 17680,
+          "confidence": 0.9995117,
+          "speaker": "A"
+        },
+        {
+          "text": "the",
+          "start": 17680,
+          "end": 17880,
+          "confidence": 0.99902344,
+          "speaker": "A"
+        },
+        {
+          "text": "choice",
+          "start": 17880,
+          "end": 18160,
+          "confidence": 0.99975586,
+          "speaker": "A"
+        },
+        {
+          "text": "was",
+          "start": 18160,
+          "end": 18480,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "mine.",
+          "start": 18480,
+          "end": 18960,
+          "confidence": 0.99975586,
+          "speaker": "A"
+        },
+        {
+          "text": "Sounds",
+          "start": 19120,
+          "end": 19520,
+          "confidence": 0.9995117,
+          "speaker": "A"
+        },
+        {
+          "text": "like",
+          "start": 19520,
+          "end": 19600,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "a",
+          "start": 19600,
+          "end": 19720,
+          "confidence": 0.9995117,
+          "speaker": "A"
+        },
+        {
+          "text": "dream",
+          "start": 19720,
+          "end": 19960,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "come",
+          "start": 19960,
+          "end": 20160,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "true,",
+          "start": 20160,
+          "end": 20520,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "right?",
+          "start": 20520,
+          "end": 20880,
+          "confidence": 0.9995117,
+          "speaker": "A"
+        },
+        {
+          "text": "Well,",
+          "start": 21280,
+          "end": 21600,
+          "confidence": 0.9980469,
+          "speaker": "A"
+        },
+        {
+          "text": "for",
+          "start": 21600,
+          "end": 21800,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "me",
+          "start": 21800,
+          "end": 21960,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "it",
+          "start": 21960,
+          "end": 22120,
+          "confidence": 0.9995117,
+          "speaker": "A"
+        },
+        {
+          "text": "was.",
+          "start": 22120,
+          "end": 22400,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "However,",
+          "start": 22560,
+          "end": 22960,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "to",
+          "start": 23120,
+          "end": 23400,
+          "confidence": 0.9995117,
+          "speaker": "A"
+        },
+        {
+          "text": "be",
+          "start": 23400,
+          "end": 23600,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "perfectly",
+          "start": 23600,
+          "end": 24240,
+          "confidence": 0.98791504,
+          "speaker": "A"
+        },
+        {
+          "text": "transparent,",
+          "start": 24240,
+          "end": 24960,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "growing",
+          "start": 25200,
+          "end": 25600,
+          "confidence": 0.91015625,
+          "speaker": "A"
+        },
+        {
+          "text": "to",
+          "start": 25600,
+          "end": 25720,
+          "confidence": 0.9995117,
+          "speaker": "A"
+        },
+        {
+          "text": "this",
+          "start": 25720,
+          "end": 25880,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "level",
+          "start": 25880,
+          "end": 26120,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "hasn't",
+          "start": 26120,
+          "end": 26520,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "been",
+          "start": 26520,
+          "end": 26680,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "all",
+          "start": 26680,
+          "end": 26880,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "sunshine",
+          "start": 26880,
+          "end": 27400,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "and",
+          "start": 27400,
+          "end": 27600,
+          "confidence": 0.95214844,
+          "speaker": "A"
+        },
+        {
+          "text": "rainbows.",
+          "start": 27600,
+          "end": 28320,
+          "confidence": 0.99990237,
+          "speaker": "A"
+        },
+        {
+          "text": "While",
+          "start": 28710,
+          "end": 28830,
+          "confidence": 0.99853516,
+          "speaker": "A"
+        },
+        {
+          "text": "the",
+          "start": 28830,
+          "end": 28990,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "business",
+          "start": 28990,
+          "end": 29270,
+          "confidence": 0.9995117,
+          "speaker": "A"
+        },
+        {
+          "text": "has",
+          "start": 29270,
+          "end": 29590,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "been",
+          "start": 29590,
+          "end": 29790,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "extremely",
+          "start": 29790,
+          "end": 30270,
+          "confidence": 0.9991455,
+          "speaker": "A"
+        },
+        {
+          "text": "gratifying,",
+          "start": 30270,
+          "end": 30870,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "lucrative",
+          "start": 30870,
+          "end": 31350,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "and",
+          "start": 31350,
+          "end": 31550,
+          "confidence": 0.9604492,
+          "speaker": "A"
+        },
+        {
+          "text": "financially",
+          "start": 31550,
+          "end": 32270,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "life",
+          "start": 32270,
+          "end": 32550,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "changing,",
+          "start": 32550,
+          "end": 33110,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "the",
+          "start": 33270,
+          "end": 33550,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "amount",
+          "start": 33550,
+          "end": 33790,
+          "confidence": 0.99975586,
+          "speaker": "A"
+        },
+        {
+          "text": "of",
+          "start": 33790,
+          "end": 33990,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "obstacles",
+          "start": 33990,
+          "end": 34550,
+          "confidence": 0.9055176,
+          "speaker": "A"
+        },
+        {
+          "text": "I",
+          "start": 34550,
+          "end": 34750,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "encountered",
+          "start": 34750,
+          "end": 35350,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "every",
+          "start": 35430,
+          "end": 35790,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "day",
+          "start": 35790,
+          "end": 36150,
+          "confidence": 0.9995117,
+          "speaker": "A"
+        },
+        {
+          "text": "as",
+          "start": 36150,
+          "end": 36510,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "I",
+          "start": 36510,
+          "end": 36750,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "grew",
+          "start": 36750,
+          "end": 36990,
+          "confidence": 0.99975586,
+          "speaker": "A"
+        },
+        {
+          "text": "my",
+          "start": 36990,
+          "end": 37150,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "ebay",
+          "start": 37150,
+          "end": 37510,
+          "confidence": 0.9913737,
+          "speaker": "A"
+        },
+        {
+          "text": "to",
+          "start": 37510,
+          "end": 37630,
+          "confidence": 0.9980469,
+          "speaker": "A"
+        },
+        {
+          "text": "Amazon",
+          "start": 37630,
+          "end": 38030,
+          "confidence": 0.9451497,
+          "speaker": "A"
+        },
+        {
+          "text": "business",
+          "start": 38030,
+          "end": 38310,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "was",
+          "start": 38310,
+          "end": 38590,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "driving",
+          "start": 38590,
+          "end": 38910,
+          "confidence": 0.7885742,
+          "speaker": "A"
+        },
+        {
+          "text": "me",
+          "start": 38910,
+          "end": 39230,
+          "confidence": 0.9995117,
+          "speaker": "A"
+        },
+        {
+          "text": "absolutely",
+          "start": 39230,
+          "end": 39990,
+          "confidence": 0.9998047,
+          "speaker": "A"
+        },
+        {
+          "text": "nuts.",
+          "start": 39990,
+          "end": 40550,
+          "confidence": 0.99072266,
+          "speaker": "A"
+        },
+        {
+          "text": "The",
+          "start": 40870,
+          "end": 41150,
+          "confidence": 0.9995117,
+          "speaker": "A"
+        },
+        {
+          "text": "more",
+          "start": 41150,
+          "end": 41310,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "items",
+          "start": 41310,
+          "end": 41670,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "I",
+          "start": 41670,
+          "end": 41790,
+          "confidence": 0.9995117,
+          "speaker": "A"
+        },
+        {
+          "text": "would",
+          "start": 41790,
+          "end": 41950,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "purchase",
+          "start": 41950,
+          "end": 42270,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "on",
+          "start": 42270,
+          "end": 42430,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "ebay",
+          "start": 42430,
+          "end": 42870,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "to",
+          "start": 42870,
+          "end": 43070,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "grow",
+          "start": 43070,
+          "end": 43230,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "my",
+          "start": 43230,
+          "end": 43390,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "Amazon",
+          "start": 43390,
+          "end": 43830,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "business,",
+          "start": 43830,
+          "end": 44150,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "the",
+          "start": 44470,
+          "end": 44789,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "more",
+          "start": 44789,
+          "end": 45070,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "issues",
+          "start": 45070,
+          "end": 45430,
+          "confidence": 0.99902344,
+          "speaker": "A"
+        },
+        {
+          "text": "I",
+          "start": 45590,
+          "end": 45870,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "would",
+          "start": 45870,
+          "end": 46070,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "encounter.",
+          "start": 46070,
+          "end": 46710,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "And",
+          "start": 46710,
+          "end": 47030,
+          "confidence": 0.9975586,
+          "speaker": "A"
+        },
+        {
+          "text": "guess",
+          "start": 47030,
+          "end": 47310,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "what?",
+          "start": 47310,
+          "end": 47590,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "It",
+          "start": 47670,
+          "end": 47950,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "was",
+          "start": 47950,
+          "end": 48110,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "a",
+          "start": 48110,
+          "end": 48270,
+          "confidence": 0.59277344,
+          "speaker": "A"
+        },
+        {
+          "text": "hundred",
+          "start": 48270,
+          "end": 48510,
+          "confidence": 0.6503906,
+          "speaker": "A"
+        },
+        {
+          "text": "percent",
+          "start": 48510,
+          "end": 48870,
+          "confidence": 0.9916992,
+          "speaker": "A"
+        },
+        {
+          "text": "my",
+          "start": 48870,
+          "end": 49190,
+          "confidence": 0.9995117,
+          "speaker": "A"
+        },
+        {
+          "text": "fault.",
+          "start": 49190,
+          "end": 49590,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "I",
+          "start": 49670,
+          "end": 49990,
+          "confidence": 0.9995117,
+          "speaker": "A"
+        },
+        {
+          "text": "literally",
+          "start": 49990,
+          "end": 50350,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "had",
+          "start": 50350,
+          "end": 50550,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "no",
+          "start": 50550,
+          "end": 50830,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "system",
+          "start": 50830,
+          "end": 51150,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "to",
+          "start": 51150,
+          "end": 51390,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "handle",
+          "start": 51390,
+          "end": 51710,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "the",
+          "start": 51710,
+          "end": 51870,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "various",
+          "start": 51870,
+          "end": 52230,
+          "confidence": 0.9995117,
+          "speaker": "A"
+        },
+        {
+          "text": "nuances",
+          "start": 52230,
+          "end": 52790,
+          "confidence": 0.99365234,
+          "speaker": "A"
+        },
+        {
+          "text": "to",
+          "start": 52790,
+          "end": 53070,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "this",
+          "start": 53070,
+          "end": 53270,
+          "confidence": 0.5463867,
+          "speaker": "A"
+        },
+        {
+          "text": "specific",
+          "start": 53270,
+          "end": 53750,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "E2A",
+          "start": 53750,
+          "end": 54470,
+          "confidence": 0.99284,
+          "speaker": "A"
+        },
+        {
+          "text": "flipping",
+          "start": 54470,
+          "end": 54950,
+          "confidence": 0.90201825,
+          "speaker": "A"
+        },
+        {
+          "text": "model.",
+          "start": 54950,
+          "end": 55430,
+          "confidence": 0.99975586,
+          "speaker": "A"
+        },
+        {
+          "text": "I",
+          "start": 55510,
+          "end": 55790,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "had",
+          "start": 55790,
+          "end": 55950,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "no",
+          "start": 55950,
+          "end": 56190,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "system",
+          "start": 56190,
+          "end": 56470,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "to",
+          "start": 56470,
+          "end": 56670,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "track",
+          "start": 56670,
+          "end": 56870,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "my",
+          "start": 56870,
+          "end": 57070,
+          "confidence": 0.9995117,
+          "speaker": "A"
+        },
+        {
+          "text": "ebay",
+          "start": 57070,
+          "end": 57470,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "purchases",
+          "start": 57470,
+          "end": 57870,
+          "confidence": 0.9998372,
+          "speaker": "A"
+        },
+        {
+          "text": "to",
+          "start": 57870,
+          "end": 58110,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "know",
+          "start": 58110,
+          "end": 58230,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "if",
+          "start": 58230,
+          "end": 58310,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "they",
+          "start": 58310,
+          "end": 58430,
+          "confidence": 0.9995117,
+          "speaker": "A"
+        },
+        {
+          "text": "were",
+          "start": 58430,
+          "end": 58630,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "actually",
+          "start": 58630,
+          "end": 58910,
+          "confidence": 0.9995117,
+          "speaker": "A"
+        },
+        {
+          "text": "being",
+          "start": 58910,
+          "end": 59190,
+          "confidence": 0.9995117,
+          "speaker": "A"
+        },
+        {
+          "text": "delivered",
+          "start": 59190,
+          "end": 59630,
+          "confidence": 0.99975586,
+          "speaker": "A"
+        },
+        {
+          "text": "to",
+          "start": 59630,
+          "end": 59750,
+          "confidence": 1.0,
+          "speaker": "A"
+        },
+        {
+          "text": "my",
+          "start": 59750,
+          "end": 59870,
+          "confidence": 0.9995117,
+          "speaker": "A"
+        },
+        {
+          "text": "house",
+          "start": 59870,
+          "end": 60070,
+          "confidence": 0.99902344,
+          "speaker": "A"
+        },
+        {
+          "text": "successfully,",
+          "start": 60070,
+          "end": 60380,
+          "confidence": 0.8261719,
+          "speaker": "A"
+        },
+        {
+          "text": "successfully.",
+          "start": 60450,
+          "end": 61010,
+          "confidence": 0.9744466,
+          "speaker": "A"
+        }
+      ]
+    }
+  ],
+  "confidence": 0.9828976,
+  "audio_duration": 62,
+  "punctuate": true,
+  "format_text": true,
+  "dual_channel": false,
+  "webhook_url": null,
+  "webhook_status_code": null,
+  "webhook_auth": false,
+  "webhook_auth_header_name": null,
+  "speed_boost": false,
+  "auto_highlights_result": null,
+  "auto_highlights": false,
+  "audio_start_from": null,
+  "audio_end_at": null,
+  "word_boost": [],
+  "boost_param": null,
+  "prompt": null,
+  "keyterms_prompt": [],
+  "filter_profanity": false,
+  "redact_pii": false,
+  "redact_pii_audio": false,
+  "redact_pii_audio_quality": null,
+  "redact_pii_audio_options": null,
+  "redact_pii_policies": null,
+  "redact_pii_sub": null,
+  "redact_static_entities": null,
+  "speaker_labels": true,
+  "speaker_options": {
+    "min_speakers_expected": null,
+    "max_speakers_expected": null,
+    "advanced_speaker_segmentation": false
+  },
+  "content_safety": false,
+  "iab_categories": false,
+  "content_safety_labels": {
+    "status": "unavailable",
+    "results": [],
+    "summary": {}
+  },
+  "iab_categories_result": {
+    "status": "unavailable",
+    "results": [],
+    "summary": {}
+  },
+  "language_detection": false,
+  "language_detection_options": null,
+  "language_detection_results": null,
+  "language_confidence_threshold": null,
+  "language_confidence": null,
+  "custom_spelling": null,
+  "throttled": false,
+  "auto_chapters": false,
+  "summarization": false,
+  "summary_type": null,
+  "summary_model": null,
+  "custom_topics": false,
+  "topics": [],
+  "speech_threshold": null,
+  "speech_model": null,
+  "speech_models": [
+    "universal-2"
+  ],
+  "speech_model_used": "universal-2",
+  "metadata": {
+    "warnings": [
+      {
+        "message": "For highest accuracy and broadest language coverage: set \"speech_models\" to [\"universal-3-5-pro\", \"universal-2\"]."
+      }
+    ]
+  },
+  "temperature": null,
+  "remove_audio_tags": "all",
+  "chapters": null,
+  "disfluencies": false,
+  "entity_detection": false,
+  "sentiment_analysis": false,
+  "sentiment_analysis_results": null,
+  "entities": null,
+  "speakers_expected": null,
+  "summary": null,
+  "custom_topics_results": null,
+  "is_deleted": null,
+  "multichannel": null,
+  "project_id": 417189,
+  "token_id": 417189
+}

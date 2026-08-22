@@ -1,0 +1,514 @@
+[
+  {
+    "chunkIndex": 1,
+    "timestamp": "00:00 \u2014 00:01",
+    "startSec": 0.8,
+    "endSec": 1.32,
+    "wordCount": 3,
+    "text": "Over the last"
+  },
+  {
+    "chunkIndex": 2,
+    "timestamp": "00:01 \u2014 00:02",
+    "startSec": 1.32,
+    "endSec": 2.0,
+    "wordCount": 2,
+    "text": "12 months,"
+  },
+  {
+    "chunkIndex": 3,
+    "timestamp": "00:02 \u2014 00:03",
+    "startSec": 2.0,
+    "endSec": 3.0,
+    "wordCount": 3,
+    "text": "I've purchased more"
+  },
+  {
+    "chunkIndex": 4,
+    "timestamp": "00:03 \u2014 00:04",
+    "startSec": 3.0,
+    "endSec": 4.56,
+    "wordCount": 3,
+    "text": "than 12,000 physical"
+  },
+  {
+    "chunkIndex": 5,
+    "timestamp": "00:04 \u2014 00:06",
+    "startSec": 4.56,
+    "endSec": 6.08,
+    "wordCount": 3,
+    "text": "products from eBay.com"
+  },
+  {
+    "chunkIndex": 6,
+    "timestamp": "00:06 \u2014 00:06",
+    "startSec": 6.24,
+    "endSec": 6.96,
+    "wordCount": 3,
+    "text": "that I've then"
+  },
+  {
+    "chunkIndex": 7,
+    "timestamp": "00:06 \u2014 00:08",
+    "startSec": 6.96,
+    "endSec": 8.12,
+    "wordCount": 3,
+    "text": "resold on Amazon"
+  },
+  {
+    "chunkIndex": 8,
+    "timestamp": "00:08 \u2014 00:08",
+    "startSec": 8.12,
+    "endSec": 8.68,
+    "wordCount": 3,
+    "text": "for more than"
+  },
+  {
+    "chunkIndex": 9,
+    "timestamp": "00:08 \u2014 00:09",
+    "startSec": 8.68,
+    "endSec": 9.64,
+    "wordCount": 3,
+    "text": "six figures in"
+  },
+  {
+    "chunkIndex": 10,
+    "timestamp": "00:09 \u2014 00:10",
+    "startSec": 9.64,
+    "endSec": 10.52,
+    "wordCount": 2,
+    "text": "Pure profit."
+  },
+  {
+    "chunkIndex": 11,
+    "timestamp": "00:10 \u2014 00:11",
+    "startSec": 10.52,
+    "endSec": 11.2,
+    "wordCount": 3,
+    "text": "And the best"
+  },
+  {
+    "chunkIndex": 12,
+    "timestamp": "00:11 \u2014 00:11",
+    "startSec": 11.2,
+    "endSec": 11.76,
+    "wordCount": 2,
+    "text": "part is,"
+  },
+  {
+    "chunkIndex": 13,
+    "timestamp": "00:11 \u2014 00:12",
+    "startSec": 11.84,
+    "endSec": 12.48,
+    "wordCount": 3,
+    "text": "I've done it"
+  },
+  {
+    "chunkIndex": 14,
+    "timestamp": "00:12 \u2014 00:13",
+    "startSec": 12.48,
+    "endSec": 13.28,
+    "wordCount": 3,
+    "text": "all from home."
+  },
+  {
+    "chunkIndex": 15,
+    "timestamp": "00:13 \u2014 00:14",
+    "startSec": 13.44,
+    "endSec": 14.28,
+    "wordCount": 3,
+    "text": "Sometimes in my"
+  },
+  {
+    "chunkIndex": 16,
+    "timestamp": "00:14 \u2014 00:15",
+    "startSec": 14.28,
+    "endSec": 15.88,
+    "wordCount": 3,
+    "text": "pajamas, sometimes in"
+  },
+  {
+    "chunkIndex": 17,
+    "timestamp": "00:15 \u2014 00:16",
+    "startSec": 15.88,
+    "endSec": 16.88,
+    "wordCount": 3,
+    "text": "my Sunday best."
+  },
+  {
+    "chunkIndex": 18,
+    "timestamp": "00:16 \u2014 00:17",
+    "startSec": 16.96,
+    "endSec": 17.68,
+    "wordCount": 3,
+    "text": "The point is,"
+  },
+  {
+    "chunkIndex": 19,
+    "timestamp": "00:17 \u2014 00:18",
+    "startSec": 17.68,
+    "endSec": 18.48,
+    "wordCount": 3,
+    "text": "the choice was"
+  },
+  {
+    "chunkIndex": 20,
+    "timestamp": "00:18 \u2014 00:19",
+    "startSec": 18.48,
+    "endSec": 19.6,
+    "wordCount": 3,
+    "text": "mine. Sounds like"
+  },
+  {
+    "chunkIndex": 21,
+    "timestamp": "00:19 \u2014 00:20",
+    "startSec": 19.6,
+    "endSec": 20.16,
+    "wordCount": 3,
+    "text": "a dream come"
+  },
+  {
+    "chunkIndex": 22,
+    "timestamp": "00:20 \u2014 00:20",
+    "startSec": 20.16,
+    "endSec": 20.88,
+    "wordCount": 2,
+    "text": "true, right?"
+  },
+  {
+    "chunkIndex": 23,
+    "timestamp": "00:21 \u2014 00:21",
+    "startSec": 21.28,
+    "endSec": 21.96,
+    "wordCount": 3,
+    "text": "Well, for me"
+  },
+  {
+    "chunkIndex": 24,
+    "timestamp": "00:21 \u2014 00:22",
+    "startSec": 21.96,
+    "endSec": 22.4,
+    "wordCount": 2,
+    "text": "it was."
+  },
+  {
+    "chunkIndex": 25,
+    "timestamp": "00:22 \u2014 00:23",
+    "startSec": 22.56,
+    "endSec": 23.6,
+    "wordCount": 3,
+    "text": "However, to be"
+  },
+  {
+    "chunkIndex": 26,
+    "timestamp": "00:23 \u2014 00:24",
+    "startSec": 23.6,
+    "endSec": 24.96,
+    "wordCount": 2,
+    "text": "perfectly transparent,"
+  },
+  {
+    "chunkIndex": 27,
+    "timestamp": "00:25 \u2014 00:25",
+    "startSec": 25.2,
+    "endSec": 25.88,
+    "wordCount": 3,
+    "text": "growing to this"
+  },
+  {
+    "chunkIndex": 28,
+    "timestamp": "00:25 \u2014 00:26",
+    "startSec": 25.88,
+    "endSec": 26.68,
+    "wordCount": 3,
+    "text": "level hasn't been"
+  },
+  {
+    "chunkIndex": 29,
+    "timestamp": "00:26 \u2014 00:27",
+    "startSec": 26.68,
+    "endSec": 27.6,
+    "wordCount": 3,
+    "text": "all sunshine and"
+  },
+  {
+    "chunkIndex": 30,
+    "timestamp": "00:27 \u2014 00:28",
+    "startSec": 27.6,
+    "endSec": 28.99,
+    "wordCount": 3,
+    "text": "rainbows. While the"
+  },
+  {
+    "chunkIndex": 31,
+    "timestamp": "00:28 \u2014 00:29",
+    "startSec": 28.99,
+    "endSec": 29.79,
+    "wordCount": 3,
+    "text": "business has been"
+  },
+  {
+    "chunkIndex": 32,
+    "timestamp": "00:29 \u2014 00:30",
+    "startSec": 29.79,
+    "endSec": 30.87,
+    "wordCount": 2,
+    "text": "extremely gratifying,"
+  },
+  {
+    "chunkIndex": 33,
+    "timestamp": "00:30 \u2014 00:32",
+    "startSec": 30.87,
+    "endSec": 32.27,
+    "wordCount": 3,
+    "text": "lucrative and financially"
+  },
+  {
+    "chunkIndex": 34,
+    "timestamp": "00:32 \u2014 00:33",
+    "startSec": 32.27,
+    "endSec": 33.11,
+    "wordCount": 2,
+    "text": "life changing,"
+  },
+  {
+    "chunkIndex": 35,
+    "timestamp": "00:33 \u2014 00:33",
+    "startSec": 33.27,
+    "endSec": 33.99,
+    "wordCount": 3,
+    "text": "the amount of"
+  },
+  {
+    "chunkIndex": 36,
+    "timestamp": "00:33 \u2014 00:35",
+    "startSec": 33.99,
+    "endSec": 35.35,
+    "wordCount": 3,
+    "text": "obstacles I encountered"
+  },
+  {
+    "chunkIndex": 37,
+    "timestamp": "00:35 \u2014 00:36",
+    "startSec": 35.43,
+    "endSec": 36.51,
+    "wordCount": 3,
+    "text": "every day as"
+  },
+  {
+    "chunkIndex": 38,
+    "timestamp": "00:36 \u2014 00:37",
+    "startSec": 36.51,
+    "endSec": 37.15,
+    "wordCount": 3,
+    "text": "I grew my"
+  },
+  {
+    "chunkIndex": 39,
+    "timestamp": "00:37 \u2014 00:38",
+    "startSec": 37.15,
+    "endSec": 38.03,
+    "wordCount": 3,
+    "text": "ebay to Amazon"
+  },
+  {
+    "chunkIndex": 40,
+    "timestamp": "00:38 \u2014 00:38",
+    "startSec": 38.03,
+    "endSec": 38.91,
+    "wordCount": 3,
+    "text": "business was driving"
+  },
+  {
+    "chunkIndex": 41,
+    "timestamp": "00:38 \u2014 00:40",
+    "startSec": 38.91,
+    "endSec": 40.55,
+    "wordCount": 3,
+    "text": "me absolutely nuts."
+  },
+  {
+    "chunkIndex": 42,
+    "timestamp": "00:40 \u2014 00:41",
+    "startSec": 40.87,
+    "endSec": 41.67,
+    "wordCount": 3,
+    "text": "The more items"
+  },
+  {
+    "chunkIndex": 43,
+    "timestamp": "00:41 \u2014 00:42",
+    "startSec": 41.67,
+    "endSec": 42.27,
+    "wordCount": 3,
+    "text": "I would purchase"
+  },
+  {
+    "chunkIndex": 44,
+    "timestamp": "00:42 \u2014 00:43",
+    "startSec": 42.27,
+    "endSec": 43.07,
+    "wordCount": 3,
+    "text": "on ebay to"
+  },
+  {
+    "chunkIndex": 45,
+    "timestamp": "00:43 \u2014 00:43",
+    "startSec": 43.07,
+    "endSec": 43.83,
+    "wordCount": 3,
+    "text": "grow my Amazon"
+  },
+  {
+    "chunkIndex": 46,
+    "timestamp": "00:43 \u2014 00:45",
+    "startSec": 43.83,
+    "endSec": 45.07,
+    "wordCount": 3,
+    "text": "business, the more"
+  },
+  {
+    "chunkIndex": 47,
+    "timestamp": "00:45 \u2014 00:46",
+    "startSec": 45.07,
+    "endSec": 46.07,
+    "wordCount": 3,
+    "text": "issues I would"
+  },
+  {
+    "chunkIndex": 48,
+    "timestamp": "00:46 \u2014 00:47",
+    "startSec": 46.07,
+    "endSec": 47.31,
+    "wordCount": 3,
+    "text": "encounter. And guess"
+  },
+  {
+    "chunkIndex": 49,
+    "timestamp": "00:47 \u2014 00:48",
+    "startSec": 47.31,
+    "endSec": 48.11,
+    "wordCount": 3,
+    "text": "what? It was"
+  },
+  {
+    "chunkIndex": 50,
+    "timestamp": "00:48 \u2014 00:48",
+    "startSec": 48.11,
+    "endSec": 48.87,
+    "wordCount": 3,
+    "text": "a hundred percent"
+  },
+  {
+    "chunkIndex": 51,
+    "timestamp": "00:48 \u2014 00:49",
+    "startSec": 48.87,
+    "endSec": 49.59,
+    "wordCount": 2,
+    "text": "my fault."
+  },
+  {
+    "chunkIndex": 52,
+    "timestamp": "00:49 \u2014 00:50",
+    "startSec": 49.67,
+    "endSec": 50.55,
+    "wordCount": 3,
+    "text": "I literally had"
+  },
+  {
+    "chunkIndex": 53,
+    "timestamp": "00:50 \u2014 00:51",
+    "startSec": 50.55,
+    "endSec": 51.39,
+    "wordCount": 3,
+    "text": "no system to"
+  },
+  {
+    "chunkIndex": 54,
+    "timestamp": "00:51 \u2014 00:52",
+    "startSec": 51.39,
+    "endSec": 52.23,
+    "wordCount": 3,
+    "text": "handle the various"
+  },
+  {
+    "chunkIndex": 55,
+    "timestamp": "00:52 \u2014 00:53",
+    "startSec": 52.23,
+    "endSec": 53.27,
+    "wordCount": 3,
+    "text": "nuances to this"
+  },
+  {
+    "chunkIndex": 56,
+    "timestamp": "00:53 \u2014 00:54",
+    "startSec": 53.27,
+    "endSec": 54.95,
+    "wordCount": 3,
+    "text": "specific E2A flipping"
+  },
+  {
+    "chunkIndex": 57,
+    "timestamp": "00:54 \u2014 00:55",
+    "startSec": 54.95,
+    "endSec": 55.95,
+    "wordCount": 3,
+    "text": "model. I had"
+  },
+  {
+    "chunkIndex": 58,
+    "timestamp": "00:55 \u2014 00:56",
+    "startSec": 55.95,
+    "endSec": 56.67,
+    "wordCount": 3,
+    "text": "no system to"
+  },
+  {
+    "chunkIndex": 59,
+    "timestamp": "00:56 \u2014 00:57",
+    "startSec": 56.67,
+    "endSec": 57.47,
+    "wordCount": 3,
+    "text": "track my ebay"
+  },
+  {
+    "chunkIndex": 60,
+    "timestamp": "00:57 \u2014 00:58",
+    "startSec": 57.47,
+    "endSec": 58.23,
+    "wordCount": 3,
+    "text": "purchases to know"
+  },
+  {
+    "chunkIndex": 61,
+    "timestamp": "00:58 \u2014 00:58",
+    "startSec": 58.23,
+    "endSec": 58.63,
+    "wordCount": 3,
+    "text": "if they were"
+  },
+  {
+    "chunkIndex": 62,
+    "timestamp": "00:58 \u2014 00:59",
+    "startSec": 58.63,
+    "endSec": 59.63,
+    "wordCount": 3,
+    "text": "actually being delivered"
+  },
+  {
+    "chunkIndex": 63,
+    "timestamp": "00:59 \u2014 01:00",
+    "startSec": 59.63,
+    "endSec": 60.07,
+    "wordCount": 3,
+    "text": "to my house"
+  },
+  {
+    "chunkIndex": 64,
+    "timestamp": "01:00 \u2014 01:01",
+    "startSec": 60.07,
+    "endSec": 61.01,
+    "wordCount": 2,
+    "text": "successfully, successfully."
+  }
+]

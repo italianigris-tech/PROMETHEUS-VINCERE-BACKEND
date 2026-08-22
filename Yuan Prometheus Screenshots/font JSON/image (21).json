@@ -44,6 +44,7 @@
       "role": "header",
       "font_classification": "Modern Fashion Serif",
       "matched_font_candidates": [
+        "Senza Bella",
         "Playfair Display",
         "Bodoni Moda"
       ],
@@ -89,6 +90,7 @@
       "role": "primary_focus_word",
       "font_classification": "Giant Heavy High-Contrast Serif",
       "matched_font_candidates": [
+        "Senza Bella",
         "Bodoni Moda",
         "Playfair Display"
       ],

@@ -1,0 +1,72 @@
+{
+  "profile_name": "Humane_Spiked_Stem_Brutalist",
+  "version": "1.0.0",
+  "metadata": {
+    "target_aspect_ratio": "16:9",
+    "overall_mood": "Spiked Stem Ultra-Condensed Brutalist Sans, Razor Sharp Verticals",
+    "casing_strategy": "uppercase",
+    "is_tall_font": true,
+    "matte_text_optimized": true,
+    "total_word_count": 1,
+    "total_character_count": 6,
+    "per_word_character_counts": [
+      {
+        "word": "HUMANE",
+        "character_count": 6
+      }
+    ]
+  },
+  "layout_rules": {
+    "horizontal_alignment": "center",
+    "vertical_position": "center",
+    "bottom_margin_percent": 15,
+    "max_width_percent": 85,
+    "scrim_overlay": {
+      "enabled": false,
+      "type": "none",
+      "opacity": 0,
+      "color": "#7F8C8D"
+    }
+  },
+  "typography_layers": [
+    {
+      "layer_name": "hero_spiked_brutalist",
+      "role": "primary_focus_word",
+      "font_classification": "Spiked Stem Ultra-Condensed Brutalist Sans",
+      "matched_font_candidates": [
+        "Six Caps",
+        "Teko",
+        "Pathway Extreme",
+        "Big Shoulders Display"
+      ],
+      "font_style": {
+        "weight": 800,
+        "style": "normal",
+        "casing": "uppercase",
+        "color": "#0A0A0A",
+        "size_px_base": 72,
+        "relative_scale": 1,
+        "letter_spacing_em": 0.03,
+        "line_height": 0.92,
+        "vertical_margin_top_px": 0
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 3,
+          "blur_radius": 6,
+          "color": "rgba(0, 0, 0, 0.3)"
+        }
+      },
+      "sample_text": "HUMANE",
+      "word_count": 1,
+      "character_count": 6,
+      "per_word_character_counts": [
+        {
+          "word": "HUMANE",
+          "character_count": 6
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500">
+    <defs>
+      <radialGradient id="cyanGlow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#00F0FF" stop-opacity="0.85"/>
+        <stop offset="50%" stop-color="#0088FF" stop-opacity="0.4"/>
+        <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="goldGlow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#FFD700" stop-opacity="0.9"/>
+        <stop offset="60%" stop-color="#FF8C00" stop-opacity="0.3"/>
+        <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="roseGlow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#FF0055" stop-opacity="0.85"/>
+        <stop offset="60%" stop-color="#990033" stop-opacity="0.3"/>
+        <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+      </radialGradient>
+      <filter id="cyberGlowFilter">
+        <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
+        <feMerge>
+          <feMergeNode in="coloredBlur"/>
+          <feMergeNode in="SourceGraphic"/>
+        </feMerge>
+      </filter>
+    </defs>
+    
+  <circle cx="580" cy="220" r="220" fill="url(#cyanGlow)"/>
+  <circle cx="580" cy="220" r="150" fill="url(#goldGlow)"/>
+  <!-- Compounding Loop Ring 1 -->
+  <ellipse cx="580" cy="220" rx="190" ry="75" fill="none" stroke="#00F0FF" stroke-width="5" stroke-dasharray="18 10" transform="rotate(-25 580 220)" filter="url(#cyberGlowFilter)"/>
+  <!-- Compounding Loop Ring 2 -->
+  <ellipse cx="580" cy="220" rx="190" ry="75" fill="none" stroke="#FFD700" stroke-width="5" stroke-dasharray="18 10" transform="rotate(35 580 220)" filter="url(#cyberGlowFilter)"/>
+  <!-- Compounding Loop Ring 3 -->
+  <ellipse cx="580" cy="220" rx="190" ry="75" fill="none" stroke="#00FF88" stroke-width="4" stroke-dasharray="12 8" transform="rotate(95 580 220)"/>
+  <!-- Turbine Core -->
+  <circle cx="580" cy="220" r="50" fill="#101625" stroke="#FFFFFF" stroke-width="4" filter="url(#cyberGlowFilter)"/>
+  <circle cx="580" cy="220" r="25" fill="#FFD700"/>
+  <!-- Kinetic Momentum Arrows -->
+  <path d="M 720,130 Q 750,220 680,290" fill="none" stroke="#00F0FF" stroke-width="6" stroke-linecap="round" filter="url(#cyberGlowFilter)"/>
+  <polygon points="680,290 695,275 675,270" fill="#00F0FF"/>
+  <text x="580" y="325" text-anchor="middle" fill="#FFD700" font-family="monospace" font-size="13" font-weight="bold" letter-spacing="3">COMPOUNDING REPETITION</text>
+
+  </svg>

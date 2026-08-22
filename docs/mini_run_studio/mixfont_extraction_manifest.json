@@ -1,0 +1,42 @@
+[
+  {
+    "image": "image (1).png",
+    "error": "API HTTP 402: {\"error\":\"Current team does not have enough API credits remaining.\"}",
+    "status": "failed"
+  },
+  {
+    "image": "image (3).png",
+    "error": "API HTTP 402: {\"error\":\"Current team does not have enough API credits remaining.\"}",
+    "status": "failed"
+  },
+  {
+    "image": "image (4).png",
+    "error": "API HTTP 402: {\"error\":\"Current team does not have enough API credits remaining.\"}",
+    "status": "failed"
+  },
+  {
+    "image": "image (6).png",
+    "error": "API HTTP 402: {\"error\":\"Current team does not have enough API credits remaining.\"}",
+    "status": "failed"
+  },
+  {
+    "image": "image (8).png",
+    "error": "API HTTP 402: {\"error\":\"Current team does not have enough API credits remaining.\"}",
+    "status": "failed"
+  },
+  {
+    "image": "image (33).png",
+    "error": "API HTTP 402: {\"error\":\"Current team does not have enough API credits remaining.\"}",
+    "status": "failed"
+  },
+  {
+    "image": "image (35).png",
+    "error": "API HTTP 402: {\"error\":\"Current team does not have enough API credits remaining.\"}",
+    "status": "failed"
+  },
+  {
+    "image": "image (36).png",
+    "error": "API HTTP 402: {\"error\":\"Current team does not have enough API credits remaining.\"}",
+    "status": "failed"
+  }
+]

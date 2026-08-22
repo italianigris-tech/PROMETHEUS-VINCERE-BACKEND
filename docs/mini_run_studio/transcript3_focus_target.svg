@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500">
+    <defs>
+      <radialGradient id="cyanGlow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#00F0FF" stop-opacity="0.85"/>
+        <stop offset="50%" stop-color="#0088FF" stop-opacity="0.4"/>
+        <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="goldGlow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#FFD700" stop-opacity="0.9"/>
+        <stop offset="60%" stop-color="#FF8C00" stop-opacity="0.3"/>
+        <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="roseGlow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#FF0055" stop-opacity="0.85"/>
+        <stop offset="60%" stop-color="#990033" stop-opacity="0.3"/>
+        <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+      </radialGradient>
+      <filter id="cyberGlowFilter">
+        <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
+        <feMerge>
+          <feMergeNode in="coloredBlur"/>
+          <feMergeNode in="SourceGraphic"/>
+        </feMerge>
+      </filter>
+    </defs>
+    
+  <circle cx="580" cy="220" r="210" fill="url(#cyanGlow)"/>
+  <circle cx="580" cy="220" r="140" fill="url(#goldGlow)"/>
+  <!-- Outer Azimuth Ring -->
+  <circle cx="580" cy="220" r="180" fill="none" stroke="#00F0FF" stroke-width="3" stroke-dasharray="24 12" filter="url(#cyberGlowFilter)"/>
+  <circle cx="580" cy="220" r="150" fill="none" stroke="#FFD700" stroke-width="2" stroke-dasharray="6 6"/>
+  <!-- Focus HUD Box -->
+  <rect x="460" y="100" width="240" height="240" rx="16" fill="rgba(16,22,37,0.4)" stroke="#00F0FF" stroke-width="3" filter="url(#cyberGlowFilter)"/>
+  <!-- Precision Crosshairs -->
+  <line x1="420" y1="220" x2="740" y2="220" stroke="#00F0FF" stroke-width="4" stroke-dasharray="14 8"/>
+  <line x1="580" y1="60" x2="580" y2="380" stroke="#00F0FF" stroke-width="4" stroke-dasharray="14 8"/>
+  <!-- Central Lock Reticle -->
+  <circle cx="580" cy="220" r="45" fill="none" stroke="#FFD700" stroke-width="5" filter="url(#cyberGlowFilter)"/>
+  <circle cx="580" cy="220" r="12" fill="#FF0055"/>
+  <path d="M 545,185 L 560,185 L 560,200" fill="none" stroke="#FFFFFF" stroke-width="3"/>
+  <path d="M 615,185 L 600,185 L 600,200" fill="none" stroke="#FFFFFF" stroke-width="3"/>
+  <path d="M 545,255 L 560,255 L 560,240" fill="none" stroke="#FFFFFF" stroke-width="3"/>
+  <path d="M 615,255 L 600,255 L 600,240" fill="none" stroke="#FFFFFF" stroke-width="3"/>
+  <text x="580" y="315" text-anchor="middle" fill="#00F0FF" font-family="monospace" font-size="14" font-weight="bold" letter-spacing="4">FOCUS LOCKED</text>
+
+  </svg>

@@ -1,0 +1,655 @@
+{
+  "sample": {
+    "fileName": "raw_original_video.mp4",
+    "durationSec": 60.1,
+    "fps": 23.98,
+    "hasAudio": true,
+    "measuredIntegratedLufs": -14.4,
+    "measuredTruePeakDb": 0.3
+  },
+  "palette": {
+    "bedId": "inst_loop_09",
+    "padId": "atmos_05",
+    "moodTag": "client_preferred",
+    "rationale": "Client explicitly named \"inst_loop_09\" — absolute preference honoured; pad paired from its own mood profile.",
+    "overrideApplied": true,
+    "seed": 165266
+  },
+  "program": {
+    "videoPath": "raw_original_video.mp4",
+    "videoDurationSec": 60.1,
+    "fadeInSec": 2,
+    "fadeOutSec": 2,
+    "tailSec": 6,
+    "totalSec": 66.1,
+    "integratedTargetLufs": -14,
+    "truePeakCeilingDb": -1.5,
+    "palette": {
+      "bedId": "inst_loop_09",
+      "padId": "atmos_05",
+      "moodTag": "client_preferred",
+      "rationale": "Client explicitly named \"inst_loop_09\" — absolute preference honoured; pad paired from its own mood profile.",
+      "overrideApplied": true,
+      "seed": 165266
+    },
+    "sections": [
+      {
+        "sectionIndex": 0,
+        "cellId": "intro_fade",
+        "startSec": 0,
+        "endSec": 2,
+        "role": "intro_fade",
+        "assetId": "inst_loop_09",
+        "cause": {
+          "gate": "video_start_fade",
+          "event": {
+            "timeSec": 0,
+            "reason": "Video start; fade-in establishes the bed before dialogue begins."
+          }
+        },
+        "gainDb": -6
+      },
+      {
+        "sectionIndex": 1,
+        "cellId": "cell_01",
+        "startSec": 0,
+        "endSec": 2,
+        "role": "bed",
+        "assetId": "inst_loop_09",
+        "cause": {
+          "gate": "downbeat_boundary",
+          "event": {
+            "timeSec": 0,
+            "chunkIndex": 1,
+            "barNumber": 1,
+            "reason": "Downbeat 0: bed aligns to chunk 1 on the 120 BPM causal grid."
+          }
+        },
+        "gainDb": -6
+      },
+      {
+        "sectionIndex": 2,
+        "cellId": "cell_02",
+        "startSec": 2,
+        "endSec": 4,
+        "role": "bed",
+        "assetId": "inst_loop_09",
+        "cause": {
+          "gate": "downbeat_boundary",
+          "event": {
+            "timeSec": 2,
+            "chunkIndex": 2,
+            "barNumber": 1,
+            "reason": "Downbeat 1: bed aligns to chunk 2 on the 120 BPM causal grid."
+          }
+        },
+        "gainDb": -6
+      },
+      {
+        "sectionIndex": 3,
+        "cellId": "cell_03",
+        "startSec": 4,
+        "endSec": 6,
+        "role": "bed",
+        "assetId": "inst_loop_09",
+        "cause": {
+          "gate": "downbeat_boundary",
+          "event": {
+            "timeSec": 4,
+            "chunkIndex": 3,
+            "barNumber": 2,
+            "reason": "Downbeat 2: bed aligns to chunk 3 on the 120 BPM causal grid."
+          }
+        },
+        "gainDb": -6
+      },
+      {
+        "sectionIndex": 4,
+        "cellId": "cell_04",
+        "startSec": 6,
+        "endSec": 8,
+        "role": "bed",
+        "assetId": "inst_loop_09",
+        "cause": {
+          "gate": "downbeat_boundary",
+          "event": {
+            "timeSec": 6,
+            "chunkIndex": 4,
+            "barNumber": 2,
+            "reason": "Downbeat 3: bed aligns to chunk 4 on the 120 BPM causal grid."
+          }
+        },
+        "gainDb": -6
+      },
+      {
+        "sectionIndex": 5,
+        "cellId": "cell_05",
+        "startSec": 8,
+        "endSec": 10,
+        "role": "bed",
+        "assetId": "inst_loop_09",
+        "cause": {
+          "gate": "downbeat_boundary",
+          "event": {
+            "timeSec": 8,
+            "chunkIndex": 5,
+            "barNumber": 3,
+            "reason": "Downbeat 4: bed aligns to chunk 5 on the 120 BPM causal grid."
+          }
+        },
+        "gainDb": -6
+      },
+      {
+        "sectionIndex": 6,
+        "cellId": "cell_06",
+        "startSec": 10,
+        "endSec": 12,
+        "role": "bed",
+        "assetId": "inst_loop_09",
+        "cause": {
+          "gate": "downbeat_boundary",
+          "event": {
+            "timeSec": 10,
+            "chunkIndex": 6,
+            "barNumber": 3,
+            "reason": "Downbeat 5: bed aligns to chunk 6 on the 120 BPM causal grid."
+          }
+        },
+        "gainDb": -6
+      },
+      {
+        "sectionIndex": 7,
+        "cellId": "cell_07",
+        "startSec": 12,
+        "endSec": 14,
+        "role": "bed",
+        "assetId": "inst_loop_09",
+        "cause": {
+          "gate": "downbeat_boundary",
+          "event": {
+            "timeSec": 12,
+            "chunkIndex": 7,
+            "barNumber": 4,
+            "reason": "Downbeat 6: bed aligns to chunk 7 on the 120 BPM causal grid."
+          }
+        },
+        "gainDb": -6
+      },
+      {
+        "sectionIndex": 8,
+        "cellId": "cell_08",
+        "startSec": 14,
+        "endSec": 16,
+        "role": "bed",
+        "assetId": "inst_loop_09",
+        "cause": {
+          "gate": "downbeat_boundary",
+          "event": {
+            "timeSec": 14,
+            "chunkIndex": 8,
+            "barNumber": 4,
+            "reason": "Downbeat 7: bed aligns to chunk 8 on the 120 BPM causal grid."
+          }
+        },
+        "gainDb": -6
+      },
+      {
+        "sectionIndex": 9,
+        "cellId": "cell_09",
+        "startSec": 16,
+        "endSec": 18,
+        "role": "bed",
+        "assetId": "inst_loop_09",
+        "cause": {
+          "gate": "downbeat_boundary",
+          "event": {
+            "timeSec": 16,
+            "chunkIndex": 9,
+            "barNumber": 5,
+            "reason": "Downbeat 8: bed aligns to chunk 9 on the 120 BPM causal grid."
+          }
+        },
+        "gainDb": -6
+      },
+      {
+        "sectionIndex": 10,
+        "cellId": "cell_10",
+        "startSec": 18,
+        "endSec": 20,
+        "role": "bed",
+        "assetId": "inst_loop_09",
+        "cause": {
+          "gate": "downbeat_boundary",
+          "event": {
+            "timeSec": 18,
+            "chunkIndex": 10,
+            "barNumber": 5,
+            "reason": "Downbeat 9: bed aligns to chunk 10 on the 120 BPM causal grid."
+          }
+        },
+        "gainDb": -6
+      },
+      {
+        "sectionIndex": 11,
+        "cellId": "cell_11",
+        "startSec": 20,
+        "endSec": 22,
+        "role": "bed",
+        "assetId": "inst_loop_09",
+        "cause": {
+          "gate": "downbeat_boundary",
+          "event": {
+            "timeSec": 20,
+            "chunkIndex": 11,
+            "barNumber": 6,
+            "reason": "Downbeat 10: bed aligns to chunk 11 on the 120 BPM causal grid."
+          }
+        },
+        "gainDb": -6
+      },
+      {
+        "sectionIndex": 12,
+        "cellId": "cell_12",
+        "startSec": 22,
+        "endSec": 24,
+        "role": "bed",
+        "assetId": "inst_loop_09",
+        "cause": {
+          "gate": "downbeat_boundary",
+          "event": {
+            "timeSec": 22,
+            "chunkIndex": 12,
+            "barNumber": 6,
+            "reason": "Downbeat 11: bed aligns to chunk 12 on the 120 BPM causal grid."
+          }
+        },
+        "gainDb": -6
+      },
+      {
+        "sectionIndex": 13,
+        "cellId": "cell_13",
+        "startSec": 24,
+        "endSec": 26,
+        "role": "bed",
+        "assetId": "inst_loop_09",
+        "cause": {
+          "gate": "downbeat_boundary",
+          "event": {
+            "timeSec": 24,
+            "chunkIndex": 13,
+            "barNumber": 7,
+            "reason": "Downbeat 12: bed aligns to chunk 13 on the 120 BPM causal grid."
+          }
+        },
+        "gainDb": -6
+      },
+      {
+        "sectionIndex": 14,
+        "cellId": "cell_14",
+        "startSec": 26,
+        "endSec": 28,
+        "role": "bed",
+        "assetId": "inst_loop_09",
+        "cause": {
+          "gate": "downbeat_boundary",
+          "event": {
+            "timeSec": 26,
+            "chunkIndex": 14,
+            "barNumber": 7,
+            "reason": "Downbeat 13: bed aligns to chunk 14 on the 120 BPM causal grid."
+          }
+        },
+        "gainDb": -6
+      },
+      {
+        "sectionIndex": 15,
+        "cellId": "cell_15",
+        "startSec": 28,
+        "endSec": 30,
+        "role": "bed",
+        "assetId": "inst_loop_09",
+        "cause": {
+          "gate": "downbeat_boundary",
+          "event": {
+            "timeSec": 28,
+            "chunkIndex": 15,
+            "barNumber": 8,
+            "reason": "Downbeat 14: bed aligns to chunk 15 on the 120 BPM causal grid."
+          }
+        },
+        "gainDb": -6
+      },
+      {
+        "sectionIndex": 16,
+        "cellId": "cell_16",
+        "startSec": 30,
+        "endSec": 32,
+        "role": "bed",
+        "assetId": "inst_loop_09",
+        "cause": {
+          "gate": "downbeat_boundary",
+          "event": {
+            "timeSec": 30,
+            "chunkIndex": 16,
+            "barNumber": 8,
+            "reason": "Downbeat 15: bed aligns to chunk 16 on the 120 BPM causal grid."
+          }
+        },
+        "gainDb": -6
+      },
+      {
+        "sectionIndex": 17,
+        "cellId": "cell_17",
+        "startSec": 32,
+        "endSec": 34,
+        "role": "bed",
+        "assetId": "inst_loop_09",
+        "cause": {
+          "gate": "downbeat_boundary",
+          "event": {
+            "timeSec": 32,
+            "chunkIndex": 17,
+            "barNumber": 9,
+            "reason": "Downbeat 16: bed aligns to chunk 17 on the 120 BPM causal grid."
+          }
+        },
+        "gainDb": -6
+      },
+      {
+        "sectionIndex": 18,
+        "cellId": "cell_18",
+        "startSec": 34,
+        "endSec": 36,
+        "role": "bed",
+        "assetId": "inst_loop_09",
+        "cause": {
+          "gate": "downbeat_boundary",
+          "event": {
+            "timeSec": 34,
+            "chunkIndex": 18,
+            "barNumber": 9,
+            "reason": "Downbeat 17: bed aligns to chunk 18 on the 120 BPM causal grid."
+          }
+        },
+        "gainDb": -6
+      },
+      {
+        "sectionIndex": 19,
+        "cellId": "cell_19",
+        "startSec": 36,
+        "endSec": 38,
+        "role": "bed",
+        "assetId": "inst_loop_09",
+        "cause": {
+          "gate": "downbeat_boundary",
+          "event": {
+            "timeSec": 36,
+            "chunkIndex": 19,
+            "barNumber": 10,
+            "reason": "Downbeat 18: bed aligns to chunk 19 on the 120 BPM causal grid."
+          }
+        },
+        "gainDb": -6
+      },
+      {
+        "sectionIndex": 20,
+        "cellId": "cell_20",
+        "startSec": 38,
+        "endSec": 40,
+        "role": "bed",
+        "assetId": "inst_loop_09",
+        "cause": {
+          "gate": "downbeat_boundary",
+          "event": {
+            "timeSec": 38,
+            "chunkIndex": 20,
+            "barNumber": 10,
+            "reason": "Downbeat 19: bed aligns to chunk 20 on the 120 BPM causal grid."
+          }
+        },
+        "gainDb": -6
+      },
+      {
+        "sectionIndex": 21,
+        "cellId": "cell_21",
+        "startSec": 40,
+        "endSec": 42,
+        "role": "bed",
+        "assetId": "inst_loop_09",
+        "cause": {
+          "gate": "downbeat_boundary",
+          "event": {
+            "timeSec": 40,
+            "chunkIndex": 21,
+            "barNumber": 11,
+            "reason": "Downbeat 20: bed aligns to chunk 21 on the 120 BPM causal grid."
+          }
+        },
+        "gainDb": -6
+      },
+      {
+        "sectionIndex": 22,
+        "cellId": "cell_22",
+        "startSec": 42,
+        "endSec": 44,
+        "role": "bed",
+        "assetId": "inst_loop_09",
+        "cause": {
+          "gate": "downbeat_boundary",
+          "event": {
+            "timeSec": 42,
+            "chunkIndex": 22,
+            "barNumber": 11,
+            "reason": "Downbeat 21: bed aligns to chunk 22 on the 120 BPM causal grid."
+          }
+        },
+        "gainDb": -6
+      },
+      {
+        "sectionIndex": 23,
+        "cellId": "cell_23",
+        "startSec": 44,
+        "endSec": 46,
+        "role": "bed",
+        "assetId": "inst_loop_09",
+        "cause": {
+          "gate": "downbeat_boundary",
+          "event": {
+            "timeSec": 44,
+            "chunkIndex": 23,
+            "barNumber": 12,
+            "reason": "Downbeat 22: bed aligns to chunk 23 on the 120 BPM causal grid."
+          }
+        },
+        "gainDb": -6
+      },
+      {
+        "sectionIndex": 24,
+        "cellId": "cell_24",
+        "startSec": 46,
+        "endSec": 48,
+        "role": "bed",
+        "assetId": "inst_loop_09",
+        "cause": {
+          "gate": "downbeat_boundary",
+          "event": {
+            "timeSec": 46,
+            "chunkIndex": 24,
+            "barNumber": 12,
+            "reason": "Downbeat 23: bed aligns to chunk 24 on the 120 BPM causal grid."
+          }
+        },
+        "gainDb": -6
+      },
+      {
+        "sectionIndex": 25,
+        "cellId": "cell_25",
+        "startSec": 48,
+        "endSec": 50,
+        "role": "bed",
+        "assetId": "inst_loop_09",
+        "cause": {
+          "gate": "downbeat_boundary",
+          "event": {
+            "timeSec": 48,
+            "chunkIndex": 25,
+            "barNumber": 13,
+            "reason": "Downbeat 24: bed aligns to chunk 25 on the 120 BPM causal grid."
+          }
+        },
+        "gainDb": -6
+      },
+      {
+        "sectionIndex": 26,
+        "cellId": "cell_26",
+        "startSec": 50,
+        "endSec": 52,
+        "role": "bed",
+        "assetId": "inst_loop_09",
+        "cause": {
+          "gate": "downbeat_boundary",
+          "event": {
+            "timeSec": 50,
+            "chunkIndex": 26,
+            "barNumber": 13,
+            "reason": "Downbeat 25: bed aligns to chunk 26 on the 120 BPM causal grid."
+          }
+        },
+        "gainDb": -6
+      },
+      {
+        "sectionIndex": 27,
+        "cellId": "cell_27",
+        "startSec": 52,
+        "endSec": 54,
+        "role": "bed",
+        "assetId": "inst_loop_09",
+        "cause": {
+          "gate": "downbeat_boundary",
+          "event": {
+            "timeSec": 52,
+            "chunkIndex": 27,
+            "barNumber": 14,
+            "reason": "Downbeat 26: bed aligns to chunk 27 on the 120 BPM causal grid."
+          }
+        },
+        "gainDb": -6
+      },
+      {
+        "sectionIndex": 28,
+        "cellId": "cell_28",
+        "startSec": 54,
+        "endSec": 56,
+        "role": "bed",
+        "assetId": "inst_loop_09",
+        "cause": {
+          "gate": "downbeat_boundary",
+          "event": {
+            "timeSec": 54,
+            "chunkIndex": 28,
+            "barNumber": 14,
+            "reason": "Downbeat 27: bed aligns to chunk 28 on the 120 BPM causal grid."
+          }
+        },
+        "gainDb": -6
+      },
+      {
+        "sectionIndex": 29,
+        "cellId": "cell_29",
+        "startSec": 56,
+        "endSec": 58,
+        "role": "bed",
+        "assetId": "inst_loop_09",
+        "cause": {
+          "gate": "downbeat_boundary",
+          "event": {
+            "timeSec": 56,
+            "chunkIndex": 29,
+            "barNumber": 15,
+            "reason": "Downbeat 28: bed aligns to chunk 29 on the 120 BPM causal grid."
+          }
+        },
+        "gainDb": -6
+      },
+      {
+        "sectionIndex": 30,
+        "cellId": "cell_30",
+        "startSec": 58,
+        "endSec": 60,
+        "role": "bed",
+        "assetId": "inst_loop_09",
+        "cause": {
+          "gate": "downbeat_boundary",
+          "event": {
+            "timeSec": 58,
+            "chunkIndex": 30,
+            "barNumber": 15,
+            "reason": "Downbeat 29: bed aligns to chunk 30 on the 120 BPM causal grid."
+          }
+        },
+        "gainDb": -6
+      },
+      {
+        "sectionIndex": 31,
+        "cellId": "outro_fade",
+        "startSec": 58.1,
+        "endSec": 66.1,
+        "role": "outro_fade",
+        "assetId": "inst_loop_09",
+        "cause": {
+          "gate": "video_end_fade",
+          "event": {
+            "timeSec": 58.1,
+            "reason": "Video ends; fade-out over the final 2s, tail keeps the bed a few seconds longer than the video."
+          }
+        },
+        "gainDb": -6
+      }
+    ]
+  },
+  "checks": [
+    {
+      "check": "causal_linkage",
+      "pass": true,
+      "detail": "All sections cite a concrete video event; none orphaned or out-of-window."
+    },
+    {
+      "check": "tail_bounded",
+      "pass": true,
+      "detail": "total=66.10s video=60.10s tail=6.00s (bounds 0.5-6s)"
+    },
+    {
+      "check": "fade_in_out",
+      "pass": true,
+      "detail": "fade-in ends at 2.00s; fade-out starts at 58.10s (2s before end)."
+    },
+    {
+      "check": "loudness_governance",
+      "pass": true,
+      "detail": "target -14.0 LUFS / ceiling -1.5 dBTP"
+    },
+    {
+      "check": "full_bed_coverage",
+      "pass": true,
+      "detail": "bed cells cover up to 60.00s; outro fade window begins at 58.10s"
+    },
+    {
+      "check": "track_variance_non_hardcoded",
+      "pass": true,
+      "detail": "beds across structural variants: inst_loop_01, inst_loop_03, inst_loop_04, inst_loop_09, inst_loop_10 (5 distinct)"
+    },
+    {
+      "check": "sfx_plan_duration_parametric",
+      "pass": true,
+      "detail": "SFX plan rebuilds per short length (30s→60 beats, 60.1s→120 beats, 90s→180 beats) with every cue in-window"
+    },
+    {
+      "check": "preferred_track_override",
+      "pass": true,
+      "detail": "requested \"inst_loop_09\"; engine resolved bed=\"inst_loop_09\" pad=\"atmos_05\" overrideApplied=true"
+    }
+  ],
+  "allPass": true,
+  "flaggedGaps": [],
+  "renderProofPath": null
+}

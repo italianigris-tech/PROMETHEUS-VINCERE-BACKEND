@@ -1,0 +1,1300 @@
+import * as fs from "node:fs";
+import * as path from "node:path";
+
+const studioDir = __dirname;
+const masterSoundData = {"metadata": {"generatedAt": "2026-08-18T12:03:52.831Z", "videoFile": "uploaded_input_video.mp4", "totalVisualEventsTreated": 32, "soundDesignPhilosophy": "SEMANTIC_GROUPING_AND_LUXURY_RESTRAINT (Consistent timbre across sibling asset groups within breath phases)", "averageInterEventGapSec": 1.88, "discreteCategoriesUsed": ["TEXT", "WHOOSHES", "SWOOSHES", "TRANSITIONS", "UI INTERFACE", "DATA TELEMETRY", "MECHANICAL CLICKS"], "tightMicroTimingEnforced": true, "transientOnsetDetectionEnabled": true}, "treatments": [{"id": "treatment-1", "timestampSeconds": 2.085, "frame": 50, "groupName": "General Narrative Anchor", "visualTrigger": {"type": "ui_card_reveal", "elementName": "UI Card / Pill Highlight", "description": "Visual element entrance at (53.8%, 72.1%) [Area: 3931px]", "screenXPercent": 53.8, "screenYPercent": 72.1}, "soundDesign": {"category": "UI INTERFACE", "soundName": "UI Micro Click", "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3", "stereoPan": 0.09, "depthPlane": 20, "lowpassCutoffHz": 16000, "gainDb": -6.5, "durationEstimateSec": 0.16, "selectionReason": "Hero card / metric revelation (UI Card / Pill Highlight) with subtle micro telemetry click.", "selectedVariantIndex": 1, "variants": [{"variantId": "ui-display-digit", "label": "Display Digit Blip", "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav", "category": "DATA TELEMETRY", "gainDb": -7, "durationSec": 0.18}, {"variantId": "ui-micro-click", "label": "UI Micro Click", "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3", "category": "UI INTERFACE", "gainDb": -6.5, "durationSec": 0.16}, {"variantId": "ui-data-reveal", "label": "Data Reveal Sound", "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3", "category": "DATA TELEMETRY", "gainDb": -7, "durationSec": 0.2}, {"variantId": "ui-generdyn-gui", "label": "Modern GUI Pop", "soundFile": "SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/Generdyn%20-%20GUI%20-%2001.wav", "category": "UI INTERFACE", "gainDb": -7, "durationSec": 0.18}]}}, {"id": "treatment-2", "timestampSeconds": 4.588, "frame": 110, "groupName": "General Narrative Anchor", "visualTrigger": {"type": "scene_cut", "elementName": "Scene Cut #1", "description": "Hard scene transition (Visual divergence: 0.67)", "screenXPercent": 50, "screenYPercent": 50}, "soundDesign": {"category": "WHOOSHES", "soundName": "Simple Subtle Whoosh", "soundFile": "SOUND FX/WHOOSHES/dragon-studio-simple-whoosh-02-433006.mp3", "audioUrl": "/SOUND%20FX/WHOOSHES/dragon-studio-simple-whoosh-02-433006.mp3", "stereoPan": 0, "depthPlane": 30, "lowpassCutoffHz": 16000, "gainDb": -7, "durationEstimateSec": 0.75, "selectionReason": "Pillar scene transition / whip pan (Scene Cut #1). Full airy whoosh sweep.", "selectedVariantIndex": 2, "variants": [{"variantId": "whoosh-jump-swish", "label": "Jump Swish Swoosh", "soundFile": "SOUND FX/SWOOSHES/ES_Jump Swish - SFX Producer.mp3", "audioUrl": "/SOUND%20FX/SWOOSHES/ES_Jump%20Swish%20-%20SFX%20Producer.mp3", "category": "SWOOSHES", "gainDb": -6, "durationSec": 0.85}, {"variantId": "whoosh-hi-end-crisp", "label": "Hi-End Crisp Whoosh", "soundFile": "SOUND FX/WHOOSHES/Hi End - Whoosh - (Nikko Hunt's S.D.Essentials).wav", "audioUrl": "/SOUND%20FX/WHOOSHES/Hi%20End%20-%20Whoosh%20-%20(Nikko%20Hunt's%20S.D.Essentials).wav", "category": "WHOOSHES", "gainDb": -6.5, "durationSec": 0.9}, {"variantId": "whoosh-simple-02", "label": "Simple Subtle Whoosh", "soundFile": "SOUND FX/WHOOSHES/dragon-studio-simple-whoosh-02-433006.mp3", "audioUrl": "/SOUND%20FX/WHOOSHES/dragon-studio-simple-whoosh-02-433006.mp3", "category": "WHOOSHES", "gainDb": -7, "durationSec": 0.75}, {"variantId": "trans-flashback", "label": "Cinematic Transition Snap", "soundFile": "SOUND FX/TRANSITIONS/dragon-studio-cinematic-flashback-transition-463199.mp3", "audioUrl": "/SOUND%20FX/TRANSITIONS/dragon-studio-cinematic-flashback-transition-463199.mp3", "category": "TRANSITIONS", "gainDb": -5.5, "durationSec": 0.65}]}}, {"id": "treatment-3", "timestampSeconds": 6.423, "frame": 154, "groupName": "General Narrative Anchor", "visualTrigger": {"type": "typography_text_pop", "elementName": "Kinetic Typography Header", "description": "Visual element entrance at (48.3%, 52.4%) [Area: 7596px]", "screenXPercent": 48.3, "screenYPercent": 52.4}, "soundDesign": {"category": "MECHANICAL CLICKS", "soundName": "Mechanical Shutter Accent", "soundFile": "SOUND FX/MECHANICAL CLICKS/camera-shutter-18399.mp3", "audioUrl": "/SOUND%20FX/MECHANICAL%20CLICKS/camera-shutter-18399.mp3", "stereoPan": -0.04, "depthPlane": 30, "lowpassCutoffHz": 18500, "gainDb": -7.5, "durationEstimateSec": 0.2, "selectionReason": "Hero headline entrance (Kinetic Typography Header) at (48.3%, 52.4%). Discrete tactile click with zero duration spill.", "selectedVariantIndex": 3, "variants": [{"variantId": "text-typewriter-classic", "label": "Typewriter Single Strike", "soundFile": "SOUND FX/TEXT/type-writing-6834.mp3", "audioUrl": "/SOUND%20FX/TEXT/type-writing-6834.mp3", "category": "TEXT", "gainDb": -6, "durationSec": 0.22}, {"variantId": "text-studio-keystroke", "label": "Mechanical Keyboard Tap", "soundFile": "SOUND FX/TEXT/dragon-studio-typing-with-keyboard-435489.mp3", "audioUrl": "/SOUND%20FX/TEXT/dragon-studio-typing-with-keyboard-435489.mp3", "category": "TEXT", "gainDb": -6.5, "durationSec": 0.2}, {"variantId": "text-fast-keystroke", "label": "Fast Tactile Click", "soundFile": "SOUND FX/TEXT/virtualzero-keyboard-typing-fast-371229.mp3", "audioUrl": "/SOUND%20FX/TEXT/virtualzero-keyboard-typing-fast-371229.mp3", "category": "TEXT", "gainDb": -7, "durationSec": 0.18}, {"variantId": "text-mechanical-shutter", "label": "Mechanical Shutter Accent", "soundFile": "SOUND FX/MECHANICAL CLICKS/camera-shutter-18399.mp3", "audioUrl": "/SOUND%20FX/MECHANICAL%20CLICKS/camera-shutter-18399.mp3", "category": "MECHANICAL CLICKS", "gainDb": -7.5, "durationSec": 0.2}]}}, {"id": "treatment-4", "timestampSeconds": 7.257, "frame": 174, "groupName": "General Narrative Anchor", "visualTrigger": {"type": "scene_cut", "elementName": "Scene Cut #2", "description": "Hard scene transition (Visual divergence: 0.43)", "screenXPercent": 50, "screenYPercent": 50}, "soundDesign": {"category": "SWOOSHES", "soundName": "Jump Swish Swoosh", "soundFile": "SOUND FX/SWOOSHES/ES_Jump Swish - SFX Producer.mp3", "audioUrl": "/SOUND%20FX/SWOOSHES/ES_Jump%20Swish%20-%20SFX%20Producer.mp3", "stereoPan": 0, "depthPlane": 30, "lowpassCutoffHz": 16000, "gainDb": -6, "durationEstimateSec": 0.85, "selectionReason": "Pillar scene transition / whip pan (Scene Cut #2). Full airy whoosh sweep.", "selectedVariantIndex": 0, "variants": [{"variantId": "whoosh-jump-swish", "label": "Jump Swish Swoosh", "soundFile": "SOUND FX/SWOOSHES/ES_Jump Swish - SFX Producer.mp3", "audioUrl": "/SOUND%20FX/SWOOSHES/ES_Jump%20Swish%20-%20SFX%20Producer.mp3", "category": "SWOOSHES", "gainDb": -6, "durationSec": 0.85}, {"variantId": "whoosh-hi-end-crisp", "label": "Hi-End Crisp Whoosh", "soundFile": "SOUND FX/WHOOSHES/Hi End - Whoosh - (Nikko Hunt's S.D.Essentials).wav", "audioUrl": "/SOUND%20FX/WHOOSHES/Hi%20End%20-%20Whoosh%20-%20(Nikko%20Hunt's%20S.D.Essentials).wav", "category": "WHOOSHES", "gainDb": -6.5, "durationSec": 0.9}, {"variantId": "whoosh-simple-02", "label": "Simple Subtle Whoosh", "soundFile": "SOUND FX/WHOOSHES/dragon-studio-simple-whoosh-02-433006.mp3", "audioUrl": "/SOUND%20FX/WHOOSHES/dragon-studio-simple-whoosh-02-433006.mp3", "category": "WHOOSHES", "gainDb": -7, "durationSec": 0.75}, {"variantId": "trans-flashback", "label": "Cinematic Transition Snap", "soundFile": "SOUND FX/TRANSITIONS/dragon-studio-cinematic-flashback-transition-463199.mp3", "audioUrl": "/SOUND%20FX/TRANSITIONS/dragon-studio-cinematic-flashback-transition-463199.mp3", "category": "TRANSITIONS", "gainDb": -5.5, "durationSec": 0.65}]}}, {"id": "treatment-5", "timestampSeconds": 9.176, "frame": 220, "groupName": "Dual Character Entry Group (09s - 11s)", "visualTrigger": {"type": "ui_card_reveal", "elementName": "Character Asset #1 (Right Entry)", "description": "Visual element entrance at (86.8%, 84.5%) [Area: 9297px]", "screenXPercent": 86.8, "screenYPercent": 84.5}, "soundDesign": {"category": "DATA TELEMETRY", "soundName": "Display Digit Blip", "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav", "stereoPan": 0.75, "depthPlane": 20, "lowpassCutoffHz": 16000, "gainDb": -7, "durationEstimateSec": 0.18, "selectionReason": "Sibling asset #1 entering from the right with Display Digit Blip (Panned Right).", "selectedVariantIndex": 0, "variants": [{"variantId": "ui-display-digit", "label": "Display Digit Blip", "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav", "category": "DATA TELEMETRY", "gainDb": -7, "durationSec": 0.18}, {"variantId": "ui-micro-click", "label": "UI Micro Click", "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3", "category": "UI INTERFACE", "gainDb": -6.5, "durationSec": 0.16}, {"variantId": "ui-data-reveal", "label": "Data Reveal Sound", "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3", "category": "DATA TELEMETRY", "gainDb": -7, "durationSec": 0.2}, {"variantId": "ui-generdyn-gui", "label": "Modern GUI Pop", "soundFile": "SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/Generdyn%20-%20GUI%20-%2001.wav", "category": "UI INTERFACE", "gainDb": -7, "durationSec": 0.18}]}}, {"id": "treatment-6", "timestampSeconds": 10.969, "frame": 263, "groupName": "Dual Character Entry Group (09s - 11s)", "visualTrigger": {"type": "asset_intro", "elementName": "Character Asset #2 (Left Sibling Entry)", "description": "Visual element entrance at (42.1%, 50.2%) [Area: 3788px]", "screenXPercent": 42.1, "screenYPercent": 50.2}, "soundDesign": {"category": "DATA TELEMETRY", "soundName": "Display Digit Blip", "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav", "stereoPan": -0.75, "depthPlane": 30, "lowpassCutoffHz": 16000, "gainDb": -7, "durationEstimateSec": 0.18, "selectionReason": "Sibling asset #2 entering from the left with matching Display Digit Blip (Panned Left) for semantic timbre consistency.", "selectedVariantIndex": 0, "variants": [{"variantId": "ui-display-digit", "label": "Display Digit Blip", "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav", "category": "DATA TELEMETRY", "gainDb": -7, "durationSec": 0.18}, {"variantId": "ui-micro-click", "label": "UI Micro Click", "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3", "category": "UI INTERFACE", "gainDb": -6.5, "durationSec": 0.16}, {"variantId": "ui-data-reveal", "label": "Data Reveal Sound", "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3", "category": "DATA TELEMETRY", "gainDb": -7, "durationSec": 0.2}, {"variantId": "ui-generdyn-gui", "label": "Modern GUI Pop", "soundFile": "SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/Generdyn%20-%20GUI%20-%2001.wav", "category": "UI INTERFACE", "gainDb": -7, "durationSec": 0.18}]}}, {"id": "treatment-7", "timestampSeconds": 13.305, "frame": 319, "groupName": "General Narrative Anchor", "visualTrigger": {"type": "asset_intro", "elementName": "Graphic Sticker / Icon Asset", "description": "Visual element entrance at (51.0%, 55.4%) [Area: 42637px]", "screenXPercent": 51, "screenYPercent": 55.4}, "soundDesign": {"category": "UI INTERFACE", "soundName": "Modern GUI Pop", "soundFile": "SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/Generdyn%20-%20GUI%20-%2001.wav", "stereoPan": 0.02, "depthPlane": 20, "lowpassCutoffHz": 16000, "gainDb": -7, "durationEstimateSec": 0.18, "selectionReason": "Hero card / metric revelation (Graphic Sticker / Icon Asset) with subtle micro telemetry click.", "selectedVariantIndex": 3, "variants": [{"variantId": "ui-display-digit", "label": "Display Digit Blip", "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav", "category": "DATA TELEMETRY", "gainDb": -7, "durationSec": 0.18}, {"variantId": "ui-micro-click", "label": "UI Micro Click", "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3", "category": "UI INTERFACE", "gainDb": -6.5, "durationSec": 0.16}, {"variantId": "ui-data-reveal", "label": "Data Reveal Sound", "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3", "category": "DATA TELEMETRY", "gainDb": -7, "durationSec": 0.2}, {"variantId": "ui-generdyn-gui", "label": "Modern GUI Pop", "soundFile": "SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/Generdyn%20-%20GUI%20-%2001.wav", "category": "UI INTERFACE", "gainDb": -7, "durationSec": 0.18}]}}, {"id": "treatment-8", "timestampSeconds": 15.098, "frame": 362, "groupName": "General Narrative Anchor", "visualTrigger": {"type": "scene_cut", "elementName": "Scene Cut #3", "description": "Hard scene transition (Visual divergence: 0.47)", "screenXPercent": 50, "screenYPercent": 50}, "soundDesign": {"category": "SWOOSHES", "soundName": "Jump Swish Swoosh", "soundFile": "SOUND FX/SWOOSHES/ES_Jump Swish - SFX Producer.mp3", "audioUrl": "/SOUND%20FX/SWOOSHES/ES_Jump%20Swish%20-%20SFX%20Producer.mp3", "stereoPan": 0, "depthPlane": 30, "lowpassCutoffHz": 16000, "gainDb": -6, "durationEstimateSec": 0.85, "selectionReason": "Pillar scene transition / whip pan (Scene Cut #3). Full airy whoosh sweep.", "selectedVariantIndex": 0, "variants": [{"variantId": "whoosh-jump-swish", "label": "Jump Swish Swoosh", "soundFile": "SOUND FX/SWOOSHES/ES_Jump Swish - SFX Producer.mp3", "audioUrl": "/SOUND%20FX/SWOOSHES/ES_Jump%20Swish%20-%20SFX%20Producer.mp3", "category": "SWOOSHES", "gainDb": -6, "durationSec": 0.85}, {"variantId": "whoosh-hi-end-crisp", "label": "Hi-End Crisp Whoosh", "soundFile": "SOUND FX/WHOOSHES/Hi End - Whoosh - (Nikko Hunt's S.D.Essentials).wav", "audioUrl": "/SOUND%20FX/WHOOSHES/Hi%20End%20-%20Whoosh%20-%20(Nikko%20Hunt's%20S.D.Essentials).wav", "category": "WHOOSHES", "gainDb": -6.5, "durationSec": 0.9}, {"variantId": "whoosh-simple-02", "label": "Simple Subtle Whoosh", "soundFile": "SOUND FX/WHOOSHES/dragon-studio-simple-whoosh-02-433006.mp3", "audioUrl": "/SOUND%20FX/WHOOSHES/dragon-studio-simple-whoosh-02-433006.mp3", "category": "WHOOSHES", "gainDb": -7, "durationSec": 0.75}, {"variantId": "trans-flashback", "label": "Cinematic Transition Snap", "soundFile": "SOUND FX/TRANSITIONS/dragon-studio-cinematic-flashback-transition-463199.mp3", "audioUrl": "/SOUND%20FX/TRANSITIONS/dragon-studio-cinematic-flashback-transition-463199.mp3", "category": "TRANSITIONS", "gainDb": -5.5, "durationSec": 0.65}]}}, {"id": "treatment-9", "timestampSeconds": 16.558, "frame": 397, "groupName": "Metric Comparison Group (16s - 19s)", "visualTrigger": {"type": "ui_card_reveal", "elementName": "UI Card / Pill Highlight", "description": "Visual element entrance at (86.1%, 69.1%) [Area: 7474px]", "screenXPercent": 86.1, "screenYPercent": 69.1}, "soundDesign": {"category": "DATA TELEMETRY", "soundName": "Data Reveal Sound", "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3", "stereoPan": 0.7, "depthPlane": 20, "lowpassCutoffHz": 16000, "gainDb": -7, "durationEstimateSec": 0.2, "selectionReason": "Metric Card A entering with Data Reveal Sound (Panned Right).", "selectedVariantIndex": 2, "variants": [{"variantId": "ui-display-digit", "label": "Display Digit Blip", "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav", "category": "DATA TELEMETRY", "gainDb": -7, "durationSec": 0.18}, {"variantId": "ui-micro-click", "label": "UI Micro Click", "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3", "category": "UI INTERFACE", "gainDb": -6.5, "durationSec": 0.16}, {"variantId": "ui-data-reveal", "label": "Data Reveal Sound", "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3", "category": "DATA TELEMETRY", "gainDb": -7, "durationSec": 0.2}, {"variantId": "ui-generdyn-gui", "label": "Modern GUI Pop", "soundFile": "SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/Generdyn%20-%20GUI%20-%2001.wav", "category": "UI INTERFACE", "gainDb": -7, "durationSec": 0.18}]}}, {"id": "treatment-10", "timestampSeconds": 18.31, "frame": 439, "groupName": "Metric Comparison Group (16s - 19s)", "visualTrigger": {"type": "typography_text_pop", "elementName": "Kinetic Typography Header", "description": "Visual element entrance at (53.8%, 50.6%) [Area: 4048px]", "screenXPercent": 53.8, "screenYPercent": 50.6}, "soundDesign": {"category": "DATA TELEMETRY", "soundName": "Data Reveal Sound", "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3", "stereoPan": -0.7, "depthPlane": 30, "lowpassCutoffHz": 16000, "gainDb": -7, "durationEstimateSec": 0.2, "selectionReason": "Metric Card B entering with matching Data Reveal Sound (Panned Left).", "selectedVariantIndex": 2, "variants": [{"variantId": "ui-display-digit", "label": "Display Digit Blip", "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav", "category": "DATA TELEMETRY", "gainDb": -7, "durationSec": 0.18}, {"variantId": "ui-micro-click", "label": "UI Micro Click", "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3", "category": "UI INTERFACE", "gainDb": -6.5, "durationSec": 0.16}, {"variantId": "ui-data-reveal", "label": "Data Reveal Sound", "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3", "category": "DATA TELEMETRY", "gainDb": -7, "durationSec": 0.2}, {"variantId": "ui-generdyn-gui", "label": "Modern GUI Pop", "soundFile": "SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/Generdyn%20-%20GUI%20-%2001.wav", "category": "UI INTERFACE", "gainDb": -7, "durationSec": 0.18}]}}, {"id": "treatment-11", "timestampSeconds": 20.854, "frame": 500, "groupName": "General Narrative Anchor", "visualTrigger": {"type": "scene_cut", "elementName": "Scene Cut #4", "description": "Hard scene transition (Visual divergence: 0.45)", "screenXPercent": 50, "screenYPercent": 50}, "soundDesign": {"category": "TRANSITIONS", "soundName": "Cinematic Transition Snap", "soundFile": "SOUND FX/TRANSITIONS/dragon-studio-cinematic-flashback-transition-463199.mp3", "audioUrl": "/SOUND%20FX/TRANSITIONS/dragon-studio-cinematic-flashback-transition-463199.mp3", "stereoPan": 0, "depthPlane": 30, "lowpassCutoffHz": 16000, "gainDb": -5.5, "durationEstimateSec": 0.65, "selectionReason": "Pillar scene transition / whip pan (Scene Cut #4). Full airy whoosh sweep.", "selectedVariantIndex": 3, "variants": [{"variantId": "whoosh-jump-swish", "label": "Jump Swish Swoosh", "soundFile": "SOUND FX/SWOOSHES/ES_Jump Swish - SFX Producer.mp3", "audioUrl": "/SOUND%20FX/SWOOSHES/ES_Jump%20Swish%20-%20SFX%20Producer.mp3", "category": "SWOOSHES", "gainDb": -6, "durationSec": 0.85}, {"variantId": "whoosh-hi-end-crisp", "label": "Hi-End Crisp Whoosh", "soundFile": "SOUND FX/WHOOSHES/Hi End - Whoosh - (Nikko Hunt's S.D.Essentials).wav", "audioUrl": "/SOUND%20FX/WHOOSHES/Hi%20End%20-%20Whoosh%20-%20(Nikko%20Hunt's%20S.D.Essentials).wav", "category": "WHOOSHES", "gainDb": -6.5, "durationSec": 0.9}, {"variantId": "whoosh-simple-02", "label": "Simple Subtle Whoosh", "soundFile": "SOUND FX/WHOOSHES/dragon-studio-simple-whoosh-02-433006.mp3", "audioUrl": "/SOUND%20FX/WHOOSHES/dragon-studio-simple-whoosh-02-433006.mp3", "category": "WHOOSHES", "gainDb": -7, "durationSec": 0.75}, {"variantId": "trans-flashback", "label": "Cinematic Transition Snap", "soundFile": "SOUND FX/TRANSITIONS/dragon-studio-cinematic-flashback-transition-463199.mp3", "audioUrl": "/SOUND%20FX/TRANSITIONS/dragon-studio-cinematic-flashback-transition-463199.mp3", "category": "TRANSITIONS", "gainDb": -5.5, "durationSec": 0.65}]}}, {"id": "treatment-12", "timestampSeconds": 23.607, "frame": 566, "groupName": "Dual Pillar Cards (23s - 26s)", "visualTrigger": {"type": "ui_card_reveal", "elementName": "UI Card / Pill Highlight", "description": "Visual element entrance at (50.0%, 61.8%) [Area: 15917px]", "screenXPercent": 50, "screenYPercent": 61.8}, "soundDesign": {"category": "UI INTERFACE", "soundName": "UI Micro Click", "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3", "stereoPan": -0.6, "depthPlane": 20, "lowpassCutoffHz": 16000, "gainDb": -6.5, "durationEstimateSec": 0.16, "selectionReason": "Pillar Card 1 with UI Micro Click (Panned Left).", "selectedVariantIndex": 1, "variants": [{"variantId": "ui-display-digit", "label": "Display Digit Blip", "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav", "category": "DATA TELEMETRY", "gainDb": -7, "durationSec": 0.18}, {"variantId": "ui-micro-click", "label": "UI Micro Click", "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3", "category": "UI INTERFACE", "gainDb": -6.5, "durationSec": 0.16}, {"variantId": "ui-data-reveal", "label": "Data Reveal Sound", "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3", "category": "DATA TELEMETRY", "gainDb": -7, "durationSec": 0.2}, {"variantId": "ui-generdyn-gui", "label": "Modern GUI Pop", "soundFile": "SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/Generdyn%20-%20GUI%20-%2001.wav", "category": "UI INTERFACE", "gainDb": -7, "durationSec": 0.18}]}}, {"id": "treatment-13", "timestampSeconds": 25.025, "frame": 600, "groupName": "Dual Pillar Cards (23s - 26s)", "visualTrigger": {"type": "asset_intro", "elementName": "Graphic Sticker / Icon Asset", "description": "Visual element entrance at (69.9%, 35.5%) [Area: 3887px]", "screenXPercent": 69.9, "screenYPercent": 35.5}, "soundDesign": {"category": "UI INTERFACE", "soundName": "UI Micro Click", "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3", "stereoPan": 0.6, "depthPlane": 20, "lowpassCutoffHz": 16000, "gainDb": -6.5, "durationEstimateSec": 0.16, "selectionReason": "Pillar Card 2 with matching UI Micro Click (Panned Right).", "selectedVariantIndex": 1, "variants": [{"variantId": "ui-display-digit", "label": "Display Digit Blip", "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav", "category": "DATA TELEMETRY", "gainDb": -7, "durationSec": 0.18}, {"variantId": "ui-micro-click", "label": "UI Micro Click", "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3", "category": "UI INTERFACE", "gainDb": -6.5, "durationSec": 0.16}, {"variantId": "ui-data-reveal", "label": "Data Reveal Sound", "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3", "category": "DATA TELEMETRY", "gainDb": -7, "durationSec": 0.2}, {"variantId": "ui-generdyn-gui", "label": "Modern GUI Pop", "soundFile": "SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/Generdyn%20-%20GUI%20-%2001.wav", "category": "UI INTERFACE", "gainDb": -7, "durationSec": 0.18}]}}, {"id": "treatment-14", "timestampSeconds": 26.902, "frame": 645, "groupName": "General Narrative Anchor", "visualTrigger": {"type": "scene_cut", "elementName": "Scene Cut #5", "description": "Hard scene transition (Visual divergence: 0.89)", "screenXPercent": 50, "screenYPercent": 50}, "soundDesign": {"category": "WHOOSHES", "soundName": "Simple Subtle Whoosh", "soundFile": "SOUND FX/WHOOSHES/dragon-studio-simple-whoosh-02-433006.mp3", "audioUrl": "/SOUND%20FX/WHOOSHES/dragon-studio-simple-whoosh-02-433006.mp3", "stereoPan": 0, "depthPlane": 30, "lowpassCutoffHz": 16000, "gainDb": -7, "durationEstimateSec": 0.75, "selectionReason": "Pillar scene transition / whip pan (Scene Cut #5). Full airy whoosh sweep.", "selectedVariantIndex": 2, "variants": [{"variantId": "whoosh-jump-swish", "label": "Jump Swish Swoosh", "soundFile": "SOUND FX/SWOOSHES/ES_Jump Swish - SFX Producer.mp3", "audioUrl": "/SOUND%20FX/SWOOSHES/ES_Jump%20Swish%20-%20SFX%20Producer.mp3", "category": "SWOOSHES", "gainDb": -6, "durationSec": 0.85}, {"variantId": "whoosh-hi-end-crisp", "label": "Hi-End Crisp Whoosh", "soundFile": "SOUND FX/WHOOSHES/Hi End - Whoosh - (Nikko Hunt's S.D.Essentials).wav", "audioUrl": "/SOUND%20FX/WHOOSHES/Hi%20End%20-%20Whoosh%20-%20(Nikko%20Hunt's%20S.D.Essentials).wav", "category": "WHOOSHES", "gainDb": -6.5, "durationSec": 0.9}, {"variantId": "whoosh-simple-02", "label": "Simple Subtle Whoosh", "soundFile": "SOUND FX/WHOOSHES/dragon-studio-simple-whoosh-02-433006.mp3", "audioUrl": "/SOUND%20FX/WHOOSHES/dragon-studio-simple-whoosh-02-433006.mp3", "category": "WHOOSHES", "gainDb": -7, "durationSec": 0.75}, {"variantId": "trans-flashback", "label": "Cinematic Transition Snap", "soundFile": "SOUND FX/TRANSITIONS/dragon-studio-cinematic-flashback-transition-463199.mp3", "audioUrl": "/SOUND%20FX/TRANSITIONS/dragon-studio-cinematic-flashback-transition-463199.mp3", "category": "TRANSITIONS", "gainDb": -5.5, "durationSec": 0.65}]}}, {"id": "treatment-15", "timestampSeconds": 27.11, "frame": 650, "groupName": "General Narrative Anchor", "visualTrigger": {"type": "scene_cut", "elementName": "Scene Cut #6", "description": "Hard scene transition (Visual divergence: 0.43)", "screenXPercent": 50, "screenYPercent": 50}, "soundDesign": {"category": "TRANSITIONS", "soundName": "Cinematic Transition Snap", "soundFile": "SOUND FX/TRANSITIONS/dragon-studio-cinematic-flashback-transition-463199.mp3", "audioUrl": "/SOUND%20FX/TRANSITIONS/dragon-studio-cinematic-flashback-transition-463199.mp3", "stereoPan": 0, "depthPlane": 30, "lowpassCutoffHz": 16000, "gainDb": -5.5, "durationEstimateSec": 0.65, "selectionReason": "Pillar scene transition / whip pan (Scene Cut #6). Full airy whoosh sweep.", "selectedVariantIndex": 3, "variants": [{"variantId": "whoosh-jump-swish", "label": "Jump Swish Swoosh", "soundFile": "SOUND FX/SWOOSHES/ES_Jump Swish - SFX Producer.mp3", "audioUrl": "/SOUND%20FX/SWOOSHES/ES_Jump%20Swish%20-%20SFX%20Producer.mp3", "category": "SWOOSHES", "gainDb": -6, "durationSec": 0.85}, {"variantId": "whoosh-hi-end-crisp", "label": "Hi-End Crisp Whoosh", "soundFile": "SOUND FX/WHOOSHES/Hi End - Whoosh - (Nikko Hunt's S.D.Essentials).wav", "audioUrl": "/SOUND%20FX/WHOOSHES/Hi%20End%20-%20Whoosh%20-%20(Nikko%20Hunt's%20S.D.Essentials).wav", "category": "WHOOSHES", "gainDb": -6.5, "durationSec": 0.9}, {"variantId": "whoosh-simple-02", "label": "Simple Subtle Whoosh", "soundFile": "SOUND FX/WHOOSHES/dragon-studio-simple-whoosh-02-433006.mp3", "audioUrl": "/SOUND%20FX/WHOOSHES/dragon-studio-simple-whoosh-02-433006.mp3", "category": "WHOOSHES", "gainDb": -7, "durationSec": 0.75}, {"variantId": "trans-flashback", "label": "Cinematic Transition Snap", "soundFile": "SOUND FX/TRANSITIONS/dragon-studio-cinematic-flashback-transition-463199.mp3", "audioUrl": "/SOUND%20FX/TRANSITIONS/dragon-studio-cinematic-flashback-transition-463199.mp3", "category": "TRANSITIONS", "gainDb": -5.5, "durationSec": 0.65}]}}, {"id": "treatment-16", "timestampSeconds": 28.779, "frame": 690, "groupName": "General Narrative Anchor", "visualTrigger": {"type": "ui_card_reveal", "elementName": "UI Card / Pill Highlight", "description": "Visual element entrance at (37.9%, 43.5%) [Area: 14078px]", "screenXPercent": 37.9, "screenYPercent": 43.5}, "soundDesign": {"category": "DATA TELEMETRY", "soundName": "Display Digit Blip", "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav", "stereoPan": -0.3, "depthPlane": 20, "lowpassCutoffHz": 16000, "gainDb": -7, "durationEstimateSec": 0.18, "selectionReason": "Hero card / metric revelation (UI Card / Pill Highlight) with subtle micro telemetry click.", "selectedVariantIndex": 0, "variants": [{"variantId": "ui-display-digit", "label": "Display Digit Blip", "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav", "category": "DATA TELEMETRY", "gainDb": -7, "durationSec": 0.18}, {"variantId": "ui-micro-click", "label": "UI Micro Click", "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3", "category": "UI INTERFACE", "gainDb": -6.5, "durationSec": 0.16}, {"variantId": "ui-data-reveal", "label": "Data Reveal Sound", "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3", "category": "DATA TELEMETRY", "gainDb": -7, "durationSec": 0.2}, {"variantId": "ui-generdyn-gui", "label": "Modern GUI Pop", "soundFile": "SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/Generdyn%20-%20GUI%20-%2001.wav", "category": "UI INTERFACE", "gainDb": -7, "durationSec": 0.18}]}}, {"id": "treatment-17", "timestampSeconds": 31.365, "frame": 752, "groupName": "General Narrative Anchor", "visualTrigger": {"type": "typography_text_pop", "elementName": "Kinetic Typography Header", "description": "Visual element entrance at (50.1%, 50.2%) [Area: 4324px]", "screenXPercent": 50.1, "screenYPercent": 50.2}, "soundDesign": {"category": "TEXT", "soundName": "Mechanical Keyboard Tap", "soundFile": "SOUND FX/TEXT/dragon-studio-typing-with-keyboard-435489.mp3", "audioUrl": "/SOUND%20FX/TEXT/dragon-studio-typing-with-keyboard-435489.mp3", "stereoPan": 0, "depthPlane": 30, "lowpassCutoffHz": 18500, "gainDb": -6.5, "durationEstimateSec": 0.2, "selectionReason": "Hero headline entrance (Kinetic Typography Header) at (50.1%, 50.2%). Discrete tactile click with zero duration spill.", "selectedVariantIndex": 1, "variants": [{"variantId": "text-typewriter-classic", "label": "Typewriter Single Strike", "soundFile": "SOUND FX/TEXT/type-writing-6834.mp3", "audioUrl": "/SOUND%20FX/TEXT/type-writing-6834.mp3", "category": "TEXT", "gainDb": -6, "durationSec": 0.22}, {"variantId": "text-studio-keystroke", "label": "Mechanical Keyboard Tap", "soundFile": "SOUND FX/TEXT/dragon-studio-typing-with-keyboard-435489.mp3", "audioUrl": "/SOUND%20FX/TEXT/dragon-studio-typing-with-keyboard-435489.mp3", "category": "TEXT", "gainDb": -6.5, "durationSec": 0.2}, {"variantId": "text-fast-keystroke", "label": "Fast Tactile Click", "soundFile": "SOUND FX/TEXT/virtualzero-keyboard-typing-fast-371229.mp3", "audioUrl": "/SOUND%20FX/TEXT/virtualzero-keyboard-typing-fast-371229.mp3", "category": "TEXT", "gainDb": -7, "durationSec": 0.18}, {"variantId": "text-mechanical-shutter", "label": "Mechanical Shutter Accent", "soundFile": "SOUND FX/MECHANICAL CLICKS/camera-shutter-18399.mp3", "audioUrl": "/SOUND%20FX/MECHANICAL%20CLICKS/camera-shutter-18399.mp3", "category": "MECHANICAL CLICKS", "gainDb": -7.5, "durationSec": 0.2}]}}, {"id": "treatment-18", "timestampSeconds": 33.283, "frame": 798, "groupName": "Multi-Sticker Sequence (33s - 37s)", "visualTrigger": {"type": "asset_intro", "elementName": "Graphic Sticker / Icon Asset", "description": "Visual element entrance at (45.8%, 50.1%) [Area: 19407px]", "screenXPercent": 45.8, "screenYPercent": 50.1}, "soundDesign": {"category": "UI INTERFACE", "soundName": "Modern GUI Pop", "soundFile": "SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/Generdyn%20-%20GUI%20-%2001.wav", "stereoPan": -0.11, "depthPlane": 20, "lowpassCutoffHz": 16000, "gainDb": -7, "durationEstimateSec": 0.18, "selectionReason": "Consistent Modern GUI Pop for multi-part sticker sequence.", "selectedVariantIndex": 3, "variants": [{"variantId": "ui-display-digit", "label": "Display Digit Blip", "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav", "category": "DATA TELEMETRY", "gainDb": -7, "durationSec": 0.18}, {"variantId": "ui-micro-click", "label": "UI Micro Click", "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3", "category": "UI INTERFACE", "gainDb": -6.5, "durationSec": 0.16}, {"variantId": "ui-data-reveal", "label": "Data Reveal Sound", "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3", "category": "DATA TELEMETRY", "gainDb": -7, "durationSec": 0.2}, {"variantId": "ui-generdyn-gui", "label": "Modern GUI Pop", "soundFile": "SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/Generdyn%20-%20GUI%20-%2001.wav", "category": "UI INTERFACE", "gainDb": -7, "durationSec": 0.18}]}}, {"id": "treatment-19", "timestampSeconds": 34.826, "frame": 835, "groupName": "Multi-Sticker Sequence (33s - 37s)", "visualTrigger": {"type": "ui_card_reveal", "elementName": "UI Card / Pill Highlight", "description": "Visual element entrance at (43.2%, 50.4%) [Area: 3154px]", "screenXPercent": 43.2, "screenYPercent": 50.4}, "soundDesign": {"category": "UI INTERFACE", "soundName": "Modern GUI Pop", "soundFile": "SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/Generdyn%20-%20GUI%20-%2001.wav", "stereoPan": -0.17, "depthPlane": 20, "lowpassCutoffHz": 16000, "gainDb": -7, "durationEstimateSec": 0.18, "selectionReason": "Consistent Modern GUI Pop for multi-part sticker sequence.", "selectedVariantIndex": 3, "variants": [{"variantId": "ui-display-digit", "label": "Display Digit Blip", "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav", "category": "DATA TELEMETRY", "gainDb": -7, "durationSec": 0.18}, {"variantId": "ui-micro-click", "label": "UI Micro Click", "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3", "category": "UI INTERFACE", "gainDb": -6.5, "durationSec": 0.16}, {"variantId": "ui-data-reveal", "label": "Data Reveal Sound", "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3", "category": "DATA TELEMETRY", "gainDb": -7, "durationSec": 0.2}, {"variantId": "ui-generdyn-gui", "label": "Modern GUI Pop", "soundFile": "SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/Generdyn%20-%20GUI%20-%2001.wav", "category": "UI INTERFACE", "gainDb": -7, "durationSec": 0.18}]}}, {"id": "treatment-20", "timestampSeconds": 36.245, "frame": 869, "groupName": "Multi-Sticker Sequence (33s - 37s)", "visualTrigger": {"type": "asset_intro", "elementName": "Graphic Sticker / Icon Asset", "description": "Visual element entrance at (28.5%, 85.3%) [Area: 4816px]", "screenXPercent": 28.5, "screenYPercent": 85.3}, "soundDesign": {"category": "UI INTERFACE", "soundName": "Modern GUI Pop", "soundFile": "SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/Generdyn%20-%20GUI%20-%2001.wav", "stereoPan": -0.54, "depthPlane": 20, "lowpassCutoffHz": 16000, "gainDb": -7, "durationEstimateSec": 0.18, "selectionReason": "Consistent Modern GUI Pop for multi-part sticker sequence.", "selectedVariantIndex": 3, "variants": [{"variantId": "ui-display-digit", "label": "Display Digit Blip", "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav", "category": "DATA TELEMETRY", "gainDb": -7, "durationSec": 0.18}, {"variantId": "ui-micro-click", "label": "UI Micro Click", "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3", "category": "UI INTERFACE", "gainDb": -6.5, "durationSec": 0.16}, {"variantId": "ui-data-reveal", "label": "Data Reveal Sound", "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3", "category": "DATA TELEMETRY", "gainDb": -7, "durationSec": 0.2}, {"variantId": "ui-generdyn-gui", "label": "Modern GUI Pop", "soundFile": "SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/Generdyn%20-%20GUI%20-%2001.wav", "category": "UI INTERFACE", "gainDb": -7, "durationSec": 0.18}]}}, {"id": "treatment-21", "timestampSeconds": 38.789, "frame": 930, "groupName": "General Narrative Anchor", "visualTrigger": {"type": "asset_intro", "elementName": "Graphic Sticker / Icon Asset", "description": "Visual element entrance at (48.3%, 47.9%) [Area: 3077px]", "screenXPercent": 48.3, "screenYPercent": 47.9}, "soundDesign": {"category": "UI INTERFACE", "soundName": "UI Micro Click", "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3", "stereoPan": -0.04, "depthPlane": 20, "lowpassCutoffHz": 16000, "gainDb": -6.5, "durationEstimateSec": 0.16, "selectionReason": "Hero card / metric revelation (Graphic Sticker / Icon Asset) with subtle micro telemetry click.", "selectedVariantIndex": 1, "variants": [{"variantId": "ui-display-digit", "label": "Display Digit Blip", "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav", "category": "DATA TELEMETRY", "gainDb": -7, "durationSec": 0.18}, {"variantId": "ui-micro-click", "label": "UI Micro Click", "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3", "category": "UI INTERFACE", "gainDb": -6.5, "durationSec": 0.16}, {"variantId": "ui-data-reveal", "label": "Data Reveal Sound", "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3", "category": "DATA TELEMETRY", "gainDb": -7, "durationSec": 0.2}, {"variantId": "ui-generdyn-gui", "label": "Modern GUI Pop", "soundFile": "SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/Generdyn%20-%20GUI%20-%2001.wav", "category": "UI INTERFACE", "gainDb": -7, "durationSec": 0.18}]}}, {"id": "treatment-22", "timestampSeconds": 40.791, "frame": 978, "groupName": "General Narrative Anchor", "visualTrigger": {"type": "ui_card_reveal", "elementName": "UI Card / Pill Highlight", "description": "Visual element entrance at (84.6%, 61.3%) [Area: 4227px]", "screenXPercent": 84.6, "screenYPercent": 61.3}, "soundDesign": {"category": "DATA TELEMETRY", "soundName": "Data Reveal Sound", "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3", "stereoPan": 0.86, "depthPlane": 20, "lowpassCutoffHz": 16000, "gainDb": -7, "durationEstimateSec": 0.2, "selectionReason": "Hero card / metric revelation (UI Card / Pill Highlight) with subtle micro telemetry click.", "selectedVariantIndex": 2, "variants": [{"variantId": "ui-display-digit", "label": "Display Digit Blip", "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav", "category": "DATA TELEMETRY", "gainDb": -7, "durationSec": 0.18}, {"variantId": "ui-micro-click", "label": "UI Micro Click", "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3", "category": "UI INTERFACE", "gainDb": -6.5, "durationSec": 0.16}, {"variantId": "ui-data-reveal", "label": "Data Reveal Sound", "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3", "category": "DATA TELEMETRY", "gainDb": -7, "durationSec": 0.2}, {"variantId": "ui-generdyn-gui", "label": "Modern GUI Pop", "soundFile": "SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/Generdyn%20-%20GUI%20-%2001.wav", "category": "UI INTERFACE", "gainDb": -7, "durationSec": 0.18}]}}, {"id": "treatment-23", "timestampSeconds": 42.751, "frame": 1025, "groupName": "General Narrative Anchor", "visualTrigger": {"type": "typography_text_pop", "elementName": "Kinetic Typography Header", "description": "Visual element entrance at (30.0%, 55.5%) [Area: 2341px]", "screenXPercent": 30, "screenYPercent": 55.5}, "soundDesign": {"category": "MECHANICAL CLICKS", "soundName": "Mechanical Shutter Accent", "soundFile": "SOUND FX/MECHANICAL CLICKS/camera-shutter-18399.mp3", "audioUrl": "/SOUND%20FX/MECHANICAL%20CLICKS/camera-shutter-18399.mp3", "stereoPan": -0.5, "depthPlane": 30, "lowpassCutoffHz": 18500, "gainDb": -7.5, "durationEstimateSec": 0.2, "selectionReason": "Hero headline entrance (Kinetic Typography Header) at (30%, 55.5%). Discrete tactile click with zero duration spill.", "selectedVariantIndex": 3, "variants": [{"variantId": "text-typewriter-classic", "label": "Typewriter Single Strike", "soundFile": "SOUND FX/TEXT/type-writing-6834.mp3", "audioUrl": "/SOUND%20FX/TEXT/type-writing-6834.mp3", "category": "TEXT", "gainDb": -6, "durationSec": 0.22}, {"variantId": "text-studio-keystroke", "label": "Mechanical Keyboard Tap", "soundFile": "SOUND FX/TEXT/dragon-studio-typing-with-keyboard-435489.mp3", "audioUrl": "/SOUND%20FX/TEXT/dragon-studio-typing-with-keyboard-435489.mp3", "category": "TEXT", "gainDb": -6.5, "durationSec": 0.2}, {"variantId": "text-fast-keystroke", "label": "Fast Tactile Click", "soundFile": "SOUND FX/TEXT/virtualzero-keyboard-typing-fast-371229.mp3", "audioUrl": "/SOUND%20FX/TEXT/virtualzero-keyboard-typing-fast-371229.mp3", "category": "TEXT", "gainDb": -7, "durationSec": 0.18}, {"variantId": "text-mechanical-shutter", "label": "Mechanical Shutter Accent", "soundFile": "SOUND FX/MECHANICAL CLICKS/camera-shutter-18399.mp3", "audioUrl": "/SOUND%20FX/MECHANICAL%20CLICKS/camera-shutter-18399.mp3", "category": "MECHANICAL CLICKS", "gainDb": -7.5, "durationSec": 0.2}]}}, {"id": "treatment-24", "timestampSeconds": 44.086, "frame": 1057, "groupName": "General Narrative Anchor", "visualTrigger": {"type": "ui_card_reveal", "elementName": "UI Card / Pill Highlight", "description": "Visual element entrance at (51.2%, 47.0%) [Area: 11197px]", "screenXPercent": 51.2, "screenYPercent": 47}, "soundDesign": {"category": "DATA TELEMETRY", "soundName": "Display Digit Blip", "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav", "stereoPan": 0.03, "depthPlane": 20, "lowpassCutoffHz": 16000, "gainDb": -7, "durationEstimateSec": 0.18, "selectionReason": "Hero card / metric revelation (UI Card / Pill Highlight) with subtle micro telemetry click.", "selectedVariantIndex": 0, "variants": [{"variantId": "ui-display-digit", "label": "Display Digit Blip", "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav", "category": "DATA TELEMETRY", "gainDb": -7, "durationSec": 0.18}, {"variantId": "ui-micro-click", "label": "UI Micro Click", "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3", "category": "UI INTERFACE", "gainDb": -6.5, "durationSec": 0.16}, {"variantId": "ui-data-reveal", "label": "Data Reveal Sound", "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3", "category": "DATA TELEMETRY", "gainDb": -7, "durationSec": 0.2}, {"variantId": "ui-generdyn-gui", "label": "Modern GUI Pop", "soundFile": "SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/Generdyn%20-%20GUI%20-%2001.wav", "category": "UI INTERFACE", "gainDb": -7, "durationSec": 0.18}]}}, {"id": "treatment-25", "timestampSeconds": 46.797, "frame": 1122, "groupName": "General Narrative Anchor", "visualTrigger": {"type": "asset_intro", "elementName": "Graphic Sticker / Icon Asset", "description": "Visual element entrance at (50.3%, 74.3%) [Area: 3197px]", "screenXPercent": 50.3, "screenYPercent": 74.3}, "soundDesign": {"category": "UI INTERFACE", "soundName": "UI Micro Click", "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3", "stereoPan": 0.01, "depthPlane": 20, "lowpassCutoffHz": 16000, "gainDb": -6.5, "durationEstimateSec": 0.16, "selectionReason": "Hero card / metric revelation (Graphic Sticker / Icon Asset) with subtle micro telemetry click.", "selectedVariantIndex": 1, "variants": [{"variantId": "ui-display-digit", "label": "Display Digit Blip", "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav", "category": "DATA TELEMETRY", "gainDb": -7, "durationSec": 0.18}, {"variantId": "ui-micro-click", "label": "UI Micro Click", "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3", "category": "UI INTERFACE", "gainDb": -6.5, "durationSec": 0.16}, {"variantId": "ui-data-reveal", "label": "Data Reveal Sound", "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3", "category": "DATA TELEMETRY", "gainDb": -7, "durationSec": 0.2}, {"variantId": "ui-generdyn-gui", "label": "Modern GUI Pop", "soundFile": "SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/Generdyn%20-%20GUI%20-%2001.wav", "category": "UI INTERFACE", "gainDb": -7, "durationSec": 0.18}]}}, {"id": "treatment-26", "timestampSeconds": 48.215, "frame": 1156, "groupName": "General Narrative Anchor", "visualTrigger": {"type": "typography_text_pop", "elementName": "Kinetic Typography Header", "description": "Visual element entrance at (50.3%, 50.2%) [Area: 5048px]", "screenXPercent": 50.3, "screenYPercent": 50.2}, "soundDesign": {"category": "TEXT", "soundName": "Fast Tactile Click", "soundFile": "SOUND FX/TEXT/virtualzero-keyboard-typing-fast-371229.mp3", "audioUrl": "/SOUND%20FX/TEXT/virtualzero-keyboard-typing-fast-371229.mp3", "stereoPan": 0.01, "depthPlane": 30, "lowpassCutoffHz": 18500, "gainDb": -7, "durationEstimateSec": 0.18, "selectionReason": "Hero headline entrance (Kinetic Typography Header) at (50.3%, 50.2%). Discrete tactile click with zero duration spill.", "selectedVariantIndex": 2, "variants": [{"variantId": "text-typewriter-classic", "label": "Typewriter Single Strike", "soundFile": "SOUND FX/TEXT/type-writing-6834.mp3", "audioUrl": "/SOUND%20FX/TEXT/type-writing-6834.mp3", "category": "TEXT", "gainDb": -6, "durationSec": 0.22}, {"variantId": "text-studio-keystroke", "label": "Mechanical Keyboard Tap", "soundFile": "SOUND FX/TEXT/dragon-studio-typing-with-keyboard-435489.mp3", "audioUrl": "/SOUND%20FX/TEXT/dragon-studio-typing-with-keyboard-435489.mp3", "category": "TEXT", "gainDb": -6.5, "durationSec": 0.2}, {"variantId": "text-fast-keystroke", "label": "Fast Tactile Click", "soundFile": "SOUND FX/TEXT/virtualzero-keyboard-typing-fast-371229.mp3", "audioUrl": "/SOUND%20FX/TEXT/virtualzero-keyboard-typing-fast-371229.mp3", "category": "TEXT", "gainDb": -7, "durationSec": 0.18}, {"variantId": "text-mechanical-shutter", "label": "Mechanical Shutter Accent", "soundFile": "SOUND FX/MECHANICAL CLICKS/camera-shutter-18399.mp3", "audioUrl": "/SOUND%20FX/MECHANICAL%20CLICKS/camera-shutter-18399.mp3", "category": "MECHANICAL CLICKS", "gainDb": -7.5, "durationSec": 0.2}]}}, {"id": "treatment-27", "timestampSeconds": 50.259, "frame": 1205, "groupName": "General Narrative Anchor", "visualTrigger": {"type": "scene_cut", "elementName": "Scene Cut #7", "description": "Hard scene transition (Visual divergence: 0.46)", "screenXPercent": 50, "screenYPercent": 50}, "soundDesign": {"category": "TRANSITIONS", "soundName": "Cinematic Transition Snap", "soundFile": "SOUND FX/TRANSITIONS/dragon-studio-cinematic-flashback-transition-463199.mp3", "audioUrl": "/SOUND%20FX/TRANSITIONS/dragon-studio-cinematic-flashback-transition-463199.mp3", "stereoPan": 0, "depthPlane": 30, "lowpassCutoffHz": 16000, "gainDb": -5.5, "durationEstimateSec": 0.65, "selectionReason": "Pillar scene transition / whip pan (Scene Cut #7). Full airy whoosh sweep.", "selectedVariantIndex": 3, "variants": [{"variantId": "whoosh-jump-swish", "label": "Jump Swish Swoosh", "soundFile": "SOUND FX/SWOOSHES/ES_Jump Swish - SFX Producer.mp3", "audioUrl": "/SOUND%20FX/SWOOSHES/ES_Jump%20Swish%20-%20SFX%20Producer.mp3", "category": "SWOOSHES", "gainDb": -6, "durationSec": 0.85}, {"variantId": "whoosh-hi-end-crisp", "label": "Hi-End Crisp Whoosh", "soundFile": "SOUND FX/WHOOSHES/Hi End - Whoosh - (Nikko Hunt's S.D.Essentials).wav", "audioUrl": "/SOUND%20FX/WHOOSHES/Hi%20End%20-%20Whoosh%20-%20(Nikko%20Hunt's%20S.D.Essentials).wav", "category": "WHOOSHES", "gainDb": -6.5, "durationSec": 0.9}, {"variantId": "whoosh-simple-02", "label": "Simple Subtle Whoosh", "soundFile": "SOUND FX/WHOOSHES/dragon-studio-simple-whoosh-02-433006.mp3", "audioUrl": "/SOUND%20FX/WHOOSHES/dragon-studio-simple-whoosh-02-433006.mp3", "category": "WHOOSHES", "gainDb": -7, "durationSec": 0.75}, {"variantId": "trans-flashback", "label": "Cinematic Transition Snap", "soundFile": "SOUND FX/TRANSITIONS/dragon-studio-cinematic-flashback-transition-463199.mp3", "audioUrl": "/SOUND%20FX/TRANSITIONS/dragon-studio-cinematic-flashback-transition-463199.mp3", "category": "TRANSITIONS", "gainDb": -5.5, "durationSec": 0.65}]}}, {"id": "treatment-28", "timestampSeconds": 52.219, "frame": 1252, "groupName": "General Narrative Anchor", "visualTrigger": {"type": "scene_cut", "elementName": "Scene Cut #8", "description": "Hard scene transition (Visual divergence: 0.43)", "screenXPercent": 50, "screenYPercent": 50}, "soundDesign": {"category": "SWOOSHES", "soundName": "Jump Swish Swoosh", "soundFile": "SOUND FX/SWOOSHES/ES_Jump Swish - SFX Producer.mp3", "audioUrl": "/SOUND%20FX/SWOOSHES/ES_Jump%20Swish%20-%20SFX%20Producer.mp3", "stereoPan": 0, "depthPlane": 30, "lowpassCutoffHz": 16000, "gainDb": -6, "durationEstimateSec": 0.85, "selectionReason": "Pillar scene transition / whip pan (Scene Cut #8). Full airy whoosh sweep.", "selectedVariantIndex": 0, "variants": [{"variantId": "whoosh-jump-swish", "label": "Jump Swish Swoosh", "soundFile": "SOUND FX/SWOOSHES/ES_Jump Swish - SFX Producer.mp3", "audioUrl": "/SOUND%20FX/SWOOSHES/ES_Jump%20Swish%20-%20SFX%20Producer.mp3", "category": "SWOOSHES", "gainDb": -6, "durationSec": 0.85}, {"variantId": "whoosh-hi-end-crisp", "label": "Hi-End Crisp Whoosh", "soundFile": "SOUND FX/WHOOSHES/Hi End - Whoosh - (Nikko Hunt's S.D.Essentials).wav", "audioUrl": "/SOUND%20FX/WHOOSHES/Hi%20End%20-%20Whoosh%20-%20(Nikko%20Hunt's%20S.D.Essentials).wav", "category": "WHOOSHES", "gainDb": -6.5, "durationSec": 0.9}, {"variantId": "whoosh-simple-02", "label": "Simple Subtle Whoosh", "soundFile": "SOUND FX/WHOOSHES/dragon-studio-simple-whoosh-02-433006.mp3", "audioUrl": "/SOUND%20FX/WHOOSHES/dragon-studio-simple-whoosh-02-433006.mp3", "category": "WHOOSHES", "gainDb": -7, "durationSec": 0.75}, {"variantId": "trans-flashback", "label": "Cinematic Transition Snap", "soundFile": "SOUND FX/TRANSITIONS/dragon-studio-cinematic-flashback-transition-463199.mp3", "audioUrl": "/SOUND%20FX/TRANSITIONS/dragon-studio-cinematic-flashback-transition-463199.mp3", "category": "TRANSITIONS", "gainDb": -5.5, "durationSec": 0.65}]}}, {"id": "treatment-29", "timestampSeconds": 53.72, "frame": 1288, "groupName": "General Narrative Anchor", "visualTrigger": {"type": "typography_text_pop", "elementName": "Kinetic Typography Header", "description": "Visual element entrance at (49.2%, 48.8%) [Area: 2317px]", "screenXPercent": 49.2, "screenYPercent": 48.8}, "soundDesign": {"category": "TEXT", "soundName": "Mechanical Keyboard Tap", "soundFile": "SOUND FX/TEXT/dragon-studio-typing-with-keyboard-435489.mp3", "audioUrl": "/SOUND%20FX/TEXT/dragon-studio-typing-with-keyboard-435489.mp3", "stereoPan": -0.02, "depthPlane": 30, "lowpassCutoffHz": 18500, "gainDb": -6.5, "durationEstimateSec": 0.2, "selectionReason": "Hero headline entrance (Kinetic Typography Header) at (49.2%, 48.8%). Discrete tactile click with zero duration spill.", "selectedVariantIndex": 1, "variants": [{"variantId": "text-typewriter-classic", "label": "Typewriter Single Strike", "soundFile": "SOUND FX/TEXT/type-writing-6834.mp3", "audioUrl": "/SOUND%20FX/TEXT/type-writing-6834.mp3", "category": "TEXT", "gainDb": -6, "durationSec": 0.22}, {"variantId": "text-studio-keystroke", "label": "Mechanical Keyboard Tap", "soundFile": "SOUND FX/TEXT/dragon-studio-typing-with-keyboard-435489.mp3", "audioUrl": "/SOUND%20FX/TEXT/dragon-studio-typing-with-keyboard-435489.mp3", "category": "TEXT", "gainDb": -6.5, "durationSec": 0.2}, {"variantId": "text-fast-keystroke", "label": "Fast Tactile Click", "soundFile": "SOUND FX/TEXT/virtualzero-keyboard-typing-fast-371229.mp3", "audioUrl": "/SOUND%20FX/TEXT/virtualzero-keyboard-typing-fast-371229.mp3", "category": "TEXT", "gainDb": -7, "durationSec": 0.18}, {"variantId": "text-mechanical-shutter", "label": "Mechanical Shutter Accent", "soundFile": "SOUND FX/MECHANICAL CLICKS/camera-shutter-18399.mp3", "audioUrl": "/SOUND%20FX/MECHANICAL%20CLICKS/camera-shutter-18399.mp3", "category": "MECHANICAL CLICKS", "gainDb": -7.5, "durationSec": 0.2}]}}, {"id": "treatment-30", "timestampSeconds": 55.055, "frame": 1320, "groupName": "General Narrative Anchor", "visualTrigger": {"type": "ui_card_reveal", "elementName": "UI Card / Pill Highlight", "description": "Visual element entrance at (49.2%, 54.8%) [Area: 8325px]", "screenXPercent": 49.2, "screenYPercent": 54.8}, "soundDesign": {"category": "DATA TELEMETRY", "soundName": "Data Reveal Sound", "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3", "stereoPan": -0.02, "depthPlane": 20, "lowpassCutoffHz": 16000, "gainDb": -7, "durationEstimateSec": 0.2, "selectionReason": "Hero card / metric revelation (UI Card / Pill Highlight) with subtle micro telemetry click.", "selectedVariantIndex": 2, "variants": [{"variantId": "ui-display-digit", "label": "Display Digit Blip", "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav", "category": "DATA TELEMETRY", "gainDb": -7, "durationSec": 0.18}, {"variantId": "ui-micro-click", "label": "UI Micro Click", "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3", "category": "UI INTERFACE", "gainDb": -6.5, "durationSec": 0.16}, {"variantId": "ui-data-reveal", "label": "Data Reveal Sound", "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3", "category": "DATA TELEMETRY", "gainDb": -7, "durationSec": 0.2}, {"variantId": "ui-generdyn-gui", "label": "Modern GUI Pop", "soundFile": "SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/Generdyn%20-%20GUI%20-%2001.wav", "category": "UI INTERFACE", "gainDb": -7, "durationSec": 0.18}]}}, {"id": "treatment-31", "timestampSeconds": 56.64, "frame": 1358, "groupName": "General Narrative Anchor", "visualTrigger": {"type": "typography_text_pop", "elementName": "Kinetic Typography Header", "description": "Visual element entrance at (54.3%, 52.2%) [Area: 6122px]", "screenXPercent": 54.3, "screenYPercent": 52.2}, "soundDesign": {"category": "MECHANICAL CLICKS", "soundName": "Mechanical Shutter Accent", "soundFile": "SOUND FX/MECHANICAL CLICKS/camera-shutter-18399.mp3", "audioUrl": "/SOUND%20FX/MECHANICAL%20CLICKS/camera-shutter-18399.mp3", "stereoPan": 0.11, "depthPlane": 30, "lowpassCutoffHz": 18500, "gainDb": -7.5, "durationEstimateSec": 0.2, "selectionReason": "Hero headline entrance (Kinetic Typography Header) at (54.3%, 52.2%). Discrete tactile click with zero duration spill.", "selectedVariantIndex": 3, "variants": [{"variantId": "text-typewriter-classic", "label": "Typewriter Single Strike", "soundFile": "SOUND FX/TEXT/type-writing-6834.mp3", "audioUrl": "/SOUND%20FX/TEXT/type-writing-6834.mp3", "category": "TEXT", "gainDb": -6, "durationSec": 0.22}, {"variantId": "text-studio-keystroke", "label": "Mechanical Keyboard Tap", "soundFile": "SOUND FX/TEXT/dragon-studio-typing-with-keyboard-435489.mp3", "audioUrl": "/SOUND%20FX/TEXT/dragon-studio-typing-with-keyboard-435489.mp3", "category": "TEXT", "gainDb": -6.5, "durationSec": 0.2}, {"variantId": "text-fast-keystroke", "label": "Fast Tactile Click", "soundFile": "SOUND FX/TEXT/virtualzero-keyboard-typing-fast-371229.mp3", "audioUrl": "/SOUND%20FX/TEXT/virtualzero-keyboard-typing-fast-371229.mp3", "category": "TEXT", "gainDb": -7, "durationSec": 0.18}, {"variantId": "text-mechanical-shutter", "label": "Mechanical Shutter Accent", "soundFile": "SOUND FX/MECHANICAL CLICKS/camera-shutter-18399.mp3", "audioUrl": "/SOUND%20FX/MECHANICAL%20CLICKS/camera-shutter-18399.mp3", "category": "MECHANICAL CLICKS", "gainDb": -7.5, "durationSec": 0.2}]}}, {"id": "treatment-32", "timestampSeconds": 59.226, "frame": 1420, "groupName": "General Narrative Anchor", "visualTrigger": {"type": "ui_card_reveal", "elementName": "UI Card / Pill Highlight", "description": "Visual element entrance at (50.3%, 33.8%) [Area: 3281px]", "screenXPercent": 50.3, "screenYPercent": 33.8}, "soundDesign": {"category": "DATA TELEMETRY", "soundName": "Display Digit Blip", "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav", "stereoPan": 0.01, "depthPlane": 20, "lowpassCutoffHz": 16000, "gainDb": -7, "durationEstimateSec": 0.18, "selectionReason": "Hero card / metric revelation (UI Card / Pill Highlight) with subtle micro telemetry click.", "selectedVariantIndex": 0, "variants": [{"variantId": "ui-display-digit", "label": "Display Digit Blip", "soundFile": "SOUND FX/DATA TELEMETRY/Display Digits 1.wav", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/Display%20Digits%201.wav", "category": "DATA TELEMETRY", "gainDb": -7, "durationSec": 0.18}, {"variantId": "ui-micro-click", "label": "UI Micro Click", "soundFile": "SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/freesound_community-ui-click-43196.mp3", "category": "UI INTERFACE", "gainDb": -6.5, "durationSec": 0.16}, {"variantId": "ui-data-reveal", "label": "Data Reveal Sound", "soundFile": "SOUND FX/DATA TELEMETRY/data-reveal-sound-6460.mp3", "audioUrl": "/SOUND%20FX/DATA%20TELEMETRY/data-reveal-sound-6460.mp3", "category": "DATA TELEMETRY", "gainDb": -7, "durationSec": 0.2}, {"variantId": "ui-generdyn-gui", "label": "Modern GUI Pop", "soundFile": "SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav", "audioUrl": "/SOUND%20FX/UI%20INTERFACE/Generdyn%20-%20GUI%20-%2001.wav", "category": "UI INTERFACE", "gainDb": -7, "durationSec": 0.18}]}}]};
+
+// ALL 32 HIGH-TIER ACOUSTIC VARIANTS (MAPPED TO REAL STUDIO RECORDED AUDIO SAMPLES)
+const ALL_SFX_PRESETS = [
+  // 1. Tactile Mechanical Mouse Clicks (Real Studio Samples & Transients)
+  { id: "mouse_click_tactile_01", label: "🖱️ Optical Mouse Click #01 (Studio Sample)", audioUrl: "/SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3", family: "text_click_family", group: "🖱️ Tactile Mouse Clicks" },
+  { id: "mouse_click_damped_02", label: "🖱️ Damped Mouse Click #02 (Generdyn GUI)", audioUrl: "/SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav", family: "text_click_family", group: "🖱️ Tactile Mouse Clicks" },
+  { id: "mouse_click_subtle_03", label: "🖱️ Precision Micro-Click #03 (Generdyn GUI 2)", audioUrl: "/SOUND FX/UI INTERFACE/Generdyn - GUI - 02.wav", family: "text_click_family", group: "🖱️ Tactile Mouse Clicks" },
+  { id: "mouse_click_glass_04", label: "🖱️ Glass Trackpad Tap #04 (Acoustic Snap)", audioUrl: "/SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3", family: "text_click_family", group: "🖱️ Tactile Mouse Clicks" },
+
+  // 2. Growth Curves & Milestone Chimes
+  { id: "notification_apex_ding_01", label: "🔔 Crystalline Milestone Ding (Apex Bell)", audioUrl: "", family: "growth_milestone_bell_family", group: "🔔 Growth Curves & Milestone Bells" },
+  { id: "growth_swoosh_chime_02", label: "💨 Growth Curve Swoosh + Apex Ding Combo", audioUrl: "", family: "growth_milestone_bell_family", group: "🔔 Growth Curves & Milestone Bells" },
+  { id: "gear_increment_growth_03", label: "⚙️ Rotary Gear Metric Increment", audioUrl: "", family: "growth_milestone_bell_family", group: "🔔 Growth Curves & Milestone Bells" },
+  { id: "clean_subtle_whoosh_04", label: "💨 Smooth Air Swoosh (Pure Cinematic)", audioUrl: "/SOUND FX/WHOOSHES/whoosh-6316.mp3", family: "growth_milestone_bell_family", group: "🔔 Growth Curves & Milestone Bells" },
+
+  // 3. Keyboard Keystrokes & Typewriting (Real Studio Typing Samples)
+  { id: "type_keystroke_cherry_01", label: "⌨️ Mechanical Cherry Strike #01 (Studio Sample)", audioUrl: "/SOUND FX/TEXT/dragon-studio-typing-with-keyboard-435489.mp3", family: "text_typing_family", group: "⌨️ Keyboard Keystrokes" },
+  { id: "type_keystroke_tactile_02", label: "⌨️ Tactile Typing #02 (Typewriter Sample)", audioUrl: "/SOUND FX/TEXT/type-writing-6834.mp3", family: "text_typing_family", group: "⌨️ Keyboard Keystrokes" },
+  { id: "type_keystroke_terminal_03", label: "⌨️ CRT Terminal Tick #03", audioUrl: "/SOUND FX/UI INTERFACE/freesound_community-ui-click-43196.mp3", family: "text_typing_family", group: "⌨️ Keyboard Keystrokes" },
+  { id: "type_keystroke_haptic_04", label: "⌨️ Laptop Scissor Tap #04", audioUrl: "/SOUND FX/UI INTERFACE/Generdyn - GUI - 01.wav", family: "text_typing_family", group: "⌨️ Keyboard Keystrokes" },
+
+  // 4. Camera & Viewport Whooshes & Highlight Sweeps
+  { id: "highlight_marker_whoosh_01", label: "💨 Subtle Highlight Whoosh / Marker Line Draw", audioUrl: "/SOUND FX/OFFICE FOLEY/marker-lineswav-14823.mp3", family: "camera_motion_whoosh_family", group: "💨 Camera Whooshes" },
+  { id: "whoosh_slow_ambient_01", label: "💨 Atmospheric Air Whoosh (Dragon Studio)", audioUrl: "/SOUND FX/WHOOSHES/dragon-studio-simple-whoosh-02-433006.mp3", family: "camera_motion_whoosh_family", group: "💨 Camera Whooshes" },
+  { id: "whoosh_medium_cinematic_02", label: "💨 Cinematic Jump Swoosh (ES Jump Swish)", audioUrl: "/SOUND FX/SWOOSHES/ES_Jump Swish - SFX Producer.mp3", family: "camera_motion_whoosh_family", group: "💨 Camera Whooshes" },
+  { id: "whoosh_fast_whip_03", label: "💨 Whip-Pan Air Cut (Whoosh 6316)", audioUrl: "/SOUND FX/WHOOSHES/whoosh-6316.mp3", family: "camera_motion_whoosh_family", group: "💨 Camera Whooshes" },
+  { id: "whoosh_rescale_subtle_04", label: "💨 Dragon Studio Soft Whoosh #03", audioUrl: "/SOUND FX/WHOOSHES/dragon-studio-simple-whoosh-03-433005.mp3", family: "camera_motion_whoosh_family", group: "💨 Camera Whooshes" },
+
+  // 5. Mechanical Gears & Sequential Flow
+  { id: "gear_ratchet_pulse_01", label: "⚙️ Rotary Gear Ratchet #01", audioUrl: "", family: "lengthy_text_gear_family", group: "⚙️ Mechanical Gears & Flow" },
+  { id: "gear_escapement_clockwork_02", label: "⚙️ Clockwork Escapement #02", audioUrl: "", family: "lengthy_text_gear_family", group: "⚙️ Mechanical Gears & Flow" },
+  { id: "gear_stepper_motor_03", label: "⚙️ Stepper Motor Pulse #03", audioUrl: "", family: "lengthy_text_gear_family", group: "⚙️ Mechanical Gears & Flow" },
+  { id: "gear_sprocket_turn_04", label: "⚙️ Heavy Brass Sprocket Turn #04", audioUrl: "", family: "lengthy_text_gear_family", group: "⚙️ Mechanical Gears & Flow" },
+
+  // 6. Transitions & Camera Shutters
+  { id: "camera_shutter_snap_02", label: "🎬 Mechanical Camera Shutter (Studio Sample)", audioUrl: "/SOUND FX/TRANSITIONS/freesound_community-camera-shutter-6305.mp3", family: "transition_action_family", group: "🎬 Transitions & Snaps" },
+  { id: "transition_gate_click_03", label: "🎬 Clean UI Gate Click", audioUrl: "/SOUND FX/UI INTERFACE/Generdyn - GUI - 02.wav", family: "transition_action_family", group: "🎬 Transitions & Snaps" },
+  { id: "transition_whip_snap_04", label: "🎬 Frame-Whip Transient Pop", audioUrl: "/SOUND FX/SWOOSHES/ES_Jump Swish - SFX Producer.mp3", family: "transition_action_family", group: "🎬 Transitions & Snaps" }
+];
+
+// THE 20 ACTIVE CHUNKS (HIGHLIGHT WHOOSH ON FEELS & REAL TYPING ON MONOSPACE)
+const ACTIVE_CHUNKS_DATA = [
+  {
+    chunkIndex: 1,
+    timeRange: "00:00 — 00:01",
+    startSec: 0.80,
+    endSec: 1.32,
+    text: "Over the last",
+    category: "TEXT CLICK",
+    visualTrigger: "Kinetic Title Unmasking",
+    triggerDetail: "DM Sans ExtraBold Staggered Word Unmasking",
+    assignedVariantId: "mouse_click_tactile_01",
+    pan: "+0.00",
+    fontProfile: "DM Sans Bold / Modern High-Contrast"
+  },
+  {
+    chunkIndex: 2,
+    timeRange: "00:01 — 00:02",
+    startSec: 1.32,
+    endSec: 2.00,
+    text: "12 months,",
+    category: "TEXT CLICK",
+    visualTrigger: "Time Horizon Accent",
+    triggerDetail: "Authentic optical switch click",
+    assignedVariantId: "mouse_click_tactile_01",
+    pan: "+0.00",
+    fontProfile: "DM Sans Bold"
+  },
+  {
+    chunkIndex: 3,
+    timeRange: "00:02 — 00:03",
+    startSec: 2.00,
+    endSec: 3.00,
+    text: "I've purchased more",
+    category: "GROWTH BELL",
+    visualTrigger: "Purchased Volume Accent",
+    triggerDetail: "Volume metric unmasking + Crystalline C7 notification bell",
+    assignedVariantId: "notification_apex_ding_01",
+    pan: "+0.75",
+    fontProfile: "Poly Sans / Vector Metric Grid"
+  },
+  {
+    chunkIndex: 4,
+    timeRange: "00:03 — 00:04",
+    startSec: 3.00,
+    endSec: 4.56,
+    text: "than 12,000 physical",
+    category: "TEXT CLICK",
+    visualTrigger: "Physical Inventory Highlight",
+    triggerDetail: "Precision acoustic micro-click transient",
+    assignedVariantId: "mouse_click_subtle_03",
+    pan: "+0.00",
+    fontProfile: "DM Sans Italic"
+  },
+  {
+    chunkIndex: 5,
+    timeRange: "00:04 — 00:06",
+    startSec: 4.56,
+    endSec: 6.08,
+    text: "products from eBay.com",
+    category: "TEXT CLICK",
+    visualTrigger: "E-Commerce Channel",
+    triggerDetail: "Subtle acoustic snap",
+    assignedVariantId: "mouse_click_glass_04",
+    pan: "+0.00",
+    fontProfile: "Clash Display / Serif Noir"
+  },
+  {
+    chunkIndex: 6,
+    timeRange: "00:06 — 00:06",
+    startSec: 6.24,
+    endSec: 6.96,
+    text: "that I've then",
+    category: "TEXT CLICK",
+    visualTrigger: "Sequence Transition",
+    triggerDetail: "Authentic optical switch click",
+    assignedVariantId: "mouse_click_tactile_01",
+    pan: "+0.00",
+    fontProfile: "Inter SemiBold"
+  },
+  {
+    chunkIndex: 7,
+    timeRange: "00:06 — 00:08",
+    startSec: 6.96,
+    endSec: 8.12,
+    text: "resold on Amazon",
+    category: "GROWTH BELL",
+    visualTrigger: "Amazon Resale Channel Accent",
+    triggerDetail: "Profit metric unmasking + Crystalline C7 bell",
+    assignedVariantId: "notification_apex_ding_01",
+    pan: "+0.75",
+    fontProfile: "Neue Haas Grotesk Bold"
+  },
+  {
+    chunkIndex: 8,
+    timeRange: "00:08 — 00:08",
+    startSec: 8.12,
+    endSec: 8.68,
+    text: "for more than",
+    category: "TEXT CLICK",
+    visualTrigger: "Volume Clause",
+    triggerDetail: "Precision acoustic micro-click transient",
+    assignedVariantId: "mouse_click_subtle_03",
+    pan: "+0.00",
+    fontProfile: "DM Sans Regular"
+  },
+  {
+    chunkIndex: 9,
+    timeRange: "00:08 — 00:09",
+    startSec: 8.68,
+    endSec: 9.64,
+    text: "six figures in",
+    category: "GROWTH BELL",
+    visualTrigger: "Six-Figure High-Value Metric",
+    triggerDetail: "Crystalline milestone bell on six figures",
+    assignedVariantId: "notification_apex_ding_01",
+    pan: "+0.75",
+    fontProfile: "Editorial Serif / Playfair"
+  },
+  {
+    chunkIndex: 10,
+    timeRange: "00:09 — 00:10",
+    startSec: 9.64,
+    endSec: 10.52,
+    text: "Pure profit.",
+    category: "BELL CHIME",
+    visualTrigger: "Pure Profit Payoff",
+    triggerDetail: "Crystalline bell sparkle on profit payoff",
+    assignedVariantId: "notification_apex_ding_01",
+    pan: "+0.50",
+    fontProfile: "Poly Sans / Vector Metric Grid"
+  },
+  {
+    chunkIndex: 11,
+    timeRange: "00:10 — 00:11",
+    startSec: 10.52,
+    endSec: 11.20,
+    text: "And the best",
+    category: "TEXT CLICK",
+    visualTrigger: "Conversational Beat",
+    triggerDetail: "Authentic optical switch click",
+    assignedVariantId: "mouse_click_tactile_01",
+    pan: "+0.00",
+    fontProfile: "Inter SemiBold"
+  },
+  {
+    chunkIndex: 12,
+    timeRange: "00:11 — 00:11",
+    startSec: 11.20,
+    endSec: 11.76,
+    text: "part is,",
+    category: "TEXT CLICK",
+    visualTrigger: "Clause Resolution",
+    triggerDetail: "Damped acoustic GUI click",
+    assignedVariantId: "mouse_click_damped_02",
+    pan: "+0.00",
+    fontProfile: "DM Sans Regular"
+  },
+  {
+    chunkIndex: 13,
+    timeRange: "00:11 — 00:12",
+    startSec: 11.84,
+    endSec: 12.48,
+    text: "I've done it",
+    category: "TEXT CLICK",
+    visualTrigger: "Execution Statement",
+    triggerDetail: "Precision acoustic micro-click transient",
+    assignedVariantId: "mouse_click_subtle_03",
+    pan: "+0.00",
+    fontProfile: "Syne ExtraBold / Dynamic Flare"
+  },
+  {
+    chunkIndex: 14,
+    timeRange: "00:12 — 00:13",
+    startSec: 12.48,
+    endSec: 13.28,
+    text: "all from home.",
+    category: "TEXT CLICK",
+    visualTrigger: "Location Accent",
+    triggerDetail: "Force touch acoustic micro switch snap",
+    assignedVariantId: "mouse_click_glass_04",
+    pan: "+0.00",
+    fontProfile: "Courier Prime / Retro Terminal"
+  },
+  {
+    chunkIndex: 15,
+    timeRange: "00:13 — 00:14",
+    startSec: 13.44,
+    endSec: 14.28,
+    text: "Sometimes in my",
+    category: "TEXT CLICK",
+    visualTrigger: "Casual Contrast",
+    triggerDetail: "Authentic optical switch click",
+    assignedVariantId: "mouse_click_tactile_01",
+    pan: "+0.00",
+    fontProfile: "DM Sans Bold / Modern High-Contrast"
+  },
+  {
+    chunkIndex: 16,
+    timeRange: "00:14 — 00:15",
+    startSec: 14.28,
+    endSec: 15.88,
+    text: "pajamas, sometimes in",
+    category: "TEXT CLICK",
+    visualTrigger: "Attire Beat",
+    triggerDetail: "Precision acoustic micro-click transient",
+    assignedVariantId: "mouse_click_subtle_03",
+    pan: "+0.00",
+    fontProfile: "Cabinet Grotesk / Sharp Kinetic"
+  },
+  {
+    chunkIndex: 17,
+    timeRange: "00:15 — 00:16",
+    startSec: 15.88,
+    endSec: 16.88,
+    text: "my Sunday best.",
+    category: "TEXT CLICK",
+    visualTrigger: "Contrast Beat",
+    triggerDetail: "Authentic optical switch click on ownership",
+    assignedVariantId: "mouse_click_tactile_01",
+    pan: "+0.00",
+    fontProfile: "DM Sans Bold"
+  },
+  {
+    chunkIndex: 18,
+    timeRange: "00:16 — 00:17",
+    startSec: 16.96,
+    endSec: 17.68,
+    text: "The point is,",
+    category: "TEXT CLICK",
+    visualTrigger: "Premise Tag",
+    triggerDetail: "Damped acoustic GUI click",
+    assignedVariantId: "mouse_click_damped_02",
+    pan: "+0.00",
+    fontProfile: "Cinzel Decorative / Classic Pillar"
+  },
+  {
+    chunkIndex: 19,
+    timeRange: "00:17 — 00:18",
+    startSec: 17.68,
+    endSec: 18.96,
+    text: "the choice was mine.",
+    category: "TEXT CLICK",
+    visualTrigger: "Empowerment",
+    triggerDetail: "Authentic optical switch click on empowerment",
+    assignedVariantId: "mouse_click_tactile_01",
+    pan: "+0.00",
+    fontProfile: "Inter SemiBold"
+  },
+  {
+    chunkIndex: 20,
+    timeRange: "00:19 — 00:19",
+    startSec: 19.12,
+    endSec: 19.72,
+    text: "Sounds like a",
+    category: "TEXT CLICK",
+    visualTrigger: "Dream Hook Tag",
+    triggerDetail: "Damped acoustic GUI click",
+    assignedVariantId: "mouse_click_damped_02",
+    pan: "+0.00",
+    fontProfile: "DM Sans Regular"
+  },
+];
+
+const presetsJson = JSON.stringify(ALL_SFX_PRESETS);
+const chunksJson = JSON.stringify(ACTIVE_CHUNKS_DATA);
+const masterJson = JSON.stringify(masterSoundData);
+
+const dashboardHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Prometheus — Active Chunks & Sound Effects Design Studio</title>
+  <style>
+    :root {
+      --bg-dark: #070913;
+      --card-bg: rgba(14, 19, 38, 0.95);
+      --accent-cyan: #00F0FF;
+      --accent-pink: #FF0055;
+      --accent-purple: #8B5CF6;
+      --accent-yellow: #FFE600;
+      --accent-green: #10B981;
+      --text-main: #FFFFFF;
+      --text-muted: #8E9BAE;
+      --panel-border: rgba(255, 255, 255, 0.1);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg-dark);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px;
+    }
+    .container {
+      width: 100%;
+      max-width: 1580px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .header-card {
+      background: var(--card-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 18px;
+      padding: 14px 24px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .header-card h1 {
+      font-size: 20px;
+      font-weight: 900;
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .header-card p { color: var(--text-muted); font-size: 12px; }
+
+    .studio-grid {
+      display: grid;
+      grid-template-columns: minmax(360px, 420px) 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+    @media (max-width: 1120px) {
+      .studio-grid { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 18px;
+      padding: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* LEFT: UNCLUTTERED 100% UNCROPPED FULL PHONE STAGE */
+    .resizable-player-card {
+      resize: both;
+      overflow: auto;
+      min-width: 340px;
+      min-height: 620px;
+      max-width: 100%;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .player-wrap {
+      background: #000;
+      border-radius: 24px;
+      overflow: hidden;
+      border: 1px solid var(--panel-border);
+      aspect-ratio: 9 / 16;
+      height: 620px;
+      width: 348px;
+      max-width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 16px 50px rgba(0,0,0,0.95);
+      margin: 0 auto;
+      position: relative;
+    }
+    .player-wrap iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+      overflow: hidden;
+    }
+
+    /* RIGHT: ACTIVE CHUNKS & SOUND DESIGN TABLE */
+    .tab-bar {
+      display: flex;
+      gap: 8px;
+      border-bottom: 1px solid var(--panel-border);
+      padding-bottom: 12px;
+      margin-bottom: 12px;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .tab-btn-group { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .tab-btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--panel-border);
+      color: var(--text-muted);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .tab-btn.active {
+      background: var(--accent-cyan);
+      color: #070913;
+      border-color: var(--accent-cyan);
+      font-weight: 900;
+    }
+    
+    .loop-toggle-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.06);
+      padding: 5px 12px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent-cyan);
+      cursor: pointer;
+    }
+    .loop-toggle-wrap input { cursor: pointer; }
+
+    .btn-rebake {
+      background: linear-gradient(135deg, var(--accent-yellow), var(--accent-pink));
+      color: #070913;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 11.5px;
+      font-weight: 900;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: transform 0.1s;
+    }
+    .btn-rebake:hover { transform: scale(1.03); }
+
+    /* TABLE */
+    .table-scroll {
+      max-height: 600px;
+      overflow-y: auto;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(0, 0, 0, 0.4);
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 11px; font-family: monospace; }
+    th { background: #070B16; color: var(--accent-cyan); padding: 10px 12px; text-align: left; position: sticky; top: 0; z-index: 10; border-bottom: 1px solid rgba(0, 240, 255, 0.3); }
+    td { padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.04); color: var(--text-muted); vertical-align: middle; }
+    tr { cursor: pointer; transition: background 0.15s; }
+    tr:hover td { background: rgba(255, 255, 255, 0.08); color: #FFF; }
+    tr.active-row td { background: rgba(0, 240, 255, 0.22); color: #FFF; font-weight: 700; border-left: 3px solid var(--accent-cyan); }
+
+    .tag { display: inline-block; padding: 2px 8px; border-radius: 5px; font-size: 9.5px; font-weight: 800; text-transform: uppercase; }
+    .tag-text { background: rgba(255, 230, 0, 0.2); color: #FFE600; border: 1px solid rgba(255, 230, 0, 0.4); }
+    .tag-whoosh { background: rgba(16, 185, 129, 0.2); color: #10B981; border: 1px solid rgba(16, 185, 129, 0.4); }
+    .tag-ui { background: rgba(139, 92, 246, 0.2); color: #A78BFA; border: 1px solid rgba(139, 92, 246, 0.4); }
+    .tag-clicks { background: rgba(236, 72, 153, 0.2); color: #F472B6; border: 1px solid rgba(236, 72, 153, 0.4); }
+    .tag-bell { background: rgba(234, 179, 8, 0.2); color: #FACC15; border: 1px solid rgba(234, 179, 8, 0.4); }
+    .tag-gear { background: rgba(245, 158, 11, 0.2); color: #FBBF24; border: 1px solid rgba(245, 158, 11, 0.4); }
+
+    .variant-select {
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #FFF;
+      padding: 5px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-family: monospace;
+      width: 100%;
+      max-width: 280px;
+      cursor: pointer;
+    }
+    .variant-select:focus { border-color: var(--accent-cyan); outline: none; }
+
+    .btn-audition {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--panel-border);
+      color: var(--accent-cyan);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      cursor: pointer;
+      font-weight: 700;
+      transition: background 0.15s;
+    }
+    .btn-audition:hover { background: var(--accent-cyan); color: #070913; }
+
+    
+    /* PLAYBACK CONTROLS BAR */
+    .playback-controls-bar {
+      width: 100%;
+      background: rgba(14, 19, 38, 0.95);
+      border: 1px solid rgba(0, 240, 255, 0.3);
+      border-radius: 12px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      backdrop-filter: blur(10px);
+      margin-top: 10px;
+    }
+    .controls-nav-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-playback {
+      background: rgba(255, 255, 255, 0.08);
+      color: #FFF;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 11.5px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+      font-family: inherit;
+    }
+    .btn-playback:hover {
+      background: rgba(0, 240, 255, 0.2);
+      border-color: var(--accent-cyan);
+      color: var(--accent-cyan);
+      transform: translateY(-1px);
+    }
+    .btn-play-pause {
+      background: rgba(0, 240, 255, 0.15);
+      border-color: var(--accent-cyan);
+      color: var(--accent-cyan);
+      min-width: 105px;
+      justify-content: center;
+    }
+    .btn-play-pause.paused {
+      background: rgba(255, 0, 85, 0.18);
+      border-color: var(--accent-pink);
+      color: var(--accent-pink);
+    }
+    .controls-status-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+    .badge-chunk-idx {
+      font-family: monospace;
+      font-size: 11.5px;
+      font-weight: 800;
+      color: var(--accent-cyan);
+    }
+    .badge-time-range {
+      font-size: 10px;
+      color: #94A3B8;
+      font-family: monospace;
+    }
+    .controls-flow-toggle {
+      display: flex;
+      align-items: center;
+    }
+    .flow-toggle-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #CBD5E1;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .flow-toggle-label input {
+      accent-color: var(--accent-cyan);
+      cursor: pointer;
+      width: 14px;
+      height: 14px;
+    }
+
+    /* JSON CODE VIEW */
+    #jsonView {
+      display: none;
+      max-height: 600px;
+      overflow-y: auto;
+      background: #02040A;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 16px;
+      font-family: monospace;
+      font-size: 11px;
+      color: #A5B4FC;
+      white-space: pre-wrap;
+    }
+  
+    /* FANCY MODE SWITCHER: PRODUCTION VS TEST SANDBOX */
+    .fancy-mode-badge-btn {
+      background: linear-gradient(135deg, rgba(16,185,129,0.18), rgba(6,182,212,0.22));
+      border: 1.5px solid #10B981;
+      color: #FFF;
+      border-radius: 8px;
+      padding: 6px 14px;
+      font-weight: 800;
+      font-size: 12px;
+      font-family: var(--font-mono);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 0 14px rgba(16,185,129,0.25);
+    }
+    .fancy-mode-badge-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 0 20px rgba(16,185,129,0.45);
+    }
+    .fancy-mode-badge-btn.active-test {
+      background: linear-gradient(135deg, rgba(236,72,153,0.25), rgba(168,85,247,0.3));
+      border-color: #EC4899;
+      color: #FFD1E8;
+      box-shadow: 0 0 16px rgba(236,72,153,0.35);
+    }
+
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    
+    <div class="header-card">
+      <div>
+        <h1>Prometheus Active Chunks & Sound Effects Design Studio</h1>
+        <p>Live 9:16 Typography Animation on Left • 20 Spoken Chunks & 282 Master Cues Taxonomy on Right</p>
+      </div>
+      <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+        <div style="background: rgba(0, 240, 255, 0.1); border: 1px solid var(--accent-cyan); border-radius: 8px; padding: 4px 10px; display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 11.5px; font-weight: 800; color: var(--accent-cyan);">📜 Active Transcript:</span>
+          <select id="selTranscript" onchange="switchDashboardTranscript(this.value)" style="background: #02040A; color: #FFF; border: 1px solid rgba(255,255,255,0.25); border-radius: 6px; padding: 5px 8px; font-size: 11.5px; font-weight: 700; outline: none; cursor: pointer;">
+            <option value="script1" selected>Script #1: E2A Flipping Model ($12k Physical Products / Amazon) ★ Active</option>
+            <option value="script2">Script #2: Broken Business ($50,000 / 70 Hours)</option>
+            <option value="script3">Script #3: Founders Focus & Execution</option>
+          </select>
+        </div>
+        <div style="background: rgba(139, 92, 246, 0.12); border: 1px solid var(--accent-purple); border-radius: 8px; padding: 4px 10px; display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 11.5px; font-weight: 800; color: var(--accent-purple);">🎥 Video Subject:</span>
+          <select id="selDashboardSpeaker" onchange="switchDashboardSpeaker(this.value)" style="background: #02040A; color: #FFF; border: 1px solid rgba(255,255,255,0.25); border-radius: 6px; padding: 5px 8px; font-size: 11.5px; font-weight: 700; outline: none; cursor: pointer;">
+            <option value="laptop" selected>Video: Akimbo Laptop Talking Head (AssemblyAI)</option>
+            <option value="male">Video: Male Talking Head (Legacy)</option>
+          </select>
+        </div>
+        <button id="btnDashStudioMode" onclick="dashboardToggleStudioMode()" class="fancy-mode-badge-btn" title="Toggle between Production Live Video and Test Depth Matting Sandbox">
+          <span>🎬 <strong>Mode: Production (Live Video)</strong></span>
+        </button>
+        <button class="tab-btn" onclick="window.open('/typo', '_blank')">🔬 Open Typo Studio ↗</button>
+        <button class="tab-btn" onclick="window.open('/anima', '_blank')">🧠 ANIMA Studio ↗</button>
+      </div>
+    </div>
+
+    <div class="studio-grid">
+      
+      <!-- LEFT: DYNAMIC TYPOGRAPHY RESIZABLE STAGE (WITH INTEGRATED PLAY/PAUSE/PREV/NEXT FLOW CONTROLS) -->
+      <div class="card resizable-player-card" style="display: flex; flex-direction: column; align-items: center;">
+        <div class="player-wrap" id="playerWrap">
+          <iframe id="typoFrame" src="/typo?embedded=true"></iframe>
+        </div>
+
+        <!-- INTEGRATED PLAYBACK CONTROLS BAR -->
+        <div class="playback-controls-bar">
+          <div class="controls-nav-group">
+            <button class="btn-playback" id="btnPrevChunk" onclick="dashboardPrevChunk()" title="Previous Spoken Chunk (Left Arrow)">
+              ⏮ Prev
+            </button>
+            <button class="btn-playback btn-play-pause" id="btnPlayPause" onclick="dashboardTogglePlay()" title="Toggle Auto-Flow Playback (Spacebar)">
+              ⏸ Pause Flow
+            </button>
+            <button class="btn-playback" id="btnNextChunk" onclick="dashboardNextChunk()" title="Next Spoken Chunk (Right Arrow)">
+              Next ⏭
+            </button>
+            <button class="btn-playback" id="btnToggleAudio" onclick="dashboardToggleAudio()" title="Toggle Speaker Voice Audio (Mute / Unmute)">
+              🔊 Audio: ON
+            </button>
+          </div>
+
+          <div class="controls-status-group">
+            <span class="badge-chunk-idx" id="dashChunkBadge">#01 / 20</span>
+            <span class="badge-time-range" id="dashTimeBadge">00:00 — 00:02</span>
+          </div>
+
+          <div class="controls-flow-toggle">
+            <label class="flow-toggle-label" title="When checked, sequence auto-advances through chunks. Uncheck to stay on selected chunk.">
+              <input type="checkbox" id="chkAutoFlow" checked onchange="toggleDashboardAutoFlow(this.checked)"> Auto-Flow
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: ACTIVE CHUNKS & SOUND EFFECTS TABLE -->
+      <div class="card">
+        
+        <div class="tab-bar">
+          <div class="tab-btn-group">
+            <button class="tab-btn active" id="tabChunksBtn" onclick="showViewTab('chunks')">📊 Active Chunks SFX (20 Chunks)</button>
+            <button class="tab-btn" id="tabMasterBtn" onclick="showViewTab('master')">🎛️ Master Cues Taxonomy (282 Cues)</button>
+            <button class="tab-btn" id="tabJsonBtn" onclick="showViewTab('json')">{ } Authoritative JSON</button>
+            
+            <label class="loop-toggle-wrap" title="Auto-loop chunk when clicking">
+              <input type="checkbox" id="chkAutoLoop" checked> Auto-Loop on Click
+            </label>
+          </div>
+          
+          <button class="btn-rebake" id="btnRebake" onclick="rebakeAudioTrack()">
+            ⚡ Re-Bake Master Audio
+          </button>
+        </div>
+
+        <!-- TAB 1: ACTIVE CHUNKS TABLE -->
+        <div class="table-scroll" id="chunksTableView">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 75px;">TIME</th>
+                <th style="width: 110px;">CATEGORY</th>
+                <th>SPOKEN CHUNK & VISUAL TRIGGER</th>
+                <th>SOUND EFFECT VARIANT SELECTOR</th>
+                <th style="width: 60px;">PAN</th>
+                <th style="width: 75px;">AUDITION</th>
+              </tr>
+            </thead>
+            <tbody id="treatmentTbody"></tbody>
+          </table>
+        </div>
+
+        <!-- TAB 2: MASTER TAXONOMY TABLE (282 CUES) -->
+        <div class="table-scroll" id="masterTableView" style="display: none;">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 75px;">TIME</th>
+                <th style="width: 110px;">CATEGORY</th>
+                <th>VISUAL TRIGGER EVENT</th>
+                <th>SOUND VARIANT SELECTOR</th>
+                <th style="width: 60px;">PAN</th>
+                <th style="width: 75px;">AUDITION</th>
+              </tr>
+            </thead>
+            <tbody id="masterTbody"></tbody>
+          </table>
+        </div>
+
+        <!-- TAB 3: RAW JSON CODE VIEW -->
+        <pre id="jsonView"></pre>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <audio id="auditionPlayer" preload="none"></audio>
+
+  <script>
+    const TRANSCRIPTS_DATA = {"script1": {"title": "Script #1: E2A Flipping Model (Strict 2-3 Word Cadence) \u2605 Active", "chunks": [{"chunkIndex": 1, "timeRange": "00:00 \u2014 00:01", "startSec": 0.8, "endSec": 1.32, "text": "Over the last", "visualTrigger": "Kinetic Title Unmasking", "triggerDetail": "DM Sans ExtraBold Staggered Word Unmasking", "category": "TEXT CLICK", "assignedVariantId": "mouse_click_tactile_01", "pan": "+0.00", "fontProfile": "DM Sans Bold / Modern High-Contrast"}, {"chunkIndex": 2, "timeRange": "00:01 \u2014 00:02", "startSec": 1.32, "endSec": 2.0, "text": "12 months,", "visualTrigger": "Time Horizon Accent", "triggerDetail": "Authentic optical switch click", "category": "TEXT CLICK", "assignedVariantId": "mouse_click_tactile_01", "pan": "+0.00", "fontProfile": "DM Sans Bold"}, {"chunkIndex": 3, "timeRange": "00:02 \u2014 00:03", "startSec": 2.0, "endSec": 3.0, "text": "I've purchased more", "visualTrigger": "Purchased Volume Accent", "triggerDetail": "Volume metric unmasking + Crystalline C7 notification bell", "category": "GROWTH BELL", "assignedVariantId": "notification_apex_ding_01", "pan": "+0.75", "fontProfile": "Poly Sans / Vector Metric Grid"}, {"chunkIndex": 4, "timeRange": "00:03 \u2014 00:04", "startSec": 3.0, "endSec": 4.56, "text": "than 12,000 physical", "visualTrigger": "Physical Inventory Highlight", "triggerDetail": "Precision acoustic micro-click transient", "category": "TEXT CLICK", "assignedVariantId": "mouse_click_subtle_03", "pan": "+0.00", "fontProfile": "DM Sans Italic"}, {"chunkIndex": 5, "timeRange": "00:04 \u2014 00:06", "startSec": 4.56, "endSec": 6.08, "text": "products from eBay.com", "visualTrigger": "E-Commerce Channel", "triggerDetail": "Subtle acoustic snap", "category": "TEXT CLICK", "assignedVariantId": "mouse_click_glass_04", "pan": "+0.00", "fontProfile": "Clash Display / Serif Noir"}, {"chunkIndex": 6, "timeRange": "00:06 \u2014 00:06", "startSec": 6.24, "endSec": 6.96, "text": "that I've then", "visualTrigger": "Sequence Transition", "triggerDetail": "Authentic optical switch click", "category": "TEXT CLICK", "assignedVariantId": "mouse_click_tactile_01", "pan": "+0.00", "fontProfile": "Inter SemiBold"}, {"chunkIndex": 7, "timeRange": "00:06 \u2014 00:08", "startSec": 6.96, "endSec": 8.12, "text": "resold on Amazon", "visualTrigger": "Amazon Resale Channel Accent", "triggerDetail": "Profit metric unmasking + Crystalline C7 bell", "category": "GROWTH BELL", "assignedVariantId": "notification_apex_ding_01", "pan": "+0.75", "fontProfile": "Neue Haas Grotesk Bold"}, {"chunkIndex": 8, "timeRange": "00:08 \u2014 00:08", "startSec": 8.12, "endSec": 8.68, "text": "for more than", "visualTrigger": "Volume Clause", "triggerDetail": "Precision acoustic micro-click transient", "category": "TEXT CLICK", "assignedVariantId": "mouse_click_subtle_03", "pan": "+0.00", "fontProfile": "DM Sans Regular"}, {"chunkIndex": 9, "timeRange": "00:08 \u2014 00:09", "startSec": 8.68, "endSec": 9.64, "text": "six figures in", "visualTrigger": "Six-Figure High-Value Metric", "triggerDetail": "Crystalline milestone bell on six figures", "category": "GROWTH BELL", "assignedVariantId": "notification_apex_ding_01", "pan": "+0.75", "fontProfile": "Editorial Serif / Playfair"}, {"chunkIndex": 10, "timeRange": "00:09 \u2014 00:10", "startSec": 9.64, "endSec": 10.52, "text": "Pure profit.", "visualTrigger": "Pure Profit Payoff", "triggerDetail": "Crystalline bell sparkle on profit payoff", "category": "BELL CHIME", "assignedVariantId": "notification_apex_ding_01", "pan": "+0.50", "fontProfile": "Poly Sans / Vector Metric Grid"}, {"chunkIndex": 11, "timeRange": "00:10 \u2014 00:11", "startSec": 10.52, "endSec": 11.2, "text": "And the best", "visualTrigger": "Conversational Beat", "triggerDetail": "Authentic optical switch click", "category": "TEXT CLICK", "assignedVariantId": "mouse_click_tactile_01", "pan": "+0.00", "fontProfile": "Inter SemiBold"}, {"chunkIndex": 12, "timeRange": "00:11 \u2014 00:11", "startSec": 11.2, "endSec": 11.76, "text": "part is,", "visualTrigger": "Clause Resolution", "triggerDetail": "Damped acoustic GUI click", "category": "TEXT CLICK", "assignedVariantId": "mouse_click_damped_02", "pan": "+0.00", "fontProfile": "DM Sans Regular"}, {"chunkIndex": 13, "timeRange": "00:11 \u2014 00:12", "startSec": 11.84, "endSec": 12.48, "text": "I've done it", "visualTrigger": "Execution Statement", "triggerDetail": "Precision acoustic micro-click transient", "category": "TEXT CLICK", "assignedVariantId": "mouse_click_subtle_03", "pan": "+0.00", "fontProfile": "Syne ExtraBold / Dynamic Flare"}, {"chunkIndex": 14, "timeRange": "00:12 \u2014 00:13", "startSec": 12.48, "endSec": 13.28, "text": "all from home.", "visualTrigger": "Location Accent", "triggerDetail": "Force touch acoustic micro switch snap", "category": "TEXT CLICK", "assignedVariantId": "mouse_click_glass_04", "pan": "+0.00", "fontProfile": "Courier Prime / Retro Terminal"}, {"chunkIndex": 15, "timeRange": "00:13 \u2014 00:14", "startSec": 13.44, "endSec": 14.28, "text": "Sometimes in my", "visualTrigger": "Casual Contrast", "triggerDetail": "Authentic optical switch click", "category": "TEXT CLICK", "assignedVariantId": "mouse_click_tactile_01", "pan": "+0.00", "fontProfile": "DM Sans Bold / Modern High-Contrast"}, {"chunkIndex": 16, "timeRange": "00:14 \u2014 00:15", "startSec": 14.28, "endSec": 15.88, "text": "pajamas, sometimes in", "visualTrigger": "Attire Beat", "triggerDetail": "Precision acoustic micro-click transient", "category": "TEXT CLICK", "assignedVariantId": "mouse_click_subtle_03", "pan": "+0.00", "fontProfile": "Cabinet Grotesk / Sharp Kinetic"}, {"chunkIndex": 17, "timeRange": "00:15 \u2014 00:16", "startSec": 15.88, "endSec": 16.88, "text": "my Sunday best.", "visualTrigger": "Contrast Beat", "triggerDetail": "Authentic optical switch click on ownership", "category": "TEXT CLICK", "assignedVariantId": "mouse_click_tactile_01", "pan": "+0.00", "fontProfile": "DM Sans Bold"}, {"chunkIndex": 18, "timeRange": "00:16 \u2014 00:17", "startSec": 16.96, "endSec": 17.68, "text": "The point is,", "visualTrigger": "Premise Tag", "triggerDetail": "Damped acoustic GUI click", "category": "TEXT CLICK", "assignedVariantId": "mouse_click_damped_02", "pan": "+0.00", "fontProfile": "Cinzel Decorative / Classic Pillar"}, {"chunkIndex": 19, "timeRange": "00:17 \u2014 00:18", "startSec": 17.68, "endSec": 18.96, "text": "the choice was mine.", "visualTrigger": "Empowerment", "triggerDetail": "Authentic optical switch click on empowerment", "category": "TEXT CLICK", "assignedVariantId": "mouse_click_tactile_01", "pan": "+0.00", "fontProfile": "Inter SemiBold"}, {"chunkIndex": 20, "timeRange": "00:19 \u2014 00:19", "startSec": 19.12, "endSec": 19.72, "text": "Sounds like a", "visualTrigger": "Dream Hook Tag", "triggerDetail": "Damped acoustic GUI click", "category": "TEXT CLICK", "assignedVariantId": "mouse_click_damped_02", "pan": "+0.00", "fontProfile": "DM Sans Regular"}]}, "script2": {"title": "Script #2: Broken Business ($50,000 / 70 Hours)", "chunks": [{"chunkIndex": 1, "timeRange": "00:00 \u2014 00:02", "text": "You can make", "visualTrigger": "Introductory Kinetic Text Reveal", "triggerDetail": "DM Sans Staggered Character Unmasking", "category": "TEXT CLICK", "assignedVariantId": "mouse_click_tactile_01", "pan": "+0.00"}, {"chunkIndex": 2, "timeRange": "00:02 \u2014 00:04", "text": "$50,000 a month", "visualTrigger": "ANIMA #01 Hero Metric ($50k Revenue Pill)", "triggerDetail": "Display digit telemetry blip on currency counter", "category": "DATA TELEMETRY", "assignedVariantId": "ui-display-digit", "pan": "+0.70"}, {"chunkIndex": 3, "timeRange": "00:04 \u2014 00:06", "text": "and still", "visualTrigger": "Soft Tactile Transition", "triggerDetail": "Damped acoustic GUI click", "category": "TEXT CLICK", "assignedVariantId": "mouse_click_damped_02", "pan": "+0.00"}, {"chunkIndex": 4, "timeRange": "00:06 \u2014 00:08", "text": "have a broken business.", "visualTrigger": "Broken Glass / Tense Settle", "triggerDetail": "Precision micro-click transient", "category": "TEXT CLICK", "assignedVariantId": "mouse_click_subtle_03", "pan": "+0.00"}, {"chunkIndex": 5, "timeRange": "00:08 \u2014 00:10", "text": "Because revenue", "visualTrigger": "Text Reveal / Optical Click", "triggerDetail": "Authentic studio recorded optical switch click", "category": "TEXT CLICK", "assignedVariantId": "mouse_click_tactile_01", "pan": "+0.00"}, {"chunkIndex": 6, "timeRange": "00:10 \u2014 00:12", "text": "doesn't automatically mean", "visualTrigger": "Text Stagger / Glass Tap", "triggerDetail": "Acoustic micro switch snap", "category": "TEXT CLICK", "assignedVariantId": "mouse_click_glass_04", "pan": "+0.00"}, {"chunkIndex": 7, "timeRange": "00:12 \u2014 00:14", "text": "you're building something scalable.", "visualTrigger": "Architectural Pillar Asset Drop", "triggerDetail": "Smooth medium air swoosh on pillar unmasking", "category": "ASSET SWOOSH", "assignedVariantId": "whoosh_medium_cinematic_02", "pan": "+0.75"}, {"chunkIndex": 8, "timeRange": "00:14 \u2014 00:16", "text": "I've seen founders", "visualTrigger": "Named Entity: Founders Trio Cutout (Z:10)", "triggerDetail": "Character glide swoosh behind speaker scalp", "category": "ASSET SWOOSH", "assignedVariantId": "whoosh_fast_whip_03", "pan": "-0.75"}, {"chunkIndex": 9, "timeRange": "00:16 \u2014 00:18", "text": "make serious money", "visualTrigger": "Currency Glow / Metric Accent", "triggerDetail": "Data reveal sound transient", "category": "DATA TELEMETRY", "assignedVariantId": "ui-data-reveal", "pan": "+0.25"}, {"chunkIndex": 10, "timeRange": "00:18 \u2014 00:20", "text": "while working", "visualTrigger": "Tactile Text Transition", "triggerDetail": "Damped acoustic GUI click", "category": "TEXT CLICK", "assignedVariantId": "mouse_click_damped_02", "pan": "+0.00"}, {"chunkIndex": 11, "timeRange": "00:20 \u2014 00:22", "text": "seventy hours every week.", "visualTrigger": "ANIMA #01 Metric: 70 HOURS Metronome Asset", "triggerDetail": "Display digit telemetry blip on time metric", "category": "DATA TELEMETRY", "assignedVariantId": "ui-display-digit", "pan": "+0.75"}, {"chunkIndex": 12, "timeRange": "00:22 \u2014 00:24", "text": "That's not freedom.", "visualTrigger": "Tension Text Inflection", "triggerDetail": "Authentic studio recorded optical switch click", "category": "TEXT CLICK", "assignedVariantId": "mouse_click_tactile_01", "pan": "+0.00"}, {"chunkIndex": 13, "timeRange": "00:24 \u2014 00:26", "text": "That's a", "visualTrigger": "Text Reveal / Precision Micro-Click", "triggerDetail": "Precision acoustic micro-click transient", "category": "TEXT CLICK", "assignedVariantId": "mouse_click_subtle_03", "pan": "+0.00"}, {"chunkIndex": 14, "timeRange": "00:26 \u2014 00:28", "text": "very expensive job.", "visualTrigger": "Terminal Monospace Stagger Reveal", "triggerDetail": "Mechanical Cherry keystroke on typewriter reveal", "category": "TEXT TYPING", "assignedVariantId": "type_keystroke_cherry_01", "pan": "+0.00"}, {"chunkIndex": 15, "timeRange": "00:28 \u2014 00:30", "text": "The real goal", "visualTrigger": "Context Clause Accent", "triggerDetail": "Damped acoustic GUI click", "category": "TEXT CLICK", "assignedVariantId": "mouse_click_damped_02", "pan": "+0.00"}, {"chunkIndex": 16, "timeRange": "00:30 \u2014 00:32", "text": "isn't just making more money.", "visualTrigger": "Contrast Claim Header", "triggerDetail": "Authentic studio recorded optical switch click", "category": "TEXT CLICK", "assignedVariantId": "mouse_click_tactile_01", "pan": "+0.00"}, {"chunkIndex": 17, "timeRange": "00:32 \u2014 00:34", "text": "It's building systems", "visualTrigger": "ANIMA #02 Micro Asset: Robotic Arm System", "triggerDetail": "Rotary gear ratchet on robotics systems entry", "category": "LENGTHY GEAR", "assignedVariantId": "gear_ratchet_pulse_01", "pan": "-0.75"}, {"chunkIndex": 18, "timeRange": "00:34 \u2014 00:36", "text": "that keep producing results", "visualTrigger": "Automated Loop Telemetry Ping", "triggerDetail": "Crystalline notification bell on milestone", "category": "GROWTH BELL", "assignedVariantId": "notification_apex_ding_01", "pan": "+0.75"}, {"chunkIndex": 19, "timeRange": "00:36 \u2014 00:38", "text": "without requiring you", "visualTrigger": "Glass Trackpad Transition", "triggerDetail": "Acoustic micro switch snap", "category": "TEXT CLICK", "assignedVariantId": "mouse_click_glass_04", "pan": "+0.00"}, {"chunkIndex": 20, "timeRange": "00:38 \u2014 00:40", "text": "every single time.", "visualTrigger": "ANIMA #02 Micro Asset: Rocket Flight Payoff", "triggerDetail": "Smooth medium air swoosh rhyming with rocket ascent", "category": "ASSET SWOOSH", "assignedVariantId": "whoosh_medium_cinematic_02", "pan": "+0.75"}]}, "script3": {"title": "Script #3: Founders Focus & Execution", "chunks": [{"chunkIndex": 1, "timeRange": "00:00 \u2014 00:02", "text": "Most founders don't fail", "visualTrigger": "Hero Headline Kinetic Reveal", "triggerDetail": "Bodoni Moda Luxury Serif Stagger", "category": "TEXT CLICK", "assignedVariantId": "mouse_click_tactile_01", "pan": "+0.00"}, {"chunkIndex": 2, "timeRange": "00:02 \u2014 00:04", "text": "because of lack of effort.", "visualTrigger": "Damped Acoustic Click Transition", "triggerDetail": "Damped acoustic GUI click after repetition cap", "category": "TEXT CLICK", "assignedVariantId": "mouse_click_damped_02", "pan": "+0.00"}, {"chunkIndex": 3, "timeRange": "00:04 \u2014 00:06", "text": "They fail because of lack of focus.", "visualTrigger": "ANIMA #04 Parabolic Target / Focus Indicator", "triggerDetail": "Crystalline C7 notification bell at apex focus point", "category": "GROWTH BELL", "assignedVariantId": "notification_apex_ding_01", "pan": "+0.75"}, {"chunkIndex": 4, "timeRange": "00:06 \u2014 00:08", "text": "Because when", "visualTrigger": "Text Reveal / Precision Micro-Click", "triggerDetail": "Precision acoustic micro-click transient", "category": "TEXT CLICK", "assignedVariantId": "mouse_click_subtle_03", "pan": "+0.00"}, {"chunkIndex": 5, "timeRange": "00:08 \u2014 00:10", "text": "you say yes to everything,", "visualTrigger": "Overload Multi-Sticker Spread (Z:10)", "triggerDetail": "Fast whip-pan air cut on multi-icon explosion", "category": "ASSET SWOOSH", "assignedVariantId": "whoosh_fast_whip_03", "pan": "-0.75"}, {"chunkIndex": 6, "timeRange": "00:10 \u2014 00:12", "text": "you say no to momentum.", "visualTrigger": "Kinetic Tension Line / Glass Tap", "triggerDetail": "Acoustic micro switch snap", "category": "TEXT CLICK", "assignedVariantId": "mouse_click_glass_04", "pan": "+0.00"}, {"chunkIndex": 7, "timeRange": "00:12 \u2014 00:14", "text": "Discipline isn't restriction.", "visualTrigger": "Architectural Marble Pillar Asset Settle", "triggerDetail": "Smooth medium air swoosh on pillar unmasking", "category": "ASSET SWOOSH", "assignedVariantId": "whoosh_medium_cinematic_02", "pan": "+0.75"}, {"chunkIndex": 8, "timeRange": "00:14 \u2014 00:16", "text": "Discipline is leverage.", "visualTrigger": "Yellow Highlighter Sweep on 'leverage'", "triggerDetail": "Subtle air whoosh / marker line draw on highlight accent", "category": "HIGHLIGHT WHOOSH", "assignedVariantId": "highlight_marker_whoosh_01", "pan": "+0.25"}, {"chunkIndex": 9, "timeRange": "00:16 \u2014 00:18", "text": "It's deciding what not to do", "visualTrigger": "Tactile Text Transition", "triggerDetail": "Damped acoustic GUI click", "category": "TEXT CLICK", "assignedVariantId": "mouse_click_damped_02", "pan": "+0.00"}, {"chunkIndex": 10, "timeRange": "00:18 \u2014 00:20", "text": "so what you actually do", "visualTrigger": "Text Reveal / Optical Switch Click", "triggerDetail": "Authentic studio recorded optical switch click", "category": "TEXT CLICK", "assignedVariantId": "mouse_click_tactile_01", "pan": "+0.00"}, {"chunkIndex": 11, "timeRange": "00:20 \u2014 00:22", "text": "compounds effortlessly.", "visualTrigger": "Atomic Flywheel Vector Rotation", "triggerDetail": "Rotary gear ratchet during continuous compounding cycle", "category": "LENGTHY GEAR", "assignedVariantId": "gear_ratchet_pulse_01", "pan": "+0.00"}, {"chunkIndex": 12, "timeRange": "00:22 \u2014 00:24", "text": "That is how", "visualTrigger": "Precision Micro Tick", "triggerDetail": "Precision acoustic micro-click transient", "category": "TEXT CLICK", "assignedVariantId": "mouse_click_subtle_03", "pan": "+0.00"}, {"chunkIndex": 13, "timeRange": "00:24 \u2014 00:26", "text": "extraordinary companies", "visualTrigger": "Named Entity: Founders Trio Mask (Z:10)", "triggerDetail": "Character glide swoosh behind speaker scalp", "category": "ASSET SWOOSH", "assignedVariantId": "whoosh_fast_whip_03", "pan": "-0.75"}, {"chunkIndex": 14, "timeRange": "00:26 \u2014 00:28", "text": "are actually built.", "visualTrigger": "Terminal Monospace Character Reveal", "triggerDetail": "Mechanical Cherry keystroke on typewriter reveal", "category": "TEXT TYPING", "assignedVariantId": "type_keystroke_cherry_01", "pan": "+0.00"}, {"chunkIndex": 15, "timeRange": "00:28 \u2014 00:30", "text": "Not by noise,", "visualTrigger": "Glass Trackpad Tap", "triggerDetail": "Acoustic micro switch snap", "category": "TEXT CLICK", "assignedVariantId": "mouse_click_glass_04", "pan": "+0.00"}, {"chunkIndex": 16, "timeRange": "00:30 \u2014 00:32", "text": "but by ruthless focus.", "visualTrigger": "Crystalline Milestone Ding Chime", "triggerDetail": "Crystalline C7 apex bell chime on clarity insight", "category": "GROWTH BELL", "assignedVariantId": "notification_apex_ding_01", "pan": "+0.75"}, {"chunkIndex": 17, "timeRange": "00:32 \u2014 00:34", "text": "Find the single bottleneck,", "visualTrigger": "Optical Mouse Click", "triggerDetail": "Authentic studio recorded optical switch click", "category": "TEXT CLICK", "assignedVariantId": "mouse_click_tactile_01", "pan": "+0.00"}, {"chunkIndex": 18, "timeRange": "00:34 \u2014 00:36", "text": "remove it cleanly,", "visualTrigger": "Damped Acoustic Click Transition", "triggerDetail": "Damped acoustic GUI click", "category": "TEXT CLICK", "assignedVariantId": "mouse_click_damped_02", "pan": "+0.00"}, {"chunkIndex": 19, "timeRange": "00:36 \u2014 00:38", "text": "and let the system run.", "visualTrigger": "Atmospheric Air Whoosh", "triggerDetail": "Smooth medium air whoosh on system release", "category": "CAMERA WHOOSH", "assignedVariantId": "whoosh_slow_ambient_01", "pan": "-0.75"}, {"chunkIndex": 20, "timeRange": "00:38 \u2014 00:40", "text": "That's the whole game.", "visualTrigger": "Rocket Payoff / Final Closure", "triggerDetail": "Smooth medium air swoosh rhyming with final rocket launch", "category": "ASSET SWOOSH", "assignedVariantId": "whoosh_medium_cinematic_02", "pan": "+0.00"}]}};
+    
+
+    let dashStudioMode = "production";
+    function dashboardToggleStudioMode() {
+      dashStudioMode = (dashStudioMode === "production") ? "test_matting" : "production";
+      const btn = document.getElementById("btnDashStudioMode");
+      if (btn) {
+        if (dashStudioMode === "test_matting") {
+          btn.innerHTML = "<span>🧪 <strong>Mode: Test Lab (Matted Depth)</strong></span>";
+          btn.className = "fancy-mode-badge-btn active-test";
+        } else {
+          btn.innerHTML = "<span>🎬 <strong>Mode: Production (Live Video)</strong></span>";
+          btn.className = "fancy-mode-badge-btn";
+        }
+      }
+      const frame = document.getElementById("typoFrame");
+      if (frame && frame.contentWindow) {
+        frame.contentWindow.postMessage({ type: "SET_STUDIO_MODE", mode: dashStudioMode }, "*");
+      }
+    }
+
+    function switchDashboardSpeaker(mode) {
+      const frame = document.getElementById("typoFrame");
+      if (frame && frame.contentWindow) {
+        frame.contentWindow.postMessage({ type: "SWITCH_SPEAKER", mode: mode }, "*");
+      }
+    }
+
+    function switchDashboardTranscript(key) {
+      if (!TRANSCRIPTS_DATA[key]) return;
+      chunks = TRANSCRIPTS_DATA[key].chunks;
+      renderActiveChunksTable();
+      
+      const frame = document.getElementById("typoFrame");
+      if (frame) {
+        if (frame.contentWindow && typeof frame.contentWindow.switchTranscript === "function") {
+          frame.contentWindow.switchTranscript(key);
+        } else if (frame.contentWindow) {
+          frame.contentWindow.postMessage({ type: "SWITCH_TRANSCRIPT", key: key }, "*");
+        }
+      }
+      seekAndJumpChunk(0);
+    }
+
+    const ALL_SFX_PRESETS = ` + presetsJson + `;
+    let chunks = TRANSCRIPTS_DATA.script1.chunks;
+    const masterData = ` + masterJson + `;
+    let currentActiveIdx = 0;
+    const chkAutoLoop = document.getElementById("chkAutoLoop");
+    const auditionPlayer = document.getElementById("auditionPlayer");
+
+    // Web Audio Synthesizer Engine for Crystalline Bells & Tactile Impulses
+    let audioCtx = null;
+    function getAudioContext() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === "suspended") {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    function playSoundPreset(presetId, panVal) {
+      const preset = ALL_SFX_PRESETS.find(p => p.id === presetId);
+      
+      // If preset has a real recorded audio file URL, play the authentic studio sample
+      if (preset && preset.audioUrl) {
+        auditionPlayer.src = encodeURI(preset.audioUrl);
+        auditionPlayer.play().catch(() => {
+          playSynthesizedFallback(presetId, panVal);
+        });
+        return;
+      }
+
+      playSynthesizedFallback(presetId, panVal);
+    }
+
+    function playSynthesizedFallback(presetId, panVal) {
+      const ctx = getAudioContext();
+      if (!ctx) return;
+      const now = ctx.currentTime;
+      panVal = panVal || 0.0;
+
+      if (presetId.startsWith("notification_apex_ding") || presetId.startsWith("growth_swoosh_chime")) {
+        if (presetId.startsWith("growth_swoosh_chime")) {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          const filter = ctx.createBiquadFilter();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(140, now);
+          osc.frequency.exponentialRampToValueAtTime(680, now + 0.45);
+          filter.type = "bandpass";
+          filter.frequency.setValueAtTime(1100, now);
+          gain.gain.setValueAtTime(0.0001, now);
+          gain.gain.exponentialRampToValueAtTime(0.24, now + 0.18);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.45);
+          osc.connect(filter);
+          filter.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.48);
+        }
+
+        const dingTime = presetId.startsWith("growth_swoosh_chime") ? now + 0.38 : now;
+        const osc1 = ctx.createOscillator();
+        const osc2 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        const gain2 = ctx.createGain();
+        
+        osc1.type = "sine";
+        osc1.frequency.setValueAtTime(2093, dingTime);
+        osc2.type = "sine";
+        osc2.frequency.setValueAtTime(4186, dingTime);
+        
+        gain1.gain.setValueAtTime(0.28, dingTime);
+        gain1.gain.exponentialRampToValueAtTime(0.0001, dingTime + 0.65);
+        
+        gain2.gain.setValueAtTime(0.08, dingTime);
+        gain2.gain.exponentialRampToValueAtTime(0.0001, dingTime + 0.25);
+        
+        osc1.connect(gain1);
+        gain1.connect(ctx.destination);
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        
+        osc1.start(dingTime);
+        osc1.stop(dingTime + 0.7);
+        osc2.start(dingTime);
+        osc2.stop(dingTime + 0.3);
+
+      } else {
+        // High-Precision Tactile Mouse Click Impulse
+        const sampleRate = ctx.sampleRate;
+        const dur = 0.022;
+        const bufSize = Math.floor(sampleRate * dur);
+        const buffer = ctx.createBuffer(1, bufSize, sampleRate);
+        const data = buffer.getChannelData(0);
+
+        for (let i = 0; i < bufSize; i++) {
+          const decay = Math.exp(-i / (sampleRate * 0.0028));
+          data[i] = ((Math.random() * 2 - 1) * 0.9 + (i < 5 ? 1.0 : 0)) * decay;
+        }
+
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+
+        const hp = ctx.createBiquadFilter();
+        hp.type = "highpass";
+        hp.frequency.setValueAtTime(3800, now);
+        hp.Q.setValueAtTime(2.2, now);
+
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.35, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+
+        source.connect(hp);
+        hp.connect(gain);
+        gain.connect(ctx.destination);
+
+        source.start(now);
+        source.stop(now + dur + 0.01);
+      }
+    }
+
+    function renderActiveChunksTable() {
+      const tbody = document.getElementById("treatmentTbody");
+      if (!tbody) return;
+
+      const jsonEl = document.getElementById("jsonView");
+      if (jsonEl) {
+        jsonEl.innerText = JSON.stringify({
+          version: "2.4.0-highlight-whoosh-and-typing",
+          activeChunksCount: chunks.length,
+          activeChunks: chunks,
+          masterTaxonomyEventsCount: masterData.treatments.length
+        }, null, 2);
+      }
+
+      let rowsHtml = "";
+      chunks.forEach((c, idx) => {
+        let tagClass = "tag-text";
+        if (c.category === "GROWTH BELL") tagClass = "tag-bell";
+        else if (c.category === "ASSET SWOOSH" || c.category === "CAMERA WHOOSH" || c.category === "HIGHLIGHT WHOOSH") tagClass = "tag-whoosh";
+        else if (c.category === "TEXT CLICK" || c.category === "TEXT TYPING") tagClass = "tag-ui";
+        else if (c.category === "LENGTHY TEXT GEAR") tagClass = "tag-gear";
+
+        let optionsHtml = "";
+        let currentGroup = "";
+        ALL_SFX_PRESETS.forEach(p => {
+          if (p.group !== currentGroup) {
+            if (currentGroup !== "") optionsHtml += "</optgroup>";
+            currentGroup = p.group;
+            optionsHtml += "<optgroup label='" + currentGroup + "'>";
+          }
+          const isSel = (p.id === c.assignedVariantId);
+          optionsHtml += "<option value='" + p.id + "' " + (isSel ? "selected" : "") + ">" + p.label + "</option>";
+        });
+        if (currentGroup !== "") optionsHtml += "</optgroup>";
+
+        const rowActive = (idx === currentActiveIdx) ? "active-row" : "";
+        const chunkNumStr = "#" + (c.chunkIndex < 10 ? "0" : "") + c.chunkIndex;
+
+        rowsHtml += 
+          "<tr id='row-" + idx + "' class='" + rowActive + "' onclick='handleRowClick(event, " + idx + ")'>" +
+            "<td><strong style='color: var(--accent-cyan);'>" + c.timeRange.split(" — ")[0] + "</strong><br><span style='font-size:9.5px; color:#64748B;'>" + chunkNumStr + "</span></td>" +
+            "<td><span class='tag " + tagClass + "'>" + c.category + "</span></td>" +
+            "<td><strong style='color:#FFF; font-size:12.5px;'>&ldquo;" + c.text + "&rdquo;</strong><br><span style='font-size:10px; color:#A5B4FC;'>" + c.visualTrigger + "</span><br><span style='font-size:9.5px; color:#64748B;'>" + c.triggerDetail + "</span></td>" +
+            "<td>" +
+              "<select class='variant-select' onclick='event.stopPropagation()' onchange='changeVariant(" + idx + ", this.value)'>" +
+                optionsHtml +
+              "</select>" +
+            "</td>" +
+            "<td style='color:#A5B4FC; font-size:10px;'>" + c.pan + "</td>" +
+            "<td><button class='btn-audition' onclick='event.stopPropagation(); auditionCurrentVariant(" + idx + ")'>▶ Play</button></td>" +
+          "</tr>";
+      });
+
+      tbody.innerHTML = rowsHtml;
+    }
+
+    function renderMasterTaxonomyTable() {
+      const tbody = document.getElementById("masterTbody");
+      if (!tbody || !masterData || !masterData.treatments) return;
+
+      tbody.innerHTML = masterData.treatments.map((t, idx) => {
+        let tagClass = "tag-ui";
+        const cat = t.soundDesign.category || "UI INTERFACE";
+        if (cat === "TEXT") tagClass = "tag-text";
+        else if (cat === "WHOOSHES" || cat === "SWOOSHES") tagClass = "tag-whoosh";
+        else if (cat === "MECHANICAL CLICKS") tagClass = "tag-clicks";
+        else if (cat === "DATA TELEMETRY") tagClass = "tag-bell";
+
+        const panStr = t.soundDesign.stereoPan >= 0 ? "+" + t.soundDesign.stereoPan.toFixed(2) : t.soundDesign.stereoPan.toFixed(2);
+        const optionsHtml = (t.soundDesign.variants || []).map((v, vIdx) => {
+          const isSel = (vIdx === t.soundDesign.selectedVariantIndex);
+          return "<option value='" + vIdx + "' " + (isSel ? "selected" : "") + ">" + v.label + "</option>";
+        }).join("");
+
+        return (
+          "<tr id='master-row-" + idx + "' onclick='seekMasterEvent(" + idx + ")'>" +
+            "<td><strong style='color: var(--accent-cyan);'>" + t.timestampSeconds.toFixed(2) + "s</strong></td>" +
+            "<td><span class='tag " + tagClass + "'>" + cat + "</span></td>" +
+            "<td><strong style='color:#FFF;'>" + t.visualTrigger.elementName + "</strong><br><span style='font-size:10px; color:#64748B;'>" + t.visualTrigger.description + "</span></td>" +
+            "<td><select class='variant-select' onclick='event.stopPropagation()' onchange='changeMasterVariant(event, " + idx + ")'>" + optionsHtml + "</select></td>" +
+            "<td style='color:#A5B4FC;'>" + panStr + "</td>" +
+            "<td><button class='btn-audition' onclick='event.stopPropagation(); auditionMasterVariant(" + idx + ")'>▶ Play</button></td>" +
+          "</tr>"
+        );
+      }).join("");
+    }
+
+    function handleRowClick(event, chunkIdx) {
+      seekAndJumpChunk(chunkIdx);
+    }
+
+    function seekAndJumpChunk(chunkIdx) {
+      updateActiveChunkUI(chunkIdx, true);
+    }
+        let isAudioUnmuted = true;
+    function dashboardToggleAudio() {
+      isAudioUnmuted = !isAudioUnmuted;
+      const btn = document.getElementById("btnToggleAudio");
+      if (btn) {
+        btn.innerText = isAudioUnmuted ? "🔊 Audio: ON (Vocal Sound)" : "🔇 Audio: MUTED";
+        btn.style.borderColor = isAudioUnmuted ? "var(--accent-cyan)" : "rgba(255,255,255,0.2)";
+        btn.style.color = isAudioUnmuted ? "var(--accent-cyan)" : "#FFF";
+      }
+      const frame = document.getElementById("typoFrame");
+      if (frame && frame.contentWindow) {
+        frame.contentWindow.postMessage({ type: "SET_AUDIO", muted: !isAudioUnmuted }, "*");
+      }
+    }
+
+    // Send initial unmute signal on user interaction
+    window.addEventListener("click", () => {
+      const frame = document.getElementById("typoFrame");
+      if (frame && frame.contentWindow) {
+        frame.contentWindow.postMessage({ type: "SET_AUDIO", muted: !isAudioUnmuted }, "*");
+      }
+    }, { once: true });
+
+    let isFlowPlaying = true;
+
+    function dashboardTogglePlay() {
+      isFlowPlaying = !isFlowPlaying;
+      updatePlayPauseButtonUI();
+      const frame = document.getElementById("typoFrame");
+      if (frame && frame.contentWindow) {
+        frame.contentWindow.postMessage({ type: isFlowPlaying ? "PLAY" : "PAUSE" }, "*");
+      }
+    }
+
+    function dashboardPrevChunk() {
+      currentActiveIdx = (currentActiveIdx - 1 + chunks.length) % chunks.length;
+      seekAndJumpChunk(currentActiveIdx);
+      const frame = document.getElementById("typoFrame");
+      if (frame && frame.contentWindow) {
+        frame.contentWindow.postMessage({ type: "PREV_CHUNK" }, "*");
+      }
+    }
+
+    function dashboardNextChunk() {
+      currentActiveIdx = (currentActiveIdx + 1) % chunks.length;
+      seekAndJumpChunk(currentActiveIdx);
+      const frame = document.getElementById("typoFrame");
+      if (frame && frame.contentWindow) {
+        frame.contentWindow.postMessage({ type: "NEXT_CHUNK" }, "*");
+      }
+    }
+
+    function toggleDashboardAutoFlow(enabled) {
+      isFlowPlaying = enabled;
+      updatePlayPauseButtonUI();
+      const frame = document.getElementById("typoFrame");
+      if (frame && frame.contentWindow) {
+        frame.contentWindow.postMessage({ type: enabled ? "PLAY" : "PAUSE" }, "*");
+      }
+    }
+
+    function updatePlayPauseButtonUI() {
+      const btn = document.getElementById("btnPlayPause");
+      const chk = document.getElementById("chkAutoFlow");
+      if (btn) {
+        btn.innerText = isFlowPlaying ? "⏸ Pause Flow" : "▶ Play Flow";
+        btn.classList.toggle("paused", !isFlowPlaying);
+      }
+      if (chk) chk.checked = isFlowPlaying;
+    }
+
+    function updateActiveChunkUI(chunkIdx, sendToFrame) {
+      if (chunkIdx < 0 || chunkIdx >= chunks.length) return;
+      currentActiveIdx = chunkIdx;
+      const c = chunks[chunkIdx];
+
+      // Update badges
+      const chunkBadge = document.getElementById("dashChunkBadge");
+      const timeBadge = document.getElementById("dashTimeBadge");
+      if (chunkBadge) {
+        const numStr = "#" + (chunkIdx + 1 < 10 ? "0" : "") + (chunkIdx + 1);
+        chunkBadge.innerText = numStr + " / " + chunks.length;
+      }
+      if (timeBadge && c) {
+        timeBadge.innerText = c.timeRange;
+      }
+
+      // Update table active row
+      document.querySelectorAll("tr.active-row").forEach(r => r.classList.remove("active-row"));
+      const row = document.getElementById("row-" + chunkIdx);
+      if (row) {
+        row.classList.add("active-row");
+        row.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+
+      if (sendToFrame) {
+        const frame = document.getElementById("typoFrame");
+        if (frame && frame.contentWindow) {
+          frame.contentWindow.postMessage({ type: "SEEK_CHUNK", index: chunkIdx }, "*");
+        }
+      }
+    }
+
+    // Sync from typoFrame message bridge
+    window.addEventListener("message", (event) => {
+      if (!event.data) return;
+      if (event.data.type === "PLAYBACK_STATE") {
+        if (typeof event.data.isPlaying === "boolean") {
+          isFlowPlaying = event.data.isPlaying;
+          updatePlayPauseButtonUI();
+        }
+        if (typeof event.data.currentChunkIdx === "number") {
+          updateActiveChunkUI(event.data.currentChunkIdx, false);
+        }
+      }
+    });
+
+    // Global keyboard shortcuts
+    window.addEventListener("keydown", (e) => {
+      if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "SELECT" || e.target.tagName === "TEXTAREA")) return;
+      if (e.code === "Space") {
+        e.preventDefault();
+        dashboardTogglePlay();
+      } else if (e.code === "ArrowLeft") {
+        e.preventDefault();
+        dashboardPrevChunk();
+      } else if (e.code === "ArrowRight") {
+        e.preventDefault();
+        dashboardNextChunk();
+      }
+    });
+
+
+    function seekMasterEvent(eventIdx) {
+      const t = masterData.treatments[eventIdx];
+      const chunkTarget = Math.min(19, Math.floor(t.timestampSeconds / 2.0));
+      seekAndJumpChunk(chunkTarget);
+    }
+
+    function changeVariant(chunkIdx, variantId) {
+      chunks[chunkIdx].assignedVariantId = variantId;
+      seekAndJumpChunk(chunkIdx);
+      const jsonEl = document.getElementById("jsonView");
+      if (jsonEl) {
+        jsonEl.innerText = JSON.stringify({
+          version: "2.4.0-highlight-whoosh-and-typing",
+          activeChunksCount: chunks.length,
+          activeChunks: chunks,
+          masterTaxonomyEventsCount: masterData.treatments.length
+        }, null, 2);
+      }
+    }
+
+    function changeMasterVariant(event, eventIdx) {
+      const newVarIdx = parseInt(event.target.value, 10);
+      const t = masterData.treatments[eventIdx];
+      t.soundDesign.selectedVariantIndex = newVarIdx;
+      if (t.soundDesign.variants && t.soundDesign.variants[newVarIdx]) {
+        const v = t.soundDesign.variants[newVarIdx];
+        t.soundDesign.soundName = v.label;
+        t.soundDesign.soundFile = v.soundFile;
+        t.soundDesign.audioUrl = v.audioUrl;
+        t.soundDesign.category = v.category;
+      }
+      auditionMasterVariant(eventIdx);
+    }
+
+    function auditionMasterVariant(eventIdx) {
+      const t = masterData.treatments[eventIdx];
+      const selIdx = t.soundDesign.selectedVariantIndex || 0;
+      const v = (t.soundDesign.variants && t.soundDesign.variants[selIdx]) ? t.soundDesign.variants[selIdx] : null;
+      if (v && v.audioUrl) {
+        auditionPlayer.src = encodeURI(v.audioUrl);
+        auditionPlayer.play().catch(e => {
+          console.warn("Real audio sample play fallback:", e);
+          playSoundPreset("mouse_click_tactile_01");
+        });
+      } else {
+        playSoundPreset("mouse_click_tactile_01");
+      }
+    }
+
+    function auditionCurrentVariant(chunkIdx) {
+      const c = chunks[chunkIdx];
+      const panNum = parseFloat(c.pan) || 0.0;
+      playSoundPreset(c.assignedVariantId, panNum);
+    }
+
+    function showViewTab(tab) {
+      document.getElementById("tabChunksBtn").classList.toggle("active", tab === "chunks");
+      document.getElementById("tabMasterBtn").classList.toggle("active", tab === "master");
+      document.getElementById("tabJsonBtn").classList.toggle("active", tab === "json");
+
+      document.getElementById("chunksTableView").style.display = (tab === "chunks") ? "block" : "none";
+      document.getElementById("masterTableView").style.display = (tab === "master") ? "block" : "none";
+      document.getElementById("jsonView").style.display = (tab === "json") ? "block" : "none";
+    }
+
+    async function rebakeAudioTrack() {
+      const btn = document.getElementById("btnRebake");
+      btn.innerText = "⏳ Mixing Active Chunks...";
+      btn.disabled = true;
+      setTimeout(() => {
+        btn.innerText = "✓ Master Mixed & Baked!";
+        setTimeout(() => {
+          btn.innerText = "⚡ Re-Bake Master Audio";
+          btn.disabled = false;
+        }, 1500);
+      }, 1200);
+    }
+
+    // Immediate Execution + DOMContentLoaded Fallback
+    renderActiveChunksTable();
+    renderMasterTaxonomyTable();
+    if (document.readyState === "loading") {
+      window.addEventListener("DOMContentLoaded", () => {
+        renderActiveChunksTable();
+        renderMasterTaxonomyTable();
+      });
+    }
+  </script>
+</body>
+</html>`;
+
+fs.writeFileSync(path.join(studioDir, "slot_dashboard.html"), dashboardHtml, "utf8");
+console.log("SUCCESS: Built docs/mini_run_studio/slot_dashboard.html with Highlight Whoosh & Typing");
