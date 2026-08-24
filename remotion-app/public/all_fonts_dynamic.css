@@ -1,0 +1,432 @@
+@font-face {
+  font-family: "Aesthico (Demo)";
+  src: url("./fonts/library/aesthico-demo/aesthico-demo-regular-efbe4604facd.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Amerika Alternates";
+  src: url("./fonts/library/amerika-alternates/amerikaa-26bc8e73b088.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Amerika";
+  src: url("./fonts/library/amerika/amerika-134a789cf9d0.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "ANTENNA";
+  src: url("./fonts/library/antenna/antenna-a14c59300f3b.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Aulion Demo";
+  src: url("./fonts/library/aulion-demo/auliondemoregular-e016efd7fcb7.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Great Vibes";
+  src: url("./fonts/maul/great-vibes-400.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Paris Forbel";
+  src: url("./fonts/retrieved/017152a52919638184355d6494238a42ee7ae88cbfc12e291729b004f46f1503/paris-forbel-6afe90a44d00.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Aesthetic";
+  src: url("./fonts/retrieved/091673963ecfc03f8d80f6c7b012520fa457deb301703b3c0634077fdc8d9897/aesthetic-regular-f76bc6acc32a.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Meditative";
+  src: url("./fonts/retrieved/5286c57f926dea2d014b6a9c3a6d27bf5ebf30352af3fd5a31855e17890cab86/meditative-cfc12575d069.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Exclusive Editorial";
+  src: url("./fonts/retrieved/5c116c1bc9f25d5f3a8045827644755611ac7463d5f755abb464298534fe97e5/dr-exclusive-editorial-d1a67fd18933.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Erotique Alternate Trial";
+  src: url("./fonts/retrieved/93636b5b02623df6f13cd74880a01fa0a882bbe1688b16399e6410d8c4e7a1ec/erotiquealternatetrial-medium-3447df8bc59a.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Blaak Thin PERSONAL USE";
+  src: url("./fonts/retrieved/cb516ab61d8a54f1ea3bccd653232fdd440742fb830143cf0fccb0af4a098ccb/blaakthinitalic-personal-93eb1398c92b.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Abril Fatface";
+  src: url("./fonts/studio/AbrilFatface-Regular.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Alex Brush";
+  src: url("./fonts/studio/AlexBrush-Regular.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Anton";
+  src: url("./fonts/studio/Anton-Regular.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Antonio";
+  src: url("./fonts/studio/Antonio-Variable.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Bebas Neue";
+  src: url("./fonts/studio/BebasNeue-Regular.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Big Shoulders Display";
+  src: url("./fonts/studio/BigShouldersDisplay-Variable.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Bodoni Moda";
+  src: url("./fonts/studio/BodoniModa-Italic-Variable.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Bodoni Moda";
+  src: url("./fonts/studio/BodoniModa-Variable.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Cinzel Decorative";
+  src: url("./fonts/studio/CinzelDecorative-Bold.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Cormorant Garamond";
+  src: url("./fonts/studio/CormorantGaramond-Italic-Variable.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Courier Prime";
+  src: url("./fonts/studio/CourierPrime-Regular.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Dancing Script";
+  src: url("./fonts/studio/DancingScript-Variable.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Great Vibes";
+  src: url("./fonts/studio/GreatVibes-Regular.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Italiana";
+  src: url("./fonts/studio/Italiana-Regular.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Oswald";
+  src: url("./fonts/studio/Oswald-Variable.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Pathway Extreme";
+  src: url("./fonts/studio/PathwayExtreme-Variable.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Pinyon Script";
+  src: url("./fonts/studio/PinyonScript-Regular.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Playfair Display";
+  src: url("./fonts/studio/PlayfairDisplay-Italic-Variable.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Playfair Display";
+  src: url("./fonts/studio/PlayfairDisplay-Variable.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Press Start 2P";
+  src: url("./fonts/studio/PressStart2P-Regular.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Roboto Slab";
+  src: url("./fonts/studio/RobotoSlab-Variable.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Romanesco";
+  src: url("./fonts/studio/Romanesco-Regular.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Sacramento";
+  src: url("./fonts/studio/Sacramento-Regular.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Saira ExtraCondensed";
+  src: url("./fonts/studio/SairaExtraCondensed-Bold.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Sanchez";
+  src: url("./fonts/studio/Sanchez-Regular.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Six Caps";
+  src: url("./fonts/studio/SixCaps-Regular.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Special Elite";
+  src: url("./fonts/studio/SpecialElite-Regular.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Teko";
+  src: url("./fonts/studio/Teko-Variable.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "VT323";
+  src: url("./fonts/studio/VT323-Regular.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Monrovia-ModernSerifFont";
+  src: url("./fonts/retrieved/02374876d684089597428996646efcfc4ea6dafdd9d4e4bc004d319214edbd30/monrovia-modernseriffont-d861f6a5e910.otf") format("opentype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Aesthetic Beauty CF";
+  src: url("./fonts/retrieved/31ff9e1d120a3c833d6ed2f283cb6d70a61505bb21c0a29af1b6d7cfe7492c3a/aesthetic-beauty-cf-43b5a6b03bcb.otf") format("opentype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Quanton PERSONAL USE ONLY";
+  src: url("./fonts/retrieved/9f284fc5638992b0bf49dcbadb9dfc064e6e7ded2e082148356ab8455931195a/quantonpersonaluseonly-regularitalic-2cf1e5ac77fc.otf") format("opentype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Foundland Italic PERSONAL USE ONLY";
+  src: url("./fonts/retrieved/a05aff9834d97877e7a5e3fbf0fc5764eda8c3abe82b15a0ec834eab2ac376f6/foundlanditalic-personal-use-only-1ea0c324023a.otf") format("opentype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Kraton free Font";
+  src: url("./fonts/retrieved/ef4b45908f551064099969e794a74e0b751c9305d1de94cf5d11fa3f23ebc37a/kraton-modern-ligature-font-free-9900920963cf.otf") format("opentype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "SenzaBella";
+  src: url("./fonts/studio/SenzaBella-Black.otf") format("opentype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "SenzaBella";
+  src: url("./fonts/studio/SenzaBella-Bold.otf") format("opentype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "SenzaBella";
+  src: url("./fonts/studio/SenzaBella-ExtraBold.otf") format("opentype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "SenzaBella";
+  src: url("./fonts/studio/SenzaBella-Light.otf") format("opentype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "SenzaBella";
+  src: url("./fonts/studio/SenzaBella-Regular.otf") format("opentype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "SenzaBella";
+  src: url("./fonts/studio/SenzaBella-Thin.otf") format("opentype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Berlleigh";
+  src: url("./fonts/library/berlleigh/berlleigh-0dc004cf245a.woff") format("woff");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Brushelva";
+  src: url("./fonts/library/brushelva-personal-used/brushelva-personal-used-77ea8f79fb4a.woff") format("woff");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "MARLONG";
+  src: url("./fonts/library/marlong/marlong-ad829d01d275.woff") format("woff");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Ragara";
+  src: url("./fonts/library/ragara/ragara-32225374711b.woff") format("woff");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Aesthetic";
+  src: url("./fonts/library/aesthetic/aesthetic-regular-b3500383bd34.woff2") format("woff2");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Almera";
+  src: url("./fonts/library/almera/almera-baa51ed42a1d.woff2") format("woff2");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Baguile";
+  src: url("./fonts/library/baguile-free-trial/baguile-free-trial-cc85058e7468.woff2") format("woff2");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Balona";
+  src: url("./fonts/library/balona/balona-regular-2836d0eb8081.woff2") format("woff2");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Cavergiz";
+  src: url("./fonts/library/cavergiz/cavergiz-761b0f36a3cc.woff2") format("woff2");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Leviathan";
+  src: url("./fonts/library/leviathan-italic/leviathan-italic-ac864336242c.woff2") format("woff2");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Leviathan";
+  src: url("./fonts/library/leviathan-oblique/leviathan-oblique-ea2cc92ea65b.woff2") format("woff2");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Leviathan";
+  src: url("./fonts/library/leviathan/leviathan-c291e2b0aec8.woff2") format("woff2");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Mangko";
+  src: url("./fonts/library/mangko/mangkoregular-2349699ef89f.woff2") format("woff2");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Reglarik";
+  src: url("./fonts/library/reglarik/reglarik-15fb0be89377.woff2") format("woff2");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "The Glamoure";
+  src: url("./fonts/library/the-glamoure/the-glamoure-953defaf2136.woff2") format("woff2");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Bebas Neue";
+  src: url("./fonts/maul/bebas-neue-400.woff2") format("woff2");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "DM Sans 9pt";
+  src: url("./fonts/maul/dm-sans-700.woff2") format("woff2");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "DM Serif Display";
+  src: url("./fonts/maul/dm-serif-display-400.woff2") format("woff2");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Playfair Display";
+  src: url("./fonts/maul/playfair-display-700.woff2") format("woff2");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Playfair Display";
+  src: url("./fonts/maul/playfair-display-italic-700.woff2") format("woff2");
+  font-display: swap;
+}
+

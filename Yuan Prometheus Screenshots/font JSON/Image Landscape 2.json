@@ -1,0 +1,69 @@
+{
+  "profile_name": "Branding_Secret_Didone_Glow",
+  "version": "1.0.0",
+  "metadata": {
+    "target_aspect_ratio": "16:9",
+    "overall_mood": "Elegant Bokeh Glow, High-Contrast Didone Serif, Soft Light Halo, Upscale Lesson Hook",
+    "casing_strategy": "mixed",
+    "matte_text_optimized": true,
+    "total_word_count": 4,
+    "total_character_count": 21,
+    "per_word_character_counts": [
+      { "word": "Here's", "character_count": 6 },
+      { "word": "a", "character_count": 1 },
+      { "word": "Branding", "character_count": 8 },
+      { "word": "secret", "character_count": 6 }
+    ]
+  },
+  "layout_rules": {
+    "horizontal_alignment": "center",
+    "vertical_position": "center",
+    "bottom_margin_percent": 14,
+    "max_width_percent": 86,
+    "scrim_overlay": { "enabled": false, "type": "none", "opacity": 0, "color": "#000000" }
+  },
+  "typography_layers": [
+    {
+      "layer_name": "prefix_heres_a",
+      "role": "secondary_clause",
+      "font_classification": "Elegant High-Contrast Serif",
+      "matched_font_candidates": ["Playfair Display", "Cormorant Garamond", "Lora"],
+      "font_style": {
+        "weight": 400, "style": "normal", "casing": "title_case", "color": "#FFFFFF",
+        "size_px_base": 26, "relative_scale": 0.36, "letter_spacing_em": 0.03,
+        "line_height": 1.1, "vertical_margin_top_px": 0
+      },
+      "effects": { "drop_shadow": { "x_offset": 0, "y_offset": 0, "blur_radius": 18, "color": "rgba(255, 255, 255, 0.35)" } },
+      "sample_text": "Here's a", "word_count": 2, "character_count": 7,
+      "per_word_character_counts": [ { "word": "Here's", "character_count": 6 }, { "word": "a", "character_count": 1 } ]
+    },
+    {
+      "layer_name": "header_branding",
+      "role": "header",
+      "font_classification": "Italic Didone Modern Serif",
+      "matched_font_candidates": ["Playfair Display", "Bodoni Moda"],
+      "font_style": {
+        "weight": 700, "style": "italic", "casing": "normal", "color": "#FFFFFF",
+        "size_px_base": 64, "relative_scale": 1.0, "letter_spacing_em": -0.01,
+        "line_height": 0.95, "vertical_margin_top_px": 2
+      },
+      "effects": { "drop_shadow": { "x_offset": 0, "y_offset": 0, "blur_radius": 20, "color": "rgba(255, 255, 255, 0.4)" } },
+      "sample_text": "Branding", "word_count": 1, "character_count": 8,
+      "per_word_character_counts": [ { "word": "Branding", "character_count": 8 } ]
+    },
+    {
+      "layer_name": "hero_secret",
+      "role": "primary_focus_word",
+      "font_classification": "Display Bold Didone Serif",
+      "matched_font_candidates": ["Playfair Display", "Bodoni Moda", "Cinzel"],
+      "font_style": {
+        "weight": 800, "style": "normal", "casing": "lowercase", "color": "#FFFFFF",
+        "size_px_base": 96, "relative_scale": 1.5, "letter_spacing_em": 0.0,
+        "line_height": 0.9, "vertical_margin_top_px": 4
+      },
+      "effects": { "drop_shadow": { "x_offset": 0, "y_offset": 0, "blur_radius": 24, "color": "rgba(255, 255, 255, 0.5)" } },
+      "sample_text": "secret", "word_count": 1, "character_count": 6,
+      "per_word_character_counts": [ { "word": "secret", "character_count": 6 } ]
+    }
+  ]
+}

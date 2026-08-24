@@ -1,3 +1,4 @@
+import "../public/all_fonts_dynamic.css";
 import React from "react";
 import {Composition, staticFile} from "remotion";
 import {UnifiedRenderManifestSchema, type UnifiedRenderManifest} from "@prometheus/shared-types";
@@ -16,6 +17,7 @@ import {
 import {getPresentationPreset} from "./lib/presentation-presets";
 import {normalizeCaptionStyleProfileId} from "./lib/stylebooks/caption-style-profiles";
 import {JosephEdit} from "./compositions/JosephEdit";
+import {PrometheusMinRun} from "./compositions/PrometheusMinRun";
 import {
   DEFAULT_JOSEPH_MANIFEST,
   JOSEPH_RENDER_FPS,
@@ -356,6 +358,19 @@ export const RemotionRoot: React.FC = () => {
         defaultProps={{
           manifest: DEFAULT_JOSEPH_MANIFEST,
           manifestUrl: JOSEPH_STUDIO_LATEST_MANIFEST_URL
+        }}
+      />
+      <Composition
+        id="PrometheusMinRun"
+        component={PrometheusMinRun}
+        width={1080}
+        height={1920}
+        fps={30}
+        durationInFrames={900}
+        defaultProps={{
+          videoSrc: "source/test.mp4",
+          chunks: [],
+          durationMs: 30000,
         }}
       />
     </>

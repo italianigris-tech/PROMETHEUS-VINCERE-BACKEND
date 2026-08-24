@@ -1,40 +1,42 @@
 /**
- * MINI LANDSCAPE RUNS — STAGE 6: LANDSCAPE SOUNDTRACK ENGINE
+ * MINI LANDSCAPE RUNS — STAGE 6: LANDSCAPE SOUNDTRACK ENGINE (song-selective)
  *
- * Builds the bed/pad programme for the CUT video duration, mirroring the
- * mini-run soundtrack governance engine: exact duration + tail (AUD-05),
- * 2s fades (AUD-03), −14 LUFS / −1.5 dBTP targets (AUD-01/02), voice ducking
- * (AUD-04), and a seed-rotated palette resolved through the GoSound/Libra
- * bridge (AUD-06/07). Every section traces to a video event — no orphan beds.
+ * Recommend the audio for a video, the small way:
+ *   1. break the (cut) video into its role sections — Stage 2 already did,
+ *   2. read the SEMANTIC TEME of each section's transcript (a causally-linked
+ *      node, not a naive two-line guess),
+ *   3. SELECT a song per section from the personal catalog (the crux),
+ *   4. BLEND across song boundaries so the run never fatigues from repetition,
+ *   5. leave the general SOUND BED EMPTY — per studio policy the bed is not the
+ *      point; song selection is. (Libra/short-form generation is out of scope
+ *      for long-form beds and would not be economical over 20-40 minutes.)
  */
 
-import type { EditMove, LandscapeSection, SoundtrackProgram, SoundtrackSection } from "./types.js";
+import type {
+  EditMove,
+  LandscapeSection,
+  SemanticTheme,
+  SongSelection,
+  SongBlend,
+  SoundtrackProgram,
+  SoundtrackSection,
+} from "./types.js";
+import { EMPTY_BED_ID, loadSongCatalog, SEED_SONG_TRACKS } from "./landscape_song_catalog.js";
+import { resolveSemanticTheme, type ResolveSemanticThemeInput } from "./landscape_semantic_theme.js";
+import { selectSongProgram, type SongSelectionOptions } from "./landscape_song_selector.js";
 
 export interface SoundtrackOptions {
-  integratedTargetLufs?: number;
-  truePeakCeilingDb?: number;
-  fadeInSec?: number;
-  fadeOutSec?: number;
-  tailSec?: number;
-  seed?: number;
+  /** Optional injected LLM/semantic theme (the studio supports an LLM node). */
+  semantic?: SemanticTheme | null;
+  /** A caller-supplied song catalog (defaults to the seed catalogue). */
+  catalog?: { source: string; tracks: typeof SEED_SONG_TRACKS };
+  /** Song-selection knobs: user preference overrides, vocals policy, cache/inclusion. */
+  songOptions?: SongSelectionOptions;
+  /** The general sound bed policy. Only 'empty' is honored today. */
+  soundBed?: "empty" | "curated";
 }
 
-interface LibraCandidate {
-  id: string;
-  elevation: number;
-  momentum: number;
-  warmth: number;
-  intensity: 1 | 2 | 3 | 4 | 5;
-}
-
-/** GoSound/Libra provider catalog — resolved at render time (AUD-07). */
-export const LIBRA_CATALOG: LibraCandidate[] = [
-  { id: "libra_soft_bed_01", elevation: 0.3, momentum: 0.2, warmth: 0.8, intensity: 2 },
-  { id: "libra_warm_loop_05", elevation: 0.4, momentum: 0.3, warmth: 0.9, intensity: 2 },
-  { id: "libra_mid_drive_02", elevation: 0.5, momentum: 0.6, warmth: 0.5, intensity: 3 },
-  { id: "libra_tense_pad_03", elevation: 0.7, momentum: 0.4, warmth: 0.3, intensity: 4 },
-  { id: "libra_climax_04", elevation: 1.0, momentum: 0.9, warmth: 0.4, intensity: 5 },
-];
+const round2 = (n: number): number => Math.round(n * 100) / 100;
 
 const DEFAULTS = {
   integratedTargetLufs: -14,
@@ -44,87 +46,106 @@ const DEFAULTS = {
   tailSec: 0.5,
 };
 
-const round2 = (n: number) => Math.round(n * 100) / 100;
-
-export function buildSoundtrackProgram(
+export function buildSongProgram(
   videoDurationSec: number,
   sections: LandscapeSection[],
-  moves: EditMove[],
   opts: SoundtrackOptions = {},
 ): SoundtrackProgram {
-  const { integratedTargetLufs, truePeakCeilingDb, fadeInSec, fadeOutSec, tailSec } = { ...DEFAULTS, ...opts };
-  const seed = opts.seed ?? Math.round(videoDurationSec * 100);
-  const totalSec = round2(videoDurationSec + tailSec);
+  // 1) Semantic understanding of the transcript (causally linked).
+  const theme = resolveSemanticTheme({
+    sections: sections.map((s) => ({
+      sectionId: s.sectionId,
+      role: s.role,
+      text: s.text,
+      semanticWeight: s.semanticWeight,
+      commercialPressure: s.commercialPressure,
+      fatigueRisk: s.fatigueRisk,
+    })),
+    llmTheme: opts.semantic ?? null,
+  } satisfies ResolveSemanticThemeInput);
 
-  // AUD-06: never hard-wedge; rotate across the candidate catalog by seed.
-  const bedCandidates = LIBRA_CATALOG.filter((a) => a.intensity === 2 || a.intensity === 3);
-  const bed = bedCandidates[seed % bedCandidates.length];
-  const padCandidates = LIBRA_CATALOG.filter((a) => a.id !== bed.id);
-  const pad = padCandidates[(seed >> 3) % padCandidates.length];
+  // 2.) Load the song catalog (caller override > seed).
+  const catalog = opts.catalog ?? loadSongCatalog();
 
-  const st: SoundtrackSection[] = [
-    {
-      sectionIndex: 0,
-      startSec: 0,
-      endSec: round2(Math.min(videoDurationSec, fadeInSec)),
-      role: "intro_fade",
-      assetId: bed.id,
-      gainDb: -20,
-      cause: { gate: "video_start_fade", reason: "Bed fades in over the first 2s of the cut video (AUD-03)." },
-    },
-    {
-      sectionIndex: 1,
-      startSec: round2(Math.min(videoDurationSec, fadeInSec)),
-      endSec: round2(Math.max(fadeInSec, videoDurationSec - fadeOutSec)),
-      role: "bed",
-      assetId: pad.id,
-      gainDb: -12,
-      cause: { gate: "section_role", reason: "Bed sustains under dialogue across the body of the video.", timeSec: fadeInSec },
-    },
-    {
-      sectionIndex: 2,
-      startSec: round2(Math.max(fadeInSec, videoDurationSec - fadeOutSec)),
-      endSec: totalSec,
-      role: "outro_fade",
-      assetId: bed.id,
-      gainDb: -18,
-      cause: { gate: "video_end_fade", reason: "Bed fades out over the last 2s plus tail (AUD-05)." },
-    },
-  ];
+  // 3.) Per-section song selection (the crux).
+  const program = selectSongProgram({
+    sections: sections.map((s) => ({
+      sectionId: s.sectionId,
+      role: s.role,
+      startSec: s.startSec,
+      endSec: s.endSec,
+      text: s.text,
+    })),
+    theme,
+    catalog: catalog.tracks,
+    options: opts.songOptions,
+  });
 
-  const payoff = sections.find((s) => s.role === "payoff");
-  const thesis = moves.find((m) => m.moveId === "thesis_punctuation");
-  if (payoff) {
-    const emotional = LIBRA_CATALOG.filter((a) => a.intensity >= 4);
-    const pick = emotional[seed % emotional.length];
-    const insertAt = thesis ? thesis.startSec : payoff.startSec;
-    st.push({
-      sectionIndex: 3,
-      startSec: insertAt,
-      endSec: round2(insertAt + 8),
-      role: "emotional_insert",
-      assetId: pick.id,
-      gainDb: -16,
-      cause: {
-        gate: "section_role",
-        reason: `Emotional insert pad during ${payoff.sectionId}.`,
-        sectionId: payoff.sectionId,
-        timeSec: insertAt,
+  // 4.) Envelope: intake fade, body, outro fade. Bed stays EMPTY by policy.
+  const totalSec = round2(videoDurationSec + DEFAULTS.tailSec);
+  const sectionsEnvelope: SoundtrackSection[] = (
+    [
+      {
+        sectionIndex: 0,
+        startSec: 0,
+        endSec: round2(Math.min(videoDurationSec, DEFAULTS.fadeInSec)),
+        role: "intro_fade",
       },
+      {
+        sectionIndex: 1,
+        startSec: round2(Math.min(videoDurationSec, DEFAULTS.fadeInSec)),
+        endSec: round2(Math.max(DEFAULTS.fadeInSec, videoDurationSec - DEFAULTS.fadeOutSec)),
+        role: "bed",
+      },
+      {
+        sectionIndex: 2,
+        startSec: round2(Math.max(DEFAULTS.fadeInSec, videoDurationSec - DEFAULTS.fadeOutSec)),
+        endSec: totalSec,
+        role: "outro_fade",
+      },
+    ] as Array<{ sectionIndex: number; startSec: number; endSec: number; role: "intro_fade" | "bed" | "outro_fade" }>
+  ).map((env) => ({
+    ...env,
+    assetId: EMPTY_BED_ID,
+    gainDb: -20,
+    cause: {
+      gate: env.role === "intro_fade" ? ("video_start_fade" as const) : env.role === "outro_fade" ? ("video_end_fade" as const) : ("section_role" as const),
+      reason: `${env.role} envelope, bed deliberately empty (AUD-08).`,
+      timeSec: round2(env.startSec),
+    },
+  }));
+
+  const payoffSection = sections.find((s) => s.role === "payoff");
+  if (payoffSection) {
+    sectionsEnvelope.push({
+      sectionIndex: 3,
+      startSec: round2(payoffSection.startSec),
+      endSec: round2(Math.min(payoffSection.endSec, payoffSection.startSec + 8)),
+      role: "emotional_insert",
+      assetId: program.selections.find((sel) => sel.sectionId === payoffSection.sectionId)?.trackId ?? EMPTY_BED_ID,
+      gainDb: -16,
+      cause: { gate: "section_role", reason: `Emotional emphasis across ${payoffSection.sectionId}.`, timeSec: round2(payoffSection.startSec), sectionId: payoffSection.sectionId },
     });
   }
 
-  st.sort((a, b) => a.startSec - b.startSec);
   return {
     videoDurationSec,
-    fadeInSec,
-    fadeOutSec,
+    fadeInSec: DEFAULTS.fadeInSec,
+    fadeOutSec: DEFAULTS.fadeOutSec,
     totalSec,
-    integratedTargetLufs,
-    truePeakCeilingDb,
-    bedId: bed.id,
-    padId: pad.id,
-    sections: st,
+    integratedTargetLufs: DEFAULTS.integratedTargetLufs,
+    truePeakCeilingDb: DEFAULTS.truePeakCeilingDb,
+    bedId: EMPTY_BED_ID,
+    padId: EMPTY_BED_ID,
+    sections: sectionsEnvelope.sort((a, b) => a.startSec - b.startSec),
     voiceDucking: { enabled: true, reductionDb: -6, attackSec: 0.04, releaseSec: 0.25 },
+    soundBed: opts.soundBed ?? "empty",
+    catalogSource: catalog.source,
+    theme,
+    selections: program.selections,
+    blends: program.blends,
   };
 }
+
+/** Backwards-compatible export used by the pipeline and existing tests. */
+export const buildSoundtrackProgram = buildSongProgram;

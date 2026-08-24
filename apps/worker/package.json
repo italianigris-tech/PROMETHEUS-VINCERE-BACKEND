@@ -11,6 +11,8 @@
     "compositions": "remotion compositions src/remotion-entry.tsx",
     "render:sample": "remotion render src/remotion-entry.tsx PrometheusRegenerateSample out/regenerate-sample.mp4 --codec=h264 --audio-codec=aac",
     "render:manifest": "tsx scripts/render-manifest.ts",
+    "render:landscape": "tsx scripts/render-landscape.ts",
+    "lambda:deploy": "tsx scripts/deploy-remotion-lambda.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
@@ -24,6 +26,7 @@
     "@remotion/cli": "4.0.471",
     "@remotion/fonts": "4.0.471",
     "@remotion/google-fonts": "4.0.471",
+    "@remotion/lambda": "4.0.471",
     "@remotion/media": "4.0.471",
     "@remotion/renderer": "4.0.471",
     "gsap": "3.12.7",

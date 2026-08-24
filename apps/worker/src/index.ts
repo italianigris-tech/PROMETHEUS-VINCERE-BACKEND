@@ -13,12 +13,14 @@ const __dirname = path.dirname(__filename);
 const JOSEPH_WIDTH = 1080;
 const JOSEPH_HEIGHT = 1920;
 const JOSEPH_ENTRY_POINT = path.resolve(__dirname, '../../../remotion-app/src/entries/joseph-entry.tsx');
+export const LANDSCAPE_WIDTH = 1920;
+export const LANDSCAPE_HEIGHT = 1080;
+export const LANDSCAPE_ENTRY_POINT = path.resolve(__dirname, '../../../remotion-app/src/entries/landscape-entry.tsx');
 const DEFAULT_SFX_DIR = path.resolve(__dirname, '../../../remotion-app/public/sfx');
 const DURABLE_BUNDLE_DIR = path.resolve(
   process.env.REMOTION_BUNDLE_DIR ?? path.join(__dirname, '../.cache/joseph-remotion-bundle'),
 );
 const RENDER_TIMEOUT_MS = 600000;
-let cachedServeUrlPromise: Promise<string> | null = null;
 
 export class ValidationError extends Error {
   constructor(message: string) {
@@ -85,6 +87,16 @@ export type RenderFromManifestOptions = {
   sfxDir?: string;
   sourceVideoPath?: string;
   renderConcurrency?: number;
+  /**
+   * Remotion composition id inside the bundled entry. Defaults to 'JosephEdit'
+   * (portrait). Set to 'JosephLandscapeEdit' for the 16:9 landscape bake.
+   */
+  compositionId?: string;
+  /**
+   * Remotion entry point to bundle. Defaults to joseph-entry.tsx (portrait).
+   * Pass landscape-entry.tsx to bundle the combined root (both compositions).
+   */
+  entryPoint?: string;
 };
 
 export const resolveRenderConcurrency = ({
@@ -105,7 +117,10 @@ const shouldRetryRender = (error: Error) => {
   if (/root component to unsuspend|delayRender\(\)/i.test(error.message)) {
     return false;
   }
-  return /timeout|timed out|chromium|browser/i.test(error.message);
+  // WebGL/GL context failures are the classic headless-container miss: the
+  // primary `gl: 'angle'` attempt cannot create a GPU context, so fall back to
+  // software GL (swangle). Include those here so the retry path is exercised.
+  return /timeout|timed out|chromium|browser|webgl|gl context|canvas|gpu/i.test(error.message);
 };
 
 const audioFailureTagsForError = (error: unknown): string[] => {
@@ -140,36 +155,59 @@ const logRenderProgress = (progress: number) => {
   }
 };
 
-const getServeUrl = () => {
-  if (!cachedServeUrlPromise) {
-    const bakedBundle = path.join(DURABLE_BUNDLE_DIR, 'index.html');
-    if (process.env.NODE_ENV === 'production' && fs.existsSync(bakedBundle)) {
-      console.log(`[Worker] Reusing baked Joseph renderer bundle ${DURABLE_BUNDLE_DIR}`);
-      cachedServeUrlPromise = Promise.resolve(DURABLE_BUNDLE_DIR);
-    } else {
-      console.log(`[Worker] Bundling Joseph renderer to durable path ${DURABLE_BUNDLE_DIR}`);
-      cachedServeUrlPromise = bundle({
-        entryPoint: JOSEPH_ENTRY_POINT,
-        outDir: DURABLE_BUNDLE_DIR,
-      }).catch((error) => {
-        cachedServeUrlPromise = null;
-        throw error;
-      });
-    }
+const bundleCache = new Map<string, Promise<string>>();
+
+/**
+ * Bundles (or reuses a baked bundle for) the given entry point. Cached per
+ * entry point so the combined landscape entry and the portrait entry don't
+ * stomp each other's durable dirs.
+ */
+const getServeUrl = (entryPoint: string = JOSEPH_ENTRY_POINT): Promise<string> => {
+  const cached = bundleCache.get(entryPoint);
+  if (cached) {
+    return cached;
   }
 
-  return cachedServeUrlPromise;
+  const entryName = path.basename(entryPoint, path.extname(entryPoint));
+  const durableDir =
+    entryName === 'joseph-entry'
+      ? DURABLE_BUNDLE_DIR
+      : path.resolve(process.env.REMOTION_BUNDLE_DIR ?? path.join(__dirname, '../.cache', `${entryName}-bundle`));
+  const bakedBundle = path.join(durableDir, 'index.html');
+  let promise: Promise<string>;
+
+  if (process.env.NODE_ENV === 'production' && fs.existsSync(bakedBundle)) {
+    console.log(`[Worker] Reusing baked renderer bundle ${durableDir} (entry ${entryName})`);
+    promise = Promise.resolve(durableDir);
+  } else {
+    console.log(`[Worker] Bundling renderer (entry ${entryName}) to durable path ${durableDir}`);
+    promise = bundle({
+      entryPoint,
+      outDir: durableDir,
+    }).catch((error) => {
+      bundleCache.delete(entryPoint);
+      throw error;
+    });
+  }
+
+  bundleCache.set(entryPoint, promise);
+  return promise;
 };
 
-const assertVerticalJosephManifest = (manifest: UnifiedRenderManifest): void => {
+const assertManifestDimensions = (
+  manifest: UnifiedRenderManifest,
+  expectedWidth: number,
+  expectedHeight: number,
+  label: string,
+): void => {
   if (
-    manifest.width !== JOSEPH_WIDTH ||
-    manifest.height !== JOSEPH_HEIGHT ||
-    manifest.output.width !== JOSEPH_WIDTH ||
-    manifest.output.height !== JOSEPH_HEIGHT
+    manifest.width !== expectedWidth ||
+    manifest.height !== expectedHeight ||
+    manifest.output.width !== expectedWidth ||
+    manifest.output.height !== expectedHeight
   ) {
     throw new ValidationError(
-      `Joseph render manifest must be ${JOSEPH_WIDTH}x${JOSEPH_HEIGHT}; got manifest ${manifest.width}x${manifest.height} and output ${manifest.output.width}x${manifest.output.height}.`
+      `${label} render manifest must be ${expectedWidth}x${expectedHeight}; got manifest ${manifest.width}x${manifest.height} and output ${manifest.output.width}x${manifest.output.height}.`,
     );
   }
 };
@@ -254,7 +292,11 @@ export async function renderFromManifest(
   }
 
   const validatedManifest = parseResult.data;
-  assertVerticalJosephManifest(validatedManifest);
+  const compositionId = options.compositionId ?? 'JosephEdit';
+  const entryPoint = options.entryPoint ?? JOSEPH_ENTRY_POINT;
+  const expectedWidth = compositionId === 'JosephLandscapeEdit' ? LANDSCAPE_WIDTH : JOSEPH_WIDTH;
+  const expectedHeight = compositionId === 'JosephLandscapeEdit' ? LANDSCAPE_HEIGHT : JOSEPH_HEIGHT;
+  assertManifestDimensions(validatedManifest, expectedWidth, expectedHeight, compositionId);
   const tmpDir = options.tempDir ?? os.tmpdir();
   const sfxDir = options.sfxDir ?? DEFAULT_SFX_DIR;
   const framesDir = path.join(tmpDir, `${validatedManifest.jobId}_frames`);
@@ -288,11 +330,11 @@ export async function renderFromManifest(
   };
 
   try {
-    const serveUrl = await getServeUrl();
+    const serveUrl = await getServeUrl(entryPoint);
 
     const composition = await selectComposition({
       serveUrl,
-      id: 'JosephEdit',
+      id: compositionId,
       inputProps,
       browserExecutable,
       timeoutInMilliseconds: RENDER_TIMEOUT_MS,
@@ -347,31 +389,7 @@ export async function renderFromManifest(
       errorFactory: (detail) => new NvencError(`NVENC encode failed for job ${validatedManifest.jobId}. ${detail}`),
     });
 
-    try {
-      await mixAudio(validatedManifest, audioPath, {sfxDir, tempDir: tmpDir});
-    } catch (error: any) {
-      throw new RenderError(
-        `mixAudio failed for job ${validatedManifest.jobId}: ${error.message}`,
-        audioFailureTagsForError(error),
-      );
-    }
-
-    await runFfmpeg({
-      args: [
-        '-hide_banner', '-loglevel', 'error',
-        '-i', silentVideoPath,
-        '-i', audioPath,
-        '-map_metadata', '-1',
-        '-c:v', 'copy',
-        '-c:a', 'aac',
-        '-b:a', '320k',
-        '-shortest',
-        '-movflags', '+faststart',
-        '-y',
-        finalVideoPath,
-      ],
-      errorFactory: (detail) => new MuxError(`FFmpeg mux failed. ${detail}`),
-    });
+    await mixAndMuxManifest(validatedManifest, silentVideoPath, finalVideoPath, {sfxDir, tempDir: tmpDir});
 
     cleanupTempFiles();
     cleanupSourceVideo();
@@ -380,4 +398,67 @@ export async function renderFromManifest(
     cleanupTempFiles();
     throw error;
   }
+}
+
+/**
+ * Shared mix+mux stage: builds the real audio mix (voice track + sfx) with
+ * mixAudio, then muxes it onto a silent video. Used by both the local NVENC
+ * spine (renderFromManifest) and the Lambda fan-out path (renderLandscapeLambda).
+ */
+export async function mixAndMuxManifest(
+  manifest: UnifiedRenderManifest,
+  silentVideoPath: string,
+  outputPath: string,
+  options: {sfxDir?: string; tempDir?: string} = {},
+): Promise<string> {
+  const tmpDir = options.tempDir ?? os.tmpdir();
+  const sfxDir = options.sfxDir ?? DEFAULT_SFX_DIR;
+  const audioPath = path.join(tmpDir, `${manifest.jobId}_audio.m4a`);
+
+  try {
+    await mixAudio(manifest, audioPath, {sfxDir, tempDir: tmpDir});
+  } catch (error: any) {
+    throw new RenderError(
+      `mixAudio failed for job ${manifest.jobId}: ${error.message}`,
+      audioFailureTagsForError(error),
+    );
+  }
+
+  await runFfmpeg({
+    args: [
+      '-hide_banner', '-loglevel', 'error',
+      '-i', silentVideoPath,
+      '-i', audioPath,
+      '-map_metadata', '-1',
+      '-c:v', 'copy',
+      '-c:a', 'aac',
+      '-b:a', '320k',
+      '-shortest',
+      '-movflags', '+faststart',
+      '-y',
+      outputPath,
+    ],
+    errorFactory: (detail) => new MuxError(`FFmpeg mux failed. ${detail}`),
+  });
+
+  return outputPath;
+}
+
+/**
+ * 16:9 landscape bake — same render spine as renderFromManifest, but wired to
+ * the JosephLandscapeEdit composition (1920x1080) and the combined
+ * landscape-entry bundle. Works on the local NVENC spine before any Lambda
+ * fan-out exists; Lambda builds on the exact same composition id.
+ */
+export async function renderLandscapeFromManifest(
+  manifest: UnifiedRenderManifest,
+  options: Omit<RenderFromManifestOptions, 'compositionId' | 'entryPoint'> & {
+    entryPoint?: string;
+  } = {},
+): Promise<string> {
+  return renderFromManifest(manifest, {
+    ...options,
+    compositionId: 'JosephLandscapeEdit',
+    entryPoint: options.entryPoint ?? LANDSCAPE_ENTRY_POINT,
+  });
 }

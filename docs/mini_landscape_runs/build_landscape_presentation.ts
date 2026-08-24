@@ -192,6 +192,18 @@ interface RunData {
   soundtrack: LandscapeTreatmentManifest["soundtrack"];
   canvas: LandscapeTreatmentManifest["canvas"];
   governance: LandscapeTreatmentManifest["governance"];
+  /** Repo-relative URL of the silence-cut MP4 used as the full-bleed runtime base background. */
+  sourceVideo: string | null;
+}
+
+function deriveSourceVideo(manifest: LandscapeTreatmentManifest): string | null {
+  // Prefer the silence-cut output; fall back to the input source path when the
+  // pipeline records outputPath as null (i.e. the cut MP4 _is_ the source). The
+  // media gateway serves /landscape_media/<basename> from docs/mini_landscape_runs/out/,
+  // so the resolved basename must exist there for the full-bleed background to load.
+  const candidate = manifest.silenceCut?.outputPath ?? manifest.silenceCut?.sourcePath;
+  if (!candidate) return null;
+  return "/landscape_media/" + encodeURIComponent(path.basename(candidate));
 }
 
 function deriveRunId(
@@ -247,6 +259,7 @@ function deriveRunData(
     soundtrack: manifest.soundtrack,
     canvas: manifest.canvas,
     governance: manifest.governance,
+    sourceVideo: deriveSourceVideo(manifest),
   };
 }
 
@@ -295,6 +308,8 @@ interface FontProfileEntry {
   _imageUrl: string;
   _jsonUrl: string;
   _imageExists: boolean;
+  /** True when the corpus filename carries the "Landscape" token — the signal that this treatment profile was authored for 16:9 long-form only, so 9:16 short-form builders can compartmentalize it away. */
+  _landscapeOnly?: boolean;
   profile_name?: string;
   [key: string]: unknown;
 }
@@ -324,6 +339,7 @@ function loadAllFontProfiles(): FontProfileEntry[] {
           _imageUrl: `/font_pairs/${encodeURIComponent(imageFilename)}`,
           _jsonUrl: `/font_json/${encodeURIComponent(filename)}`,
           _imageExists: imageExists,
+          _landscapeOnly: /Landscape/i.test(filename),
         };
       } catch (e) {
         return null;

@@ -55,7 +55,7 @@ Every stage emits a typed artifact that is the **cause** of the next stage. No o
 | 3 | `joseph_edit_grammar.ts` | Sections → `EditMove[]` (budgeted allocation per Joseph five-audit synthesis) |
 | 4 | `landscape_composition_director.ts` | Edit moves + matte presence → placement / transition / typography cue indexes |
 | 5 | `landscape_sfx_engine.ts` | Edit moves → lifecycle-aware SFX cues (entry/exit/riser/impact/no-SFX exceptions) |
-| 6 | `landscape_soundtrack_engine.ts` | Video descriptor → bed/pad programme with voice ducking |
+| 6 | `landscape_soundtrack_engine.ts` | Video descriptor + semantic theme → per-section song selection programme (vibe→track scoring, vocals policy, anti-fatigue, blends) + empty bed; the crux of the audio layer |
 | 7 | `landscape_treatment_pipeline.ts` | Stages 1–6 → `LandscapeTreatmentManifest` (single auditable artifact) |
 | 8 | `build_landscape_presentation.ts` | Manifest → self-contained 16:9 HTML studio (data spliced at `SEAM_BEGIN:__LANDSCAPE_RUN_DATA__`) |
 
@@ -183,7 +183,7 @@ the base changes between adjacent chunks. The full-bleed base layer lives at
 
 **Next steps (when resuming):**
 1. **Router wiring**: hook `call_parser.ts` `FormDecision` into the backend call path so `short_form` → mini_run_studio and `long_form` → this studio.
-2. **GoSound/Libra render bridge**: resolve the `libra_*` bed/pad IDs (AUD-07) to real generated audio, mirroring mini-run `soundtrack_governance_engine.ts`.
+2. **GoSound/Libra render bridge**: resolve the `libra_*` bed/pad IDs (AUD-07) to real generated audio, mirroring mini-run `soundtrack_governance_engine.ts`. (Song selection is now real — see SONG-01…SONG-06 — the bridge just renders the chosen tracks.)
 3. **Matte pipeline**: wire the matted principal-speaker assets (`docs/mini_run_studio/assets/` pattern) into `landscape_composition_director.ts` placements.
 4. **ODTO policy derivation**: on reference image/transcript upload, convert to generalizable Joseph policies (OCR flag if images can't be interpreted).
 
@@ -202,4 +202,79 @@ modal deploy --env main docs/mini_landscape_runs/modal_service/modal_landscape.p
 Endpoints: `/landscape` (template), `/p/{run_id}` (built studio), `/api/manifest`,
 `/api/run/{run_id}`, `/api/runs`, `POST /api/runs` (pipeline → builder).
 Artifacts live on the `prometheus-landscape-artifacts` volume mounted at `out/`.
+
+
+---
+
+## Render Spine — Worker + Modal GPU (16:9 landscape bake)
+
+The treatment manifest is rendered by the **same Remotion spine** as the 9:16
+Joseph bake, generalized for two compositions:
+
+| Piece | Location |
+| :--- | :--- |
+| Landscape composition | `remotion-app/src/compositions/JosephLandscapeEdit.tsx` (1920×1080) |
+| Landscape defaults | `remotion-app/src/compositions/landscape-default-manifest.ts` |
+| Combined entry (registers `JosephEdit` **and** `JosephLandscapeEdit`) | `remotion-app/src/entries/landscape-entry.tsx` |
+| Bridge | `docs/mini_landscape_runs/landscape-to-unified.ts` → `UnifiedRenderManifest` |
+| Worker dual path | `apps/worker/src/index.ts` (`compositionId`, `entryPoint`, `renderLandscapeFromManifest`) |
+| Modal GPU bake (preferred) | `modal_service/modal_landscape.py` (`bake_landscape_mp4`, `gpu="L4"`) + `bake-landscape.ts` |
+| Lambda fan-out (deprecated) | `apps/worker/src/lambda-render.ts` (`deployLandscapeLambdaInfra`, `renderLandscapeLambda`) |
+
+### Local single-node bake (NVENC)
+
+```bash
+# 1. Bridge a treatment manifest to the unified render manifest (108/108 tests):
+npx tsx docs/mini_landscape_runs/tests/test_landscape_to_unified.ts
+
+# 2. Render it through the landscape spine:
+npm --prefix apps/worker run render:landscape -- \
+  docs/mini_landscape_runs/out/landscape_treatment_manifest.json \
+  apps/worker/artifacts/landscape-render
+```
+
+The render spine is: bundle `landscape-entry.tsx` → `selectComposition('JosephLandscapeEdit')`
+→ silent frames (no audio track, hum-free by construction) → `h264_nvenc` → `mixAudio`
+(same mix as 9:16) → AAC mux. The shared mix+mux stage is
+`mixAndMuxManifest` in `apps/worker/src/index.ts`.
+
+### Modal GPU bake (L4/NVENC — preferred path)
+
+Runs the same spine on a single NVIDIA L4 inside the Modal microservice, so a
+single deploy does pipeline → manifest → bridge → render end-to-end:
+
+```bash
+# After `modal deploy`, one request does everything:
+curl -X POST https://prometheus-landscape-studio.modal.run/api/runs \
+  -H 'Content-Type: application/json' \
+  -d '{"input_path": "/mnt/volume/landscape_source.mp4", "bake": true}'
+```
+
+`bake: true` implies `render: true` (the silence-cut MP4 is written to the
+artifacts volume and used as the render source). The bake writes
+`out/landscape_<run_id>_bake.mp4` + a JSON receipt. Because L4 NVENC encodes
+~10× faster than Lambda's software x264, a single GPU container replaces the
+fan-out for the current 7,464-frame runs — fan out later only if a run needs it.
+
+### Distributed bake (Lambda fan-out — deprecated)
+
+```bash
+# 1. Deploy the render function once (AWS creds required):
+npm --prefix apps/worker install        # pulls @remotion/lambda
+npx remotion lambda functions deploy --memory 3008 --region us-east-1
+
+# 2. Bootstrap bucket + site (landscape-entry bundle):
+npm --prefix apps/worker run lambda:deploy
+
+# 3. Bake via fan-out (call renderLandscapeLambda with the unified manifest):
+#    bucket+site are created idempotently; frames are rendered headless-Chrome
+#    across Lambda, then the silent MP4 is downloaded and locally mix+muxed.
+```
+
+Kept only as a fallback. Prefer the Modal GPU bake above.
+
+**Prereq for source media:** both spines render via `staticFile()`, so the
+landscape source video must be under `remotion-app/public/` at bundle time
+(the 9:16 spine has the same rule). `bake-landscape.ts` copies it there
+automatically and cleans up after the render.
 

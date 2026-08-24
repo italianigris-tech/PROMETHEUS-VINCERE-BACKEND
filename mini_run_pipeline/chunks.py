@@ -1,15 +1,10 @@
 """Silence-aware smart chunker.
 
-Replaces the naive word-count chunker when an editorial timeline is available.
 Produces chunks that:
-
-* never split a protected rhetorical pause (a chunk boundary may land exactly
-  on the pause, never inside it),
-* stay inside a single voice span when spans are provided,
-* otherwise fall back to the deterministic 3-word-priority / max-5 chunker.
-
-Each chunk carries source ms + the mapped output ms so the final compose step
-can burn typography at the right output time.
+* strictly shoot for 3-word and 4-word sweet spot,
+* never leave 1-word hanging orphan chunks,
+* never split a protected rhetorical pause,
+* carry source ms + mapped output ms for deterministic synchronization.
 """
 
 from __future__ import annotations
@@ -17,13 +12,13 @@ from __future__ import annotations
 from typing import Any, List, Optional
 
 TARGET_CHUNK_WORDS = 3
-MAX_CHUNK_WORDS = 5
+MAX_CHUNK_WORDS = 4
 
 
 def chunk_transcript_words(
     words: List[dict[str, Any]], max_chunk_words: int = MAX_CHUNK_WORDS
 ) -> List[dict[str, Any]]:
-    """Deterministic greedy chunker (identical to the gateway)."""
+    """Deterministic greedy chunker with 3-4 word guarantee."""
     if not words:
         return []
     normalized = [
@@ -37,24 +32,9 @@ def chunk_transcript_words(
             "confidence": float(word.get("confidence", 1.0)),
         }
         for word in words
+        if str(word.get("text", "")).strip()
     ]
-    chunks: List[dict[str, Any]] = []
-    index = 0
-    chunk_index = 1
-    total = len(normalized)
-    while index < total:
-        remaining = total - index
-        if remaining <= max_chunk_words:
-            take = remaining
-        else:
-            take = TARGET_CHUNK_WORDS
-            if remaining - take == 1 and take < max_chunk_words:
-                take = min(take + 1, max_chunk_words)
-        selected = normalized[index : index + take]
-        index += take
-        chunks.append(_chunk_from_words(selected, chunk_index))
-        chunk_index += 1
-    return chunks
+    return _greedy(normalized, TARGET_CHUNK_WORDS, max_chunk_words)
 
 
 def _chunk_from_words(words: List[dict[str, Any]], chunk_index: int) -> dict[str, Any]:
@@ -71,11 +51,17 @@ def _chunk_from_words(words: List[dict[str, Any]], chunk_index: int) -> dict[str
         "words": words,
     }
 
+
 def _map_to_output(timestamp_map: List[dict[str, Any]], source_ms: int) -> Optional[int]:
     """Map a source ms into output ms via the timestamp map (None if cut)."""
     for segment in timestamp_map:
         if segment["sourceStartMs"] <= source_ms < segment["sourceEndMs"]:
             if segment["mode"] == "cut":
+                idx = timestamp_map.index(segment)
+                if idx + 1 < len(timestamp_map):
+                    return timestamp_map[idx + 1]["outputStartMs"]
+                if idx > 0:
+                    return timestamp_map[idx - 1]["outputEndMs"]
                 return None
             return segment["outputStartMs"] + (source_ms - segment["sourceStartMs"])
     return None
@@ -89,12 +75,7 @@ def smart_chunk_words(
     target_words: int = TARGET_CHUNK_WORDS,
     max_chunk_words: int = MAX_CHUNK_WORDS,
 ) -> List[dict[str, Any]]:
-    """Chunk the transcript with silence awareness.
-
-    Protected pauses act as *hard* boundaries: a chunk never spans across one,
-    because the silent beat belongs to the previous sentence. Voice spans are
-    soft containers: chunking restarts at each span boundary.
-    """
+    """Chunk the transcript with silence awareness and strict 3-4 word sweet spot."""
     if not words:
         return []
     normalized = [
@@ -108,6 +89,7 @@ def smart_chunk_words(
             "confidence": float(word.get("confidence", 1.0)),
         }
         for word in words
+        if str(word.get("text", "")).strip()
     ]
 
     protected_boundaries = sorted(
@@ -138,15 +120,21 @@ def smart_chunk_words(
     chunks: List[dict[str, Any]] = []
     chunk_index = 1
     for run in runs:
-        for sub_chunk in _greedy(run, target_words, max_chunk_words):
+        sub_chunks = _greedy(run, target_words, max_chunk_words)
+        for sub_chunk in sub_chunks:
             sub_chunk["chunkIndex"] = chunk_index
             if timestamp_map:
                 output_start_ms = _map_to_output(timestamp_map, sub_chunk["startMs"])
                 output_end_ms = _map_to_output(
                     timestamp_map, max(sub_chunk["endMs"] - 1, sub_chunk["startMs"])
                 )
+                if output_start_ms is None or output_end_ms is None:
+                    continue
                 sub_chunk["outputStartMs"] = output_start_ms
                 sub_chunk["outputEndMs"] = output_end_ms
+            else:
+                sub_chunk["outputStartMs"] = sub_chunk["startMs"]
+                sub_chunk["outputEndMs"] = sub_chunk["endMs"]
             chunk_index += 1
             chunks.append(sub_chunk)
     return chunks
@@ -155,19 +143,32 @@ def smart_chunk_words(
 def _greedy(
     words: List[dict[str, Any]], target_words: int, max_chunk_words: int
 ) -> List[dict[str, Any]]:
-    target = max(1, min(target_words, max_chunk_words))
+    target = max(2, min(target_words, max_chunk_words))
     chunks: List[dict[str, Any]] = []
     index = 0
     total = len(words)
+    chunk_idx = 1
+    
     while index < total:
         remaining = total - index
         if remaining <= max_chunk_words:
             take = remaining
         else:
             take = target
+            # If taking 3 leaves exactly 1 word behind, take 4 words instead
             if remaining - take == 1 and take < max_chunk_words:
                 take = min(take + 1, max_chunk_words)
-        chunks.append(_chunk_from_words(words[index : index + take], 0))
+                
+        selected = words[index : index + take]
         index += take
+        
+        # Merge 1-word dangling chunks with previous chunk if feasible
+        if len(selected) == 1 and chunks and len(chunks[-1]["words"]) < max_chunk_words:
+            prev = chunks.pop()
+            merged_words = prev["words"] + selected
+            chunks.append(_chunk_from_words(merged_words, prev["chunkIndex"]))
+        else:
+            chunks.append(_chunk_from_words(selected, chunk_idx))
+            chunk_idx += 1
+            
     return chunks
-

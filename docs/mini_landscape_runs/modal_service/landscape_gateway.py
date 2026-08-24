@@ -23,7 +23,7 @@ import json
 import subprocess
 import threading
 from pathlib import Path
-from typing import Optional
+from typing import Callable, Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
@@ -37,6 +37,11 @@ BUILDER_PATH = LANDSCAPE_ROOT / "build_landscape_presentation.ts"
 app = FastAPI(title="Prometheus Landscape Treatment Studio", version="1.0.0")
 
 BUILD_LOCK = threading.Lock()
+
+# Injected by modal_landscape.py when running inside Modal: called after the
+# pipeline + Stage-8 builder when the caller passes bake=true. Signature:
+#   BAKE_HOOK(run_id: str) -> dict   (bake receipt)
+BAKE_HOOK: Optional[Callable[[str], dict]] = None
 
 
 def _read_json(path: Path):
@@ -191,10 +196,16 @@ def list_runs() -> dict:
 class RunRequest(BaseModel):
     input_path: Optional[str] = None
     render: bool = False
+    bake: bool = False
 
 
-def _run_pipeline_and_build(input_path: Optional[str], render: bool) -> dict:
+def _run_pipeline_and_build(input_path: Optional[str], render: bool, bake: bool = False) -> dict:
     repo_root = LANDSCAPE_ROOT.parent.parent
+
+    # bake=true implies render=true: the GPU bake needs the silence-cut MP4 on the
+    # artifacts volume (silenceCut.outputPath) as its render source.
+    if bake:
+        render = True
 
     # 1) Stages 0-7: landscape_treatment_pipeline.ts → manifest artifact.
     pipeline_cmd = ["npx", "tsx", str(LANDSCAPE_ROOT / "landscape_treatment_pipeline.ts")]
@@ -210,11 +221,27 @@ def _run_pipeline_and_build(input_path: Optional[str], render: bool) -> dict:
 
     manifest = _read_json(_latest_manifest())
     runs = _built_run_files()
-    return {
+    result = {
         "ok": True,
         "generatedAtIso": manifest.get("generatedAtIso"),
         "run": runs[-1] if runs else None,
     }
+
+    # 3) Optional GPU bake (Modal L4/NVENC) — replaces the old Lambda render path.
+    if bake:
+        if BAKE_HOOK is None:
+            raise HTTPException(
+                status_code=500,
+                detail="bake=true but no BAKE_HOOK injected — this gateway is not running inside Modal.",
+            )
+        run_id = (
+            manifest.get("generatedAtIso")
+            or (runs[-1]["runId"] if runs else None)
+            or "landscape-run"
+        )
+        result["bake"] = BAKE_HOOK(run_id)
+
+    return result
 
 
 @app.post("/api/runs")
@@ -225,7 +252,7 @@ def trigger_run(req: RunRequest) -> JSONResponse:
             detail="'input_path' is required — the landscape pipeline (stages 0-7) needs a source video.",
         )
     with BUILD_LOCK:
-        result = _run_pipeline_and_build(req.input_path, req.render)
+        result = _run_pipeline_and_build(req.input_path, req.render, req.bake)
     return JSONResponse(result, status_code=201)
 
 

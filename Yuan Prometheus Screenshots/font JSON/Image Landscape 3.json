@@ -1,0 +1,55 @@
+{
+  "profile_name": "Marketing_Tip_Gold_Script_Serif",
+  "version": "1.0.0",
+  "metadata": {
+    "target_aspect_ratio": "16:9",
+    "overall_mood": "Lavish Gold Editorial, Script Overlay over High-Contrast Didone, Dark Luxury Backdrop",
+    "casing_strategy": "uppercase",
+    "matte_text_optimized": true,
+    "total_word_count": 4,
+    "total_character_count": 19,
+    "per_word_character_counts": [
+      { "word": "Here's", "character_count": 6 },
+      { "word": "a", "character_count": 1 },
+      { "word": "MARKETING", "character_count": 9 },
+      { "word": "TIP", "character_count": 3 }
+    ]
+  },
+  "layout_rules": {
+    "horizontal_alignment": "center",
+    "vertical_position": "center",
+    "bottom_margin_percent": 12,
+    "max_width_percent": 88,
+    "scrim_overlay": { "enabled": false, "type": "none", "opacity": 0, "color": "#000000" }
+  },
+  "typography_layers": [
+    {
+      "layer_name": "script_heres_a",
+      "role": "secondary_clause",
+      "font_classification": "Elegant Script Calligraphy",
+      "matched_font_candidates": ["Dancing Script", "Great Vibes", "Sacramento", "Parisienne"],
+      "font_style": {
+        "weight": 700, "style": "italic", "casing": "title_case", "color": "#F5E6C4",
+        "size_px_base": 44, "relative_scale": 0.5, "letter_spacing_em": 0.04,
+        "line_height": 1.0, "vertical_margin_top_px": 0
+      },
+      "effects": { "drop_shadow": { "x_offset": 0, "y_offset": 2, "blur_radius": 6, "color": "rgba(0, 0, 0, 0.5)" } },
+      "sample_text": "Here's a", "word_count": 2, "character_count": 7,
+      "per_word_character_counts": [ { "word": "Here's", "character_count": 6 }, { "word": "a", "character_count": 1 } ]
+    },
+    {
+      "layer_name": "hero_marketing_tip",
+      "role": "primary_focus_word",
+      "font_classification": "High-Contrast Gold Didone Serif",
+      "matched_font_candidates": ["Playfair Display", "Cinzel", "Bodoni Moda"],
+      "font_style": {
+        "weight": 800, "style": "normal", "casing": "uppercase", "color": "#D4AF37",
+        "size_px_base": 88, "relative_scale": 1.0, "letter_spacing_em": 0.02,
+        "line_height": 0.95, "vertical_margin_top_px": 2
+      },
+      "effects": { "drop_shadow": { "x_offset": 0, "y_offset": 0, "blur_radius": 20, "color": "rgba(212, 175, 55, 0.5)" } },
+      "sample_text": "MARKETING TIP", "word_count": 2, "character_count": 12,
+      "per_word_character_counts": [ { "word": "MARKETING", "character_count": 9 }, { "word": "TIP", "character_count": 3 } ]
+    }
+  ]
+}

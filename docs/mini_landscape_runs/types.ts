@@ -197,10 +197,137 @@ export interface SoundtrackProgram {
   totalSec: number;
   integratedTargetLufs: number;
   truePeakCeilingDb: number;
+  /** Curated per-section song assignments (the crux of the song selector). */
   bedId: string;
   padId: string;
   sections: SoundtrackSection[];
   voiceDucking: { enabled: true; reductionDb: number; attackSec: number; releaseSec: number };
+  /** Whether the general sound bed is deliberately empty or curated. Per studio
+   *  policy the bed stays EMPTY (song selection is the crux), so this defaults
+   *  to "empty". Optional for backwards compatibility with the capacity test. */
+  soundBed?: "empty" | "curated";
+  /** Catalog the selection was drawn from. */
+  catalogSource?: string;
+  /** Semantic understanding of the whole video + per-section vibe. */
+  theme?: SemanticTheme;
+  /** Per-section chosen songs (causally traced). */
+  selections?: SongSelection[];
+  /** How adjacent songs blend across section boundaries. */
+  blends?: SongBlend[];
+}
+
+/**
+ * SEMANTIC VIBE — the causal "semantic understanding node" over the transcript.
+ *
+ * This is the deliberate, causally-linked instance that reads section text +
+ * the editorial weights already produced by Stage 2/3 and turns them into a
+ * vibe that drives song selection. It is deterministic lexically by default;
+ * callers may optionally inject an LLM-produced SemanticTheme via `source`.
+ */
+export interface VibeVector {
+  /** Forward drive / momentum. 0..1 */
+  energy: number;
+  /** Rhythmic push / tempo feel. 0..1 */
+  momentum: number;
+  /** Warmth / intimacy. 0..1 */
+  warmth: number;
+  /** Analytic clarity / didactic precision. 0..1 */
+  clarity: number;
+  /** Conviction / urge to convince. 0..1 */
+  conviction: number;
+  /** Premium / prestige / luxury signal. 0..1 */
+  prestige: number;
+}
+
+export interface SectionVibe extends VibeVector {
+  sectionId: string;
+  role: SectionRole;
+  themeLabels: string[];
+  semanticKeywords: string[];
+}
+
+export interface SemanticTheme {
+  dominantTheme: string;
+  /** Human labels: "business", "professional", "clarity", "conviction", ... */
+  values: string[];
+  video: VibeVector;
+  perSection: SectionVibe[];
+  source: "deterministic" | "llm" | "hybrid";
+  cause: CausalRef;
+}
+
+/**
+ * SONG TRACK — catalog entry. The selector never trusts a title alone; every
+ * candidate carries a semantic fingerprint so songs can be matched to a vibe
+ * and to each other (blendability).
+ */
+export interface SongTrack {
+  id: string;
+  title: string;
+  artist: string;
+  source: "catalog" | "seed";
+  /** Browser-safe / mixer-friendly asset path (relative to repo root public/). */
+  assetPath: string;
+  fingerprint: VibeVector & { intensity: 1 | 2 | 3 | 4 | 5 };
+  tempo?: number;       // bpm
+  key?: string;         // musical key (nullable)
+  hasVocals: boolean;
+  /** 0..1 — how well this track sits under dialogue. */
+  speechFriendliness: number;
+  genreTags: string[];
+  moodTags: string[];
+  useCaseTags: string[];
+  avoidWhen: string[];
+  /** null when the track is a long-form loopable bed; set for short-form clips. */
+  durationSec?: number | null;
+  renderSafe: boolean;
+  licenseStatus: string;
+}
+
+export interface SongSelection {
+  sectionId: string;
+  trackId: string;
+  title: string;
+  artist: string;
+  score: number;
+  reasons: string[];
+  hasVocals: boolean;
+  vibe: VibeVector;
+  cause: CausalRef;
+}
+
+export type SongBlendId =
+  | "none"
+  | "beat_crossfade"
+  | "riser_into_impact"
+  | "lowpass_sweep"
+  | "hard_cut";
+
+export interface SongBlend {
+  boundarySec: number;
+  fromSectionId: string;
+  toSectionId: string;
+  fromTrackId: string;
+  toTrackId: string;
+  blendId: SongBlendId;
+  blendScore: number;
+  justification: string;
+  cause: CausalRef;
+}
+
+export interface SongSelectionReport {
+  videoDurationSec: number;
+  selections: SongSelection[];
+  blends: SongBlend[];
+  catalogSource: string;
+  soundBed: "empty" | "curated";
+  governance: {
+    allSectionsSelected: boolean;
+    fatigueSafe: boolean;
+    blendsOrphanFree: boolean;
+    vocalsPolicyApplied: boolean;
+    checks: Array<{ check: string; pass: boolean; detail: string }>;
+  };
 }
 
 export interface LandscapeTreatmentManifest {

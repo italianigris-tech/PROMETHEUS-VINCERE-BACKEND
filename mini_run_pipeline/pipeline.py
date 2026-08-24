@@ -20,6 +20,7 @@ AssemblyAI key, transcription is skipped and the render is caption-free.
 """
 
 from __future__ import annotations
+from . import typography
 
 import hashlib
 import json
@@ -362,10 +363,22 @@ def execute_pipeline_job(
         target_words=int(data.get("targetChunkWords", 3)),
         max_chunk_words=int(data.get("maxChunkWords", 5)),
     )
+
+    # Generate authoritative font.json combinatorial manifest & attach per-chunk fontStyle
+    design = data.get("design") or None
+    font_manifest = typography.generate_font_manifest(chunked, design)
+    manifest_dir = Path(artifact_root) / "media" / "mini-run" / "renders" / job_id
+    manifest_dir.mkdir(parents=True, exist_ok=True)
+    manifest_file = manifest_dir / "font_manifest.json"
+    manifest_file.write_text(json.dumps(font_manifest, indent=2))
+
+    for c_idx, c_item in enumerate(chunked):
+        if c_idx < len(font_manifest["chunks"]):
+            c_item.update(font_manifest["chunks"][c_idx])
     update("processing", 65)
 
     # 6) compose the final MP4 via parallel slice workers.
-    design = data.get("design") or None
+    
     audio = data.get("audio") or None
     if audio is not None and not isinstance(audio, dict):
         raise ValueError("audio option must be an object: {music?, cueBus?}")
@@ -399,6 +412,7 @@ def execute_pipeline_job(
         "pipeline": decision["pipeline"],
         "mode": decision["mode"],
         "chunkCount": len(chunked),
+        "fontManifest": font_manifest,
         "cutRanges": len(timeline["cutCandidates"]),
         "protectedRanges": len(timeline["protectedRanges"]),
         "sourceDurationMs": source_duration_ms,

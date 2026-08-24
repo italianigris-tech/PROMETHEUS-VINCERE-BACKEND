@@ -1,0 +1,53 @@
+{
+  "profile_name": "Bold_Fonts_Neon_Lime_Grotesque",
+  "version": "1.0.0",
+  "metadata": {
+    "target_aspect_ratio": "16:9",
+    "overall_mood": "Heavy Geometric Sans, Neon Lime Accent, Part-01 Label, Viral Packaging Hook",
+    "casing_strategy": "uppercase",
+    "matte_text_optimized": true,
+    "total_word_count": 2,
+    "total_character_count": 9,
+    "per_word_character_counts": [
+      { "word": "BOLD", "character_count": 4 },
+      { "word": "FONTS", "character_count": 5 }
+    ]
+  },
+  "layout_rules": {
+    "horizontal_alignment": "center",
+    "vertical_position": "center",
+    "bottom_margin_percent": 12,
+    "max_width_percent": 88,
+    "scrim_overlay": { "enabled": false, "type": "none", "opacity": 0, "color": "#000000" }
+  },
+  "typography_layers": [
+    {
+      "layer_name": "bold_gray",
+      "role": "header",
+      "font_classification": "Heavy Geometric Grotesque Sans",
+      "matched_font_candidates": ["Archivo Black", "Montserrat", "Inter", "Helvetica Neue"],
+      "font_style": {
+        "weight": 900, "style": "normal", "casing": "uppercase", "color": "#C0C0C0",
+        "size_px_base": 84, "relative_scale": 1.0, "letter_spacing_em": -0.02,
+        "line_height": 0.9, "vertical_margin_top_px": 0
+      },
+      "effects": { "drop_shadow": { "x_offset": 0, "y_offset": 4, "blur_radius": 8, "color": "rgba(0, 0, 0, 0.4)" } },
+      "sample_text": "BOLD", "word_count": 1, "character_count": 4,
+      "per_word_character_counts": [ { "word": "BOLD", "character_count": 4 } ]
+    },
+    {
+      "layer_name": "fonts_neon",
+      "role": "primary_focus_word",
+      "font_classification": "Heavy Geometric Grotesque Sans (Neon Pulse)",
+      "matched_font_candidates": ["Archivo Black", "Montserrat", "Inter"],
+      "font_style": {
+        "weight": 900, "style": "normal", "casing": "uppercase", "color": "#B2DD13",
+        "size_px_base": 84, "relative_scale": 1.0, "letter_spacing_em": -0.02,
+        "line_height": 0.9, "vertical_margin_top_px": 2
+      },
+      "effects": { "drop_shadow": { "x_offset": 0, "y_offset": 4, "blur_radius": 16, "color": "rgba(178, 221, 19, 0.45)" } },
+      "sample_text": "FONTS", "word_count": 1, "character_count": 5,
+      "per_word_character_counts": [ { "word": "FONTS", "character_count": 5 } ]
+    }
+  ]
+}

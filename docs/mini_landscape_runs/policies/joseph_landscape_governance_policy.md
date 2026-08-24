@@ -122,6 +122,13 @@ Z:30  — Foreground callouts, companion type, PiP chrome
 | AUD-05 | Soundtrack programme length = cut duration + tail; never cut short, never left hanging. | tail 0.5s |
 | AUD-06 | Payoff/emotional sections may receive an `emotional_insert` pad selected by mood fingerprint (elevation/momentum/warmth), never hard-wedged to one track (seed rotation across candidate catalog). | — |
 | AUD-07 | Asset IDs resolve through the GoSound/Libra provider bridge (`libra_*`), mirroring mini-run `inst_loop_*` resolution in `soundtrack_governance_engine.ts`. | — |
+| AUD-08 | The general sound **bed** is left EMPTY by default (`songbed_empty` sentinel). Song **selection**, not the bed, is the crux of long-form audio. | — |
+| SONG-01 | Every section receives exactly one song selection, chosen by a vibe→track scoring model (energy/momentum/warmth/clarity/conviction/prestige) over the personal song catalog. | one per section |
+| SONG-02 | **Vocals policy**: instrumentals under dialogue; vocals tracks allowed only at hook/payoff windows (default `allowVocalsRoles: [payoff, hook]`); `avoidVocals: true` removes vocals everywhere else. | — |
+| SONG-03 | **Anti-fatigue / dynamism**: the same track never repeats back-to-back; same-family streaks capped (`fatigueCap`, default 2); a re-used track sits out `exhaustionGap` (default 3) sections. | gap ≥ 3 |
+| SONG-04 | **Blends** are chosen between adjacent sections by semantic affinity (`songBlendScore`); a blend never pairs a track with itself. | — |
+| SONG-05 | The semantic node (`landscape_semantic_theme.ts`) turns per-section transcript + editorial weights into a `SemanticTheme` (dominant theme + per-section vibe); song choice traces causally back to that vibe. | deterministic |
+| SONG-06 | Dynamic user preference overrides (`preferredTrackIds` / `bannedTrackIds`) are honored and re-run governance; preferences never bypass fatigue/bed rules. | — |
 
 ---
 

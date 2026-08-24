@@ -51,8 +51,20 @@ studio_image = (
         "fontconfig",
         "fonts-liberation",
         "libasound2",
+        "libnss3",
+        "libnspr4",
+        "libatk1.0-0",
+        "libatk-bridge2.0-0",
+        "libcups2",
+        "libdrm2",
+        "libxkbcommon0",
+        "libxcomposite1",
+        "libxdamage1",
+        "libxrandr2",
+        "libgbm1",
+        "libxshmfence1"
     )
-    .pip_install("numpy")
+    .pip_install("numpy", "boto3")
     .run_commands(
         "npm install -g tsx@4.22.4",
         f"mkdir -p {APP_ROOT / 'remotion-app/node_modules/@remotion/compositor-linux-x64-gnu'}",
@@ -61,8 +73,20 @@ studio_image = (
     )
     .add_local_file(local("mini_run_gateway.py"), f"{APP_ROOT}/mini_run_gateway.py", copy=True)
     .add_local_dir(local("mini_run_pipeline"), f"{APP_ROOT}/mini_run_pipeline", copy=True, ignore=source_ignore)
+    .add_local_dir(local("remotion-app"), f"{APP_ROOT}/remotion-app", copy=True, ignore=source_ignore)
+    .add_local_dir(local("packages"), f"{APP_ROOT}/packages", copy=True, ignore=source_ignore)
+    .add_local_dir(local("backend"), f"{APP_ROOT}/backend", copy=True, ignore=source_ignore)
     .add_local_dir(local("docs/mini_run_studio"), f"{STUDIO_ROOT}", copy=True, ignore=source_ignore)
     .add_local_dir(local("SOUND FX"), f"{APP_ROOT / 'SOUND FX'}", copy=True)
+    .add_local_dir(local("LANDSCAPE VIDEOS FOR USE"), f"{APP_ROOT / 'LANDSCAPE VIDEOS FOR USE'}", copy=True)
+    .add_local_dir(local("docs/mini_run_studio"), f"{APP_ROOT / 'docs/mini_run_studio'}", copy=True)
+    .add_local_dir(local("Yuan Prometheus Screenshots"), f"{APP_ROOT / 'Yuan Prometheus Screenshots'}", copy=True)
+    .add_local_file(local("package.json"), f"{APP_ROOT}/package.json", copy=True)
+    .add_local_file(local("package-lock.json"), f"{APP_ROOT}/package-lock.json", copy=True)
+    .run_commands(
+        f"cd {APP_ROOT} && npm install --legacy-peer-deps",
+        f"cd {APP_ROOT}/remotion-app && npm install --legacy-peer-deps",
+    )
     .workdir(str(APP_ROOT))
 )
 
@@ -235,3 +259,23 @@ def smoke() -> dict:
         return result
     finally:
         threading.Thread(target=gateway.shutdown, daemon=True).start()
+
+
+@app.function(
+    image=studio_image,
+    secrets=[shared_secrets, backend_secrets],
+    volumes={str(ARTIFACT_ROOT): artifacts},
+    cpu=4,
+    memory=8192,
+    min_containers=0,
+    max_containers=4,
+    scaledown_window=30,
+    timeout=25 * 60,
+)
+def run_mini_run(payload: dict) -> dict:
+    import time
+    from mini_run_pipeline import pipeline
+
+    job_id = payload.get("jobId") or f"modal_mini_run_{int(time.time())}"
+    artifact_root = payload.get("artifactRoot") or str(ARTIFACT_ROOT)
+    return pipeline.execute_pipeline_job(job_id=job_id, data=payload, artifact_root=artifact_root)

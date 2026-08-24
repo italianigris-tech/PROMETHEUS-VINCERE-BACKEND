@@ -141,6 +141,32 @@ export function runGovernanceChecks(parts: PipelineParts): GovernanceCheck[] {
     detail: `total=${soundtrack.totalSec.toFixed(2)}s (video ${silenceCut.outputDurationSec.toFixed(2)}s + tail)`,
   });
 
+  // AUD-08+. Song selection is the crux: every section has exactly one chosen track.
+  const selections = soundtrack.selections ?? [];
+  const songsMissing = sections.filter((s) => !selections.some((sel) => sel.sectionId === s.sectionId));
+  checks.push({
+    check: "Every section receives exactly one song selection",
+    pass: songsMissing.length === 0,
+    detail: songsMissing.length ? `missing: ${songsMissing.map((s) => s.sectionId).join(", ")}` : `${selections.length}/${sections.length} sections`,
+  });
+
+  // AUD-09: song blends never pair a track with itself (fast to BOOK when they do).
+  const blends = soundtrack.blends ?? [];
+  const badBlend = blends.find((b) => b.fromTrackId === b.toTrackId);
+  checks.push({
+    check: "Every song blend joins two distinct selected tracks",
+    pass: !badBlend,
+    detail: badBlend ? `blend connects ${badBlend.fromTrackId} to itself` : `${blends.length} blends connect distinct songs`,
+  });
+
+  // AUD-08: the general sound bed is left EMPTY (song selection, not bed, is the crux).
+  const bedEmpty = (soundtrack.soundBed ?? "empty") === "empty" && soundtrack.bedId === "songbed_empty";
+  checks.push({
+    check: "General sound bed left empty (song selection is the crux)",
+    pass: bedEmpty,
+    detail: `soundBed=${soundtrack.soundBed ?? "empty"} catalog=${soundtrack.catalogSource ?? "seed"}`,
+  });
+
   // SIL: keep segments ordered, contiguous, within source bounds.
   const keepOk =
     silenceCut.keepSegments.length > 0 &&
@@ -241,7 +267,7 @@ export function runLandscapeTreatmentPipeline(opts: PipelineRunOptions = {}): La
   const transitions = selectLandscapeTransitions(sections);
   const typographyMoveIds = selectTypographyMoveIds(editMoves);
   const sfxCues = buildSfxCues(editMoves, transitions);
-  const soundtrack = buildSoundtrackProgram(cutDuration, sections, editMoves);
+  const soundtrack = buildSoundtrackProgram(cutDuration, sections);
 
   const parts: PipelineParts = {
     form,

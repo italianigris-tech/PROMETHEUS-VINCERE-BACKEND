@@ -76,12 +76,17 @@ const allFontProfiles = fontJsonFiles.map(filename => {
       _imageFilename: imageFilename,
       _imageUrl: `/font_pairs/${encodeURIComponent(imageFilename)}`,
       _jsonUrl: `/font_json/${encodeURIComponent(filename)}`,
-      _imageExists: imageExists
+      _imageExists: imageExists,
+      // Compartmentalization: any treatment profile authored for 16:9 landscape
+      // long-form (filename carries the "Landscape" token) must never leak into
+      // the 9:16 short-form corpus. The landscape builder is a superset and keeps
+      // them; short-form filters them out below.
+      _landscapeOnly: /Landscape/i.test(filename)
     };
   } catch (e) {
     return null;
   }
-}).filter(Boolean);
+}).filter(Boolean).filter((p: { _landscapeOnly?: boolean }) => !p._landscapeOnly);
 console.log(`[FONT_CORPUS_LOADER] Successfully loaded ${allFontProfiles.length} authoritative Font JSON profiles with paired screenshot metadata.`);
 
 // 4. LOAD RELEVANT ASSETS FOR TRANSCRIPTS (100% ZERO-BACKGROUND MATTED)

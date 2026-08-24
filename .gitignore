@@ -116,3 +116,7 @@ docs/mini_run_studio/*.mp4
 docs/mini_run_studio/uploaded_videos/*.mp4
 docs/mini_run_studio/*.wav
 docs/mini_run_studio/separated_stems/
+*.mp4
+*.png.tmp
+lscape_*.js
+img*.png

@@ -175,6 +175,12 @@ worker_image = (
         f"{APP_ROOT}/Yuan Prometheus Screenshots/font JSON",
         copy=True,
     )
+    .add_local_dir(
+        local("artifacts"),
+        f"{APP_ROOT}/artifacts",
+        copy=True,
+        ignore=source_ignore,
+    )
     .run_commands(
         f"cp -a {APP_ROOT}/remotion-app/public/. {WORKER_ROOT}/public/",
         f"ln -s {WORKER_ROOT}/node_modules {APP_ROOT}/remotion-app/node_modules",

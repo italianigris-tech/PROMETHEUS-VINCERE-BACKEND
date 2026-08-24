@@ -1,3 +1,19 @@
+import * as fs from "fs";
+import * as path from "path";
+
+const resolveAssetPath = (filePath: string): string => {
+  if (!filePath) return filePath;
+  let resolved = filePath;
+  if (!fs.existsSync(resolved) && resolved.includes("/PROMETHEUS-CORE-BACKEND/")) {
+    const alt = "/opt/prometheus/" + resolved.split("/PROMETHEUS-CORE-BACKEND/")[1];
+    if (fs.existsSync(alt)) resolved = alt;
+  }
+  if (!fs.existsSync(resolved) && !path.isAbsolute(resolved)) {
+    const altRel = path.join("/opt/prometheus", resolved);
+    if (fs.existsSync(altRel)) resolved = altRel;
+  }
+  return resolved;
+};
 import {
   maulUnifiedShortRenderManifestSchema,
   type MaulUnifiedShortRenderManifest,
@@ -36,6 +52,7 @@ const getServeUrl = (): Promise<string> => {
 };
 
 const runFfmpeg = (args: string[]): Promise<void> => new Promise((resolve, reject) => {
+  args = args.map((a) => resolveAssetPath(a));
   const child = spawn('ffmpeg', args);
   let stderr = '';
   child.stderr.on('data', (chunk) => { stderr += chunk.toString(); });
@@ -47,6 +64,7 @@ const runFfmpeg = (args: string[]): Promise<void> => new Promise((resolve, rejec
 });
 
 const hasAudioStream = (inputPath: string): Promise<boolean> => new Promise((resolve, reject) => {
+  inputPath = resolveAssetPath(inputPath);
   const child = spawn('ffprobe', [
     '-v', 'error', '-select_streams', 'a:0',
     '-show_entries', 'stream=index', '-of', 'csv=p=0', inputPath,
@@ -245,16 +263,17 @@ const copyVerified = ({source, destination, sha256}: {
   destination: string;
   sha256?: string;
 }): void => {
-  if (!path.isAbsolute(source) || !fs.existsSync(source)) {
+  const resolvedSource = resolveAssetPath(source);
+  if (!path.isAbsolute(resolvedSource) || !fs.existsSync(resolvedSource)) {
     throw new ValidationError(`MAUL render asset is unavailable to the worker: ${source}`);
   }
   if (sha256) {
-    const actual = createHash('sha256').update(fs.readFileSync(source)).digest('hex');
+    const actual = createHash('sha256').update(fs.readFileSync(resolvedSource)).digest('hex');
     if (actual !== sha256.toLowerCase()) {
       throw new ValidationError(`MAUL render asset failed SHA-256 verification: ${source}`);
     }
   }
-  fs.copyFileSync(source, destination);
+  fs.copyFileSync(resolvedSource, destination);
 };
 
 const stageManifest = ({manifest, serveUrl, stageDir}: {

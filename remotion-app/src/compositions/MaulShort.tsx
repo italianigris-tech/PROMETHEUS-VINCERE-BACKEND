@@ -201,6 +201,7 @@ export const buildMaulPlannedSourceVideoStyle = ({
 export type MaulShortProps = {
   manifest: MaulUnifiedShortRenderManifest;
   observationMode?: MaulShortObservationMode;
+  allowNonFullScale?: boolean;
 };
 
 export type MaulShortObservationMode =
@@ -969,6 +970,7 @@ const MaulCaptionLayer: React.FC<{
 export const MaulShort: React.FC<MaulShortProps> = ({
   manifest,
   observationMode = "creative",
+  allowNonFullScale = false,
 }) => {
   const adaptedManifest = useMemo(
     () => adaptMaulShortManifest(manifest),
@@ -1008,7 +1010,7 @@ export const MaulShort: React.FC<MaulShortProps> = ({
   const plannedModel =
     adaptedManifest.mode === "planned"
       ? buildMaulPlannedRenderModel(adaptedManifest.manifest, {
-          requireTypographyProvenance: true,
+          requireTypographyProvenance: allowNonFullScale ? false : Boolean((manifest as any).allowNonFullScale),
         })
       : null;
   const declaredVisualTrack =
