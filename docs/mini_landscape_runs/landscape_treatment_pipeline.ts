@@ -11,6 +11,7 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
+import {spawnSync} from "node:child_process";
 import type {
   EditMove,
   FormDecision,
@@ -308,6 +309,32 @@ export function writeManifest(manifest: LandscapeTreatmentManifest, outDir: stri
 }
 
 
+
+// ---------------------------------------------------------------------------
+// Stage 8: audio bake (real songs) — optional, runs after the silence cut when
+// --render is used. Delegates to bake_soundtrack.py which maps each selected
+// seed track to a REAL song from the Cloudflare R2 library (music-originals/)
+// and renders the baked MP4 + a music-only audition stem.
+// ---------------------------------------------------------------------------
+export interface AudioBakeResult {
+  bakedPath: string;
+  musicStemPath: string;
+  exitCode: number;
+}
+
+export function bakeAudioTrack(manifestPath: string, cutVideoPath: string, outDir: string): AudioBakeResult {
+  const base = path.basename(cutVideoPath, path.extname(cutVideoPath));
+  const bakedPath = path.join(outDir, `${base}_soundtrack_baked.mp4`);
+  const musicStemPath = path.join(outDir, `${base}_music_stem.m4a`);
+  const bakeScript = path.join(__dirname, "bake_soundtrack.py");
+  const r = spawnSync(
+    "python3",
+    [bakeScript, "--manifest", manifestPath, "--video", cutVideoPath, "--out", bakedPath, "--music-stem", musicStemPath],
+    {stdio: "inherit"}
+  );
+  return {bakedPath, musicStemPath, exitCode: r.status ?? 1};
+}
+
 // ---------------------------------------------------------------------------
 // CLI
 // ---------------------------------------------------------------------------
@@ -324,6 +351,19 @@ if (require.main === module) {
   const outDir = outIdx >= 0 && args[outIdx + 1] ? path.resolve(args[outIdx + 1]) : path.join(__dirname, "out");
   const manifest = runLandscapeTreatmentPipeline({ mediaPath, render, outDir });
 
+  // Stage 8 (optional): bake the REAL-song soundtrack into the cut MP4.
+  let bakeResult: AudioBakeResult | null = null;
+  if (render && manifest.silenceCut.outputPath && outDir) {
+    const cutPath = path.resolve(manifest.silenceCut.outputPath);
+    const manifestPath = path.join(outDir, "landscape_treatment_manifest.json");
+    console.log("\n▶ Stage 8 — baking soundtrack (real songs)…");
+    bakeResult = bakeAudioTrack(manifestPath, cutPath, outDir);
+    if (bakeResult.exitCode !== 0) {
+      console.error("audio bake failed — check bake_soundtrack.py output above");
+      process.exit(bakeResult.exitCode);
+    }
+  }
+
   console.log("════════ LANDSCAPE TREATMENT PIPELINE ════════");
   console.log(`  form       : ${manifest.form.form} (${manifest.form.confidence.toFixed(2)})`);
   console.log(`  silenceCut : ${manifest.silenceCut.sourceDurationSec.toFixed(1)}s → ${manifest.silenceCut.outputDurationSec.toFixed(1)}s (${manifest.silenceCut.removedSec.toFixed(1)}s removed)`);
@@ -337,6 +377,10 @@ if (require.main === module) {
     console.log(`    [${c.pass ? "PASS" : "FAIL"}] ${c.check} — ${c.detail}`);
   }
   if (outDir) console.log(`  written    : ${path.join(outDir, "landscape_treatment_manifest.json")}`);
+  if (bakeResult) {
+    console.log(`  audioBake  : ${bakeResult.bakedPath}`);
+    console.log(`  musicStem  : ${bakeResult.musicStemPath}`);
+  }
   console.log("═════════════════════════════════════════════");
   process.exit(manifest.governance.allCausal ? 0 : 1);
 }

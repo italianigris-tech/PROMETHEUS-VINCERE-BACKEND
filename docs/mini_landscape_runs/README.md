@@ -57,7 +57,8 @@ Every stage emits a typed artifact that is the **cause** of the next stage. No o
 | 5 | `landscape_sfx_engine.ts` | Edit moves → lifecycle-aware SFX cues (entry/exit/riser/impact/no-SFX exceptions) |
 | 6 | `landscape_soundtrack_engine.ts` | Video descriptor + semantic theme → per-section song selection programme (vibe→track scoring, vocals policy, anti-fatigue, blends) + empty bed; the crux of the audio layer |
 | 7 | `landscape_treatment_pipeline.ts` | Stages 1–6 → `LandscapeTreatmentManifest` (single auditable artifact) |
-| 8 | `build_landscape_presentation.ts` | Manifest → self-contained 16:9 HTML studio (data spliced at `SEAM_BEGIN:__LANDSCAPE_RUN_DATA__`) |
+| 8 | `bake_soundtrack.py` + `music/` (real songs from R2) | Maps each seed track to a REAL song from Cloudflare R2 (classical, cinematic trailer, lo-fi, etc.) and renders the baked MP4 + music stem. Fades, crossfades (blend), -6 dB voice ducking, -14 LUFS. |
+| 9 | `build_landscape_presentation.ts` | Manifest → self-contained 16:9 HTML studio (data spliced at `SEAM_BEGIN:__LANDSCAPE_RUN_DATA__`) |
 
 ---
 
@@ -82,7 +83,8 @@ Local policy distillation: `policies/joseph_landscape_governance_policy.md`.
 # From repo root
 npx tsx docs/mini_landscape_runs/call_parser.ts --probe <video-or-prompt>
 npx tsx docs/mini_landscape_runs/silence_cutter.ts --input <src.mp4> --out docs/mini_landscape_runs/out/
-npx tsx docs/mini_landscape_runs/landscape_treatment_pipeline.ts --input <src.mp4>
+npx tsx docs/mini_landscape_runs/landscape_treatment_pipeline.ts --input <src.mp4> [--render] [--out <dir>]
+  --render  also writes the silence-cut MP4 + automatically bakes the REAL-song soundtrack
 npx tsx docs/mini_landscape_runs/build_landscape_presentation.ts \
   --manifest docs/mini_landscape_runs/out/landscape_treatment_manifest.json
 npx tsx docs/mini_landscape_runs/tests/test_joseph_grammar_invariants.ts
@@ -91,7 +93,7 @@ npx tsx docs/mini_landscape_runs/tests/test_causal_chain.ts
 npx tsx docs/mini_landscape_runs/tests/test_longform_capacity.ts
 ```
 
-### Stage 8 — build_landscape_presentation.ts
+### Stage 9 — build_landscape_presentation.ts
 
 Reads the Stage-7 manifest and emits a self-contained 16:9 studio page with
 the run's causal data embedded. Outputs:
@@ -111,7 +113,7 @@ corpus). Run data is injected at the `SEAM_BEGIN:__LANDSCAPE_RUN_DATA__` seam;
 the studio keeps its render core untouched and falls back to the demo scripts
 when no run data is present.
 
-### Long-form capacity (Stage 8 generalization)
+### Long-form capacity (Stage 9 generalization)
 
 The studio is **capacity-generalized** for long-form transcripts — no 20-chunk
 ceilings remain:
@@ -167,7 +169,7 @@ the base changes between adjacent chunks. The full-bleed base layer lives at
 > `tests/test_silence_cutter_plan.ts`, `tests/test_joseph_grammar_invariants.ts`, `tests/test_causal_chain.ts`,
 > and `tests/test_longform_capacity.ts`, plus a working FFmpeg silence cut (`silencedetect` → concat → AAC/H.264)
 > validated end-to-end on a synthetic clip.
-> **Stage 8 (`build_landscape_presentation.ts`) is built:** it splices the Stage-7 manifest into the relocated
+> **Stage 9 (`build_landscape_presentation.ts`) is built:** it splices the Stage-7 manifest into the relocated
 > 16:9 studio template at the `SEAM_BEGIN:__LANDSCAPE_RUN_DATA__` seam and emits the playable studio + canonical
 > run JSON. The builder now **loads the authoritative font profile corpus from disk** at build time (injecting via
 > `SEAM_BEGIN:__LANDSCAPE_FONT_PROFILES__`), so any new treatment profile (e.g. white-red contrast / 1–5 word

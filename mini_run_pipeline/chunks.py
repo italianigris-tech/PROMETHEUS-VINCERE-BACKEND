@@ -137,6 +137,32 @@ def smart_chunk_words(
                 sub_chunk["outputEndMs"] = sub_chunk["endMs"]
             chunk_index += 1
             chunks.append(sub_chunk)
+
+    # Rhythmic Pacing: Bridge natural speech gaps for comfortable minimum reading persistence
+    MIN_PERSISTENCE_MS = 1200
+    TRANSITION_GAP_MS = 100
+
+    for i in range(len(chunks)):
+        curr = chunks[i]
+        curr_start = curr.get("outputStartMs", curr.get("startMs", 0))
+        curr_end = curr.get("outputEndMs", curr.get("endMs", 0))
+        raw_dur = curr_end - curr_start
+
+        if i + 1 < len(chunks):
+            next_start = chunks[i + 1].get("outputStartMs", chunks[i + 1].get("startMs", curr_end))
+            # Extend through breath pause up to the start of the next chunk
+            max_allowed_end = max(curr_end, next_start - TRANSITION_GAP_MS)
+            ideal_end = max(curr_end, curr_start + MIN_PERSISTENCE_MS)
+            extended_end = min(ideal_end, max_allowed_end)
+            if extended_end > curr_end:
+                curr["outputEndMs"] = extended_end
+                curr["endMs"] = curr.get("startMs", 0) + (extended_end - curr_start)
+        else:
+            # Last chunk persistence
+            extended_end = max(curr_end, curr_start + 1500)
+            curr["outputEndMs"] = extended_end
+            curr["endMs"] = curr.get("startMs", 0) + (extended_end - curr_start)
+
     return chunks
 
 

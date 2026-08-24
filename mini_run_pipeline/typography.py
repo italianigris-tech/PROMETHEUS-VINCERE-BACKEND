@@ -41,9 +41,17 @@ def resolve_faithful_font_color(color_hex: Optional[str]) -> str:
     return color_hex
 
 
-def apply_casing_strategy(text: str, casing: Optional[str]) -> str:
-    if not casing or casing == "normal":
-        return text
+def apply_casing_strategy(text: str, casing: str, font_family: str = "") -> str:
+    f_lower = font_family.lower()
+    # Condensed grotesque display banners look great in uppercase
+    if any(k in f_lower for k in ("anton", "bebas", "six caps", "teko", "saira")):
+        return text.upper()
+    
+    # Editorial didone & serif fonts look best in natural casing or title case for multi-word phrases
+    if any(k in f_lower for k in ("playfair", "bodoni", "cormorant", "italiana")):
+        if casing == "uppercase" and len(text.split()) > 1:
+            return " ".join(w.capitalize() if w.lower() not in STOPWORDS else w.lower() for w in text.split())
+
     if casing == "lowercase":
         return text.lower()
     if casing == "uppercase":
@@ -53,38 +61,77 @@ def apply_casing_strategy(text: str, casing: Optional[str]) -> str:
     return text
 
 
-def allocate_words_to_layers(profile_layers: List[Dict[str, Any]], token_count: int) -> List[Dict[str, Any]]:
-    """Deterministically partition chunk words across the Font JSON profile's layers."""
-    if not profile_layers:
-        return [{"layer": {}, "wordCount": token_count}]
-    
-    active_layers = profile_layers if token_count >= len(profile_layers) else profile_layers[:token_count]
-    observed_total = sum(l.get("word_count", 1) for l in active_layers) or 1
-    ideals = [(token_count * l.get("word_count", 1)) / observed_total for l in active_layers]
-    counts = [max(1, int(ideal)) for ideal in ideals]
+STOPWORDS = {
+    "i", "me", "my", "myself", "we", "our", "ours", "you", "your", "yours", 
+    "he", "him", "his", "she", "her", "hers", "it", "its", "it's", "they", "them", "their",
+    "what", "what's", "which", "who", "whom", "this", "that", "that's", "these", "those",
+    "am", "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", "having",
+    "do", "does", "did", "doing", "a", "an", "the", "and", "but", "if", "or", "because", "as",
+    "until", "while", "of", "at", "by", "for", "with", "about", "against", "between", "into", 
+    "through", "during", "before", "after", "above", "below", "to", "from", "up", "down", 
+    "in", "out", "on", "off", "over", "under", "again", "further", "then", "once", "here",
+    "here's", "there", "there's", "when", "where", "why", "how", "all", "any", "both",
+    "each", "few", "more", "most", "other", "some", "such", "no", "nor", "not", "only",
+    "own", "same", "so", "than", "too", "very", "can", "will", "just", "should", "now",
+    "need", "needed", "want", "wanted", "like", "also"
+}
 
-    while sum(counts) < token_count:
-        max_deficit = -999.0
-        max_idx = 0
-        for idx, ideal in enumerate(ideals):
-            deficit = ideal - counts[idx]
-            if deficit > max_deficit:
-                max_deficit = deficit
-                max_idx = idx
-        counts[max_idx] += 1
+UNSPLITTABLE_TAILS = {
+    "i", "me", "to", "in", "at", "on", "by", "of", "an", "a", "the", "my", "he", "we", "us", "it", "so", "as", "if", "or", "and", "but"
+}
 
-    while sum(counts) > token_count:
-        max_removable = -999.0
-        max_idx = 0
-        for idx, ideal in enumerate(ideals):
-            if counts[idx] > 1:
-                removable = counts[idx] - ideal
-                if removable > max_removable:
-                    max_removable = removable
-                    max_idx = idx
-        counts[max_idx] -= 1
 
-    return [{"layer": layer, "wordCount": counts[idx]} for idx, layer in enumerate(active_layers)]
+def smart_partition_chunk_words(
+    words: List[str], profile_layers: List[Dict[str, Any]]
+) -> List[Dict[str, Any]]:
+    """Intelligently partition words across at most 2 clean editorial lines.
+    Never isolate pronouns ('I', 'me', 'they'), prepositions ('to', 'in'), or articles ('an', 'a', 'the') as dangling 1-word lines.
+    """
+    token_count = len(words)
+    if not profile_layers or token_count <= 1:
+        return [{"layer": profile_layers[0] if profile_layers else {}, "words": words, "is_hero": True}]
+
+    clean_words = [w.lower().strip(".,!?:;\"'") for w in words]
+    content_indices = [i for i, w in enumerate(clean_words) if w not in STOPWORDS]
+
+    l0 = profile_layers[0]
+    l1 = profile_layers[1] if len(profile_layers) > 1 else profile_layers[0]
+
+    # If all words are stopwords (e.g. "It's because I", "if they", "They need to"), keep together as 1 line
+    if not content_indices:
+        return [{"layer": l0, "words": words, "is_hero": True}]
+
+    # If the last word is an unsplittable tail word (e.g. "I", "to", "me", "an"), never leave it alone on line 2
+    if clean_words[-1] in UNSPLITTABLE_TAILS:
+        if token_count == 3:
+            return [
+                {"layer": l1, "words": [words[0]], "is_hero": True},
+                {"layer": l0, "words": words[1:], "is_hero": False},
+            ]
+        elif token_count >= 4:
+            return [
+                {"layer": l0, "words": words[:2], "is_hero": False},
+                {"layer": l1, "words": words[2:], "is_hero": True},
+            ]
+        else:
+            return [{"layer": l0, "words": words, "is_hero": True}]
+
+    # Standard 2-line split for substantive phrases
+    if token_count == 2:
+        return [
+            {"layer": l0, "words": [words[0]], "is_hero": False},
+            {"layer": l1, "words": [words[1]], "is_hero": True},
+        ]
+    elif token_count == 3:
+        return [
+            {"layer": l0, "words": words[:2], "is_hero": False},
+            {"layer": l1, "words": [words[2]], "is_hero": True},
+        ]
+    else:
+        return [
+            {"layer": l0, "words": words[:-1], "is_hero": False},
+            {"layer": l1, "words": [words[-1]], "is_hero": True},
+        ]
 
 
 def load_all_portrait_font_json_profiles() -> List[Dict[str, Any]]:
@@ -95,7 +142,6 @@ def load_all_portrait_font_json_profiles() -> List[Dict[str, Any]]:
 
     if json_dir.exists():
         for file_path in sorted(json_dir.glob("*.json")):
-            # STRICT FILTER: Never load 16:9 Landscape JSONs into 9:16 shorts
             if "landscape" in file_path.name.lower():
                 continue
             try:
@@ -130,65 +176,33 @@ def resolve_layer_gradient_and_glow(
     profile_name: str,
     role: str,
     color: str,
-    is_hero: bool
+    is_hero: bool,
+    brand_motif: str = "champagne_gold"
 ) -> Dict[str, Any]:
-    """Build authentic editorial gradient, glow, and shadow treatment with guaranteed contrast."""
-    p_lower = profile_name.lower()
+    """Build pristine luxury editorial styling and subtle optical depth (ZERO harsh black halos)."""
     
-    # 1. Gold / Luxury Metallic (e.g. Gold Script, Old Money, Giaza, Luxury)
-    if "gold" in p_lower or "luxury" in p_lower or "money" in p_lower or "sanchez" in p_lower or color in ("#D4AF37", "#F5E6C4", "#FFD700", "#FFE600"):
-        return {
-            "gradient": "linear-gradient(135deg, #FFFDF0 0%, #FFE600 35%, #F59E0B 70%, #D97706 100%)",
-            "glow": "0 0 24px rgba(255, 230, 0, 0.75), 0 0 48px rgba(245, 158, 11, 0.45)",
-            "shadow": "0 4px 20px rgba(0, 0, 0, 0.98), 0 0 24px rgba(0, 0, 0, 0.95), 0 2px 6px rgba(0, 0, 0, 1)",
-            "textFillColor": "transparent" if is_hero else color,
-            "hasGradient": is_hero,
-        }
-    
-    # 2. Electric Blue / Cyan Tech (e.g. 3D Blue, Secret Blue, Electric)
-    if "blue" in p_lower or "cyan" in p_lower or "electric" in p_lower or color in ("#00F0FF", "#007AFF", "#44B2FF", "#38BDF8"):
-        return {
-            "gradient": "linear-gradient(135deg, #F0F9FF 0%, #38BDF8 40%, #00F0FF 100%)",
-            "glow": "0 0 24px rgba(0, 240, 255, 0.9), 0 0 48px rgba(0, 122, 255, 0.6)",
-            "shadow": "0 4px 20px rgba(0, 0, 0, 0.98), 0 0 24px rgba(0, 0, 0, 0.95), 0 2px 6px rgba(0, 0, 0, 1)",
-            "textFillColor": "transparent" if is_hero else color,
-            "hasGradient": is_hero,
-        }
-
-    # 3. Ruby / Red Infrared (e.g. Red Serif, Visual Storytelling, Red Accent)
-    if "red" in p_lower or "ruby" in p_lower or "rose" in p_lower or color in ("#FF3366", "#E53935", "#E11D48", "#C8382B"):
-        return {
-            "gradient": "linear-gradient(135deg, #FFF1F2 0%, #FF3366 50%, #E11D48 100%)",
-            "glow": "0 0 24px rgba(255, 51, 102, 0.85), 0 0 48px rgba(225, 29, 72, 0.55)",
-            "shadow": "0 4px 20px rgba(0, 0, 0, 0.98), 0 0 24px rgba(0, 0, 0, 0.95), 0 2px 6px rgba(0, 0, 0, 1)",
-            "textFillColor": "transparent" if is_hero else color,
-            "hasGradient": is_hero,
-        }
-
-    # 4. Neon Lime / Emerald (e.g. Neon Lime, Forest Green)
-    if "lime" in p_lower or "green" in p_lower or color in ("#A3E635", "#10B981", "#84CC16"):
-        return {
-            "gradient": "linear-gradient(135deg, #F7FEE7 0%, #A3E635 40%, #10B981 100%)",
-            "glow": "0 0 24px rgba(163, 230, 53, 0.85), 0 0 48px rgba(16, 185, 129, 0.55)",
-            "shadow": "0 4px 20px rgba(0, 0, 0, 0.98), 0 0 24px rgba(0, 0, 0, 0.95), 0 2px 6px rgba(0, 0, 0, 1)",
-            "textFillColor": "transparent" if is_hero else color,
-            "hasGradient": is_hero,
-        }
-
-    # 5. Liquid Chrome / High-Contrast Crisp Monolith (Default for Didone, Grotesque, Editorial)
     if is_hero:
-        return {
-            "gradient": "linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 35%, #E2E8F0 70%, #FFFFFF 90%, #CBD5E1 100%)",
-            "glow": "0 0 24px rgba(255, 255, 255, 0.7), 0 0 48px rgba(200, 225, 255, 0.4)",
-            "shadow": "0 6px 24px rgba(0, 0, 0, 0.98), 0 0 28px rgba(0, 0, 0, 0.95), 0 2px 8px rgba(0, 0, 0, 1)",
-            "textFillColor": "transparent",
-            "hasGradient": True,
-        }
+        if brand_motif == "champagne_gold":
+            return {
+                "gradient": "none",
+                "glow": "0 0 16px rgba(245, 230, 196, 0.4)",
+                "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
+                "textFillColor": "#F5E6C4",
+                "hasGradient": False,
+            }
+        else:
+            return {
+                "gradient": "none",
+                "glow": "0 0 14px rgba(255, 255, 255, 0.35)",
+                "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
+                "textFillColor": "#FFFFFF",
+                "hasGradient": False,
+            }
     
     return {
         "gradient": "none",
         "glow": "none",
-        "shadow": "0 4px 18px rgba(0, 0, 0, 0.98), 0 0 22px rgba(0, 0, 0, 0.95), 0 1px 4px rgba(0, 0, 0, 1)",
+        "shadow": "0 2px 8px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.25)",
         "textFillColor": "#FFFFFF",
         "hasGradient": False,
     }
@@ -196,16 +210,12 @@ def resolve_layer_gradient_and_glow(
 
 # High-tier, vetted editorial kinetic preset repertoire
 KINETIC_HERO_PRESETS = [
-    "apple_pro_display_hero_revealer",
     "apple_keynote_headline_punch",
-    "cyber_acid_lime_glitch",
+    "apple_pro_display_hero_revealer",
     "dynamic_staggered_character_cascade",
     "cinematic_viewport_mask_sweep",
-    "staggered_glyph_slot",
     "obsidian_heavy_grotesque",
     "subpixel_glow_mask",
-    "glassmorphic_caustic_refract",
-    "vibe_chromatic_luminescence_pulse",
 ]
 
 
@@ -217,7 +227,7 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
     manifest_chunks = []
     last_hero_preset = ""
     preset_usage_counts: Dict[str, int] = {p: 0 for p in KINETIC_HERO_PRESETS}
-    typewriter_used = False
+    brand_motif = (design_override or {}).get("brandMotif", "champagne_gold")
 
     for idx, chunk in enumerate(chunks):
         raw_text = str(chunk.get("text", "")).strip()
@@ -242,38 +252,30 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
         is_single_word = word_count == 1
         
         if is_single_word:
-            # Single punch word gets cinematic viewport sweep, keynote headline punch, or obsidian grotesque
             single_pool = [
                 "cinematic_viewport_mask_sweep",
                 "apple_keynote_headline_punch",
                 "apple_pro_display_hero_revealer",
-                "cyber_acid_lime_glitch",
                 "obsidian_heavy_grotesque",
-                "vibe_chromatic_luminescence_pulse",
             ]
             single_candidates = [p for p in single_pool if p != last_hero_preset] or single_pool
             hero_fx_preset = single_candidates[idx % len(single_candidates)]
         else:
-            # Check terminal payoff for typewriter candidate (max 1 usage)
-            if not typewriter_used and (idx == len(chunks) - 1 or "secret" in raw_text.lower() or "how" in raw_text.lower()):
-                hero_fx_preset = "typewriter_mono_caret"
-                typewriter_used = True
-            else:
-                candidates = [p for p in KINETIC_HERO_PRESETS if p != last_hero_preset]
-                candidates.sort(key=lambda p: preset_usage_counts.get(p, 0))
-                hero_fx_preset = candidates[idx % min(5, len(candidates))]
+            candidates = [p for p in KINETIC_HERO_PRESETS if p != last_hero_preset]
+            candidates.sort(key=lambda p: preset_usage_counts.get(p, 0))
+            hero_fx_preset = candidates[idx % min(4, len(candidates))]
 
         preset_usage_counts[hero_fx_preset] = preset_usage_counts.get(hero_fx_preset, 0) + 1
         last_hero_preset = hero_fx_preset
 
-        allocations = allocate_words_to_layers(prof.get("typography_layers", []), word_count)
+        allocations = smart_partition_chunk_words(words, prof.get("typography_layers", []))
         rendered_layers = []
         word_offset = 0
 
         for layer_idx, alloc in enumerate(allocations):
             layer_spec = alloc.get("layer", {})
-            w_count = alloc.get("wordCount", 1)
-            layer_words = words[word_offset : word_offset + w_count]
+            layer_words = alloc.get("words", [])
+            w_count = len(layer_words)
             
             # Map word timestamps if available
             layer_word_items = []
@@ -297,47 +299,46 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
             f_effects = layer_spec.get("effects", {})
             casing = f_style.get("casing", prof.get("metadata", {}).get("casing_strategy", "mixed"))
 
-            # Resolve Font Candidate
+            # Resolve Font Candidate faithfully
             candidates = layer_spec.get("matched_font_candidates", [])
             primary_font = candidates[0] if candidates else "Playfair Display"
             accent_font = candidates[1] if len(candidates) > 1 else primary_font
 
             role = layer_spec.get("role", "body")
-            is_hero_layer = (role in ("primary_focus_word", "hero_keyword", "header")) or (layer_idx == 1 and len(allocations) >= 2) or (len(allocations) == 1)
+            is_hero_layer = alloc.get("is_hero", False)
             
             base_size = int(f_style.get("size_px_base", 54))
-            # Proportional sizing for 1080x1920 canvas (elevated minimum floors):
+            # Proportional sizing for 1080x1920 canvas:
             if is_hero_layer:
-                font_size_px = max(135, min(175, int(base_size * 2.5)))
+                font_size_px = max(130, min(170, int(base_size * 2.4)))
                 layer_fx = hero_fx_preset
             else:
-                font_size_px = max(70, min(92, int(base_size * 1.6)))
+                font_size_px = max(68, min(88, int(base_size * 1.5)))
                 layer_fx = "subpixel_glow_mask"
 
-            # Layer Color & Gradient Glow Treatment (guaranteed high contrast)
-            raw_color = resolve_faithful_font_color(f_style.get("color"))
-            style_treatment = resolve_layer_gradient_and_glow(
-                prof["profile_name"], role, raw_color, is_hero_layer
-            )
-
-            # Weight floor: minimum 600 for companion, 800 for hero (never allow faint/thin weights)
+            # Weight floor: minimum 600 for companion, 800 for hero
             resolved_weight = max(600, int(f_style.get("weight", 700)))
             if is_hero_layer:
                 resolved_weight = max(800, resolved_weight)
+
+            raw_color = resolve_faithful_font_color(f_style.get("color"))
+            style_treatment = resolve_layer_gradient_and_glow(
+                prof["profile_name"], role, raw_color, is_hero_layer, brand_motif=brand_motif
+            )
 
             rendered_layers.append({
                 "layerIndex": layer_idx,
                 "layerName": layer_spec.get("layer_name", f"layer_{layer_idx}"),
                 "role": role,
                 "rawText": raw_layer_text,
-                "text": apply_casing_strategy(raw_layer_text, casing),
+                "text": apply_casing_strategy(raw_layer_text, casing, primary_font),
                 "words": layer_word_items,
                 "fontFamily": primary_font,
                 "accentFont": accent_font,
                 "fontWeight": resolved_weight,
                 "fontStyle": str(f_style.get("style", "normal")),
                 "fontSizePx": font_size_px,
-                "color": raw_color,
+                "color": style_treatment["textFillColor"],
                 "casing": casing,
                 "letterSpacingEm": float(f_style.get("letter_spacing_em", 0.01)),
                 "lineHeight": float(f_style.get("line_height", 1.05)),
@@ -374,7 +375,8 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
         manifest_chunks.append(chunk_entry)
 
     font_manifest = {
-        "governanceVersion": "4.0-strict-portrait-editorial-poster",
+        "governanceVersion": "5.0-luxury-editorial-brand-motif",
+        "brandMotif": brand_motif,
         "totalChunks": len(manifest_chunks),
         "profilesLoadedCount": len(profiles),
         "combinatorialsUsed": list({c["fontProfile"] for c in manifest_chunks}),

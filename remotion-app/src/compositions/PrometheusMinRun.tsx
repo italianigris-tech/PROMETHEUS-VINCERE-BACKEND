@@ -97,7 +97,7 @@ export type PrometheusMinRunProps = {
 };
 
 // ---------------------------------------------------------------------------
-// Kinetic Motion Layer Renderer (Speech-Synchronized Word Punching)
+// Kinetic Motion Layer Renderer (Clean Luxury Editorial & Zero Clipping)
 // ---------------------------------------------------------------------------
 const KineticLayerRenderer: React.FC<{
   layer: TypographyLayer;
@@ -107,15 +107,14 @@ const KineticLayerRenderer: React.FC<{
   fps: number;
   totalFrames: number;
 }> = ({ layer, frame, chunkStartMs, chunkEndMs, fps, totalFrames }) => {
-  const fx = layer.fxPreset || (layer.isHero ? "apple_pro_display_hero_revealer" : "subpixel_glow_mask");
-  const hasGrad = layer.hasGradient && layer.gradient && layer.gradient !== "none";
+  const fx = layer.fxPreset || (layer.isHero ? "apple_keynote_headline_punch" : "subpixel_glow_mask");
 
   const baseTextStyle: React.CSSProperties = {
     fontFamily: `"${layer.fontFamily}", "${layer.accentFont || "sans-serif"}", sans-serif`,
     fontWeight: layer.fontWeight,
     fontStyle: layer.fontStyle as any,
     fontSize: `${layer.fontSizePx}px`,
-    color: layer.color || "#FFFFFF",
+    color: layer.color || (layer.isHero ? "#F5E6C4" : "#FFFFFF"),
     letterSpacing: `${layer.letterSpacingEm}em`,
     lineHeight: layer.lineHeight,
     maxWidth: "100%",
@@ -126,208 +125,79 @@ const KineticLayerRenderer: React.FC<{
     justifyContent: "center",
     alignItems: "center",
     textAlign: "center",
+    overflow: "visible",
   };
 
-  // Build word list with exact spoken timestamps
-  const rawWords = layer.text.split(" ").filter((w) => w.length > 0);
-  const wordTimings: WordTiming[] =
-    layer.words && layer.words.length === rawWords.length
-      ? layer.words
-      : rawWords.map((w, idx) => {
-          const step = (chunkEndMs - chunkStartMs) / Math.max(1, rawWords.length);
-          return {
-            text: w,
-            start_ms: chunkStartMs + idx * step,
-            end_ms: chunkStartMs + (idx + 1) * step,
-          };
-        });
+  const words = layer.text.split(" ").filter((w) => w.length > 0);
 
-  // 1. APPLE PRO DISPLAY HERO REVEALER (Gaussian blur reveal + focal scale punch)
-  if (fx === "apple_pro_display_hero_revealer") {
-    return (
-      <div style={{ ...baseTextStyle, overflow: "visible" }}>
-        {wordTimings.map((wObj, wIdx) => {
-          const wordStartFrame = Math.max(
-            0,
-            Math.round(((wObj.start_ms - chunkStartMs) / 1000) * fps)
-          );
-          if (frame < wordStartFrame) return null;
-
-          const wordLocalFrame = frame - wordStartFrame;
-          const p = interpolate(wordLocalFrame, [0, 7], [0, 1], {
-            extrapolateLeft: "clamp",
-            extrapolateRight: "clamp",
-            easing: Easing.out(Easing.back(1.5)),
-          });
-
-          const scale = interpolate(p, [0, 0.7, 1], [0.90, 1.03, 1.0]);
-          const translateY = interpolate(p, [0, 1], [14, 0]);
-          const blur = interpolate(p, [0, 0.6, 1], [16, 0, 0]);
-
-          const wordStyle: React.CSSProperties = {
-            display: "inline-block",
-            opacity: p,
-            transform: `translateY(${translateY}px) scale(${scale})`,
-            filter: `blur(${blur}px) drop-shadow(0 6px 24px rgba(0,0,0,0.98)) drop-shadow(0 0 28px rgba(0,0,0,0.95))`,
-            margin: "0 0.15em",
-          };
-
-          if (hasGrad) {
-            wordStyle.background = layer.gradient;
-            wordStyle.WebkitBackgroundClip = "text";
-            wordStyle.WebkitTextFillColor = "transparent";
-          } else {
-            wordStyle.textShadow =
-              "0 4px 20px rgba(0,0,0,0.98), 0 0 24px rgba(0,0,0,0.95), 0 2px 6px rgba(0,0,0,1)";
-          }
-
-          return (
-            <span key={`apple-hero-${wIdx}`} style={wordStyle}>
-              {wObj.text}
-            </span>
-          );
-        })}
-      </div>
-    );
-  }
-
-  // 2. APPLE KEYNOTE HEADLINE PUNCH (Heavy keynote punch + Gaussian decay)
+  // 1. APPLE KEYNOTE HEADLINE PUNCH (Silky scale ease + subtle Gaussian blur decay)
   if (fx === "apple_keynote_headline_punch" || fx === "keynote_punch") {
+    const p = interpolate(frame, [0, 8], [0, 1], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+      easing: Easing.out(Easing.back(1.4)),
+    });
+    const scale = interpolate(p, [0, 0.7, 1], [0.90, 1.03, 1.0]);
+    const blur = interpolate(p, [0, 0.6, 1], [10, 0, 0]);
+
     return (
-      <div style={{ ...baseTextStyle, overflow: "visible" }}>
-        {wordTimings.map((wObj, wIdx) => {
-          const wordStartFrame = Math.max(
-            0,
-            Math.round(((wObj.start_ms - chunkStartMs) / 1000) * fps)
-          );
-          if (frame < wordStartFrame) return null;
-
-          const wordLocalFrame = frame - wordStartFrame;
-          const p = interpolate(wordLocalFrame, [0, 8], [0, 1], {
-            extrapolateLeft: "clamp",
-            extrapolateRight: "clamp",
-            easing: Easing.out(Easing.back(1.8)),
-          });
-
-          const scale = interpolate(p, [0, 0.6, 1], [0.82, 1.05, 1.0]);
-          const blur = interpolate(p, [0, 0.5, 1], [18, 0, 0]);
-
-          const wordStyle: React.CSSProperties = {
-            display: "inline-block",
-            opacity: p,
-            transform: `scale(${scale})`,
-            filter: `blur(${blur}px) drop-shadow(0 8px 28px rgba(0,0,0,0.98)) drop-shadow(0 0 32px rgba(0,0,0,0.95))`,
-            margin: "0 0.15em",
-          };
-
-          if (hasGrad) {
-            wordStyle.background = layer.gradient;
-            wordStyle.WebkitBackgroundClip = "text";
-            wordStyle.WebkitTextFillColor = "transparent";
-          } else {
-            wordStyle.textShadow =
-              "0 6px 24px rgba(0,0,0,0.98), 0 0 28px rgba(0,0,0,0.95), 0 2px 8px rgba(0,0,0,1)";
-          }
-
-          return (
-            <span key={`keynote-${wIdx}`} style={wordStyle}>
-              {wObj.text}
-            </span>
-          );
-        })}
+      <div
+        style={{
+          ...baseTextStyle,
+          opacity: p,
+          transform: `scale(${scale})`,
+          filter: `blur(${blur}px)`,
+          textShadow: "0 2px 10px rgba(0,0,0,0.45), 0 1px 2px rgba(0,0,0,0.3)",
+        }}
+      >
+        <span>{layer.text}</span>
       </div>
     );
   }
 
-  // 3. CYBER ACID LIME MATRIX GLITCH
-  if (fx === "cyber_acid_lime_glitch" || fx === "acid_lime_letter_glitch") {
-    let charCounter = 0;
+  // 2. APPLE PRO DISPLAY HERO REVEALER (Subtle lift + Gaussian blur decay)
+  if (fx === "apple_pro_display_hero_revealer" || fx === "pro_revealer") {
+    const p = interpolate(frame, [0, 7], [0, 1], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+      easing: Easing.out(Easing.cubic),
+    });
+    const translateY = interpolate(p, [0, 1], [12, 0]);
+    const blur = interpolate(p, [0, 0.7, 1], [12, 0, 0]);
+
     return (
-      <div style={{ ...baseTextStyle, overflow: "visible" }}>
-        {wordTimings.map((wObj, wIdx) => {
-          const wordStartFrame = Math.max(
-            0,
-            Math.round(((wObj.start_ms - chunkStartMs) / 1000) * fps)
-          );
-          if (frame < wordStartFrame) return null;
-
-          const wordLocalFrame = frame - wordStartFrame;
-
-          const charSpans = Array.from(wObj.text).map((ch) => {
-            const charIdx = charCounter++;
-            const charStart = charIdx * 1.2;
-            const p = interpolate(wordLocalFrame - charStart, [0, 7], [0, 1], {
-              extrapolateLeft: "clamp",
-              extrapolateRight: "clamp",
-              easing: Easing.out(Easing.cubic),
-            });
-
-            const skewX = interpolate(p, [0, 0.3, 0.7, 1], [12, -8, 2, 0]);
-            const translateX = interpolate(p, [0, 0.3, 1], [-8, 4, 0]);
-            const translateY = interpolate(p, [0, 0.3, 1], [-4, 2, 0]);
-
-            return (
-              <span
-                key={`glitch-${charIdx}`}
-                style={{
-                  display: "inline-block",
-                  opacity: p,
-                  transform: `translate(${translateX}px, ${translateY}px) skewX(${skewX}deg)`,
-                  color: "#84CC16",
-                  filter:
-                    "drop-shadow(-3px 0 0 #00FFFF) drop-shadow(3px 0 0 #FF0055) drop-shadow(0 0 20px rgba(132, 204, 22, 0.75))",
-                  padding: "0 0.03em",
-                }}
-              >
-                {ch}
-              </span>
-            );
-          });
-
-          return (
-            <span
-              key={`glitch-word-${wIdx}`}
-              style={{
-                display: "inline-flex",
-                whiteSpace: "nowrap",
-                margin: "0 0.15em",
-              }}
-            >
-              {charSpans}
-            </span>
-          );
-        })}
+      <div
+        style={{
+          ...baseTextStyle,
+          opacity: p,
+          transform: `translateY(${translateY}px)`,
+          filter: `blur(${blur}px)`,
+          textShadow: "0 2px 10px rgba(0,0,0,0.45), 0 1px 2px rgba(0,0,0,0.3)",
+        }}
+      >
+        <span>{layer.text}</span>
       </div>
     );
   }
 
-  // 4. DYNAMIC STAGGERED CHARACTER CASCADE (3D spring cascade)
+  // 3. DYNAMIC STAGGERED CHARACTER CASCADE (Gentle 3D spring cascade)
   if (fx === "dynamic_staggered_character_cascade" || fx === "spring_character_cascade") {
     let charCounter = 0;
     return (
       <div style={{ ...baseTextStyle, perspective: "500px" }}>
-        {wordTimings.map((wObj, wIdx) => {
-          const wordStartFrame = Math.max(
-            0,
-            Math.round(((wObj.start_ms - chunkStartMs) / 1000) * fps)
-          );
-          if (frame < wordStartFrame) return null;
-
-          const wordLocalFrame = frame - wordStartFrame;
-
-          const charSpans = Array.from(wObj.text).map((ch) => {
+        {words.map((w, wIdx) => {
+          const charSpans = Array.from(w).map((ch) => {
             const charIdx = charCounter++;
-            const charStart = charIdx * 1.2;
-            const p = interpolate(wordLocalFrame - charStart, [0, 8], [0, 1], {
+            const charStart = charIdx * 0.8;
+            const p = interpolate(frame - charStart, [0, 7], [0, 1], {
               extrapolateLeft: "clamp",
               extrapolateRight: "clamp",
-              easing: Easing.out(Easing.back(1.7)),
+              easing: Easing.out(Easing.back(1.5)),
             });
-
-            const translateY = interpolate(p, [0, 0.7, 1], [28, -4, 0]);
-            const scale = interpolate(p, [0, 0.7, 1], [0.65, 1.05, 1.0]);
-            const rotateX = interpolate(p, [0, 0.7, 1], [45, -5, 0]);
-            const blur = interpolate(p, [0, 0.6, 1], [8, 0, 0]);
+            const translateY = interpolate(p, [0, 0.7, 1], [18, -2, 0]);
+            const scale = interpolate(p, [0, 0.7, 1], [0.80, 1.03, 1.0]);
+            const rotateX = interpolate(p, [0, 0.7, 1], [30, -3, 0]);
+            const blur = interpolate(p, [0, 0.6, 1], [6, 0, 0]);
 
             return (
               <span
@@ -336,8 +206,8 @@ const KineticLayerRenderer: React.FC<{
                   display: "inline-block",
                   opacity: p,
                   transform: `translateY(${translateY}px) scale(${scale}) perspective(400px) rotateX(${rotateX}deg)`,
-                  filter: `blur(${blur}px) drop-shadow(0 6px 24px rgba(0,0,0,0.98))`,
-                  padding: "0 0.03em",
+                  filter: `blur(${blur}px)`,
+                  padding: "0 0.02em",
                 }}
               >
                 {ch}
@@ -352,6 +222,7 @@ const KineticLayerRenderer: React.FC<{
                 display: "inline-flex",
                 whiteSpace: "nowrap",
                 margin: "0 0.15em",
+                textShadow: "0 2px 10px rgba(0,0,0,0.45)",
               }}
             >
               {charSpans}
@@ -362,334 +233,72 @@ const KineticLayerRenderer: React.FC<{
     );
   }
 
-  // 5. CINEMATIC VIEWPORT MASK SWEEP (Massive font + laser wipe)
+  // 4. CINEMATIC VIEWPORT MASK SWEEP (Clean horizontal clip reveal for single focus words)
   if (fx === "cinematic_viewport_mask_sweep" || fx === "viewport_mask_sweep") {
-    const wordStartFrame = Math.max(
-      0,
-      Math.round(((wordTimings[0]?.start_ms - chunkStartMs) / 1000) * fps)
-    );
-    const localF = Math.max(0, frame - wordStartFrame);
-    const p = interpolate(localF, [0, 9], [0, 1], {
+    const p = interpolate(frame, [0, 8], [0, 1], {
       extrapolateLeft: "clamp",
       extrapolateRight: "clamp",
       easing: Easing.out(Easing.cubic),
     });
 
     return (
-      <div style={{ ...baseTextStyle, position: "relative", display: "inline-block" }}>
-        <div
-          style={{
-            clipPath: `polygon(0 0, ${p * 100}% 0, ${p * 100}% 100%, 0 100%)`,
-          }}
-        >
-          {hasGrad ? (
-            <span
-              style={{
-                background: layer.gradient,
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                filter: "drop-shadow(0 6px 24px rgba(0,0,0,0.98)) drop-shadow(0 0 28px rgba(0,0,0,0.95))",
-              }}
-            >
-              {layer.text}
-            </span>
-          ) : (
-            <span style={{ textShadow: "0 6px 24px rgba(0,0,0,0.98), 0 0 28px rgba(0,0,0,0.95)" }}>
-              {layer.text}
-            </span>
-          )}
-        </div>
-        {p < 1 && (
-          <div
-            style={{
-              position: "absolute",
-              top: 0,
-              left: `${p * 100}%`,
-              width: "4px",
-              height: "100%",
-              background: "#00F0FF",
-              boxShadow: "0 0 16px #00F0FF, 0 0 6px #FFF",
-              opacity: interpolate(p, [0.8, 1], [1, 0]),
-            }}
-          />
-        )}
+      <div
+        style={{
+          ...baseTextStyle,
+          clipPath: `polygon(0 0, ${p * 100}% 0, ${p * 100}% 100%, 0 100%)`,
+          textShadow: "0 2px 10px rgba(0,0,0,0.45), 0 1px 2px rgba(0,0,0,0.3)",
+        }}
+      >
+        <span>{layer.text}</span>
       </div>
     );
   }
 
-  // 6. OBSIDIAN HEAVY GROTESQUE PUNCH
+  // 5. OBSIDIAN HEAVY GROTESQUE PUNCH
   if (fx === "obsidian_heavy_grotesque") {
+    const p = interpolate(frame, [0, 7], [0, 1], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+      easing: Easing.out(Easing.back(1.4)),
+    });
+    const scale = interpolate(p, [0, 0.7, 1], [0.88, 1.03, 1.0]);
+    const blur = interpolate(p, [0, 0.5, 1], [8, 0, 0]);
+
     return (
-      <div style={{ ...baseTextStyle, overflow: "visible" }}>
-        {wordTimings.map((wObj, wIdx) => {
-          const wordStartFrame = Math.max(
-            0,
-            Math.round(((wObj.start_ms - chunkStartMs) / 1000) * fps)
-          );
-          if (frame < wordStartFrame) return null;
-
-          const wordLocalFrame = frame - wordStartFrame;
-          const p = interpolate(wordLocalFrame, [0, 7], [0, 1], {
-            extrapolateLeft: "clamp",
-            extrapolateRight: "clamp",
-            easing: Easing.out(Easing.back(1.6)),
-          });
-
-          const scale = interpolate(p, [0, 0.7, 1], [0.80, 1.04, 1.0]);
-          const translateY = interpolate(p, [0, 1], [16, 0]);
-          const blur = interpolate(p, [0, 0.5, 1], [12, 0, 0]);
-
-          return (
-            <span
-              key={`obsidian-${wIdx}`}
-              style={{
-                display: "inline-block",
-                opacity: p,
-                transform: `translateY(${translateY}px) scale(${scale})`,
-                filter: `blur(${blur}px) drop-shadow(0 8px 30px rgba(0,0,0,0.98)) drop-shadow(0 0 32px rgba(0,0,0,0.95))`,
-                margin: "0 0.15em",
-                color: "#FFFFFF",
-                textShadow: "0 6px 24px rgba(0,0,0,0.98), 0 0 28px rgba(0,0,0,0.95)",
-              }}
-            >
-              {wObj.text}
-            </span>
-          );
-        })}
+      <div
+        style={{
+          ...baseTextStyle,
+          opacity: p,
+          transform: `scale(${scale})`,
+          filter: `blur(${blur}px)`,
+          textShadow: "0 2px 10px rgba(0,0,0,0.45), 0 1px 2px rgba(0,0,0,0.3)",
+        }}
+      >
+        <span>{layer.text}</span>
       </div>
     );
   }
 
-  // 7. 3D GLYPH SLOT BARREL SPIN
-  if (fx === "staggered_glyph_slot") {
-    let charCounter = 0;
-    return (
-      <div style={{ ...baseTextStyle, perspective: "400px" }}>
-        {wordTimings.map((wObj, wIdx) => {
-          const wordStartFrame = Math.max(
-            0,
-            Math.round(((wObj.start_ms - chunkStartMs) / 1000) * fps)
-          );
-          if (frame < wordStartFrame) return null;
+  // 6. SUBPIXEL GLOW MASK (Companion layer clean entrance)
+  const p = interpolate(frame, [0, 6], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: Easing.out(Easing.cubic),
+  });
+  const translateY = interpolate(p, [0, 1], [8, 0]);
+  const blur = interpolate(p, [0, 1], [8, 0]);
 
-          const wordLocalFrame = frame - wordStartFrame;
-
-          const charSpans = Array.from(wObj.text).map((ch) => {
-            const charIdx = charCounter++;
-            const charStart = charIdx * 1.2;
-            const p = interpolate(wordLocalFrame - charStart, [0, 8], [0, 1], {
-              extrapolateLeft: "clamp",
-              extrapolateRight: "clamp",
-              easing: Easing.out(Easing.cubic),
-            });
-            const translateY = interpolate(p, [0, 1], [-120, 0]);
-            const rotateX = interpolate(p, [0, 1], [-90, 0]);
-
-            return (
-              <span
-                key={`slot-${charIdx}`}
-                style={{
-                  display: "inline-block",
-                  opacity: p,
-                  transform: `translateY(${translateY}%) perspective(300px) rotateX(${rotateX}deg)`,
-                  filter: "drop-shadow(0 6px 24px rgba(0,0,0,0.98))",
-                  padding: "0 0.02em",
-                }}
-              >
-                {ch}
-              </span>
-            );
-          });
-
-          return (
-            <span
-              key={`slot-word-${wIdx}`}
-              style={{
-                display: "inline-flex",
-                whiteSpace: "nowrap",
-                margin: "0 0.15em",
-              }}
-            >
-              {charSpans}
-            </span>
-          );
-        })}
-      </div>
-    );
-  }
-
-  // 8. 3D CAUSTIC GLASSMORPHIC REFRACTION
-  if (fx === "glassmorphic_caustic_refract") {
-    const shimmer = Math.sin(frame * 0.12) * 0.5 + 0.5;
-    return (
-      <div style={{ ...baseTextStyle, overflow: "visible" }}>
-        {wordTimings.map((wObj, wIdx) => {
-          const wordStartFrame = Math.max(
-            0,
-            Math.round(((wObj.start_ms - chunkStartMs) / 1000) * fps)
-          );
-          if (frame < wordStartFrame) return null;
-
-          const wordLocalFrame = frame - wordStartFrame;
-          const p = interpolate(wordLocalFrame, [0, 8], [0, 1], {
-            extrapolateLeft: "clamp",
-            extrapolateRight: "clamp",
-            easing: Easing.out(Easing.back(1.5)),
-          });
-
-          const scale = interpolate(p, [0, 0.7, 1], [0.75, 1.06, 1.0]);
-          const translateY = interpolate(p, [0, 1], [16, 0]);
-
-          return (
-            <span
-              key={`glass-${wIdx}`}
-              style={{
-                display: "inline-block",
-                opacity: p,
-                transform: `translateY(${translateY}px) scale(${scale})`,
-                WebkitTextStroke: "1.5px rgba(255, 255, 255, 0.9)",
-                background:
-                  "linear-gradient(135deg, rgba(255,255,255,1) 0%, rgba(255,255,255,0.3) 40%, rgba(255,255,255,0.9) 100%)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                filter: `drop-shadow(0 0 ${16 + shimmer * 12}px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 ${32 + shimmer * 20}px rgba(0, 240, 255, 0.7)) drop-shadow(0 8px 24px rgba(0,0,0,0.95))`,
-                margin: "0 0.15em",
-              }}
-            >
-              {wObj.text}
-            </span>
-          );
-        })}
-      </div>
-    );
-  }
-
-  // 9. VIBE CHROMATIC LUMINESCENCE PULSE
-  if (fx === "vibe_chromatic_luminescence_pulse") {
-    const sx = Math.sin(frame * 0.35) * 4;
-    const sy = Math.cos(frame * 0.35) * 4;
-
-    return (
-      <div style={{ ...baseTextStyle, overflow: "visible" }}>
-        {wordTimings.map((wObj, wIdx) => {
-          const wordStartFrame = Math.max(
-            0,
-            Math.round(((wObj.start_ms - chunkStartMs) / 1000) * fps)
-          );
-          if (frame < wordStartFrame) return null;
-
-          const wordLocalFrame = frame - wordStartFrame;
-          const p = interpolate(wordLocalFrame, [0, 7], [0, 1], {
-            extrapolateLeft: "clamp",
-            extrapolateRight: "clamp",
-            easing: Easing.out(Easing.cubic),
-          });
-
-          const scale = interpolate(p, [0, 1], [1.15, 1.0]);
-          const translateY = interpolate(p, [0, 1], [10, 0]);
-
-          return (
-            <span
-              key={`vibe-${wIdx}`}
-              style={{
-                display: "inline-block",
-                opacity: p,
-                transform: `translateY(${translateY}px) scale(${scale})`,
-                color: "#FFFFFF",
-                textShadow:
-                  "0 0 24px rgba(140, 180, 255, 0.95), 0 0 44px rgba(255, 120, 220, 0.8), 0 0 80px rgba(0, 240, 255, 0.6)",
-                filter: `drop-shadow(${-sx}px ${-sy}px 18px rgba(0, 240, 255, 0.95)) drop-shadow(${sx}px ${sy}px 18px rgba(255, 0, 128, 0.95)) drop-shadow(0 6px 24px rgba(0,0,0,0.98))`,
-                margin: "0 0.15em",
-              }}
-            >
-              {wObj.text}
-            </span>
-          );
-        })}
-      </div>
-    );
-  }
-
-  // 10. HEXTA TERMINAL TYPEWRITER + ACTIVE CARET
-  if (fx === "typewriter_mono_caret") {
-    const totalChars = layer.text.length;
-    const wordStartFrame = Math.max(
-      0,
-      Math.round(((wordTimings[0]?.start_ms - chunkStartMs) / 1000) * fps)
-    );
-    const localF = Math.max(0, frame - wordStartFrame);
-    const visibleCount = Math.min(totalChars, Math.max(1, Math.floor(localF / 1.1)));
-    const visibleText = layer.text.slice(0, visibleCount);
-    const showCaret = Math.floor(localF / 5) % 2 === 0;
-
-    return (
-      <div style={baseTextStyle}>
-        <span
-          style={{
-            background: "rgba(0, 240, 255, 0.12)",
-            border: "2px solid #00F0FF",
-            boxShadow: "0 0 24px rgba(0, 240, 255, 0.45), 0 6px 20px rgba(0,0,0,0.9)",
-            borderRadius: "14px",
-            padding: "6px 18px",
-            display: "inline-flex",
-            alignItems: "center",
-            color: "#FFFFFF",
-          }}
-        >
-          <span>{visibleText}</span>
-          <span
-            style={{
-              color: "#00F0FF",
-              fontWeight: 900,
-              marginLeft: "4px",
-              opacity: showCaret ? 1 : 0,
-            }}
-          >
-            |
-          </span>
-        </span>
-      </div>
-    );
-  }
-
-  // 11. SUBPIXEL GLOW MASK (Standard high-contrast Gaussian blur reveal for companion layers)
   return (
-    <div style={baseTextStyle}>
-      {wordTimings.map((wObj, wIdx) => {
-        const wordStartFrame = Math.max(
-          0,
-          Math.round(((wObj.start_ms - chunkStartMs) / 1000) * fps)
-        );
-        if (frame < wordStartFrame) return null;
-
-        const wordLocalFrame = frame - wordStartFrame;
-        const p = interpolate(wordLocalFrame, [0, 7], [0, 1], {
-          extrapolateLeft: "clamp",
-          extrapolateRight: "clamp",
-          easing: Easing.out(Easing.cubic),
-        });
-
-        const translateY = interpolate(p, [0, 1], [14, 0]);
-        const blur = interpolate(p, [0, 1], [12, 0]);
-        const scale = interpolate(p, [0, 1], [0.94, 1.0]);
-
-        return (
-          <span
-            key={`subpixel-word-${wIdx}`}
-            style={{
-              display: "inline-block",
-              opacity: p,
-              transform: `translateY(${translateY}px) scale(${scale})`,
-              filter: `blur(${blur}px) drop-shadow(0 4px 20px rgba(0,0,0,0.98)) drop-shadow(0 0 24px rgba(0,0,0,0.95))`,
-              margin: "0 0.15em",
-              color: layer.color || "#F8FAFC",
-              textShadow: "0 4px 18px rgba(0,0,0,0.98), 0 0 22px rgba(0,0,0,0.95), 0 1px 4px rgba(0,0,0,1)",
-            }}
-          >
-            {wObj.text}
-          </span>
-        );
-      })}
+    <div
+      style={{
+        ...baseTextStyle,
+        opacity: p,
+        transform: `translateY(${translateY}px)`,
+        filter: `blur(${blur}px)`,
+        textShadow: "0 2px 8px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.25)",
+      }}
+    >
+      <span>{layer.text}</span>
     </div>
   );
 };
@@ -772,7 +381,7 @@ const MultiLayerTypographyCard: React.FC<{
         width: "94%",
         maxWidth: "1020px",
         textAlign: "center",
-        zIndex: 10,
+        zIndex: 100,
         pointerEvents: "none",
       }}
     >

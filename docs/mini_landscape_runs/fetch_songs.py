@@ -15,11 +15,8 @@ Credentials resolution order:
 Usage:
   python3 docs/mini_landscape_runs/fetch_songs.py
 """
-import json
 import os
-import subprocess
 import sys
-import tempfile
 
 import bake_soundtrack as bk
 
@@ -37,6 +34,28 @@ SONG_OBJECT_KEYS: dict[str, str] = {
     "the-way-instrumental.mp3":                       "lo-fi-chill-soft-focus/the-way-instrumental.mp3",
 }
 
+try:
+    import modal
+    _modal_available = True
+except ImportError:
+    _modal_available = False
+
+
+# Modal fallback (defined at module scope; only referenced when env vars absent).
+if _modal_available:
+    _modal_app = modal.App("fetch-songs")
+    _modal_secret = modal.Secret.from_name("prometheus-shared-env")
+
+    @_modal_app.function(secrets=[_modal_secret])
+    def _modal_read_r2_env():
+        return {
+            "endpoint": os.environ.get("R2_ENDPOINT", ""),
+            "access_key_id": os.environ.get("R2_ACCESS_KEY_ID", ""),
+            "secret_access_key": os.environ.get("R2_SECRET_ACCESS_KEY", ""),
+            "bucket": os.environ.get("R2_BUCKET_NAME", "") or "prometheus-music",
+            "account_id": os.environ.get("R2_ACCOUNT_ID", ""),
+        }
+
 
 def load_r2_env() -> dict:
     env = {
@@ -49,29 +68,12 @@ def load_r2_env() -> dict:
     if all([env["endpoint"], env["access_key_id"], env["secret_access_key"]]):
         return env
 
-    # Fallback: pull the R2 env vars from the Modal secret used by the deployed
-    # studio (mini_run_pipeline/storage.py reads the same names).
-    try:
-        import modal
-    except ImportError:
+    if not _modal_available:
         print("Modal SDK not installed; cannot resolve R2 credentials.", file=sys.stderr)
         sys.exit(1)
 
-    app = modal.App("fetch-songs")
-    secret = modal.Secret.from_name("prometheus-shared-env")
-
-    @app.function(secrets=[secret])
-    def read_r2_env():
-        return {
-            "endpoint": os.environ.get("R2_ENDPOINT", ""),
-            "access_key_id": os.environ.get("R2_ACCESS_KEY_ID", ""),
-            "secret_access_key": os.environ.get("R2_SECRET_ACCESS_KEY", ""),
-            "bucket": os.environ.get("R2_BUCKET_NAME", "") or "prometheus-music",
-            "account_id": os.environ.get("R2_ACCOUNT_ID", ""),
-        }
-
-    with app.run():
-        resolved = read_r2_env.remote()
+    with _modal_app.run():
+        resolved = _modal_read_r2_env.remote()
     resolved["bucket"] = resolved["bucket"] or "prometheus-music"
     if not resolved["endpoint"] and resolved["account_id"]:
         resolved["endpoint"] = f"https://{resolved['account_id']}.r2.cloudflarestorage.com"
