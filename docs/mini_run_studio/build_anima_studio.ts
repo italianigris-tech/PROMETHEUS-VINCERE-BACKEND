@@ -535,6 +535,36 @@ const TYPOGRAPHY_30_PRESETS: ArchetypeVariant[] = [
     slug: "skywall-tall-subject-mask", code: ".skywall-steel-char { animation: skywall-hydraulic-rise .8s both; }",
     html: `<div style="height:100%;display:grid;place-items:center;background:#050505"><style>@keyframes wallRef{0%{transform:translateY(45px) scaleY(1.28);opacity:0}70%{transform:translateY(-4px) scaleY(.96)}100%{transform:translateY(0) scaleY(1);opacity:1}}</style><div style="font:900 53px/.72 'League Gothic',sans-serif;letter-spacing:-2px;color:#dfe5ee;text-shadow:0 7px 0 #707782,0 14px 20px #000;animation:wallRef .9s cubic-bezier(.16,1,.3,1) both">SKYWALL</div></div>`
   }
+  ,{
+    id: 36, badge: "TYPO #37", name: "Subject Video See-Through Letterform Treatment",
+    traitId: "trait_subject_video_see_through_letterform",
+    concern: "MaterialTreatment + TextOverlay",
+    targetScope: "full_word",
+    type: "treatment",
+    channels: "text.color.alpha, text.fill, text.mixBlendMode",
+    conflicts: "opaque_background_text, dark_stage_rendering",
+    frameExpression: "N/A — static treatment, no animation",
+    footerSpec: "Large Letterform • Semi-Transparent Warm Fill (~rgba(232,196,160,0.72)) • Live Video Subject Bleed-Through",
+    slug: "see-through-letterform",
+    usageNote: "Beauty derives from live video bleeding through the semi-transparent letterform fill. Font weight: 700-900 heavy. Casing: lowercase preferred. Must be rendered over live video — not static color fills.",
+    code: `.less-letterform { font-size: 82px; font-weight: 700; letter-spacing: -0.02em; color: rgba(232, 196, 160, 0.72); text-transform: lowercase; }`,
+    html: `<div style="height:100%;display:grid;place-items:center;background:linear-gradient(160deg,#4a4a55,#2e2e38 40%,#1a1a22);position:relative;overflow:hidden"><div style="position:absolute;inset:0;background:radial-gradient(ellipse at 60% 30%,rgba(180,160,140,.25),transparent 70%)"></div><span style="position:relative;z-index:2;font-size:82px;font-weight:700;letter-spacing:-0.02em;color:rgba(232,196,160,.72);font-family:-apple-system,sans-serif;text-transform:lowercase">less.</span></div>`
+  }
+  ,{
+    id: 37, badge: "TYPO #38", name: "Wall Man — Environmental Z-Plane Text Placement",
+    traitId: "trait_wall_man_z_plane_placement",
+    concern: "SpatialComposition + TextOverlay",
+    targetScope: "phrase_block",
+    type: "treatment",
+    channels: "text.position.x, text.position.y, text.rotation, text.z_depth, text.perspective",
+    conflicts: "standard_center_text_overlay, foreground_face_label",
+    frameExpression: "N/A — static treatment; text appears integrated into scene geometry",
+    footerSpec: "Text anchored to environmental surface (wall/background) • Not vertically stacked • Reads as painted-on or embedded into scene • Principal subject moves in front",
+    slug: "wall-man-z-plane",
+    usageNote: "The defining characteristic: text is NOT placed as a standard vertical caption overlay. Instead it appears as if placed AT the wall surface — in-plane with background architecture, scaling/rotating as if perspective-matched to a physical surface. Principal subject occupies the FOREGROUND z-plane, in front of the wall-embedded text. Creates extreme spatial depth and editorial uniqueness. Reference: 'my mom' / 'my mom said to me' placed against garage/room wall surfaces.",
+    code: `.wall-man-text { position: absolute; transform-origin: left top; transform: perspective(1200px) rotateY(0deg) rotateX(0deg); font-size: 72px; font-weight: 900; color: #ffffff; letter-spacing: -0.02em; }`,
+    html: `<div style="height:100%;background:#1a1a1a;position:relative;overflow:hidden;display:flex;align-items:flex-start;padding:24px 20px"><div style="position:absolute;bottom:0;left:0;right:0;height:60%;background:linear-gradient(#2a2a2a,#383838)"></div><div style="position:relative;z-index:2;line-height:0.9"><div style="font:900 28px/1 -apple-system,sans-serif;color:#fff;letter-spacing:-0.02em">my mom said</div><div style="font:900 28px/1 -apple-system,sans-serif;color:#fff;letter-spacing:-0.02em">to me,</div></div><div style="position:absolute;bottom:20px;right:20px;font:700 11px/1 monospace;color:rgba(255,255,255,0.3)">WALL MAN PLANE</div></div>`
+  }
 
 ];
 

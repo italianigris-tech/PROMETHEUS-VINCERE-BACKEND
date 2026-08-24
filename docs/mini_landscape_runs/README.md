@@ -55,9 +55,9 @@ Every stage emits a typed artifact that is the **cause** of the next stage. No o
 | 3 | `joseph_edit_grammar.ts` | Sections → `EditMove[]` (budgeted allocation per Joseph five-audit synthesis) |
 | 4 | `landscape_composition_director.ts` | Edit moves + matte presence → placement / transition / typography cue indexes |
 | 5 | `landscape_sfx_engine.ts` | Edit moves → lifecycle-aware SFX cues (entry/exit/riser/impact/no-SFX exceptions) |
-| 6 | `landscape_soundtrack_engine.ts` | Video descriptor + semantic theme → per-section song selection programme (vibe→track scoring, vocals policy, anti-fatigue, blends) + empty bed; the crux of the audio layer |
+| 6 | `landscape_soundtrack_engine.ts` | Video descriptor + semantic theme → per-section song selection programme (vibe→track scoring, vocals policy, anti-fatigue, blends) + empty bed; the crux of the audio layer. **SONG-07**: short-form (≤ 90s) runs are ONE song end-to-end; **AUD-09**: long-form song changes get subtle transition beds (risers). |
 | 7 | `landscape_treatment_pipeline.ts` | Stages 1–6 → `LandscapeTreatmentManifest` (single auditable artifact) |
-| 8 | `bake_soundtrack.py` + `music/` (real songs from R2) | Maps each seed track to a REAL song from Cloudflare R2 (classical, cinematic trailer, lo-fi, etc.) and renders the baked MP4 + music stem. Fades, crossfades (blend), -6 dB voice ducking, -14 LUFS. |
+| 8 | `bake_soundtrack.py` + `music/` (real songs from R2) | Maps each seed track to a REAL song from Cloudflare R2 (classical, cinematic trailer, lo-fi, etc.) and renders the baked MP4 + music stem. Adjacent same-track windows merge (no internal dips). Short-form single-song runs render clean end-to-end. Long-form runs get subtle synthesized risers under each song-change boundary (AUD-09). Fades, crossfades (blend), -6 dB voice ducking, -14 LUFS. |
 | 9 | `build_landscape_presentation.ts` | Manifest → self-contained 16:9 HTML studio (data spliced at `SEAM_BEGIN:__LANDSCAPE_RUN_DATA__`) |
 
 ---

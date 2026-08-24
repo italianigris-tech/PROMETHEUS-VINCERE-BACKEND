@@ -133,6 +133,131 @@ def smart_partition_chunk_words(
             {"layer": l1, "words": [words[-1]], "is_hero": True},
         ]
 
+# ---------------------------------------------------------------------------
+# Brand Style & Palette Ingestion System
+# ---------------------------------------------------------------------------
+BRAND_PALETTES: Dict[str, Dict[str, str]] = {
+    "champagne_gold": {
+        "hero_color": "#F5E6C4",
+        "companion_color": "#FFFFFF",
+        "glow": "0 0 16px rgba(245, 230, 196, 0.45)",
+        "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
+        "accent_border": "#D4AF37",
+    },
+    "obsidian_crimson": {
+        "hero_color": "#FF453A",
+        "companion_color": "#FFFFFF",
+        "glow": "0 0 16px rgba(255, 69, 58, 0.45)",
+        "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
+        "accent_border": "#FF3B30",
+    },
+    "electric_cyan": {
+        "hero_color": "#00F0FF",
+        "companion_color": "#FFFFFF",
+        "glow": "0 0 16px rgba(0, 240, 255, 0.45)",
+        "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
+        "accent_border": "#00D2FF",
+    },
+    "emerald_luxury": {
+        "hero_color": "#34D399",
+        "companion_color": "#FFFFFF",
+        "glow": "0 0 16px rgba(52, 211, 153, 0.45)",
+        "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
+        "accent_border": "#10B981",
+    },
+    "royal_amethyst": {
+        "hero_color": "#C084FC",
+        "companion_color": "#FFFFFF",
+        "glow": "0 0 16px rgba(192, 132, 252, 0.45)",
+        "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
+        "accent_border": "#A78BFA",
+    },
+    "sunset_amber": {
+        "hero_color": "#FBBF24",
+        "companion_color": "#FFFFFF",
+        "glow": "0 0 16px rgba(251, 191, 36, 0.45)",
+        "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
+        "accent_border": "#F59E0B",
+    },
+    "pure_editorial_mono": {
+        "hero_color": "#FFFFFF",
+        "companion_color": "#F1F5F9",
+        "glow": "0 0 14px rgba(255, 255, 255, 0.35)",
+        "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
+        "accent_border": "#FFFFFF",
+    },
+}
+
+
+def resolve_brand_palette(brand_input: Optional[Any] = None) -> Dict[str, str]:
+    """Ingest user brand preferences, color directives, or preset names."""
+    if isinstance(brand_input, dict):
+        base = BRAND_PALETTES.get("champagne_gold", {}).copy()
+        if "heroColor" in brand_input:
+            base["hero_color"] = brand_input["heroColor"]
+        if "companionColor" in brand_input:
+            base["companion_color"] = brand_input["companionColor"]
+        if "glow" in brand_input:
+            base["glow"] = brand_input["glow"]
+        if "brandMotif" in brand_input and brand_input["brandMotif"] in BRAND_PALETTES:
+            return BRAND_PALETTES[brand_input["brandMotif"]]
+        return base
+    
+    if isinstance(brand_input, str):
+        b_low = brand_input.lower().strip()
+        if any(k in b_low for k in ("red", "crimson", "ruby")):
+            return BRAND_PALETTES["obsidian_crimson"]
+        if any(k in b_low for k in ("blue", "cyan")):
+            return BRAND_PALETTES["electric_cyan"]
+        if any(k in b_low for k in ("green", "emerald")):
+            return BRAND_PALETTES["emerald_luxury"]
+        if any(k in b_low for k in ("purple", "amethyst", "violet")):
+            return BRAND_PALETTES["royal_amethyst"]
+        if any(k in b_low for k in ("yellow", "amber", "orange")):
+            return BRAND_PALETTES["sunset_amber"]
+        if any(k in b_low for k in ("white", "mono", "silver")):
+            return BRAND_PALETTES["pure_editorial_mono"]
+        if b_low in BRAND_PALETTES:
+            return BRAND_PALETTES[b_low]
+            
+    return BRAND_PALETTES["champagne_gold"]
+
+
+BASIC_FONTS = {"dm sans", "roboto", "open sans", "inter", "arial", "helvetica", "sans-serif", "system-ui"}
+
+
+def upgrade_font_candidate(font_name: str, is_hero: bool, role: str = "body") -> str:
+    """Upgrade basic / generic fonts to authoritative cinematic editorial fonts."""
+    f_clean = font_name.lower().strip()
+    if f_clean in BASIC_FONTS or not font_name:
+        if is_hero:
+            return "Bodoni Moda"
+        else:
+            return "Playfair Display"
+    return font_name
+
+
+# High-tier, vetted editorial kinetic preset repertoire
+KINETIC_HERO_PRESETS = [
+    "focus_hunting_bokeh_shimmer",
+    "gaussian_blur_reveal_sweep",
+    "spring_blur_physics_engine",
+    "kinetic_slot_character_reel",
+    "apple_keynote_headline_punch",
+    "apple_pro_display_hero_revealer",
+    "dynamic_staggered_character_cascade",
+    "cinematic_viewport_mask_sweep",
+    "obsidian_heavy_grotesque",
+]
+
+SINGLE_WORD_HERO_PRESETS = [
+    "focus_hunting_bokeh_shimmer",
+    "kinetic_slot_character_reel",
+    "spring_blur_physics_engine",
+    "gaussian_blur_reveal_sweep",
+    "obsidian_heavy_grotesque",
+]
+
 
 def load_all_portrait_font_json_profiles() -> List[Dict[str, Any]]:
     """Load STRICT 9:16 portrait font JSON profiles, excluding landscape files."""
@@ -177,46 +302,25 @@ def resolve_layer_gradient_and_glow(
     role: str,
     color: str,
     is_hero: bool,
-    brand_motif: str = "champagne_gold"
+    brand_palette: Dict[str, str]
 ) -> Dict[str, Any]:
     """Build pristine luxury editorial styling and subtle optical depth (ZERO harsh black halos)."""
-    
     if is_hero:
-        if brand_motif == "champagne_gold":
-            return {
-                "gradient": "none",
-                "glow": "0 0 16px rgba(245, 230, 196, 0.4)",
-                "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
-                "textFillColor": "#F5E6C4",
-                "hasGradient": False,
-            }
-        else:
-            return {
-                "gradient": "none",
-                "glow": "0 0 14px rgba(255, 255, 255, 0.35)",
-                "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
-                "textFillColor": "#FFFFFF",
-                "hasGradient": False,
-            }
+        return {
+            "gradient": "none",
+            "glow": brand_palette.get("glow", "0 0 16px rgba(245, 230, 196, 0.45)"),
+            "shadow": brand_palette.get("shadow", "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)"),
+            "textFillColor": brand_palette.get("hero_color", "#F5E6C4"),
+            "hasGradient": False,
+        }
     
     return {
         "gradient": "none",
         "glow": "none",
         "shadow": "0 2px 8px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.25)",
-        "textFillColor": "#FFFFFF",
+        "textFillColor": brand_palette.get("companion_color", "#FFFFFF"),
         "hasGradient": False,
     }
-
-
-# High-tier, vetted editorial kinetic preset repertoire
-KINETIC_HERO_PRESETS = [
-    "apple_keynote_headline_punch",
-    "apple_pro_display_hero_revealer",
-    "dynamic_staggered_character_cascade",
-    "cinematic_viewport_mask_sweep",
-    "obsidian_heavy_grotesque",
-    "subpixel_glow_mask",
-]
 
 
 def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -227,7 +331,10 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
     manifest_chunks = []
     last_hero_preset = ""
     preset_usage_counts: Dict[str, int] = {p: 0 for p in KINETIC_HERO_PRESETS}
-    brand_motif = (design_override or {}).get("brandMotif", "champagne_gold")
+    
+    # Ingest brand palette preferences from design override
+    brand_input = (design_override or {}).get("brandMotif") or (design_override or {}).get("brand") or design_override
+    brand_palette = resolve_brand_palette(brand_input)
 
     for idx, chunk in enumerate(chunks):
         raw_text = str(chunk.get("text", "")).strip()
@@ -252,13 +359,7 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
         is_single_word = word_count == 1
         
         if is_single_word:
-            single_pool = [
-                "cinematic_viewport_mask_sweep",
-                "apple_keynote_headline_punch",
-                "apple_pro_display_hero_revealer",
-                "obsidian_heavy_grotesque",
-            ]
-            single_candidates = [p for p in single_pool if p != last_hero_preset] or single_pool
+            single_candidates = [p for p in SINGLE_WORD_HERO_PRESETS if p != last_hero_preset] or SINGLE_WORD_HERO_PRESETS
             hero_fx_preset = single_candidates[idx % len(single_candidates)]
         else:
             candidates = [p for p in KINETIC_HERO_PRESETS if p != last_hero_preset]
@@ -296,21 +397,24 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
 
             raw_layer_text = " ".join(layer_words)
             f_style = layer_spec.get("font_style", {})
-            f_effects = layer_spec.get("effects", {})
-            casing = f_style.get("casing", prof.get("metadata", {}).get("casing_strategy", "mixed"))
-
-            # Resolve Font Candidate faithfully
-            candidates = layer_spec.get("matched_font_candidates", [])
-            primary_font = candidates[0] if candidates else "Playfair Display"
-            accent_font = candidates[1] if len(candidates) > 1 else primary_font
-
             role = layer_spec.get("role", "body")
             is_hero_layer = alloc.get("is_hero", False)
+            casing = f_style.get("casing", prof.get("metadata", {}).get("casing_strategy", "mixed"))
+
+            # Resolve Font Candidate faithfully & upgrade basic fonts to high-tier cinematic typography
+            candidates = layer_spec.get("matched_font_candidates", [])
+            raw_primary = candidates[0] if candidates else "Playfair Display"
+            raw_accent = candidates[1] if len(candidates) > 1 else raw_primary
+            primary_font = upgrade_font_candidate(raw_primary, is_hero_layer, role)
+            accent_font = upgrade_font_candidate(raw_accent, is_hero_layer, role)
             
             base_size = int(f_style.get("size_px_base", 54))
             # Proportional sizing for 1080x1920 canvas:
             if is_hero_layer:
-                font_size_px = max(130, min(170, int(base_size * 2.4)))
+                if is_single_word:
+                    font_size_px = max(150, min(180, int(base_size * 2.8)))
+                else:
+                    font_size_px = max(130, min(165, int(base_size * 2.4)))
                 layer_fx = hero_fx_preset
             else:
                 font_size_px = max(68, min(88, int(base_size * 1.5)))
@@ -323,8 +427,12 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
 
             raw_color = resolve_faithful_font_color(f_style.get("color"))
             style_treatment = resolve_layer_gradient_and_glow(
-                prof["profile_name"], role, raw_color, is_hero_layer, brand_motif=brand_motif
+                prof["profile_name"], role, raw_color, is_hero_layer, brand_palette=brand_palette
             )
+
+            letter_spacing = float(f_style.get("letter_spacing_em", 0.01))
+            if is_single_word and is_hero_layer:
+                letter_spacing = max(0.06, letter_spacing)
 
             rendered_layers.append({
                 "layerIndex": layer_idx,
@@ -340,7 +448,7 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                 "fontSizePx": font_size_px,
                 "color": style_treatment["textFillColor"],
                 "casing": casing,
-                "letterSpacingEm": float(f_style.get("letter_spacing_em", 0.01)),
+                "letterSpacingEm": letter_spacing,
                 "lineHeight": float(f_style.get("line_height", 1.05)),
                 "isHero": is_hero_layer,
                 "fxPreset": layer_fx,
@@ -349,38 +457,38 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                 "shadow": style_treatment["shadow"],
                 "textFillColor": style_treatment["textFillColor"],
                 "hasGradient": style_treatment["hasGradient"],
-                "doubleUnderline": bool(f_effects.get("double_underline", False)),
+                "doubleUnderline": bool(layer_spec.get("effects", {}).get("double_underline", False)),
             })
 
-        chunk_entry = {
+        manifest_chunks.append({
             "chunkIndex": chunk.get("chunkIndex", idx + 1),
             "text": raw_text,
-            # Synchronized exact millisecond timestamps from source media
-            "startMs": chunk.get("startMs", 0),
-            "endMs": chunk.get("endMs", 0),
-            "outputStartMs": chunk.get("outputStartMs", chunk.get("startMs", 0)),
-            "outputEndMs": chunk.get("outputEndMs", chunk.get("endMs", 0)),
-            "fontProfile": prof["profile_name"],
+            "profileId": prof["id"],
+            "profileName": prof["profile_name"],
             "profileFilename": prof["filename"],
             "pairedImage": prof.get("paired_image"),
             "fxPreset": hero_fx_preset,
             "placement": {
                 "xPercent": "50%",
-                # Centered in the upper chest zone (56% Y), completely clear of mouth & chin
                 "yPercent": "56%",
-                "anchor": "center"
+                "anchor": "center",
             },
+            "sourceStartMs": chunk.get("sourceStartMs", chunk.get("startMs", 0)),
+            "sourceEndMs": chunk.get("sourceEndMs", chunk.get("endMs", 0)),
+            "outputStartMs": chunk.get("outputStartMs", chunk.get("startMs", 0)),
+            "outputEndMs": chunk.get("outputEndMs", chunk.get("endMs", 0)),
+            "startMs": chunk.get("startMs", 0),
+            "endMs": chunk.get("endMs", 0),
             "layers": rendered_layers,
-        }
-        manifest_chunks.append(chunk_entry)
+            "words": chunk_word_objs,
+        })
 
     font_manifest = {
-        "governanceVersion": "5.0-luxury-editorial-brand-motif",
-        "brandMotif": brand_motif,
-        "totalChunks": len(manifest_chunks),
-        "profilesLoadedCount": len(profiles),
-        "combinatorialsUsed": list({c["fontProfile"] for c in manifest_chunks}),
-        "pairedImagesReferenced": list({c["pairedImage"] for c in manifest_chunks if c.get("pairedImage")}),
-        "chunks": manifest_chunks
+        "composition": "PrometheusMinRun",
+        "canvas": {"width": 1080, "height": 1920, "aspectRatio": "9:16"},
+        "profileCount": len(profiles),
+        "chunkCount": len(manifest_chunks),
+        "brandPalette": brand_palette,
+        "chunks": manifest_chunks,
     }
     return font_manifest

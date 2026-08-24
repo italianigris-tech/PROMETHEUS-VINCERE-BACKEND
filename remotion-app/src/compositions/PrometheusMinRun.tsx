@@ -5,6 +5,7 @@ import {
   Sequence,
   Video,
   interpolate,
+  spring,
   staticFile,
   useCurrentFrame,
   useVideoConfig,
@@ -97,7 +98,7 @@ export type PrometheusMinRunProps = {
 };
 
 // ---------------------------------------------------------------------------
-// Kinetic Motion Layer Renderer (Clean Luxury Editorial & Zero Clipping)
+// Kinetic Motion Layer Renderer (Word-by-Word & Character-Level Motion Engines)
 // ---------------------------------------------------------------------------
 const KineticLayerRenderer: React.FC<{
   layer: TypographyLayer;
@@ -107,7 +108,7 @@ const KineticLayerRenderer: React.FC<{
   fps: number;
   totalFrames: number;
 }> = ({ layer, frame, chunkStartMs, chunkEndMs, fps, totalFrames }) => {
-  const fx = layer.fxPreset || (layer.isHero ? "apple_keynote_headline_punch" : "subpixel_glow_mask");
+  const fx = layer.fxPreset || (layer.isHero ? "focus_hunting_bokeh_shimmer" : "subpixel_glow_mask");
 
   const baseTextStyle: React.CSSProperties = {
     fontFamily: `"${layer.fontFamily}", "${layer.accentFont || "sans-serif"}", sans-serif`,
@@ -130,57 +131,264 @@ const KineticLayerRenderer: React.FC<{
 
   const words = layer.text.split(" ").filter((w) => w.length > 0);
 
-  // 1. APPLE KEYNOTE HEADLINE PUNCH (Silky scale ease + subtle Gaussian blur decay)
+  // 1. FOCUS HUNTING BOKEH SHIMMER (Soft optical defocus hunt & crisp lock)
+  if (fx === "focus_hunting_bokeh_shimmer" || fx === "camera_rack_focus_hunt") {
+    return (
+      <div style={baseTextStyle}>
+        {words.map((word, wIdx) => {
+          const wordStart = wIdx * 2.0;
+          const localFrame = Math.max(0, frame - wordStart);
+          
+          const blur = interpolate(localFrame, [0, 2, 5, 8], [14, 4, 1.5, 0], {
+            extrapolateLeft: "clamp",
+            extrapolateRight: "clamp",
+          });
+          const scale = interpolate(localFrame, [0, 3, 6, 8], [1.08, 0.98, 1.02, 1.0], {
+            extrapolateLeft: "clamp",
+            extrapolateRight: "clamp",
+          });
+          const opacity = interpolate(localFrame, [0, 1, 4, 7], [0, 0.85, 0.92, 1.0], {
+            extrapolateLeft: "clamp",
+            extrapolateRight: "clamp",
+          });
+          const shimmerGlow = interpolate(localFrame, [5, 8, 12], [0, 0.45, 0], {
+            extrapolateLeft: "clamp",
+            extrapolateRight: "clamp",
+          });
+
+          return (
+            <span
+              key={`focus-${wIdx}`}
+              style={{
+                display: "inline-block",
+                whiteSpace: "nowrap",
+                margin: "0 0.14em",
+                opacity,
+                transform: `scale(${scale})`,
+                filter: `blur(${blur}px)`,
+                textShadow: `0 2px 10px rgba(0,0,0,0.45), 0 0 16px rgba(245,230,196,${shimmerGlow})`,
+              }}
+            >
+              {word}
+            </span>
+          );
+        })}
+      </div>
+    );
+  }
+
+  // 2. GAUSSIAN BLUR REVEAL SWEEP (Word-by-word staggered Gaussian blur decay)
+  if (fx === "gaussian_blur_reveal_sweep" || fx === "blur_reveal_sweep") {
+    return (
+      <div style={baseTextStyle}>
+        {words.map((word, wIdx) => {
+          const wordStart = wIdx * 2.2;
+          const localFrame = Math.max(0, frame - wordStart);
+          const p = interpolate(localFrame, [0, 8], [0, 1], {
+            extrapolateLeft: "clamp",
+            extrapolateRight: "clamp",
+            easing: Easing.out(Easing.cubic),
+          });
+          const translateY = interpolate(p, [0, 1], [14, 0]);
+          const blur = interpolate(p, [0, 0.75, 1], [18, 2, 0]);
+          const opacity = interpolate(p, [0, 0.4, 1], [0, 0.85, 1]);
+
+          return (
+            <span
+              key={`blur-sweep-${wIdx}`}
+              style={{
+                display: "inline-block",
+                whiteSpace: "nowrap",
+                margin: "0 0.15em",
+                opacity,
+                transform: `translateY(${translateY}px)`,
+                filter: `blur(${blur}px)`,
+                textShadow: "0 2px 10px rgba(0,0,0,0.45), 0 1px 2px rgba(0,0,0,0.3)",
+              }}
+            >
+              {word}
+            </span>
+          );
+        })}
+      </div>
+    );
+  }
+
+  // 3. ELEGANT PER-WORD SPRING BLUR PHYSICS ENGINE (Remotion spring physics)
+  if (fx === "spring_blur_physics_engine" || fx === "spring_physics") {
+    return (
+      <div style={baseTextStyle}>
+        {words.map((word, wIdx) => {
+          const wordStart = wIdx * 2.0;
+          const localFrame = Math.max(0, frame - wordStart);
+          const spr = spring({
+            fps,
+            frame: localFrame,
+            config: { mass: 0.7, damping: 12, stiffness: 170 },
+          });
+          const scale = interpolate(spr, [0, 1], [0.84, 1.0]);
+          const translateY = interpolate(spr, [0, 1], [18, 0]);
+          const blur = interpolate(spr, [0, 0.8, 1], [16, 1, 0]);
+          const opacity = interpolate(spr, [0, 0.3, 1], [0, 0.9, 1]);
+
+          return (
+            <span
+              key={`spring-word-${wIdx}`}
+              style={{
+                display: "inline-block",
+                whiteSpace: "nowrap",
+                margin: "0 0.15em",
+                opacity,
+                transform: `translateY(${translateY}px) scale(${scale})`,
+                filter: `blur(${blur}px)`,
+                textShadow: "0 2px 10px rgba(0,0,0,0.45), 0 1px 2px rgba(0,0,0,0.3)",
+              }}
+            >
+              {word}
+            </span>
+          );
+        })}
+      </div>
+    );
+  }
+
+  // 4. KINETIC SLOT / FIGMA CHARACTER REEL ENGINE (Vertical character reel odometer slot)
+  if (fx === "kinetic_slot_character_reel" || fx === "staggered_glyph_slot") {
+    let globalCharIdx = 0;
+    return (
+      <div style={baseTextStyle}>
+        {words.map((word, wIdx) => {
+          const charSpans = Array.from(word).map((ch) => {
+            const charIdx = globalCharIdx++;
+            const charStart = charIdx * 0.9;
+            const localFrame = Math.max(0, frame - charStart);
+            const spr = spring({
+              fps,
+              frame: localFrame,
+              config: { mass: 0.6, damping: 11, stiffness: 190 },
+            });
+            const translateY = interpolate(spr, [0, 1], [100, 0]);
+            const blur = interpolate(spr, [0, 0.7, 1], [8, 0, 0]);
+            const opacity = interpolate(spr, [0, 0.3, 1], [0, 0.9, 1]);
+
+            return (
+              <span
+                key={`slot-ch-${charIdx}`}
+                style={{
+                  display: "inline-block",
+                  overflow: "hidden",
+                  height: "1.15em",
+                  verticalAlign: "bottom",
+                }}
+              >
+                <span
+                  style={{
+                    display: "inline-block",
+                    opacity,
+                    transform: `translateY(${translateY}%)`,
+                    filter: `blur(${blur}px)`,
+                    padding: "0 0.01em",
+                  }}
+                >
+                  {ch}
+                </span>
+              </span>
+            );
+          });
+
+          return (
+            <span
+              key={`slot-word-${wIdx}`}
+              style={{
+                display: "inline-flex",
+                whiteSpace: "nowrap",
+                margin: "0 0.15em",
+                textShadow: "0 2px 10px rgba(0,0,0,0.45)",
+              }}
+            >
+              {charSpans}
+            </span>
+          );
+        })}
+      </div>
+    );
+  }
+
+  // 5. APPLE KEYNOTE HEADLINE PUNCH (Per-word scale bounce + blur dissipation)
   if (fx === "apple_keynote_headline_punch" || fx === "keynote_punch") {
-    const p = interpolate(frame, [0, 8], [0, 1], {
-      extrapolateLeft: "clamp",
-      extrapolateRight: "clamp",
-      easing: Easing.out(Easing.back(1.4)),
-    });
-    const scale = interpolate(p, [0, 0.7, 1], [0.90, 1.03, 1.0]);
-    const blur = interpolate(p, [0, 0.6, 1], [10, 0, 0]);
-
     return (
-      <div
-        style={{
-          ...baseTextStyle,
-          opacity: p,
-          transform: `scale(${scale})`,
-          filter: `blur(${blur}px)`,
-          textShadow: "0 2px 10px rgba(0,0,0,0.45), 0 1px 2px rgba(0,0,0,0.3)",
-        }}
-      >
-        <span>{layer.text}</span>
+      <div style={baseTextStyle}>
+        {words.map((word, wIdx) => {
+          const wordStart = wIdx * 2.0;
+          const localFrame = Math.max(0, frame - wordStart);
+          const p = interpolate(localFrame, [0, 8], [0, 1], {
+            extrapolateLeft: "clamp",
+            extrapolateRight: "clamp",
+            easing: Easing.out(Easing.back(1.4)),
+          });
+          const scale = interpolate(p, [0, 0.7, 1], [0.88, 1.04, 1.0]);
+          const blur = interpolate(p, [0, 0.6, 1], [10, 0, 0]);
+          const opacity = interpolate(p, [0, 0.3, 1], [0, 0.9, 1]);
+
+          return (
+            <span
+              key={`keynote-word-${wIdx}`}
+              style={{
+                display: "inline-block",
+                whiteSpace: "nowrap",
+                margin: "0 0.15em",
+                opacity,
+                transform: `scale(${scale})`,
+                filter: `blur(${blur}px)`,
+                textShadow: "0 2px 10px rgba(0,0,0,0.45), 0 1px 2px rgba(0,0,0,0.3)",
+              }}
+            >
+              {word}
+            </span>
+          );
+        })}
       </div>
     );
   }
 
-  // 2. APPLE PRO DISPLAY HERO REVEALER (Subtle lift + Gaussian blur decay)
+  // 6. APPLE PRO DISPLAY HERO REVEALER (Per-word vertical glide + blur decay)
   if (fx === "apple_pro_display_hero_revealer" || fx === "pro_revealer") {
-    const p = interpolate(frame, [0, 7], [0, 1], {
-      extrapolateLeft: "clamp",
-      extrapolateRight: "clamp",
-      easing: Easing.out(Easing.cubic),
-    });
-    const translateY = interpolate(p, [0, 1], [12, 0]);
-    const blur = interpolate(p, [0, 0.7, 1], [12, 0, 0]);
-
     return (
-      <div
-        style={{
-          ...baseTextStyle,
-          opacity: p,
-          transform: `translateY(${translateY}px)`,
-          filter: `blur(${blur}px)`,
-          textShadow: "0 2px 10px rgba(0,0,0,0.45), 0 1px 2px rgba(0,0,0,0.3)",
-        }}
-      >
-        <span>{layer.text}</span>
+      <div style={baseTextStyle}>
+        {words.map((word, wIdx) => {
+          const wordStart = wIdx * 2.0;
+          const localFrame = Math.max(0, frame - wordStart);
+          const p = interpolate(localFrame, [0, 7], [0, 1], {
+            extrapolateLeft: "clamp",
+            extrapolateRight: "clamp",
+            easing: Easing.out(Easing.cubic),
+          });
+          const translateY = interpolate(p, [0, 1], [14, 0]);
+          const blur = interpolate(p, [0, 0.7, 1], [12, 0, 0]);
+          const opacity = interpolate(p, [0, 0.4, 1], [0, 0.9, 1]);
+
+          return (
+            <span
+              key={`pro-word-${wIdx}`}
+              style={{
+                display: "inline-block",
+                whiteSpace: "nowrap",
+                margin: "0 0.15em",
+                opacity,
+                transform: `translateY(${translateY}px)`,
+                filter: `blur(${blur}px)`,
+                textShadow: "0 2px 10px rgba(0,0,0,0.45), 0 1px 2px rgba(0,0,0,0.3)",
+              }}
+            >
+              {word}
+            </span>
+          );
+        })}
       </div>
     );
   }
 
-  // 3. DYNAMIC STAGGERED CHARACTER CASCADE (Gentle 3D spring cascade)
+  // 7. DYNAMIC STAGGERED CHARACTER CASCADE (Gentle 3D spring cascade)
   if (fx === "dynamic_staggered_character_cascade" || fx === "spring_character_cascade") {
     let charCounter = 0;
     return (
@@ -233,7 +441,7 @@ const KineticLayerRenderer: React.FC<{
     );
   }
 
-  // 4. CINEMATIC VIEWPORT MASK SWEEP (Clean horizontal clip reveal for single focus words)
+  // 8. CINEMATIC VIEWPORT MASK SWEEP (Clean horizontal clip reveal)
   if (fx === "cinematic_viewport_mask_sweep" || fx === "viewport_mask_sweep") {
     const p = interpolate(frame, [0, 8], [0, 1], {
       extrapolateLeft: "clamp",
@@ -254,7 +462,7 @@ const KineticLayerRenderer: React.FC<{
     );
   }
 
-  // 5. OBSIDIAN HEAVY GROTESQUE PUNCH
+  // 9. OBSIDIAN HEAVY GROTESQUE PUNCH
   if (fx === "obsidian_heavy_grotesque") {
     const p = interpolate(frame, [0, 7], [0, 1], {
       extrapolateLeft: "clamp",
@@ -279,26 +487,38 @@ const KineticLayerRenderer: React.FC<{
     );
   }
 
-  // 6. SUBPIXEL GLOW MASK (Companion layer clean entrance)
-  const p = interpolate(frame, [0, 6], [0, 1], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-    easing: Easing.out(Easing.cubic),
-  });
-  const translateY = interpolate(p, [0, 1], [8, 0]);
-  const blur = interpolate(p, [0, 1], [8, 0]);
-
+  // 10. SUBPIXEL GLOW MASK (Companion layer clean per-word entrance)
   return (
-    <div
-      style={{
-        ...baseTextStyle,
-        opacity: p,
-        transform: `translateY(${translateY}px)`,
-        filter: `blur(${blur}px)`,
-        textShadow: "0 2px 8px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.25)",
-      }}
-    >
-      <span>{layer.text}</span>
+    <div style={baseTextStyle}>
+      {words.map((word, wIdx) => {
+        const wordStart = wIdx * 1.8;
+        const localFrame = Math.max(0, frame - wordStart);
+        const p = interpolate(localFrame, [0, 6], [0, 1], {
+          extrapolateLeft: "clamp",
+          extrapolateRight: "clamp",
+          easing: Easing.out(Easing.cubic),
+        });
+        const translateY = interpolate(p, [0, 1], [8, 0]);
+        const blur = interpolate(p, [0, 1], [8, 0]);
+        const opacity = interpolate(p, [0, 0.5, 1], [0, 0.9, 1]);
+
+        return (
+          <span
+            key={`subpixel-word-${wIdx}`}
+            style={{
+              display: "inline-block",
+              whiteSpace: "nowrap",
+              margin: "0 0.15em",
+              opacity,
+              transform: `translateY(${translateY}px)`,
+              filter: `blur(${blur}px)`,
+              textShadow: "0 2px 8px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.25)",
+            }}
+          >
+            {word}
+          </span>
+        );
+      })}
     </div>
   );
 };

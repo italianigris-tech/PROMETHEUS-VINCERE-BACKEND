@@ -1,0 +1,129 @@
+{
+  "profile_name": "To_Sleep_Tonight_Two_Tone_Overlap_Treatment",
+  "version": "1.0.0",
+  "metadata": {
+    "target_aspect_ratio": "9:16",
+    "overall_mood": "Late-night cinematic confessional. Bold sans overlapping italic serif. Foreground overlap color inversion on sleep/tonight junction.",
+    "casing_strategy": "lowercase",
+    "total_word_count": 3,
+    "total_character_count": 13,
+    "treatment_notes": "SPECIAL: Where 'tonight' (italic serif) overlaps 'sleep' (heavy sans), the overlapping portion of 'sleep' inverts to WHITE — creating a layered Z-index stacking illusion. The two-word arrangement reads as a single phrase across two distinct type styles and hierarchies.",
+    "per_word_character_counts": [
+      { "word": "to", "character_count": 2 },
+      { "word": "sleep", "character_count": 5 },
+      { "word": "tonight.", "character_count": 8 }
+    ]
+  },
+  "layout_rules": {
+    "horizontal_alignment": "left",
+    "vertical_position": "lower_center",
+    "bottom_margin_percent": 18,
+    "max_width_percent": 88,
+    "layer_stacking": {
+      "z_order": ["layer_to_sleep", "layer_tonight"],
+      "overlap_treatment": {
+        "enabled": true,
+        "description": "Where 'tonight' italic layer sits visually atop 'sleep', the portion of 'sleep' beneath 'tonight' renders in #FFFFFF (white) to simulate letterform depth and Z-index layering.",
+        "overlap_inversion_color": "#FFFFFF"
+      }
+    },
+    "scrim_overlay": {
+      "enabled": false,
+      "type": "none",
+      "opacity": 0,
+      "color": "transparent"
+    }
+  },
+  "typography_layers": [
+    {
+      "layer_name": "layer_to_sleep",
+      "role": "primary_anchor",
+      "font_classification": "Heavy Condensed Geometric Sans-Serif",
+      "matched_font_candidates": [
+        "DM Sans",
+        "Inter",
+        "Outfit",
+        "Barlow Condensed"
+      ],
+      "font_style": {
+        "weight": 700,
+        "style": "normal",
+        "casing": "lowercase",
+        "color": "#93C5E8",
+        "color_notes": "Soft mid-tone periwinkle-blue. Sits behind the italic serif layer. The portion overlapped by 'tonight' renders white.",
+        "size_px_base": 68,
+        "relative_scale": 1.0,
+        "letter_spacing_em": -0.01,
+        "line_height": 1.05,
+        "vertical_margin_top_px": 0,
+        "text_align": "left"
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 2,
+          "blur_radius": 6,
+          "color": "rgba(0, 0, 0, 0.35)"
+        }
+      },
+      "placement": {
+        "x_percent": "8%",
+        "y_percent": "52%",
+        "anchor": "left_center",
+        "z_index": 1
+      },
+      "sample_text": "to sleep",
+      "word_count": 2,
+      "character_count": 7,
+      "per_word_character_counts": [
+        { "word": "to", "character_count": 2 },
+        { "word": "sleep", "character_count": 5 }
+      ]
+    },
+    {
+      "layer_name": "layer_tonight",
+      "role": "hero_overlap",
+      "font_classification": "Italic Serif — Transitional or Didone",
+      "matched_font_candidates": [
+        "Playfair Display",
+        "Bodoni Moda",
+        "Cormorant Garamond",
+        "DM Serif Display"
+      ],
+      "font_style": {
+        "weight": 400,
+        "style": "italic",
+        "casing": "lowercase",
+        "color": "#93C5E8",
+        "color_notes": "Matches the sans layer color. The italic serif floats forward, overlapping the tail of 'sleep'. The overlap produces white on the layer below.",
+        "size_px_base": 72,
+        "relative_scale": 1.08,
+        "letter_spacing_em": -0.01,
+        "line_height": 1.0,
+        "vertical_margin_top_px": 0,
+        "text_align": "left"
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 2,
+          "blur_radius": 8,
+          "color": "rgba(0, 0, 0, 0.4)"
+        }
+      },
+      "placement": {
+        "x_percent": "20%",
+        "y_percent": "62%",
+        "anchor": "left_center",
+        "z_index": 2,
+        "placement_note": "Positioned so 'tonight' descends and overlaps approximately the last 2-3 characters of 'sleep' on the line above. The S in tonight aligns roughly with the 'e' or 'p' in sleep."
+      },
+      "sample_text": "tonight.",
+      "word_count": 1,
+      "character_count": 8,
+      "per_word_character_counts": [
+        { "word": "tonight.", "character_count": 8 }
+      ]
+    }
+  ]
+}

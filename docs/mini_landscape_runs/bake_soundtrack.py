@@ -14,7 +14,10 @@ and renders the per-section SONGS into a full audio mix:
   AUD-04  voice ducking       music -6dB under speech (sidechain)
   AUD-06  emotional insert    payoff song insert honored (alt track)
   AUD-08  bed stays empty     no general bed, only per-section songs
+  AUD-09  transition beds     subtle synthesized riser under each song change
   blends  lowpass_sweep / beat_crossfade realized as windowed fades
+  SONG-07 single-song        adjacent same-track windows merge into one (no
+                             internal dips); short-form runs are one song
 
 Usage:
   python3 docs/mini_landscape_runs/bake_soundtrack.py \\
@@ -91,6 +94,26 @@ def build_ffmpeg_args(manifest: dict, video: str, out_path: str, music_only: boo
             seen.add(key); dedup.append(s)
     songs = dedup
 
+    # Merge adjacent/overlapping windows that share the SAME real asset + gain,
+    # so a continuous run of one song (SONG-07 single-song short-form, or a
+    # "none"-blend continuation) renders as ONE window with no internal gate
+    # fades — the one song plays clean end-to-end instead of dipping at every
+    # section boundary.
+    songs.sort(key=lambda s: (s["start"], s["end"]))
+    merged: list[dict] = []
+    for s in songs:
+        if (
+            merged
+            and merged[-1]["trackId"] == s["trackId"]
+            and merged[-1].get("alt") == s.get("alt")
+            and abs(merged[-1]["gainDb"] - s["gainDb"]) < 0.01
+            and s["start"] <= merged[-1]["end"] + 0.05
+        ):
+            merged[-1]["end"] = max(merged[-1]["end"], s["end"])
+        else:
+            merged.append(dict(s))
+    songs = merged
+
     # Inputs: 0 = video+voice, then one per unique real file
     unique_files = []
     for s in songs:
@@ -120,6 +143,35 @@ def build_ffmpeg_args(manifest: dict, video: str, out_path: str, music_only: boo
         chain += f",adelay={ms}|{ms}"
         pad = max(0, int(round((T - s["start"]) * 1000)))
         chain += f",apad=pad_dur={pad / 1000:.3f}[{label}]"
+        fc.append(chain)
+        mix_inputs.append(f"[{label}]")
+
+    # AUD-09: transition beds (risers) prime song-change boundaries. Each bed is
+    # a low-to-high tone sweep with a swell envelope, placed so it PEAKS at the
+    # boundary and fades out just after it. Synthesized (no samples on disk),
+    # mixed at a low level under the music — it primes the seam without being a
+    # hardcoded sound effect.
+    for i, bed in enumerate(manifest["soundtrack"].get("transitionBeds", [])):
+        rs = float(bed.get("riserSec", 2.2))
+        lvl = float(bed.get("levelDb", -25.0))
+        boundary = float(bed["boundarySec"])
+        # Riser: rises over `rs`, peaks AT the boundary, then decays for 1.0s
+        # so it bridges the incoming song's natural lead-in (no dead-air hole).
+        dur = rs + 1.0
+        start_ms = int(round((boundary - rs) * 1000))
+        if start_ms < 0:
+            continue
+        # Sweep 90 Hz -> 590 Hz by the boundary: phase = 2*pi*(90*t + K*t^3/3)
+        # with K = 500/rs^2, so f(rs) = 90 + 500 = 590 Hz. + a soft 2nd partial.
+        sweep = f"2*PI*(90*t+{500.0 / (3 * rs * rs):.4f}*t*t*t)"
+        expr = f"0.6*sin({sweep})+0.15*sin(2*{sweep})"
+        label = f"r{i}"
+        chain = f"aevalsrc=exprs='{expr}':s=48000:d={dur:.3f}"
+        chain += f",afade=t=in:st=0:d={rs:.3f}"
+        chain += f",afade=t=out:st={rs:.3f}:d=1.0"
+        chain += f",volume={lvl}dB"
+        chain += f",aformat=sample_rates=48000:channel_layouts=stereo"
+        chain += f",adelay={start_ms}|{start_ms}[{label}]"
         fc.append(chain)
         mix_inputs.append(f"[{label}]")
 
@@ -194,6 +246,8 @@ def main() -> int:
             use_alt = host_track == env["assetId"]
             real = SEED_TO_REAL_ALT.get(env["assetId"]) if use_alt else SEED_TO_REAL.get(env["assetId"], "???")
             print(f"  emotional_insert      {env['assetId']:24s} -> {real}  {'(alt asset)' if use_alt else ''}")
+    for bed in manifest["soundtrack"].get("transitionBeds", []):
+        print(f"  transition bed                                   at {bed['boundarySec']:5.1f}s ({bed['fromSectionId']} -> {bed['toSectionId']})  riser {bed.get('riserSec', 2.2)}s @ {bed.get('levelDb', -25)}dB")
     print(f"\n  video  : {args.video}")
     print(f"  output : {args.out}")
     return 0

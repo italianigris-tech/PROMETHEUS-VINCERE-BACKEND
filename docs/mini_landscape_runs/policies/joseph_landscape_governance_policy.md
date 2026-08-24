@@ -120,15 +120,17 @@ Z:30  — Foreground callouts, companion type, PiP chrome
 | AUD-03 | Bed fades in over the first 2s and out over the last 2s of the **cut** video. | 2.0s |
 | AUD-04 | Voice ducking enabled whenever a bed is present. | −6 dB, 0.04s attack, 0.25s release |
 | AUD-05 | Soundtrack programme length = cut duration + tail; never cut short, never left hanging. | tail 0.5s |
-| AUD-06 | Payoff/emotional sections may receive an `emotional_insert` pad selected by mood fingerprint (elevation/momentum/warmth), never hard-wedged to one track (seed rotation across candidate catalog). | — |
+| AUD-06 | Payoff/emotional sections may receive an `emotional_insert` pad selected by mood fingerprint (elevation/momentum/warmth), never hard-wedged to one track (seed rotation across candidate catalog). Suspended in single-song short-form mode (SONG-07) — one song arcs the whole clip. | — |
 | AUD-07 | Asset IDs resolve through the GoSound/Libra provider bridge (`libra_*`), mirroring mini-run `inst_loop_*` resolution in `soundtrack_governance_engine.ts`. | — |
 | AUD-08 | The general sound **bed** is left EMPTY by default (`songbed_empty` sentinel). Song **selection**, not the bed, is the crux of long-form audio. | — |
+| AUD-09 | When two distinct songs meet, a **transition bed** primes the seam: a subtle synthesized riser (low→high sweep, ~2.2s, ~−25 dB) peaking at the boundary and fading out just after. Never placed where the song does not actually change; never in single-song runs. | riser 2.2s, −25 dB |
 | SONG-01 | Every section receives exactly one song selection, chosen by a vibe→track scoring model (energy/momentum/warmth/clarity/conviction/prestige) over the personal song catalog. | one per section |
 | SONG-02 | **Vocals policy**: instrumentals under dialogue; vocals tracks allowed only at hook/payoff windows (default `allowVocalsRoles: [payoff, hook]`); `avoidVocals: true` removes vocals everywhere else. | — |
-| SONG-03 | **Anti-fatigue / dynamism**: the same track never repeats back-to-back; same-family streaks capped (`fatigueCap`, default 2); a re-used track sits out `exhaustionGap` (default 3) sections. | gap ≥ 3 |
+| SONG-03 | **Anti-fatigue / dynamism**: the same track never repeats back-to-back; same-family streaks capped (`fatigueCap`, default 2); a re-used track sits out `exhaustionGap` (default 3) sections. Lifted in single-song short-form mode — see SONG-07. | gap ≥ 3 |
 | SONG-04 | **Blends** are chosen between adjacent sections by semantic affinity (`songBlendScore`); a blend never pairs a track with itself. | — |
 | SONG-05 | The semantic node (`landscape_semantic_theme.ts`) turns per-section transcript + editorial weights into a `SemanticTheme` (dominant theme + per-section vibe); song choice traces causally back to that vibe. | deterministic |
 | SONG-06 | Dynamic user preference overrides (`preferredTrackIds` / `bannedTrackIds`) are honored and re-run governance; preferences never bypass fatigue/bed rules. | — |
+| SONG-07 | **Short-form single-song policy**: when the cut video is ≤ 90s, the whole run is ONE best-fit song (scored against the video-level vibe) that plays end-to-end — no per-section stitching, no seams, no transition beds. Per-section song-hopping on a ~1 minute clip fatigues the viewer and fights the voice; one ideal song is the professional short-form move. | ≤ 90s → 1 song |
 
 ---
 

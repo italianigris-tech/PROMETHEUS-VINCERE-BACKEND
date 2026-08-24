@@ -9,6 +9,8 @@
  *   5. Blends connect two distinct selected tracks.
  *   6. Dynamic user preference overrides (force / ban) actually change the run.
  *   7. The Stage-6 soundtrack programme keeps the sound bed EMPTY.
+ *   8. SONG-07: short-form (≤ 90s) runs are ONE song with no seams; long-form
+ *      runs keep per-section songs + transition beds (AUD-09).
  *
  * Run: npx tsx docs/mini_landscape_runs/tests/test_song_selector.ts
  */
@@ -42,27 +44,34 @@ const TEXTS = [
   "thank you for watching, take the first step now",
 ];
 
-const sections: LandscapeSection[] = ROLES.map((role, i) => {
-  const startSec = i * 10;
-  return {
-    sectionId: `sec_${i + 1}_${role}`,
-    role,
-    startSec,
-    endSec: startSec + 9,
-    durationSec: 9,
-    text: TEXTS[i],
-    semanticWeight: 0.6,
-    commercialPressure: 0.5,
-    fatigueRisk: 0.3,
-    cause: { gate: "section_role", reason: "test section" },
-  };
-});
+/** Build 6 sections with the given per-section duration (seconds). */
+function makeSections(perSectionSec: number): LandscapeSection[] {
+  return ROLES.map((role, i) => {
+    const startSec = i * perSectionSec;
+    return {
+      sectionId: `sec_${i + 1}_${role}`,
+      role,
+      startSec,
+      endSec: startSec + perSectionSec,
+      durationSec: perSectionSec,
+      text: TEXTS[i],
+      semanticWeight: 0.6,
+      commercialPressure: 0.5,
+      fatigueRisk: 0.3,
+      cause: { gate: "section_role", reason: "test section" },
+    };
+  });
+}
+
+// Short-form (54s) and long-form (180s) fixtures.
+const shortSections = makeSections(9);
+const longSections = makeSections(30);
 
 console.log("=============================================");
 console.log("SEMANTIC VIBE NODE");
 console.log("=============================================");
 const theme = resolveSemanticTheme({
-  sections: sections.map((s) => ({
+  sections: shortSections.map((s) => ({
     sectionId: s.sectionId, role: s.role, text: s.text,
     semanticWeight: s.semanticWeight, commercialPressure: s.commercialPressure, fatigueRisk: s.fatigueRisk,
   })),
@@ -76,10 +85,11 @@ assert(theme.source === "deterministic", "Semantic node is deterministic by defa
 const hookVibe = theme.perSection.find((s) => s.sectionId === "sec_1_hook")!;
 assert(hookVibe.conviction > 0.5, `Hook conviction raised by lexical evidence (${hookVibe.conviction})`);
 console.log("\n=============================================");
-console.log("SONG SELECTOR (default run over the seed catalog)");
+console.log("SONG SELECTOR — LONG-FORM (180s: per-section songs still apply)");
 console.log("=============================================");
 const selectArgs = {
-  sections: sections.map((s) => ({
+  videoDurationSec: 180,
+  sections: longSections.map((s) => ({
     sectionId: s.sectionId, role: s.role, startSec: s.startSec, endSec: s.endSec, text: s.text,
   })),
   theme,
@@ -89,7 +99,7 @@ const program = selectSongProgram(selectArgs);
 assert(program.selections.length === 6, "Every section got exactly one song");
 const used = program.selections.map((s) => s.trackId);
 const distinct = new Set(used);
-assert(distinct.size >= 4, "Dynamism: at least 4 distinct tracks across the run");
+assert(distinct.size >= 4, "Dynamism: at least 4 distinct tracks across the long-form run");
 assert(
   program.selections.every((s, i) => i === 0 || s.trackId !== used[i - 1]),
   "Anti-fatigue: same track never repeats back-to-back",
@@ -102,6 +112,40 @@ assert(
 assert(program.governance.allSectionsSelected, "Governance reports all sections selected");
 assert(program.governance.fatigueSafe, "Governance reports fatigue-safe order");
 assert(program.governance.blendsOrphanFree, "Governance reports blends are distinct-paired");
+
+console.log("\n=============================================");
+console.log("SONG SELECTOR — SHORT-FORM (54s: ONE song end-to-end, SONG-07)");
+console.log("=============================================");
+const shortProgram = selectSongProgram({
+  videoDurationSec: 54,
+  sections: shortSections.map((s) => ({
+    sectionId: s.sectionId, role: s.role, startSec: s.startSec, endSec: s.endSec, text: s.text,
+  })),
+  theme,
+  catalog: SEED_SONG_TRACKS,
+});
+assert(shortProgram.selections.length === 6, "Single-song mode still covers every section");
+const shortTracks = new Set(shortProgram.selections.map((s) => s.trackId));
+assert(shortTracks.size === 1, `SONG-07: short-form run is ONE song (got ${shortTracks.size})`);
+assert(shortProgram.blends.length === 0, "SONG-07: no blends/seams in a single-song run");
+assert(shortProgram.governance.fatigueSafe, "Single-song governance stays fatigue-safe (SONG-07 exemption)");
+assert(
+  shortProgram.governance.checks.find((c) => c.check.includes("fatigue"))!.detail.includes("SONG-07"),
+  "Fatigue check documents the single-song exemption",
+);
+const forcedShort = selectSongProgram({
+  videoDurationSec: 54,
+  sections: shortSections.map((s) => ({
+    sectionId: s.sectionId, role: s.role, startSec: s.startSec, endSec: s.endSec, text: s.text,
+  })),
+  theme,
+  catalog: SEED_SONG_TRACKS,
+  options: { preferredTrackIds: ["seed_cinematic_braam_04"] } satisfies SongSelectionOptions,
+});
+assert(
+  forcedShort.selections.every((s) => s.trackId === "seed_cinematic_braam_04"),
+  "SONG-07: caller-preferred track carries the whole short-form run",
+);
 
 console.log("\n=============================================");
 console.log("USER PREFERENCES (dynamic, not a naive two-line answer)");
@@ -123,20 +167,38 @@ const vocalPolicy = selectSongProgram({
   options: { avoidVocals: true, allowVocalsRoles: ["payoff"] } satisfies SongSelectionOptions,
 });
 for (const sel of vocalPolicy.selections) {
-  const role = sections.find((s) => s.sectionId === sel.sectionId)!.role;
+  const role = longSections.find((s) => s.sectionId === sel.sectionId)!.role;
   assert(!sel.hasVocals || role === "payoff", "Vocals policy: only payoff may carry vocals");
 }
 
 console.log("\n=============================================");
 console.log("STAGE-6 SOUNDTRACK PROGRAM (song selection is the crux; bed EMPTY)");
 console.log("=============================================");
-const soundtrack = buildSoundtrackProgram(60, sections);
+// Short-form (60s video) → single-song mode: no emotional_insert, no beds.
+const soundtrack = buildSoundtrackProgram(60, shortSections);
 assert(soundtrack.soundBed === "empty", "Sound bed is deliberately empty (AUD-08)");
 assert(soundtrack.bedId === "songbed_empty", "bedId sentinel is songbed_empty");
 assert(soundtrack.catalogSource === "seed", "Seed catalog is the run source (override-ready)");
 assert(soundtrack.selections!.length === 6, "Program ships per-section song selections");
+assert(soundtrack.singleSongMode === true, "Short-form program is single-song mode (SONG-07)");
+assert(soundtrack.blends!.length === 0, "Single-song program has no song-segue blends");
+assert(!soundtrack.sections.some((s) => s.role === "emotional_insert"), "Single-song run skips the emotional insert (one song arcs it)");
+assert(soundtrack.transitionBeds!.length === 0, "Single-song run has no transition beds (no seams)");
 assert(soundtrack.theme!.dominantTheme.length > 0, "Program ships the semantic theme");
-assert(soundtrack.sections.some((s) => s.role === "emotional_insert"), "Payoff emotional insert persists");
+
+// Long-form (240s video) → multi-song mode: emotional_insert + transition beds.
+const longSoundtrack = buildSoundtrackProgram(240, longSections);
+assert(longSoundtrack.singleSongMode === false, "Long-form program is multi-song mode");
+assert(longSoundtrack.sections.some((s) => s.role === "emotional_insert"), "Payoff emotional insert persists in long-form (AUD-06)");
+assert(longSoundtrack.transitionBeds!.length >= 4, `Song changes get transition beds in long-form (got ${longSoundtrack.transitionBeds!.length})`);
+assert(
+  longSoundtrack.transitionBeds!.every((b) => b.boundarySec >= b.riserSec && b.boundarySec <= longSoundtrack.totalSec - 0.5),
+  "Transition beds stay in-bounds and never start before the video",
+);
+assert(
+  longSoundtrack.transitionBeds!.every((b) => b.levelDb <= -20),
+  "Transition beds are subtle (never a loud sound effect)",
+);
 
 console.log("\n=============================================");
 console.log("SONG SELECTOR TESTS: " + passedChecks + "/" + totalChecks + " passed");

@@ -214,6 +214,13 @@ export interface SoundtrackProgram {
   selections?: SongSelection[];
   /** How adjacent songs blend across section boundaries. */
   blends?: SongBlend[];
+  /** True when the whole run is ONE song (short-form policy, SONG-07). */
+  singleSongMode?: boolean;
+  /**
+   * Subtle riser beds under song-change boundaries (multi-song runs only).
+   * Empty for single-song runs — the one song never needs a seam.
+   */
+  transitionBeds?: TransitionBed[];
 }
 
 /**
@@ -312,6 +319,23 @@ export interface SongBlend {
   blendId: SongBlendId;
   blendScore: number;
   justification: string;
+  cause: CausalRef;
+}
+
+/**
+ * A subtle transition bed (riser) that primes the listener at a song
+ * boundary. Synthesized in the bake as a low-to-high tone sweep with a
+ * rising envelope, mixed at a low level under the music crossfade. Only
+ * present when two distinct songs meet (blendId !== "none").
+ */
+export interface TransitionBed {
+  boundarySec: number;
+  fromSectionId: string;
+  toSectionId: string;
+  /** Duration of the rising bed (sweeps from ~100 Hz to ~600 Hz). */
+  riserSec: number;
+  /** Peak level relative to the music bus (e.g. -25 dB). */
+  levelDb: number;
   cause: CausalRef;
 }
 

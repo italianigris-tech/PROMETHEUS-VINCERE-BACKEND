@@ -39,10 +39,19 @@ export interface SongSelectionOptions {
   exhaustionGap?: number;
   /** Maximum consecutive sections sharing one musical family. */
   fatigueCap?: number;
+  /**
+   * Short-form single-song policy (SONG-07): when the whole video is at or
+   * below this duration, the entire run uses ONE best-fit song with no
+   * seams — per-section stitching fatigues the viewer on short clips.
+   * Set 0 to disable.
+   */
+  shortFormSingleSongMaxSec?: number;
   seed?: number;
 }
 
 export interface SelectSongProgramInput {
+  /** Total (cut) video duration in seconds — the short-form gate (SONG-07). */
+  videoDurationSec?: number;
   sections: Array<{
     sectionId: string;
     role: string;
@@ -83,6 +92,7 @@ const DEFAULT = {
   allowVocalsRoles: ["payoff", "hook"],
   exhaustionGap: 3,
   fatigueCap: 2,
+  shortFormSingleSongMaxSec: 90,
 };
 
 type VibeTarget = VibeVector & { themeLabels?: string[]; role?: string };
@@ -130,6 +140,7 @@ export function selectSongProgram(input: SelectSongProgramInput): SelectSongProg
     allowVocalsRoles: input.options?.allowVocalsRoles ?? DEFAULT.allowVocalsRoles,
     exhaustionGap: input.options?.exhaustionGap ?? DEFAULT.exhaustionGap,
     fatigueCap: input.options?.fatigueCap ?? DEFAULT.fatigueCap,
+    shortFormSingleSongMaxSec: input.options?.shortFormSingleSongMaxSec ?? DEFAULT.shortFormSingleSongMaxSec,
     momentumBias: input.options?.momentumBias ?? "normal",
     preferredTrackIds: input.options?.preferredTrackIds ?? [],
     bannedTrackIds: input.options?.bannedTrackIds ?? [],
@@ -144,6 +155,43 @@ export function selectSongProgram(input: SelectSongProgramInput): SelectSongProg
 
   const momentumShifts: Record<string, number> = { calm: -0.15, normal: 0, driving: 0.2 };
   const biasMomentum = momentumShifts[opts.momentumBias] ?? 0;
+
+  // SONG-07: short-form single-song mode. When the whole clip is short, one
+  // ideal song carries the run end-to-end; per-section stitching on a ~1
+  // minute video fatigues the viewer and fights the voice. The one song is
+  // chosen against the VIDEO-LEVEL vibe so it arcs the whole clip.
+  const videoDurationSec = input.videoDurationSec ?? Math.max(0, ...input.sections.map((s) => s.endSec));
+  const singleSong =
+    opts.shortFormSingleSongMaxSec > 0 &&
+    videoDurationSec > 0 &&
+    videoDurationSec <= opts.shortFormSingleSongMaxSec;
+
+  if (singleSong) {
+    const forcedId = preferredOrder[0];
+    const target: VibeTarget = {
+      ...input.theme.video,
+      momentum: clamp01(input.theme.video.momentum + biasMomentum),
+      themeLabels: input.theme.values.length > 0 ? input.theme.values : [input.theme.dominantTheme],
+      role: "bed",
+    };
+    const vocalsAllowed = !opts.avoidVocals || opts.allowVocalsRoles.includes("payoff");
+    const ranked = input.catalog
+      .filter((t) => !banned.has(t.id))
+      .filter((t) => vocalsAllowed || !t.hasVocals)
+      .map((t) => ({ track: t, ...scoreTrack(t, target, "bed", opts) }));
+    const pick = forcedId ? ranked.find((r) => r.track.id === forcedId) ?? ranked[0] : ranked[0];
+    if (pick) {
+      const reason = forcedId
+        ? `SONG-07 short-form single song (${videoDurationSec.toFixed(1)}s <= ${opts.shortFormSingleSongMaxSec}s): caller-preferred track ${pick.track.id} carries the whole run.`
+        : `SONG-07 short-form single song (${videoDurationSec.toFixed(1)}s <= ${opts.shortFormSingleSongMaxSec}s): one ideal song (${pick.track.title}) runs end-to-end instead of per-section stitching.`;
+      const selections = input.sections.map((sec, idx) =>
+        selectionFor(sec, pick.track, pick.score, [reason, ...pick.reasons], sec.role, idx),
+      );
+      const governance = governSongProgram(selections, [], input.sections, opts, { singleSong: true });
+      return { selections, blends: [], governance };
+    }
+    // Fall through to the per-section path only if the catalog is empty.
+  }
 
   input.sections.forEach((sec, idx) => {
     const vibe = findVibe(input.theme, sec.sectionId);
@@ -303,6 +351,7 @@ function governSongProgram(
   blends: SongBlend[],
   sections: SelectSongProgramInput["sections"],
   opts: Required<SongSelectionOptions>,
+  flags: { singleSong?: boolean } = {},
 ): SelectSongProgram["governance"] {
   const checks: Array<{ check: string; pass: boolean; detail: string }> = [];
 
@@ -313,12 +362,16 @@ function governSongProgram(
     detail: `${selections.length}/${sections.length} sections`,
   });
 
-  // Fatigue guard: no immediate same-track repeat; no same-family streak over cap.
+  // Fatigue guard: no immediate same-track repeat; no same-family streak over
+  // cap. In single-song short-form mode (SONG-07) the same track across the
+  // whole run is the point, so the anti-fatigue guard is intentionally lifted.
   let fatigueSafe = true;
-  let fatigueDetail = "no same-track back-to-back";
+  let fatigueDetail = flags.singleSong
+    ? "single-song short-form mode (SONG-07): repetition is the point"
+    : "no same-track back-to-back";
   const famSeries = selections.map((s) => famOf(s.trackId));
   let streak = 1;
-  for (let i = 1; i < famSeries.length && fatigueSafe; i++) {
+  for (let i = 1; i < famSeries.length && fatigueSafe && !flags.singleSong; i++) {
     if (famSeries[i] === famSeries[i - 1]) {
       streak++;
       if (opts.fatigueCap > 0 && streak > opts.fatigueCap) {

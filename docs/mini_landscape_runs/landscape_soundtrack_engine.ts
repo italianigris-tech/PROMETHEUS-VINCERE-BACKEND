@@ -6,10 +6,14 @@
  *   2. read the SEMANTIC TEME of each section's transcript (a causally-linked
  *      node, not a naive two-line guess),
  *   3. SELECT a song per section from the personal catalog (the crux),
- *   4. BLEND across song boundaries so the run never fatigues from repetition,
- *   5. leave the general SOUND BED EMPTY — per studio policy the bed is not the
- *      point; song selection is. (Libra/short-form generation is out of scope
- *      for long-form beds and would not be economical over 20-40 minutes.)
+ *   4. SHORT-FORM (≤ 90s): the whole run is ONE song end-to-end (SONG-07) —
+ *      per-section stitching on a ~1 minute clip fatigues the viewer and
+ *      fights the voice; one ideal song runs its course,
+ *   5. LONG-FORM: BLEND across song boundaries so the run never fatigues from
+ *      repetition, and lay a subtle synthesized riser bed under each song
+ *      change (AUD-09) so the seam is primed, never dead,
+ *   6. leave the general SOUND BED EMPTY — per studio policy the bed is not the
+ *      point; song selection is.
  */
 
 import type {
@@ -69,6 +73,7 @@ export function buildSongProgram(
 
   // 3.) Per-section song selection (the crux).
   const program = selectSongProgram({
+    videoDurationSec,
     sections: sections.map((s) => ({
       sectionId: s.sectionId,
       role: s.role,
@@ -80,6 +85,13 @@ export function buildSongProgram(
     catalog: catalog.tracks,
     options: opts.songOptions,
   });
+
+  // SONG-07: the whole run is ONE song (short-form single-song policy).
+  // When that is true there are no seams, so no emotional_insert alt song and
+  // no transition beds — the single song's own arc carries the emphasis.
+  const singleSongMode =
+    program.selections.length > 0 &&
+    program.selections.every((s) => s.trackId === program.selections[0].trackId);
 
   // 4.) Envelope: intake fade, body, outro fade. Bed stays EMPTY by policy.
   const totalSec = round2(videoDurationSec + DEFAULTS.tailSec);
@@ -116,7 +128,7 @@ export function buildSongProgram(
   }));
 
   const payoffSection = sections.find((s) => s.role === "payoff");
-  if (payoffSection) {
+  if (payoffSection && !singleSongMode) {
     sectionsEnvelope.push({
       sectionIndex: 3,
       startSec: round2(payoffSection.startSec),
@@ -127,6 +139,28 @@ export function buildSongProgram(
       cause: { gate: "section_role", reason: `Emotional emphasis across ${payoffSection.sectionId}.`, timeSec: round2(payoffSection.startSec), sectionId: payoffSection.sectionId },
     });
   }
+
+  // AUD-09: transition beds (risers) prime song-change boundaries. Built from
+  // the actual song-segue list, so nothing is hardcoded — a boundary with no
+  // song change gets no bed, and single-song runs get none at all.
+  const RISER_SEC = 2.2;
+  const RISER_LEVEL_DB = -25;
+  const transitionBeds = (program.blends ?? [])
+    .filter((b) => b.blendId !== "none" && b.fromTrackId !== b.toTrackId)
+    .filter((b) => b.boundarySec >= RISER_SEC && b.boundarySec <= totalSec - 0.5)
+    .map((b) => ({
+      boundarySec: b.boundarySec,
+      fromSectionId: b.fromSectionId,
+      toSectionId: b.toSectionId,
+      riserSec: RISER_SEC,
+      levelDb: RISER_LEVEL_DB,
+      cause: {
+        gate: "song_segue" as const,
+        reason: `Transition bed (riser) primes the ${b.blendId} song change at ${round2(b.boundarySec)}s.`,
+        sectionId: b.toSectionId,
+        timeSec: round2(b.boundarySec),
+      },
+    }));
 
   return {
     videoDurationSec,
@@ -144,6 +178,8 @@ export function buildSongProgram(
     theme,
     selections: program.selections,
     blends: program.blends,
+    singleSongMode,
+    transitionBeds,
   };
 }
 

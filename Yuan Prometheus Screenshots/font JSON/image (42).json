@@ -1,0 +1,178 @@
+{
+  "profile_name": "Youll_Wake_Up_And_Someone_Else_Hierarchy_Stack",
+  "version": "1.0.0",
+  "metadata": {
+    "target_aspect_ratio": "9:16",
+    "overall_mood": "Raw cinematic monologue hook. Three-tier typographic hierarchy in full-bleed black stage. Ultra-heavy grotesque fills frame edge-to-edge.",
+    "casing_strategy": "mixed",
+    "total_word_count": 7,
+    "total_character_count": 32,
+    "treatment_notes": "SPECIAL HIERARCHY: Three distinct scale tiers create extreme visual tension. Line 1 'YOU'LL' is small-medium sans at top-left. Line 2 'wake up' is MASSIVE ultra-heavy grotesque — the dominant visual anchor, nearly full-frame-width, overlapping the principal subject. Line 3 'and someone' is small companion underneath. Line 4 'ELSE.' is medium-heavy, closing the phrase. The scale contrast IS the treatment. The principal subject (person) stands WITHIN/behind the large 'wake up' text.",
+    "per_word_character_counts": [
+      { "word": "YOU'LL", "character_count": 6 },
+      { "word": "wake", "character_count": 4 },
+      { "word": "up", "character_count": 2 },
+      { "word": "and", "character_count": 3 },
+      { "word": "someone", "character_count": 7 },
+      { "word": "ELSE.", "character_count": 5 }
+    ]
+  },
+  "layout_rules": {
+    "horizontal_alignment": "left",
+    "vertical_position": "full_frame",
+    "bottom_margin_percent": 8,
+    "max_width_percent": 100,
+    "background": "#000000",
+    "layout_note": "Text stacks from top to bottom in a left-anchored column. The dominant 'wake up' line spans nearly full width creating a wall of text. Principal subject is physically inside/behind this typographic architecture.",
+    "scrim_overlay": {
+      "enabled": false,
+      "type": "none",
+      "opacity": 0,
+      "color": "transparent"
+    }
+  },
+  "typography_layers": [
+    {
+      "layer_name": "line_youll",
+      "role": "secondary_prelude",
+      "font_classification": "Heavy Grotesque Sans-Serif — Compact",
+      "matched_font_candidates": [
+        "DM Sans",
+        "Inter",
+        "Outfit",
+        "Plus Jakarta Sans"
+      ],
+      "font_style": {
+        "weight": 800,
+        "style": "normal",
+        "casing": "uppercase",
+        "color": "#FFFFFF",
+        "size_px_base": 32,
+        "relative_scale": 0.55,
+        "letter_spacing_em": 0.02,
+        "line_height": 1.1,
+        "vertical_margin_top_px": 0,
+        "text_align": "left"
+      },
+      "effects": {
+        "drop_shadow": { "x_offset": 0, "y_offset": 2, "blur_radius": 4, "color": "rgba(0,0,0,0.5)" }
+      },
+      "placement": {
+        "x_percent": "6%",
+        "y_percent": "10%",
+        "anchor": "top_left",
+        "z_index": 2
+      },
+      "sample_text": "YOU'LL",
+      "word_count": 1,
+      "character_count": 6
+    },
+    {
+      "layer_name": "line_wake_up",
+      "role": "hero_dominant",
+      "font_classification": "Ultra-Heavy Display Grotesque Sans-Serif — Full Frame Width",
+      "matched_font_candidates": [
+        "Bebas Neue",
+        "Anton",
+        "Impact",
+        "DM Sans",
+        "Black Han Sans"
+      ],
+      "font_style": {
+        "weight": 900,
+        "style": "normal",
+        "casing": "lowercase",
+        "color": "#FFFFFF",
+        "size_px_base": 120,
+        "relative_scale": 2.2,
+        "letter_spacing_em": -0.03,
+        "line_height": 0.92,
+        "vertical_margin_top_px": 4,
+        "text_align": "left",
+        "size_notes": "Font must be large enough that 'wake up' spans nearly the full width of the 9:16 frame. Scale to fill ~92% of frame width."
+      },
+      "effects": {
+        "drop_shadow": { "x_offset": 0, "y_offset": 4, "blur_radius": 16, "color": "rgba(0,0,0,0.7)" }
+      },
+      "placement": {
+        "x_percent": "0%",
+        "y_percent": "20%",
+        "anchor": "top_left",
+        "z_index": 1,
+        "placement_note": "This text is BEHIND the principal subject in z-order (z_index: 1), while the subject sits at z-index: 10. The text bleeds out to both edges of the frame."
+      },
+      "sample_text": "wake up",
+      "word_count": 2,
+      "character_count": 6
+    },
+    {
+      "layer_name": "line_and_someone",
+      "role": "tertiary_companion",
+      "font_classification": "Heavy Grotesque Sans-Serif — Compact",
+      "matched_font_candidates": [
+        "DM Sans",
+        "Inter",
+        "Outfit"
+      ],
+      "font_style": {
+        "weight": 800,
+        "style": "normal",
+        "casing": "lowercase",
+        "color": "#FFFFFF",
+        "size_px_base": 28,
+        "relative_scale": 0.5,
+        "letter_spacing_em": 0.01,
+        "line_height": 1.1,
+        "vertical_margin_top_px": 6,
+        "text_align": "center"
+      },
+      "effects": {
+        "drop_shadow": { "x_offset": 0, "y_offset": 1, "blur_radius": 4, "color": "rgba(0,0,0,0.5)" }
+      },
+      "placement": {
+        "x_percent": "50%",
+        "y_percent": "58%",
+        "anchor": "center",
+        "z_index": 2
+      },
+      "sample_text": "and someone",
+      "word_count": 2,
+      "character_count": 10
+    },
+    {
+      "layer_name": "line_else",
+      "role": "closing_hero",
+      "font_classification": "Ultra-Heavy Grotesque Sans-Serif — Large Uppercase Close",
+      "matched_font_candidates": [
+        "Bebas Neue",
+        "Anton",
+        "Impact",
+        "DM Sans"
+      ],
+      "font_style": {
+        "weight": 900,
+        "style": "normal",
+        "casing": "uppercase",
+        "color": "#FFFFFF",
+        "size_px_base": 90,
+        "relative_scale": 1.6,
+        "letter_spacing_em": 0.04,
+        "line_height": 1.0,
+        "vertical_margin_top_px": 4,
+        "text_align": "center"
+      },
+      "effects": {
+        "drop_shadow": { "x_offset": 0, "y_offset": 3, "blur_radius": 10, "color": "rgba(0,0,0,0.6)" }
+      },
+      "placement": {
+        "x_percent": "50%",
+        "y_percent": "72%",
+        "anchor": "center",
+        "z_index": 2
+      },
+      "sample_text": "ELSE.",
+      "word_count": 1,
+      "character_count": 5
+    }
+  ]
+}
