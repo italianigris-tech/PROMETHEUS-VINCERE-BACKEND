@@ -64,7 +64,7 @@ studio_image = (
         "libgbm1",
         "libxshmfence1"
     )
-    .pip_install("numpy", "boto3")
+    .pip_install("numpy==1.26.4", "boto3", "mediapipe==0.10.21", "opencv-python-headless==4.11.0.86")
     .run_commands(
         "npm install -g tsx@4.22.4",
         f"mkdir -p {APP_ROOT / 'remotion-app/node_modules/@remotion/compositor-linux-x64-gnu'}",

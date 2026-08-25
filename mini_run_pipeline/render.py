@@ -16,6 +16,38 @@ MAX_PARALLEL_SLICES = 4
 SliceExecutor = Callable[[List[Dict[str, Any]]], List[Dict[str, Any]]]
 
 
+def resolve_martin_foreground_path(receipt: Dict[str, Any], artifact_root: str) -> Optional[Path]:
+    """Resolve the first Martin foreground asset from its shared-volume receipt."""
+    stitch = receipt.get("stitch") if isinstance(receipt, dict) else None
+    if not isinstance(stitch, list) or not stitch:
+        return None
+    foreground_file = stitch[0].get("foregroundFile")
+    if not isinstance(foreground_file, str) or not foreground_file:
+        return None
+    return Path(artifact_root) / "media" / foreground_file
+
+
+def reload_martin_artifact_volume(volume: Any) -> None:
+    """Refresh an attached Modal volume after Martin writes its foreground."""
+    volume.reload()
+
+
+def require_subject_layering_assets(
+    *,
+    required: bool,
+    behind_subject_chunk_count: int,
+    foreground_path: Optional[Path],
+    observation: Optional[Dict[str, Any]],
+) -> None:
+    """Reject a required tall-font depth treatment without its visual evidence."""
+    if not required or behind_subject_chunk_count == 0:
+        return
+    if not isinstance(observation, dict) or not observation.get("frames"):
+        raise RuntimeError("required subject layering is missing a MediaPipe observation")
+    if foreground_path is None or not foreground_path.exists():
+        raise RuntimeError("required subject layering is missing a readable foreground asset")
+
+
 def _run_ffmpeg(args: List[str], timeout: int = FFMPEG_TIMEOUT_SECONDS) -> None:
     completed = subprocess.run(args, capture_output=True, text=True, timeout=timeout)
     if completed.returncode != 0:
@@ -50,6 +82,7 @@ def render_final_video(
     timeline: Dict[str, Any],
     chunks: List[Dict[str, Any]],
     design: Optional[Dict[str, Any]] = None,
+    subject_observation: Optional[Dict[str, Any]] = None,
     audio: Optional[Dict[str, Any]] = None,
     output_root: str = "/tmp/mini-run-render",
     job_id: str = "job",
@@ -107,48 +140,66 @@ def render_final_video(
             for i, (text, label) in enumerate(default_texts)
         ]
 
+    behind_subject_chunk_count = sum(
+        1 for chunk in chunks
+        if chunk.get("subjectLayering", {}).get("behindSubject")
+    )
+    required_subject_layering = bool(
+        (design or {}).get("subjectLayering") == "required" and behind_subject_chunk_count
+    )
     props = {
         "videoSrc": f"source/{rel_video_filename}",
         "chunks": chunks,
         "durationMs": effective_duration_ms,
     }
 
-    # Generate Matte via prometheus-backend
+    # Generate Martin foreground through the mini-run gateway. The external GPU
+    # worker remains an implementation detail; this run only invokes its own app.
+    foreground_path: Optional[Path] = None
+    martin_error: Optional[Exception] = None
     try:
-        import modal
         import shutil
-        matte_worker = modal.Function.lookup("prometheus-backend", "matte_worker")
-        
-        # Copy to shared volume so matte_worker can access it
-        shared_source_dir = Path("/data/media/mini-run/sources")
-        shared_source_dir.mkdir(parents=True, exist_ok=True)
-        shared_source = shared_source_dir / f"{job_id}_matte_src.mp4"
-        shutil.copyfile(dest_video_path, shared_source)
-        
-        receipts = matte_worker.remote(
-            {
-                "requestKind": "martin_matte_batch",
-                "jobId": f"mini-run-matte-{job_id}",
-                "source": {"inputUrl": str(shared_source), "sha256": ""},
-                "windows": [{
-                    "windowId": "full",
-                    "sourceStartMs": 0,
-                    "sourceEndMs": effective_duration_ms,
-                    "outputStartMs": 0,
-                    "outputEndMs": effective_duration_ms,
-                }],
-            }
-        )
-        if receipts and isinstance(receipts, list) and len(receipts) > 0:
-            matte_out = receipts[0].get("outputPath")
-            if matte_out:
-                rel_matte_filename = f"matte_{job_id}.mp4"
-                dest_matte_path = public_source_dir / rel_matte_filename
-                shutil.copyfile(matte_out, dest_matte_path)
-                props["matteSrc"] = f"source/{rel_matte_filename}"
-                print(f"Successfully generated matte: {dest_matte_path}")
+        from mini_run_gateway import handle_matte
+
+        martin_receipt = handle_matte({
+            "jobId": f"mini-run-matte-{job_id}",
+            "source": {"inputUrl": str(dest_video_path)},
+            "windows": [{
+                "windowId": "full",
+                "sourceStartMs": 0,
+                "sourceEndMs": effective_duration_ms,
+                "outputStartMs": 0,
+                "outputEndMs": effective_duration_ms,
+            }],
+        })
+        artifact_root = os.getenv("MINI_RUN_ARTIFACT_ROOT", "/data")
+        import modal
+        reload_martin_artifact_volume(modal.Volume.from_name("prometheus-render-artifacts"))
+        foreground_path = resolve_martin_foreground_path(martin_receipt, artifact_root)
+        if foreground_path and foreground_path.exists():
+            rel_matte_filename = f"matte_{job_id}{foreground_path.suffix}"
+            dest_matte_path = public_source_dir / rel_matte_filename
+            shutil.copyfile(foreground_path, dest_matte_path)
+            props["matteSrc"] = f"source/{rel_matte_filename}"
+            print(f"Successfully generated Martin foreground: {dest_matte_path}")
+        else:
+            raise RuntimeError("Martin receipt did not expose a readable foreground asset.")
     except Exception as e:
-        print(f"Warning: Matte generation failed: {e}")
+        martin_error = e
+        if not required_subject_layering:
+            print(f"Warning: Matte generation failed: {e}")
+
+    try:
+        require_subject_layering_assets(
+            required=required_subject_layering,
+            behind_subject_chunk_count=behind_subject_chunk_count,
+            foreground_path=foreground_path,
+            observation=subject_observation,
+        )
+    except RuntimeError as error:
+        if martin_error is not None:
+            raise RuntimeError(f"{error}; matte generation failed: {martin_error}") from martin_error
+        raise
 
     tmp_build = Path("/home/ec2-user/tmp_build")
     tmp_build.mkdir(parents=True, exist_ok=True)
@@ -206,6 +257,15 @@ def render_final_video(
         "outputPath": str(final_output),
         "encoder": "libx264+remotion",
         "frameSlices": 1,
+        "matte": {
+            "status": "completed" if foreground_path else "not_available",
+            "foregroundPath": str(foreground_path) if foreground_path else None,
+            "behindSubjectChunkCount": behind_subject_chunk_count,
+        },
+        "subjectObservation": {
+            "status": "completed" if subject_observation else "not_required",
+            "frameCount": len(subject_observation.get("frames", [])) if subject_observation else 0,
+        },
         "stageTimingsMs": {
             "cut": 1000,
             "remotionRender": render_ms,

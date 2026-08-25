@@ -20,7 +20,9 @@
         "word": "convert.",
         "character_count": 8
       }
-    ]
+    ],
+    "mixed_fonts_verified": true,
+    "mixfont_extracted_at": "2026-08-24T09:15:00Z"
   },
   "layout_rules": {
     "horizontal_alignment": "center",
@@ -40,8 +42,9 @@
       "role": "header",
       "font_classification": "Ultra-Tall Compressed Sans",
       "matched_font_candidates": [
-        "Bebas Neue",
-        "Oswald"
+        "Amerika Alternates",
+        "League Gothic",
+        "Bebas Neue"
       ],
       "font_style": {
         "weight": 900,

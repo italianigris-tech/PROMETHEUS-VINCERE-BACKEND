@@ -1,0 +1,169 @@
+{
+  "profile_name": "Most_Creators_And_Video_Editors_Mixed_Script_Sans",
+  "version": "1.0.0",
+  "metadata": {
+    "target_aspect_ratio": "9:16",
+    "overall_mood": "High-engagement editorial hook. Sans + script combination. Lower-left placement over talking head footage.",
+    "casing_strategy": "lowercase",
+    "total_word_count": 5,
+    "total_character_count": 30,
+    "treatment_notes": "Two-tier: Line 1 'most' is small sans white companion, 'creators' is large bold red sans on same line. Line 2 'and video editors' is italic script continuation in white. Classic editorial combination of size contrast and color accent.",
+    "per_word_character_counts": [
+      {
+        "word": "most",
+        "character_count": 4
+      },
+      {
+        "word": "creators",
+        "character_count": 8
+      },
+      {
+        "word": "and",
+        "character_count": 3
+      },
+      {
+        "word": "video",
+        "character_count": 5
+      },
+      {
+        "word": "editors",
+        "character_count": 7
+      }
+    ],
+    "mixed_fonts_verified": true,
+    "mixfont_extracted_at": "2026-08-24T09:15:00Z"
+  },
+  "layout_rules": {
+    "horizontal_alignment": "left",
+    "vertical_position": "lower_left",
+    "bottom_margin_percent": 18,
+    "max_width_percent": 78,
+    "scrim_overlay": {
+      "enabled": false,
+      "type": "none",
+      "opacity": 0,
+      "color": "transparent"
+    }
+  },
+  "typography_layers": [
+    {
+      "layer_name": "line_most",
+      "role": "prelude_companion",
+      "font_classification": "Medium Sans-Serif",
+      "matched_font_candidates": [
+        "DM Sans",
+        "Inter",
+        "Outfit"
+      ],
+      "font_style": {
+        "weight": 600,
+        "style": "normal",
+        "casing": "lowercase",
+        "color": "#FFFFFF",
+        "size_px_base": 22,
+        "relative_scale": 0.45,
+        "letter_spacing_em": 0.02,
+        "line_height": 1.2,
+        "text_align": "left"
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 1,
+          "blur_radius": 3,
+          "color": "rgba(0,0,0,0.7)"
+        }
+      },
+      "placement": {
+        "x_percent": "4%",
+        "y_percent": "52%",
+        "anchor": "left_center",
+        "z_index": 1,
+        "placement_note": "Inline with 'creators' — 'most' is left, smaller; 'creators' continues right, larger."
+      },
+      "sample_text": "most",
+      "word_count": 1,
+      "character_count": 4
+    },
+    {
+      "layer_name": "line_creators",
+      "role": "hero_accent_bold",
+      "font_classification": "Heavy Bold Grotesque Sans-Serif — Accent Color",
+      "matched_font_candidates": [
+        "DM Sans",
+        "Inter",
+        "Outfit",
+        "Bebas Neue"
+      ],
+      "font_style": {
+        "weight": 900,
+        "style": "normal",
+        "casing": "lowercase",
+        "color": "#C53030",
+        "color_notes": "Bold red. The dominant word on this line.",
+        "size_px_base": 52,
+        "relative_scale": 1.1,
+        "letter_spacing_em": -0.02,
+        "line_height": 1.0,
+        "text_align": "left"
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 3,
+          "blur_radius": 8,
+          "color": "rgba(0,0,0,0.6)"
+        }
+      },
+      "placement": {
+        "x_percent": "18%",
+        "y_percent": "52%",
+        "anchor": "left_center",
+        "z_index": 2,
+        "placement_note": "Inline continuation to the right of 'most' on the same baseline."
+      },
+      "sample_text": "creators",
+      "word_count": 1,
+      "character_count": 8
+    },
+    {
+      "layer_name": "line_and_video_editors",
+      "role": "companion_italic_script",
+      "font_classification": "Italic Script or Light Italic Serif",
+      "matched_font_candidates": [
+        "Playfair Display",
+        "Cormorant Garamond",
+        "DM Serif Display",
+        "Dancing Script"
+      ],
+      "font_style": {
+        "weight": 400,
+        "style": "italic",
+        "casing": "lowercase",
+        "color": "#FFFFFF",
+        "size_px_base": 36,
+        "relative_scale": 0.75,
+        "letter_spacing_em": -0.01,
+        "line_height": 1.1,
+        "text_align": "left"
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 2,
+          "blur_radius": 6,
+          "color": "rgba(0,0,0,0.65)"
+        }
+      },
+      "placement": {
+        "x_percent": "4%",
+        "y_percent": "64%",
+        "anchor": "left_center",
+        "z_index": 1
+      },
+      "sample_text": "and video editors",
+      "word_count": 3,
+      "character_count": 17
+    }
+  ]
+}

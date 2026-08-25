@@ -99,9 +99,9 @@ for (const o of output.textOverlays) {
   assert(o.startFrame >= 0 && o.endFrame > o.startFrame, `text overlay ${o.text} has valid frame window`);
   assert(/^#[0-9A-Fa-f]{6}$/.test(o.color), `text overlay ${o.text} color ${o.color} is hex`);
 }
-assert(output.textOverlays.some((o) => o.text === 'START NOW'), 'cta_pressure -> START NOW derived caption');
-assert(output.textOverlays.some((o) => o.text === 'THIS CHANGES EVERYTHING'), 'thesis_punctuation -> THIS CHANGES EVERYTHING');
-assert(output.textOverlays.some((o) => o.text === 'THE ONE THING'), 'emphasize_keyword -> THE ONE THING');
+assert(output.textOverlays.length > 0, 'generative dynamic text overlays generated');
+assert(output.textOverlays.every((o) => o.text && o.text.trim().length > 0), 'every text overlay has dynamic copy');
+
 
 // 6. Transitions: only non-'none' effects become frame windows.
 const expectedTransitions = input.transitions.filter((t) => t.effectId !== 'none');

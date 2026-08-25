@@ -1,0 +1,122 @@
+{
+  "profile_name": "This_Is_Hitesh_Editorial_Script_Serif_Stack",
+  "version": "1.0.0",
+  "metadata": {
+    "target_aspect_ratio": "9:16",
+    "overall_mood": "Editorial personal brand introduction. Script italic companion + bold blue serif hero. Two-tier hierarchy on cream/beige background.",
+    "casing_strategy": "mixed",
+    "total_word_count": 3,
+    "total_character_count": 12,
+    "treatment_notes": "Two-layer: italic script 'This is' sits upper, smaller, companion tone. Bold blue serif 'Hitesh' dominates below. Clean editorial — subject placed above/behind text block. Cream background.",
+    "per_word_character_counts": [
+      {
+        "word": "This",
+        "character_count": 4
+      },
+      {
+        "word": "is",
+        "character_count": 2
+      },
+      {
+        "word": "Hitesh",
+        "character_count": 6
+      }
+    ],
+    "mixed_fonts_verified": true,
+    "mixfont_extracted_at": "2026-08-24T09:15:00Z"
+  },
+  "layout_rules": {
+    "horizontal_alignment": "center",
+    "vertical_position": "lower_center",
+    "bottom_margin_percent": 10,
+    "max_width_percent": 80,
+    "background_color": "#F5F0E8",
+    "scrim_overlay": {
+      "enabled": false,
+      "type": "none",
+      "opacity": 0,
+      "color": "transparent"
+    }
+  },
+  "typography_layers": [
+    {
+      "layer_name": "line_this_is",
+      "role": "companion_italic_script",
+      "font_classification": "Italic Script or Transitional Italic Serif",
+      "matched_font_candidates": [
+        "Playfair Display",
+        "Cormorant Garamond",
+        "DM Serif Display",
+        "IM Fell English"
+      ],
+      "font_style": {
+        "weight": 400,
+        "style": "italic",
+        "casing": "title_case",
+        "color": "#2D2D2D",
+        "size_px_base": 38,
+        "relative_scale": 0.7,
+        "letter_spacing_em": 0.01,
+        "line_height": 1.2,
+        "text_align": "center"
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 1,
+          "blur_radius": 2,
+          "color": "rgba(0,0,0,0.12)"
+        }
+      },
+      "placement": {
+        "x_percent": "50%",
+        "y_percent": "62%",
+        "anchor": "center",
+        "z_index": 1
+      },
+      "sample_text": "This is",
+      "word_count": 2,
+      "character_count": 6
+    },
+    {
+      "layer_name": "line_hitesh",
+      "role": "hero_name_bold",
+      "font_classification": "Heavy Serif or Condensed Bold — Name Hero",
+      "matched_font_candidates": [
+        "Playfair Display",
+        "Bodoni Moda",
+        "Raleway",
+        "Montserrat"
+      ],
+      "font_style": {
+        "weight": 800,
+        "style": "normal",
+        "casing": "capitalize",
+        "color": "#1B3A8A",
+        "color_notes": "Strong editorial blue — Yale Blue / Navy family.",
+        "size_px_base": 72,
+        "relative_scale": 1.4,
+        "letter_spacing_em": -0.01,
+        "line_height": 1.0,
+        "text_align": "center"
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 2,
+          "blur_radius": 6,
+          "color": "rgba(0,0,0,0.18)"
+        }
+      },
+      "placement": {
+        "x_percent": "50%",
+        "y_percent": "76%",
+        "anchor": "center",
+        "z_index": 2
+      },
+      "sample_text": "Hitesh",
+      "word_count": 1,
+      "character_count": 6
+    }
+  ]
+}

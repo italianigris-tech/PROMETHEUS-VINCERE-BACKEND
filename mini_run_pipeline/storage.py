@@ -18,6 +18,7 @@ import os
 import time
 import urllib.error
 import urllib.request
+from pathlib import Path
 from typing import Any, Dict, Optional
 
 DEFAULT_R2_BUCKET = "prometheus-uploads"
@@ -85,6 +86,28 @@ class R2Storage:
             extra["ContentType"] = content_type
         self._client().upload_file(str(local_path), self.bucket, key, ExtraArgs=extra or None)
         return key
+
+    def download_file(self, key: str, local_path: str, bucket: Optional[str] = None) -> str:
+        """Download one object into a concrete local render path."""
+        if not self.enabled:
+            raise RuntimeError("R2Storage is not configured (missing R2 credentials).")
+        destination = Path(local_path)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        self._client().download_file(bucket or self.bucket, key, str(destination))
+        if not destination.is_file() or destination.stat().st_size <= 0:
+            raise RuntimeError(f"R2 object {bucket or self.bucket}/{key} produced no local audio file.")
+        return str(destination)
+
+    def read_json(self, key: str, bucket: Optional[str] = None) -> Dict[str, Any]:
+        """Read a JSON artifact directly from R2 without creating a temp file."""
+        if not self.enabled:
+            raise RuntimeError("R2Storage is not configured (missing R2 credentials).")
+        response = self._client().get_object(Bucket=bucket or self.bucket, Key=key)
+        payload = response["Body"].read()
+        parsed = json.loads(payload.decode("utf-8"))
+        if not isinstance(parsed, dict):
+            raise RuntimeError(f"R2 JSON artifact {key} must contain an object.")
+        return parsed
 
     def presigned_upload_url(self, key: str, content_type: str = "video/mp4") -> str:
         """Presigned PUT URL for direct-to-R2 uploads (backend ``createUploadUrl``)."""

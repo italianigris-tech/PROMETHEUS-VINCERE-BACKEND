@@ -16,7 +16,9 @@
         "word": "SYNC",
         "character_count": 4
       }
-    ]
+    ],
+    "mixed_fonts_verified": true,
+    "mixfont_extracted_at": "2026-08-24T09:15:00Z"
   },
   "layout_rules": {
     "horizontal_alignment": "center",
@@ -37,7 +39,7 @@
       "font_classification": "Italic Calligraphic Serif",
       "matched_font_candidates": [
         "Playfair Display Italic",
-        "Lora"
+        "Brushelva"
       ],
       "font_style": {
         "weight": 500,
@@ -73,8 +75,9 @@
       "role": "header",
       "font_classification": "Ultra-Heavy Black Geometric Sans",
       "matched_font_candidates": [
-        "Inter",
-        "Montserrat Black"
+        "ANTENNA",
+        "Montserrat Black",
+        "Bodoni Moda"
       ],
       "font_style": {
         "weight": 900,

@@ -1,0 +1,101 @@
+{
+  "profile_name": "Biggest_Mistake_Full_Bleed_Red_Frame_Bleed",
+  "version": "1.0.0",
+  "metadata": {
+    "target_aspect_ratio": "16:9",
+    "overall_mood": "High-stakes content hook. Ultra-heavy red grotesque fills frame edge-to-edge across two stacked lines. Subject stands within letterform gap.",
+    "casing_strategy": "lowercase",
+    "total_word_count": 2,
+    "total_character_count": 13,
+    "treatment_notes": "Two lines of ultra-heavy grotesque in vivid red. 'biggest' line 1, 'mistake' line 2. Each word spans nearly full frame width — letters bleed off edge. Principal subject visible within the negative space between/inside the letterforms.",
+    "per_word_character_counts": [
+      {
+        "word": "biggest",
+        "character_count": 7
+      },
+      {
+        "word": "mistake",
+        "character_count": 7
+      }
+    ],
+    "mixed_fonts_verified": true,
+    "mixfont_extracted_at": "2026-08-24T09:15:00Z"
+  },
+  "layout_rules": {
+    "horizontal_alignment": "center",
+    "vertical_position": "full_frame",
+    "max_width_percent": 100,
+    "background_color": "#1a1a1a",
+    "scrim_overlay": {
+      "enabled": false,
+      "type": "none",
+      "opacity": 0,
+      "color": "transparent"
+    }
+  },
+  "typography_layers": [
+    {
+      "layer_name": "line_biggest",
+      "role": "hero_line_1",
+      "font_classification": "Ultra-Heavy Condensed Grotesque Sans-Serif — Full Bleed",
+      "matched_font_candidates": [
+        "Bebas Neue",
+        "Anton",
+        "Impact",
+        "Haas Unica Black"
+      ],
+      "font_style": {
+        "weight": 900,
+        "style": "normal",
+        "casing": "lowercase",
+        "color": "#E53E3E",
+        "size_px_base": 130,
+        "relative_scale": 2.4,
+        "letter_spacing_em": -0.025,
+        "line_height": 0.88,
+        "text_align": "center",
+        "size_notes": "Scale so 'biggest' spans ~95% of frame width. Letters may bleed slightly off edges."
+      },
+      "placement": {
+        "x_percent": "50%",
+        "y_percent": "35%",
+        "anchor": "center",
+        "z_index": 1
+      },
+      "sample_text": "biggest",
+      "word_count": 1,
+      "character_count": 7
+    },
+    {
+      "layer_name": "line_mistake",
+      "role": "hero_line_2",
+      "font_classification": "Ultra-Heavy Condensed Grotesque Sans-Serif — Full Bleed",
+      "matched_font_candidates": [
+        "Bebas Neue",
+        "Anton",
+        "Impact",
+        "Haas Unica Black"
+      ],
+      "font_style": {
+        "weight": 900,
+        "style": "normal",
+        "casing": "lowercase",
+        "color": "#E53E3E",
+        "size_px_base": 130,
+        "relative_scale": 2.4,
+        "letter_spacing_em": -0.025,
+        "line_height": 0.88,
+        "text_align": "center"
+      },
+      "placement": {
+        "x_percent": "50%",
+        "y_percent": "65%",
+        "anchor": "center",
+        "z_index": 1
+      },
+      "sample_text": "mistake",
+      "word_count": 1,
+      "character_count": 7
+    }
+  ]
+}

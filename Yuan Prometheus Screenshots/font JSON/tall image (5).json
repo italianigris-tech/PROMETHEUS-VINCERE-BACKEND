@@ -14,7 +14,9 @@
         "word": "HUMANE",
         "character_count": 6
       }
-    ]
+    ],
+    "mixed_fonts_verified": true,
+    "mixfont_extracted_at": "2026-08-24T09:15:00Z"
   },
   "layout_rules": {
     "horizontal_alignment": "center",
@@ -35,9 +37,8 @@
       "font_classification": "Spiked Stem Ultra-Condensed Brutalist Sans",
       "matched_font_candidates": [
         "Six Caps",
-        "Teko",
-        "Pathway Extreme",
-        "Big Shoulders Display"
+        "Echelon",
+        "ANTENNA"
       ],
       "font_style": {
         "weight": 800,

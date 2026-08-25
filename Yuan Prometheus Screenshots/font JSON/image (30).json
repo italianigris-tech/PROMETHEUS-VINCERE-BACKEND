@@ -44,7 +44,9 @@
         "word": "destiny.",
         "character_count": 8
       }
-    ]
+    ],
+    "mixed_fonts_verified": true,
+    "mixfont_extracted_at": "2026-08-24T11:52:03Z"
   },
   "layout_rules": {
     "horizontal_alignment": "left",

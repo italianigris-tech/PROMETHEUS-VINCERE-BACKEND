@@ -9,13 +9,33 @@
     "total_character_count": 32,
     "treatment_notes": "SPECIAL HIERARCHY: Three distinct scale tiers create extreme visual tension. Line 1 'YOU'LL' is small-medium sans at top-left. Line 2 'wake up' is MASSIVE ultra-heavy grotesque — the dominant visual anchor, nearly full-frame-width, overlapping the principal subject. Line 3 'and someone' is small companion underneath. Line 4 'ELSE.' is medium-heavy, closing the phrase. The scale contrast IS the treatment. The principal subject (person) stands WITHIN/behind the large 'wake up' text.",
     "per_word_character_counts": [
-      { "word": "YOU'LL", "character_count": 6 },
-      { "word": "wake", "character_count": 4 },
-      { "word": "up", "character_count": 2 },
-      { "word": "and", "character_count": 3 },
-      { "word": "someone", "character_count": 7 },
-      { "word": "ELSE.", "character_count": 5 }
-    ]
+      {
+        "word": "YOU'LL",
+        "character_count": 6
+      },
+      {
+        "word": "wake",
+        "character_count": 4
+      },
+      {
+        "word": "up",
+        "character_count": 2
+      },
+      {
+        "word": "and",
+        "character_count": 3
+      },
+      {
+        "word": "someone",
+        "character_count": 7
+      },
+      {
+        "word": "ELSE.",
+        "character_count": 5
+      }
+    ],
+    "mixed_fonts_verified": true,
+    "mixfont_extracted_at": "2026-08-24T09:15:00Z"
   },
   "layout_rules": {
     "horizontal_alignment": "left",
@@ -55,7 +75,12 @@
         "text_align": "left"
       },
       "effects": {
-        "drop_shadow": { "x_offset": 0, "y_offset": 2, "blur_radius": 4, "color": "rgba(0,0,0,0.5)" }
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 2,
+          "blur_radius": 4,
+          "color": "rgba(0,0,0,0.5)"
+        }
       },
       "placement": {
         "x_percent": "6%",
@@ -92,7 +117,12 @@
         "size_notes": "Font must be large enough that 'wake up' spans nearly the full width of the 9:16 frame. Scale to fill ~92% of frame width."
       },
       "effects": {
-        "drop_shadow": { "x_offset": 0, "y_offset": 4, "blur_radius": 16, "color": "rgba(0,0,0,0.7)" }
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 4,
+          "blur_radius": 16,
+          "color": "rgba(0,0,0,0.7)"
+        }
       },
       "placement": {
         "x_percent": "0%",
@@ -127,7 +157,12 @@
         "text_align": "center"
       },
       "effects": {
-        "drop_shadow": { "x_offset": 0, "y_offset": 1, "blur_radius": 4, "color": "rgba(0,0,0,0.5)" }
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 1,
+          "blur_radius": 4,
+          "color": "rgba(0,0,0,0.5)"
+        }
       },
       "placement": {
         "x_percent": "50%",
@@ -162,7 +197,12 @@
         "text_align": "center"
       },
       "effects": {
-        "drop_shadow": { "x_offset": 0, "y_offset": 3, "blur_radius": 10, "color": "rgba(0,0,0,0.6)" }
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 3,
+          "blur_radius": 10,
+          "color": "rgba(0,0,0,0.6)"
+        }
       },
       "placement": {
         "x_percent": "50%",

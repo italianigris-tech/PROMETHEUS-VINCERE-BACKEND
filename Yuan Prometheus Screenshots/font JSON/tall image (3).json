@@ -14,7 +14,9 @@
         "word": "TERRANCE",
         "character_count": 8
       }
-    ]
+    ],
+    "mixed_fonts_verified": true,
+    "mixfont_extracted_at": "2026-08-24T09:15:00Z"
   },
   "layout_rules": {
     "horizontal_alignment": "center",
@@ -35,9 +37,8 @@
       "font_classification": "Extreme Aspect Ratio Ultra-Tall Hairline Condensed Sans",
       "matched_font_candidates": [
         "Six Caps",
-        "Antonio",
-        "Teko",
-        "Pathway Extreme"
+        "Echelon",
+        "Antonio"
       ],
       "font_style": {
         "weight": 400,

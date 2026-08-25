@@ -1183,6 +1183,252 @@
     }
 
     /* ========================================================================= */
+    /* TEXTURE TREATMENT OVERLAYS (Tactile, Retro Authentic, Paper Fiber, etc)   */
+    /* ========================================================================= */
+    .texture-treatment-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 8; /* directly over base background (Z:5), behind semantic rigs (Z:10) */
+      pointer-events: none;
+      opacity: 0;
+      border-radius: inherit;
+      transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), filter 0.5s;
+    }
+    .texture-treatment-layer.texture-tactile {
+      opacity: 0.48;
+      mix-blend-mode: overlay;
+      background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.06) 0%, transparent 80%), url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.22'/%3E%3C/svg%3E");
+    }
+    .texture-treatment-layer.texture-retro-authentic {
+      opacity: 0.6;
+      mix-blend-mode: soft-light;
+      background: repeating-linear-gradient(0deg, rgba(0,0,0,0.25) 0px, rgba(0,0,0,0.25) 1.5px, transparent 1.5px, transparent 3.5px), radial-gradient(circle at 50% 50%, rgba(0, 240, 255, 0.09), transparent 75%);
+    }
+    .texture-treatment-layer.texture-paper-fiber {
+      opacity: 0.52;
+      mix-blend-mode: multiply;
+      background-color: rgba(245, 240, 230, 0.08);
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paperNoise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.04 0.15' numOctaves='4' result='noise'/%3E%3CfeDiffuseLighting in='noise' lighting-color='%23fff' surfaceScale='2'%3E%3CfeDistantLight azimuth='45' elevation='60'/%3E%3C/feDiffuseLighting%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paperNoise)' opacity='0.25'/%3E%3C/svg%3E");
+    }
+    .texture-treatment-layer.texture-grain-film {
+      opacity: 0.44;
+      mix-blend-mode: overlay;
+      background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='filmGrain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.95' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23filmGrain)' opacity='0.26'/%3E%3C/svg%3E");
+    }
+    .texture-treatment-layer.texture-halftone-dot {
+      opacity: 0.38;
+      mix-blend-mode: screen;
+      background: radial-gradient(rgba(255,255,255,0.18) 15%, transparent 16%) 0 0/12px 12px;
+    }
+
+    /* ========================================================================= */
+    /* PICTURE-IN-PICTURE (PIP) INSET STAGE (Z:28)                               */
+    /* ========================================================================= */
+    .pip-stage-inset {
+      position: absolute;
+      top: 24px;
+      right: 28px;
+      width: 32%;
+      max-width: 220px;
+      height: 35%;
+      min-height: 110px;
+      border-radius: 12px;
+      border: 1.5px solid rgba(0, 240, 255, 0.45);
+      background: rgba(10, 14, 28, 0.92);
+      box-shadow: 0 14px 32px rgba(0,0,0,0.85), 0 0 16px rgba(0, 240, 255, 0.25);
+      z-index: 28;
+      overflow: hidden;
+      display: none;
+      flex-direction: column;
+      backdrop-filter: blur(12px);
+      animation: pipSpringIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      pointer-events: none;
+    }
+    .pip-stage-inset.active {
+      display: flex;
+    }
+    @keyframes pipSpringIn {
+      0% { opacity: 0; transform: scale(0.7) translateY(-14px); }
+      70% { opacity: 1; transform: scale(1.04) translateY(2px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .pip-header-bar {
+      background: rgba(0, 240, 255, 0.12);
+      padding: 4px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 8.5px;
+      font-weight: 800;
+      font-family: monospace;
+      color: var(--accent-cyan);
+      border-bottom: 1px solid rgba(0, 240, 255, 0.2);
+    }
+    .pip-content-feed {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px;
+      overflow: hidden;
+    }
+    .pip-mock-window {
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .pip-mock-header {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 3px 6px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .pip-mock-dot { width: 5px; height: 5px; border-radius: 50%; }
+    .pip-mock-title { font-size: 7.5px; font-family: monospace; color: var(--text-muted); margin-left: 4px; }
+    .pip-mock-body { padding: 6px; font-family: monospace; font-size: 8px; line-height: 1.35; }
+
+    /* ========================================================================= */
+    /* 2.5D PARALLAX DEPTH PLANES (BG 0.35x · MID 1.0x · FG 1.65x)              */
+    /* ========================================================================= */
+    .parallax-plane-bg {
+      transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+      will-change: transform;
+    }
+    .parallax-plane-mid {
+      transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+      will-change: transform;
+    }
+    .parallax-plane-fg {
+      transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+      will-change: transform;
+    }
+
+    /* CAMERA MOTIONS */
+    .camera-move-dolly-in {
+      animation: camDollyIn 4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .camera-move-push-in {
+      animation: camPushIn 3.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    }
+    .camera-move-pan-left {
+      animation: camPanLeft 4.5s ease-out forwards;
+    }
+    .camera-move-pan-right {
+      animation: camPanRight 4.5s ease-out forwards;
+    }
+    .camera-move-cinematic-drift {
+      animation: camCinematicDrift 5s ease-in-out forwards;
+    }
+    @keyframes camDollyIn {
+      0% { transform: scale(1.0); }
+      100% { transform: scale(1.05) translate3d(0, -4px, 0); }
+    }
+    @keyframes camPushIn {
+      0% { transform: scale(1.0); }
+      100% { transform: scale(1.07) translate3d(0, -6px, 0); }
+    }
+    @keyframes camPanLeft {
+      0% { transform: translate3d(0, 0, 0); }
+      100% { transform: translate3d(-14px, -2px, 0); }
+    }
+    @keyframes camPanRight {
+      0% { transform: translate3d(0, 0, 0); }
+      100% { transform: translate3d(14px, -2px, 0); }
+    }
+    @keyframes camCinematicDrift {
+      0% { transform: translate3d(0, 0, 0) scale(1.0); }
+      50% { transform: translate3d(6px, -4px, 0) scale(1.03); }
+      100% { transform: translate3d(-4px, -2px, 0) scale(1.04); }
+    }
+
+    /* ========================================================================= */
+    /* CAUSAL EDITORIAL CHAIN DRAWER & CARDS                                     */
+    /* ========================================================================= */
+    .causal-chain-drawer {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%) translateY(105%);
+      width: min(96vw, 1140px);
+      max-height: 490px;
+      background: rgba(10, 14, 28, 0.97);
+      border: 1px solid rgba(0, 240, 255, 0.25);
+      border-bottom: none;
+      border-radius: 20px 20px 0 0;
+      backdrop-filter: blur(24px);
+      z-index: 600;
+      box-shadow: 0 -20px 60px rgba(0,0,0,0.92);
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+    }
+    .causal-chain-drawer.open {
+      transform: translateX(-50%) translateY(0);
+    }
+    .causal-drawer-header {
+      padding: 14px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.02);
+    }
+    .causal-drawer-body {
+      padding: 16px 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .causal-event-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 14px;
+      display: grid;
+      grid-template-columns: 160px 1.2fr 1fr 1fr;
+      gap: 14px;
+      font-size: 11.5px;
+      line-height: 1.45;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .causal-event-card:hover {
+      background: rgba(0, 240, 255, 0.05);
+      border-color: rgba(0, 240, 255, 0.3);
+    }
+    .causal-event-card.active-causal-node {
+      background: rgba(0, 240, 255, 0.09);
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 16px rgba(0, 240, 255, 0.15);
+    }
+    .causal-col-header {
+      font-size: 9px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+    .causal-badge-score {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 800;
+      font-family: monospace;
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--accent-green);
+      border: 1px solid var(--accent-green);
+    }
+
+    /* ========================================================================= */
     /* MASTER ASSET MOTION & ANIMATION SUITE (SMOOTH BEZIER ENTRANCE & IDLE)    */
     /* ========================================================================= */
     /* Diplo Treatment for Asset Introduction (Spring Dip-In & Bezier Settle) */
@@ -2992,6 +3238,81 @@
     }
     .matted-gallery-item-load:hover { transform: scale(1.04); }
 
+  
+    /* ========================================================================= */
+    /* DYNAMIC 3D METAPHOR VISUAL PROPS & KINETIC BEAM CALLOUTS                 */
+    /* ========================================================================= */
+    .metaphor-prop-stage {
+      position: absolute;
+      top: 48%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 480px;
+      height: 320px;
+      z-index: 25; /* Between Base/Texture (Z:8) and Foreground Typography (Z:30) */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .metaphor-prop-stage.hidden {
+      opacity: 0;
+      transform: translate(-50%, -42%) scale(0.85);
+      pointer-events: none;
+    }
+    .metaphor-prop-icon {
+      filter: drop-shadow(0 16px 36px rgba(0, 240, 255, 0.45)) drop-shadow(0 0 20px rgba(0,0,0,0.9));
+      animation: metaphorHoverFloat 4.2s ease-in-out infinite alternate;
+    }
+    @keyframes metaphorHoverFloat {
+      0% { transform: translateY(0px) rotate(0deg) scale(1.0); }
+      50% { transform: translateY(-8px) rotate(1deg) scale(1.03); }
+      100% { transform: translateY(4px) rotate(-1deg) scale(0.98); }
+    }
+    .metaphor-beam-callout {
+      margin-top: 12px;
+      background: rgba(10, 14, 28, 0.88);
+      border: 1px solid var(--accent-cyan);
+      box-shadow: 0 0 20px rgba(0, 240, 255, 0.4);
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 900;
+      color: #FFF;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-family: monospace;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      backdrop-filter: blur(12px);
+      animation: beamPulse 2s infinite alternate;
+    }
+    @keyframes beamPulse {
+      0% { box-shadow: 0 0 12px rgba(0, 240, 255, 0.3); border-color: rgba(0, 240, 255, 0.6); }
+      100% { box-shadow: 0 0 28px rgba(0, 240, 255, 0.7); border-color: #00F0FF; }
+    }
+
+    /* METAPHOR LEDGER DRAWER TABLE */
+    .ledger-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 800;
+      font-family: monospace;
+      text-transform: uppercase;
+    }
+    .ledger-badge-chess { background: rgba(234, 179, 8, 0.2); color: #EAB308; border: 1px solid #EAB308; }
+    .ledger-badge-growth { background: rgba(16, 185, 129, 0.2); color: #10B981; border: 1px solid #10B981; }
+    .ledger-badge-engine { background: rgba(59, 130, 246, 0.2); color: #3B82F6; border: 1px solid #3B82F6; }
+    .ledger-badge-vault { background: rgba(236, 72, 153, 0.2); color: #EC4899; border: 1px solid #EC4899; }
+    .ledger-badge-neural { background: rgba(168, 85, 247, 0.2); color: #A855F7; border: 1px solid #A855F7; }
+    .ledger-badge-chat { background: rgba(0, 240, 255, 0.2); color: #00F0FF; border: 1px solid #00F0FF; }
+    .ledger-badge-focus { background: rgba(249, 115, 22, 0.2); color: #F97316; border: 1px solid #F97316; }
+
   </style>
 </head>
 <body>
@@ -3064,6 +3385,7 @@
     <button class="tab-btn active" id="tabPresentation" onclick="setViewMode('presentation')">📱 Phone Stage (Static Coach)</button>
     <button class="tab-btn" id="tabGallery" onclick="setViewMode('gallery')">🖼️ Corpus Reference Gallery</button>
     <button class="tab-btn" id="tabAnalytics" onclick="setViewMode('analytics')">🕸️ Graph & Analytics</button>
+    <button class="tab-btn" id="tabCausalChain" onclick="toggleCausalDrawer()" style="background:rgba(0,240,255,0.12); color:var(--accent-cyan); border:1px solid rgba(0,240,255,0.35);">🔗 Causal Chain</button>
   </div>
 
   <!-- ========================================================================= -->
@@ -3112,8 +3434,45 @@
           <!-- Base Background (full-bleed 16:9, Z:5 — long-form base assets / video overlay slots) -->
           <div class="base-background-layer" id="baseBackgroundLayer"></div>
 
+          <!-- Texture Treatment Overlay Layer (Z:8 over base background) -->
+          <div class="texture-treatment-layer" id="textureTreatmentLayer"></div>
+
+          <!-- Picture-in-Picture Inset Stage (Z:28) -->
+          <div class="pip-stage-inset" id="pipStageInset">
+            <div class="pip-header-bar">
+              <span style="display:flex; align-items:center; gap:5px;"><span style="width:6px; height:6px; border-radius:50%; background:#00F0FF; box-shadow:0 0 6px #00F0FF;"></span>LIVE WORKFLOW PIP</span>
+              <span id="pipLabel" style="color:#A855F7;">SCREEN INSET</span>
+            </div>
+            <div class="pip-content-feed" id="pipContentFeed">
+              <div class="pip-mock-window">
+                <div class="pip-mock-header">
+                  <span class="pip-mock-dot" style="background:#EF4444;"></span>
+                  <span class="pip-mock-dot" style="background:#F59E0B;"></span>
+                  <span class="pip-mock-dot" style="background:#10B981;"></span>
+                  <span class="pip-mock-title" id="pipMockTitle">workflow_executor.ts</span>
+                </div>
+                <div class="pip-mock-body" id="pipMockBody">
+                  <div style="color:#38BDF8;">const result = await executeFlow();</div>
+                  <div style="color:#34D399; margin-top:4px;">// Pipeline verified: 100% throughput</div>
+                  <div style="color:#FCD34D; margin-top:4px;">console.log("Status: READY");</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+
           <!-- Background Semantic Asset (Z:10 behind coach / Z:25 flanked) -->
-          <div class="semantic-bg-asset-layer" id="semanticBgAssetLayer"></div>
+          
+        <!-- DYNAMIC 3D METAPHOR VISUAL PROP & KINETIC LASER BEAMS (Z:25) -->
+        <div class="metaphor-prop-stage hidden" id="metaphorPropStage">
+          <div id="metaphorGraphicContainer"></div>
+          <div class="metaphor-beam-callout" id="metaphorBeamCallout">
+            <span style="color:var(--accent-cyan)">⚡ METAPHOR</span>
+            <span id="metaphorBeamText">KING IN THE PLAYING FIELD</span>
+          </div>
+        </div>
+
+        <div class="semantic-bg-asset-layer" id="semanticBgAssetLayer"></div>
 
           <!-- Head Contact Kinetic Typography Stage (Zone A - Z:10 behind coach) -->
           <div class="head-kinetic-stage" id="familyHeadStage"></div>
@@ -3893,6 +4252,7 @@
       } else if (event.data.type === "TOGGLE_PLAY") {
         isPlaying = !isPlaying;
         applyPlaybackPauseState();
+      updateMetaphorVisualProp(targetChunkIndex);
       } else if (event.data.type === "PLAY") {
         isPlaying = true;
         applyPlaybackPauseState();
@@ -5546,6 +5906,100 @@
     }
 
     // 5. SEEK TIMELINE AND JUMP TO CHUNK WITH REAL-TIME SYNCHRONIZATION
+    
+    // =========================================================================
+    // METAPHOR PROP SVGs & RENDERING ENGINE
+    // =========================================================================
+    var METAPHOR_SVGS = {
+      chess_king_strategy: '<svg width="120" height="150" viewBox="0 0 100 120" fill="none" xmlns="http://www.w3.org/2000/svg" class="metaphor-prop-icon"><defs><linearGradient id="goldGrad" x1="0" y1="0" x2="100" y2="120" gradientUnits="userSpaceOnUse"><stop stop-color="#FCD34D"/><stop offset="0.5" stop-color="#F59E0B"/><stop offset="1" stop-color="#B45309"/></linearGradient><linearGradient id="obsidianGrad" x1="0" y1="0" x2="100" y2="120" gradientUnits="userSpaceOnUse"><stop stop-color="#1E293B"/><stop offset="0.7" stop-color="#0F172A"/><stop offset="1" stop-color="#020617"/></linearGradient></defs><path d="M48 6 H52 V18 H48 Z M42 10 H58 V14 H42 Z" fill="url(#goldGrad)"/><path d="M36 20 Q50 14 64 20 L68 34 Q50 30 32 34 Z" fill="url(#goldGrad)"/><path d="M34 36 H66 L62 50 H38 Z" fill="url(#obsidianGrad)" stroke="url(#goldGrad)" stroke-width="1.5"/><path d="M38 52 Q30 76 28 88 H72 Q70 76 62 52 Z" fill="url(#obsidianGrad)" stroke="url(#goldGrad)" stroke-width="2"/><path d="M42 60 Q50 56 58 60 L56 78 Q50 74 44 78 Z" fill="url(#goldGrad)" opacity="0.35"/><rect x="22" y="90" width="56" height="8" rx="4" fill="url(#goldGrad)"/><rect x="16" y="100" width="68" height="12" rx="6" fill="url(#obsidianGrad)" stroke="url(#goldGrad)" stroke-width="2"/></svg>',
+      growth_surge: '<svg width="150" height="120" viewBox="0 0 150 120" fill="none" xmlns="http://www.w3.org/2000/svg" class="metaphor-prop-icon"><defs><linearGradient id="growthGrad" x1="0" y1="120" x2="150" y2="0" gradientUnits="userSpaceOnUse"><stop stop-color="#00F0FF" stop-opacity="0.2"/><stop offset="1" stop-color="#10B981" stop-opacity="0.8"/></linearGradient></defs><path d="M10 110 Q50 100 80 50 T140 15" stroke="#10B981" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M10 110 Q50 100 80 50 T140 15 L140 110 Z" fill="url(#growthGrad)"/><circle cx="140" cy="15" r="7" fill="#FFF" stroke="#10B981" stroke-width="3"/></svg>',
+      mechanical_engine: '<svg width="130" height="130" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" class="metaphor-prop-icon"><circle cx="60" cy="60" r="38" stroke="#3B82F6" stroke-width="8" stroke-dasharray="14 6"/><circle cx="60" cy="60" r="20" fill="#1E293B" stroke="#00F0FF" stroke-width="3"/><circle cx="60" cy="60" r="8" fill="#00F0FF"/></svg>',
+      security_vault: '<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" class="metaphor-prop-icon"><circle cx="60" cy="60" r="44" stroke="#EC4899" stroke-width="5" stroke-dasharray="8 4"/><rect x="52" y="32" width="16" height="56" rx="4" fill="#EC4899"/><rect x="32" y="52" width="56" height="16" rx="4" fill="#EC4899"/><circle cx="60" cy="60" r="14" fill="#1E293B" stroke="#FFF" stroke-width="3"/></svg>',
+      neural_synapse: '<svg width="130" height="110" viewBox="0 0 130 110" fill="none" xmlns="http://www.w3.org/2000/svg" class="metaphor-prop-icon"><circle cx="65" cy="55" r="16" fill="#A855F7" opacity="0.8"/><circle cx="25" cy="30" r="10" fill="#00F0FF"/><circle cx="105" cy="30" r="10" fill="#00F0FF"/><circle cx="35" cy="85" r="10" fill="#EC4899"/><circle cx="95" cy="85" r="10" fill="#EC4899"/><line x1="65" y1="55" x2="25" y2="30" stroke="#A855F7" stroke-width="2.5"/><line x1="65" y1="55" x2="105" y2="30" stroke="#A855F7" stroke-width="2.5"/><line x1="65" y1="55" x2="35" y2="85" stroke="#A855F7" stroke-width="2.5"/><line x1="65" y1="55" x2="95" y2="85" stroke="#A855F7" stroke-width="2.5"/></svg>',
+      telemetry_crosshair: '<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" class="metaphor-prop-icon"><circle cx="60" cy="60" r="42" stroke="#F97316" stroke-width="2" stroke-dasharray="18 6"/><circle cx="60" cy="60" r="28" stroke="#00F0FF" stroke-width="1.5"/><line x1="60" y1="10" x2="60" y2="110" stroke="#F97316" stroke-width="1.5"/><line x1="10" y1="60" x2="110" y2="60" stroke="#F97316" stroke-width="1.5"/><circle cx="60" cy="60" r="4" fill="#FFF"/></svg>'
+    };
+
+    function updateMetaphorVisualProp(chunkIndex) {
+      var stage = document.getElementById('metaphorPropStage');
+      var container = document.getElementById('metaphorGraphicContainer');
+      var calloutText = document.getElementById('metaphorBeamText');
+      if (!stage || !container || !calloutText) return;
+
+      var runData = window.__LANDSCAPE_RUN_DATA__;
+      var metaphors = runData && runData.metaphorTreatments;
+      var metaphor = metaphors && (metaphors[chunkIndex] || metaphors.find(function(m){ return m.sectionId === 'sec_' + (chunkIndex + 1); }));
+
+      if (!metaphor || metaphor.metaphorCategory === 'general_conceptual') {
+        stage.classList.add('hidden');
+        return;
+      }
+
+      var svg = METAPHOR_SVGS[metaphor.metaphorCategory] || METAPHOR_SVGS.chess_king_strategy;
+      container.innerHTML = svg;
+      calloutText.innerText = (metaphor.recommendedAsset && metaphor.recommendedAsset.beamCalloutText) || metaphor.spokenSnippet.toUpperCase();
+      stage.classList.remove('hidden');
+    }
+
+    function toggleCausalDrawer() {
+      var drawer = document.getElementById('causalChainDrawer');
+      if (drawer) drawer.classList.toggle('open');
+    }
+
+    function populateCausalDrawer() {
+      var body = document.getElementById('causalDrawerBody');
+      if (!body) return;
+      var runData = window.__LANDSCAPE_RUN_DATA__;
+      var causalChain = (runData && runData.editorialCausalChain) || [];
+      var metaphorPoints = (runData && runData.metaphorTreatments) || [];
+
+      if (!causalChain.length && !metaphorPoints.length) {
+        body.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:12px;">No editorial causal events defined for this run.</div>';
+        return;
+      }
+
+      body.innerHTML = '';
+      var totalCount = Math.max(causalChain.length, metaphorPoints.length);
+
+      for (var i = 0; i < totalCount; i++) {
+        (function(idx) {
+          var node = causalChain[idx] || {};
+          var meta = metaphorPoints[idx] || {};
+          var card = document.createElement('div');
+          card.className = 'causal-event-card';
+          card.onclick = function() {
+            seekVideoAndJumpChunk(idx);
+            toggleCausalDrawer();
+          };
+
+          var catBadgeClass = 'ledger-badge-' + (meta.metaphorCategory ? meta.metaphorCategory.replace(/_.*$/, '') : 'chess');
+
+          card.innerHTML = 
+            '<div>' +
+              '<div class="causal-col-header">Section #' + (idx + 1) + ' · ' + (node.timeSec != null ? node.timeSec.toFixed(1) + 's' : '') + '</div>' +
+              '<div style="font-weight:900;color:var(--accent-cyan);margin-bottom:4px;">' + (node.sectionId || 'Section ' + (idx+1)) + '</div>' +
+              '<span class="causal-badge-score">Score: ' + (node.aestheticRating != null ? node.aestheticRating.toFixed(1) : '9.0') + '/10</span>' +
+              '<div style="margin-top:6px;"><span class="ledger-badge ' + catBadgeClass + '">' + (meta.metaphorCategory || 'metaphor') + '</span></div>' +
+            '</div>' +
+            '<div>' +
+              '<div class="causal-col-header">Editorial Intent & Metaphor Trigger</div>' +
+              '<div style="color:#FFF;font-weight:700;margin-bottom:4px;">\"' + (meta.spokenSnippet || node.action || 'Editorial action') + '\"</div>' +
+              '<div style="color:var(--text-muted);font-size:11px;">' + (node.intent || meta.editorialRationale || '') + '</div>' +
+            '</div>' +
+            '<div>' +
+              '<div class="causal-col-header">Visual Treatment & Texture</div>' +
+              '<div style="color:var(--accent-yellow);font-weight:800;margin-bottom:2px;">' + (meta.recommendedAsset ? meta.recommendedAsset.assetName : 'Dynamic Asset') + '</div>' +
+              '<div style="color:#A0AEC0;font-size:10.5px;">' + (meta.texturePlacement ? 'Texture: ' + meta.texturePlacement.kind + ' (' + Math.round(meta.texturePlacement.intensity*100) + '% ' + meta.texturePlacement.blendMode + ')' : '') + '</div>' +
+              '<div style="color:#64748B;font-size:10px;margin-top:2px;">Fallback: ' + (meta.texturePlacement ? meta.texturePlacement.paucityFallback : 'procedural') + '</div>' +
+            '</div>' +
+            '<div>' +
+              '<div class="causal-col-header">Creativity & Model Hint</div>' +
+              '<div style="color:#CBD5E1;font-size:11px;font-style:italic;">' + (meta.creativityLayer ? meta.creativityLayer.creativePrompt : (node.modelAssistanceNotes || '')) + '</div>' +
+            '</div>';
+          body.appendChild(card);
+        })(i);
+      }
+    }
+
     function seekVideoAndJumpChunk(chunkIndex) {
       const chunk = compiledSequence[chunkIndex];
       if (!chunk) return;
@@ -6051,6 +6505,7 @@
 
       // Update Collapsible Anomaly Treatment Selector Drawer
       updateAnomalyDrawerForChunk(chunk, index);
+      applyLandscapeTreatments(chunk, index);
     }
 
     // =========================================================================
@@ -6771,6 +7226,9 @@
     if (bootScrubber) bootScrubber.max = String(Math.max(0, compiledSequence.length - 1));
     renderRunSetImageReferenceRibbon();
     populateAnomalyMatrixTable();
+      init25DParallaxMouse();
+      populateCausalDrawer();
+      updateMetaphorVisualProp(0);
     seekVideoAndJumpChunk(0);
     applyPlaybackPauseState();
   </script>
@@ -6866,6 +7324,14 @@
   var flashRAF = null;
   function fireTransition(effect){
     if (!effect || effect === "none") return;
+    // TRN-05 cinematic tier: fully rendered transitions (procedural).
+    if (effect === "push_in_zoom") return pushInZoom();
+    if (effect === "match_cut") return matchCut();
+    if (effect === "camera_pass_by") return cameraPassBy();
+    if (effect === "lens_flare_bleed") return lensFlareBleed();
+    if (effect === "light_leak") return lightLeak();
+    if (effect === "defocus_bokeh") return defocusBokeh();
+    if (effect === "edge_glow_bloom") return edgeGlowBloom();
     var bg = "", isSweep = false;
     if (effect === "hot_burn")        bg = "radial-gradient(circle at 50% 40%, #ffffff 0%, #ffca7a 26%, rgba(255,70,0,0.5) 55%, rgba(0,0,0,0) 80%)";
     else if (effect === "light_burn") bg = "radial-gradient(circle at 50% 50%, #fff6e0 0%, rgba(255,190,120,0.5) 45%, rgba(0,0,0,0) 74%)";
@@ -6887,6 +7353,194 @@
         flash.style.opacity = (0.95*Math.sin(Math.min(1,k)*Math.PI)).toFixed(3);
       }
       if (k < 1) flashRAF = requestAnimationFrame(step); else flash.style.opacity = 0;
+    })(t0);
+  }
+
+  // ==========================================================================
+  // TRN-05 CINEMATIC TRANSITION RIG
+  // Procedural full-frame render effects — no external assets, no source-file
+  // re-encoding. Overlays (z:91-93) + live CSS filters/transforms on the
+  // composited video/grade layers, all cleaned up on completion.
+  // ==========================================================================
+  var cvNodes = [], cvRAF = null;
+  function easeOutC(k){ return 1 - (1 - k) * (1 - k); }
+  function easeInC(k){ return k * k; }
+  function cvLayer(css, tag){
+    var el = document.createElement(tag || "div");
+    el.style.cssText = css;
+    stage.appendChild(el);
+    cvNodes.push(el);
+    return el;
+  }
+  function snapshotFrame(){
+    var cv = document.createElement("canvas");
+    cv.width = video.videoWidth || 1280;
+    cv.height = video.videoHeight || 720;
+    try { cv.getContext("2d").drawImage(video, 0, 0, cv.width, cv.height); } catch(e){}
+    return cv;
+  }
+  function resetCinematic(){
+    for (var i=0;i<cvNodes.length;i++){ var n = cvNodes[i]; if (n && n.parentNode) n.parentNode.removeChild(n); }
+    cvNodes = [];
+    if (cvRAF){ cancelAnimationFrame(cvRAF); cvRAF = null; }
+    if (video){ video.style.filter = ""; video.style.transform = ""; video.style.transformOrigin = ""; }
+    if (grade){ grade.style.filter = ""; grade.style.transform = ""; grade.style.transformOrigin = ""; }
+    if (flash) flash.style.opacity = "0";
+  }
+
+  // 1) push_in_zoom — z-axis smash: rapid scale toward an anchor point,
+  //    smash-cut at the peak, then settle back on the new scene.
+  function pushInZoom(){
+    resetCinematic();
+    var ox = 50, oy = 42, t0 = performance.now(), dur = 760, smash = 300, smashed = false;
+    function apply(s){
+      video.style.transformOrigin = ox + "% " + oy + "%";
+      grade.style.transformOrigin = ox + "% " + oy + "%";
+      var t = "scale(" + s.toFixed(4) + ")";
+      video.style.transform = t; grade.style.transform = t;
+    }
+    (function step(now){
+      var el = now - t0, k = Math.min(1, el / dur), s;
+      if (k <= 0.5){ s = 1 + 1.9 * easeInC(k / 0.5); } else { s = 2.9 - 1.9 * easeOutC((k - 0.5) / 0.5); }
+      apply(s);
+      if (el >= smash && !smashed){ smashed = true; flash.style.opacity = "0.92"; setTimeout(function(){ flash.style.opacity = "0"; }, 70); }
+      if (k < 1){ cvRAF = requestAnimationFrame(step); } else { apply(1); resetCinematic(); }
+    })(t0);
+  }
+
+  // 2) match_cut — graphic match: the outgoing frame freezes and shrinks into
+  //    a circle at the matched anchor; a ring pulse marks the pivot; the new
+  //    scene is revealed from the same graphic point.
+  function matchCut(){
+    resetCinematic();
+    var cvImg = snapshotFrame();
+    cvImg.style.cssText = "width:100%;height:100%;object-fit:cover;display:block;";
+    var layer = cvLayer("position:absolute;inset:0;z-index:91;pointer-events:none;overflow:hidden;");
+    layer.appendChild(cvImg);
+    var t0 = performance.now(), dur = 900, cut = 0.48, ax = 50, ay = 45;
+    (function step(now){
+      var k = Math.min(1, (now - t0) / dur), r;
+      if (k < cut){ r = 96 * (1 - easeInC(k / cut)); } else { r = 96 * easeOutC((k - cut) / (1 - cut)); }
+      layer.style.clipPath = "circle(" + r.toFixed(2) + "% at " + ax + "% " + ay + "%)";
+      if (k >= cut) layer.style.opacity = "0";
+      if (k > cut - 0.04 && k < cut + 0.08){ flash.style.opacity = (0.85 * (1 - Math.abs(k - cut) / 0.06)).toFixed(3); } else { flash.style.opacity = "0"; }
+      if (k < 1){ cvRAF = requestAnimationFrame(step); } else { resetCinematic(); }
+    })(t0);
+  }
+
+  // 3) camera_pass_by — a blurred foreground mass passes in front of the lens,
+  //    fully blocking it at the cut, then continues past to reveal the new scene.
+  function cameraPassBy(){
+    resetCinematic();
+    var obj = cvLayer("position:absolute;top:-10%;left:-120%;width:340%;height:120%;z-index:92;pointer-events:none;mix-blend-mode:multiply;filter:blur(7px);background:radial-gradient(ellipse at 50% 50%, rgba(3,5,9,0.97) 0%, rgba(3,5,9,0.82) 28%, rgba(3,5,9,0) 60%);");
+    var t0 = performance.now(), dur = 1150, coverAt = 470;
+    (function step(now){
+      var el = now - t0, k = Math.min(1, el / dur);
+      obj.style.transform = "translateX(" + (-42 + k * 88).toFixed(2) + "%) scale(" + (0.5 + k * 1.9).toFixed(3) + ")";
+      var cov = Math.max(0, 1 - Math.abs(el - coverAt) / 300);
+      flash.style.opacity = cov > 0.86 ? (cov * 0.95).toFixed(3) : "0";
+      if (k < 1){ cvRAF = requestAnimationFrame(step); } else { flash.style.opacity = "0"; resetCinematic(); }
+    })(t0);
+  }
+
+  // 4) lens_flare_bleed — anamorphic streak + ghost rings wash the frame out;
+  //    the new scene is revealed as the flare collapses.
+  function lensFlareBleed(){
+    resetCinematic();
+    var el = cvLayer("position:absolute;inset:0;z-index:93;pointer-events:none;mix-blend-mode:screen;opacity:0;");
+    el.innerHTML =
+      "<div style='position:absolute;left:-40%;right:-40%;top:42%;height:10%;background:linear-gradient(90deg,rgba(255,255,255,0) 0%,rgba(255,244,214,0.95) 40%,rgba(255,255,255,0.99) 50%,rgba(255,244,214,0.95) 60%,rgba(255,255,255,0) 100%);transform:rotate(-16deg);filter:blur(1.2px);'></div>" +
+      "<div style='position:absolute;left:10%;top:16%;width:7vw;height:7vw;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,0.9) 0%,rgba(255,220,160,0.45) 45%,rgba(255,220,160,0) 70%);filter:blur(1px);'></div>" +
+      "<div style='position:absolute;right:16%;top:22%;width:4vw;height:4vw;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,0.8) 0%,rgba(170,220,255,0.4) 45%,rgba(170,220,255,0) 70%);'></div>" +
+      "<div style='position:absolute;left:32%;bottom:14%;width:3vw;height:3vw;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,0.7) 0%,rgba(255,180,120,0.35) 45%,rgba(255,180,120,0) 70%);'></div>";
+    var t0 = performance.now(), dur = 950, peak = 0.42;
+    (function step(now){
+      var k = Math.min(1, (now - t0) / dur);
+      var op = k < peak ? easeOutC(k / peak) : Math.max(0, 1 - (k - peak) / (1 - peak));
+      el.style.opacity = op.toFixed(3);
+      if (k > peak - 0.02 && k < peak + 0.06){ flash.style.opacity = "0.9"; } else { flash.style.opacity = "0"; }
+      if (k < 1){ cvRAF = requestAnimationFrame(step); } else { flash.style.opacity = "0"; resetCinematic(); }
+    })(t0);
+  }
+
+  // 5) light_leak — organic film-style chemical burns drift across the frame
+  //    (procedural canvas blobs, additive screen blend).
+  function lightLeak(){
+    resetCinematic();
+    var cv = document.createElement("canvas"); cv.width = 640; cv.height = 360;
+    var layer = cvLayer("position:absolute;inset:0;z-index:93;pointer-events:none;mix-blend-mode:screen;opacity:0;");
+    layer.appendChild(cv); cv.style.cssText = "width:100%;height:100%;display:block;";
+    var ctx = cv.getContext("2d");
+    var blobs = [
+      { x: 0.15, y: 0.30, r: 0.32, dx: 0.02,  dy: 0.01,  c: "255,140,60",  a: 0.5 },
+      { x: 0.55, y: 0.20, r: 0.28, dx: -0.015, dy: 0.02, c: "255,90,70",   a: 0.45 },
+      { x: 0.80, y: 0.62, r: 0.40, dx: 0.01,  dy: -0.015, c: "240,180,90",  a: 0.4 },
+      { x: 0.30, y: 0.75, r: 0.24, dx: 0.025, dy: 0.01,  c: "160,255,140", a: 0.22 },
+    ];
+    var t0 = performance.now(), dur = 1180, peak = 0.46;
+    (function step(now){
+      var el = (now - t0) / dur, k = Math.min(1, el);
+      var op = k < peak ? easeOutC(k / peak) : Math.max(0, 1 - (k - peak) / (1 - peak));
+      layer.style.opacity = op.toFixed(3);
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      for (var i = 0; i < blobs.length; i++){
+        var b = blobs[i];
+        var bx = (b.x + b.dx * el * 2.2) * cv.width, by = (b.y + b.dy * el * 2.2) * cv.height;
+        var r = b.r * cv.width * (1 + 0.45 * Math.sin(el * 3 + i * 1.7));
+        var g = ctx.createRadialGradient(bx, by, 0, bx, by, Math.max(1, r));
+        g.addColorStop(0, "rgba(" + b.c + "," + b.a + ")");
+        g.addColorStop(1, "rgba(" + b.c + ",0)");
+        ctx.fillStyle = g; ctx.fillRect(0, 0, cv.width, cv.height);
+      }
+      if (k < 1){ cvRAF = requestAnimationFrame(step); } else { resetCinematic(); }
+    })(t0);
+  }
+
+  // 6) defocus_bokeh — the lens pulls out of focus into large bokeh discs,
+  //    the scene swaps behind the blur, and focus racks back in.
+  function defocusBokeh(){
+    resetCinematic();
+    var cv = document.createElement("canvas"); cv.width = 640; cv.height = 360;
+    var layer = cvLayer("position:absolute;inset:0;z-index:92;pointer-events:none;mix-blend-mode:screen;opacity:0;");
+    layer.appendChild(cv); cv.style.cssText = "width:100%;height:100%;display:block;";
+    var ctx = cv.getContext("2d");
+    var discs = [];
+    for (var i = 0; i < 16; i++){ discs.push({ x: Math.random(), y: Math.random(), r: 0.03 + Math.random() * 0.09, h: 180 + Math.random() * 140, a: 0.05 + Math.random() * 0.16 }); }
+    var t0 = performance.now(), dur = 1300, refocus = 0.56;
+    (function step(now){
+      var k = Math.min(1, (now - t0) / dur);
+      var blur = k < refocus ? 18 * easeInC(k / refocus) : 18 * Math.max(0, 1 - easeOutC((k - refocus) / (1 - refocus)));
+      video.style.filter = "blur(" + blur.toFixed(2) + "px)";
+      grade.style.filter = "blur(" + blur.toFixed(2) + "px)";
+      layer.style.opacity = Math.min(1, 1.3 * Math.sin(Math.min(1, k) * Math.PI)).toFixed(3);
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      for (var i = 0; i < discs.length; i++){
+        var d = discs[i];
+        var x = d.x * cv.width, y = d.y * cv.height, r = d.r * cv.width * (1 + 0.4 * Math.sin(now / 420 + i));
+        var g = ctx.createRadialGradient(x, y, 0, x, y, Math.max(1, r));
+        g.addColorStop(0, "hsla(" + d.h + ",90%,72%," + d.a + ")");
+        g.addColorStop(1, "hsla(" + d.h + ",90%,72%,0)");
+        ctx.fillStyle = g; ctx.fillRect(0, 0, cv.width, cv.height);
+      }
+      if (k < 1){ cvRAF = requestAnimationFrame(step); } else { video.style.filter = ""; grade.style.filter = ""; resetCinematic(); }
+    })(t0);
+  }
+
+  // 7) edge_glow_bloom — highlights overexpose and bloom outward via a heavily
+  //    blurred, screen-blended duplicate of the live frame; dark areas are
+  //    overtaken as the bloom swells, then the new scene is revealed.
+  function edgeGlowBloom(){
+    resetCinematic();
+    var cv = snapshotFrame();
+    var layer = cvLayer("position:absolute;inset:0;z-index:92;pointer-events:none;mix-blend-mode:screen;opacity:0;");
+    layer.appendChild(cv); cv.style.cssText = "width:100%;height:100%;object-fit:cover;display:block;filter:blur(18px) brightness(1.8) saturate(1.5) contrast(1.1);transform:scale(1.07);";
+    var t0 = performance.now(), dur = 1020, peak = 0.44;
+    (function step(now){
+      var k = Math.min(1, (now - t0) / dur);
+      var op = k < peak ? easeOutC(k / peak) : Math.max(0, 1 - (k - peak) / (1 - peak));
+      layer.style.opacity = (op * 0.85).toFixed(3);
+      video.style.filter = k < peak ? "brightness(1.4) contrast(1.12) saturate(1.3)" : "";
+      if (k < 1){ cvRAF = requestAnimationFrame(step); } else { video.style.filter = ""; resetCinematic(); }
     })(t0);
   }
 
@@ -6970,5 +7624,25 @@
 })();
 
 </script>
+
+  <!-- ========================================================================= -->
+  <!-- CAUSAL EDITORIAL CHAIN OF EVENTS DRAWER (100% AUDITABLE INTENT & CRITIQUE) -->
+  <!-- ========================================================================= -->
+  <div class="causal-chain-drawer" id="causalChainDrawer">
+    <div class="causal-drawer-header">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span style="font-size: 15px; font-weight: 900; letter-spacing: 0.02em; color: var(--accent-cyan);">🔗 CAUSAL EDITORIAL CHAIN OF EVENTS</span>
+        <span class="badge" id="causalChainBadge" style="font-size: 10px; background: rgba(0,240,255,0.15); color: var(--accent-cyan); padding: 3px 8px; border-radius: 6px; font-weight: 800; font-family: monospace;">AUDITABLE CAUSAL NODES</span>
+      </div>
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <span style="font-size: 11px; color: var(--text-muted);">Depth Planes: Background (Z:10, 0.35x) · Middle (Z:20, 1.0x) · Foreground (Z:30, 1.65x)</span>
+        <button class="btn-secondary" onclick="toggleCausalDrawer()" style="padding: 4px 12px; font-size: 12px; font-weight: 800;">✕ Close</button>
+      </div>
+    </div>
+    <div class="causal-drawer-body" id="causalDrawerBody">
+      <!-- Populated dynamically by populateCausalDrawer() -->
+    </div>
+  </div>
+
 </body>
 </html>

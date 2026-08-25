@@ -24,7 +24,9 @@
         "word": "FASHION",
         "character_count": 7
       }
-    ]
+    ],
+    "mixed_fonts_verified": true,
+    "mixfont_extracted_at": "2026-08-24T09:15:00Z"
   },
   "layout_rules": {
     "horizontal_alignment": "left",
@@ -44,10 +46,9 @@
       "role": "secondary_clause",
       "font_classification": "Condensed Fine Hairline Serif",
       "matched_font_candidates": [
-        "Senza Bella",
-        "Silver Hairline",
-        "Bodoni Moda",
-        "Playfair Display"
+        "SenzaBella",
+        "Aesthetic Beauty CF",
+        "Silver Hairline"
       ],
       "font_style": {
         "weight": 300,
@@ -91,9 +92,9 @@
       "role": "header",
       "font_classification": "Giant Heavy Display Serif All-Caps",
       "matched_font_candidates": [
-        "Senza Bella",
-        "Bodoni Moda",
-        "Abril Fatface"
+        "SenzaBella",
+        "Foglihten-068",
+        "Bodoni Moda"
       ],
       "font_style": {
         "weight": 900,

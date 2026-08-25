@@ -16,7 +16,9 @@
         "word": "gen",
         "character_count": 3
       }
-    ]
+    ],
+    "mixed_fonts_verified": true,
+    "mixfont_extracted_at": "2026-08-24T09:15:00Z"
   },
   "layout_rules": {
     "horizontal_alignment": "center",
@@ -38,7 +40,7 @@
       "matched_font_candidates": [
         "VT323",
         "Press Start 2P",
-        "Space Mono"
+        "Special Elite"
       ],
       "font_style": {
         "weight": 700,
@@ -74,8 +76,9 @@
       "role": "header",
       "font_classification": "Giant Bold Italic Display Serif",
       "matched_font_candidates": [
-        "Bodoni Moda",
-        "Playfair Display"
+        "Berylium",
+        "Courier Prime",
+        "Roboto Slab"
       ],
       "font_style": {
         "weight": 900,

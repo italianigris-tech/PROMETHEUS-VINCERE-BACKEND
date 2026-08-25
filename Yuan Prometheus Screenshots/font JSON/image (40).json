@@ -16,7 +16,9 @@
         "word": "drone",
         "character_count": 5
       }
-    ]
+    ],
+    "mixed_fonts_verified": true,
+    "mixfont_extracted_at": "2026-08-24T11:52:03Z"
   },
   "layout_rules": {
     "horizontal_alignment": "center",
@@ -36,10 +38,8 @@
       "role": "header",
       "font_classification": "Heavy Geometric Grotesque Sans",
       "matched_font_candidates": [
-        "DM Sans",
-        "Montserrat",
-        "Inter",
-        "Helvetica Neue"
+        "Bodoni Moda",
+        "Echelon"
       ],
       "font_style": {
         "weight": 900,
@@ -75,10 +75,8 @@
       "role": "primary_focus_word",
       "font_classification": "Ultra-Bold Tight-Stacked Grotesque Sans",
       "matched_font_candidates": [
-        "DM Sans",
-        "Montserrat",
-        "Inter",
-        "Arial Black"
+        "Berylium",
+        "Echelon"
       ],
       "font_style": {
         "weight": 900,

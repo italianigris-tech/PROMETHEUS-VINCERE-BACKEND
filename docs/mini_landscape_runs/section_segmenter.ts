@@ -11,7 +11,9 @@
 import type { LandscapeSection, SectionRole } from "./types.js";
 
 export interface TranscriptPoint {
-  timeSec: number;
+  timeSec?: number;
+  startSec?: number;
+  endSec?: number;
   text: string;
 }
 
@@ -53,7 +55,11 @@ function nearestSnapPoint(minimum: number, target: number, durationSec: number, 
 
 function transcriptText(transcript: TranscriptPoint[], startSec: number, endSec: number): string | undefined {
   const texts = transcript
-    .filter((t) => t.timeSec >= startSec && t.timeSec < endSec)
+    .filter((t) => {
+      const time = t.timeSec ?? t.startSec ?? 0;
+      const end = t.endSec ?? time;
+      return (time >= startSec && time < endSec) || (end > startSec && time < endSec);
+    })
     .map((t) => t.text)
     .filter(Boolean);
   return texts.length ? texts.join(" ") : undefined;
@@ -63,7 +69,7 @@ export function segmentCutVideo(durationSec: number, opts: SegmenterOptions = {}
   if (durationSec <= 0) return [];
   const { transcript = [], snapToleranceSec = 4 } = opts;
   const points = transcript
-    .map((t) => t.timeSec)
+    .map((t) => t.timeSec ?? t.startSec ?? 0)
     .filter((t) => t > 0 && t < durationSec)
     .sort((a, b) => a - b);
 

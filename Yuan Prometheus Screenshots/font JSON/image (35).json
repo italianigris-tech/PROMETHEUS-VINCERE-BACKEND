@@ -20,7 +20,9 @@
         "word": "GROWTH",
         "character_count": 6
       }
-    ]
+    ],
+    "mixed_fonts_verified": true,
+    "mixfont_extracted_at": "2026-08-24T09:15:00Z"
   },
   "layout_rules": {
     "horizontal_alignment": "center",
@@ -42,7 +44,7 @@
       "matched_font_candidates": [
         "Impact",
         "Anton",
-        "Bebas Neue"
+        "Saira ExtraCondensed"
       ],
       "font_style": {
         "weight": 900,
@@ -78,6 +80,7 @@
       "role": "header",
       "font_classification": "Heavy Compressed Sans",
       "matched_font_candidates": [
+        "Amerika Alternates",
         "Bebas Neue",
         "Oswald"
       ],

@@ -1,0 +1,3485 @@
+{
+  "composition": "PrometheusMinRun",
+  "canvas": {
+    "width": 1080,
+    "height": 1920,
+    "aspectRatio": "9:16"
+  },
+  "profileCount": 69,
+  "chunkCount": 25,
+  "brandPalette": {
+    "hero_color": "#FF453A",
+    "companion_color": "#FFFFFF",
+    "glow": "0 0 16px rgba(255, 69, 58, 0.45)",
+    "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
+    "accent_border": "#FF3B30",
+    "id": "obsidian_crimson"
+  },
+  "palettePolicy": "balanced_curated_variation",
+  "selectionPolicy": {
+    "creativity": "expressive",
+    "pacing": "adaptive",
+    "motionStyle": "cinematic",
+    "typographyBias": "mixed",
+    "subjectLayering": "required",
+    "avoidPresets": []
+  },
+  "selectionMode": "entropy",
+  "selectionNonce": "2f8d749ebfa41d526cf6316f5140371b5bdc4c052708fd78",
+  "eligiblePortraitProfileCount": 69,
+  "runtimeTreatmentCatalog": [
+    "apple_pro_display_hero_revealer",
+    "dynamic_staggered_character_cascade",
+    "apple_keynote_headline_punch",
+    "subpixel_glow_mask",
+    "textrotate_kinetic_word_cycler",
+    "gaussian_blur_reveal_sweep",
+    "typewriter_ghost_cursor",
+    "vercel_kinetic_highlight_box",
+    "isometric_kinetic_perspective_stack",
+    "hand_drawn_kinetic_underline",
+    "horizontal_gradient_sweep_fade",
+    "liquid_gooey_ink_morph",
+    "cinematic_viewport_mask_sweep",
+    "elegant_paraword_spring_bloom",
+    "cyber_matrix_text_scramble",
+    "kinetic_slot_character_reel",
+    "metallic_chrome_countup_hero",
+    "lavender_highlight_selection",
+    "electric_blue_emoji_line_revealer",
+    "vector_stroke_sparkle",
+    "figma_collaborative_frame_expansion",
+    "hybrid_figma_kinetic_slot",
+    "glow_search_pulsing_caret",
+    "dotted_grid_shimmer_wave",
+    "top_down_staggered_character_drop",
+    "dotted_grid_elastic_word_pull",
+    "led_dot_matrix_scanline",
+    "geometric_circle_inversion",
+    "obsidian_heavy_grotesque",
+    "sandstorm_grain_dissolve",
+    "canva_tall_glyph_stack",
+    "hightech_chromatic_brands",
+    "kinetic_cyber_phrase_expansion",
+    "kinetic_glow_sweep",
+    "kinetic_word_fast_pulse",
+    "kinetic_dynamic_slant",
+    "kinetic_chromatic_typewriter",
+    "metallic_chrome_counter",
+    "apple_gaussian_chrome",
+    "cinematic_apple_word_bounce",
+    "cinematic_distance_convergence"
+  ],
+  "chunks": [
+    {
+      "chunkIndex": 1,
+      "text": "Here's how unedited",
+      "profileId": "image (14)",
+      "profileName": "It_Has_To_Be_Design_Electric_Blue_Poster",
+      "profileFilename": "image (14).json",
+      "pairedImage": "image (14).png",
+      "paletteId": "obsidian_crimson",
+      "palette": {
+        "hero_color": "#FF453A",
+        "companion_color": "#FFFFFF",
+        "glow": "0 0 16px rgba(255, 69, 58, 0.45)",
+        "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
+        "accent_border": "#FF3B30",
+        "id": "obsidian_crimson"
+      },
+      "fxPreset": "dynamic_staggered_character_cascade",
+      "selection": {
+        "profilePoolSize": 69,
+        "profileCandidateCount": 14,
+        "primaryFx": "dynamic_staggered_character_cascade",
+        "overlayFx": null,
+        "cadenceMs": 467,
+        "salience": 0.387
+      },
+      "subjectLayering": {
+        "behindSubject": true,
+        "isTallProfile": true,
+        "mode": "required"
+      },
+      "placement": {
+        "xPercent": "50%",
+        "yPercent": "34%",
+        "anchor": "center",
+        "safeRegionId": "behind_subject_center",
+        "intersectsSubject": true,
+        "subjectBox": null
+      },
+      "sourceStartMs": 240,
+      "sourceEndMs": 1640,
+      "outputStartMs": 240,
+      "outputEndMs": 1639,
+      "startMs": 240,
+      "endMs": 1640,
+      "layers": [
+        {
+          "layerIndex": 0,
+          "layerName": "compressed_stem",
+          "role": "header",
+          "rawText": "Here's how",
+          "text": "HERE'S HOW",
+          "words": [
+            {
+              "text": "Here's",
+              "start_ms": 240,
+              "end_ms": 600,
+              "confidence": 0.99886066
+            },
+            {
+              "text": "how",
+              "start_ms": 600,
+              "end_ms": 880,
+              "confidence": 1.0
+            }
+          ],
+          "fontFamily": "SenzaBella",
+          "accentFont": "SenzaBella",
+          "fontWeight": 900,
+          "fontStyle": "normal",
+          "fontSizePx": 187,
+          "color": "#FFFFFF",
+          "casing": "uppercase",
+          "letterSpacingEm": 0.01,
+          "lineHeight": 0.95,
+          "isHero": false,
+          "fxPreset": "dynamic_staggered_character_cascade",
+          "entryLeadMs": 293,
+          "behindSubject": true,
+          "treatmentOverlay": null,
+          "selection": {
+            "role": "companion",
+            "primaryFx": "dynamic_staggered_character_cascade",
+            "overlayFx": null,
+            "cadenceMs": 467
+          },
+          "gradient": "none",
+          "glow": "0 0 10px rgba(255, 255, 255, 0.20)",
+          "shadow": "0 4px 18px rgba(0, 0, 0, 0.85), 0 2px 4px rgba(0, 0, 0, 0.9)",
+          "textFillColor": "#FFFFFF",
+          "hasGradient": false,
+          "doubleUnderline": false
+        },
+        {
+          "layerIndex": 1,
+          "layerName": "italic_overlap",
+          "role": "secondary_clause",
+          "rawText": "unedited",
+          "text": "UNEDITED",
+          "words": [
+            {
+              "text": "unedited",
+              "start_ms": 880,
+              "end_ms": 1640,
+              "confidence": 0.9998372
+            }
+          ],
+          "fontFamily": "Bebas Neue",
+          "accentFont": "Bebas Neue",
+          "fontWeight": 800,
+          "fontStyle": "italic",
+          "fontSizePx": 180,
+          "color": "#FF453A",
+          "casing": "uppercase",
+          "letterSpacingEm": 0.02,
+          "lineHeight": 1.0,
+          "isHero": true,
+          "fxPreset": "dynamic_staggered_character_cascade",
+          "entryLeadMs": 348,
+          "behindSubject": true,
+          "treatmentOverlay": null,
+          "selection": {
+            "role": "hero",
+            "primaryFx": "dynamic_staggered_character_cascade",
+            "overlayFx": null,
+            "cadenceMs": 467
+          },
+          "gradient": "none",
+          "glow": "0 0 20px rgba(255, 51, 75, 0.45)",
+          "shadow": "0 4px 18px rgba(0, 0, 0, 0.85), 0 2px 4px rgba(0, 0, 0, 0.9)",
+          "textFillColor": "#FF453A",
+          "hasGradient": false,
+          "doubleUnderline": false
+        }
+      ],
+      "words": [
+        {
+          "text": "Here's",
+          "start_ms": 240,
+          "end_ms": 600,
+          "confidence": 0.99886066
+        },
+        {
+          "text": "how",
+          "start_ms": 600,
+          "end_ms": 880,
+          "confidence": 1.0
+        },
+        {
+          "text": "unedited",
+          "start_ms": 880,
+          "end_ms": 1640,
+          "confidence": 0.9998372
+        }
+      ]
+    },
+    {
+      "chunkIndex": 2,
+      "text": "videos made me",
+      "profileId": "image (36)",
+      "profileName": "Pretty_Doesnt_Convert_Tall_Sans_Script",
+      "profileFilename": "image (36).json",
+      "pairedImage": "image (36).png",
+      "paletteId": "obsidian_crimson",
+      "palette": {
+        "hero_color": "#FF453A",
+        "companion_color": "#FFFFFF",
+        "glow": "0 0 16px rgba(255, 69, 58, 0.45)",
+        "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
+        "accent_border": "#FF3B30",
+        "id": "obsidian_crimson"
+      },
+      "fxPreset": "kinetic_slot_character_reel",
+      "selection": {
+        "profilePoolSize": 69,
+        "profileCandidateCount": 13,
+        "primaryFx": "kinetic_slot_character_reel",
+        "overlayFx": null,
+        "cadenceMs": 493,
+        "salience": 0.593
+      },
+      "subjectLayering": {
+        "behindSubject": true,
+        "isTallProfile": true,
+        "mode": "required"
+      },
+      "placement": {
+        "xPercent": "50%",
+        "yPercent": "34%",
+        "anchor": "center",
+        "safeRegionId": "behind_subject_center",
+        "intersectsSubject": true,
+        "subjectBox": null
+      },
+      "sourceStartMs": 1640,
+      "sourceEndMs": 3120,
+      "outputStartMs": 1640,
+      "outputEndMs": 3119,
+      "startMs": 1640,
+      "endMs": 3120,
+      "layers": [
+        {
+          "layerIndex": 0,
+          "layerName": "script_convert",
+          "role": "primary_focus_word",
+          "rawText": "videos",
+          "text": "VIDEOS",
+          "words": [
+            {
+              "text": "videos",
+              "start_ms": 1640,
+              "end_ms": 2320,
+              "confidence": 0.99780273
+            }
+          ],
+          "fontFamily": "Big Shoulders Display",
+          "accentFont": "Big Shoulders Display",
+          "fontWeight": 800,
+          "fontStyle": "italic",
+          "fontSizePx": 180,
+          "color": "#FF453A",
+          "casing": "uppercase",
+          "letterSpacingEm": 0.02,
+          "lineHeight": 1.0,
+          "isHero": true,
+          "fxPreset": "kinetic_slot_character_reel",
+          "entryLeadMs": 356,
+          "behindSubject": true,
+          "treatmentOverlay": null,
+          "selection": {
+            "role": "hero",
+            "primaryFx": "kinetic_slot_character_reel",
+            "overlayFx": null,
+            "cadenceMs": 493
+          },
+          "gradient": "none",
+          "glow": "0 0 20px rgba(255, 51, 75, 0.45)",
+          "shadow": "0 4px 18px rgba(0, 0, 0, 0.85), 0 2px 4px rgba(0, 0, 0, 0.9)",
+          "textFillColor": "#FF453A",
+          "hasGradient": false,
+          "doubleUnderline": false
+        },
+        {
+          "layerIndex": 1,
+          "layerName": "tall_sans",
+          "role": "header",
+          "rawText": "made me",
+          "text": "MADE ME",
+          "words": [
+            {
+              "text": "made",
+              "start_ms": 2400,
+              "end_ms": 2800,
+              "confidence": 0.99853516
+            },
+            {
+              "text": "me",
+              "start_ms": 2800,
+              "end_ms": 3120,
+              "confidence": 0.9995117
+            }
+          ],
+          "fontFamily": "Anton",
+          "accentFont": "Anton",
+          "fontWeight": 900,
+          "fontStyle": "normal",
+          "fontSizePx": 190,
+          "color": "#FFFFFF",
+          "casing": "uppercase",
+          "letterSpacingEm": 0.02,
+          "lineHeight": 0.95,
+          "isHero": false,
+          "fxPreset": "kinetic_slot_character_reel",
+          "entryLeadMs": 301,
+          "behindSubject": true,
+          "treatmentOverlay": null,
+          "selection": {
+            "role": "companion",
+            "primaryFx": "kinetic_slot_character_reel",
+            "overlayFx": null,
+            "cadenceMs": 493
+          },
+          "gradient": "none",
+          "glow": "0 0 10px rgba(255, 255, 255, 0.20)",
+          "shadow": "0 4px 18px rgba(0, 0, 0, 0.85), 0 2px 4px rgba(0, 0, 0, 0.9)",
+          "textFillColor": "#FFFFFF",
+          "hasGradient": false,
+          "doubleUnderline": false
+        }
+      ],
+      "words": [
+        {
+          "text": "videos",
+          "start_ms": 1640,
+          "end_ms": 2320,
+          "confidence": 0.99780273
+        },
+        {
+          "text": "made",
+          "start_ms": 2400,
+          "end_ms": 2800,
+          "confidence": 0.99853516
+        },
+        {
+          "text": "me",
+          "start_ms": 2800,
+          "end_ms": 3120,
+          "confidence": 0.9995117
+        }
+      ]
+    },
+    {
+      "chunkIndex": 3,
+      "text": "a better video",
+      "profileId": "image (43)",
+      "profileName": "Not_Convinced_Yet_Full_Frame_Red_Grotesque",
+      "profileFilename": "image (43).json",
+      "pairedImage": "image (43).png",
+      "paletteId": "obsidian_crimson",
+      "palette": {
+        "hero_color": "#FF453A",
+        "companion_color": "#FFFFFF",
+        "glow": "0 0 16px rgba(255, 69, 58, 0.45)",
+        "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
+        "accent_border": "#FF3B30",
+        "id": "obsidian_crimson"
+      },
+      "fxPreset": "cinematic_distance_convergence",
+      "selection": {
+        "profilePoolSize": 69,
+        "profileCandidateCount": 12,
+        "primaryFx": "cinematic_distance_convergence",
+        "overlayFx": "soft_pixel_blowup_mask",
+        "cadenceMs": 267,
+        "salience": 0.593
+      },
+      "subjectLayering": {
+        "behindSubject": true,
+        "isTallProfile": true,
+        "mode": "required"
+      },
+      "placement": {
+        "xPercent": "50%",
+        "yPercent": "34%",
+        "anchor": "center",
+        "safeRegionId": "behind_subject_center",
+        "intersectsSubject": true,
+        "subjectBox": null
+      },
+      "sourceStartMs": 3120,
+      "sourceEndMs": 3920,
+      "outputStartMs": 3120,
+      "outputEndMs": 3919,
+      "startMs": 3120,
+      "endMs": 3920,
+      "layers": [
+        {
+          "layerIndex": 0,
+          "layerName": "line_not",
+          "role": "prelude_small",
+          "rawText": "a better",
+          "text": "A BETTER",
+          "words": [
+            {
+              "text": "a",
+              "start_ms": 3120,
+              "end_ms": 3320,
+              "confidence": 0.9995117
+            },
+            {
+              "text": "better",
+              "start_ms": 3320,
+              "end_ms": 3600,
+              "confidence": 1.0
+            }
+          ],
+          "fontFamily": "Saira Extra Condensed",
+          "accentFont": "Saira Extra Condensed",
+          "fontWeight": 700,
+          "fontStyle": "italic",
+          "fontSizePx": 180,
+          "color": "#FFFFFF",
+          "casing": "uppercase",
+          "letterSpacingEm": 0.01,
+          "lineHeight": 1.1,
+          "isHero": false,
+          "fxPreset": "cinematic_distance_convergence",
+          "entryLeadMs": 238,
+          "behindSubject": true,
+          "treatmentOverlay": "soft_pixel_blowup_mask",
+          "selection": {
+            "role": "companion",
+            "primaryFx": "cinematic_distance_convergence",
+            "overlayFx": "soft_pixel_blowup_mask",
+            "cadenceMs": 267
+          },
+          "gradient": "none",
+          "glow": "0 0 10px rgba(255, 255, 255, 0.20)",
+          "shadow": "0 4px 18px rgba(0, 0, 0, 0.85), 0 2px 4px rgba(0, 0, 0, 0.9)",
+          "textFillColor": "#FFFFFF",
+          "hasGradient": false,
+          "doubleUnderline": false
+        },
+        {
+          "layerIndex": 1,
+          "layerName": "line_convinced",
+          "role": "hero_dominant_full_frame",
+          "rawText": "video",
+          "text": "VIDEO",
+          "words": [
+            {
+              "text": "video",
+              "start_ms": 3600,
+              "end_ms": 3920,
+              "confidence": 0.9980469
+            }
+          ],
+          "fontFamily": "League Gothic",
+          "accentFont": "League Gothic",
+          "fontWeight": 900,
+          "fontStyle": "normal",
+          "fontSizePx": 240,
+          "color": "#FF453A",
+          "casing": "uppercase",
+          "letterSpacingEm": -0.02,
+          "lineHeight": 0.88,
+          "isHero": true,
+          "fxPreset": "cinematic_distance_convergence",
+          "entryLeadMs": 293,
+          "behindSubject": true,
+          "treatmentOverlay": "soft_pixel_blowup_mask",
+          "selection": {
+            "role": "hero",
+            "primaryFx": "cinematic_distance_convergence",
+            "overlayFx": "soft_pixel_blowup_mask",
+            "cadenceMs": 267
+          },
+          "gradient": "none",
+          "glow": "0 0 20px rgba(255, 51, 75, 0.45)",
+          "shadow": "0 4px 18px rgba(0, 0, 0, 0.85), 0 2px 4px rgba(0, 0, 0, 0.9)",
+          "textFillColor": "#FF453A",
+          "hasGradient": false,
+          "doubleUnderline": false
+        }
+      ],
+      "words": [
+        {
+          "text": "a",
+          "start_ms": 3120,
+          "end_ms": 3320,
+          "confidence": 0.9995117
+        },
+        {
+          "text": "better",
+          "start_ms": 3320,
+          "end_ms": 3600,
+          "confidence": 1.0
+        },
+        {
+          "text": "video",
+          "start_ms": 3600,
+          "end_ms": 3920,
+          "confidence": 0.9980469
+        }
+      ]
+    },
+    {
+      "chunkIndex": 4,
+      "text": "editor.",
+      "profileId": "tall image (6)",
+      "profileName": "Growth_UltraCondensed_Pill_Grotesk",
+      "profileFilename": "tall image (6).json",
+      "pairedImage": "tall image (6).png",
+      "paletteId": "obsidian_crimson",
+      "palette": {
+        "hero_color": "#FF453A",
+        "companion_color": "#FFFFFF",
+        "glow": "0 0 16px rgba(255, 69, 58, 0.45)",
+        "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
+        "accent_border": "#FF3B30",
+        "id": "obsidian_crimson"
+      },
+      "fxPreset": "top_down_staggered_character_drop",
+      "selection": {
+        "profilePoolSize": 69,
+        "profileCandidateCount": 7,
+        "primaryFx": "top_down_staggered_character_drop",
+        "overlayFx": "cinematic_viewport_mask_sweep",
+        "cadenceMs": 940,
+        "salience": 0.8
+      },
+      "subjectLayering": {
+        "behindSubject": true,
+        "isTallProfile": true,
+        "mode": "required"
+      },
+      "placement": {
+        "xPercent": "50%",
+        "yPercent": "34%",
+        "anchor": "center",
+        "safeRegionId": "behind_subject_center",
+        "intersectsSubject": true,
+        "subjectBox": null
+      },
+      "sourceStartMs": 3920,
+      "sourceEndMs": 4860,
+      "outputStartMs": 3920,
+      "outputEndMs": 4860,
+      "startMs": 3920,
+      "endMs": 4860,
+      "layers": [
+        {
+          "layerIndex": 0,
+          "layerName": "hero_rounded_pill",
+          "role": "primary_focus_word",
+          "rawText": "editor.",
+          "text": "EDITOR.",
+          "words": [
+            {
+              "text": "editor.",
+              "start_ms": 3920,
+              "end_ms": 4400,
+              "confidence": 0.998291
+            }
+          ],
+          "fontFamily": "Six Caps",
+          "accentFont": "Six Caps",
+          "fontWeight": 900,
+          "fontStyle": "normal",
+          "fontSizePx": 238,
+          "color": "#FF453A",
+          "casing": "uppercase",
+          "letterSpacingEm": 0.06,
+          "lineHeight": 0.95,
+          "isHero": true,
+          "fxPreset": "top_down_staggered_character_drop",
+          "entryLeadMs": 405,
+          "behindSubject": true,
+          "treatmentOverlay": "cinematic_viewport_mask_sweep",
+          "selection": {
+            "role": "hero",
+            "primaryFx": "top_down_staggered_character_drop",
+            "overlayFx": "cinematic_viewport_mask_sweep",
+            "cadenceMs": 940
+          },
+          "gradient": "none",
+          "glow": "0 0 20px rgba(255, 51, 75, 0.45)",
+          "shadow": "0 4px 18px rgba(0, 0, 0, 0.85), 0 2px 4px rgba(0, 0, 0, 0.9)",
+          "textFillColor": "#FF453A",
+          "hasGradient": false,
+          "doubleUnderline": false
+        }
+      ],
+      "words": [
+        {
+          "text": "editor.",
+          "start_ms": 3920,
+          "end_ms": 4400,
+          "confidence": 0.998291
+        }
+      ]
+    },
+    {
+      "chunkIndex": 5,
+      "text": "See,",
+      "profileId": "tall image (7)",
+      "profileName": "Skywall_Futuristic_Metallic_Display",
+      "profileFilename": "tall image (7).json",
+      "pairedImage": "tall image (7).png",
+      "paletteId": "obsidian_crimson",
+      "palette": {
+        "hero_color": "#FF453A",
+        "companion_color": "#FFFFFF",
+        "glow": "0 0 16px rgba(255, 69, 58, 0.45)",
+        "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
+        "accent_border": "#FF3B30",
+        "id": "obsidian_crimson"
+      },
+      "fxPreset": "hand_drawn_kinetic_underline",
+      "selection": {
+        "profilePoolSize": 69,
+        "profileCandidateCount": 11,
+        "primaryFx": "hand_drawn_kinetic_underline",
+        "overlayFx": "soft_pixel_blowup_mask",
+        "cadenceMs": 400,
+        "salience": 0.8
+      },
+      "subjectLayering": {
+        "behindSubject": false,
+        "isTallProfile": true,
+        "mode": "required"
+      },
+      "placement": {
+        "xPercent": "50%",
+        "yPercent": "68%",
+        "anchor": "center",
+        "safeRegionId": "foreground_center",
+        "intersectsSubject": false,
+        "subjectBox": null
+      },
+      "sourceStartMs": 4960,
+      "sourceEndMs": 5360,
+      "outputStartMs": 4960,
+      "outputEndMs": 5247,
+      "startMs": 4960,
+      "endMs": 5360,
+      "layers": [
+        {
+          "layerIndex": 0,
+          "layerName": "hero_futuristic_angular",
+          "role": "primary_focus_word",
+          "rawText": "See,",
+          "text": "SEE,",
+          "words": [
+            {
+              "text": "See,",
+              "start_ms": 4960,
+              "end_ms": 5360,
+              "confidence": 0.9897461
+            }
+          ],
+          "fontFamily": "Anton",
+          "accentFont": "Saira Extra Condensed",
+          "fontWeight": 900,
+          "fontStyle": "normal",
+          "fontSizePx": 180,
+          "color": "#FF453A",
+          "casing": "uppercase",
+          "letterSpacingEm": 0.06,
+          "lineHeight": 0.95,
+          "isHero": true,
+          "fxPreset": "hand_drawn_kinetic_underline",
+          "entryLeadMs": 330,
+          "behindSubject": false,
+          "treatmentOverlay": "soft_pixel_blowup_mask",
+          "selection": {
+            "role": "hero",
+            "primaryFx": "hand_drawn_kinetic_underline",
+            "overlayFx": "soft_pixel_blowup_mask",
+            "cadenceMs": 400
+          },
+          "gradient": "none",
+          "glow": "0 0 20px rgba(255, 51, 75, 0.45)",
+          "shadow": "0 4px 18px rgba(0, 0, 0, 0.85), 0 2px 4px rgba(0, 0, 0, 0.9)",
+          "textFillColor": "#FF453A",
+          "hasGradient": false,
+          "doubleUnderline": false
+        }
+      ],
+      "words": [
+        {
+          "text": "See,",
+          "start_ms": 4960,
+          "end_ms": 5360,
+          "confidence": 0.9897461
+        }
+      ]
+    },
+    {
+      "chunkIndex": 6,
+      "text": "this video that",
+      "profileId": "image (14)",
+      "profileName": "It_Has_To_Be_Design_Electric_Blue_Poster",
+      "profileFilename": "image (14).json",
+      "pairedImage": "image (14).png",
+      "paletteId": "obsidian_crimson",
+      "palette": {
+        "hero_color": "#FF453A",
+        "companion_color": "#FFFFFF",
+        "glow": "0 0 16px rgba(255, 69, 58, 0.45)",
+        "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
+        "accent_border": "#FF3B30",
+        "id": "obsidian_crimson"
+      },
+      "fxPreset": "dynamic_staggered_character_cascade",
+      "selection": {
+        "profilePoolSize": 69,
+        "profileCandidateCount": 14,
+        "primaryFx": "dynamic_staggered_character_cascade",
+        "overlayFx": null,
+        "cadenceMs": 427,
+        "salience": 0.387
+      },
+      "subjectLayering": {
+        "behindSubject": true,
+        "isTallProfile": true,
+        "mode": "required"
+      },
+      "placement": {
+        "xPercent": "50%",
+        "yPercent": "34%",
+        "anchor": "center",
+        "safeRegionId": "behind_subject_center",
+        "intersectsSubject": true,
+        "subjectBox": null
+      },
+      "sourceStartMs": 5760,
+      "sourceEndMs": 7040,
+      "outputStartMs": 5247,
+      "outputEndMs": 6482,
+      "startMs": 5760,
+      "endMs": 7040,
+      "layers": [
+        {
+          "layerIndex": 0,
+          "layerName": "compressed_stem",
+          "role": "header",
+          "rawText": "this video",
+          "text": "THIS VIDEO",
+          "words": [
+            {
+              "text": "this",
+              "start_ms": 5760,
+              "end_ms": 6120,
+              "confidence": 1.0
+            },
+            {
+              "text": "video",
+              "start_ms": 6120,
+              "end_ms": 6480,
+              "confidence": 0.9995117
+            }
+          ],
+          "fontFamily": "Oswald",
+          "accentFont": "Oswald",
+          "fontWeight": 900,
+          "fontStyle": "normal",
+          "fontSizePx": 187,
+          "color": "#FFFFFF",
+          "casing": "uppercase",
+          "letterSpacingEm": 0.01,
+          "lineHeight": 0.95,
+          "isHero": false,
+          "fxPreset": "dynamic_staggered_character_cascade",
+          "entryLeadMs": 282,
+          "behindSubject": true,
+          "treatmentOverlay": null,
+          "selection": {
+            "role": "companion",
+            "primaryFx": "dynamic_staggered_character_cascade",
+            "overlayFx": null,
+            "cadenceMs": 427
+          },
+          "gradient": "none",
+          "glow": "0 0 10px rgba(255, 255, 255, 0.20)",
+          "shadow": "0 4px 18px rgba(0, 0, 0, 0.85), 0 2px 4px rgba(0, 0, 0, 0.9)",
+          "textFillColor": "#FFFFFF",
+          "hasGradient": false,
+          "doubleUnderline": false
+        },
+        {
+          "layerIndex": 1,
+          "layerName": "italic_overlap",
+          "role": "secondary_clause",
+          "rawText": "that",
+          "text": "THAT",
+          "words": [
+            {
+              "text": "that",
+              "start_ms": 6720,
+              "end_ms": 7040,
+              "confidence": 0.9863281
+            }
+          ],
+          "fontFamily": "Pathway Extreme",
+          "accentFont": "Pathway Extreme",
+          "fontWeight": 800,
+          "fontStyle": "italic",
+          "fontSizePx": 180,
+          "color": "#FF453A",
+          "casing": "uppercase",
+          "letterSpacingEm": 0.02,
+          "lineHeight": 1.0,
+          "isHero": true,
+          "fxPreset": "dynamic_staggered_character_cascade",
+          "entryLeadMs": 337,
+          "behindSubject": true,
+          "treatmentOverlay": null,
+          "selection": {
+            "role": "hero",
+            "primaryFx": "dynamic_staggered_character_cascade",
+            "overlayFx": null,
+            "cadenceMs": 427
+          },
+          "gradient": "none",
+          "glow": "0 0 20px rgba(255, 51, 75, 0.45)",
+          "shadow": "0 4px 18px rgba(0, 0, 0, 0.85), 0 2px 4px rgba(0, 0, 0, 0.9)",
+          "textFillColor": "#FF453A",
+          "hasGradient": false,
+          "doubleUnderline": false
+        }
+      ],
+      "words": [
+        {
+          "text": "this",
+          "start_ms": 5760,
+          "end_ms": 6120,
+          "confidence": 1.0
+        },
+        {
+          "text": "video",
+          "start_ms": 6120,
+          "end_ms": 6480,
+          "confidence": 0.9995117
+        },
+        {
+          "text": "that",
+          "start_ms": 6720,
+          "end_ms": 7040,
+          "confidence": 0.9863281
+        }
+      ]
+    },
+    {
+      "chunkIndex": 7,
+      "text": "you're watching right now",
+      "profileId": "image (47)",
+      "profileName": "Spending_Hours_On_Each_Video_Script_Editorial",
+      "profileFilename": "image (47).json",
+      "pairedImage": "image (47).png",
+      "paletteId": "obsidian_crimson",
+      "palette": {
+        "hero_color": "#FF453A",
+        "companion_color": "#FFFFFF",
+        "glow": "0 0 16px rgba(255, 69, 58, 0.45)",
+        "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
+        "accent_border": "#FF3B30",
+        "id": "obsidian_crimson"
+      },
+      "fxPreset": "kinetic_slot_character_reel",
+      "selection": {
+        "profilePoolSize": 69,
+        "profileCandidateCount": 11,
+        "primaryFx": "kinetic_slot_character_reel",
+        "overlayFx": "soft_pixel_blowup_mask",
+        "cadenceMs": 260,
+        "salience": 0.645
+      },
+      "subjectLayering": {
+        "behindSubject": true,
+        "isTallProfile": true,
+        "mode": "required"
+      },
+      "placement": {
+        "xPercent": "50%",
+        "yPercent": "34%",
+        "anchor": "center",
+        "safeRegionId": "behind_subject_center",
+        "intersectsSubject": true,
+        "subjectBox": null
+      },
+      "sourceStartMs": 7040,
+      "sourceEndMs": 8080,
+      "outputStartMs": 6483,
+      "outputEndMs": 7522,
+      "startMs": 7040,
+      "endMs": 8080,
+      "layers": [
+        {
+          "layerIndex": 0,
+          "layerName": "line_spending_hours",
+          "role": "companion_sans",
+          "rawText": "you're watching right",
+          "text": "YOU'RE WATCHING RIGHT",
+          "words": [
+            {
+              "text": "you're",
+              "start_ms": 7040,
+              "end_ms": 7320,
+              "confidence": 0.9010417
+            },
+            {
+              "text": "watching",
+              "start_ms": 7320,
+              "end_ms": 7600,
+              "confidence": 0.8991699
+            },
+            {
+              "text": "right",
+              "start_ms": 7600,
+              "end_ms": 7800,
+              "confidence": 0.99609375
+            }
+          ],
+          "fontFamily": "Anton",
+          "accentFont": "Anton",
+          "fontWeight": 600,
+          "fontStyle": "normal",
+          "fontSizePx": 180,
+          "color": "#FFFFFF",
+          "casing": "uppercase",
+          "letterSpacingEm": 0.01,
+          "lineHeight": 1.2,
+          "isHero": false,
+          "fxPreset": "kinetic_slot_character_reel",
+          "entryLeadMs": 236,
+          "behindSubject": true,
+          "treatmentOverlay": "soft_pixel_blowup_mask",
+          "selection": {
+            "role": "companion",
+            "primaryFx": "kinetic_slot_character_reel",
+            "overlayFx": "soft_pixel_blowup_mask",
+            "cadenceMs": 260
+          },
+          "gradient": "none",
+          "glow": "0 0 10px rgba(255, 255, 255, 0.20)",
+          "shadow": "0 4px 18px rgba(0, 0, 0, 0.85), 0 2px 4px rgba(0, 0, 0, 0.9)",
+          "textFillColor": "#FFFFFF",
+          "hasGradient": false,
+          "doubleUnderline": false
+        },
+        {
+          "layerIndex": 1,
+          "layerName": "line_on_each",
+          "role": "mid_italic_companion",
+          "rawText": "now",
+          "text": "NOW",
+          "words": [
+            {
+              "text": "now",
+              "start_ms": 7800,
+              "end_ms": 8080,
+              "confidence": 0.9995117
+            }
+          ],
+          "fontFamily": "Antonio",
+          "accentFont": "Antonio",
+          "fontWeight": 800,
+          "fontStyle": "italic",
+          "fontSizePx": 180,
+          "color": "#FF453A",
+          "casing": "uppercase",
+          "letterSpacingEm": -0.01,
+          "lineHeight": 1.0,
+          "isHero": true,
+          "fxPreset": "kinetic_slot_character_reel",
+          "entryLeadMs": 291,
+          "behindSubject": true,
+          "treatmentOverlay": "soft_pixel_blowup_mask",
+          "selection": {
+            "role": "hero",
+            "primaryFx": "kinetic_slot_character_reel",
+            "overlayFx": "soft_pixel_blowup_mask",
+            "cadenceMs": 260
+          },
+          "gradient": "none",
+          "glow": "0 0 20px rgba(255, 51, 75, 0.45)",
+          "shadow": "0 4px 18px rgba(0, 0, 0, 0.85), 0 2px 4px rgba(0, 0, 0, 0.9)",
+          "textFillColor": "#FF453A",
+          "hasGradient": false,
+          "doubleUnderline": false
+        }
+      ],
+      "words": [
+        {
+          "text": "you're",
+          "start_ms": 7040,
+          "end_ms": 7320,
+          "confidence": 0.9010417
+        },
+        {
+          "text": "watching",
+          "start_ms": 7320,
+          "end_ms": 7600,
+          "confidence": 0.8991699
+        },
+        {
+          "text": "right",
+          "start_ms": 7600,
+          "end_ms": 7800,
+          "confidence": 0.99609375
+        },
+        {
+          "text": "now",
+          "start_ms": 7800,
+          "end_ms": 8080,
+          "confidence": 0.9995117
+        }
+      ]
+    },
+    {
+      "chunkIndex": 8,
+      "text": "is completely",
+      "profileId": "tall image (1)",
+      "profileName": "Harmony_UltraTall_Didone_Serif",
+      "profileFilename": "tall image (1).json",
+      "pairedImage": "tall image (1).png",
+      "paletteId": "obsidian_crimson",
+      "palette": {
+        "hero_color": "#FF453A",
+        "companion_color": "#FFFFFF",
+        "glow": "0 0 16px rgba(255, 69, 58, 0.45)",
+        "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
+        "accent_border": "#FF3B30",
+        "id": "obsidian_crimson"
+      },
+      "fxPreset": "canva_tall_glyph_stack",
+      "selection": {
+        "profilePoolSize": 69,
+        "profileCandidateCount": 15,
+        "primaryFx": "canva_tall_glyph_stack",
+        "overlayFx": "cinematic_viewport_mask_sweep",
+        "cadenceMs": 680,
+        "salience": 0.49
+      },
+      "subjectLayering": {
+        "behindSubject": true,
+        "isTallProfile": true,
+        "mode": "required"
+      },
+      "placement": {
+        "xPercent": "50%",
+        "yPercent": "34%",
+        "anchor": "center",
+        "safeRegionId": "behind_subject_center",
+        "intersectsSubject": true,
+        "subjectBox": null
+      },
+      "sourceStartMs": 8400,
+      "sourceEndMs": 9760,
+      "outputStartMs": 7588,
+      "outputEndMs": 8723,
+      "startMs": 8400,
+      "endMs": 9760,
+      "layers": [
+        {
+          "layerIndex": 0,
+          "layerName": "hero_tall_didone",
+          "role": "primary_focus_word",
+          "rawText": "is",
+          "text": "IS",
+          "words": [
+            {
+              "text": "is",
+              "start_ms": 8400,
+              "end_ms": 8800,
+              "confidence": 0.99853516
+            }
+          ],
+          "fontFamily": "Big Shoulders Display",
+          "accentFont": "Big Shoulders Display",
+          "fontWeight": 700,
+          "fontStyle": "normal",
+          "fontSizePx": 231,
+          "color": "#FFFFFF",
+          "casing": "uppercase",
+          "letterSpacingEm": 0.02,
+          "lineHeight": 0.95,
+          "isHero": false,
+          "fxPreset": "canva_tall_glyph_stack",
+          "entryLeadMs": 350,
+          "behindSubject": true,
+          "treatmentOverlay": "cinematic_viewport_mask_sweep",
+          "selection": {
+            "role": "companion",
+            "primaryFx": "canva_tall_glyph_stack",
+            "overlayFx": "cinematic_viewport_mask_sweep",
+            "cadenceMs": 680
+          },
+          "gradient": "none",
+          "glow": "0 0 10px rgba(255, 255, 255, 0.20)",
+          "shadow": "0 4px 18px rgba(0, 0, 0, 0.85), 0 2px 4px rgba(0, 0, 0, 0.9)",
+          "textFillColor": "#FFFFFF",
+          "hasGradient": false,
+          "doubleUnderline": false
+        },
+        {
+          "layerIndex": 1,
+          "layerName": "hero_tall_didone",
+          "role": "primary_focus_word",
+          "rawText": "completely",
+          "text": "COMPLETELY",
+          "words": [
+            {
+              "text": "completely",
+              "start_ms": 8880,
+              "end_ms": 9760,
+              "confidence": 0.99975586
+            }
+          ],
+          "fontFamily": "Bebas Neue",
+          "accentFont": "Bebas Neue",
+          "fontWeight": 800,
+          "fontStyle": "normal",
+          "fontSizePx": 231,
+          "color": "#FF453A",
+          "casing": "uppercase",
+          "letterSpacingEm": 0.02,
+          "lineHeight": 0.95,
+          "isHero": true,
+          "fxPreset": "canva_tall_glyph_stack",
+          "entryLeadMs": 405,
+          "behindSubject": true,
+          "treatmentOverlay": "cinematic_viewport_mask_sweep",
+          "selection": {
+            "role": "hero",
+            "primaryFx": "canva_tall_glyph_stack",
+            "overlayFx": "cinematic_viewport_mask_sweep",
+            "cadenceMs": 680
+          },
+          "gradient": "none",
+          "glow": "0 0 20px rgba(255, 51, 75, 0.45)",
+          "shadow": "0 4px 18px rgba(0, 0, 0, 0.85), 0 2px 4px rgba(0, 0, 0, 0.9)",
+          "textFillColor": "#FF453A",
+          "hasGradient": false,
+          "doubleUnderline": false
+        }
+      ],
+      "words": [
+        {
+          "text": "is",
+          "start_ms": 8400,
+          "end_ms": 8800,
+          "confidence": 0.99853516
+        },
+        {
+          "text": "completely",
+          "start_ms": 8880,
+          "end_ms": 9760,
+          "confidence": 0.99975586
+        }
+      ]
+    },
+    {
+      "chunkIndex": 9,
+      "text": "unedited.",
+      "profileId": "tall image (3)",
+      "profileName": "Terrance_Extreme_Hairline_Tall",
+      "profileFilename": "tall image (3).json",
+      "pairedImage": "tall image (3).png",
+      "paletteId": "obsidian_crimson",
+      "palette": {
+        "hero_color": "#FF453A",
+        "companion_color": "#FFFFFF",
+        "glow": "0 0 16px rgba(255, 69, 58, 0.45)",
+        "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
+        "accent_border": "#FF3B30",
+        "id": "obsidian_crimson"
+      },
+      "fxPreset": "dynamic_staggered_character_cascade",
+      "selection": {
+        "profilePoolSize": 69,
+        "profileCandidateCount": 6,
+        "primaryFx": "dynamic_staggered_character_cascade",
+        "overlayFx": "cinematic_viewport_mask_sweep",
+        "cadenceMs": 800,
+        "salience": 0.8
+      },
+      "subjectLayering": {
+        "behindSubject": true,
+        "isTallProfile": true,
+        "mode": "required"
+      },
+      "placement": {
+        "xPercent": "50%",
+        "yPercent": "34%",
+        "anchor": "center",
+        "safeRegionId": "behind_subject_center",
+        "intersectsSubject": true,
+        "subjectBox": null
+      },
+      "sourceStartMs": 10000,
+      "sourceEndMs": 10800,
+      "outputStartMs": 8755,
+      "outputEndMs": 9376,
+      "startMs": 10000,
+      "endMs": 10800,
+      "layers": [
+        {
+          "layerIndex": 0,
+          "layerName": "hero_extreme_hairline",
+          "role": "primary_focus_word",
+          "rawText": "unedited.",
+          "text": "UNEDITED.",
+          "words": [
+            {
+              "text": "unedited.",
+              "start_ms": 10000,
+              "end_ms": 10800,
+              "confidence": 0.9996745
+            }
+          ],
+          "fontFamily": "Montserrat",
+          "accentFont": "Montserrat",
+          "fontWeight": 800,
+          "fontStyle": "normal",
+          "fontSizePx": 240,
+          "color": "#FF453A",
+          "casing": "uppercase",
+          "letterSpacingEm": 0.06,
+          "lineHeight": 0.9,
+          "isHero": true,
+          "fxPreset": "dynamic_staggered_character_cascade",
+          "entryLeadMs": 405,
+          "behindSubject": true,
+          "treatmentOverlay": "cinematic_viewport_mask_sweep",
+          "selection": {
+            "role": "hero",
+            "primaryFx": "dynamic_staggered_character_cascade",
+            "overlayFx": "cinematic_viewport_mask_sweep",
+            "cadenceMs": 800
+          },
+          "gradient": "none",
+          "glow": "0 0 20px rgba(255, 51, 75, 0.45)",
+          "shadow": "0 4px 18px rgba(0, 0, 0, 0.85), 0 2px 4px rgba(0, 0, 0, 0.9)",
+          "textFillColor": "#FF453A",
+          "hasGradient": false,
+          "doubleUnderline": false
+        }
+      ],
+      "words": [
+        {
+          "text": "unedited.",
+          "start_ms": 10000,
+          "end_ms": 10800,
+          "confidence": 0.9996745
+        }
+      ]
+    },
+    {
+      "chunkIndex": 10,
+      "text": "Why?",
+      "profileId": "image (17)",
+      "profileName": "Peace_Is_The_New_Luxury_Ultra_Fine_Script",
+      "profileFilename": "image (17).json",
+      "pairedImage": "image (17).png",
+      "paletteId": "obsidian_crimson",
+      "palette": {
+        "hero_color": "#FF453A",
+        "companion_color": "#FFFFFF",
+        "glow": "0 0 16px rgba(255, 69, 58, 0.45)",
+        "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
+        "accent_border": "#FF3B30",
+        "id": "obsidian_crimson"
+      },
+      "fxPreset": "metallic_chrome_countup_hero",
+      "selection": {
+        "profilePoolSize": 69,
+        "profileCandidateCount": 10,
+        "primaryFx": "metallic_chrome_countup_hero",
+        "overlayFx": null,
+        "cadenceMs": 400,
+        "salience": 0.36
+      },
+      "subjectLayering": {
+        "behindSubject": false,
+        "isTallProfile": false,
+        "mode": "required"
+      },
+      "placement": {
+        "xPercent": "50%",
+        "yPercent": "68%",
+        "anchor": "center",
+        "safeRegionId": "foreground_center",
+        "intersectsSubject": false,
+        "subjectBox": null
+      },
+      "sourceStartMs": 11840,
+      "sourceEndMs": 12240,
+      "outputStartMs": 9384,
+      "outputEndMs": 9692,
+      "startMs": 11840,
+      "endMs": 12240,
+      "layers": [
+        {
+          "layerIndex": 0,
+          "layerName": "main_quote",
+          "role": "header",
+          "rawText": "Why?",
+          "text": "Why?",
+          "words": [
+            {
+              "text": "Why?",
+              "start_ms": 11840,
+              "end_ms": 12240,
+              "confidence": 0.9970703
+            }
+          ],
+          "fontFamily": "Cormorant Garamond",
+          "accentFont": "Playfair Display",
+          "fontWeight": 800,
+          "fontStyle": "italic",
+          "fontSizePx": 150,
+          "color": "#FF453A",
+          "casing": "normal",
+          "letterSpacingEm": 0.06,
+          "lineHeight": 1.2,
+          "isHero": true,
+          "fxPreset": "metallic_chrome_countup_hero",
+          "entryLeadMs": 330,
+          "behindSubject": false,
+          "treatmentOverlay": null,
+          "selection": {
+            "role": "hero",
+            "primaryFx": "metallic_chrome_countup_hero",
+            "overlayFx": null,
+            "cadenceMs": 400
+          },
+          "gradient": "none",
+          "glow": "0 0 20px rgba(255, 51, 75, 0.45)",
+          "shadow": "0 4px 18px rgba(0, 0, 0, 0.85), 0 2px 4px rgba(0, 0, 0, 0.9)",
+          "textFillColor": "#FF453A",
+          "hasGradient": false,
+          "doubleUnderline": false
+        }
+      ],
+      "words": [
+        {
+          "text": "Why?",
+          "start_ms": 11840,
+          "end_ms": 12240,
+          "confidence": 0.9970703
+        }
+      ]
+    },
+    {
+      "chunkIndex": 11,
+      "text": "Well,",
+      "profileId": "tall image (6)",
+      "profileName": "Growth_UltraCondensed_Pill_Grotesk",
+      "profileFilename": "tall image (6).json",
+      "pairedImage": "tall image (6).png",
+      "paletteId": "obsidian_crimson",
+      "palette": {
+        "hero_color": "#FF453A",
+        "companion_color": "#FFFFFF",
+        "glow": "0 0 16px rgba(255, 69, 58, 0.45)",
+        "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
+        "accent_border": "#FF3B30",
+        "id": "obsidian_crimson"
+      },
+      "fxPreset": "apple_pro_display_hero_revealer",
+      "selection": {
+        "profilePoolSize": 69,
+        "profileCandidateCount": 10,
+        "primaryFx": "apple_pro_display_hero_revealer",
+        "overlayFx": null,
+        "cadenceMs": 481,
+        "salience": 0.8
+      },
+      "subjectLayering": {
+        "behindSubject": false,
+        "isTallProfile": true,
+        "mode": "required"
+      },
+      "placement": {
+        "xPercent": "50%",
+        "yPercent": "68%",
+        "anchor": "center",
+        "safeRegionId": "foreground_center",
+        "intersectsSubject": false,
+        "subjectBox": null
+      },
+      "sourceStartMs": 13680,
+      "sourceEndMs": 14161,
+      "outputStartMs": 9777,
+      "outputEndMs": 10258,
+      "startMs": 13680,
+      "endMs": 14161,
+      "layers": [
+        {
+          "layerIndex": 0,
+          "layerName": "hero_rounded_pill",
+          "role": "primary_focus_word",
+          "rawText": "Well,",
+          "text": "WELL,",
+          "words": [
+            {
+              "text": "Well,",
+              "start_ms": 13680,
+              "end_ms": 14080,
+              "confidence": 0.99609375
+            }
+          ],
+          "fontFamily": "Anton",
+          "accentFont": "Big Shoulders Display",
+          "fontWeight": 900,
+          "fontStyle": "normal",
+          "fontSizePx": 180,
+          "color": "#FF453A",
+          "casing": "uppercase",
+          "letterSpacingEm": 0.06,
+          "lineHeight": 0.95,
+          "isHero": true,
+          "fxPreset": "apple_pro_display_hero_revealer",
+          "entryLeadMs": 352,
+          "behindSubject": false,
+          "treatmentOverlay": null,
+          "selection": {
+            "role": "hero",
+            "primaryFx": "apple_pro_display_hero_revealer",
+            "overlayFx": null,
+            "cadenceMs": 481
+          },
+          "gradient": "none",
+          "glow": "0 0 20px rgba(255, 51, 75, 0.45)",
+          "shadow": "0 4px 18px rgba(0, 0, 0, 0.85), 0 2px 4px rgba(0, 0, 0, 0.9)",
+          "textFillColor": "#FF453A",
+          "hasGradient": false,
+          "doubleUnderline": false
+        }
+      ],
+      "words": [
+        {
+          "text": "Well,",
+          "start_ms": 13680,
+          "end_ms": 14080,
+          "confidence": 0.99609375
+        }
+      ]
+    },
+    {
+      "chunkIndex": 12,
+      "text": "it's because I",
+      "profileId": "image (15)",
+      "profileName": "It_Has_To_Be_Design_Crop_Detail",
+      "profileFilename": "image (15).json",
+      "pairedImage": "image (15).png",
+      "paletteId": "obsidian_crimson",
+      "palette": {
+        "hero_color": "#FF453A",
+        "companion_color": "#FFFFFF",
+        "glow": "0 0 16px rgba(255, 69, 58, 0.45)",
+        "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
+        "accent_border": "#FF3B30",
+        "id": "obsidian_crimson"
+      },
+      "fxPreset": "kinetic_slot_character_reel",
+      "selection": {
+        "profilePoolSize": 69,
+        "profileCandidateCount": 14,
+        "primaryFx": "kinetic_slot_character_reel",
+        "overlayFx": null,
+        "cadenceMs": 293,
+        "salience": 0.18
+      },
+      "subjectLayering": {
+        "behindSubject": true,
+        "isTallProfile": true,
+        "mode": "required"
+      },
+      "placement": {
+        "xPercent": "50%",
+        "yPercent": "34%",
+        "anchor": "center",
+        "safeRegionId": "behind_subject_center",
+        "intersectsSubject": true,
+        "subjectBox": null
+      },
+      "sourceStartMs": 14880,
+      "sourceEndMs": 15760,
+      "outputStartMs": 10358,
+      "outputEndMs": 11010,
+      "startMs": 14880,
+      "endMs": 15760,
+      "layers": [
+        {
+          "layerIndex": 0,
+          "layerName": "compressed_stem",
+          "role": "header",
+          "rawText": "it's because I",
+          "text": "IT'S BECAUSE I",
+          "words": [
+            {
+              "text": "it's",
+              "start_ms": 14880,
+              "end_ms": 15240,
+              "confidence": 0.98030597
+            },
+            {
+              "text": "because",
+              "start_ms": 15240,
+              "end_ms": 15480,
+              "confidence": 0.9995117
+            },
+            {
+              "text": "I",
+              "start_ms": 15480,
+              "end_ms": 15760,
+              "confidence": 0.99902344
+            }
+          ],
+          "fontFamily": "Oswald",
+          "accentFont": "Oswald",
+          "fontWeight": 900,
+          "fontStyle": "normal",
+          "fontSizePx": 221,
+          "color": "#FF453A",
+          "casing": "uppercase",
+          "letterSpacingEm": 0.01,
+          "lineHeight": 0.95,
+          "isHero": true,
+          "fxPreset": "kinetic_slot_character_reel",
+          "entryLeadMs": 301,
+          "behindSubject": true,
+          "treatmentOverlay": null,
+          "selection": {
+            "role": "hero",
+            "primaryFx": "kinetic_slot_character_reel",
+            "overlayFx": null,
+            "cadenceMs": 293
+          },
+          "gradient": "none",
+          "glow": "0 0 20px rgba(255, 51, 75, 0.45)",
+          "shadow": "0 4px 18px rgba(0, 0, 0, 0.85), 0 2px 4px rgba(0, 0, 0, 0.9)",
+          "textFillColor": "#FF453A",
+          "hasGradient": false,
+          "doubleUnderline": false
+        }
+      ],
+      "words": [
+        {
+          "text": "it's",
+          "start_ms": 14880,
+          "end_ms": 15240,
+          "confidence": 0.98030597
+        },
+        {
+          "text": "because",
+          "start_ms": 15240,
+          "end_ms": 15480,
+          "confidence": 0.9995117
+        },
+        {
+          "text": "I",
+          "start_ms": 15480,
+          "end_ms": 15760,
+          "confidence": 0.99902344
+        }
+      ]
+    },
+    {
+      "chunkIndex": 13,
+      "text": "believe that videos,",
+      "profileId": "image (44)",
+      "profileName": "This_Is_Hitesh_Editorial_Script_Serif_Stack",
+      "profileFilename": "image (44).json",
+      "pairedImage": "image (44).png",
+      "paletteId": "obsidian_crimson",
+      "palette": {
+        "hero_color": "#FF453A",
+        "companion_color": "#FFFFFF",
+        "glow": "0 0 16px rgba(255, 69, 58, 0.45)",
+        "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
+        "accent_border": "#FF3B30",
+        "id": "obsidian_crimson"
+      },
+      "fxPreset": "top_down_staggered_character_drop",
+      "selection": {
+        "profilePoolSize": 69,
+        "profileCandidateCount": 13,
+        "primaryFx": "top_down_staggered_character_drop",
+        "overlayFx": null,
+        "cadenceMs": 480,
+        "salience": 0.593
+      },
+      "subjectLayering": {
+        "behindSubject": true,
+        "isTallProfile": true,
+        "mode": "required"
+      },
+      "placement": {
+        "xPercent": "50%",
+        "yPercent": "34%",
+        "anchor": "center",
+        "safeRegionId": "behind_subject_center",
+        "intersectsSubject": true,
+        "subjectBox": null
+      },
+      "sourceStartMs": 15760,
+      "sourceEndMs": 17200,
+      "outputStartMs": 11011,
+      "outputEndMs": 12450,
+      "startMs": 15760,
+      "endMs": 17200,
+      "layers": [
+        {
+          "layerIndex": 0,
+          "layerName": "line_this_is",
+          "role": "companion_italic_script",
+          "rawText": "believe that",
+          "text": "BELIEVE THAT",
+          "words": [
+            {
+              "text": "believe",
+              "start_ms": 15760,
+              "end_ms": 16080,
+              "confidence": 0.9995117
+            },
+            {
+              "text": "that",
+              "start_ms": 16160,
+              "end_ms": 16520,
+              "confidence": 0.99658203
+            }
+          ],
+          "fontFamily": "Antonio",
+          "accentFont": "Antonio",
+          "fontWeight": 600,
+          "fontStyle": "italic",
+          "fontSizePx": 180,
+          "color": "#FFFFFF",
+          "casing": "uppercase",
+          "letterSpacingEm": 0.01,
+          "lineHeight": 1.2,
+          "isHero": false,
+          "fxPreset": "top_down_staggered_character_drop",
+          "entryLeadMs": 297,
+          "behindSubject": true,
+          "treatmentOverlay": null,
+          "selection": {
+            "role": "companion",
+            "primaryFx": "top_down_staggered_character_drop",
+            "overlayFx": null,
+            "cadenceMs": 480
+          },
+          "gradient": "none",
+          "glow": "0 0 10px rgba(255, 255, 255, 0.20)",
+          "shadow": "0 4px 18px rgba(0, 0, 0, 0.85), 0 2px 4px rgba(0, 0, 0, 0.9)",
+          "textFillColor": "#FFFFFF",
+          "hasGradient": false,
+          "doubleUnderline": false
+        },
+        {
+          "layerIndex": 1,
+          "layerName": "line_hitesh",
+          "role": "hero_name_bold",
+          "rawText": "videos,",
+          "text": "VIDEOS,",
+          "words": [
+            {
+              "text": "videos,",
+              "start_ms": 16520,
+              "end_ms": 17200,
+              "confidence": 0.998291
+            }
+          ],
+          "fontFamily": "Anton",
+          "accentFont": "Anton",
+          "fontWeight": 800,
+          "fontStyle": "normal",
+          "fontSizePx": 240,
+          "color": "#FF453A",
+          "casing": "uppercase",
+          "letterSpacingEm": -0.01,
+          "lineHeight": 1.0,
+          "isHero": true,
+          "fxPreset": "top_down_staggered_character_drop",
+          "entryLeadMs": 352,
+          "behindSubject": true,
+          "treatmentOverlay": null,
+          "selection": {
+            "role": "hero",
+            "primaryFx": "top_down_staggered_character_drop",
+            "overlayFx": null,
+            "cadenceMs": 480
+          },
+          "gradient": "none",
+          "glow": "0 0 20px rgba(255, 51, 75, 0.45)",
+          "shadow": "0 4px 18px rgba(0, 0, 0, 0.85), 0 2px 4px rgba(0, 0, 0, 0.9)",
+          "textFillColor": "#FF453A",
+          "hasGradient": false,
+          "doubleUnderline": false
+        }
+      ],
+      "words": [
+        {
+          "text": "believe",
+          "start_ms": 15760,
+          "end_ms": 16080,
+          "confidence": 0.9995117
+        },
+        {
+          "text": "that",
+          "start_ms": 16160,
+          "end_ms": 16520,
+          "confidence": 0.99658203
+        },
+        {
+          "text": "videos,",
+          "start_ms": 16520,
+          "end_ms": 17200,
+          "confidence": 0.998291
+        }
+      ]
+    },
+    {
+      "chunkIndex": 14,
+      "text": "if they are",
+      "profileId": "image (36)",
+      "profileName": "Pretty_Doesnt_Convert_Tall_Sans_Script",
+      "profileFilename": "image (36).json",
+      "pairedImage": "image (36).png",
+      "paletteId": "obsidian_crimson",
+      "palette": {
+        "hero_color": "#FF453A",
+        "companion_color": "#FFFFFF",
+        "glow": "0 0 16px rgba(255, 69, 58, 0.45)",
+        "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
+        "accent_border": "#FF3B30",
+        "id": "obsidian_crimson"
+      },
+      "fxPreset": "cinematic_distance_convergence",
+      "selection": {
+        "profilePoolSize": 69,
+        "profileCandidateCount": 12,
+        "primaryFx": "cinematic_distance_convergence",
+        "overlayFx": null,
+        "cadenceMs": 240,
+        "salience": 0.18
+      },
+      "subjectLayering": {
+        "behindSubject": true,
+        "isTallProfile": true,
+        "mode": "required"
+      },
+      "placement": {
+        "xPercent": "50%",
+        "yPercent": "34%",
+        "anchor": "center",
+        "safeRegionId": "behind_subject_center",
+        "intersectsSubject": true,
+        "subjectBox": null
+      },
+      "sourceStartMs": 17280,
+      "sourceEndMs": 18000,
+      "outputStartMs": 12531,
+      "outputEndMs": 13250,
+      "startMs": 17280,
+      "endMs": 18000,
+      "layers": [
+        {
+          "layerIndex": 0,
+          "layerName": "tall_sans",
+          "role": "header",
+          "rawText": "if they are",
+          "text": "IF THEY ARE",
+          "words": [
+            {
+              "text": "if",
+              "start_ms": 17280,
+              "end_ms": 17600,
+              "confidence": 0.9980469
+            },
+            {
+              "text": "they",
+              "start_ms": 17600,
+              "end_ms": 17800,
+              "confidence": 0.9995117
+            },
+            {
+              "text": "are",
+              "start_ms": 17800,
+              "end_ms": 18000,
+              "confidence": 0.9902344
+            }
+          ],
+          "fontFamily": "Big Shoulders Display",
+          "accentFont": "Big Shoulders Display",
+          "fontWeight": 900,
+          "fontStyle": "normal",
+          "fontSizePx": 190,
+          "color": "#FF453A",
+          "casing": "uppercase",
+          "letterSpacingEm": 0.02,
+          "lineHeight": 0.95,
+          "isHero": true,
+          "fxPreset": "cinematic_distance_convergence",
+          "entryLeadMs": 286,
+          "behindSubject": true,
+          "treatmentOverlay": null,
+          "selection": {
+            "role": "hero",
+            "primaryFx": "cinematic_distance_convergence",
+            "overlayFx": null,
+            "cadenceMs": 240
+          },
+          "gradient": "none",
+          "glow": "0 0 20px rgba(255, 51, 75, 0.45)",
+          "shadow": "0 4px 18px rgba(0, 0, 0, 0.85), 0 2px 4px rgba(0, 0, 0, 0.9)",
+          "textFillColor": "#FF453A",
+          "hasGradient": false,
+          "doubleUnderline": false
+        }
+      ],
+      "words": [
+        {
+          "text": "if",
+          "start_ms": 17280,
+          "end_ms": 17600,
+          "confidence": 0.9980469
+        },
+        {
+          "text": "they",
+          "start_ms": 17600,
+          "end_ms": 17800,
+          "confidence": 0.9995117
+        },
+        {
+          "text": "are",
+          "start_ms": 17800,
+          "end_ms": 18000,
+          "confidence": 0.9902344
+        }
+      ]
+    },
+    {
+      "chunkIndex": 15,
+      "text": "going to be",
+      "profileId": "image (4)",
+      "profileName": "Extenda_Breathing_Compressed_Sans",
+      "profileFilename": "image (4).json",
+      "pairedImage": "image (4).png",
+      "paletteId": "obsidian_crimson",
+      "palette": {
+        "hero_color": "#FF453A",
+        "companion_color": "#FFFFFF",
+        "glow": "0 0 16px rgba(255, 69, 58, 0.45)",
+        "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
+        "accent_border": "#FF3B30",
+        "id": "obsidian_crimson"
+      },
+      "fxPreset": "canva_tall_glyph_stack",
+      "selection": {
+        "profilePoolSize": 69,
+        "profileCandidateCount": 12,
+        "primaryFx": "canva_tall_glyph_stack",
+        "overlayFx": null,
+        "cadenceMs": 147,
+        "salience": 0.387
+      },
+      "subjectLayering": {
+        "behindSubject": true,
+        "isTallProfile": true,
+        "mode": "required"
+      },
+      "placement": {
+        "xPercent": "50%",
+        "yPercent": "34%",
+        "anchor": "center",
+        "safeRegionId": "behind_subject_center",
+        "intersectsSubject": true,
+        "subjectBox": null
+      },
+      "sourceStartMs": 18000,
+      "sourceEndMs": 18440,
+      "outputStartMs": 13251,
+      "outputEndMs": 13690,
+      "startMs": 18000,
+      "endMs": 18440,
+      "layers": [
+        {
+          "layerIndex": 0,
+          "layerName": "hero_compressed",
+          "role": "header",
+          "rawText": "going to",
+          "text": "GOING TO",
+          "words": [
+            {
+              "text": "going",
+              "start_ms": 18000,
+              "end_ms": 18200,
+              "confidence": 0.99853516
+            },
+            {
+              "text": "to",
+              "start_ms": 18200,
+              "end_ms": 18320,
+              "confidence": 0.9995117
+            }
+          ],
+          "fontFamily": "Pathway Extreme",
+          "accentFont": "Pathway Extreme",
+          "fontWeight": 900,
+          "fontStyle": "normal",
+          "fontSizePx": 217,
+          "color": "#FFFFFF",
+          "casing": "uppercase",
+          "letterSpacingEm": 0.02,
+          "lineHeight": 1.0,
+          "isHero": false,
+          "fxPreset": "canva_tall_glyph_stack",
+          "entryLeadMs": 205,
+          "behindSubject": true,
+          "treatmentOverlay": null,
+          "selection": {
+            "role": "companion",
+            "primaryFx": "canva_tall_glyph_stack",
+            "overlayFx": null,
+            "cadenceMs": 147
+          },
+          "gradient": "none",
+          "glow": "0 0 10px rgba(255, 255, 255, 0.20)",
+          "shadow": "0 4px 18px rgba(0, 0, 0, 0.85), 0 2px 4px rgba(0, 0, 0, 0.9)",
+          "textFillColor": "#FFFFFF",
+          "hasGradient": false,
+          "doubleUnderline": false
+        },
+        {
+          "layerIndex": 1,
+          "layerName": "overlay_script",
+          "role": "secondary_clause",
+          "rawText": "be",
+          "text": "BE",
+          "words": [
+            {
+              "text": "be",
+              "start_ms": 18320,
+              "end_ms": 18440,
+              "confidence": 0.99902344
+            }
+          ],
+          "fontFamily": "Six Caps",
+          "accentFont": "Six Caps",
+          "fontWeight": 800,
+          "fontStyle": "italic",
+          "fontSizePx": 180,
+          "color": "#FF453A",
+          "casing": "uppercase",
+          "letterSpacingEm": 0.04,
+          "lineHeight": 1.1,
+          "isHero": true,
+          "fxPreset": "canva_tall_glyph_stack",
+          "entryLeadMs": 260,
+          "behindSubject": true,
+          "treatmentOverlay": null,
+          "selection": {
+            "role": "hero",
+            "primaryFx": "canva_tall_glyph_stack",
+            "overlayFx": null,
+            "cadenceMs": 147
+          },
+          "gradient": "none",
+          "glow": "0 0 20px rgba(255, 51, 75, 0.45)",
+          "shadow": "0 4px 18px rgba(0, 0, 0, 0.85), 0 2px 4px rgba(0, 0, 0, 0.9)",
+          "textFillColor": "#FF453A",
+          "hasGradient": false,
+          "doubleUnderline": false
+        }
+      ],
+      "words": [
+        {
+          "text": "going",
+          "start_ms": 18000,
+          "end_ms": 18200,
+          "confidence": 0.99853516
+        },
+        {
+          "text": "to",
+          "start_ms": 18200,
+          "end_ms": 18320,
+          "confidence": 0.9995117
+        },
+        {
+          "text": "be",
+          "start_ms": 18320,
+          "end_ms": 18440,
+          "confidence": 0.99902344
+        }
+      ]
+    },
+    {
+      "chunkIndex": 16,
+      "text": "good, they need",
+      "profileId": "image (14)",
+      "profileName": "It_Has_To_Be_Design_Electric_Blue_Poster",
+      "profileFilename": "image (14).json",
+      "pairedImage": "image (14).png",
+      "paletteId": "obsidian_crimson",
+      "palette": {
+        "hero_color": "#FF453A",
+        "companion_color": "#FFFFFF",
+        "glow": "0 0 16px rgba(255, 69, 58, 0.45)",
+        "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
+        "accent_border": "#FF3B30",
+        "id": "obsidian_crimson"
+      },
+      "fxPreset": "kinetic_slot_character_reel",
+      "selection": {
+        "profilePoolSize": 69,
+        "profileCandidateCount": 12,
+        "primaryFx": "kinetic_slot_character_reel",
+        "overlayFx": null,
+        "cadenceMs": 253,
+        "salience": 0.387
+      },
+      "subjectLayering": {
+        "behindSubject": true,
+        "isTallProfile": true,
+        "mode": "required"
+      },
+      "placement": {
+        "xPercent": "50%",
+        "yPercent": "34%",
+        "anchor": "center",
+        "safeRegionId": "behind_subject_center",
+        "intersectsSubject": true,
+        "subjectBox": null
+      },
+      "sourceStartMs": 18440,
+      "sourceEndMs": 19200,
+      "outputStartMs": 13691,
+      "outputEndMs": 14450,
+      "startMs": 18440,
+      "endMs": 19200,
+      "layers": [
+        {
+          "layerIndex": 0,
+          "layerName": "compressed_stem",
+          "role": "header",
+          "rawText": "good, they",
+          "text": "GOOD, THEY",
+          "words": [
+            {
+              "text": "good,",
+              "start_ms": 18440,
+              "end_ms": 18640,
+              "confidence": 0.99902344
+            },
+            {
+              "text": "they",
+              "start_ms": 18640,
+              "end_ms": 18920,
+              "confidence": 0.9941406
+            }
+          ],
+          "fontFamily": "Teko",
+          "accentFont": "Teko",
+          "fontWeight": 900,
+          "fontStyle": "normal",
+          "fontSizePx": 187,
+          "color": "#FFFFFF",
+          "casing": "uppercase",
+          "letterSpacingEm": 0.01,
+          "lineHeight": 0.95,
+          "isHero": false,
+          "fxPreset": "kinetic_slot_character_reel",
+          "entryLeadMs": 235,
+          "behindSubject": true,
+          "treatmentOverlay": null,
+          "selection": {
+            "role": "companion",
+            "primaryFx": "kinetic_slot_character_reel",
+            "overlayFx": null,
+            "cadenceMs": 253
+          },
+          "gradient": "none",
+          "glow": "0 0 10px rgba(255, 255, 255, 0.20)",
+          "shadow": "0 4px 18px rgba(0, 0, 0, 0.85), 0 2px 4px rgba(0, 0, 0, 0.9)",
+          "textFillColor": "#FFFFFF",
+          "hasGradient": false,
+          "doubleUnderline": false
+        },
+        {
+          "layerIndex": 1,
+          "layerName": "italic_overlap",
+          "role": "secondary_clause",
+          "rawText": "need",
+          "text": "NEED",
+          "words": [
+            {
+              "text": "need",
+              "start_ms": 18920,
+              "end_ms": 19200,
+              "confidence": 1.0
+            }
+          ],
+          "fontFamily": "Antonio",
+          "accentFont": "Antonio",
+          "fontWeight": 800,
+          "fontStyle": "italic",
+          "fontSizePx": 180,
+          "color": "#FF453A",
+          "casing": "uppercase",
+          "letterSpacingEm": 0.02,
+          "lineHeight": 1.0,
+          "isHero": true,
+          "fxPreset": "kinetic_slot_character_reel",
+          "entryLeadMs": 290,
+          "behindSubject": true,
+          "treatmentOverlay": null,
+          "selection": {
+            "role": "hero",
+            "primaryFx": "kinetic_slot_character_reel",
+            "overlayFx": null,
+            "cadenceMs": 253
+          },
+          "gradient": "none",
+          "glow": "0 0 20px rgba(255, 51, 75, 0.45)",
+          "shadow": "0 4px 18px rgba(0, 0, 0, 0.85), 0 2px 4px rgba(0, 0, 0, 0.9)",
+          "textFillColor": "#FF453A",
+          "hasGradient": false,
+          "doubleUnderline": false
+        }
+      ],
+      "words": [
+        {
+          "text": "good,",
+          "start_ms": 18440,
+          "end_ms": 18640,
+          "confidence": 0.99902344
+        },
+        {
+          "text": "they",
+          "start_ms": 18640,
+          "end_ms": 18920,
+          "confidence": 0.9941406
+        },
+        {
+          "text": "need",
+          "start_ms": 18920,
+          "end_ms": 19200,
+          "confidence": 1.0
+        }
+      ]
+    },
+    {
+      "chunkIndex": 17,
+      "text": "to hinge on something",
+      "profileId": "image (2)",
+      "profileName": "Want_This_Premium_Fonts_3D_Blue",
+      "profileFilename": "image (2).json",
+      "pairedImage": "image (2).png",
+      "paletteId": "obsidian_crimson",
+      "palette": {
+        "hero_color": "#FF453A",
+        "companion_color": "#FFFFFF",
+        "glow": "0 0 16px rgba(255, 69, 58, 0.45)",
+        "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
+        "accent_border": "#FF3B30",
+        "id": "obsidian_crimson"
+      },
+      "fxPreset": "dynamic_staggered_character_cascade",
+      "selection": {
+        "profilePoolSize": 69,
+        "profileCandidateCount": 11,
+        "primaryFx": "dynamic_staggered_character_cascade",
+        "overlayFx": null,
+        "cadenceMs": 320,
+        "salience": 0.49
+      },
+      "subjectLayering": {
+        "behindSubject": true,
+        "isTallProfile": true,
+        "mode": "required"
+      },
+      "placement": {
+        "xPercent": "50%",
+        "yPercent": "34%",
+        "anchor": "center",
+        "safeRegionId": "behind_subject_center",
+        "intersectsSubject": true,
+        "subjectBox": null
+      },
+      "sourceStartMs": 19200,
+      "sourceEndMs": 20480,
+      "outputStartMs": 14451,
+      "outputEndMs": 15730,
+      "startMs": 19200,
+      "endMs": 20480,
+      "layers": [
+        {
+          "layerIndex": 0,
+          "layerName": "header_prefix",
+          "role": "context_prefix",
+          "rawText": "to hinge on",
+          "text": "TO HINGE ON",
+          "words": [
+            {
+              "text": "to",
+              "start_ms": 19200,
+              "end_ms": 19440,
+              "confidence": 0.9995117
+            },
+            {
+              "text": "hinge",
+              "start_ms": 19440,
+              "end_ms": 19840,
+              "confidence": 0.9557292
+            },
+            {
+              "text": "on",
+              "start_ms": 19840,
+              "end_ms": 20120,
+              "confidence": 0.99902344
+            }
+          ],
+          "fontFamily": "League Gothic",
+          "accentFont": "League Gothic",
+          "fontWeight": 700,
+          "fontStyle": "italic",
+          "fontSizePx": 180,
+          "color": "#FFFFFF",
+          "casing": "uppercase",
+          "letterSpacingEm": 0.04,
+          "lineHeight": 1.1,
+          "isHero": false,
+          "fxPreset": "dynamic_staggered_character_cascade",
+          "entryLeadMs": 252,
+          "behindSubject": true,
+          "treatmentOverlay": null,
+          "selection": {
+            "role": "companion",
+            "primaryFx": "dynamic_staggered_character_cascade",
+            "overlayFx": null,
+            "cadenceMs": 320
+          },
+          "gradient": "none",
+          "glow": "0 0 10px rgba(255, 255, 255, 0.20)",
+          "shadow": "0 4px 18px rgba(0, 0, 0, 0.85), 0 2px 4px rgba(0, 0, 0, 0.9)",
+          "textFillColor": "#FFFFFF",
+          "hasGradient": false,
+          "doubleUnderline": false
+        },
+        {
+          "layerIndex": 1,
+          "layerName": "hero_3d_text",
+          "role": "primary_focus_word",
+          "rawText": "something",
+          "text": "SOMETHING",
+          "words": [
+            {
+              "text": "something",
+              "start_ms": 20120,
+              "end_ms": 20480,
+              "confidence": 0.9995117
+            }
+          ],
+          "fontFamily": "Six Caps",
+          "accentFont": "Six Caps",
+          "fontWeight": 900,
+          "fontStyle": "italic",
+          "fontSizePx": 180,
+          "color": "#FF453A",
+          "casing": "uppercase",
+          "letterSpacingEm": 0.05,
+          "lineHeight": 1.0,
+          "isHero": true,
+          "fxPreset": "dynamic_staggered_character_cascade",
+          "entryLeadMs": 307,
+          "behindSubject": true,
+          "treatmentOverlay": null,
+          "selection": {
+            "role": "hero",
+            "primaryFx": "dynamic_staggered_character_cascade",
+            "overlayFx": null,
+            "cadenceMs": 320
+          },
+          "gradient": "none",
+          "glow": "0 0 20px rgba(255, 51, 75, 0.45)",
+          "shadow": "0 4px 18px rgba(0, 0, 0, 0.85), 0 2px 4px rgba(0, 0, 0, 0.9)",
+          "textFillColor": "#FF453A",
+          "hasGradient": false,
+          "doubleUnderline": false
+        }
+      ],
+      "words": [
+        {
+          "text": "to",
+          "start_ms": 19200,
+          "end_ms": 19440,
+          "confidence": 0.9995117
+        },
+        {
+          "text": "hinge",
+          "start_ms": 19440,
+          "end_ms": 19840,
+          "confidence": 0.9557292
+        },
+        {
+          "text": "on",
+          "start_ms": 19840,
+          "end_ms": 20120,
+          "confidence": 0.99902344
+        },
+        {
+          "text": "something",
+          "start_ms": 20120,
+          "end_ms": 20480,
+          "confidence": 0.9995117
+        }
+      ]
+    },
+    {
+      "chunkIndex": 18,
+      "text": "other than mere effects.",
+      "profileId": "image (47)",
+      "profileName": "Spending_Hours_On_Each_Video_Script_Editorial",
+      "profileFilename": "image (47).json",
+      "pairedImage": "image (47).png",
+      "paletteId": "obsidian_crimson",
+      "palette": {
+        "hero_color": "#FF453A",
+        "companion_color": "#FFFFFF",
+        "glow": "0 0 16px rgba(255, 69, 58, 0.45)",
+        "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
+        "accent_border": "#FF3B30",
+        "id": "obsidian_crimson"
+      },
+      "fxPreset": "top_down_staggered_character_drop",
+      "selection": {
+        "profilePoolSize": 69,
+        "profileCandidateCount": 10,
+        "primaryFx": "top_down_staggered_character_drop",
+        "overlayFx": null,
+        "cadenceMs": 540,
+        "salience": 0.49
+      },
+      "subjectLayering": {
+        "behindSubject": true,
+        "isTallProfile": true,
+        "mode": "required"
+      },
+      "placement": {
+        "xPercent": "50%",
+        "yPercent": "34%",
+        "anchor": "center",
+        "safeRegionId": "behind_subject_center",
+        "intersectsSubject": true,
+        "subjectBox": null
+      },
+      "sourceStartMs": 21200,
+      "sourceEndMs": 23360,
+      "outputStartMs": 15864,
+      "outputEndMs": 17934,
+      "startMs": 21200,
+      "endMs": 23360,
+      "layers": [
+        {
+          "layerIndex": 0,
+          "layerName": "line_spending_hours",
+          "role": "companion_sans",
+          "rawText": "other than mere",
+          "text": "OTHER THAN MERE",
+          "words": [
+            {
+              "text": "other",
+              "start_ms": 21200,
+              "end_ms": 21560,
+              "confidence": 1.0
+            },
+            {
+              "text": "than",
+              "start_ms": 21560,
+              "end_ms": 21920,
+              "confidence": 0.99902344
+            },
+            {
+              "text": "mere",
+              "start_ms": 22240,
+              "end_ms": 22680,
+              "confidence": 0.998291
+            }
+          ],
+          "fontFamily": "Pathway Extreme",
+          "accentFont": "Pathway Extreme",
+          "fontWeight": 600,
+          "fontStyle": "normal",
+          "fontSizePx": 180,
+          "color": "#FFFFFF",
+          "casing": "uppercase",
+          "letterSpacingEm": 0.01,
+          "lineHeight": 1.2,
+          "isHero": false,
+          "fxPreset": "top_down_staggered_character_drop",
+          "entryLeadMs": 314,
+          "behindSubject": true,
+          "treatmentOverlay": null,
+          "selection": {
+            "role": "companion",
+            "primaryFx": "top_down_staggered_character_drop",
+            "overlayFx": null,
+            "cadenceMs": 540
+          },
+          "gradient": "none",
+          "glow": "0 0 10px rgba(255, 255, 255, 0.20)",
+          "shadow": "0 4px 18px rgba(0, 0, 0, 0.85), 0 2px 4px rgba(0, 0, 0, 0.9)",
+          "textFillColor": "#FFFFFF",
+          "hasGradient": false,
+          "doubleUnderline": false
+        },
+        {
+          "layerIndex": 1,
+          "layerName": "line_on_each",
+          "role": "mid_italic_companion",
+          "rawText": "effects.",
+          "text": "EFFECTS.",
+          "words": [
+            {
+              "text": "effects.",
+              "start_ms": 22680,
+              "end_ms": 23360,
+              "confidence": 0.9963379
+            }
+          ],
+          "fontFamily": "Saira Extra Condensed",
+          "accentFont": "Saira Extra Condensed",
+          "fontWeight": 800,
+          "fontStyle": "italic",
+          "fontSizePx": 180,
+          "color": "#FF453A",
+          "casing": "uppercase",
+          "letterSpacingEm": -0.01,
+          "lineHeight": 1.0,
+          "isHero": true,
+          "fxPreset": "top_down_staggered_character_drop",
+          "entryLeadMs": 369,
+          "behindSubject": true,
+          "treatmentOverlay": null,
+          "selection": {
+            "role": "hero",
+            "primaryFx": "top_down_staggered_character_drop",
+            "overlayFx": null,
+            "cadenceMs": 540
+          },
+          "gradient": "none",
+          "glow": "0 0 20px rgba(255, 51, 75, 0.45)",
+          "shadow": "0 4px 18px rgba(0, 0, 0, 0.85), 0 2px 4px rgba(0, 0, 0, 0.9)",
+          "textFillColor": "#FF453A",
+          "hasGradient": false,
+          "doubleUnderline": false
+        }
+      ],
+      "words": [
+        {
+          "text": "other",
+          "start_ms": 21200,
+          "end_ms": 21560,
+          "confidence": 1.0
+        },
+        {
+          "text": "than",
+          "start_ms": 21560,
+          "end_ms": 21920,
+          "confidence": 0.99902344
+        },
+        {
+          "text": "mere",
+          "start_ms": 22240,
+          "end_ms": 22680,
+          "confidence": 0.998291
+        },
+        {
+          "text": "effects.",
+          "start_ms": 22680,
+          "end_ms": 23360,
+          "confidence": 0.9963379
+        }
+      ]
+    },
+    {
+      "chunkIndex": 19,
+      "text": "They need to",
+      "profileId": "image (11)",
+      "profileName": "Every_Moment_Matters_Drop_Cap_Serif",
+      "profileFilename": "image (11).json",
+      "pairedImage": "image (11).png",
+      "paletteId": "obsidian_crimson",
+      "palette": {
+        "hero_color": "#FF453A",
+        "companion_color": "#FFFFFF",
+        "glow": "0 0 16px rgba(255, 69, 58, 0.45)",
+        "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
+        "accent_border": "#FF3B30",
+        "id": "obsidian_crimson"
+      },
+      "fxPreset": "kinetic_slot_character_reel",
+      "selection": {
+        "profilePoolSize": 69,
+        "profileCandidateCount": 13,
+        "primaryFx": "kinetic_slot_character_reel",
+        "overlayFx": null,
+        "cadenceMs": 227,
+        "salience": 0.18
+      },
+      "subjectLayering": {
+        "behindSubject": true,
+        "isTallProfile": true,
+        "mode": "required"
+      },
+      "placement": {
+        "xPercent": "50%",
+        "yPercent": "34%",
+        "anchor": "center",
+        "safeRegionId": "behind_subject_center",
+        "intersectsSubject": true,
+        "subjectBox": null
+      },
+      "sourceStartMs": 23680,
+      "sourceEndMs": 24360,
+      "outputStartMs": 18255,
+      "outputEndMs": 18934,
+      "startMs": 23680,
+      "endMs": 24360,
+      "layers": [
+        {
+          "layerIndex": 0,
+          "layerName": "giant_drop_cap",
+          "role": "primary_focus_word",
+          "rawText": "They need to",
+          "text": "THEY NEED TO",
+          "words": [
+            {
+              "text": "They",
+              "start_ms": 23680,
+              "end_ms": 24000,
+              "confidence": 0.99853516
+            },
+            {
+              "text": "need",
+              "start_ms": 24000,
+              "end_ms": 24200,
+              "confidence": 1.0
+            },
+            {
+              "text": "to",
+              "start_ms": 24200,
+              "end_ms": 24360,
+              "confidence": 0.9980469
+            }
+          ],
+          "fontFamily": "Bebas Neue",
+          "accentFont": "Bebas Neue",
+          "fontWeight": 900,
+          "fontStyle": "normal",
+          "fontSizePx": 240,
+          "color": "#FF453A",
+          "casing": "uppercase",
+          "letterSpacingEm": -0.02,
+          "lineHeight": 0.9,
+          "isHero": true,
+          "fxPreset": "kinetic_slot_character_reel",
+          "entryLeadMs": 282,
+          "behindSubject": true,
+          "treatmentOverlay": null,
+          "selection": {
+            "role": "hero",
+            "primaryFx": "kinetic_slot_character_reel",
+            "overlayFx": null,
+            "cadenceMs": 227
+          },
+          "gradient": "none",
+          "glow": "0 0 20px rgba(255, 51, 75, 0.45)",
+          "shadow": "0 4px 18px rgba(0, 0, 0, 0.85), 0 2px 4px rgba(0, 0, 0, 0.9)",
+          "textFillColor": "#FF453A",
+          "hasGradient": false,
+          "doubleUnderline": false
+        }
+      ],
+      "words": [
+        {
+          "text": "They",
+          "start_ms": 23680,
+          "end_ms": 24000,
+          "confidence": 0.99853516
+        },
+        {
+          "text": "need",
+          "start_ms": 24000,
+          "end_ms": 24200,
+          "confidence": 1.0
+        },
+        {
+          "text": "to",
+          "start_ms": 24200,
+          "end_ms": 24360,
+          "confidence": 0.9980469
+        }
+      ]
+    },
+    {
+      "chunkIndex": 20,
+      "text": "hinge on something",
+      "profileId": "image (9)",
+      "profileName": "The_Muse_Era_Editorial_Flourish",
+      "profileFilename": "image (9).json",
+      "pairedImage": "image (9).png",
+      "paletteId": "obsidian_crimson",
+      "palette": {
+        "hero_color": "#FF453A",
+        "companion_color": "#FFFFFF",
+        "glow": "0 0 16px rgba(255, 69, 58, 0.45)",
+        "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
+        "accent_border": "#FF3B30",
+        "id": "obsidian_crimson"
+      },
+      "fxPreset": "cinematic_distance_convergence",
+      "selection": {
+        "profilePoolSize": 69,
+        "profileCandidateCount": 13,
+        "primaryFx": "cinematic_distance_convergence",
+        "overlayFx": null,
+        "cadenceMs": 353,
+        "salience": 0.593
+      },
+      "subjectLayering": {
+        "behindSubject": true,
+        "isTallProfile": true,
+        "mode": "required"
+      },
+      "placement": {
+        "xPercent": "50%",
+        "yPercent": "34%",
+        "anchor": "center",
+        "safeRegionId": "behind_subject_center",
+        "intersectsSubject": true,
+        "subjectBox": null
+      },
+      "sourceStartMs": 24360,
+      "sourceEndMs": 25420,
+      "outputStartMs": 18935,
+      "outputEndMs": 19995,
+      "startMs": 24360,
+      "endMs": 25420,
+      "layers": [
+        {
+          "layerIndex": 0,
+          "layerName": "prefix_script",
+          "role": "secondary_clause",
+          "rawText": "hinge on",
+          "text": "HINGE ON",
+          "words": [
+            {
+              "text": "hinge",
+              "start_ms": 24360,
+              "end_ms": 24680,
+              "confidence": 0.9998372
+            },
+            {
+              "text": "on",
+              "start_ms": 24680,
+              "end_ms": 24920,
+              "confidence": 0.9995117
+            }
+          ],
+          "fontFamily": "Montserrat",
+          "accentFont": "Montserrat",
+          "fontWeight": 600,
+          "fontStyle": "italic",
+          "fontSizePx": 180,
+          "color": "#FFFFFF",
+          "casing": "uppercase",
+          "letterSpacingEm": 0.02,
+          "lineHeight": 1.1,
+          "isHero": false,
+          "fxPreset": "cinematic_distance_convergence",
+          "entryLeadMs": 262,
+          "behindSubject": true,
+          "treatmentOverlay": null,
+          "selection": {
+            "role": "companion",
+            "primaryFx": "cinematic_distance_convergence",
+            "overlayFx": null,
+            "cadenceMs": 353
+          },
+          "gradient": "none",
+          "glow": "0 0 10px rgba(255, 255, 255, 0.20)",
+          "shadow": "0 4px 18px rgba(0, 0, 0, 0.85), 0 2px 4px rgba(0, 0, 0, 0.9)",
+          "textFillColor": "#FFFFFF",
+          "hasGradient": false,
+          "doubleUnderline": false
+        },
+        {
+          "layerIndex": 1,
+          "layerName": "main_title",
+          "role": "header",
+          "rawText": "something",
+          "text": "SOMETHING",
+          "words": [
+            {
+              "text": "something",
+              "start_ms": 24920,
+              "end_ms": 25280,
+              "confidence": 0.9995117
+            }
+          ],
+          "fontFamily": "Oswald",
+          "accentFont": "Oswald",
+          "fontWeight": 800,
+          "fontStyle": "normal",
+          "fontSizePx": 197,
+          "color": "#FF453A",
+          "casing": "uppercase",
+          "letterSpacingEm": -0.01,
+          "lineHeight": 1.0,
+          "isHero": true,
+          "fxPreset": "cinematic_distance_convergence",
+          "entryLeadMs": 317,
+          "behindSubject": true,
+          "treatmentOverlay": null,
+          "selection": {
+            "role": "hero",
+            "primaryFx": "cinematic_distance_convergence",
+            "overlayFx": null,
+            "cadenceMs": 353
+          },
+          "gradient": "none",
+          "glow": "0 0 20px rgba(255, 51, 75, 0.45)",
+          "shadow": "0 4px 18px rgba(0, 0, 0, 0.85), 0 2px 4px rgba(0, 0, 0, 0.9)",
+          "textFillColor": "#FF453A",
+          "hasGradient": false,
+          "doubleUnderline": false
+        }
+      ],
+      "words": [
+        {
+          "text": "hinge",
+          "start_ms": 24360,
+          "end_ms": 24680,
+          "confidence": 0.9998372
+        },
+        {
+          "text": "on",
+          "start_ms": 24680,
+          "end_ms": 24920,
+          "confidence": 0.9995117
+        },
+        {
+          "text": "something",
+          "start_ms": 24920,
+          "end_ms": 25280,
+          "confidence": 0.9995117
+        }
+      ]
+    },
+    {
+      "chunkIndex": 21,
+      "text": "that the viewer",
+      "profileId": "image (36)",
+      "profileName": "Pretty_Doesnt_Convert_Tall_Sans_Script",
+      "profileFilename": "image (36).json",
+      "pairedImage": "image (36).png",
+      "paletteId": "obsidian_crimson",
+      "palette": {
+        "hero_color": "#FF453A",
+        "companion_color": "#FFFFFF",
+        "glow": "0 0 16px rgba(255, 69, 58, 0.45)",
+        "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
+        "accent_border": "#FF3B30",
+        "id": "obsidian_crimson"
+      },
+      "fxPreset": "top_down_staggered_character_drop",
+      "selection": {
+        "profilePoolSize": 69,
+        "profileCandidateCount": 12,
+        "primaryFx": "top_down_staggered_character_drop",
+        "overlayFx": null,
+        "cadenceMs": 267,
+        "salience": 0.387
+      },
+      "subjectLayering": {
+        "behindSubject": true,
+        "isTallProfile": true,
+        "mode": "required"
+      },
+      "placement": {
+        "xPercent": "50%",
+        "yPercent": "34%",
+        "anchor": "center",
+        "safeRegionId": "behind_subject_center",
+        "intersectsSubject": true,
+        "subjectBox": null
+      },
+      "sourceStartMs": 25520,
+      "sourceEndMs": 26320,
+      "outputStartMs": 20095,
+      "outputEndMs": 20894,
+      "startMs": 25520,
+      "endMs": 26320,
+      "layers": [
+        {
+          "layerIndex": 0,
+          "layerName": "tall_sans",
+          "role": "header",
+          "rawText": "that the",
+          "text": "THAT THE",
+          "words": [
+            {
+              "text": "that",
+              "start_ms": 25520,
+              "end_ms": 25800,
+              "confidence": 0.9975586
+            },
+            {
+              "text": "the",
+              "start_ms": 25800,
+              "end_ms": 25960,
+              "confidence": 0.99853516
+            }
+          ],
+          "fontFamily": "League Gothic",
+          "accentFont": "League Gothic",
+          "fontWeight": 900,
+          "fontStyle": "normal",
+          "fontSizePx": 190,
+          "color": "#FFFFFF",
+          "casing": "uppercase",
+          "letterSpacingEm": 0.02,
+          "lineHeight": 0.95,
+          "isHero": false,
+          "fxPreset": "top_down_staggered_character_drop",
+          "entryLeadMs": 238,
+          "behindSubject": true,
+          "treatmentOverlay": null,
+          "selection": {
+            "role": "companion",
+            "primaryFx": "top_down_staggered_character_drop",
+            "overlayFx": null,
+            "cadenceMs": 267
+          },
+          "gradient": "none",
+          "glow": "0 0 10px rgba(255, 255, 255, 0.20)",
+          "shadow": "0 4px 18px rgba(0, 0, 0, 0.85), 0 2px 4px rgba(0, 0, 0, 0.9)",
+          "textFillColor": "#FFFFFF",
+          "hasGradient": false,
+          "doubleUnderline": false
+        },
+        {
+          "layerIndex": 1,
+          "layerName": "script_convert",
+          "role": "primary_focus_word",
+          "rawText": "viewer",
+          "text": "VIEWER",
+          "words": [
+            {
+              "text": "viewer",
+              "start_ms": 25960,
+              "end_ms": 26320,
+              "confidence": 0.99975586
+            }
+          ],
+          "fontFamily": "Anton",
+          "accentFont": "Anton",
+          "fontWeight": 800,
+          "fontStyle": "italic",
+          "fontSizePx": 180,
+          "color": "#FF453A",
+          "casing": "uppercase",
+          "letterSpacingEm": 0.02,
+          "lineHeight": 1.0,
+          "isHero": true,
+          "fxPreset": "top_down_staggered_character_drop",
+          "entryLeadMs": 293,
+          "behindSubject": true,
+          "treatmentOverlay": null,
+          "selection": {
+            "role": "hero",
+            "primaryFx": "top_down_staggered_character_drop",
+            "overlayFx": null,
+            "cadenceMs": 267
+          },
+          "gradient": "none",
+          "glow": "0 0 20px rgba(255, 51, 75, 0.45)",
+          "shadow": "0 4px 18px rgba(0, 0, 0, 0.85), 0 2px 4px rgba(0, 0, 0, 0.9)",
+          "textFillColor": "#FF453A",
+          "hasGradient": false,
+          "doubleUnderline": false
+        }
+      ],
+      "words": [
+        {
+          "text": "that",
+          "start_ms": 25520,
+          "end_ms": 25800,
+          "confidence": 0.9975586
+        },
+        {
+          "text": "the",
+          "start_ms": 25800,
+          "end_ms": 25960,
+          "confidence": 0.99853516
+        },
+        {
+          "text": "viewer",
+          "start_ms": 25960,
+          "end_ms": 26320,
+          "confidence": 0.99975586
+        }
+      ]
+    },
+    {
+      "chunkIndex": 22,
+      "text": "can actually relate",
+      "profileId": "image (15)",
+      "profileName": "It_Has_To_Be_Design_Crop_Detail",
+      "profileFilename": "image (15).json",
+      "pairedImage": "image (15).png",
+      "paletteId": "obsidian_crimson",
+      "palette": {
+        "hero_color": "#FF453A",
+        "companion_color": "#FFFFFF",
+        "glow": "0 0 16px rgba(255, 69, 58, 0.45)",
+        "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
+        "accent_border": "#FF3B30",
+        "id": "obsidian_crimson"
+      },
+      "fxPreset": "kinetic_slot_character_reel",
+      "selection": {
+        "profilePoolSize": 69,
+        "profileCandidateCount": 12,
+        "primaryFx": "kinetic_slot_character_reel",
+        "overlayFx": null,
+        "cadenceMs": 373,
+        "salience": 0.593
+      },
+      "subjectLayering": {
+        "behindSubject": true,
+        "isTallProfile": true,
+        "mode": "required"
+      },
+      "placement": {
+        "xPercent": "50%",
+        "yPercent": "34%",
+        "anchor": "center",
+        "safeRegionId": "behind_subject_center",
+        "intersectsSubject": true,
+        "subjectBox": null
+      },
+      "sourceStartMs": 26320,
+      "sourceEndMs": 27440,
+      "outputStartMs": 20895,
+      "outputEndMs": 22014,
+      "startMs": 26320,
+      "endMs": 27440,
+      "layers": [
+        {
+          "layerIndex": 0,
+          "layerName": "compressed_stem",
+          "role": "header",
+          "rawText": "can actually",
+          "text": "CAN ACTUALLY",
+          "words": [
+            {
+              "text": "can",
+              "start_ms": 26320,
+              "end_ms": 26560,
+              "confidence": 0.99853516
+            },
+            {
+              "text": "actually",
+              "start_ms": 26560,
+              "end_ms": 26880,
+              "confidence": 0.9970703
+            }
+          ],
+          "fontFamily": "Pathway Extreme",
+          "accentFont": "Pathway Extreme",
+          "fontWeight": 900,
+          "fontStyle": "normal",
+          "fontSizePx": 221,
+          "color": "#FFFFFF",
+          "casing": "uppercase",
+          "letterSpacingEm": 0.01,
+          "lineHeight": 0.95,
+          "isHero": false,
+          "fxPreset": "kinetic_slot_character_reel",
+          "entryLeadMs": 267,
+          "behindSubject": true,
+          "treatmentOverlay": null,
+          "selection": {
+            "role": "companion",
+            "primaryFx": "kinetic_slot_character_reel",
+            "overlayFx": null,
+            "cadenceMs": 373
+          },
+          "gradient": "none",
+          "glow": "0 0 10px rgba(255, 255, 255, 0.20)",
+          "shadow": "0 4px 18px rgba(0, 0, 0, 0.85), 0 2px 4px rgba(0, 0, 0, 0.9)",
+          "textFillColor": "#FFFFFF",
+          "hasGradient": false,
+          "doubleUnderline": false
+        },
+        {
+          "layerIndex": 1,
+          "layerName": "italic_overlap",
+          "role": "secondary_clause",
+          "rawText": "relate",
+          "text": "RELATE",
+          "words": [
+            {
+              "text": "relate",
+              "start_ms": 26960,
+              "end_ms": 27440,
+              "confidence": 0.99975586
+            }
+          ],
+          "fontFamily": "Montserrat",
+          "accentFont": "Montserrat",
+          "fontWeight": 800,
+          "fontStyle": "italic",
+          "fontSizePx": 180,
+          "color": "#FF453A",
+          "casing": "uppercase",
+          "letterSpacingEm": 0.02,
+          "lineHeight": 1.0,
+          "isHero": true,
+          "fxPreset": "kinetic_slot_character_reel",
+          "entryLeadMs": 322,
+          "behindSubject": true,
+          "treatmentOverlay": null,
+          "selection": {
+            "role": "hero",
+            "primaryFx": "kinetic_slot_character_reel",
+            "overlayFx": null,
+            "cadenceMs": 373
+          },
+          "gradient": "none",
+          "glow": "0 0 20px rgba(255, 51, 75, 0.45)",
+          "shadow": "0 4px 18px rgba(0, 0, 0, 0.85), 0 2px 4px rgba(0, 0, 0, 0.9)",
+          "textFillColor": "#FF453A",
+          "hasGradient": false,
+          "doubleUnderline": false
+        }
+      ],
+      "words": [
+        {
+          "text": "can",
+          "start_ms": 26320,
+          "end_ms": 26560,
+          "confidence": 0.99853516
+        },
+        {
+          "text": "actually",
+          "start_ms": 26560,
+          "end_ms": 26880,
+          "confidence": 0.9970703
+        },
+        {
+          "text": "relate",
+          "start_ms": 26960,
+          "end_ms": 27440,
+          "confidence": 0.99975586
+        }
+      ]
+    },
+    {
+      "chunkIndex": 23,
+      "text": "to",
+      "profileId": "tall image (3)",
+      "profileName": "Terrance_Extreme_Hairline_Tall",
+      "profileFilename": "tall image (3).json",
+      "pairedImage": "tall image (3).png",
+      "paletteId": "obsidian_crimson",
+      "palette": {
+        "hero_color": "#FF453A",
+        "companion_color": "#FFFFFF",
+        "glow": "0 0 16px rgba(255, 69, 58, 0.45)",
+        "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
+        "accent_border": "#FF3B30",
+        "id": "obsidian_crimson"
+      },
+      "fxPreset": "geometric_circle_inversion",
+      "selection": {
+        "profilePoolSize": 69,
+        "profileCandidateCount": 12,
+        "primaryFx": "geometric_circle_inversion",
+        "overlayFx": null,
+        "cadenceMs": 320,
+        "salience": 0.18
+      },
+      "subjectLayering": {
+        "behindSubject": false,
+        "isTallProfile": true,
+        "mode": "required"
+      },
+      "placement": {
+        "xPercent": "50%",
+        "yPercent": "68%",
+        "anchor": "center",
+        "safeRegionId": "foreground_center",
+        "intersectsSubject": false,
+        "subjectBox": null
+      },
+      "sourceStartMs": 27440,
+      "sourceEndMs": 27760,
+      "outputStartMs": 22015,
+      "outputEndMs": 22328,
+      "startMs": 27440,
+      "endMs": 27760,
+      "layers": [
+        {
+          "layerIndex": 0,
+          "layerName": "hero_extreme_hairline",
+          "role": "primary_focus_word",
+          "rawText": "to",
+          "text": "TO",
+          "words": [
+            {
+              "text": "to",
+              "start_ms": 27440,
+              "end_ms": 27760,
+              "confidence": 0.99658203
+            }
+          ],
+          "fontFamily": "Antonio",
+          "accentFont": "Echelon",
+          "fontWeight": 800,
+          "fontStyle": "normal",
+          "fontSizePx": 180,
+          "color": "#FF453A",
+          "casing": "uppercase",
+          "letterSpacingEm": 0.06,
+          "lineHeight": 0.9,
+          "isHero": true,
+          "fxPreset": "geometric_circle_inversion",
+          "entryLeadMs": 307,
+          "behindSubject": false,
+          "treatmentOverlay": null,
+          "selection": {
+            "role": "hero",
+            "primaryFx": "geometric_circle_inversion",
+            "overlayFx": null,
+            "cadenceMs": 320
+          },
+          "gradient": "none",
+          "glow": "0 0 20px rgba(255, 51, 75, 0.45)",
+          "shadow": "0 4px 18px rgba(0, 0, 0, 0.85), 0 2px 4px rgba(0, 0, 0, 0.9)",
+          "textFillColor": "#FF453A",
+          "hasGradient": false,
+          "doubleUnderline": false
+        }
+      ],
+      "words": [
+        {
+          "text": "to",
+          "start_ms": 27440,
+          "end_ms": 27760,
+          "confidence": 0.99658203
+        }
+      ]
+    },
+    {
+      "chunkIndex": 24,
+      "text": "and have an",
+      "profileId": "image (44)",
+      "profileName": "This_Is_Hitesh_Editorial_Script_Serif_Stack",
+      "profileFilename": "image (44).json",
+      "pairedImage": "image (44).png",
+      "paletteId": "obsidian_crimson",
+      "palette": {
+        "hero_color": "#FF453A",
+        "companion_color": "#FFFFFF",
+        "glow": "0 0 16px rgba(255, 69, 58, 0.45)",
+        "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
+        "accent_border": "#FF3B30",
+        "id": "obsidian_crimson"
+      },
+      "fxPreset": "canva_tall_glyph_stack",
+      "selection": {
+        "profilePoolSize": 69,
+        "profileCandidateCount": 13,
+        "primaryFx": "canva_tall_glyph_stack",
+        "overlayFx": null,
+        "cadenceMs": 187,
+        "salience": 0.18
+      },
+      "subjectLayering": {
+        "behindSubject": true,
+        "isTallProfile": true,
+        "mode": "required"
+      },
+      "placement": {
+        "xPercent": "50%",
+        "yPercent": "34%",
+        "anchor": "center",
+        "safeRegionId": "behind_subject_center",
+        "intersectsSubject": true,
+        "subjectBox": null
+      },
+      "sourceStartMs": 28320,
+      "sourceEndMs": 28880,
+      "outputStartMs": 22328,
+      "outputEndMs": 22884,
+      "startMs": 28320,
+      "endMs": 28880,
+      "layers": [
+        {
+          "layerIndex": 0,
+          "layerName": "line_this_is",
+          "role": "companion_italic_script",
+          "rawText": "and have an",
+          "text": "AND HAVE AN",
+          "words": [
+            {
+              "text": "and",
+              "start_ms": 28320,
+              "end_ms": 28480,
+              "confidence": 0.96484375
+            },
+            {
+              "text": "have",
+              "start_ms": 28480,
+              "end_ms": 28680,
+              "confidence": 0.99853516
+            },
+            {
+              "text": "an",
+              "start_ms": 28680,
+              "end_ms": 28880,
+              "confidence": 0.99902344
+            }
+          ],
+          "fontFamily": "Antonio",
+          "accentFont": "Antonio",
+          "fontWeight": 800,
+          "fontStyle": "italic",
+          "fontSizePx": 180,
+          "color": "#FF453A",
+          "casing": "uppercase",
+          "letterSpacingEm": 0.01,
+          "lineHeight": 1.2,
+          "isHero": true,
+          "fxPreset": "canva_tall_glyph_stack",
+          "entryLeadMs": 271,
+          "behindSubject": true,
+          "treatmentOverlay": null,
+          "selection": {
+            "role": "hero",
+            "primaryFx": "canva_tall_glyph_stack",
+            "overlayFx": null,
+            "cadenceMs": 187
+          },
+          "gradient": "none",
+          "glow": "0 0 20px rgba(255, 51, 75, 0.45)",
+          "shadow": "0 4px 18px rgba(0, 0, 0, 0.85), 0 2px 4px rgba(0, 0, 0, 0.9)",
+          "textFillColor": "#FF453A",
+          "hasGradient": false,
+          "doubleUnderline": false
+        }
+      ],
+      "words": [
+        {
+          "text": "and",
+          "start_ms": 28320,
+          "end_ms": 28480,
+          "confidence": 0.96484375
+        },
+        {
+          "text": "have",
+          "start_ms": 28480,
+          "end_ms": 28680,
+          "confidence": 0.99853516
+        },
+        {
+          "text": "an",
+          "start_ms": 28680,
+          "end_ms": 28880,
+          "confidence": 0.99902344
+        }
+      ]
+    },
+    {
+      "chunkIndex": 25,
+      "text": "experience and a",
+      "profileId": "{4D20411A-A33A-4209-AF30-53A75A9C0567}",
+      "profileName": "Presentation_Style_Italic_Editorial",
+      "profileFilename": "{4D20411A-A33A-4209-AF30-53A75A9C0567}.json",
+      "pairedImage": "{4D20411A-A33A-4209-AF30-53A75A9C0567}.png",
+      "paletteId": "obsidian_crimson",
+      "palette": {
+        "hero_color": "#FF453A",
+        "companion_color": "#FFFFFF",
+        "glow": "0 0 16px rgba(255, 69, 58, 0.45)",
+        "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
+        "accent_border": "#FF3B30",
+        "id": "obsidian_crimson"
+      },
+      "fxPreset": "cinematic_distance_convergence",
+      "selection": {
+        "profilePoolSize": 69,
+        "profileCandidateCount": 13,
+        "primaryFx": "cinematic_distance_convergence",
+        "overlayFx": null,
+        "cadenceMs": 500,
+        "salience": 0.387
+      },
+      "subjectLayering": {
+        "behindSubject": true,
+        "isTallProfile": true,
+        "mode": "required"
+      },
+      "placement": {
+        "xPercent": "50%",
+        "yPercent": "34%",
+        "anchor": "center",
+        "safeRegionId": "behind_subject_center",
+        "intersectsSubject": true,
+        "subjectBox": null
+      },
+      "sourceStartMs": 28880,
+      "sourceEndMs": 30380,
+      "outputStartMs": 22885,
+      "outputEndMs": 24385,
+      "startMs": 28880,
+      "endMs": 30380,
+      "layers": [
+        {
+          "layerIndex": 0,
+          "layerName": "bottom_style",
+          "role": "primary_focus_word",
+          "rawText": "experience",
+          "text": "EXPERIENCE",
+          "words": [
+            {
+              "text": "experience",
+              "start_ms": 28880,
+              "end_ms": 29200,
+              "confidence": 0.9995117
+            }
+          ],
+          "fontFamily": "League Gothic",
+          "accentFont": "League Gothic",
+          "fontWeight": 800,
+          "fontStyle": "italic",
+          "fontSizePx": 180,
+          "color": "#FF453A",
+          "casing": "uppercase",
+          "letterSpacingEm": 0.01,
+          "lineHeight": 0.95,
+          "isHero": true,
+          "fxPreset": "cinematic_distance_convergence",
+          "entryLeadMs": 358,
+          "behindSubject": true,
+          "treatmentOverlay": null,
+          "selection": {
+            "role": "hero",
+            "primaryFx": "cinematic_distance_convergence",
+            "overlayFx": null,
+            "cadenceMs": 500
+          },
+          "gradient": "none",
+          "glow": "0 0 20px rgba(255, 51, 75, 0.45)",
+          "shadow": "0 4px 18px rgba(0, 0, 0, 0.85), 0 2px 4px rgba(0, 0, 0, 0.9)",
+          "textFillColor": "#FF453A",
+          "hasGradient": false,
+          "doubleUnderline": false
+        },
+        {
+          "layerIndex": 1,
+          "layerName": "top_presentation",
+          "role": "header",
+          "rawText": "and a",
+          "text": "AND A",
+          "words": [
+            {
+              "text": "and",
+              "start_ms": 29440,
+              "end_ms": 29720,
+              "confidence": 0.9277344
+            },
+            {
+              "text": "a",
+              "start_ms": 29720,
+              "end_ms": 29880,
+              "confidence": 0.99658203
+            }
+          ],
+          "fontFamily": "Big Shoulders Display",
+          "accentFont": "Big Shoulders Display",
+          "fontWeight": 600,
+          "fontStyle": "italic",
+          "fontSizePx": 180,
+          "color": "#FFFFFF",
+          "casing": "uppercase",
+          "letterSpacingEm": 0.01,
+          "lineHeight": 0.95,
+          "isHero": false,
+          "fxPreset": "cinematic_distance_convergence",
+          "entryLeadMs": 303,
+          "behindSubject": true,
+          "treatmentOverlay": null,
+          "selection": {
+            "role": "companion",
+            "primaryFx": "cinematic_distance_convergence",
+            "overlayFx": null,
+            "cadenceMs": 500
+          },
+          "gradient": "none",
+          "glow": "0 0 10px rgba(255, 255, 255, 0.20)",
+          "shadow": "0 4px 18px rgba(0, 0, 0, 0.85), 0 2px 4px rgba(0, 0, 0, 0.9)",
+          "textFillColor": "#FFFFFF",
+          "hasGradient": false,
+          "doubleUnderline": false
+        }
+      ],
+      "words": [
+        {
+          "text": "experience",
+          "start_ms": 28880,
+          "end_ms": 29200,
+          "confidence": 0.9995117
+        },
+        {
+          "text": "and",
+          "start_ms": 29440,
+          "end_ms": 29720,
+          "confidence": 0.9277344
+        },
+        {
+          "text": "a",
+          "start_ms": 29720,
+          "end_ms": 29880,
+          "confidence": 0.99658203
+        }
+      ]
+    }
+  ],
+  "subjectObservation": {
+    "status": "completed",
+    "frameCount": 150,
+    "detector": "mediapipe_opencv"
+  }
+}

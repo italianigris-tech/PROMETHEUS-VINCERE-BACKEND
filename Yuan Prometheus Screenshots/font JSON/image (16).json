@@ -56,7 +56,9 @@
         "word": "WORKS.",
         "character_count": 6
       }
-    ]
+    ],
+    "mixed_fonts_verified": true,
+    "mixfont_extracted_at": "2026-08-24T11:52:03Z"
   },
   "layout_rules": {
     "horizontal_alignment": "left",
@@ -76,8 +78,8 @@
       "role": "header",
       "font_classification": "Heavy Geometric Sans-Serif",
       "matched_font_candidates": [
-        "Inter",
-        "Montserrat"
+        "Echelon",
+        "Bodoni Moda"
       ],
       "font_style": {
         "weight": 800,
@@ -113,8 +115,8 @@
       "role": "secondary_clause",
       "font_classification": "Heavy Geometric Sans in Blue Box",
       "matched_font_candidates": [
-        "Inter",
-        "Montserrat"
+        "Goudy Bookletter",
+        "Foglihten-068"
       ],
       "font_style": {
         "weight": 800,
@@ -162,8 +164,8 @@
       "role": "secondary_clause",
       "font_classification": "Heavy Geometric Sans with Red Underline",
       "matched_font_candidates": [
-        "Inter",
-        "Montserrat"
+        "Playfair Display",
+        "Goudy Bookletter"
       ],
       "font_style": {
         "weight": 800,
@@ -219,8 +221,8 @@
       "role": "primary_focus_word",
       "font_classification": "Heavy Geometric Sans inside Red Oval Circle",
       "matched_font_candidates": [
-        "Inter",
-        "Montserrat"
+        "Bodoni Moda",
+        "Echelon"
       ],
       "font_style": {
         "weight": 800,

@@ -341,6 +341,9 @@ def handle_matte(payload: dict[str, Any]) -> dict[str, Any]:
     volume_source = volume_source_dir / f"{job_id}.mp4"
     if not volume_source.exists():
         shutil.copyfile(local_source, volume_source)
+        # Martin runs in a separate Modal app; publish this source before the
+        # remote worker resolves the shared-volume path.
+        modal.Volume.from_name("prometheus-render-artifacts").commit()
 
     expanded_windows: list[dict[str, Any]] = []
     for index, window in enumerate(windows):
@@ -362,7 +365,7 @@ def handle_matte(payload: dict[str, Any]) -> dict[str, Any]:
             }
         )
 
-    matte_worker = modal.Function.lookup(MATTE_APP, MATTE_WORKER_NAME)
+    matte_worker = modal.Function.from_name(MATTE_APP, MATTE_WORKER_NAME)
     receipts = matte_worker.remote(
         {
             "requestKind": "martin_matte_batch",
@@ -434,6 +437,7 @@ def handle_render(payload: dict[str, Any]) -> dict[str, Any]:
     the result H.264-encoded (9:16 canvas) and mirrored to R2.
     """
     from mini_run_pipeline import pipeline as pipeline_mod
+    from mini_run_pipeline.typography import resolve_typography_policy
 
     source = normalize_source(payload.get("source"))
     if not source:
@@ -451,9 +455,11 @@ def handle_render(payload: dict[str, Any]) -> dict[str, Any]:
         # Default the composed canvas to a 9:16 portrait output unless the caller
         # supplies explicit canvas dimensions (MUST be portrait aspect for shorts).
         design = dict(design)
+        design.pop("seed", None)
         if not design.get("canvasWidth") and not design.get("canvasHeight"):
             design["canvasWidth"] = 1080
             design["canvasHeight"] = 1920
+        design.update(resolve_typography_policy(design))
 
     options = {
         "design": design,

@@ -1,0 +1,77 @@
+{
+  "profile_name": "Less_See_Through_Video_Letterform_Treatment",
+  "version": "1.0.0",
+  "metadata": {
+    "target_aspect_ratio": "9:16",
+    "overall_mood": "Ultra-minimal editorial. Large semi-transparent lowercase letterform laid over live video. Beauty is in the see-through — subject bleeds through letterform fill.",
+    "casing_strategy": "lowercase",
+    "total_word_count": 1,
+    "total_character_count": 5,
+    "treatment_notes": "SEE-THROUGH LETTERFORM TREATMENT (TYPO #37): Single word 'less.' rendered as a large semi-transparent letterform in warm terracotta/salmon tone (~rgba(232,196,160,0.72)) positioned over live video. The principal subject (talking head) is visible THROUGH the letterform fill. The treatment creates depth via alpha transparency rather than animation. Letterform sits mid-frame, partially overlapping the subject. Heavy sans 700-900 weight, lowercase.",
+    "treatment_system": "see_through_letterform",
+    "per_word_character_counts": [
+      {
+        "word": "less.",
+        "character_count": 5
+      }
+    ],
+    "mixed_fonts_verified": true,
+    "mixfont_extracted_at": "2026-08-24T09:15:00Z"
+  },
+  "layout_rules": {
+    "horizontal_alignment": "center_left",
+    "vertical_position": "center",
+    "max_width_percent": 85,
+    "placement_note": "Large letterform centered over mid-frame, overlapping the principal subject's torso/lower-face area. The subject's face is visible through the transparent letterform body.",
+    "scrim_overlay": {
+      "enabled": false,
+      "type": "none",
+      "opacity": 0,
+      "color": "transparent"
+    }
+  },
+  "typography_layers": [
+    {
+      "layer_name": "see_through_letterform",
+      "role": "see_through_hero",
+      "font_classification": "Heavy Geometric Sans-Serif or Transitional Sans — Large Letterform",
+      "matched_font_candidates": [
+        "Playfair Display",
+        "Goudy Bookletter"
+      ],
+      "font_style": {
+        "weight": 700,
+        "style": "normal",
+        "casing": "lowercase",
+        "color": "rgba(232, 196, 160, 0.72)",
+        "color_notes": "Semi-transparent warm terracotta/salmon. The alpha (~0.72) is critical — the video subject shows through the letterform. Do NOT use solid fill. Exact color: warm skin-tone peach.",
+        "size_px_base": 160,
+        "relative_scale": 2.8,
+        "letter_spacing_em": -0.02,
+        "line_height": 1.0,
+        "text_align": "center"
+      },
+      "effects": {
+        "opacity": 0.72,
+        "blend_mode": "normal",
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 0,
+          "blur_radius": 0,
+          "color": "transparent"
+        },
+        "treatment_note": "NO drop shadow, NO glow, NO animation. The semi-transparency IS the entire treatment. The beauty is the video subject bleeding through the letterform body."
+      },
+      "placement": {
+        "x_percent": "50%",
+        "y_percent": "50%",
+        "anchor": "center",
+        "z_index": 2,
+        "z_depth_note": "Text sits in front of video, behind any UI overlays. Subject video is at z_index: 0, this text at z_index: 2."
+      },
+      "sample_text": "less.",
+      "word_count": 1,
+      "character_count": 5
+    }
+  ]
+}

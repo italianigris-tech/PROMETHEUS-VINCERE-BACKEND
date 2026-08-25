@@ -16,7 +16,9 @@
         "word": "YOUR",
         "character_count": 4
       }
-    ]
+    ],
+    "mixed_fonts_verified": true,
+    "mixfont_extracted_at": "2026-08-24T11:52:03Z"
   },
   "layout_rules": {
     "horizontal_alignment": "center",
@@ -36,8 +38,8 @@
       "role": "header",
       "font_classification": "Netflix Red Ultra-Bold Sans",
       "matched_font_candidates": [
-        "Montserrat ExtraBold",
-        "Inter"
+        "Berylium",
+        "Bodoni Moda"
       ],
       "font_style": {
         "weight": 900,
@@ -73,8 +75,8 @@
       "role": "secondary_clause",
       "font_classification": "White Bold Geometric Sans Overlapping GROW",
       "matched_font_candidates": [
-        "Montserrat",
-        "Inter"
+        "Foglihten-068",
+        "Goudy Bookletter"
       ],
       "font_style": {
         "weight": 800,

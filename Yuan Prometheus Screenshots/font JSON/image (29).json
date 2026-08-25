@@ -20,7 +20,9 @@
         "word": "gatekeep.",
         "character_count": 9
       }
-    ]
+    ],
+    "mixed_fonts_verified": true,
+    "mixfont_extracted_at": "2026-08-24T09:15:00Z"
   },
   "layout_rules": {
     "horizontal_alignment": "left",
@@ -40,8 +42,9 @@
       "role": "header",
       "font_classification": "High Contrast Editorial Serif",
       "matched_font_candidates": [
-        "Bodoni Moda",
-        "Playfair Display"
+        "Monrovia-ModernSerifFont",
+        "Aesthetic Beauty CF",
+        "Bodoni Moda"
       ],
       "font_style": {
         "weight": 700,
@@ -77,6 +80,8 @@
       "role": "secondary_clause",
       "font_classification": "Serif inside Blue Marker Oval with Folder Icon",
       "matched_font_candidates": [
+        "Dr Exclusive Editorial",
+        "Blaak Thin PERSONAL USE",
         "Bodoni Moda"
       ],
       "font_style": {
@@ -113,7 +118,8 @@
       "role": "primary_focus_word",
       "font_classification": "High Contrast Editorial Serif with Eyeball Emojis",
       "matched_font_candidates": [
-        "Bodoni Moda"
+        "Bodoni Moda",
+        "Playfair Display"
       ],
       "font_style": {
         "weight": 700,

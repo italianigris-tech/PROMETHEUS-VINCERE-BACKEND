@@ -9,10 +9,21 @@
     "total_character_count": 13,
     "treatment_notes": "SPECIAL: Where 'tonight' (italic serif) overlaps 'sleep' (heavy sans), the overlapping portion of 'sleep' inverts to WHITE — creating a layered Z-index stacking illusion. The two-word arrangement reads as a single phrase across two distinct type styles and hierarchies.",
     "per_word_character_counts": [
-      { "word": "to", "character_count": 2 },
-      { "word": "sleep", "character_count": 5 },
-      { "word": "tonight.", "character_count": 8 }
-    ]
+      {
+        "word": "to",
+        "character_count": 2
+      },
+      {
+        "word": "sleep",
+        "character_count": 5
+      },
+      {
+        "word": "tonight.",
+        "character_count": 8
+      }
+    ],
+    "mixed_fonts_verified": true,
+    "mixfont_extracted_at": "2026-08-24T09:15:00Z"
   },
   "layout_rules": {
     "horizontal_alignment": "left",
@@ -20,7 +31,10 @@
     "bottom_margin_percent": 18,
     "max_width_percent": 88,
     "layer_stacking": {
-      "z_order": ["layer_to_sleep", "layer_tonight"],
+      "z_order": [
+        "layer_to_sleep",
+        "layer_tonight"
+      ],
       "overlap_treatment": {
         "enabled": true,
         "description": "Where 'tonight' italic layer sits visually atop 'sleep', the portion of 'sleep' beneath 'tonight' renders in #FFFFFF (white) to simulate letterform depth and Z-index layering.",
@@ -76,8 +90,14 @@
       "word_count": 2,
       "character_count": 7,
       "per_word_character_counts": [
-        { "word": "to", "character_count": 2 },
-        { "word": "sleep", "character_count": 5 }
+        {
+          "word": "to",
+          "character_count": 2
+        },
+        {
+          "word": "sleep",
+          "character_count": 5
+        }
       ]
     },
     {
@@ -122,7 +142,10 @@
       "word_count": 1,
       "character_count": 8,
       "per_word_character_counts": [
-        { "word": "tonight.", "character_count": 8 }
+        {
+          "word": "tonight.",
+          "character_count": 8
+        }
       ]
     }
   ]

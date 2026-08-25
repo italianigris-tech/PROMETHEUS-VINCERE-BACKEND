@@ -229,6 +229,8 @@ export function executeSilenceCut(
   const hasVideo = detectVideoPresence(plan.sourcePath);
   const encodeArgs = hasVideo ? ["-c:v", "libx264", "-preset", "veryfast", "-crf", "18"] : [];
   const segDir = path.join(outDir, `${base}_segments`);
+  fs.mkdirSync(segDir, { recursive: true });
+
 
   if (plan.skipSilenceCut) {
     const audioArgs = hasAudio ? ["-c:a", "aac", "-b:a", "192k"] : ["-an"];

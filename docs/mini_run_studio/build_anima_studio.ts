@@ -19,6 +19,8 @@ interface ArchetypeVariant {
   slug: string;
   code: string;
   html: string;
+  type?: "animation" | "treatment";
+  usageNote?: string;
 }
 
 interface AnimaArchetypeFull {
@@ -232,10 +234,11 @@ const TYPOGRAPHY_30_PRESETS: ArchetypeVariant[] = [
     traitId: "trait_cinematic_viewport_sweep",
     concern: "MaterialTreatment",
     targetScope: "phrase",
+    type: "treatment",
     channels: "background.position, brightness",
     conflicts: "gradient_fade_sweep",
     frameExpression: "bgPositionX = sin((frame/540)*2π)*100",
-    footerSpec: "Dark Stage • Ultra-Slow Viewport Sweep (18s)",
+    footerSpec: "Dark Stage • Ultra-Slow Viewport Sweep (18s) • Pure Stylization",
     slug: "cinematic-viewport-sweep",
     code: "background-image: url('https://images.unsplash.com/photo-1506744038136-46273834b3fb'); -webkit-background-clip: text;",
     html: `<div class="masked-glyph-stage"><div class="cinematic-sweep-text">STUNNING</div></div>`
@@ -496,76 +499,164 @@ const TYPOGRAPHY_30_PRESETS: ArchetypeVariant[] = [
     html: `<div class="typo-sand-stage"><svg class="typo-sand-defs" style="position: absolute; width: 0; height: 0;"><defs><filter id="sandStippleGlow" x="-50%" y="-50%" width="200%" height="200%"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" result="sandNoise"/><feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 16 -4" result="hardNoise"/><feComposite in="SourceGraphic" in2="hardNoise" operator="in" result="sandText"/><feGaussianBlur in="sandText" stdDeviation="1.5" result="sandGlow"/><feMerge><feMergeNode in="sandGlow"/><feMergeNode in="sandText"/></feMerge></filter></defs></svg><div class="typo-sand-container"><div class="sand-wind-streak"></div><div class="sand-particle-cloud"><span class="sand-grain g1"></span><span class="sand-grain g2"></span><span class="sand-grain g3"></span><span class="sand-grain g4"></span><span class="sand-grain g5"></span><span class="sand-grain g6"></span><span class="sand-grain g7"></span><span class="sand-grain g8"></span></div><div class="sand-text-block"><div class="sand-line l1">SAND</div><div class="sand-line l2">TYPO</div></div></div></div>`
   }
   ,{
-    id: 31, badge: "TYPO #32", name: "Sky High Vertical Ripple Treatment",
-    traitId: "trait_sky_high_ripple", concern: "TallFontSubjectMask", targetScope: "tall_word",
-    channels: "clipPath, translateY, letterSpacing", conflicts: "foreground_face_overlap",
-    frameExpression: "rippleY = sin((frame - glyphIdx*3)/12)*8", footerSpec: "Tall type • Vertical liquid ripple • Behind-subject plane",
-    slug: "sky-high-ripple", code: ".skyhigh-wave-char { animation: skyhigh-liquid-wave 1.8s infinite ease-in-out; }",
-    html: `<div style="height:100%;display:grid;place-items:center;background:#050505;overflow:hidden;"><style>@keyframes skyHighRef{0%,100%{transform:translateY(-5px) scaleY(1.08)}50%{transform:translateY(6px) scaleY(.84)}}.skyHighRef span{display:inline-block;animation:skyHighRef 1.4s ease-in-out infinite;filter:drop-shadow(0 8px 0 #555)}</style><div style="font:900 54px/0.75 'Oswald',sans-serif;letter-spacing:-4px;color:#eee">${"SKYHIGH".split("").map((c,i)=>`<span style="animation-delay:${i*.07}s">${c}</span>`).join("")}</div></div>`
-  }
-  ,{
-    id: 32, badge: "TYPO #33", name: "Vibe Chromatic Bloom Treatment",
-    traitId: "trait_vibe_chromatic_bloom", concern: "TallFontSubjectMask", targetScope: "tall_word",
-    channels: "filter.blur, textShadow, opacity", conflicts: "flat_monochrome",
-    frameExpression: "chromaticBloom = 8 + sin(frame/9)*6", footerSpec: "Chromatic cyan/magenta bloom • Speech-safe restrained pulse",
-    slug: "vibe-chromatic-bloom", code: ".vibe-luminescence-char { animation: vibe-chromatic-bloom 1.6s infinite alternate; }",
-    html: `<div style="height:100%;display:grid;place-items:center;background:#0b0b0d"><style>@keyframes vibeRef{from{text-shadow:-5px 0 12px #35d6ff,5px 0 12px #ff8bd7;filter:blur(.2px)}to{text-shadow:-9px 0 22px #35d6ff,9px 0 22px #ff8bd7;filter:blur(1px)}}</style><div style="font:900 58px/1 'Anton',sans-serif;letter-spacing:7px;color:#f8f8ff;animation:vibeRef 1.45s ease-in-out infinite alternate">VIBE</div></div>`
-  }
-  ,{
-    id: 33, badge: "TYPO #34", name: "Glassmorphic O3 Caustic Refraction",
-    traitId: "trait_glassmorphic_o3_refraction", concern: "TallFontSubjectMask", targetScope: "tall_word",
-    channels: "backdropFilter, border, textShadow", conflicts: "opaque_flat_fill",
-    frameExpression: "glassSheen = (frame%90)/90", footerSpec: "Caustic glass edge • Subtle refractive sheen • Behind-subject plane",
-    slug: "glassmorphic-o3-refraction", code: ".glassmorphic-char { backdrop-filter: blur(5px); }",
-    html: `<div style="height:100%;display:grid;place-items:center;background:radial-gradient(circle at 35% 30%,#e9b2b7,#8ea0b3 43%,#533c50);"><style>@keyframes glassRef{0%,100%{transform:rotate(-5deg) translateY(0)}50%{transform:rotate(-2deg) translateY(-4px)}}</style><div style="font:italic 900 116px/.65 'Bodoni Moda',serif;color:rgba(255,255,255,.17);-webkit-text-stroke:2px rgba(255,255,255,.8);text-shadow:0 4px 12px rgba(255,255,255,.75),0 20px 34px rgba(0,0,0,.34);animation:glassRef 3s ease-in-out infinite">O3</div></div>`
-  }
-  ,{
-    id: 34, badge: "TYPO #35", name: "Canva Tall Glyph Stack Treatment",
+    id: 31, badge: "TYPO #32", name: "Canva Tall Glyph Stack Treatment",
     traitId: "trait_canva_tall_glyph_stack", concern: "TallFontSubjectMask", targetScope: "tall_word",
+    type: "treatment",
     channels: "translateY, rotateZ, letterSpacing", conflicts: "wide_sentence_layout",
     frameExpression: "glyphTilt = sin((frame-glyphIdx*4)/10)*4", footerSpec: "Condensed tall glyphs • Independent stagger/tilt • Behind-subject only",
     slug: "canva-tall-glyph-stack", code: ".overlap-tilt-char { animation: canva-tall-stack 1.1s both; }",
     html: `<div style="height:100%;display:grid;place-items:center;background:#111"><style>@keyframes canvaRef{0%{transform:translateY(28px) rotate(-6deg);opacity:0}70%{transform:translateY(-4px) rotate(2deg)}100%{transform:translateY(0) rotate(0);opacity:1}}</style><div style="font:900 58px/.8 'Bebas Neue',sans-serif;letter-spacing:1px;color:#e9e9e9">${"CANVA".split("").map((c,i)=>`<span style="display:inline-block;animation:canvaRef .7s ${i*.1}s both">${c}</span>`).join("")}</div></div>`
+  },
+  {
+    id: 32,
+    badge: "TYPO #33",
+    name: "High-Tech Kinetic Typography — Brands",
+    traitId: "trait_hightech_chromatic_brands",
+    concern: "MotionPhysics + ChromaticAberration",
+    targetScope: "word",
+    channels: "filter.displacement, filter.blur, transform.translate, mixBlendMode",
+    conflicts: "None",
+    frameExpression: "warpScale = sin(frame * 0.08) * 6 | redShiftX = sin(frame * 0.15) * 4",
+    footerSpec: "Syne 800 • SVG Cinematic Warp & Glitch Blur • Cyan/Red Chromatic Aberration",
+    slug: "hightech-kinetic-brands",
+    code: ".brands-cyan-shift { fill: #00ffff; animation: brandsCyanGlitch 2.5s infinite; }",
+    html: `<div class="typo-brands-stage"><div class="brands-glow-backdrop"></div><div class="brands-scanlines"></div><div class="brands-viewport"><svg class="brands-wordmark" viewBox="0 0 450 120" xmlns="http://www.w3.org/2000/svg"><defs><filter id="brands-cinematic-warp-anima" x="-20%" y="-20%" width="140%" height="140%"><feTurbulence type="fractalNoise" baseFrequency="0.02 0.05" numOctaves="2" result="noise" /><feDisplacementMap in="SourceGraphic" in2="noise" scale="6" xChannelSelector="R" yChannelSelector="G" result="displaced" /><feGaussianBlur in="displaced" stdDeviation="0.4" result="blurred" /><feMerge><feMergeNode in="blurred" /><feMergeNode in="SourceGraphic" /></feMerge></filter><filter id="brands-glitch-blur-anima"><feGaussianBlur stdDeviation="0"><animate attributeName="stdDeviation" values="0;2;0.2;5;0;1;0" dur="3s" repeatCount="indefinite" /></feGaussianBlur></filter></defs><text x="15" y="90" class="brands-brand-text brands-red-shift" filter="url(#brands-glitch-blur-anima)">brands</text><text x="15" y="90" class="brands-brand-text brands-cyan-shift" filter="url(#brands-glitch-blur-anima)">brands</text><text x="15" y="90" class="brands-brand-text" filter="url(#brands-cinematic-warp-anima)">brands</text></svg></div></div>`
+  },
+  {
+    id: 33,
+    badge: "TYPO #34",
+    name: "Kinetic Cyber Typography — They Need",
+    traitId: "trait_kinetic_cyber_they_need",
+    concern: "MotionPhysics + TemporalTrigger",
+    targetScope: "phrase",
+    channels: "width, filter.blur, transform.skewX, transform.scale, opacity",
+    conflicts: "None",
+    frameExpression: "needWidth = interpolate(frame % 120, [18, 42, 96, 120], [0, 2.7, 2.7, 0])",
+    footerSpec: "Plus Jakarta Sans 800 • Perspective 3D Floor Grid • Expanding Kinetic Word & HUD Line",
+    slug: "kinetic-cyber-they-need",
+    code: ".they-need-word-need { animation: theyNeedKineticExpand 4s cubic-bezier(0.16, 1, 0.3, 1) infinite; }",
+    html: `<div class="typo-they-need-stage"><div class="they-need-energy-field"></div><div class="they-need-grid-overlay"></div><div class="they-need-stage-content"><div class="they-need-text-wrapper"><span class="they-need-word they-need-word-they">they</span><span class="they-need-word they-need-word-need">need</span></div><div class="they-need-hud-line"></div></div></div>`
+  },
+  {
+    id: 34,
+    badge: "TYPO #35",
+    name: "Kinetic Glow Sweep — Attention",
+    traitId: "trait_kinetic_glow_sweep_attention",
+    concern: "MotionPhysics + MaterialTreatment",
+    targetScope: "glyph",
+    channels: "textShadow, color, transform.scale, filter.blur",
+    conflicts: "None",
+    frameExpression: "charGlow = sin((frame - charIdx*3.6)/30) * 130px",
+    footerSpec: "Plus Jakarta Sans 800 • High-Tech Grid Backdrop • Sequential Character Bloom Wave",
+    slug: "kinetic-glow-sweep-attention",
+    code: ".glow-sweep-char { animation: sweepGlowAnim 3.2s cubic-bezier(0.25, 1, 0.5, 1) infinite; }",
+    html: `<div class="typo-glow-sweep-stage"><div class="glow-sweep-grid-bg"></div><div class="glow-sweep-ambient"></div><div class="glow-sweep-scanlines"></div><div class="glow-sweep-container"><h1 class="glow-sweep-word" aria-label="attention"><span class="glow-sweep-char" style="--index: 0">a</span><span class="glow-sweep-char" style="--index: 1">t</span><span class="glow-sweep-char" style="--index: 2">t</span><span class="glow-sweep-char" style="--index: 3">e</span><span class="glow-sweep-char" style="--index: 4">n</span><span class="glow-sweep-char" style="--index: 5">t</span><span class="glow-sweep-char" style="--index: 6">i</span><span class="glow-sweep-char" style="--index: 7">o</span><span class="glow-sweep-char" style="--index: 8">n</span></h1></div></div>`
+  },
+  {
+    id: 35,
+    badge: "TYPO #36",
+    name: "Kinetic Word-by-Word Typography — Fast",
+    traitId: "trait_kinetic_word_fast_pulse",
+    concern: "MotionPhysics + TemporalTrigger",
+    targetScope: "word",
+    channels: "filter.blur, opacity, textShadow, transform.translateY, transform.scale",
+    conflicts: "None",
+    frameExpression: "staggerCycle = 0.45s per word | pulseScale = 1.06",
+    footerSpec: "Plus Jakarta Sans 800 • High-Speed Stagger • Focal Flash & Rapid Recovery",
+    slug: "kinetic-word-fast-pulse",
+    code: ".word-fast-item { animation: rapidWordPulseAnim 1.35s cubic-bezier(0.05, 0.7, 0.1, 1) infinite; }",
+    html: `<div class="typo-word-fast-stage"><div class="word-fast-ambient"></div><div class="word-fast-sentence"><span class="word-fast-item">Text</span><span class="word-fast-item">isn't</span><span class="word-fast-item">just</span></div></div>`
+  },
+  {
+    id: 36,
+    badge: "TYPO #37",
+    name: "Kinetic Dynamic Slant — Watch It Move",
+    traitId: "trait_kinetic_dynamic_slant_move",
+    concern: "MotionPhysics + MaterialTreatment",
+    targetScope: "word",
+    channels: "transform.skewX, transform.translateX, textShadow, color",
+    conflicts: "None",
+    frameExpression: "skewAngle = -12deg to -32deg | trailPulse = 0.3 to 0.9",
+    footerSpec: "Plus Jakarta Sans 800 Italic • Ambient Orange Core • Dynamic Kinetic Slant & Ghost Trail",
+    slug: "kinetic-dynamic-slant-move",
+    code: ".dynamic-slant-move { animation: dynamicKineticSlantAnim 2.2s cubic-bezier(0.2, 0.8, 0.2, 1) infinite; }",
+    html: `<div class="typo-dynamic-slant-stage"><div class="dynamic-slant-ambient"></div><div class="dynamic-slant-sentence"><span class="dynamic-slant-static">Watch</span><span class="dynamic-slant-static">it</span><span class="dynamic-slant-move">move</span></div></div>`
+  },
+  {
+    id: 37,
+    badge: "TYPO #38",
+    name: "Kinetic Chromatic Typewriter Effect",
+    traitId: "trait_kinetic_chromatic_typewriter",
+    concern: "TemporalTrigger + ChromaticAberration",
+    targetScope: "phrase",
+    channels: "text.visibleLength, textShadow, transform.translate, opacity",
+    conflicts: "None",
+    frameExpression: "charStep = 85ms + jitter(40ms) | rgbSplit = 3px",
+    footerSpec: "Plus Jakarta Sans 800 • Film Scratch Flicker • RGB Split Dynamic Typewriter & CRT Jitter",
+    slug: "kinetic-chromatic-typewriter",
+    code: ".typewriter-chromatic-text { animation: typewriterChromaticJitter 0.12s infinite alternate; }",
+    html: `<div class="typo-typewriter-stage"><div class="typewriter-film-scratch"></div><div class="typewriter-viewport-track"><span class="typewriter-chromatic-text" data-text=""></span><span class="typewriter-cursor"></span></div></div>`
+  },
+  {
+    id: 38,
+    badge: "TYPO #39",
+    name: "3D Metallic Chrome Counter — Edits Later",
+    traitId: "trait_3d_metallic_chrome_counter",
+    concern: "MaterialTreatment + MotionPhysics",
+    targetScope: "metric_number",
+    channels: "number.value, text.specularStroke, filter.dropShadow, backgroundClip",
+    conflicts: "None",
+    frameExpression: "easeOut = 1 - pow(1 - progress, 3) | count = 0 -> 110",
+    footerSpec: "Anton + Plus Jakarta Sans • 3D Specular Chrome Metallic Fill • Exponential Ease-Out Count Up",
+    slug: "3d-metallic-chrome-counter",
+    code: ".chrome-counter-main { background: linear-gradient(175deg, #ffffff 0%, #3b76cc 28%, #82b8f8 98%); }",
+    html: `<div class="typo-chrome-counter-stage"><div class="chrome-counter-dot-matrix"></div><div class="chrome-counter-ambient"></div><div class="chrome-counter-stage-content"><div class="chrome-counter-num-wrapper"><div class="chrome-counter-shadow">0</div><div class="chrome-counter-main">0</div><div class="chrome-counter-outline">0</div><div class="chrome-counter-overlay-text">edits later</div></div></div></div>`
+  },
+  {
+    id: 39,
+    badge: "TYPO #40",
+    name: "Apple-Style Kinetic Gaussian Chrome — GOAL",
+    traitId: "trait_apple_gaussian_chrome_goal",
+    concern: "MotionPhysics + MaterialTreatment",
+    targetScope: "glyph",
+    channels: "filter.blur, opacity, transform.translateY, transform.scale, transform.rotateX",
+    conflicts: "None",
+    frameExpression: "spring = cubic-bezier(0.16, 1, 0.3, 1) | blur = 28px -> 0px",
+    footerSpec: "Anton • Apple Liquid Metallic Chrome Gradient • Fluid Gaussian Blur & Focus Pop",
+    slug: "apple-gaussian-chrome-goal",
+    code: ".apple-gaussian-char.lit { opacity: 1; filter: blur(0px) drop-shadow(0 0 20px rgba(0,230,255,0.8)); }",
+    html: `<div class="typo-apple-gaussian-stage"><div class="apple-gaussian-ambient"></div><div class="apple-gaussian-stage-content"><span class="apple-gaussian-char" data-text="G">G</span><span class="apple-gaussian-char" data-text="O">O</span><span class="apple-gaussian-char" data-text="A">A</span><span class="apple-gaussian-char" data-text="L">L</span></div></div>`
+  },
+  {
+    id: 40,
+    badge: "TYPO #41",
+    name: "Cinematic Apple-Style Word-by-Word Bounce",
+    traitId: "trait_cinematic_apple_word_bounce",
+    concern: "MotionPhysics + ElasticSpring",
+    targetScope: "word",
+    channels: "filter.blur, transform.translateY, transform.scale, transform.rotateX, opacity",
+    conflicts: "None",
+    frameExpression: "spring = cubic-bezier(0.16, 1, 0.3, 1) | blur = 40px -> 0px",
+    footerSpec: "Inter 900 • Platinum Metallic Gradient • Apple-Style 3D Spring Bounce Physics",
+    slug: "cinematic-apple-word-bounce",
+    code: ".apple-bounce-word.bounce-in { animation: appleCinematicBounceAnim 1.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }",
+    html: `<div class="typo-apple-bounce-stage"><div class="apple-bounce-ambient"></div><div class="apple-bounce-stage-content"><div class="apple-bounce-line"><div class="apple-bounce-word-box"><span class="apple-bounce-word bw-1">Apple</span></div><div class="apple-bounce-word-box"><span class="apple-bounce-word bw-2">style</span></div></div><div class="apple-bounce-line"><div class="apple-bounce-word-box"><span class="apple-bounce-word bw-3">bounce</span></div><div class="apple-bounce-word-box"><span class="apple-bounce-word bw-4">animations</span></div></div></div></div>`
+  },
+  {
+    id: 41,
+    badge: "TYPO #42",
+    name: "Cinematic Distance Convergence — In This Field",
+    traitId: "trait_cinematic_distance_convergence",
+    concern: "MotionPhysics + TrackingConvergence",
+    targetScope: "phrase",
+    channels: "letterSpacing, wordSpacing, filter.blur, transform.scale, opacity",
+    conflicts: "None",
+    frameExpression: "tracking = 0.45em -> -0.055em | blur = 35px -> 0px",
+    footerSpec: "Plus Jakarta Sans 800 • Gaussian Blur Tracking Convergence • RGB Fringe Aberration",
+    slug: "cinematic-distance-convergence",
+    code: "@keyframes convergenceCloseDistance { 0% { letter-spacing: 0.45em; filter: blur(28px); } 70% { letter-spacing: -0.055em; filter: blur(0px); } }",
+    html: `<div class="typo-convergence-stage"><div class="convergence-ambient"></div><div class="convergence-stage-content"><h1 class="convergence-text-cinematic">in this field</h1></div></div>`
   }
-  ,{
-    id: 35, badge: "TYPO #36", name: "Skywall Monolithic Subject Mask",
-    traitId: "trait_skywall_tall_subject_mask", concern: "TallFontSubjectMask", targetScope: "tall_word",
-    channels: "scaleY, translateY, filter.dropShadow", conflicts: "small_inline_copy",
-    frameExpression: "hydraulicY = easeOut(frame/20)*0", footerSpec: "Monolithic condensed wall • Hydraulic settle • Behind-subject only",
-    slug: "skywall-tall-subject-mask", code: ".skywall-steel-char { animation: skywall-hydraulic-rise .8s both; }",
-    html: `<div style="height:100%;display:grid;place-items:center;background:#050505"><style>@keyframes wallRef{0%{transform:translateY(45px) scaleY(1.28);opacity:0}70%{transform:translateY(-4px) scaleY(.96)}100%{transform:translateY(0) scaleY(1);opacity:1}}</style><div style="font:900 53px/.72 'League Gothic',sans-serif;letter-spacing:-2px;color:#dfe5ee;text-shadow:0 7px 0 #707782,0 14px 20px #000;animation:wallRef .9s cubic-bezier(.16,1,.3,1) both">SKYWALL</div></div>`
-  }
-  ,{
-    id: 36, badge: "TYPO #37", name: "Subject Video See-Through Letterform Treatment",
-    traitId: "trait_subject_video_see_through_letterform",
-    concern: "MaterialTreatment + TextOverlay",
-    targetScope: "full_word",
-    type: "treatment",
-    channels: "text.color.alpha, text.fill, text.mixBlendMode",
-    conflicts: "opaque_background_text, dark_stage_rendering",
-    frameExpression: "N/A — static treatment, no animation",
-    footerSpec: "Large Letterform • Semi-Transparent Warm Fill (~rgba(232,196,160,0.72)) • Live Video Subject Bleed-Through",
-    slug: "see-through-letterform",
-    usageNote: "Beauty derives from live video bleeding through the semi-transparent letterform fill. Font weight: 700-900 heavy. Casing: lowercase preferred. Must be rendered over live video — not static color fills.",
-    code: `.less-letterform { font-size: 82px; font-weight: 700; letter-spacing: -0.02em; color: rgba(232, 196, 160, 0.72); text-transform: lowercase; }`,
-    html: `<div style="height:100%;display:grid;place-items:center;background:linear-gradient(160deg,#4a4a55,#2e2e38 40%,#1a1a22);position:relative;overflow:hidden"><div style="position:absolute;inset:0;background:radial-gradient(ellipse at 60% 30%,rgba(180,160,140,.25),transparent 70%)"></div><span style="position:relative;z-index:2;font-size:82px;font-weight:700;letter-spacing:-0.02em;color:rgba(232,196,160,.72);font-family:-apple-system,sans-serif;text-transform:lowercase">less.</span></div>`
-  }
-  ,{
-    id: 37, badge: "TYPO #38", name: "Wall Man — Environmental Z-Plane Text Placement",
-    traitId: "trait_wall_man_z_plane_placement",
-    concern: "SpatialComposition + TextOverlay",
-    targetScope: "phrase_block",
-    type: "treatment",
-    channels: "text.position.x, text.position.y, text.rotation, text.z_depth, text.perspective",
-    conflicts: "standard_center_text_overlay, foreground_face_label",
-    frameExpression: "N/A — static treatment; text appears integrated into scene geometry",
-    footerSpec: "Text anchored to environmental surface (wall/background) • Not vertically stacked • Reads as painted-on or embedded into scene • Principal subject moves in front",
-    slug: "wall-man-z-plane",
-    usageNote: "The defining characteristic: text is NOT placed as a standard vertical caption overlay. Instead it appears as if placed AT the wall surface — in-plane with background architecture, scaling/rotating as if perspective-matched to a physical surface. Principal subject occupies the FOREGROUND z-plane, in front of the wall-embedded text. Creates extreme spatial depth and editorial uniqueness. Reference: 'my mom' / 'my mom said to me' placed against garage/room wall surfaces.",
-    code: `.wall-man-text { position: absolute; transform-origin: left top; transform: perspective(1200px) rotateY(0deg) rotateX(0deg); font-size: 72px; font-weight: 900; color: #ffffff; letter-spacing: -0.02em; }`,
-    html: `<div style="height:100%;background:#1a1a1a;position:relative;overflow:hidden;display:flex;align-items:flex-start;padding:24px 20px"><div style="position:absolute;bottom:0;left:0;right:0;height:60%;background:linear-gradient(#2a2a2a,#383838)"></div><div style="position:relative;z-index:2;line-height:0.9"><div style="font:900 28px/1 -apple-system,sans-serif;color:#fff;letter-spacing:-0.02em">my mom said</div><div style="font:900 28px/1 -apple-system,sans-serif;color:#fff;letter-spacing:-0.02em">to me,</div></div><div style="position:absolute;bottom:20px;right:20px;font:700 11px/1 monospace;color:rgba(255,255,255,0.3)">WALL MAN PLANE</div></div>`
-  }
-
 ];
 
 // 2. MICRO ASSET 15 ADVANCED MOTION PRESETS (ANIMA #02 - INSTAGRAM ICON SUBJECT)
@@ -3278,7 +3369,7 @@ function generateArchetypeVariants(def: { id: number; name: string; cat: string;
 
 // Assemble ALL 50 ARCHETYPES SUITES
 const ALL_50_ARCHETYPES_DATA: AnimaArchetypeFull[] = [
-  // 01. Typography Master Suite (35 Presets)
+  // 01. Typography Master Suite (41 Presets)
   {
     id: 1,
     serialNumber: "01",
@@ -3286,7 +3377,7 @@ const ALL_50_ARCHETYPES_DATA: AnimaArchetypeFull[] = [
     name: "Typography (Master Kinetic Suite)",
     category: "typography",
     categoryLabel: "Kinetic Typography",
-    definition: "Master typographic motion engine comprising 35 distinct kinetic treatments (including kinetic sandstorm particle disintegration & grain dissolve), 45 font JSON profiles, subpixel masking, and 60fps Remotion math.",
+    definition: "Master typographic motion engine comprising 41 distinct kinetic treatments & stylizations (39 Motion Physics Engines + 2 High-Impact Editorial Treatments), 63 font JSON profiles, subpixel masking, and 60fps Remotion math.",
     examplePrompt: "“Words are not static text overlays; they are tactile 3D physical meshes interacting with depth and sound.”",
     traitId: "trait_master_kinetic_typography_suite",
     concern: "KineticTypographyCore",
@@ -3295,7 +3386,7 @@ const ALL_50_ARCHETYPES_DATA: AnimaArchetypeFull[] = [
     conflicts: "raw_unstyled_system_fonts",
     frameExpression: "kineticWeight = 700 + sin(frame * 0.1) * 200",
     audioLinkage: "Mechanical Keystroke Clicks & Sandstorm Particle Whir (Pan: Center, Cutoff: 18,500 Hz)",
-    footerNote: "35 Active Presets • Sub-Pixel Kinetic Shimmer & Sandstorm Dissolve",
+    footerNote: "41 Active Presets • 39 Animation Physics + 2 Editorial Treatments",
     slug: "typography",
     variants: TYPOGRAPHY_30_PRESETS,
     customCss: typographyExtractedCss + "\n" + SAND_TYPO_CUSTOM_CSS
@@ -3500,12 +3591,12 @@ const htmlOutput = `<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-  <title>ANIMA — 50-Archetype Motion Engine & Semantic Router (188 Total Motion Assets)</title>
+  <title>ANIMA — 50-Archetype Motion Engine & Semantic Router (218 Total Motion Assets)</title>
   
   <!-- WebFonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700;800&family=Outfit:wght@600;800;900&family=Playfair+Display:ital,wght@1,700;1,900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700;800&family=Outfit:wght@600;800;900&family=Playfair+Display:ital,wght@1,700;1,900&family=Plus+Jakarta+Sans:ital,wght@0,400;0,600;0,700;0,800;1,800&family=Syne:wght@700;800;900&display=swap" rel="stylesheet">
 
   <style>
     :root {
@@ -3735,6 +3826,23 @@ const htmlOutput = `<!DOCTYPE html>
       font-size: 12px; color: var(--text-secondary); font-family: var(--font-mono);
     }
 
+    /* TAG FILTER SYSTEM & BADGES */
+    .tag-pill {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-family: var(--font-mono); font-size: 10px; font-weight: 800;
+      padding: 3px 9px; border-radius: 12px; margin-left: 8px;
+    }
+    .tag-animation { background: rgba(6,182,212,0.18); color: #38bdf8; border: 1px solid rgba(6,182,212,0.4); }
+    .tag-treatment { background: rgba(192,132,252,0.18); color: #c084fc; border: 1px solid rgba(192,132,252,0.4); }
+    .filter-btn {
+      padding: 7px 16px; border-radius: 20px; font-size: 12px; font-weight: 700;
+      cursor: pointer; border: 1px solid var(--border-subtle); background: var(--bg-secondary);
+      color: var(--text-secondary); transition: all 0.2s; font-family: var(--font-mono);
+    }
+    .filter-btn:hover { background: rgba(255,255,255,0.1); color: #fff; border-color: rgba(255,255,255,0.3); }
+    .filter-btn.active { background: rgba(6,182,212,0.2); color: #06b6d4; border-color: rgba(6,182,212,0.6); box-shadow: 0 0 12px rgba(6,182,212,0.2); }
+    .filter-btn.treatment-active { background: rgba(192,132,252,0.2); color: #c084fc; border-color: rgba(192,132,252,0.6); box-shadow: 0 0 12px rgba(192,132,252,0.2); }
+
     .trait-drawer {
       background: #09090e; border-top: 1px solid rgba(6, 182, 212, 0.3);
       padding: 18px 20px; display: none; font-family: var(--font-mono); font-size: 11px;
@@ -3860,7 +3968,7 @@ const htmlOutput = `<!DOCTYPE html>
         </div>
         <div class="category-filter-chips">
           <button class="c-chip active" data-cat="all" onclick="filterSidebar('all')">All (50)</button>
-          <button class="c-chip" data-cat="typography" onclick="filterSidebar('typography')">Typography (29)</button>
+          <button class="c-chip" data-cat="typography" onclick="filterSidebar('typography')">Typography (${TYPOGRAPHY_30_PRESETS.length})</button>
           <button class="c-chip" data-cat="artifacts" onclick="filterSidebar('artifacts')">Artifacts (15+)</button>
           <button class="c-chip" data-cat="metrics" onclick="filterSidebar('metrics')">Metrics</button>
           <button class="c-chip" data-cat="structures" onclick="filterSidebar('structures')">Structures</button>
@@ -3894,7 +4002,7 @@ const htmlOutput = `<!DOCTYPE html>
               <span class="hb-badge" id="heroBadge">ANIMA #01</span>
               <span id="heroTitle">Typography (Master Kinetic Suite)</span>
             </h2>
-            <p id="heroDefinition">Master typographic motion engine comprising 29 distinct kinetic treatments, 45 font JSON profiles, subpixel masking, and 60fps Remotion math.</p>
+            <p id="heroDefinition">Master typographic motion engine comprising ${TYPOGRAPHY_30_PRESETS.length} distinct kinetic treatments & stylizations (29 Motion Physics Engines + 8 High-Impact Editorial Treatments), 63 font JSON profiles, subpixel masking, and 60fps Remotion math.</p>
           </div>
           <div class="nav-pager-btns">
             <button class="pager-btn" onclick="prevArchetype()">← Previous</button>
@@ -3910,7 +4018,7 @@ const htmlOutput = `<!DOCTYPE html>
             <span>CHANNELS:</span> <strong id="summaryChannels">opacity, filter.blur, translateY, scale, rotateX</strong>
           </div>
           <div class="trait-chip-item">
-            <span>TOTAL ASSETS:</span> <strong id="summaryAssetCount" style="color:var(--accent-cyan);">29 Live Presets</strong>
+            <span>TOTAL ASSETS:</span> <strong id="summaryAssetCount" style="color:var(--accent-cyan);">${TYPOGRAPHY_30_PRESETS.length} Live Presets</strong>
           </div>
         </div>
 
@@ -4070,13 +4178,38 @@ const htmlOutput = `<!DOCTYPE html>
       document.getElementById('summaryChannels').innerText = arch.channels;
       document.getElementById('summaryAssetCount').innerText = arch.variants.length + ' Live Visual Assets';
 
+      const isTypoSuite = id === 1;
+      const animCount = arch.variants.filter(v => v.type !== 'treatment').length;
+      const treatCount = arch.variants.filter(v => v.type === 'treatment').length;
+
+      let subfilterHtml = '';
+      if (isTypoSuite) {
+        subfilterHtml = \`
+          <div class="typo-subfilter-bar" style="grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;">
+            <button class="filter-btn active" onclick="filterTypoVariants('all')" id="typoFilterAll">⬛ All (\${arch.variants.length})</button>
+            <button class="filter-btn" onclick="filterTypoVariants('animation')" id="typoFilterAnimation">▶ Animation (\${animCount})</button>
+            <button class="filter-btn" onclick="filterTypoVariants('treatment')" id="typoFilterTreatment">◈ Treatment (\${treatCount})</button>
+          </div>
+        \`;
+      }
+
       const grid = document.getElementById('activeArchetypeGrid');
-      grid.innerHTML = arch.variants.map((v) => \`
-        <div class="card" id="card-variant-\${v.id}">
+      grid.innerHTML = subfilterHtml + arch.variants.map((v) => {
+        const isTreatment = v.type === 'treatment';
+        const tagPill = isTypoSuite
+          ? \`<span class="tag-pill \${isTreatment ? 'tag-treatment' : 'tag-animation'}">\${isTreatment ? '◈ Treatment' : '▶ Animation'}</span>\`
+          : '';
+        const usageNoteHtml = v.usageNote
+          ? \`<div style="margin-top:10px; padding:8px 10px; background:rgba(192,132,252,0.1); border:1px solid rgba(192,132,252,0.3); border-radius:6px; color:#e9d5ff; font-size:11px;">⚠️ <strong>Usage Note:</strong> \${v.usageNote}</div>\`
+          : '';
+
+        return \`
+        <div class="card" id="card-variant-\${v.id}" data-type="\${v.type || 'animation'}">
           <div class="card-header">
             <div class="card-title-group">
               <span class="card-badge">\${v.badge}</span>
               <span class="card-title">\${v.name}</span>
+              \${tagPill}
             </div>
             <div class="header-actions">
               <button class="inspect-btn" onclick="toggleDrawer(this)">🔍 Trait</button>
@@ -4092,18 +4225,146 @@ const htmlOutput = `<!DOCTYPE html>
               <div><strong>Concern:</strong> \${v.concern}</div>
               <div><strong>Target Scope:</strong> \${v.targetScope}</div>
               <div><strong>Channels:</strong> <code>\${v.channels}</code></div>
-              <div><strong>Conflicts:</strong> \${v.conflicts}</code></div>
+              <div><strong>Conflicts:</strong> <code>\${v.conflicts}</code></div>
             </div>
             <div class="drawer-code">FrameExpression: \${v.frameExpression}</div>
+            \${usageNoteHtml}
           </div>
           <div class="card-footer">
             <span>\${v.footerSpec}</span>
             <span>\${v.slug}</span>
           </div>
         </div>
-      \`).join('');
+      \`;
+      }).join('');
 
       document.getElementById('animaMainContainer').scrollTo({ top: 0, behavior: 'smooth' });
+
+      if (isTypoSuite) {
+        setTimeout(() => {
+          initTypoChromaticTypewriter();
+          initTypo3DMetallicCounter();
+          initTypoAppleGaussianChrome();
+          initTypoAppleBounceSequence();
+        }, 50);
+      }
+    }
+
+    function filterTypoVariants(type) {
+      const cards = document.querySelectorAll('#activeArchetypeGrid .card');
+      cards.forEach(card => {
+        if (type === 'all') {
+          card.style.display = 'flex';
+        } else {
+          const cardType = card.getAttribute('data-type') || 'animation';
+          if (cardType === type) card.style.display = 'flex';
+          else card.style.display = 'none';
+        }
+      });
+      document.querySelectorAll('.typo-subfilter-bar .filter-btn').forEach(btn => btn.classList.remove('active', 'treatment-active'));
+      const activeBtn = document.getElementById('typoFilter' + type.charAt(0).toUpperCase() + type.slice(1));
+      if (activeBtn) {
+        if (type === 'treatment') activeBtn.classList.add('treatment-active');
+        else activeBtn.classList.add('active');
+      }
+    }
+
+    // Interactive scripts for dynamic Typography presets
+    function initTypoChromaticTypewriter() {
+      const targets = document.querySelectorAll('.typewriter-chromatic-text');
+      if (!targets.length) return;
+      const textToType = "I started posting as a...";
+      let charIndex = 0;
+      function typeNext() {
+        if (charIndex < textToType.length) {
+          const current = textToType.substring(0, charIndex + 1);
+          targets.forEach(el => {
+            el.textContent = current;
+            el.setAttribute("data-text", current);
+          });
+          charIndex++;
+          setTimeout(typeNext, 85);
+        } else {
+          setTimeout(() => {
+            charIndex = 0;
+            targets.forEach(el => {
+              el.textContent = "";
+              el.setAttribute("data-text", "");
+            });
+            setTimeout(typeNext, 500);
+          }, 2200);
+        }
+      }
+      typeNext();
+    }
+
+    function initTypo3DMetallicCounter() {
+      const mains = document.querySelectorAll('.chrome-counter-main');
+      const shadows = document.querySelectorAll('.chrome-counter-shadow');
+      const outlines = document.querySelectorAll('.chrome-counter-outline');
+      if (!mains.length) return;
+      const target = 110;
+      const dur = 2200;
+      function animate() {
+        let start = null;
+        function step(ts) {
+          if (!start) start = ts;
+          const progress = Math.min((ts - start) / dur, 1);
+          const ease = 1 - Math.pow(1 - progress, 3);
+          const val = Math.floor(ease * target);
+          mains.forEach(el => el.textContent = val);
+          shadows.forEach(el => el.textContent = val);
+          outlines.forEach(el => el.textContent = val);
+          if (progress < 1) {
+            requestAnimationFrame(step);
+          } else {
+            mains.forEach(el => el.textContent = target);
+            shadows.forEach(el => el.textContent = target);
+            outlines.forEach(el => el.textContent = target);
+            setTimeout(() => {
+              mains.forEach(el => el.textContent = '0');
+              shadows.forEach(el => el.textContent = '0');
+              outlines.forEach(el => el.textContent = '0');
+              setTimeout(animate, 400);
+            }, 1800);
+          }
+        }
+        requestAnimationFrame(step);
+      }
+      animate();
+    }
+
+    function initTypoAppleGaussianChrome() {
+      const stages = document.querySelectorAll('.typo-apple-gaussian-stage');
+      if (!stages.length) return;
+      stages.forEach(stage => {
+        const chars = stage.querySelectorAll('.apple-gaussian-char');
+        const stagger = 220;
+        function run() {
+          chars.forEach(c => c.classList.remove('lit'));
+          chars.forEach((c, idx) => {
+            setTimeout(() => c.classList.add('lit'), (idx + 1) * stagger);
+          });
+          const cycle = (chars.length + 1) * stagger + 2600;
+          setTimeout(run, cycle);
+        }
+        run();
+      });
+    }
+
+    function initTypoAppleBounceSequence() {
+      const stages = document.querySelectorAll('.typo-apple-bounce-stage');
+      if (!stages.length) return;
+      stages.forEach(stage => {
+        const words = stage.querySelectorAll('.apple-bounce-word');
+        function run() {
+          words.forEach(w => w.classList.remove('bounce-in'));
+          void stage.offsetWidth;
+          words.forEach(w => w.classList.add('bounce-in'));
+          setTimeout(run, 3800);
+        }
+        run();
+      });
     }
 
     function prevArchetype() {
@@ -4129,7 +4390,15 @@ const htmlOutput = `<!DOCTYPE html>
       const stage = card.querySelector('.preview-stage');
       const html = stage.innerHTML;
       stage.innerHTML = '';
-      setTimeout(() => { stage.innerHTML = html; }, 20);
+      setTimeout(() => {
+        stage.innerHTML = html;
+        if (activeArchetypeId === 1) {
+          initTypoChromaticTypewriter();
+          initTypo3DMetallicCounter();
+          initTypoAppleGaussianChrome();
+          initTypoAppleBounceSequence();
+        }
+      }, 20);
     }
 
     function jumpToEnteredSerial() {

@@ -1,0 +1,138 @@
+{
+  "num": 54,
+  "screenshot": "Screenshot_16_131742.png",
+  "profile_name": "Even_If_Going_Abroad_Yellow_Script_Didone_Pairing",
+  "metadata": {
+    "target_aspect_ratio": "9:16",
+    "overall_mood": "Dynamic Editorial, Vibrant Yellow Script with High-Contrast Didone Italic",
+    "casing_strategy": "mixed",
+    "total_word_count": 5,
+    "total_character_count": 23,
+    "per_word_character_counts": [
+      {
+        "word": "even",
+        "character_count": 4
+      },
+      {
+        "word": "if",
+        "character_count": 2
+      },
+      {
+        "word": "I'm",
+        "character_count": 3
+      },
+      {
+        "word": "going",
+        "character_count": 5
+      },
+      {
+        "word": "abroad",
+        "character_count": 6
+      }
+    ],
+    "mixed_fonts_verified": true,
+    "mixfont_extracted_at": "2026-08-25T00:25:00Z"
+  },
+  "layout_rules": {
+    "horizontal_alignment": "left",
+    "vertical_position": "center",
+    "bottom_margin_percent": 30,
+    "max_width_percent": 85,
+    "scrim_overlay": {
+      "enabled": false,
+      "type": "none",
+      "opacity": 0,
+      "color": "#000000"
+    }
+  },
+  "typography_layers": [
+    {
+      "layer_name": "hero_yellow_script",
+      "role": "primary_focus_word",
+      "font_classification": "Flourish Cursive Script",
+      "matched_font_candidates": [
+        "Pinyon Script",
+        "Alex Brush",
+        "Great Vibes"
+      ],
+      "font_style": {
+        "weight": 400,
+        "style": "italic",
+        "casing": "normal",
+        "color": "#E5F220",
+        "size_px_base": 58,
+        "relative_scale": 1.3,
+        "letter_spacing_em": 0.02,
+        "line_height": 0.95,
+        "vertical_margin_top_px": 0
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 4,
+          "blur_radius": 8,
+          "color": "rgba(0, 0, 0, 0.45)"
+        }
+      },
+      "sample_text": "even",
+      "word_count": 1,
+      "character_count": 4,
+      "per_word_character_counts": [
+        {
+          "word": "even",
+          "character_count": 4
+        }
+      ]
+    },
+    {
+      "layer_name": "clause_didone_italic",
+      "role": "secondary_clause",
+      "font_classification": "Didone Modern Serif Italic",
+      "matched_font_candidates": [
+        "Playfair Display",
+        "Bodoni Moda",
+        "SenzaBella"
+      ],
+      "font_style": {
+        "weight": 400,
+        "style": "italic",
+        "casing": "normal",
+        "color": "#FFFFFF",
+        "size_px_base": 38,
+        "relative_scale": 0.85,
+        "letter_spacing_em": 0.01,
+        "line_height": 1.15,
+        "vertical_margin_top_px": 4
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 3,
+          "blur_radius": 6,
+          "color": "rgba(0, 0, 0, 0.35)"
+        }
+      },
+      "sample_text": "if I'm going abroad",
+      "word_count": 4,
+      "character_count": 19,
+      "per_word_character_counts": [
+        {
+          "word": "if",
+          "character_count": 2
+        },
+        {
+          "word": "I'm",
+          "character_count": 3
+        },
+        {
+          "word": "going",
+          "character_count": 5
+        },
+        {
+          "word": "abroad",
+          "character_count": 6
+        }
+      ]
+    }
+  ]
+}

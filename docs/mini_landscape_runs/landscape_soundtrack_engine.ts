@@ -143,24 +143,39 @@ export function buildSongProgram(
   // AUD-09: transition beds (risers) prime song-change boundaries. Built from
   // the actual song-segue list, so nothing is hardcoded — a boundary with no
   // song change gets no bed, and single-song runs get none at all.
-  const RISER_SEC = 2.2;
-  const RISER_LEVEL_DB = -25;
+  //
+  // The riser LENGTH is derived per-seam from the music runway around it: a
+  // riser needs space to swell before the boundary and land just after it.
+  // Tight seams get a short swell, spacious long-form seams get a wider one —
+  // no fixed duration. The bake layer additionally measures each real song's
+  // actual lead-in silence and loudness and adapts decay + level from that.
+  const RISER_LEVEL_DB = -25; // governance default; bake adapts to measured loudness
   const transitionBeds = (program.blends ?? [])
     .filter((b) => b.blendId !== "none" && b.fromTrackId !== b.toTrackId)
-    .filter((b) => b.boundarySec >= RISER_SEC && b.boundarySec <= totalSec - 0.5)
-    .map((b) => ({
-      boundarySec: b.boundarySec,
-      fromSectionId: b.fromSectionId,
-      toSectionId: b.toSectionId,
-      riserSec: RISER_SEC,
-      levelDb: RISER_LEVEL_DB,
-      cause: {
-        gate: "song_segue" as const,
-        reason: `Transition bed (riser) primes the ${b.blendId} song change at ${round2(b.boundarySec)}s.`,
-        sectionId: b.toSectionId,
-        timeSec: round2(b.boundarySec),
-      },
-    }));
+    .filter((b) => b.boundarySec >= 1.5 && b.boundarySec <= totalSec - 0.5)
+    .map((b) => {
+      const from = sections.find((s) => s.sectionId === b.fromSectionId);
+      const to = sections.find((s) => s.sectionId === b.toSectionId);
+      const runwayBefore = from ? Math.max(0, b.boundarySec - from.startSec) : 4;
+      const runwayAfter = to ? Math.max(0, to.endSec - b.boundarySec) : 4;
+      // Cap the rise to half the before-runway and the peak+decay to the
+      // after-runway; a riser must never outlive the music on either side.
+      const riserSec =
+        Math.round(Math.min(3.0, Math.max(1.2, Math.min(runwayBefore * 0.5, runwayAfter * 0.7))) * 10) / 10;
+      return {
+        boundarySec: b.boundarySec,
+        fromSectionId: b.fromSectionId,
+        toSectionId: b.toSectionId,
+        riserSec,
+        levelDb: RISER_LEVEL_DB,
+        cause: {
+          gate: "song_segue" as const,
+          reason: `Transition bed (riser) primes the ${b.blendId} song change at ${round2(b.boundarySec)}s; riser scaled to the ${round2(runwayBefore)}s/out ${round2(runwayAfter)}s/in runway around the seam.`,
+          sectionId: b.toSectionId,
+          timeSec: round2(b.boundarySec),
+        },
+      };
+    });
 
   return {
     videoDurationSec,

@@ -108,8 +108,9 @@ Z:30  — Foreground callouts, companion type, PiP chrome
 | :--- | :--- | :--- |
 | TRN-01 | Minimum gap between impact/flash transitions (anti-patternicity). | 3.0s |
 | TRN-02 | Transitions fire at section boundaries or semantic inflections only — never mid-word. | — |
-| TRN-03 | Effect palette: `light_burn` / `hot_burn` / `soft_flash` / `hard_flash` / `light_sweep` / `luma_wash`. All are overlay-only; the source video is never re-processed for a transition. | — |
+| TRN-03 | Classic palette: `light_burn` / `hot_burn` / `soft_flash` / `hard_flash` / `light_sweep` / `luma_wash`. All are overlay-only; the source video is never re-processed for a transition. | — |
 | TRN-04 | Transition budget ≤ 50% of eligible section boundaries. | — |
+| TRN-05 | Cinematic palette (default `transitionStyle: "cinematic"`): `lens_flare_bleed` / `defocus_bokeh` / `match_cut` / `push_in_zoom` / `edge_glow_bloom` / `camera_pass_by` / `light_leak`. All seven are **real, procedurally rendered** full-frame transitions (overlay layers + live CSS filters/transforms on the composited frame — the source FILE is never re-encoded). Rotation is narrative-ordered so consecutive boundaries never repeat and all seven fire across a full video. | — |
 
 ## 9. Soundtrack & Audio Treatment (GoSound / Libra bridge)
 

@@ -75,6 +75,16 @@ landscape_image = (
         str(APP_ROOT / "Yuan Prometheus Screenshots"),
         copy=True,
     )
+    .add_local_dir(
+        str(repo_root / "LANDSCAPE VIDEOS FOR USE"),
+        str(APP_ROOT / "LANDSCAPE VIDEOS FOR USE"),
+        copy=True,
+    )
+    .add_local_dir(
+        str(repo_root / "SOUND FX"),
+        str(APP_ROOT / "SOUND FX"),
+        copy=True,
+    )
     .workdir(str(APP_ROOT))
 )
 

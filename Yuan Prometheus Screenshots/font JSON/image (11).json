@@ -24,7 +24,9 @@
         "word": "matters.",
         "character_count": 8
       }
-    ]
+    ],
+    "mixed_fonts_verified": true,
+    "mixfont_extracted_at": "2026-08-24T09:15:00Z"
   },
   "layout_rules": {
     "horizontal_alignment": "left",
@@ -44,8 +46,9 @@
       "role": "primary_focus_word",
       "font_classification": "Giant High-Contrast Serif Drop Cap",
       "matched_font_candidates": [
+        "Echelon",
         "Bodoni Moda",
-        "Playfair Display"
+        "Quanton PERSONAL USE ONLY"
       ],
       "font_style": {
         "weight": 900,
@@ -81,8 +84,9 @@
       "role": "secondary_clause",
       "font_classification": "Classic High-Contrast Serif",
       "matched_font_candidates": [
-        "Bodoni Moda",
-        "Lora"
+        "Kraton free Font",
+        "Foundland Italic PERSONAL USE ONLY",
+        "Blaak Thin PERSONAL USE"
       ],
       "font_style": {
         "weight": 600,

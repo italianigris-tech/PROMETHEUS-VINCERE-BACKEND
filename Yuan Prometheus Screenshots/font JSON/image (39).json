@@ -20,7 +20,9 @@
         "word": "Personal",
         "character_count": 8
       }
-    ]
+    ],
+    "mixed_fonts_verified": true,
+    "mixfont_extracted_at": "2026-08-24T09:15:00Z"
   },
   "layout_rules": {
     "horizontal_alignment": "left",
@@ -40,8 +42,8 @@
       "role": "secondary_clause",
       "font_classification": "White Italic Serif",
       "matched_font_candidates": [
-        "Playfair Display Italic",
-        "Lora"
+        "Erotique Alternate Trial",
+        "Playfair Display Italic"
       ],
       "font_style": {
         "weight": 400,
@@ -81,8 +83,9 @@
       "role": "primary_focus_word",
       "font_classification": "Bright Red Bold Heavy Sans",
       "matched_font_candidates": [
-        "Montserrat ExtraBold",
-        "Inter"
+        "ANTENNA",
+        "Amerika",
+        "Montserrat ExtraBold"
       ],
       "font_style": {
         "weight": 800,

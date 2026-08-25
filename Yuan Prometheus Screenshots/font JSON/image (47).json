@@ -1,0 +1,169 @@
+{
+  "profile_name": "Spending_Hours_On_Each_Video_Script_Editorial",
+  "version": "1.0.0",
+  "metadata": {
+    "target_aspect_ratio": "9:16",
+    "overall_mood": "Dark cinematic editorial. Mixed weight: small sans companion line + dominant mixed-weight script. Deep dark background with visible subject.",
+    "casing_strategy": "lowercase",
+    "total_word_count": 5,
+    "total_character_count": 22,
+    "treatment_notes": "Two-layer stacked: Line 1 'spending hours' is smaller companion in white sans with minimal weight. Line 2 'on each video' breaks into mixed weights — 'on each' is light italic, 'video' is heavy script/italic in red. Placed lower-left over dark background.",
+    "per_word_character_counts": [
+      {
+        "word": "spending",
+        "character_count": 8
+      },
+      {
+        "word": "hours",
+        "character_count": 5
+      },
+      {
+        "word": "on",
+        "character_count": 2
+      },
+      {
+        "word": "each",
+        "character_count": 4
+      },
+      {
+        "word": "video",
+        "character_count": 5
+      }
+    ],
+    "mixed_fonts_verified": true,
+    "mixfont_extracted_at": "2026-08-24T09:15:00Z"
+  },
+  "layout_rules": {
+    "horizontal_alignment": "left",
+    "vertical_position": "lower_center",
+    "bottom_margin_percent": 22,
+    "max_width_percent": 80,
+    "scrim_overlay": {
+      "enabled": false,
+      "type": "none",
+      "opacity": 0,
+      "color": "transparent"
+    }
+  },
+  "typography_layers": [
+    {
+      "layer_name": "line_spending_hours",
+      "role": "companion_sans",
+      "font_classification": "Light-Medium Sans-Serif",
+      "matched_font_candidates": [
+        "DM Sans",
+        "Inter",
+        "Outfit",
+        "Source Sans"
+      ],
+      "font_style": {
+        "weight": 400,
+        "style": "normal",
+        "casing": "lowercase",
+        "color": "#FFFFFF",
+        "color_notes": "Pure white. Small companion line above the dominant italic.",
+        "size_px_base": 24,
+        "relative_scale": 0.5,
+        "letter_spacing_em": 0.01,
+        "line_height": 1.2,
+        "text_align": "left"
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 1,
+          "blur_radius": 4,
+          "color": "rgba(0,0,0,0.7)"
+        }
+      },
+      "placement": {
+        "x_percent": "6%",
+        "y_percent": "52%",
+        "anchor": "left_center",
+        "z_index": 1
+      },
+      "sample_text": "spending hours",
+      "word_count": 2,
+      "character_count": 13
+    },
+    {
+      "layer_name": "line_on_each",
+      "role": "mid_italic_companion",
+      "font_classification": "Light Italic Serif or Script",
+      "matched_font_candidates": [
+        "Playfair Display",
+        "Cormorant Garamond",
+        "DM Serif Display"
+      ],
+      "font_style": {
+        "weight": 300,
+        "style": "italic",
+        "casing": "lowercase",
+        "color": "#FFFFFF",
+        "size_px_base": 44,
+        "relative_scale": 0.9,
+        "letter_spacing_em": -0.01,
+        "line_height": 1.0,
+        "text_align": "left"
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 2,
+          "blur_radius": 6,
+          "color": "rgba(0,0,0,0.6)"
+        }
+      },
+      "placement": {
+        "x_percent": "6%",
+        "y_percent": "64%",
+        "anchor": "left_center",
+        "z_index": 2
+      },
+      "sample_text": "on each",
+      "word_count": 2,
+      "character_count": 6
+    },
+    {
+      "layer_name": "line_video",
+      "role": "hero_script_accent",
+      "font_classification": "Heavy Italic Script or Display Serif — Accent Color",
+      "matched_font_candidates": [
+        "Playfair Display",
+        "Bodoni Moda",
+        "DM Serif Display",
+        "Fraunces"
+      ],
+      "font_style": {
+        "weight": 700,
+        "style": "italic",
+        "casing": "lowercase",
+        "color": "#C53030",
+        "color_notes": "Deep red-crimson. Hero accent word.",
+        "size_px_base": 50,
+        "relative_scale": 1.0,
+        "letter_spacing_em": -0.01,
+        "line_height": 1.0,
+        "text_align": "left"
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 3,
+          "blur_radius": 10,
+          "color": "rgba(0,0,0,0.7)"
+        }
+      },
+      "placement": {
+        "x_percent": "38%",
+        "y_percent": "64%",
+        "anchor": "left_center",
+        "z_index": 3,
+        "placement_note": "Inline continuation of 'on each' — 'video' sits to the right of 'on each' on the same baseline."
+      },
+      "sample_text": "video",
+      "word_count": 1,
+      "character_count": 5
+    }
+  ]
+}

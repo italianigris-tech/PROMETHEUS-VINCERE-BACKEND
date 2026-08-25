@@ -55,9 +55,9 @@ Every stage emits a typed artifact that is the **cause** of the next stage. No o
 | 3 | `joseph_edit_grammar.ts` | Sections → `EditMove[]` (budgeted allocation per Joseph five-audit synthesis) |
 | 4 | `landscape_composition_director.ts` | Edit moves + matte presence → placement / transition / typography cue indexes |
 | 5 | `landscape_sfx_engine.ts` | Edit moves → lifecycle-aware SFX cues (entry/exit/riser/impact/no-SFX exceptions) |
-| 6 | `landscape_soundtrack_engine.ts` | Video descriptor + semantic theme → per-section song selection programme (vibe→track scoring, vocals policy, anti-fatigue, blends) + empty bed; the crux of the audio layer. **SONG-07**: short-form (≤ 90s) runs are ONE song end-to-end; **AUD-09**: long-form song changes get subtle transition beds (risers). |
+| 6 | `landscape_soundtrack_engine.ts` | Video descriptor + semantic theme → per-section song selection programme (vibe→track scoring, vocals policy, anti-fatigue, blends) + empty bed; the crux of the audio layer. **SONG-07**: short-form (≤ 90s) runs are ONE song end-to-end; **AUD-09**: long-form song changes get subtle transition beds (risers) — riser length is derived per-seam from the music runway (tight seams = short swell, spacious seams = long swell). |
 | 7 | `landscape_treatment_pipeline.ts` | Stages 1–6 → `LandscapeTreatmentManifest` (single auditable artifact) |
-| 8 | `bake_soundtrack.py` + `music/` (real songs from R2) | Maps each seed track to a REAL song from Cloudflare R2 (classical, cinematic trailer, lo-fi, etc.) and renders the baked MP4 + music stem. Adjacent same-track windows merge (no internal dips). Short-form single-song runs render clean end-to-end. Long-form runs get subtle synthesized risers under each song-change boundary (AUD-09). Fades, crossfades (blend), -6 dB voice ducking, -14 LUFS. |
+| 8 | `bake_soundtrack.py` + `music/` (real songs from R2) | Maps each seed track to a REAL song from Cloudflare R2 (classical, cinematic trailer, lo-fi, etc.) and renders the baked MP4 + music stem. Adjacent same-track windows merge (no internal dips). Short-form single-song runs render clean end-to-end. Long-form runs get **synthesized risers under each song-change boundary** (AUD-09) — but every riser is **measured and adapted per transition**: the decay length is set by the incoming song's real silent lead-in (ffmpeg decode + numpy RMS), the level is set relative to the outgoing song's measured loudness, and the rise length is derived from the music runway around the seam. No fixed 1.0s decay, no fixed −25dB, no fixed 2.2s rise. Fades, crossfades (blend), −6 dB voice ducking, −14 LUFS. |
 | 9 | `build_landscape_presentation.ts` | Manifest → self-contained 16:9 HTML studio (data spliced at `SEAM_BEGIN:__LANDSCAPE_RUN_DATA__`) |
 
 ---
@@ -149,6 +149,24 @@ with:
 and `transitionFromPreviousScene` emits crossfade transition metadata whenever
 the base changes between adjacent chunks. The full-bleed base layer lives at
 `#baseBackgroundLayer` (Z:5, behind matted speaker Z:20 and semantic assets).
+
+### Cinematic transition tier (TRN-05)
+
+Beyond the classic burn/flash/wash overlay palette (TRN-03), the studio ships a
+**7-effect cinematic palette** — the default (`transitionStyle: "cinematic"`):
+
+`lens_flare_bleed` · `defocus_bokeh` · `match_cut` · `push_in_zoom` ·
+`edge_glow_bloom` · `camera_pass_by` · `light_leak`
+
+All seven are **real, procedurally rendered** in `fireTransition`
+(`landscape_treatment_presentation.html`), using overlay layers (z:91–93),
+live CSS filters/transforms on the composited video/grade layers, and canvas
+(bokeh discs, light-leak blobs, frozen-frame graphic-match wipe, screen-blend
+bloom duplicate). No external assets and no source-file re-encoding. Selection
+rotates narrative-order so consecutive boundaries never repeat and all seven
+fire across a full video; each effect maps to a distinctive SFX family
+(`riser` / `click` / `whoosh` / `impact`) in `landscape_sfx_engine.ts`. Pass
+`transitionStyle: "classic"` to restore the original six-effect overlay set.
 
 ---
 

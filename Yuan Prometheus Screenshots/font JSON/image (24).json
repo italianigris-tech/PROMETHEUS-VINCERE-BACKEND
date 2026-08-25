@@ -16,7 +16,9 @@
         "word": "HOOKS",
         "character_count": 5
       }
-    ]
+    ],
+    "mixed_fonts_verified": true,
+    "mixfont_extracted_at": "2026-08-24T09:15:00Z"
   },
   "layout_rules": {
     "horizontal_alignment": "left",
@@ -36,6 +38,7 @@
       "role": "primary_focus_word",
       "font_classification": "Giant Cursive Calligraphic Script",
       "matched_font_candidates": [
+        "Brushelva",
         "Great Vibes",
         "Dancing Script"
       ],
@@ -73,9 +76,9 @@
       "role": "header",
       "font_classification": "Bold Vibrant Yellow Geometric Sans",
       "matched_font_candidates": [
-        "Montserrat ExtraBold",
-        "Inter",
-        "Outfit"
+        "Amerika",
+        "ANTENNA",
+        "Montserrat ExtraBold"
       ],
       "font_style": {
         "weight": 900,

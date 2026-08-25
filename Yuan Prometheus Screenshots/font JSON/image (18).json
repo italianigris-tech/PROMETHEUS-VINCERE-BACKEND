@@ -28,7 +28,9 @@
         "word": "Simplicity",
         "character_count": 10
       }
-    ]
+    ],
+    "mixed_fonts_verified": true,
+    "mixfont_extracted_at": "2026-08-24T09:15:00Z"
   },
   "layout_rules": {
     "horizontal_alignment": "center",
@@ -48,8 +50,10 @@
       "role": "secondary_clause",
       "font_classification": "Ultra-Light Geometric Sans",
       "matched_font_candidates": [
-        "Inter Thin",
-        "Montserrat"
+        "Aesthetic",
+        "Almera",
+        "The Glamoure",
+        "Inter Thin"
       ],
       "font_style": {
         "weight": 200,
@@ -89,6 +93,7 @@
       "role": "primary_focus_word",
       "font_classification": "High-Contrast Bold Serif",
       "matched_font_candidates": [
+        "SenzaBella",
         "Bodoni Moda",
         "Playfair Display"
       ],
@@ -126,8 +131,10 @@
       "role": "secondary_clause",
       "font_classification": "Ultra-Light Geometric Sans",
       "matched_font_candidates": [
-        "Inter Thin",
-        "Montserrat"
+        "Aesthetic",
+        "Almera",
+        "The Glamoure",
+        "Inter Thin"
       ],
       "font_style": {
         "weight": 200,

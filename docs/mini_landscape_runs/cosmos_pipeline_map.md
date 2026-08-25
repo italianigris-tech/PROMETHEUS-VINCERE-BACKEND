@@ -17,7 +17,7 @@ This is the direct answer to *"clue me in on the ones I'm correct on."*
 | Macro domain | Status in this studio | Where it lives | Your read |
 | :--- | :--- | :--- | :--- |
 | **Typography** | **SETTLED — and yes, it is the most considered.** | `landscape_composition_director.ts` TYP-01…06; the `mini_run_studio` kinetic suite (30 treatments, 45 font JSON profiles) is the sibling source; builder injects the font-profile corpus at `SEAM_BEGIN:__LANDSCAPE_FONT_PROFILES__`. | Correct — the "spoiled child." No other domain has this much policy + a corpus-, disk-backed architecture. |
-| **Transitions** | **Partially settled** — a real decision + rule layer, thin render layer. | `TransitionTreatment` + 6-effect palette + TRN-01…04 (overlay-only rule). Presentation has background crossfade `transitionFromPreviousScene`. | Correct: present as a *decision*, but not a per-scene effect rig. |
+| **Transitions** | **SETTLED** — a real decision + rule layer with a full per-scene render rig. | `TransitionTreatment` + 6-effect classic palette (TRN-01…04) + **7-effect cinematic palette** (TRN-05: `lens_flare_bleed`, `defocus_bokeh`, `match_cut`, `push_in_zoom`, `edge_glow_bloom`, `camera_pass_by`, `light_leak`) — all procedurally rendered at runtime (`fireTransition` in the landscape studio template). | Correct — the cinematic tier upgrades the "thin render layer" into a real effect rig. |
 | **Camera movement** | **Partially settled** — present as camera moves in the render manifest, not a culture. | `mapEditMoveToCameraMove` in `landscape-to-unified.ts`; camera-whoosh midpoints in the studio template. | Correct — in the spine, but no movement catalog. |
 | **Audio (SFX + soundtrack)** | **Partially settled** — SFX is a real engine; soundtrack programme exists but the GoSound/Libra render bridge is an explicit NEXT STEP. | `landscape_sfx_engine.ts` (SFX-01…06), `landscape_soundtrack_engine.ts` (AUD-1…7; `libra_*` IDs are placeholders until a provider). | Correct — half settled, half stub. |
 | **Picture-in-Picture (PiP)** | **Partially settled** — declared in placement + governed by MAT-04, but not a PiP rig. | `CompositionPlacement.placement:"pip_inset"` (Z:30, `explain_workflow`), MAT-04 "chrome not the plate." | You were *not certain* — fair. Declared-but-unbuilt. |
@@ -46,7 +46,7 @@ flowchart LR
   subgraph DC["Director / decision layer"]
     GM --> CD[landscape_composition_director.ts<br/>stage 4 · [settled]]
     CD -->|typography cue indexes| TY[TYPOGRAPHY<br/>[the developed / spoiled child]]
-    CD -->|transitions| TR[TRANSITIONS<br/>6-effect palette · [partial]]
+    CD -->|transitions| TR[TRANSITIONS<br/>6 classic + 7 cinematic · SETTLED]
   end
 
   subgraph AU["AUDIO + RIGS"]

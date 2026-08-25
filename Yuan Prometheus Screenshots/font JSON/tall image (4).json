@@ -14,7 +14,9 @@
         "word": "EXARCH",
         "character_count": 6
       }
-    ]
+    ],
+    "mixed_fonts_verified": true,
+    "mixfont_extracted_at": "2026-08-24T09:15:00Z"
   },
   "layout_rules": {
     "horizontal_alignment": "center",
@@ -36,8 +38,7 @@
       "matched_font_candidates": [
         "Teko",
         "Big Shoulders Display",
-        "Anton",
-        "Saira Extra Condensed"
+        "Saira ExtraCondensed"
       ],
       "font_style": {
         "weight": 900,

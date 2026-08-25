@@ -1,3 +1,4 @@
+import net from "net";
 import * as http from "node:http";
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -2498,6 +2499,44 @@ function createServerInstance(port: number) {
       return;
     }
 
+    // Reverse Proxy for Kanban UI & WebSocket Hub
+    if (req.url && (
+      req.url.startsWith("/kanban") ||
+      req.url.startsWith("/manifest.json") ||
+      req.url.startsWith("/sw.js") ||
+      req.url.startsWith("/@vite") ||
+      req.url.startsWith("/node_modules") ||
+      req.url.startsWith("/src") ||
+      req.url.startsWith("/api/workspaces") ||
+      req.url.startsWith("/api/tasks") ||
+      req.url.startsWith("/api/runs") ||
+      req.url.startsWith("/api/settings") ||
+      req.url.startsWith("/api/cron") ||
+      (req.url.startsWith("/assets/") && !req.url.includes("matted_"))
+    )) {
+      let targetPath = req.url;
+      if (targetPath.startsWith("/kanban")) {
+        targetPath = targetPath.replace(/^\/kanban/, "") || "/";
+      }
+      const proxyReq = http.request({
+        hostname: "127.0.0.1",
+        port: 3484,
+        path: targetPath,
+        method: req.method,
+        headers: { ...req.headers, host: "127.0.0.1:3484" }
+      }, (proxyRes) => {
+        res.writeHead(proxyRes.statusCode || 200, proxyRes.headers);
+        proxyRes.pipe(res);
+      });
+      proxyReq.on("error", (err) => {
+        res.writeHead(502, { "Content-Type": "text/plain" });
+        res.end("Bad Gateway to Kanban: " + err.message);
+      });
+      req.pipe(proxyReq);
+      return;
+    }
+
+
     // Slot-Form Sound Design Dashboard (Served at root `/`, `/studio`, `/video`)
     if ((req.method === "GET" || req.method === "HEAD") && 
         (req.url === "/" || req.url === "" || req.url === "/studio" || req.url === "/video" || req.url === "/dashboard")) {
@@ -2799,9 +2838,9 @@ function createServerInstance(port: number) {
       }
     }
 
-    // Screenshot Dropzone & Reference Comparison Gallery (/paste)
+    // Screenshot Dropzone & Reference Comparison Gallery (/paste, /upload)
     if ((req.method === "GET" || req.method === "HEAD") && 
-        (req.url === "/paste" || req.url === "/dropzone" || req.url === "/screenshots" || req.url?.startsWith("/paste?"))) {
+        (req.url === "/paste" || req.url === "/dropzone" || req.url === "/screenshots" || req.url === "/upload" || req.url === "/upload.html" || req.url?.startsWith("/paste?") || req.url?.startsWith("/upload?"))) {
       const dropzoneHtml = renderDropzonePageHtml(studioDir);
       res.writeHead(200, { 
         "Content-Type": "text/html; charset=utf-8",
@@ -2831,8 +2870,8 @@ function createServerInstance(port: number) {
       }
     }
 
-    // API: Upload Paste / Drag & Drop Screenshot
-    if (req.method === "POST" && req.url?.startsWith("/api/upload-paste")) {
+    // API: Upload Paste / Drag & Drop Screenshot (/api/upload-paste, /api/upload, /api/upload-image)
+    if (req.method === "POST" && (req.url?.startsWith("/api/upload-paste") || req.url?.startsWith("/api/upload-image") || req.url === "/api/upload" || req.url?.startsWith("/api/upload?"))) {
       const chunks: Buffer[] = [];
       req.on("data", chunk => chunks.push(chunk));
       req.on("end", async () => {
@@ -3361,6 +3400,26 @@ function createServerInstance(port: number) {
   s.on("error", (e) => {
     console.warn(`[PORT_WARN] Port ${port} (${e.message})`);
   });
+  
+  s.on("upgrade", (req, socket, head) => {
+    // Proxy WebSocket to Hub Daemon (25463) or Kanban UI (3484)
+    const targetPort = (req.url && req.url.includes("/hub")) ? 25463 : 3484;
+    const proxySocket = net.connect(targetPort, "127.0.0.1", () => {
+      proxySocket.write(
+        `${req.method} ${req.url} HTTP/${req.httpVersion}\r\n` +
+        Object.entries(req.headers)
+          .map(([key, val]) => `${key}: ${Array.isArray(val) ? val.join(", ") : val}\r\n`)
+          .join("") +
+        "\r\n"
+      );
+      if (head && head.length > 0) proxySocket.write(head);
+      proxySocket.pipe(socket);
+      socket.pipe(proxySocket);
+    });
+    proxySocket.on("error", () => socket.destroy());
+    socket.on("error", () => proxySocket.destroy());
+  });
+
   return s;
 }
 

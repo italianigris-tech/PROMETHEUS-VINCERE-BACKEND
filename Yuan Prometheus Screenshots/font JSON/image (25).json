@@ -16,7 +16,9 @@
         "word": "storytelling.",
         "character_count": 13
       }
-    ]
+    ],
+    "mixed_fonts_verified": true,
+    "mixfont_extracted_at": "2026-08-24T09:15:00Z"
   },
   "layout_rules": {
     "horizontal_alignment": "left",
@@ -36,8 +38,8 @@
       "role": "secondary_clause",
       "font_classification": "Crimson Red Italic Display Serif",
       "matched_font_candidates": [
-        "Playfair Display Italic",
-        "Bodoni Moda"
+        "Erotique Alternate Trial",
+        "Playfair Display Italic"
       ],
       "font_style": {
         "weight": 700,
@@ -73,8 +75,9 @@
       "role": "header",
       "font_classification": "Crimson Red Bold Serif with Ball Terminal Period",
       "matched_font_candidates": [
-        "Playfair Display",
-        "Bodoni Moda"
+        "SenzaBella",
+        "Bodoni Moda",
+        "Playfair Display"
       ],
       "font_style": {
         "weight": 800,

@@ -20,7 +20,9 @@
         "word": "design.",
         "character_count": 7
       }
-    ]
+    ],
+    "mixed_fonts_verified": true,
+    "mixfont_extracted_at": "2026-08-24T09:15:00Z"
   },
   "layout_rules": {
     "horizontal_alignment": "left",
@@ -40,6 +42,7 @@
       "role": "header",
       "font_classification": "Ultra-Compressed Tall Heavy Sans",
       "matched_font_candidates": [
+        "Amerika Alternates",
         "Bebas Neue",
         "Oswald"
       ],
@@ -77,6 +80,7 @@
       "role": "secondary_clause",
       "font_classification": "Italic Cursive Serif",
       "matched_font_candidates": [
+        "Erotique Alternate Trial",
         "Playfair Display Italic"
       ],
       "font_style": {
@@ -113,8 +117,9 @@
       "role": "primary_focus_word",
       "font_classification": "Sweeping Calligraphic Script",
       "matched_font_candidates": [
-        "Dancing Script",
-        "Great Vibes"
+        "Brushelva",
+        "Great Vibes",
+        "Dancing Script"
       ],
       "font_style": {
         "weight": 700,

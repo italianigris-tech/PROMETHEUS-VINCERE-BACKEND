@@ -430,3 +430,28 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: "Berylium";
+  src: url("./fonts/hero/berylium-rg-67d7e31492fa.otf") format("opentype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Echelon";
+  src: url("./fonts/hero/echelon-rg-e550ec4e2f9a.otf") format("opentype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Foglihten-068";
+  src: url("./fonts/hero/foglihten-068-317fa494dd0b.otf") format("opentype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Goudy Bookletter";
+  src: url("./fonts/hero/goudybookletter1911-29a7765f69d5.otf") format("opentype");
+  font-display: swap;
+}
+
+

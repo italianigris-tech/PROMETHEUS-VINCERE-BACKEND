@@ -3,7 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Prometheus Master Kinetic Suite — All 25 Active Presets & Trait Registry</title>
+  <title>Prometheus Master Kinetic Suite — All 41 Presets & Trait Registry</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700;800&family=Outfit:wght@600;800;900&family=Playfair+Display:ital,wght@1,700;1,900&family=Plus+Jakarta+Sans:ital,wght@0,400;0,600;0,700;0,800;1,800&family=Syne:wght@700;800;900&display=swap" rel="stylesheet">
   <style>
     :root {
       --bg-primary: #050507;
@@ -419,6 +422,482 @@
       color: #84cc16;
       text-shadow: 0 0 24px rgba(132, 204, 22, 0.45), 0 4px 16px rgba(0, 0, 0, 0.9);
     }
+    /* TAG FILTER SYSTEM */
+    .filter-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 32px; flex-wrap: wrap; }
+    .filter-btn {
+      padding: 7px 16px; border-radius: 20px; font-size: 12px; font-weight: 700;
+      cursor: pointer; border: 1px solid var(--border-subtle); background: var(--bg-secondary);
+      color: var(--text-secondary); transition: all 0.2s; font-family: var(--font-mono);
+    }
+    .filter-btn:hover { background: rgba(255,255,255,0.1); color: #fff; border-color: rgba(255,255,255,0.3); }
+    .filter-btn.active { background: rgba(6,182,212,0.2); color: #06b6d4; border-color: rgba(6,182,212,0.6); box-shadow: 0 0 12px rgba(6,182,212,0.2); }
+    .filter-btn.treatment-active { background: rgba(192,132,252,0.2); color: #c084fc; border-color: rgba(192,132,252,0.6); box-shadow: 0 0 12px rgba(192,132,252,0.2); }
+    .tag-pill {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-family: var(--font-mono); font-size: 10px; font-weight: 800;
+      padding: 3px 9px; border-radius: 12px; margin-left: 8px;
+    }
+    .tag-animation { background: rgba(6,182,212,0.18); color: #38bdf8; border: 1px solid rgba(6,182,212,0.4); }
+    .tag-treatment { background: rgba(192,132,252,0.18); color: #c084fc; border: 1px solid rgba(192,132,252,0.4); }
+    .card.hidden { display: none; }
+    /* TYPO #31 SEE-THROUGH LETTERFORM */
+    .less-treatment-stage {
+      width: 100%; height: 100%; position: relative; display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(160deg, #4a4a55 0%, #2e2e38 40%, #1a1a22 100%);
+      overflow: hidden;
+    }
+    .less-bg-face {
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 60% 30%, rgba(180,160,140,0.25) 0%, rgba(120,110,100,0.1) 40%, transparent 70%);
+    }
+    .less-text-container { position: relative; z-index: 2; display: flex; align-items: center; justify-content: center; }
+    .less-letterform {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
+      font-size: 82px; font-weight: 700; letter-spacing: -0.02em;
+      color: rgba(232, 196, 160, 0.72); line-height: 1; text-transform: lowercase;
+    }
+
+    /* ========================================================================= */
+    /* 10 NEW KINETIC TYPOGRAPHY PRESETS (DOCS EXPANSION)                        */
+    /* ========================================================================= */
+    /* TYPO #32 HIGH-TECH KINETIC TYPOGRAPHY BRANDS */
+    .typo-brands-stage {
+      width: 100%; height: 100%; position: relative; overflow: hidden;
+      background: #000000; display: flex; justify-content: center; align-items: center;
+      font-family: 'Syne', sans-serif;
+    }
+    .brands-glow-backdrop {
+      position: absolute; width: 400px; height: 200px;
+      background: radial-gradient(circle, rgba(255, 220, 0, 0.15) 0%, rgba(0,0,0,0) 70%);
+      filter: blur(40px); animation: brandsPulseGlow 4s ease-in-out infinite alternate;
+    }
+    .brands-scanlines {
+      position: absolute; inset: 0;
+      background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.6) 50%, rgba(0,0,0,0.6));
+      background-size: 100% 4px; pointer-events: none; z-index: 10; opacity: 0.7;
+    }
+    .brands-viewport {
+      position: relative; z-index: 2; display: flex; justify-content: center; align-items: center;
+    }
+    svg.brands-wordmark {
+      width: clamp(260px, 60vw, 420px); height: auto; overflow: visible;
+      filter: drop-shadow(0 0 12px rgba(255, 230, 0, 0.25));
+    }
+    .brands-brand-text {
+      font-family: 'Syne', sans-serif; font-weight: 800; font-size: 100px;
+      letter-spacing: -6px; fill: #ffffff; text-transform: lowercase; transform-origin: center;
+    }
+    .brands-cyan-shift {
+      fill: #00ffff; mix-blend-mode: screen; opacity: 0.8; animation: brandsCyanGlitch 2.5s infinite ease-in-out;
+    }
+    .brands-red-shift {
+      fill: #ff0055; mix-blend-mode: screen; opacity: 0.8; animation: brandsRedGlitch 2.1s infinite ease-in-out;
+    }
+    @keyframes brandsPulseGlow { 0% { opacity: 0.3; transform: scale(0.9); } 100% { opacity: 0.8; transform: scale(1.15); } }
+    @keyframes brandsCyanGlitch {
+      0%, 100% { transform: translate(0, 0); }
+      15% { transform: translate(-3px, 1px); }
+      30% { transform: translate(2px, -2px); }
+      45% { transform: translate(-4px, 0px); filter: blur(1px); }
+      50% { transform: translate(0, 0); filter: blur(0); }
+      75% { transform: translate(3px, 1px); }
+    }
+    @keyframes brandsRedGlitch {
+      0%, 100% { transform: translate(0, 0); }
+      10% { transform: translate(3px, -1px); }
+      25% { transform: translate(-2px, 2px); }
+      60% { transform: translate(4px, -1px); filter: blur(0.8px); }
+      65% { transform: translate(0, 0); filter: blur(0); }
+      85% { transform: translate(-3px, -1px); }
+    }
+
+    /* TYPO #33 KINETIC CYBER TYPOGRAPHY THEY NEED */
+    .typo-they-need-stage {
+      width: 100%; height: 100%; position: relative; overflow: hidden;
+      background-color: #000000; display: flex; justify-content: center; align-items: center;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .they-need-energy-field {
+      position: absolute; width: 600px; height: 300px;
+      background: radial-gradient(ellipse at center, rgba(255, 226, 0, 0.18) 0%, rgba(0, 0, 0, 0) 70%);
+      filter: blur(50px); animation: theyNeedPulseField 3s cubic-bezier(0.4, 0, 0.6, 1) infinite alternate;
+    }
+    .they-need-grid-overlay {
+      position: absolute; inset: -50%;
+      background-image:
+        linear-gradient(to right, rgba(255, 230, 0, 0.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 230, 0, 0.04) 1px, transparent 1px);
+      background-size: 35px 35px;
+      transform: perspective(500px) rotateX(60deg); pointer-events: none;
+      animation: theyNeedMoveGrid 8s linear infinite;
+    }
+    .they-need-stage-content {
+      position: relative; z-index: 2; display: flex; align-items: center; justify-content: flex-start;
+    }
+    .they-need-text-wrapper {
+      display: flex; gap: 0.25em; font-size: clamp(48px, 9vw, 84px);
+      font-weight: 800; letter-spacing: -0.06em; line-height: 1; color: #ffffff; white-space: nowrap;
+    }
+    .they-need-word {
+      display: inline-flex; position: relative; transform-style: preserve-3d;
+    }
+    .they-need-word-they {
+      color: #ffffff; text-shadow: 0 0 25px rgba(255, 255, 255, 0.4);
+      animation: theyNeedSubtleWarp 4s ease-in-out infinite alternate;
+    }
+    .they-need-word-need {
+      color: #ffe600; display: inline-flex; overflow: hidden; width: 0; opacity: 0;
+      filter: blur(12px) skewX(-20deg); transform: translateX(-30px) scale(0.9);
+      animation: theyNeedKineticExpand 4s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+    }
+    .they-need-word-need::after {
+      content: 'need'; position: absolute; left: 0; top: 0;
+      color: rgba(255, 230, 0, 0.5); filter: blur(10px); z-index: -1;
+    }
+    .they-need-hud-line {
+      position: absolute; bottom: -10px; left: 0; height: 3px;
+      background: linear-gradient(90deg, transparent, #ffe600, transparent);
+      box-shadow: 0 0 10px #ffe600; animation: theyNeedLineScan 4s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+    }
+    @keyframes theyNeedKineticExpand {
+      0%, 15% { width: 0; opacity: 0; filter: blur(20px) skewX(-30deg); transform: translateX(-40px) scale(0.8); }
+      35%, 80% { width: 2.7em; opacity: 1; filter: blur(0px) skewX(0deg); transform: translateX(0) scale(1); }
+      92%, 100% { width: 0; opacity: 0; filter: blur(15px) skewX(20deg); transform: translateX(20px) scale(0.95); }
+    }
+    @keyframes theyNeedLineScan {
+      0%, 15% { width: 0%; left: 0%; opacity: 0; }
+      35%, 80% { width: 100%; left: 0%; opacity: 1; }
+      90%, 100% { width: 0%; left: 100%; opacity: 0; }
+    }
+    @keyframes theyNeedPulseField { 0% { opacity: 0.4; transform: scale(0.95); } 100% { opacity: 0.9; transform: scale(1.1); } }
+    @keyframes theyNeedMoveGrid { 0% { transform: perspective(500px) rotateX(60deg) translateY(0); } 100% { transform: perspective(500px) rotateX(60deg) translateY(35px); } }
+    @keyframes theyNeedSubtleWarp { 0% { transform: translateZ(0); } 100% { transform: translateZ(10px) rotate(-0.5deg); } }
+
+    /* TYPO #34 KINETIC GLOW SWEEP ATTENTION */
+    .typo-glow-sweep-stage {
+      width: 100%; height: 100%; position: relative; overflow: hidden;
+      background-color: #000000; display: flex; justify-content: center; align-items: center;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .glow-sweep-grid-bg {
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(to right, rgba(255, 230, 0, 0.08) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 230, 0, 0.08) 1px, transparent 1px);
+      background-size: 50px 50px; background-position: center center; pointer-events: none;
+    }
+    .glow-sweep-ambient {
+      position: absolute; width: 500px; height: 250px;
+      background: radial-gradient(ellipse at center, rgba(255, 230, 0, 0.12) 0%, rgba(0, 0, 0, 0) 70%);
+      filter: blur(60px); pointer-events: none;
+    }
+    .glow-sweep-scanlines {
+      position: absolute; inset: 0;
+      background: linear-gradient(to bottom, transparent, rgba(255, 230, 0, 0.02) 50%, transparent 51%);
+      background-size: 100% 4px; pointer-events: none;
+    }
+    .glow-sweep-container {
+      position: relative; z-index: 2; display: flex; align-items: center; justify-content: center;
+    }
+    .glow-sweep-word {
+      font-size: clamp(48px, 9vw, 88px); font-weight: 800; letter-spacing: -0.06em;
+      display: flex; user-select: none;
+    }
+    .glow-sweep-char {
+      display: inline-block; color: #ffe600; text-shadow: 0 0 6px rgba(255, 230, 0, 0.3);
+      animation: sweepGlowAnim 3.2s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+      animation-delay: calc(var(--index) * 0.12s);
+    }
+    @keyframes sweepGlowAnim {
+      0% { color: rgba(255, 230, 0, 0.35); text-shadow: 0 0 0px transparent; transform: scale(0.98); filter: blur(2px); }
+      18% {
+        color: #ffffff;
+        text-shadow: 0 0 10px #ffe600, 0 0 25px #ffe600, 0 0 50px #ffe600, 0 0 90px #ffe600, 0 0 130px #ffe600;
+        transform: scale(1.04) translateY(-2px); filter: blur(0px);
+      }
+      38% { color: #ffe600; text-shadow: 0 0 15px rgba(255, 230, 0, 0.9), 0 0 30px rgba(255, 230, 0, 0.6); transform: scale(1) translateY(0); }
+      65%, 100% { color: #ffe600; text-shadow: 0 0 6px rgba(255, 230, 0, 0.3); filter: blur(0px); }
+    }
+
+    /* TYPO #35 KINETIC WORD FAST PULSE */
+    .typo-word-fast-stage {
+      width: 100%; height: 100%; position: relative; overflow: hidden;
+      background-color: #000000; display: flex; justify-content: center; align-items: center;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .word-fast-ambient {
+      position: absolute; width: 500px; height: 250px;
+      background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.12) 0%, rgba(0, 0, 0, 0) 70%);
+      filter: blur(60px); pointer-events: none;
+    }
+    .word-fast-sentence {
+      position: relative; z-index: 2; display: flex; gap: 0.35em;
+      font-size: clamp(42px, 8vw, 82px); font-weight: 800; letter-spacing: -0.05em; line-height: 1; white-space: nowrap;
+    }
+    .word-fast-item {
+      display: inline-block; color: rgba(255, 255, 255, 0.2); filter: blur(3px); transform: scale(0.95);
+      animation: rapidWordPulseAnim 1.35s cubic-bezier(0.05, 0.7, 0.1, 1) infinite;
+    }
+    .word-fast-item:nth-child(1) { animation-delay: 0s; }
+    .word-fast-item:nth-child(2) { animation-delay: 0.45s; }
+    .word-fast-item:nth-child(3) { animation-delay: 0.9s; }
+    @keyframes rapidWordPulseAnim {
+      0%, 100% { color: rgba(255, 255, 255, 0.2); filter: blur(4px); transform: translateY(0) scale(0.95); text-shadow: 0 0 0px transparent; }
+      8%, 30% {
+        color: #ffffff; filter: blur(0px); transform: translateY(-4px) scale(1.06);
+        text-shadow: 0 0 20px rgba(255, 255, 255, 1), 0 0 45px rgba(255, 255, 255, 0.8), 0 0 90px rgba(255, 255, 255, 0.4);
+      }
+      42% { color: rgba(255, 255, 255, 0.5); filter: blur(0px); transform: translateY(0) scale(1); text-shadow: 0 0 8px rgba(255, 255, 255, 0.2); }
+    }
+
+    /* TYPO #36 KINETIC DYNAMIC SLANT MOVE */
+    .typo-dynamic-slant-stage {
+      width: 100%; height: 100%; position: relative; overflow: hidden;
+      background-color: #000000; display: flex; justify-content: center; align-items: center;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .dynamic-slant-ambient {
+      position: absolute; width: 500px; height: 250px;
+      background: radial-gradient(ellipse at center, rgba(255, 140, 0, 0.15) 0%, rgba(0, 0, 0, 0) 70%);
+      filter: blur(60px); pointer-events: none;
+    }
+    .dynamic-slant-sentence {
+      position: relative; z-index: 2; display: flex; align-items: center; gap: 0.3em;
+      font-size: clamp(44px, 8vw, 80px); font-weight: 800; letter-spacing: -0.05em; line-height: 1; white-space: nowrap;
+    }
+    .dynamic-slant-static {
+      color: #ffffff; text-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+    }
+    .dynamic-slant-move {
+      display: inline-block; color: #ff9500; transform-origin: bottom left;
+      animation: dynamicKineticSlantAnim 2.2s cubic-bezier(0.2, 0.8, 0.2, 1) infinite; position: relative;
+    }
+    .dynamic-slant-move::before {
+      content: 'move'; position: absolute; left: 0; top: 0;
+      color: rgba(255, 149, 0, 0.4); filter: blur(12px); z-index: -1; transform: skewX(-20deg);
+      animation: dynamicSlantTrailPulse 2.2s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+    }
+    @keyframes dynamicKineticSlantAnim {
+      0%, 100% { transform: skewX(-12deg) translateX(0) scale(1); color: #ff9500; text-shadow: 0 0 15px rgba(255, 149, 0, 0.4); filter: blur(0px); }
+      25% {
+        transform: skewX(-32deg) translateX(20px) scaleX(1.08); color: #ffb700;
+        text-shadow: -8px 0 25px rgba(255, 149, 0, 0.9), -18px 0 45px rgba(255, 100, 0, 0.6); filter: blur(1px);
+      }
+      45% { transform: skewX(-8deg) translateX(-4px) scale(0.98); filter: blur(0px); }
+      65% { transform: skewX(-22deg) translateX(8px); }
+    }
+    @keyframes dynamicSlantTrailPulse {
+      0%, 100% { opacity: 0.3; transform: skewX(-12deg) scale(1); }
+      25% { opacity: 0.9; transform: skewX(-38deg) translateX(-12px) scaleX(1.2); }
+      50% { opacity: 0.2; }
+    }
+
+    /* TYPO #37 KINETIC CHROMATIC TYPEWRITER */
+    .typo-typewriter-stage {
+      width: 100%; height: 100%; position: relative; overflow: hidden;
+      background-color: #000000; display: flex; justify-content: flex-start; align-items: center;
+      font-family: 'Plus Jakarta Sans', sans-serif; padding-left: 28px;
+    }
+    .typewriter-film-scratch {
+      position: absolute; top: 0; bottom: 0; left: 18px; width: 1.5px;
+      background: rgba(255, 255, 255, 0.4); box-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+      z-index: 10; pointer-events: none; animation: typewriterLineFlicker 0.15s infinite alternate;
+    }
+    .typewriter-viewport-track {
+      display: flex; align-items: center; white-space: nowrap; position: relative; z-index: 2;
+      transition: transform 0.08s cubic-bezier(0.1, 0.9, 0.2, 1);
+    }
+    .typewriter-chromatic-text {
+      position: relative; font-size: clamp(38px, 6.5vw, 68px); font-weight: 800; letter-spacing: -0.04em;
+      color: #ffffff;
+      text-shadow: -3px -1px 0 rgba(255, 0, 85, 0.85), 3px 1px 0 rgba(0, 240, 255, 0.85), 0px 3px 1px rgba(0, 255, 100, 0.6);
+      animation: typewriterChromaticJitter 0.12s infinite alternate;
+    }
+    .typewriter-chromatic-text::before,
+    .typewriter-chromatic-text::after {
+      content: attr(data-text); position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;
+    }
+    .typewriter-chromatic-text::before {
+      color: #ff0055; mix-blend-mode: screen; transform: translate(-3px, -1px); filter: blur(0.5px); opacity: 0.8;
+      animation: typewriterCyanShift 0.09s infinite;
+    }
+    .typewriter-chromatic-text::after {
+      color: #00f0ff; mix-blend-mode: screen; transform: translate(3px, 1px); filter: blur(0.5px); opacity: 0.8;
+      animation: typewriterRedShift 0.11s infinite;
+    }
+    .typewriter-cursor {
+      display: inline-block; width: 0.22em; height: 0.85em; background-color: #ffffff;
+      margin-left: 0.1em; vertical-align: middle;
+      box-shadow: -2px 0 #ff0055, 2px 0 #00f0ff, 0 0 12px rgba(255, 255, 255, 0.8);
+      animation: typewriterCursorBlink 0.5s steps(2, start) infinite;
+    }
+    @keyframes typewriterLineFlicker { 0% { opacity: 0.2; transform: translateX(0); } 50% { opacity: 0.7; transform: translateX(1px); } 100% { opacity: 0.3; transform: translateX(-1px); } }
+    @keyframes typewriterCursorBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+    @keyframes typewriterChromaticJitter {
+      0% { text-shadow: -3px -1px 0 rgba(255, 0, 85, 0.85), 3px 1px 0 rgba(0, 240, 255, 0.85), 0px 2px 1px rgba(0, 255, 100, 0.5); }
+      100% { text-shadow: -4px 1px 0 rgba(255, 0, 85, 0.9), 2px -2px 0 rgba(0, 240, 255, 0.9), -1px 3px 1px rgba(0, 255, 100, 0.7); }
+    }
+    @keyframes typewriterCyanShift { 0% { transform: translate(-3px, -1px) skewX(0deg); } 50% { transform: translate(-5px, 1px) skewX(-2deg); } 100% { transform: translate(-2px, -2px) skewX(1deg); } }
+    @keyframes typewriterRedShift { 0% { transform: translate(3px, 1px) skewX(0deg); } 50% { transform: translate(4px, -1px) skewX(2deg); } 100% { transform: translate(1px, 2px) skewX(-1deg); } }
+
+    /* TYPO #38 3D METALLIC CHROME COUNTER */
+    .typo-chrome-counter-stage {
+      width: 100%; height: 100%; position: relative; overflow: hidden;
+      background-color: #020305; display: flex; justify-content: center; align-items: center;
+      font-family: 'Anton', sans-serif;
+    }
+    .chrome-counter-dot-matrix {
+      position: absolute; inset: 0;
+      background-image: radial-gradient(rgba(255, 255, 255, 0.18) 1.2px, transparent 1.2px);
+      background-size: 8px 8px; pointer-events: none; z-index: 1;
+    }
+    .chrome-counter-ambient {
+      position: absolute; width: 450px; height: 300px;
+      background: radial-gradient(circle, rgba(20, 60, 130, 0.25) 0%, rgba(2, 3, 5, 0) 70%);
+      filter: blur(50px); z-index: 1; pointer-events: none;
+    }
+    .chrome-counter-stage-content {
+      position: relative; z-index: 2; display: flex; justify-content: center; align-items: center;
+    }
+    .chrome-counter-num-wrapper {
+      position: relative; display: inline-block; line-height: 0.85; text-align: center;
+    }
+    .chrome-counter-main {
+      font-size: clamp(100px, 20vw, 180px); letter-spacing: -0.01em; text-transform: uppercase;
+      background: linear-gradient(175deg, #ffffff 0%, #dbeeff 12%, #3b76cc 28%, #0a1833 52%, #050b18 68%, #1c3f73 85%, #82b8f8 98%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      filter: drop-shadow(-3px -2px 1px rgba(255, 215, 100, 0.6)) drop-shadow(3px 2px 1px rgba(0, 230, 255, 0.6)) drop-shadow(0px 20px 35px rgba(0, 0, 0, 0.95));
+      position: relative; z-index: 2;
+    }
+    .chrome-counter-shadow {
+      position: absolute; inset: 0; font-size: clamp(100px, 20vw, 180px); letter-spacing: -0.01em;
+      color: #040914; -webkit-text-stroke: 8px #0e1e38; z-index: 1; transform: translateY(4px);
+    }
+    .chrome-counter-outline {
+      position: absolute; inset: 0; font-size: clamp(100px, 20vw, 180px); letter-spacing: -0.01em;
+      color: transparent; -webkit-text-stroke: 1.5px rgba(255, 255, 255, 0.8); z-index: 3; pointer-events: none; opacity: 0.85;
+    }
+    .chrome-counter-overlay-text {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; font-size: clamp(20px, 4vw, 36px);
+      color: #ffffff; white-space: nowrap; letter-spacing: -0.04em; z-index: 10;
+      text-shadow: 0 0 10px rgba(0, 0, 0, 0.9), 0 4px 25px rgba(0, 0, 0, 1), 0 0 3px #000000;
+    }
+
+    /* TYPO #39 APPLE GAUSSIAN CHROME GOAL */
+    .typo-apple-gaussian-stage {
+      width: 100%; height: 100%; position: relative; overflow: hidden;
+      background-color: #000000; display: flex; justify-content: center; align-items: center;
+      font-family: 'Anton', -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+    }
+    .apple-gaussian-ambient {
+      position: absolute; width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(30, 90, 200, 0.28) 0%, rgba(255, 210, 80, 0.12) 35%, rgba(0, 0, 0, 0) 70%);
+      filter: blur(70px); pointer-events: none; z-index: 1; animation: appleGaussianPulse 8s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate;
+    }
+    .apple-gaussian-stage-content {
+      position: relative; z-index: 2; display: flex; justify-content: center; align-items: center; gap: 0.04em;
+    }
+    .apple-gaussian-char {
+      position: relative; font-size: clamp(80px, 18vw, 170px); line-height: 0.85; letter-spacing: -0.01em;
+      text-transform: uppercase; display: inline-block; user-select: none;
+      background: linear-gradient(175deg, #ffffff 0%, #d1e6ff 15%, #3b7be3 30%, #0a1833 55%, #050b18 70%, #1d4680 85%, #82b8f8 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      opacity: 0.08; filter: blur(24px); transform: translateY(30px) scale(0.82) rotateX(-15deg);
+      transition: transform 1.1s cubic-bezier(0.16, 1, 0.3, 1), filter 1.1s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+      will-change: transform, filter, opacity;
+    }
+    .apple-gaussian-char::before {
+      content: attr(data-text); position: absolute; inset: 0; z-index: -1; color: #030712;
+      -webkit-text-stroke: 6px #081224; transform: translateY(4px); opacity: 0;
+      transition: opacity 1.1s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .apple-gaussian-char::after {
+      content: attr(data-text); position: absolute; inset: 0; z-index: 3; color: transparent;
+      -webkit-text-stroke: 1.5px rgba(255, 255, 255, 0); pointer-events: none;
+      transition: -webkit-text-stroke 1.1s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .apple-gaussian-char.lit {
+      opacity: 1; filter: blur(0px) drop-shadow(-3px -2px 1px rgba(255, 230, 100, 0.8)) drop-shadow(3px 2px 1px rgba(0, 230, 255, 0.8)) drop-shadow(0px 20px 45px rgba(0, 0, 0, 0.95));
+      transform: translateY(0) scale(1) rotateX(0deg);
+    }
+    .apple-gaussian-char.lit::before { opacity: 1; }
+    .apple-gaussian-char.lit::after { -webkit-text-stroke: 1.5px rgba(255, 255, 255, 0.85); }
+    @keyframes appleGaussianPulse { 0% { transform: scale(0.9) translateY(-15px); opacity: 0.6; } 100% { transform: scale(1.15) translateY(15px); opacity: 1; } }
+
+    /* TYPO #40 CINEMATIC APPLE WORD BOUNCE */
+    .typo-apple-bounce-stage {
+      width: 100%; height: 100%; position: relative; overflow: hidden;
+      background-color: #000000; display: flex; justify-content: center; align-items: center;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+    }
+    .apple-bounce-ambient {
+      position: absolute; width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.08) 0%, rgba(120, 160, 255, 0.05) 30%, rgba(0, 0, 0, 0) 70%);
+      filter: blur(80px); pointer-events: none; z-index: 1;
+    }
+    .apple-bounce-stage-content {
+      position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 0.1em; text-align: center; perspective: 1000px;
+    }
+    .apple-bounce-line {
+      display: flex; gap: 0.3em; font-size: clamp(32px, 6vw, 56px);
+      font-weight: 900; letter-spacing: -0.055em; line-height: 0.95; white-space: nowrap;
+    }
+    .apple-bounce-word-box { display: inline-block; perspective: 800px; }
+    .apple-bounce-word {
+      display: inline-block;
+      background: linear-gradient(180deg, #ffffff 0%, #f0f0f5 35%, #b0b0bb 75%, #80808a 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      opacity: 0; filter: blur(30px); transform: translateY(80px) scale(0.65) rotateX(-30deg);
+      transform-origin: center bottom; will-change: transform, filter, opacity;
+    }
+    .apple-bounce-word.bounce-in {
+      animation: appleCinematicBounceAnim 1.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .bw-1 { animation-delay: 0.1s; }
+    .bw-2 { animation-delay: 0.32s; }
+    .bw-3 { animation-delay: 0.54s; }
+    .bw-4 { animation-delay: 0.76s; }
+    @keyframes appleCinematicBounceAnim {
+      0% { opacity: 0; filter: blur(30px); transform: translateY(80px) scale(0.65) rotateX(-30deg); }
+      40% { opacity: 1; filter: blur(0px); transform: translateY(-12px) scale(1.06) rotateX(6deg); }
+      62% { transform: translateY(4px) scale(0.98) rotateX(-2deg); }
+      78% { transform: translateY(-2px) scale(1.01) rotateX(0deg); }
+      90% { transform: translateY(0.5px) scale(0.998); }
+      100% { opacity: 1; filter: blur(0px); transform: translateY(0) scale(1) rotateX(0deg); }
+    }
+
+    /* TYPO #41 CINEMATIC DISTANCE CONVERGENCE */
+    .typo-convergence-stage {
+      width: 100%; height: 100%; position: relative; overflow: hidden;
+      background-color: #000000; display: flex; justify-content: center; align-items: center;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    .convergence-ambient {
+      position: absolute; width: 500px; height: 250px;
+      background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.08) 0%, rgba(0, 0, 0, 0) 70%);
+      filter: blur(60px); pointer-events: none;
+    }
+    .convergence-stage-content {
+      position: relative; z-index: 2; display: flex; justify-content: center; align-items: center;
+    }
+    .convergence-text-cinematic {
+      font-size: clamp(38px, 7vw, 76px); font-weight: 800; color: #ffffff; white-space: nowrap;
+      text-transform: lowercase; will-change: transform, letter-spacing, word-spacing, filter, opacity;
+      text-shadow: -3px -1px 0 rgba(255, 0, 80, 0.8), 3px 1px 0 rgba(0, 240, 255, 0.8), 0px 2px 1px rgba(0, 255, 120, 0.5);
+      animation: convergenceCloseDistance 3.2s cubic-bezier(0.16, 1, 0.3, 1) infinite, convergenceChromaticMicroJitter 0.12s infinite alternate;
+    }
+    @keyframes convergenceCloseDistance {
+      0% { opacity: 0; letter-spacing: 0.45em; word-spacing: 0.8em; filter: blur(28px); transform: scale(1.12); }
+      35% { opacity: 1; filter: blur(0px); }
+      70%, 90% { opacity: 1; letter-spacing: -0.055em; word-spacing: 0.05em; filter: blur(0px); transform: scale(1); }
+      100% { opacity: 0; letter-spacing: -0.08em; word-spacing: -0.1em; filter: blur(15px); transform: scale(0.96); }
+    }
+    @keyframes convergenceChromaticMicroJitter {
+      0% { text-shadow: -3px -1px 0 rgba(255, 0, 80, 0.85), 3px 1px 0 rgba(0, 240, 255, 0.85), 0px 2px 1px rgba(0, 255, 120, 0.5); }
+      100% { text-shadow: -4px 1px 0 rgba(255, 0, 80, 0.9), 2px -2px 0 rgba(0, 240, 255, 0.9), -1px 3px 1px rgba(0, 255, 120, 0.7); }
+    }
   </style>
 </head>
 <body>
@@ -452,7 +931,7 @@
     </div>
     <div class="nav-links">
       <a href="index.html" class="nav-btn">← Main Dashboard</a>
-      <span id="presetCountBadge" style="font-size:12px; color:var(--text-muted); font-family:var(--font-mono);">All 29 Presets Active</span>
+      <span id="presetCountBadge" style="font-size:12px; color:var(--text-muted); font-family:var(--font-mono);">All 31 Presets Active</span>
     </div>
   </header>
 
@@ -460,16 +939,22 @@
 
     <div class="banner">
       <div class="banner-text">
-        <h2>Complete 29 Typography Animation Presets + Decomposed Contracts</h2>
-        <p>Every single preset features a live 🔍 Trait Contract Inspector drawer detailing Channels, Scope, Requirements, Conflicts, and Frame Expressions.</p>
+        <h2>Complete 41 Typography Presets — Animation &amp; Treatment Library</h2>
+        <p>Every preset features a live 🔍 Trait Contract Inspector. Two categories: <span style="color:#38bdf8;">Animation</span> presets driven by motion physics, and <span style="color:#c084fc;">Treatment</span> presets defined by static stylization.</p>
       </div>
-      <span class="banner-badge">29 Presets Active</span>
+      <span class="banner-badge">41 Presets Active</span>
+    </div>
+
+    <div class="filter-bar">
+      <button class="filter-btn active" onclick="filterTypo('all')" id="filterAll">⬛ All (41)</button>
+      <button class="filter-btn" onclick="filterTypo('animation')" id="filterAnimation">▶ Animation (39)</button>
+      <button class="filter-btn" onclick="filterTypo('treatment')" id="filterTreatment">◈ Treatment (2)</button>
     </div>
 
     <div class="grid" id="typoGrid">
 
       <!-- TYPO #01 -->
-      <div class="card">
+      <div class="card" data-type="animation">
         <div class="card-header">
           <div class="card-title-group"><span class="card-badge">TYPO #01</span><span class="card-title">Apple Pro Display Hero Revealer</span></div>
           <div class="header-actions">
@@ -487,7 +972,7 @@
       </div>
 
       <!-- TYPO #02 -->
-      <div class="card">
+      <div class="card" data-type="animation">
         <div class="card-header">
           <div class="card-title-group"><span class="card-badge">TYPO #02</span><span class="card-title">Dynamic Staggered Char Cascade</span></div>
           <div class="header-actions">
@@ -505,7 +990,7 @@
       </div>
 
       <!-- TYPO #03 -->
-      <div class="card">
+      <div class="card" data-type="animation">
         <div class="card-header">
           <div class="card-title-group"><span class="card-badge">TYPO #03</span><span class="card-title">Apple Keynote Headline Punch-In</span></div>
           <div class="header-actions">
@@ -523,7 +1008,7 @@
       </div>
 
       <!-- TYPO #04 -->
-      <div class="card">
+      <div class="card" data-type="animation">
         <div class="card-header">
           <div class="card-title-group"><span class="card-badge">TYPO #04</span><span class="card-title">Sub-Pixel Blur-Up Mask</span></div>
           <div class="header-actions">
@@ -541,7 +1026,7 @@
       </div>
 
       <!-- TYPO #05 -->
-      <div class="card">
+      <div class="card" data-type="animation">
         <div class="card-header">
           <div class="card-title-group"><span class="card-badge">TYPO #05</span><span class="card-title">TextRotate Kinetic Word Cycler</span></div>
           <div class="header-actions">
@@ -559,7 +1044,7 @@
       </div>
 
       <!-- TYPO #06 -->
-      <div class="card">
+      <div class="card" data-type="animation">
         <div class="card-header">
           <div class="card-title-group"><span class="card-badge">TYPO #06</span><span class="card-title">TextEffect (Gaussian Blur Reveal Sweep)</span></div>
           <div class="header-actions">
@@ -577,7 +1062,7 @@
       </div>
 
       <!-- TYPO #07 -->
-      <div class="card">
+      <div class="card" data-type="animation">
         <div class="card-header">
           <div class="card-title-group"><span class="card-badge">TYPO #07</span><span class="card-title">HextaUI Typewriter & Ghost Cursor Engine</span></div>
           <div class="header-actions">
@@ -595,7 +1080,7 @@
       </div>
 
       <!-- TYPO #08 -->
-      <div class="card">
+      <div class="card" data-type="animation">
         <div class="card-header">
           <div class="card-title-group"><span class="card-badge">TYPO #08</span><span class="card-title">Vercel Kinetic Highlight Box Engine</span></div>
           <div class="header-actions">
@@ -613,7 +1098,7 @@
       </div>
 
       <!-- TYPO #09 -->
-      <div class="card">
+      <div class="card" data-type="animation">
         <div class="card-header">
           <div class="card-title-group"><span class="card-badge">TYPO #09</span><span class="card-title">Isometric 3D Kinetic Perspective Stack</span></div>
           <div class="header-actions">
@@ -631,7 +1116,7 @@
       </div>
 
       <!-- TYPO #10 -->
-      <div class="card">
+      <div class="card" data-type="animation">
         <div class="card-header">
           <div class="card-title-group"><span class="card-badge">TYPO #10</span><span class="card-title">Hand-Drawn Kinetic SVG Underline Engine</span></div>
           <div class="header-actions">
@@ -649,7 +1134,7 @@
       </div>
 
       <!-- TYPO #11 -->
-      <div class="card">
+      <div class="card" data-type="animation">
         <div class="card-header">
           <div class="card-title-group"><span class="card-badge">TYPO #11</span><span class="card-title">Horizontal Linear Gradient Sweep & Fade Engine</span></div>
           <div class="header-actions">
@@ -667,7 +1152,7 @@
       </div>
 
       <!-- TYPO #12 -->
-      <div class="card">
+      <div class="card" data-type="animation">
         <div class="card-header">
           <div class="card-title-group"><span class="card-badge">TYPO #12</span><span class="card-title">Designali Liquid Gooey Ink Morphing Engine</span></div>
           <div class="header-actions">
@@ -685,9 +1170,9 @@
       </div>
 
       <!-- TYPO #13 -->
-      <div class="card">
+      <div class="card" data-type="treatment">
         <div class="card-header">
-          <div class="card-title-group"><span class="card-badge">TYPO #13</span><span class="card-title">Cinematic Viewport Mask Sweep Engine</span></div>
+          <div class="card-title-group"><span class="card-badge">TYPO #13</span><span class="card-title">Cinematic Viewport Mask Sweep Engine</span><span class="tag-pill tag-treatment">◈ Treatment</span></div>
           <div class="header-actions">
             <button class="inspect-btn" onclick="toggleDrawer(this)">🔍 Trait Contract</button>
             <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
@@ -703,7 +1188,7 @@
       </div>
 
       <!-- TYPO #14 -->
-      <div class="card">
+      <div class="card" data-type="animation">
         <div class="card-header">
           <div class="card-title-group"><span class="card-badge">TYPO #14</span><span class="card-title">Elegant Per-Word Spring Blur Physics Engine</span></div>
           <div class="header-actions">
@@ -721,7 +1206,7 @@
       </div>
 
       <!-- TYPO #15 -->
-      <div class="card">
+      <div class="card" data-type="animation">
         <div class="card-header">
           <div class="card-title-group"><span class="card-badge">TYPO #15</span><span class="card-title">Cyber Matrix Text Scramble Engine</span></div>
           <div class="header-actions">
@@ -739,7 +1224,7 @@
       </div>
 
       <!-- TYPO #16 -->
-      <div class="card">
+      <div class="card" data-type="animation">
         <div class="card-header">
           <div class="card-title-group"><span class="card-badge">TYPO #16</span><span class="card-title">Motion Primitives Kinetic Glyph Slot Engine</span></div>
           <div class="header-actions">
@@ -757,7 +1242,7 @@
       </div>
 
       <!-- TYPO #17 -->
-      <div class="card">
+      <div class="card" data-type="animation">
         <div class="card-header">
           <div class="card-title-group"><span class="card-badge">TYPO #17</span><span class="card-title">Apple Metallic Chrome 3D Count-Up Hero Engine</span></div>
           <div class="header-actions">
@@ -775,7 +1260,7 @@
       </div>
 
       <!-- TYPO #18 -->
-      <div class="card">
+      <div class="card" data-type="animation">
         <div class="card-header">
           <div class="card-title-group"><span class="card-badge">TYPO #18</span><span class="card-title">Designali Soft Lavender Highlight Selection Engine</span></div>
           <div class="header-actions">
@@ -793,7 +1278,7 @@
       </div>
 
       <!-- TYPO #19 -->
-      <div class="card">
+      <div class="card" data-type="animation">
         <div class="card-header">
           <div class="card-title-group"><span class="card-badge">TYPO #19</span><span class="card-title">Electric Blue Emoji Line Revealer Engine</span></div>
           <div class="header-actions">
@@ -811,7 +1296,7 @@
       </div>
 
       <!-- TYPO #20 -->
-      <div class="card">
+      <div class="card" data-type="animation">
         <div class="card-header">
           <div class="card-title-group"><span class="card-badge">TYPO #20</span><span class="card-title">21st.dev Vector Stroke Outline & Sparkle Engine</span></div>
           <div class="header-actions">
@@ -829,7 +1314,7 @@
       </div>
 
       <!-- TYPO #21 -->
-      <div class="card">
+      <div class="card" data-type="animation">
         <div class="card-header">
           <div class="card-title-group"><span class="card-badge">TYPO #21</span><span class="card-title">Figma Collaborative Frame Expansion Engine</span></div>
           <div class="header-actions">
@@ -847,7 +1332,7 @@
       </div>
 
       <!-- TYPO #22 -->
-      <div class="card">
+      <div class="card" data-type="animation">
         <div class="card-header">
           <div class="card-title-group"><span class="card-badge">TYPO #22</span><span class="card-title">Hybrid Cross-Bred Figma Frame & Kinetic Slot Engine</span></div>
           <div class="header-actions">
@@ -865,7 +1350,7 @@
       </div>
 
       <!-- TYPO #23 -->
-      <div class="card">
+      <div class="card" data-type="animation">
         <div class="card-header">
           <div class="card-title-group"><span class="card-badge">TYPO #23</span><span class="card-title">Glow Search Input & Pulsing Caret Engine</span></div>
           <div class="header-actions">
@@ -883,7 +1368,7 @@
       </div>
 
       <!-- TYPO #24 -->
-      <div class="card">
+      <div class="card" data-type="animation">
         <div class="card-header">
           <div class="card-title-group"><span class="card-badge">TYPO #24</span><span class="card-title">Dotted Grid Canvas & Blue Text Shimmer Wave Engine</span></div>
           <div class="header-actions">
@@ -909,7 +1394,7 @@
 
 
       <!-- TYPO #26 -->
-      <div class="card">
+      <div class="card" data-type="animation">
         <div class="card-header">
           <div class="card-title-group"><span class="card-badge">TYPO #26</span><span class="card-title">Top-Down Staggered Character Drop Engine</span></div>
           <div class="header-actions">
@@ -931,7 +1416,7 @@
       </div>
 
       <!-- TYPO #27 -->
-      <div class="card">
+      <div class="card" data-type="animation">
         <div class="card-header">
           <div class="card-title-group"><span class="card-badge">TYPO #27</span><span class="card-title">Dotted Grid Canvas & Elastic Word Pull Engine</span></div>
           <div class="header-actions">
@@ -956,7 +1441,7 @@
       </div>
 
       <!-- TYPO #28 -->
-      <div class="card">
+      <div class="card" data-type="animation">
         <div class="card-header">
           <div class="card-title-group"><span class="card-badge">TYPO #28</span><span class="card-title">Obsidian Stage & LED Dot-Matrix Scanline Engine</span></div>
           <div class="header-actions">
@@ -980,7 +1465,7 @@
       </div>
 
       <!-- TYPO #29 -->
-      <div class="card">
+      <div class="card" data-type="animation">
         <div class="card-header">
           <div class="card-title-group"><span class="card-badge">TYPO #29</span><span class="card-title">Geometric Circle Inversion & Kinetic Contrast Engine</span></div>
           <div class="header-actions">
@@ -1006,7 +1491,7 @@
       </div>
 
       <!-- TYPO #30 -->
-      <div class="card">
+      <div class="card" data-type="animation">
         <div class="card-header">
           <div class="card-title-group"><span class="card-badge" style="color:#84cc16; background:rgba(132,204,22,0.15);">TYPO #30</span><span class="card-title">Cyber Acid Lime Heavy Grotesque & Matrix Glitch Engine</span></div>
           <div class="header-actions">
@@ -1029,8 +1514,360 @@
         </div>
         <div class="card-footer"><span>Dark Obsidian • Heavy Grotesque Sans 900 • Letter-by-Letter Cyber RGB Matrix Glitch</span><span>acid-lime-glitch</span></div>
       </div>
+      <!-- TYPO #31 — CANVA TALL GLYPH STACK TREATMENT -->
+      <div class="card" data-type="treatment">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="card-badge" style="color:#c084fc; background:rgba(192,132,252,0.15); border-color:rgba(192,132,252,0.4);">TYPO #31</span>
+            <span class="card-title">Canva Tall Glyph Stack Treatment</span>
+            <span class="tag-pill tag-treatment">◈ Treatment</span>
+          </div>
+          <div class="header-actions">
+            <button class="inspect-btn" onclick="toggleDrawer(this)">🔍 Trait Contract</button>
+          </div>
+        </div>
+        <div class="preview-stage" style="padding:0; position:relative; overflow:hidden; background:#111;">
+          <div style="height:100%; width:100%; display:grid; place-items:center; background:#111;">
+            <style>
+              @keyframes canvaRefLocal {
+                0% { transform: translateY(28px) rotate(-6deg); opacity: 0; }
+                70% { transform: translateY(-4px) rotate(2deg); }
+                100% { transform: translateY(0) rotate(0); opacity: 1; }
+              }
+            </style>
+            <div style="font:900 64px/.8 'Bebas Neue', sans-serif; letter-spacing:1px; color:#e9e9e9; display:flex;">
+              <span style="display:inline-block; animation:canvaRefLocal .7s 0.0s both;">C</span>
+              <span style="display:inline-block; animation:canvaRefLocal .7s 0.1s both;">A</span>
+              <span style="display:inline-block; animation:canvaRefLocal .7s 0.2s both;">N</span>
+              <span style="display:inline-block; animation:canvaRefLocal .7s 0.3s both;">V</span>
+              <span style="display:inline-block; animation:canvaRefLocal .7s 0.4s both;">A</span>
+            </div>
+          </div>
+        </div>
+        <div class="trait-drawer">
+          <div><span class="drawer-tag">TRAIT ID</span> <code>trait_canva_tall_glyph_stack</code></div>
+          <div class="drawer-grid">
+            <div><strong>Concern:</strong> TallFontSubjectMask</div>
+            <div><strong>Target Scope:</strong> tall_word</div>
+            <div><strong>Owns Channels:</strong> <code>translateY, rotateZ, letterSpacing</code></div>
+            <div><strong>Conflicts With:</strong> <code>wide_sentence_layout</code></div>
+          </div>
+          <div class="drawer-code">FrameExpression: glyphTilt = sin((frame - glyphIdx*4)/10)*4</div>
+          <div style="margin-top:12px; padding:10px 12px; background:rgba(192,132,252,0.08); border:1px solid rgba(192,132,252,0.3); border-radius:8px; color:#e9d5ff; font-size:11px;">
+            ⚠️ <strong>Treatment Note:</strong> Condensed tall glyphs with independent stagger and subtle angular tilt. Positioned in the behind-subject layer.
+          </div>
+        </div>
+        <div class="card-footer">
+          <span>Condensed Tall Glyphs • Independent Stagger/Tilt • Behind-Subject Plane</span>
+          <span>canva-tall-glyph-stack</span>
+        </div>
+      </div>
 
+      <!-- TYPO #32 — HIGH-TECH KINETIC TYPOGRAPHY BRANDS -->
+      <div class="card" data-type="animation">
+        <div class="card-header">
+          <div class="card-title-group"><span class="card-badge">TYPO #32</span><span class="card-title">High-Tech Kinetic Typography — Brands</span><span class="tag-pill tag-animation">▶ Animation</span></div>
+          <div class="header-actions">
+            <button class="inspect-btn" onclick="toggleDrawer(this)">🔍 Trait Contract</button>
+            <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+          </div>
+        </div>
+        <div class="preview-stage" style="padding:0;">
+          <div class="typo-brands-stage">
+            <div class="brands-glow-backdrop"></div>
+            <div class="brands-scanlines"></div>
+            <div class="brands-viewport">
+              <svg class="brands-wordmark" viewBox="0 0 450 120" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <filter id="brands-cinematic-warp-preview" x="-20%" y="-20%" width="140%" height="140%">
+                    <feTurbulence type="fractalNoise" baseFrequency="0.02 0.05" numOctaves="2" result="noise" />
+                    <feDisplacementMap in="SourceGraphic" in2="noise" scale="6" xChannelSelector="R" yChannelSelector="G" result="displaced" />
+                    <feGaussianBlur in="displaced" stdDeviation="0.4" result="blurred" />
+                    <feMerge><feMergeNode in="blurred" /><feMergeNode in="SourceGraphic" /></feMerge>
+                  </filter>
+                  <filter id="brands-glitch-blur-preview">
+                    <feGaussianBlur stdDeviation="0">
+                      <animate attributeName="stdDeviation" values="0;2;0.2;5;0;1;0" dur="3s" repeatCount="indefinite" />
+                    </feGaussianBlur>
+                  </filter>
+                </defs>
+                <text x="15" y="90" class="brands-brand-text brands-red-shift" filter="url(#brands-glitch-blur-preview)">brands</text>
+                <text x="15" y="90" class="brands-brand-text brands-cyan-shift" filter="url(#brands-glitch-blur-preview)">brands</text>
+                <text x="15" y="90" class="brands-brand-text" filter="url(#brands-cinematic-warp-preview)">brands</text>
+              </svg>
+            </div>
+          </div>
+        </div>
+        <div class="trait-drawer">
+          <div><span class="drawer-tag">TRAIT ID</span> <code>trait_hightech_chromatic_brands</code></div>
+          <div class="drawer-grid"><div><strong>Concern:</strong> MotionPhysics + ChromaticAberration</div><div><strong>Target Scope:</strong> word</div><div><strong>Owns Channels:</strong> <code>filter.displacement, filter.blur, transform.translate, mixBlendMode</code></div><div><strong>Conflicts With:</strong> <code>None</code></div></div>
+          <div class="drawer-code">FrameExpression: warpScale = sin(frame * 0.08) * 6 | redShiftX = sin(frame * 0.15) * 4</div>
+        </div>
+        <div class="card-footer"><span>Syne 800 • SVG Cinematic Warp &amp; Glitch Blur • Cyan/Red Chromatic Aberration</span><span>hightech-kinetic-brands</span></div>
+      </div>
 
+      <!-- TYPO #33 — KINETIC CYBER TYPOGRAPHY THEY NEED -->
+      <div class="card" data-type="animation">
+        <div class="card-header">
+          <div class="card-title-group"><span class="card-badge">TYPO #33</span><span class="card-title">Kinetic Cyber Typography — They Need</span><span class="tag-pill tag-animation">▶ Animation</span></div>
+          <div class="header-actions">
+            <button class="inspect-btn" onclick="toggleDrawer(this)">🔍 Trait Contract</button>
+            <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+          </div>
+        </div>
+        <div class="preview-stage" style="padding:0;">
+          <div class="typo-they-need-stage">
+            <div class="they-need-energy-field"></div>
+            <div class="they-need-grid-overlay"></div>
+            <div class="they-need-stage-content">
+              <div class="they-need-text-wrapper">
+                <span class="they-need-word they-need-word-they">they</span>
+                <span class="they-need-word they-need-word-need">need</span>
+              </div>
+              <div class="they-need-hud-line"></div>
+            </div>
+          </div>
+        </div>
+        <div class="trait-drawer">
+          <div><span class="drawer-tag">TRAIT ID</span> <code>trait_kinetic_cyber_they_need</code></div>
+          <div class="drawer-grid"><div><strong>Concern:</strong> MotionPhysics + TemporalTrigger</div><div><strong>Target Scope:</strong> phrase</div><div><strong>Owns Channels:</strong> <code>width, filter.blur, transform.skewX, transform.scale, opacity</code></div><div><strong>Conflicts With:</strong> <code>None</code></div></div>
+          <div class="drawer-code">FrameExpression: needWidth = interpolate(frame % 120, [18, 42, 96, 120], [0, 2.7, 2.7, 0])</div>
+        </div>
+        <div class="card-footer"><span>Plus Jakarta Sans 800 • Perspective 3D Floor Grid • Expanding Kinetic Word &amp; HUD Line</span><span>kinetic-cyber-they-need</span></div>
+      </div>
+
+      <!-- TYPO #34 — KINETIC GLOW SWEEP ATTENTION -->
+      <div class="card" data-type="animation">
+        <div class="card-header">
+          <div class="card-title-group"><span class="card-badge">TYPO #34</span><span class="card-title">Kinetic Glow Sweep — Attention</span><span class="tag-pill tag-animation">▶ Animation</span></div>
+          <div class="header-actions">
+            <button class="inspect-btn" onclick="toggleDrawer(this)">🔍 Trait Contract</button>
+            <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+          </div>
+        </div>
+        <div class="preview-stage" style="padding:0;">
+          <div class="typo-glow-sweep-stage">
+            <div class="glow-sweep-grid-bg"></div>
+            <div class="glow-sweep-ambient"></div>
+            <div class="glow-sweep-scanlines"></div>
+            <div class="glow-sweep-container">
+              <h1 class="glow-sweep-word" aria-label="attention">
+                <span class="glow-sweep-char" style="--index: 0">a</span>
+                <span class="glow-sweep-char" style="--index: 1">t</span>
+                <span class="glow-sweep-char" style="--index: 2">t</span>
+                <span class="glow-sweep-char" style="--index: 3">e</span>
+                <span class="glow-sweep-char" style="--index: 4">n</span>
+                <span class="glow-sweep-char" style="--index: 5">t</span>
+                <span class="glow-sweep-char" style="--index: 6">i</span>
+                <span class="glow-sweep-char" style="--index: 7">o</span>
+                <span class="glow-sweep-char" style="--index: 8">n</span>
+              </h1>
+            </div>
+          </div>
+        </div>
+        <div class="trait-drawer">
+          <div><span class="drawer-tag">TRAIT ID</span> <code>trait_kinetic_glow_sweep_attention</code></div>
+          <div class="drawer-grid"><div><strong>Concern:</strong> MotionPhysics + MaterialTreatment</div><div><strong>Target Scope:</strong> glyph</div><div><strong>Owns Channels:</strong> <code>textShadow, color, transform.scale, filter.blur</code></div><div><strong>Conflicts With:</strong> <code>None</code></div></div>
+          <div class="drawer-code">FrameExpression: charGlow = sin((frame - charIdx*3.6)/30) * 130px</div>
+        </div>
+        <div class="card-footer"><span>Plus Jakarta Sans 800 • High-Tech Grid Backdrop • Sequential Character Bloom Wave</span><span>kinetic-glow-sweep-attention</span></div>
+      </div>
+
+      <!-- TYPO #35 — KINETIC WORD-BY-WORD FAST -->
+      <div class="card" data-type="animation">
+        <div class="card-header">
+          <div class="card-title-group"><span class="card-badge">TYPO #35</span><span class="card-title">Kinetic Word-by-Word Typography — Fast</span><span class="tag-pill tag-animation">▶ Animation</span></div>
+          <div class="header-actions">
+            <button class="inspect-btn" onclick="toggleDrawer(this)">🔍 Trait Contract</button>
+            <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+          </div>
+        </div>
+        <div class="preview-stage" style="padding:0;">
+          <div class="typo-word-fast-stage">
+            <div class="word-fast-ambient"></div>
+            <div class="word-fast-sentence">
+              <span class="word-fast-item">Text</span>
+              <span class="word-fast-item">isn't</span>
+              <span class="word-fast-item">just</span>
+            </div>
+          </div>
+        </div>
+        <div class="trait-drawer">
+          <div><span class="drawer-tag">TRAIT ID</span> <code>trait_kinetic_word_fast_pulse</code></div>
+          <div class="drawer-grid"><div><strong>Concern:</strong> MotionPhysics + TemporalTrigger</div><div><strong>Target Scope:</strong> word</div><div><strong>Owns Channels:</strong> <code>filter.blur, opacity, textShadow, transform.translateY, transform.scale</code></div><div><strong>Conflicts With:</strong> <code>None</code></div></div>
+          <div class="drawer-code">FrameExpression: staggerCycle = 0.45s per word | pulseScale = 1.06</div>
+        </div>
+        <div class="card-footer"><span>Plus Jakarta Sans 800 • High-Speed Stagger • Focal Flash &amp; Rapid Recovery</span><span>kinetic-word-fast-pulse</span></div>
+      </div>
+
+      <!-- TYPO #36 — KINETIC DYNAMIC SLANT WATCH IT MOVE -->
+      <div class="card" data-type="animation">
+        <div class="card-header">
+          <div class="card-title-group"><span class="card-badge">TYPO #36</span><span class="card-title">Kinetic Dynamic Slant — Watch It Move</span><span class="tag-pill tag-animation">▶ Animation</span></div>
+          <div class="header-actions">
+            <button class="inspect-btn" onclick="toggleDrawer(this)">🔍 Trait Contract</button>
+            <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+          </div>
+        </div>
+        <div class="preview-stage" style="padding:0;">
+          <div class="typo-dynamic-slant-stage">
+            <div class="dynamic-slant-ambient"></div>
+            <div class="dynamic-slant-sentence">
+              <span class="dynamic-slant-static">Watch</span>
+              <span class="dynamic-slant-static">it</span>
+              <span class="dynamic-slant-move">move</span>
+            </div>
+          </div>
+        </div>
+        <div class="trait-drawer">
+          <div><span class="drawer-tag">TRAIT ID</span> <code>trait_kinetic_dynamic_slant_move</code></div>
+          <div class="drawer-grid"><div><strong>Concern:</strong> MotionPhysics + MaterialTreatment</div><div><strong>Target Scope:</strong> word</div><div><strong>Owns Channels:</strong> <code>transform.skewX, transform.translateX, textShadow, color</code></div><div><strong>Conflicts With:</strong> <code>None</code></div></div>
+          <div class="drawer-code">FrameExpression: skewAngle = -12deg to -32deg | trailPulse = 0.3 to 0.9</div>
+        </div>
+        <div class="card-footer"><span>Plus Jakarta Sans 800 Italic • Ambient Orange Core • Dynamic Kinetic Slant &amp; Ghost Trail</span><span>kinetic-dynamic-slant-move</span></div>
+      </div>
+
+      <!-- TYPO #37 — KINETIC CHROMATIC TYPEWRITER EFFECT -->
+      <div class="card" data-type="animation">
+        <div class="card-header">
+          <div class="card-title-group"><span class="card-badge">TYPO #37</span><span class="card-title">Kinetic Chromatic Typewriter Effect</span><span class="tag-pill tag-animation">▶ Animation</span></div>
+          <div class="header-actions">
+            <button class="inspect-btn" onclick="toggleDrawer(this)">🔍 Trait Contract</button>
+            <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+          </div>
+        </div>
+        <div class="preview-stage" style="padding:0;">
+          <div class="typo-typewriter-stage">
+            <div class="typewriter-film-scratch"></div>
+            <div class="typewriter-viewport-track">
+              <span class="typewriter-chromatic-text" data-text=""></span>
+              <span class="typewriter-cursor"></span>
+            </div>
+          </div>
+        </div>
+        <div class="trait-drawer">
+          <div><span class="drawer-tag">TRAIT ID</span> <code>trait_kinetic_chromatic_typewriter</code></div>
+          <div class="drawer-grid"><div><strong>Concern:</strong> TemporalTrigger + ChromaticAberration</div><div><strong>Target Scope:</strong> phrase</div><div><strong>Owns Channels:</strong> <code>text.visibleLength, textShadow, transform.translate, opacity</code></div><div><strong>Conflicts With:</strong> <code>None</code></div></div>
+          <div class="drawer-code">FrameExpression: charStep = 85ms + jitter(40ms) | rgbSplit = 3px</div>
+        </div>
+        <div class="card-footer"><span>Plus Jakarta Sans 800 • Film Scratch Flicker • RGB Split Dynamic Typewriter &amp; CRT Jitter</span><span>kinetic-chromatic-typewriter</span></div>
+      </div>
+
+      <!-- TYPO #38 — 3D METALLIC CHROME COUNTER -->
+      <div class="card" data-type="animation">
+        <div class="card-header">
+          <div class="card-title-group"><span class="card-badge">TYPO #38</span><span class="card-title">3D Metallic Chrome Counter — Edits Later</span><span class="tag-pill tag-animation">▶ Animation</span></div>
+          <div class="header-actions">
+            <button class="inspect-btn" onclick="toggleDrawer(this)">🔍 Trait Contract</button>
+            <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+          </div>
+        </div>
+        <div class="preview-stage" style="padding:0;">
+          <div class="typo-chrome-counter-stage">
+            <div class="chrome-counter-dot-matrix"></div>
+            <div class="chrome-counter-ambient"></div>
+            <div class="chrome-counter-stage-content">
+              <div class="chrome-counter-num-wrapper">
+                <div class="chrome-counter-shadow">0</div>
+                <div class="chrome-counter-main">0</div>
+                <div class="chrome-counter-outline">0</div>
+                <div class="chrome-counter-overlay-text">edits later</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="trait-drawer">
+          <div><span class="drawer-tag">TRAIT ID</span> <code>trait_3d_metallic_chrome_counter</code></div>
+          <div class="drawer-grid"><div><strong>Concern:</strong> MaterialTreatment + MotionPhysics</div><div><strong>Target Scope:</strong> metric_number</div><div><strong>Owns Channels:</strong> <code>number.value, text.specularStroke, filter.dropShadow, backgroundClip</code></div><div><strong>Conflicts With:</strong> <code>None</code></div></div>
+          <div class="drawer-code">FrameExpression: easeOut = 1 - pow(1 - progress, 3) | count = 0 -> 110</div>
+        </div>
+        <div class="card-footer"><span>Anton + Plus Jakarta Sans • 3D Specular Chrome Metallic Fill • Exponential Ease-Out Count Up</span><span>3d-metallic-chrome-counter</span></div>
+      </div>
+
+      <!-- TYPO #39 — APPLE-STYLE GAUSSIAN CHROME GOAL -->
+      <div class="card" data-type="animation">
+        <div class="card-header">
+          <div class="card-title-group"><span class="card-badge">TYPO #39</span><span class="card-title">Apple-Style Kinetic Gaussian Chrome — GOAL</span><span class="tag-pill tag-animation">▶ Animation</span></div>
+          <div class="header-actions">
+            <button class="inspect-btn" onclick="toggleDrawer(this)">🔍 Trait Contract</button>
+            <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+          </div>
+        </div>
+        <div class="preview-stage" style="padding:0;">
+          <div class="typo-apple-gaussian-stage">
+            <div class="apple-gaussian-ambient"></div>
+            <div class="apple-gaussian-stage-content">
+              <span class="apple-gaussian-char" data-text="G">G</span>
+              <span class="apple-gaussian-char" data-text="O">O</span>
+              <span class="apple-gaussian-char" data-text="A">A</span>
+              <span class="apple-gaussian-char" data-text="L">L</span>
+            </div>
+          </div>
+        </div>
+        <div class="trait-drawer">
+          <div><span class="drawer-tag">TRAIT ID</span> <code>trait_apple_gaussian_chrome_goal</code></div>
+          <div class="drawer-grid"><div><strong>Concern:</strong> MotionPhysics + MaterialTreatment</div><div><strong>Target Scope:</strong> glyph</div><div><strong>Owns Channels:</strong> <code>filter.blur, opacity, transform.translateY, transform.scale, transform.rotateX</code></div><div><strong>Conflicts With:</strong> <code>None</code></div></div>
+          <div class="drawer-code">FrameExpression: spring = cubic-bezier(0.16, 1, 0.3, 1) | blur = 28px -> 0px</div>
+        </div>
+        <div class="card-footer"><span>Anton • Apple Liquid Metallic Chrome Gradient • Fluid Gaussian Blur &amp; Focus Pop</span><span>apple-gaussian-chrome-goal</span></div>
+      </div>
+
+      <!-- TYPO #40 — CINEMATIC APPLE-STYLE WORD BOUNCE -->
+      <div class="card" data-type="animation">
+        <div class="card-header">
+          <div class="card-title-group"><span class="card-badge">TYPO #40</span><span class="card-title">Cinematic Apple-Style Word-by-Word Bounce</span><span class="tag-pill tag-animation">▶ Animation</span></div>
+          <div class="header-actions">
+            <button class="inspect-btn" onclick="toggleDrawer(this)">🔍 Trait Contract</button>
+            <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+          </div>
+        </div>
+        <div class="preview-stage" style="padding:0;">
+          <div class="typo-apple-bounce-stage">
+            <div class="apple-bounce-ambient"></div>
+            <div class="apple-bounce-stage-content">
+              <div class="apple-bounce-line">
+                <div class="apple-bounce-word-box"><span class="apple-bounce-word bw-1">Apple</span></div>
+                <div class="apple-bounce-word-box"><span class="apple-bounce-word bw-2">style</span></div>
+              </div>
+              <div class="apple-bounce-line">
+                <div class="apple-bounce-word-box"><span class="apple-bounce-word bw-3">bounce</span></div>
+                <div class="apple-bounce-word-box"><span class="apple-bounce-word bw-4">animations</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="trait-drawer">
+          <div><span class="drawer-tag">TRAIT ID</span> <code>trait_cinematic_apple_word_bounce</code></div>
+          <div class="drawer-grid"><div><strong>Concern:</strong> MotionPhysics + ElasticSpring</div><div><strong>Target Scope:</strong> word</div><div><strong>Owns Channels:</strong> <code>filter.blur, transform.translateY, transform.scale, transform.rotateX, opacity</code></div><div><strong>Conflicts With:</strong> <code>None</code></div></div>
+          <div class="drawer-code">FrameExpression: spring = cubic-bezier(0.16, 1, 0.3, 1) | blur = 40px -> 0px</div>
+        </div>
+        <div class="card-footer"><span>Inter 900 • Platinum Metallic Gradient • Apple-Style 3D Spring Bounce Physics</span><span>cinematic-apple-word-bounce</span></div>
+      </div>
+
+      <!-- TYPO #41 — CINEMATIC DISTANCE CONVERGENCE -->
+      <div class="card" data-type="animation">
+        <div class="card-header">
+          <div class="card-title-group"><span class="card-badge">TYPO #41</span><span class="card-title">Cinematic Distance Convergence — In This Field</span><span class="tag-pill tag-animation">▶ Animation</span></div>
+          <div class="header-actions">
+            <button class="inspect-btn" onclick="toggleDrawer(this)">🔍 Trait Contract</button>
+            <button class="replay-btn" onclick="replayCard(this)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay</button>
+          </div>
+        </div>
+        <div class="preview-stage" style="padding:0;">
+          <div class="typo-convergence-stage">
+            <div class="convergence-ambient"></div>
+            <div class="convergence-stage-content">
+              <h1 class="convergence-text-cinematic">in this field</h1>
+            </div>
+          </div>
+        </div>
+        <div class="trait-drawer">
+          <div><span class="drawer-tag">TRAIT ID</span> <code>trait_cinematic_distance_convergence</code></div>
+          <div class="drawer-grid"><div><strong>Concern:</strong> MotionPhysics + TrackingConvergence</div><div><strong>Target Scope:</strong> phrase</div><div><strong>Owns Channels:</strong> <code>letterSpacing, wordSpacing, filter.blur, transform.scale, opacity</code></div><div><strong>Conflicts With:</strong> <code>None</code></div></div>
+          <div class="drawer-code">FrameExpression: tracking = 0.45em -> -0.055em | blur = 35px -> 0px</div>
+        </div>
+        <div class="card-footer"><span>Plus Jakarta Sans 800 • Gaussian Blur Tracking Convergence • RGB Fringe Aberration</span><span>cinematic-distance-convergence</span></div>
+      </div>
 
   </div>
 
@@ -1491,6 +2328,114 @@
     buildLimeGlitchChars(LIME_GLITCH_PAIRS[0][0], LIME_GLITCH_PAIRS[0][1]);
     limeGlitchTimer = setInterval(stepAcidLimeGlitchCycle, 3200);
 
+    // SCRIPT CONTROLS FOR NEW KINETIC TYPOGRAPHY PRESETS
+    // 1. Chromatic Typewriter
+    function initTypoChromaticTypewriter() {
+      const targets = document.querySelectorAll('.typewriter-chromatic-text');
+      if (!targets.length) return;
+      const textToType = "I started posting as a...";
+      let charIndex = 0;
+      function typeNext() {
+        if (charIndex < textToType.length) {
+          const current = textToType.substring(0, charIndex + 1);
+          targets.forEach(el => {
+            el.textContent = current;
+            el.setAttribute("data-text", current);
+          });
+          charIndex++;
+          setTimeout(typeNext, 85);
+        } else {
+          setTimeout(() => {
+            charIndex = 0;
+            targets.forEach(el => {
+              el.textContent = "";
+              el.setAttribute("data-text", "");
+            });
+            setTimeout(typeNext, 500);
+          }, 2200);
+        }
+      }
+      typeNext();
+    }
+
+    // 2. 3D Metallic Counter
+    function initTypo3DMetallicCounter() {
+      const mains = document.querySelectorAll('.chrome-counter-main');
+      const shadows = document.querySelectorAll('.chrome-counter-shadow');
+      const outlines = document.querySelectorAll('.chrome-counter-outline');
+      if (!mains.length) return;
+      const target = 110;
+      const dur = 2200;
+      function animate() {
+        let start = null;
+        function step(ts) {
+          if (!start) start = ts;
+          const progress = Math.min((ts - start) / dur, 1);
+          const ease = 1 - Math.pow(1 - progress, 3);
+          const val = Math.floor(ease * target);
+          mains.forEach(el => el.textContent = val);
+          shadows.forEach(el => el.textContent = val);
+          outlines.forEach(el => el.textContent = val);
+          if (progress < 1) {
+            requestAnimationFrame(step);
+          } else {
+            mains.forEach(el => el.textContent = target);
+            shadows.forEach(el => el.textContent = target);
+            outlines.forEach(el => el.textContent = target);
+            setTimeout(() => {
+              mains.forEach(el => el.textContent = '0');
+              shadows.forEach(el => el.textContent = '0');
+              outlines.forEach(el => el.textContent = '0');
+              setTimeout(animate, 400);
+            }, 1800);
+          }
+        }
+        requestAnimationFrame(step);
+      }
+      animate();
+    }
+
+    // 3. Apple Gaussian Chrome
+    function initTypoAppleGaussianChrome() {
+      const stages = document.querySelectorAll('.typo-apple-gaussian-stage');
+      if (!stages.length) return;
+      stages.forEach(stage => {
+        const chars = stage.querySelectorAll('.apple-gaussian-char');
+        const stagger = 220;
+        function run() {
+          chars.forEach(c => c.classList.remove('lit'));
+          chars.forEach((c, idx) => {
+            setTimeout(() => c.classList.add('lit'), (idx + 1) * stagger);
+          });
+          const cycle = (chars.length + 1) * stagger + 2600;
+          setTimeout(run, cycle);
+        }
+        run();
+      });
+    }
+
+    // 4. Apple Bounce Sequence
+    function initTypoAppleBounceSequence() {
+      const stages = document.querySelectorAll('.typo-apple-bounce-stage');
+      if (!stages.length) return;
+      stages.forEach(stage => {
+        const words = stage.querySelectorAll('.apple-bounce-word');
+        function run() {
+          words.forEach(w => w.classList.remove('bounce-in'));
+          void stage.offsetWidth;
+          words.forEach(w => w.classList.add('bounce-in'));
+          setTimeout(run, 3800);
+        }
+        run();
+      });
+    }
+
+    // Initialize all dynamic scripts
+    initTypoChromaticTypewriter();
+    initTypo3DMetallicCounter();
+    initTypoAppleGaussianChrome();
+    initTypoAppleBounceSequence();
+
     // INSTANT SEARCH & FILTER FUNCTIONALITY BY NAME
     function filterPresetsByName(query) {
       const q = query.trim().toLowerCase();
@@ -1520,6 +2465,25 @@
       if (input) {
         input.value = '';
         filterPresetsByName('');
+      }
+    }
+
+    function filterTypo(type) {
+      const cards = document.querySelectorAll('#typoGrid .card');
+      cards.forEach(card => {
+        if (type === 'all') {
+          card.classList.remove('hidden');
+        } else {
+          const cardType = card.getAttribute('data-type') || 'animation';
+          if (cardType === type) card.classList.remove('hidden');
+          else card.classList.add('hidden');
+        }
+      });
+      document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active', 'treatment-active'));
+      const activeBtn = document.getElementById('filter' + type.charAt(0).toUpperCase() + type.slice(1));
+      if (activeBtn) {
+        if (type === 'treatment') activeBtn.classList.add('treatment-active');
+        else activeBtn.classList.add('active');
       }
     }
 </script>

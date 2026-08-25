@@ -20,7 +20,9 @@
         "word": "Brian",
         "character_count": 5
       }
-    ]
+    ],
+    "mixed_fonts_verified": true,
+    "mixfont_extracted_at": "2026-08-24T09:15:00Z"
   },
   "layout_rules": {
     "horizontal_alignment": "center",
@@ -40,9 +42,9 @@
       "role": "secondary_clause",
       "font_classification": "Didone Modern Serif",
       "matched_font_candidates": [
-        "Playfair Display",
-        "Bodoni Moda",
-        "Lora"
+        "SenzaBella",
+        "Playfair Display Italic",
+        "Bodoni Moda"
       ],
       "font_style": {
         "weight": 400,
@@ -82,9 +84,9 @@
       "role": "primary_focus_word",
       "font_classification": "Display Bold Didone Serif",
       "matched_font_candidates": [
-        "Playfair Display",
+        "SenzaBella",
         "Bodoni Moda",
-        "Cinzel"
+        "Playfair Display"
       ],
       "font_style": {
         "weight": 700,

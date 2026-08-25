@@ -16,7 +16,9 @@
         "word": "folio",
         "character_count": 5
       }
-    ]
+    ],
+    "mixed_fonts_verified": true,
+    "mixfont_extracted_at": "2026-08-24T09:15:00Z"
   },
   "layout_rules": {
     "horizontal_alignment": "center",
@@ -36,8 +38,10 @@
       "role": "header",
       "font_classification": "Royal Blue Bold Geometric Sans",
       "matched_font_candidates": [
-        "Inter",
-        "Montserrat"
+        "Aesthetic",
+        "Almera",
+        "Leviathan",
+        "Playfair Display"
       ],
       "font_style": {
         "weight": 800,
@@ -73,8 +77,8 @@
       "role": "primary_focus_word",
       "font_classification": "Royal Blue Italic Lowercase Serif",
       "matched_font_candidates": [
-        "Playfair Display Italic",
-        "Lora"
+        "Erotique Alternate Trial",
+        "Playfair Display Italic"
       ],
       "font_style": {
         "weight": 600,

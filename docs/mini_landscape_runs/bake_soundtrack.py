@@ -31,6 +31,11 @@ import os
 import subprocess
 import sys
 
+try:
+    import numpy as np  # used only for the adaptive riser measurements
+except ImportError:
+    np = None
+
 MUSIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "music")
 
 # --- Seed-track -> REAL SONG (Cloudflare R2 music-originals/) ---
@@ -54,10 +59,77 @@ SEED_TO_REAL_ALT: dict[str, str] = {
 SECTION_GATE_FADE = 1.5   # seconds of fade at each section edge (blend realization)
 PROGRAM_FADE = 2.0        # AUD-03 program fades
 
+# --- Adaptive riser design (AUD-09, no overfit constants) ---
+# The riser shape is MEASURED per transition, not tuned once and pinned:
+#   * rise length  -> engine derives it from the music runway around the seam
+#   * decay length -> measured silent lead-in of the INCOMING real song + margin
+#   * level        -> measured loudness of the OUTGOING real song, riser mixed
+#                     14 dB under it (relative subtlety, whatever the song is)
+#   * sweep span   -> scaled with the rise length (longer swell, wider sweep)
+RISER_SWEEP_BASE_HZ = 90.0
+RISER_SWEEP_SPAN_HZ = 500.0   # span for a 2.2s reference riser
+RISER_SWEEP_SPAN_MAX_HZ = 750.0
+RISER_LEVEL_REL_DB = -14.0    # riser sits this far under the outgoing song's RMS
+RISER_LEVEL_MIN_DB = -32.0
+RISER_LEVEL_MAX_DB = -18.0
+RISER_DECAY_MARGIN = 0.20     # seconds of decay beyond the measured lead-in
+RISER_DECAY_MIN = 0.30
+RISER_DECAY_MAX = 3.00      # decay must reach the incoming song's content onset
+
+
+def _decode_mono_frames(path: str, dur_sec: float):
+    """Decode the head of an audio file to mono float samples (or None)."""
+    if np is None or not os.path.exists(path):
+        return None
+    try:
+        proc = subprocess.run(
+            ["ffmpeg", "-v", "error", "-i", path, "-t", f"{dur_sec:.3f}",
+             "-ac", "1", "-ar", "48000", "-f", "f32le", "-"],
+            capture_output=True, check=True)
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return None
+    if not proc.stdout:
+        return None
+    return np.frombuffer(proc.stdout, dtype=np.float32).astype(np.float64)
+
+
+def measure_leadin_silence(path: str, rms_db_floor: float = -45.0) -> float:
+    """Seconds of near-silence at the head of a real song (its natural lead-in).
+
+    The riser's decay tail exists to bridge THIS song's actual gap, so we
+    measure it instead of assuming a fixed number.
+    """
+    x = _decode_mono_frames(path, 4.0)
+    if x is None or len(x) < 4800:
+        return 0.0
+    frame = 0.05 * 48000
+    i = 0
+    while i < len(x) - int(frame):
+        rms = 20.0 * np.log10(np.sqrt(np.mean(x[i:i + int(frame)] ** 2)) + 1e-12)
+        if rms >= rms_db_floor:
+            return i / 48000.0
+        i += int(frame)
+    return 4.0
+
+
+def measure_song_rms_db(path: str, sample_sec: float = 30.0) -> float:
+    """Approx loudness (dBFS) of a real song — used to make the riser relative."""
+    x = _decode_mono_frames(path, sample_sec)
+    if x is None or len(x) < 4800:
+        return -25.0
+    return 20.0 * np.log10(np.sqrt(np.mean(x ** 2)) + 1e-12)
+
 
 def real_path(track_id: str, alt: bool = False) -> str:
     name = SEED_TO_REAL_ALT.get(track_id) if alt else None
-    name = name or SEED_TO_REAL[track_id]
+    name = name or SEED_TO_REAL.get(track_id)
+    if not name:
+        known = sorted(set(SEED_TO_REAL) | set(SEED_TO_REAL_ALT))
+        raise KeyError(
+            f"seed track '{track_id}' has no real song mapping. The selection "
+            f"layer must stay inside the renderable set; add a SEED_TO_REAL entry "
+            f"for it or constrain selection. Renderable seeds: {known}"
+        )
     return os.path.join(MUSIC_DIR, name)
 
 
@@ -149,31 +221,52 @@ def build_ffmpeg_args(manifest: dict, video: str, out_path: str, music_only: boo
     # AUD-09: transition beds (risers) prime song-change boundaries. Each bed is
     # a low-to-high tone sweep with a swell envelope, placed so it PEAKS at the
     # boundary and fades out just after it. Synthesized (no samples on disk),
-    # mixed at a low level under the music — it primes the seam without being a
-    # hardcoded sound effect.
+    # mixed under the music — it primes the seam without being a hardcoded
+    # sound effect. Every shape parameter is ADAPTED per transition:
+    #   riserSec from the manifest (engine scaled it to the music runway),
+    #   decay   from the incoming song's measured silent lead-in,
+    #   level   from the outgoing song's measured loudness (relative subtlety),
+    #   sweep   from the rise length (longer swell -> wider sweep).
     for i, bed in enumerate(manifest["soundtrack"].get("transitionBeds", [])):
         rs = float(bed.get("riserSec", 2.2))
-        lvl = float(bed.get("levelDb", -25.0))
         boundary = float(bed["boundarySec"])
-        # Riser: rises over `rs`, peaks AT the boundary, then decays for 1.0s
-        # so it bridges the incoming song's natural lead-in (no dead-air hole).
-        dur = rs + 1.0
         start_ms = int(round((boundary - rs) * 1000))
         if start_ms < 0:
             continue
-        # Sweep 90 Hz -> 590 Hz by the boundary: phase = 2*pi*(90*t + K*t^3/3)
-        # with K = 500/rs^2, so f(rs) = 90 + 500 = 590 Hz. + a soft 2nd partial.
-        sweep = f"2*PI*(90*t+{500.0 / (3 * rs * rs):.4f}*t*t*t)"
+
+        # Incoming song -> measure its natural lead-in; decay bridges THAT gap.
+        to_track = next((sl["trackId"] for sl in selections if sl["sectionId"] == bed["toSectionId"]), None)
+        to_path = real_path(to_track) if to_track else None
+        leadin = measure_leadin_silence(to_path) if to_path else 0.0
+        decay = min(RISER_DECAY_MAX, max(RISER_DECAY_MIN, leadin + RISER_DECAY_MARGIN))
+        # Never let the decay outlive the incoming section itself.
+        to_sec = next((s for s in sections if s["sectionId"] == bed["toSectionId"]), None)
+        if to_sec:
+            decay = min(decay, max(RISER_DECAY_MIN, to_sec["endSec"] - boundary))
+
+        # Outgoing song -> measure its loudness; riser sits RELATIVELY under it.
+        from_track = next((sl["trackId"] for sl in selections if sl["sectionId"] == bed["fromSectionId"]), None)
+        from_path = real_path(from_track) if from_track else None
+        song_rms = measure_song_rms_db(from_path) if from_path else -25.0
+        lvl = min(RISER_LEVEL_MAX_DB, max(RISER_LEVEL_MIN_DB, song_rms + RISER_LEVEL_REL_DB))
+
+        dur = rs + decay
+        # Sweep span scales with rise length around the 90Hz base.
+        span = min(RISER_SWEEP_SPAN_MAX_HZ, RISER_SWEEP_SPAN_HZ * (rs / 2.2))
+        sweep = f"2*PI*(90*t+{span / (3 * rs * rs):.4f}*t*t*t)"
         expr = f"0.6*sin({sweep})+0.15*sin(2*{sweep})"
         label = f"r{i}"
         chain = f"aevalsrc=exprs='{expr}':s=48000:d={dur:.3f}"
         chain += f",afade=t=in:st=0:d={rs:.3f}"
-        chain += f",afade=t=out:st={rs:.3f}:d=1.0"
+        chain += f",afade=t=out:st={rs:.3f}:d={decay:.3f}"
         chain += f",volume={lvl}dB"
         chain += f",aformat=sample_rates=48000:channel_layouts=stereo"
         chain += f",adelay={start_ms}|{start_ms}[{label}]"
         fc.append(chain)
         mix_inputs.append(f"[{label}]")
+        bed["_bake"] = {"riseSec": round(rs, 2), "decaySec": round(decay, 2),
+                        "levelDb": round(lvl, 1), "outSongRmsDb": round(song_rms, 1),
+                        "inLeadInSec": round(leadin, 2)}
 
     # Music bus: mix all songs, no normalization (per-song gain is preserved)
     fc.append(f"{''.join(mix_inputs)}amix=inputs={len(mix_inputs)}:normalize=0:dropout_transition=0:duration=longest[mixraw]")
@@ -247,7 +340,11 @@ def main() -> int:
             real = SEED_TO_REAL_ALT.get(env["assetId"]) if use_alt else SEED_TO_REAL.get(env["assetId"], "???")
             print(f"  emotional_insert      {env['assetId']:24s} -> {real}  {'(alt asset)' if use_alt else ''}")
     for bed in manifest["soundtrack"].get("transitionBeds", []):
-        print(f"  transition bed                                   at {bed['boundarySec']:5.1f}s ({bed['fromSectionId']} -> {bed['toSectionId']})  riser {bed.get('riserSec', 2.2)}s @ {bed.get('levelDb', -25)}dB")
+        bk = bed.get("_bake")
+        if bk:
+            print(f"  transition bed                                   at {bed['boundarySec']:5.1f}s ({bed['fromSectionId']} -> {bed['toSectionId']})  rise {bk['riseSec']}s / decay {bk['decaySec']}s @ {bk['levelDb']}dB  [out song {bk['outSongRmsDb']}dBFS, in lead-in {bk['inLeadInSec']}s]")
+        else:
+            print(f"  transition bed                                   at {bed['boundarySec']:5.1f}s ({bed['fromSectionId']} -> {bed['toSectionId']})  riser {bed.get('riserSec', 2.2)}s @ {bed.get('levelDb', -25)}dB")
     print(f"\n  video  : {args.video}")
     print(f"  output : {args.out}")
     return 0

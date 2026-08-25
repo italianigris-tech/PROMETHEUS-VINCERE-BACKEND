@@ -28,7 +28,9 @@
         "word": "IGNORE",
         "character_count": 6
       }
-    ]
+    ],
+    "mixed_fonts_verified": true,
+    "mixfont_extracted_at": "2026-08-24T11:52:03Z"
   },
   "layout_rules": {
     "horizontal_alignment": "center",
@@ -48,9 +50,8 @@
       "role": "header",
       "font_classification": "Heavy Black Neogrotesque Sans",
       "matched_font_candidates": [
-        "Inter",
-        "Helvetica",
-        "Arial Black"
+        "Bodoni Moda",
+        "Berylium"
       ],
       "font_style": {
         "weight": 900,
@@ -86,8 +87,8 @@
       "role": "secondary_clause",
       "font_classification": "Clean Medium Sans with Orange Circle on TRENDS & Underline on IGNORE",
       "matched_font_candidates": [
-        "Inter",
-        "Roboto"
+        "Playfair Display",
+        "Goudy Bookletter"
       ],
       "font_style": {
         "weight": 600,

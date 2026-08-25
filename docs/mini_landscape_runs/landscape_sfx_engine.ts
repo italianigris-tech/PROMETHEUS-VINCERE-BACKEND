@@ -29,6 +29,27 @@ const MOVE_SFX: Record<
   momentum_death: { family: "none", lifecycle: "intentional_silence", depthPlane: 10 },
 };
 
+/**
+ * Per-effect SFX family mapping for transitions (TRN-05).
+ * Every effect in the cinematic tier gets a distinctive family so the
+ * audio bed reflects the visual intent.
+ */
+const TRANSITION_SFX_FAMILY: Record<string, SfxCue["family"]> = {
+  light_burn: "impact",
+  hot_burn: "impact",
+  edge_glow_bloom: "impact",
+  soft_flash: "whoosh",
+  hard_flash: "whoosh",
+  light_sweep: "whoosh",
+  luma_wash: "whoosh",
+  push_in_zoom: "whoosh",
+  camera_pass_by: "whoosh",
+  match_cut: "click",
+  lens_flare_bleed: "riser",
+  light_leak: "riser",
+  defocus_bokeh: "riser",
+};
+
 /** Nephew-family alternates for semblance rotation (SFX-06). */
 const FAMILY_ALTERNATES: Record<Exclude<SfxCue["family"], "none">, SfxCue["family"][]> = {
   click: ["ui", "gear"],
@@ -58,7 +79,6 @@ export function buildSfxCues(
   opts: SfxEngineOptions = {},
 ): SfxCue[] {
   const { minFamilyGapSec = 0.9 } = opts;
-  const cues: SfxCue[] = [];
   const lastFamilyTime: Partial<Record<SfxCue["family"], number>> = {};
 
   const resolveFamily = (family: SfxCue["family"], timeSec: number): SfxCue["family"] | null => {
@@ -77,7 +97,18 @@ export function buildSfxCues(
     return family;
   };
 
-  let id = 0;
+  interface PlannedCue {
+    timeSec: number;
+    family: SfxCue["family"];
+    label: string;
+    gainDb: number;
+    spatialPan: number;
+    depthPlane: 10 | 20 | 30;
+    intentionalOmission: boolean;
+    cause: SfxCue["cause"];
+  }
+
+  const planned: PlannedCue[] = [];
   for (const move of moves) {
     const spec = MOVE_SFX[move.moveId];
     const timeSec = round2(move.startSec + 0.15);
@@ -89,15 +120,9 @@ export function buildSfxCues(
       moves.some((m) => m.allowMacroAsset && m !== move && move.startSec - m.endSec >= 0 && move.startSec - m.endSec < 2.0);
 
     const intentionalOmission = !move.allowSfx || isQuietReturn;
-    const family = intentionalOmission ? "none" : resolveFamily(spec.family, timeSec);
-    if (!family) continue; // collision skip
-
-    id += 1;
-    cues.push({
-      id: `cue_${id}`,
+    planned.push({
       timeSec,
-      durationSec: DURATION_BY_FAMILY[family],
-      family,
+      family: intentionalOmission ? "none" : spec.family,
       label: `${move.moveId}@${timeSec.toFixed(1)}s`,
       gainDb: GAIN_BY_DEPTH[spec.depthPlane],
       spatialPan: round2(((idx % 3) - 1) * 0.35),
@@ -114,14 +139,9 @@ export function buildSfxCues(
   }
 
   for (const t of transitions) {
-    const family = resolveFamily(t.effectId === "light_burn" || t.effectId === "hot_burn" ? "impact" : "whoosh", t.timeSec);
-    if (!family) continue;
-    id += 1;
-    cues.push({
-      id: `cue_${id}`,
+    planned.push({
       timeSec: t.timeSec,
-      durationSec: DURATION_BY_FAMILY[family],
-      family,
+      family: TRANSITION_SFX_FAMILY[t.effectId] ?? "whoosh",
       label: `transition ${t.effectId}`,
       gainDb: GAIN_BY_DEPTH[30],
       spatialPan: 0,
@@ -131,7 +151,38 @@ export function buildSfxCues(
     });
   }
 
-  return cues.sort((a, b) => a.timeSec - b.timeSec);
+  // W1 fix: resolve the shared family ledger in strictly chronological order
+  // across moves AND transitions. The old split (all moves, then all
+  // transitions) compared every transition against move-ledger stamps from the
+  // ENTIRE video, so a later move (e.g. value_contrast@151s) produced negative
+  // deltas against an earlier transition and always tripped the collision
+  // guard — intended impact/whoosh families silently rotated to "riser".
+  // Sorting before resolution means the ledger only ever holds timestamps ≤ the
+  // cue being resolved, so the guard is chronological as designed (SFX-04).
+  planned.sort((a, b) => a.timeSec - b.timeSec);
+
+  const cues: SfxCue[] = [];
+  let id = 0;
+  for (const p of planned) {
+    const family = resolveFamily(p.family, p.timeSec);
+    if (!family) continue; // collision skip (SFX-04)
+    id += 1;
+    cues.push({
+      id: `cue_${id}`,
+      timeSec: p.timeSec,
+      durationSec: DURATION_BY_FAMILY[family],
+      family,
+      label: p.label,
+      gainDb: p.gainDb,
+      spatialPan: p.spatialPan,
+      depthPlane: p.depthPlane,
+      intentionalOmission: p.intentionalOmission,
+      cause: p.cause,
+    });
+  }
+
+  // Already chronological from the planned sort.
+  return cues;
 }
 
 const round2 = (n: number) => Math.round(n * 100) / 100;

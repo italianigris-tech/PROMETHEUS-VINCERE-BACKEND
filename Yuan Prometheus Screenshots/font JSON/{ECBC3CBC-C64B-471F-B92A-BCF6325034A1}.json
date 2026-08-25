@@ -24,7 +24,9 @@
         "word": "Ignore.",
         "character_count": 7
       }
-    ]
+    ],
+    "mixed_fonts_verified": true,
+    "mixfont_extracted_at": "2026-08-24T11:52:03Z"
   },
   "layout_rules": {
     "horizontal_alignment": "left",
@@ -44,8 +46,8 @@
       "role": "header",
       "font_classification": "Forest Green Clean Modern Sans",
       "matched_font_candidates": [
-        "Inter",
-        "Roboto"
+        "Berylium",
+        "Echelon"
       ],
       "font_style": {
         "weight": 500,
@@ -81,8 +83,8 @@
       "role": "secondary_clause",
       "font_classification": "Forest Green Sans inside Hand-Drawn Red Marker Oval",
       "matched_font_candidates": [
-        "Inter",
-        "Roboto"
+        "Goudy Bookletter",
+        "Playfair Display"
       ],
       "font_style": {
         "weight": 500,
@@ -122,8 +124,8 @@
       "role": "primary_focus_word",
       "font_classification": "Forest Green Clean Modern Sans with Period",
       "matched_font_candidates": [
-        "Inter",
-        "Roboto"
+        "Echelon",
+        "Bodoni Moda"
       ],
       "font_style": {
         "weight": 500,

@@ -148,55 +148,26 @@ export function mapEditMoveToCameraMove(move: EditMove, fps = LANDSCAPE_FPS): Ca
   };
 }
 
+import { generateLandscapeTypographyPlan } from './landscape_typography_engine.js';
+import type { LandscapeTypographyPlan } from './landscape_typography_engine.js';
+
 /* ------------------------------------------------------------------ *
- * typographyCueMoveIds -> derived captions. NOT source transcript text -
- * the landscape manifest carries no words. Swap in real copy when it exists.
+ * typographyCueMoveIds -> generative dynamic typography overlays.
+ * Uses full font corpus access (all 77+ profiles) and generative treatment selector.
  * ------------------------------------------------------------------ */
-export const MOVE_TO_TEXT: Record<EditMove['moveId'], string | null> = {
-  emphasize_keyword: 'THE ONE THING',
-  return_to_authority: 'BACK TO THE HOST',
-  explain_workflow: 'WORKFLOW',
-  value_contrast: 'THE NUMBERS',
-  cta_pressure: 'START NOW',
-  fatigue_relief: null,
-  focus_handoff: 'FOCUS',
-  proof_insert: 'PROOF',
-  thesis_punctuation: 'THIS CHANGES EVERYTHING',
-  momentum_death: null,
-};
-
-export const MOVE_TO_TEXT_ANIMATION: Record<EditMove['moveId'], TextOverlay['animation']> = {
-  emphasize_keyword: 'pop',
-  return_to_authority: 'slide_up',
-  explain_workflow: 'slide_up',
-  value_contrast: 'typewriter',
-  cta_pressure: 'elastic_scale',
-  fatigue_relief: 'slide_up',
-  focus_handoff: 'slide_up',
-  proof_insert: 'pop',
-  thesis_punctuation: 'glitch',
-  momentum_death: 'slide_up',
-};
-
 export function buildTextOverlays(input: LandscapeTreatmentManifest, fps = LANDSCAPE_FPS): TextOverlay[] {
-  const moveById = new Map(input.editMoves.map((move) => [move.moveId, move]));
-  const overlays: TextOverlay[] = [];
-  for (const moveId of input.typographyCueMoveIds) {
-    const move = moveById.get(moveId as EditMove['moveId']);
-    const text = MOVE_TO_TEXT[moveId as EditMove['moveId']];
-    if (!move || !text) {
-      continue;
-    }
-    overlays.push({
-      text,
-      startFrame: Math.round(move.startSec * fps),
-      endFrame: Math.round(move.endSec * fps),
-      animation: MOVE_TO_TEXT_ANIMATION[moveId as EditMove['moveId']],
-      color: '#FFFFFF',
-    });
+  if (input.typographyPlan?.textOverlays && input.typographyPlan.textOverlays.length > 0) {
+    return input.typographyPlan.textOverlays;
   }
-  return overlays;
+  const plan = generateLandscapeTypographyPlan(
+    input.sections,
+    input.editMoves,
+    input.typographyCueMoveIds,
+    fps,
+  );
+  return plan.textOverlays;
 }
+
 
 /* ------------------------------------------------------------------ *
  * transitions -> frame windows (0.5s centered on the beat). 'none' skipped.
@@ -259,9 +230,26 @@ export function buildTimelineEvents(input: LandscapeTreatmentManifest, fps = LAN
     if (t.effectId === 'none') {
       continue;
     }
+    // Unified renderer style per landscape effect (TRN-05 cinematic tier
+    // included). Existing style tokens only — never introduces unknown tokens.
+    const UNIFIED_TRANSITION_STYLE: Record<string, string> = {
+      hot_burn: 'glitch_flash',
+      light_burn: 'glitch_flash',
+      edge_glow_bloom: 'glitch_flash',
+      lens_flare_bleed: 'zoom_blur',
+      defocus_bokeh: 'zoom_blur',
+      match_cut: 'zoom_blur',
+      push_in_zoom: 'zoom_blur',
+      camera_pass_by: 'zoom_blur',
+      light_leak: 'zoom_blur',
+      soft_flash: 'zoom_blur',
+      hard_flash: 'zoom_blur',
+      light_sweep: 'zoom_blur',
+      luma_wash: 'zoom_blur',
+    };
     events.push({
       type: 'transition',
-      style: t.effectId === 'hot_burn' || t.effectId === 'light_burn' ? 'glitch_flash' : 'zoom_blur',
+      style: UNIFIED_TRANSITION_STYLE[t.effectId] ?? 'zoom_blur',
       atMs: Math.round(t.timeSec * 1000),
       durationMs: 400,
       intensity: 0.7,

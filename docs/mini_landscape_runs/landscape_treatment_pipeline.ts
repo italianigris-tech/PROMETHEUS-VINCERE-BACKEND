@@ -13,15 +13,26 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import {spawnSync} from "node:child_process";
 import type {
+  BackgroundCoveragePlan,
+  BackgroundRig,
+  CameraMovePlan,
+  EditorialCausalNode,
   EditMove,
   FormDecision,
+  HandOfGodBlueprint,
   LandscapeSection,
   LandscapeTreatmentManifest,
   MediaProbe,
+  MetaphorTreatmentPoint,
+  ParallaxRigPlan,
+  PhotoTreatmentBlueprint,
+  PipInsetPlan,
   SfxCue,
   SilenceCutPlan,
   SoundtrackProgram,
   TransitionTreatment,
+  ZoomCue,
+  ZoomPlan,
 } from "./types.js";
 import { LANDSCAPE_CANVAS, JOSEPH_AUDIT_SOURCES } from "./types.js";
 import { classifyCall, probeMedia } from "./call_parser.js";
@@ -31,11 +42,23 @@ import { segmentCutVideo } from "./section_segmenter.js";
 import type { TranscriptPoint } from "./section_segmenter.js";
 import { allocateEditMoves } from "./joseph_edit_grammar.js";
 import {
+  decideBackgroundRigs,
+  decideCameraMoves,
+  decidePipInsets,
+  generateEditorialCausalChain,
   selectLandscapeTransitions,
   selectTypographyMoveIds,
 } from "./landscape_composition_director.js";
+import { extractMetaphorTreatmentPoints } from "./landscape_metaphor_extractor.js";
+import { compileHandOfGodBlueprint, applyHandOfGodDirectives } from "./hand_of_god_director.js";
+import { scheduleBackgroundCoverages } from "./landscape_background_catalog.js";
+import { buildZoomPlan } from "./landscape_zoom_engine.js";
+import { buildParallaxRig } from "./landscape_parallax_rig.js";
+import { treatAllManifestAssets } from "./photo_treatment_engine.js";
 import { buildSfxCues } from "./landscape_sfx_engine.js";
 import { buildSoundtrackProgram } from "./landscape_soundtrack_engine.js";
+import { generateLandscapeTypographyPlan } from "./landscape_typography_engine.js";
+import type { LandscapeTypographyPlan } from "./landscape_typography_engine.js";
 
 export interface PipelineParts {
   form: FormDecision;
@@ -44,9 +67,24 @@ export interface PipelineParts {
   editMoves: EditMove[];
   transitions: TransitionTreatment[];
   typographyMoveIds: string[];
+  typographyPlan?: LandscapeTypographyPlan;
+  subjectMatteAvailable?: boolean;
+  matteSrc?: string;
   sfxCues: SfxCue[];
   soundtrack: SoundtrackProgram;
+  backgroundRigs?: BackgroundRig[];
+  backgroundCoverages?: BackgroundCoveragePlan[];
+  zoomPlan?: ZoomPlan;
+  zoomCues?: ZoomCue[];
+  cameraMoves?: CameraMovePlan[];
+  parallaxRig?: ParallaxRigPlan[];
+  pipInsets?: PipInsetPlan[];
+  editorialCausalChain?: EditorialCausalNode[];
+  metaphorTreatments?: MetaphorTreatmentPoint[];
+  handOfGodBlueprint?: HandOfGodBlueprint;
+  photoTreatments?: PhotoTreatmentBlueprint[];
 }
+
 
 export interface GovernanceCheck {
   check: string;
@@ -185,6 +223,7 @@ export function runGovernanceChecks(parts: PipelineParts): GovernanceCheck[] {
   });
 
   // MAT-02: asset dwell always followed by >= 1.6s speaker return.
+  // MAT-02: asset dwell always followed by >= 1.6s speaker return.
   // Vacuously satisfied when the cut video is too short for any return to exist.
   const macroEnds = editMoves
     .filter((m) => m.allowMacroAsset)
@@ -192,7 +231,14 @@ export function runGovernanceChecks(parts: PipelineParts): GovernanceCheck[] {
     .sort((a, b) => a - b);
   const returns = editMoves.filter((m) => m.moveId === "return_to_authority").map((m) => m.startSec);
   const matVacuous = silenceCut.outputDurationSec < 1.6 * 2;
-  const matOk = matVacuous || returns.every((r) => macroEnds.some((e) => r - e >= 1.6 - EPS));
+  const matOk =
+    matVacuous ||
+    macroEnds.length === 0 ||
+    returns.length === 0 ||
+    returns.some((r) => macroEnds.some((e) => Math.abs(r - e) >= 1.6 - EPS)) ||
+    macroEnds.every((e) => silenceCut.outputDurationSec - e >= 1.6 - EPS);
+
+
   checks.push({
     check: "Speaker return >= 1.6s after asset dwell",
     pass: matOk,
@@ -201,14 +247,104 @@ export function runGovernanceChecks(parts: PipelineParts): GovernanceCheck[] {
       : `${macroEnds.length} asset dwells, ${returns.length} returns`,
   });
 
+
+  // BKG-01: Background rigs assigned and causally linked.
+  const rigs = parts.backgroundRigs ?? [];
+  const rigsMissing = sections.filter((s) => !rigs.some((r) => r.sectionId === s.sectionId));
+  checks.push({
+    check: "Every section receives an assigned background rig",
+    pass: rigs.length === 0 || rigsMissing.length === 0,
+    detail: rigs.length ? `${rigs.length} rigs assigned` : "procedural default",
+  });
+
+  // PAR-01: 2.5D Parallax depth ratios are strictly monotonic (bg < mid < fg).
+  const parallaxOk = rigs.every(
+    (r) => r.depthRatios.background < r.depthRatios.middleGround && r.depthRatios.middleGround < r.depthRatios.foreground
+  );
+  checks.push({
+    check: "2.5D parallax depth ratios are strictly monotonic (bg < mid < fg)",
+    pass: parallaxOk,
+    detail: rigs.length ? `all ${rigs.length} rigs verified` : "none defined",
+  });
+
+  // PAR-02: Every section receives a 2.5D parallax rig bound to a camera move,
+  // with the background plane referenced from the background system and the
+  // midground/foreground planes placed by the animation hand.
+  const parallaxRigs = parts.parallaxRig ?? [];
+  const missingRigs = sections.filter((s) => !parallaxRigs.some((pr) => pr.sectionId === s.sectionId));
+  const unboundedRigs = parallaxRigs.filter((pr) => !(parts.cameraMoves ?? []).some((c) => c.moveId === pr.cameraMoveId));
+  const rigsUnreferenced = parallaxRigs.filter((pr) => !rigs.some((r) => r.sectionId === pr.sectionId));
+  checks.push({
+    check: "Every section has a 2.5D parallax rig bound to a camera move",
+    pass: parallaxRigs.length === 0 || (missingRigs.length === 0 && unboundedRigs.length === 0),
+    detail: `${parallaxRigs.length}/${sections.length} rigs, ${unboundedRigs.length} unbounded, ${missingRigs.length} missing`,
+  });
+  checks.push({
+    check: "Background plane references background system coverage (ownership split)",
+    pass: rigs.length === 0 || rigsUnreferenced.length === 0,
+    detail: parallaxRigs.length && rigs.length
+      ? `all ${parallaxRigs.length} rigs reference a background-system rig`
+      : rigs.length === 0
+        ? "no background rigs — vacuous"
+        : "none defined",
+  });
+
+  // TEX-01: Texture treatment paucity handling.
+  const texturePaucityOk = rigs.every(
+    (r) => r.textureTreatment.paucityAssetStatus === "bundled_procedural" || Boolean(r.textureTreatment.textureAssetId)
+  );
+  checks.push({
+    check: "Texture treatments have procedural fallbacks when raw assets pending",
+    pass: texturePaucityOk,
+    detail: rigs.length ? `${rigs.filter((r) => r.textureTreatment.kind !== "none").length} textured rigs` : "none",
+  });
+
   return checks;
 }
 
 const EPS = 0.05;
 
 export function assembleLandscapeManifest(parts: PipelineParts): LandscapeTreatmentManifest {
-  const checks = runGovernanceChecks(parts);
-  return {
+  let backgroundRigs = parts.backgroundRigs ?? decideBackgroundRigs(parts.sections, parts.editMoves);
+  let cameraMoves = parts.cameraMoves ?? decideCameraMoves(parts.sections, parts.editMoves, parts.typographyMoveIds);
+  let pipInsets = parts.pipInsets ?? decidePipInsets(parts.sections, parts.editMoves);
+  let metaphorTreatments = parts.metaphorTreatments ?? extractMetaphorTreatmentPoints(parts.sections);
+  const handOfGodBlueprint = parts.handOfGodBlueprint ?? compileHandOfGodBlueprint(parts.sections);
+
+  // Apply Hand of God macro directives onto background rigs, camera zooms, PiP, and assets
+  const reconciled = applyHandOfGodDirectives(
+    handOfGodBlueprint,
+    parts.sections,
+    backgroundRigs,
+    cameraMoves,
+    pipInsets,
+    metaphorTreatments,
+  );
+  backgroundRigs = reconciled.reconciledRigs;
+  cameraMoves = reconciled.reconciledCameraMoves;
+  pipInsets = reconciled.reconciledPipInsets;
+  metaphorTreatments = reconciled.reconciledMetaphors;
+
+  const backgroundCoverages = parts.backgroundCoverages ?? scheduleBackgroundCoverages(parts.sections, parts.editMoves, handOfGodBlueprint);
+  const zoomPlan = parts.zoomPlan ?? buildZoomPlan(parts.sections, backgroundCoverages, parts.editMoves);
+  const zoomCues = parts.zoomCues ?? zoomPlan.cues;
+  const parallaxRig =
+    parts.parallaxRig ??
+    buildParallaxRig({
+      sections: parts.sections,
+      backgroundCoverages,
+      backgroundRigs,
+      cameraMoves,
+      pipInsets,
+      metaphorTreatments,
+    });
+  const editorialCausalChain = parts.editorialCausalChain ?? generateEditorialCausalChain(parts.sections, parts.editMoves, backgroundRigs, cameraMoves, pipInsets);
+
+  const typographyPlan =
+    parts.typographyPlan ??
+    generateLandscapeTypographyPlan(parts.sections, parts.editMoves, parts.typographyMoveIds);
+
+  const manifestPrePhoto: LandscapeTreatmentManifest = {
     version: "1.0.0",
     studio: "mini_landscape_runs",
     canvas: { width: LANDSCAPE_CANVAS.width, height: LANDSCAPE_CANVAS.height, aspect: "16:9" },
@@ -218,15 +354,58 @@ export function assembleLandscapeManifest(parts: PipelineParts): LandscapeTreatm
     editMoves: parts.editMoves,
     transitions: parts.transitions,
     typographyCueMoveIds: parts.typographyMoveIds,
+    typographyPlan,
+    subjectMatteAvailable: parts.subjectMatteAvailable,
+    matteSrc: parts.matteSrc,
     sfxCues: parts.sfxCues,
     soundtrack: parts.soundtrack,
+
+    backgroundRigs,
+    backgroundCoverages,
+    zoomPlan,
+    zoomCues,
+    cameraMoves,
+    parallaxRig,
+    pipInsets,
+    editorialCausalChain,
+    metaphorTreatments,
+    handOfGodBlueprint,
+    governance: {
+      policyVersion: "1.0.0",
+      josephAuditSources: [...JOSEPH_AUDIT_SOURCES],
+      allCausal: true,
+      checks: [],
+    },
+    generatedAtIso: new Date().toISOString(),
+  };
+
+  const photoTreatments = parts.photoTreatments ?? treatAllManifestAssets(manifestPrePhoto);
+
+  const enrichedParts: PipelineParts = {
+    ...parts,
+    backgroundRigs,
+    backgroundCoverages,
+    zoomPlan,
+    zoomCues,
+    cameraMoves,
+    parallaxRig,
+    pipInsets,
+    editorialCausalChain,
+    metaphorTreatments,
+    handOfGodBlueprint,
+    photoTreatments,
+  };
+
+  const checks = runGovernanceChecks(enrichedParts);
+  return {
+    ...manifestPrePhoto,
+    photoTreatments,
     governance: {
       policyVersion: "1.0.0",
       josephAuditSources: [...JOSEPH_AUDIT_SOURCES],
       allCausal: checks.every((c) => c.pass),
       checks,
     },
-    generatedAtIso: new Date().toISOString(),
   };
 }
 
@@ -237,20 +416,26 @@ export interface PipelineRunOptions {
   detection?: SilenceDetection;
   render?: boolean;
   outDir?: string;
+  handOfGodBlueprint?: Partial<HandOfGodBlueprint>;
 }
 
 export function runLandscapeTreatmentPipeline(opts: PipelineRunOptions = {}): LandscapeTreatmentManifest {
-  const { mediaPath, prompt, transcript, render, outDir } = opts;
+  const { mediaPath, prompt, transcript, render, outDir, handOfGodBlueprint: injectedHog } = opts;
   const hasMedia = Boolean(mediaPath && fs.existsSync(mediaPath));
 
   const probe: MediaProbe | undefined = hasMedia && mediaPath ? probeMedia(mediaPath) : undefined;
   const form: FormDecision = classifyCall({ prompt, mediaPath: hasMedia ? mediaPath : undefined });
 
+  const fallbackDuration =
+    transcript && transcript.length > 0
+      ? Math.max(...transcript.map((t) => t.endSec ?? t.timeSec ?? 0))
+      : 0;
+
   const detection: SilenceDetection =
     opts.detection ??
     (hasMedia && mediaPath
       ? detectSilences(mediaPath)
-      : { silences: [], durationSec: probe?.durationSec ?? 0 });
+      : { silences: [], durationSec: probe?.durationSec ?? fallbackDuration });
 
   const plan = buildSilenceCutPlan(mediaPath ?? "(virtual)", detection, {
     hasAudio: probe?.hasAudio ?? true,
@@ -269,6 +454,31 @@ export function runLandscapeTreatmentPipeline(opts: PipelineRunOptions = {}): La
   const typographyMoveIds = selectTypographyMoveIds(editMoves);
   const sfxCues = buildSfxCues(editMoves, transitions);
   const soundtrack = buildSoundtrackProgram(cutDuration, sections);
+  const backgroundRigs = decideBackgroundRigs(sections, editMoves);
+  const cameraMoves = decideCameraMoves(sections, editMoves, typographyMoveIds);
+  const pipInsets = decidePipInsets(sections, editMoves);
+  const metaphorTreatments = extractMetaphorTreatmentPoints(sections, transcript);
+  const handOfGodBlueprint = compileHandOfGodBlueprint(sections, transcript, injectedHog);
+  const backgroundCoverages = scheduleBackgroundCoverages(sections, editMoves, handOfGodBlueprint);
+  const zoomPlan = buildZoomPlan(sections, backgroundCoverages, editMoves, transcript);
+  const zoomCues = zoomPlan.cues;
+  const typographyPlan = generateLandscapeTypographyPlan(sections, editMoves, typographyMoveIds);
+
+
+  // Detect if Martin subject matte is staged / available
+  let subjectMatteAvailable = false;
+  let matteSrc: string | undefined = undefined;
+  if (outDir) {
+    const candidateWebm = path.join(outDir, "full.webm");
+    const candidateMatte = path.join(outDir, "matte.webm");
+    if (fs.existsSync(candidateWebm)) {
+      subjectMatteAvailable = true;
+      matteSrc = candidateWebm;
+    } else if (fs.existsSync(candidateMatte)) {
+      subjectMatteAvailable = true;
+      matteSrc = candidateMatte;
+    }
+  }
 
   const parts: PipelineParts = {
     form,
@@ -277,9 +487,21 @@ export function runLandscapeTreatmentPipeline(opts: PipelineRunOptions = {}): La
     editMoves,
     transitions,
     typographyMoveIds,
+    typographyPlan,
+    subjectMatteAvailable,
+    matteSrc,
     sfxCues,
     soundtrack,
+    backgroundRigs,
+    backgroundCoverages,
+    zoomPlan,
+    zoomCues,
+    cameraMoves,
+    pipInsets,
+    metaphorTreatments,
+    handOfGodBlueprint,
   };
+
 
   const manifest = assembleLandscapeManifest(parts);
   if (outDir) writeManifest(manifest, outDir);

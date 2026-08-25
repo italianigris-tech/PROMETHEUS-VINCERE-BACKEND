@@ -188,10 +188,25 @@ interface RunData {
     { id: string; title: string; chunks: StudioChunk[] }
   >;
   transitions: LandscapeTreatmentManifest["transitions"];
+  typographyCueMoveIds?: LandscapeTreatmentManifest["typographyCueMoveIds"];
+  typographyPlan?: LandscapeTreatmentManifest["typographyPlan"];
+  subjectMatteAvailable?: boolean;
+  matteSrc?: string;
   sfxCues: LandscapeTreatmentManifest["sfxCues"];
   soundtrack: LandscapeTreatmentManifest["soundtrack"];
   canvas: LandscapeTreatmentManifest["canvas"];
   governance: LandscapeTreatmentManifest["governance"];
+  backgroundRigs?: LandscapeTreatmentManifest["backgroundRigs"];
+  backgroundCoverages?: LandscapeTreatmentManifest["backgroundCoverages"];
+  zoomPlan?: LandscapeTreatmentManifest["zoomPlan"];
+  zoomCues?: LandscapeTreatmentManifest["zoomCues"];
+  cameraMoves?: LandscapeTreatmentManifest["cameraMoves"];
+  parallaxRig?: LandscapeTreatmentManifest["parallaxRig"];
+  pipInsets?: LandscapeTreatmentManifest["pipInsets"];
+  editorialCausalChain?: LandscapeTreatmentManifest["editorialCausalChain"];
+  metaphorTreatments?: LandscapeTreatmentManifest["metaphorTreatments"];
+  handOfGodBlueprint?: LandscapeTreatmentManifest["handOfGodBlueprint"];
+  photoTreatments?: LandscapeTreatmentManifest["photoTreatments"];
   /** Repo-relative URL of the silence-cut MP4 used as the full-bleed runtime base background. */
   sourceVideo: string | null;
 }
@@ -255,10 +270,25 @@ function deriveRunData(
       },
     },
     transitions: manifest.transitions,
+    typographyCueMoveIds: manifest.typographyCueMoveIds,
+    typographyPlan: manifest.typographyPlan,
+    subjectMatteAvailable: manifest.subjectMatteAvailable,
+    matteSrc: manifest.matteSrc,
     sfxCues: manifest.sfxCues,
     soundtrack: manifest.soundtrack,
     canvas: manifest.canvas,
     governance: manifest.governance,
+    backgroundRigs: manifest.backgroundRigs,
+    backgroundCoverages: manifest.backgroundCoverages,
+    zoomPlan: manifest.zoomPlan,
+    zoomCues: manifest.zoomCues,
+    cameraMoves: manifest.cameraMoves,
+    parallaxRig: manifest.parallaxRig,
+    pipInsets: manifest.pipInsets,
+    editorialCausalChain: manifest.editorialCausalChain,
+    metaphorTreatments: manifest.metaphorTreatments,
+    handOfGodBlueprint: manifest.handOfGodBlueprint,
+    photoTreatments: manifest.photoTreatments,
     sourceVideo: deriveSourceVideo(manifest),
   };
 }

@@ -1,0 +1,79 @@
+{
+  "profile_name": "My_Mom_Wall_Man_Single_Line_Z_Plane",
+  "version": "1.0.0",
+  "metadata": {
+    "target_aspect_ratio": "9:16",
+    "overall_mood": "Ultra-clean environmental text. Single phrase at top of frame anchored to wall surface. Maximum spatial depth impact.",
+    "casing_strategy": "lowercase",
+    "total_word_count": 2,
+    "total_character_count": 6,
+    "treatment_notes": "WALL MAN TREATMENT (single-line variant): One short phrase 'my mom' placed at top of frame against wall. Ultra-heavy white grotesque. Subject occupies full lower 70% of frame in foreground. Maximum spatial contrast between text plane (wall) and subject plane (foreground).",
+    "treatment_system": "wall_man_z_plane",
+    "per_word_character_counts": [
+      {
+        "word": "my",
+        "character_count": 2
+      },
+      {
+        "word": "mom",
+        "character_count": 3
+      }
+    ],
+    "mixed_fonts_verified": true,
+    "mixfont_extracted_at": "2026-08-24T11:52:03Z"
+  },
+  "layout_rules": {
+    "horizontal_alignment": "left",
+    "vertical_position": "upper_center_left",
+    "top_margin_percent": 8,
+    "max_width_percent": 55,
+    "placement_system": "wall_man",
+    "placement_note": "Two-word phrase placed upper-left as environmental anchor. Reads as part of the room/wall, not as a caption or label.",
+    "scrim_overlay": {
+      "enabled": false,
+      "type": "none",
+      "opacity": 0,
+      "color": "transparent"
+    }
+  },
+  "typography_layers": [
+    {
+      "layer_name": "line_my_mom",
+      "role": "wall_text_single_phrase",
+      "font_classification": "Ultra-Heavy Grotesque Sans-Serif — Wall Surface",
+      "matched_font_candidates": [
+        "Berylium",
+        "Bodoni Moda"
+      ],
+      "font_style": {
+        "weight": 900,
+        "style": "normal",
+        "casing": "lowercase",
+        "color": "#FFFFFF",
+        "size_px_base": 60,
+        "relative_scale": 1.15,
+        "letter_spacing_em": -0.02,
+        "line_height": 1.0,
+        "text_align": "left"
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 2,
+          "y_offset": 2,
+          "blur_radius": 0,
+          "color": "rgba(0,0,0,0.25)"
+        }
+      },
+      "placement": {
+        "x_percent": "4%",
+        "y_percent": "10%",
+        "anchor": "top_left",
+        "z_index": 1,
+        "z_depth_plane": "background"
+      },
+      "sample_text": "my mom",
+      "word_count": 2,
+      "character_count": 6
+    }
+  ]
+}

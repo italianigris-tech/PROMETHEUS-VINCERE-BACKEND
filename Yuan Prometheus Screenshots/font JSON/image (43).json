@@ -1,0 +1,143 @@
+{
+  "profile_name": "Not_Convinced_Yet_Full_Frame_Red_Grotesque",
+  "version": "1.0.0",
+  "metadata": {
+    "target_aspect_ratio": "16:9",
+    "overall_mood": "Loud confrontational hook. Full-frame dominant red grotesque bleeds out of frame. Principal subject stands inside the letterforms. Extreme scale tension.",
+    "casing_strategy": "mixed",
+    "total_word_count": 3,
+    "total_character_count": 16,
+    "treatment_notes": "Three-tier: 'Not' is small-medium white top-left. 'CONVINCED' is massive full-bleed red grotesque dominating 90%+ of frame width. 'yet' is small-medium white bottom-right corner. Principal subject (talking head) is positioned within/behind CONVINCED letterforms.",
+    "per_word_character_counts": [
+      {
+        "word": "Not",
+        "character_count": 3
+      },
+      {
+        "word": "CONVINCED",
+        "character_count": 9
+      },
+      {
+        "word": "yet",
+        "character_count": 3
+      }
+    ],
+    "mixed_fonts_verified": true,
+    "mixfont_extracted_at": "2026-08-24T09:15:00Z"
+  },
+  "layout_rules": {
+    "horizontal_alignment": "full_bleed",
+    "vertical_position": "full_frame",
+    "max_width_percent": 100,
+    "background_color": "#1a1a2e",
+    "scrim_overlay": {
+      "enabled": false,
+      "type": "none",
+      "opacity": 0,
+      "color": "transparent"
+    }
+  },
+  "typography_layers": [
+    {
+      "layer_name": "line_not",
+      "role": "prelude_small",
+      "font_classification": "Heavy Grotesque Sans-Serif",
+      "matched_font_candidates": [
+        "DM Sans",
+        "Inter",
+        "Outfit"
+      ],
+      "font_style": {
+        "weight": 700,
+        "style": "italic",
+        "casing": "capitalize",
+        "color": "#FFFFFF",
+        "size_px_base": 26,
+        "relative_scale": 0.4,
+        "letter_spacing_em": 0.01,
+        "line_height": 1.1,
+        "text_align": "left"
+      },
+      "placement": {
+        "x_percent": "3%",
+        "y_percent": "8%",
+        "anchor": "top_left",
+        "z_index": 2
+      },
+      "sample_text": "Not",
+      "word_count": 1,
+      "character_count": 3
+    },
+    {
+      "layer_name": "line_convinced",
+      "role": "hero_dominant_full_frame",
+      "font_classification": "Ultra-Heavy Condensed Grotesque Sans-Serif — Full Bleed",
+      "matched_font_candidates": [
+        "Bebas Neue",
+        "Anton",
+        "Impact",
+        "Haas Unica"
+      ],
+      "font_style": {
+        "weight": 900,
+        "style": "normal",
+        "casing": "uppercase",
+        "color": "#E53E3E",
+        "color_notes": "Vivid red. The letterforms are so large that the subject physically stands within the letterform gaps.",
+        "size_px_base": 140,
+        "relative_scale": 2.5,
+        "letter_spacing_em": -0.02,
+        "line_height": 0.88,
+        "text_align": "center",
+        "size_notes": "Must scale to 95%+ of frame width."
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 4,
+          "y_offset": 4,
+          "blur_radius": 0,
+          "color": "rgba(0,0,0,0.5)"
+        }
+      },
+      "placement": {
+        "x_percent": "50%",
+        "y_percent": "50%",
+        "anchor": "center",
+        "z_index": 1
+      },
+      "sample_text": "CONVINCED",
+      "word_count": 1,
+      "character_count": 9
+    },
+    {
+      "layer_name": "line_yet",
+      "role": "closing_small",
+      "font_classification": "Heavy Grotesque Sans-Serif",
+      "matched_font_candidates": [
+        "DM Sans",
+        "Inter",
+        "Outfit"
+      ],
+      "font_style": {
+        "weight": 700,
+        "style": "italic",
+        "casing": "lowercase",
+        "color": "#FFFFFF",
+        "size_px_base": 26,
+        "relative_scale": 0.4,
+        "letter_spacing_em": 0.01,
+        "line_height": 1.1,
+        "text_align": "right"
+      },
+      "placement": {
+        "x_percent": "97%",
+        "y_percent": "88%",
+        "anchor": "bottom_right",
+        "z_index": 2
+      },
+      "sample_text": "yet",
+      "word_count": 1,
+      "character_count": 3
+    }
+  ]
+}

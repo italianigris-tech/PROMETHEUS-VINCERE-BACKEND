@@ -33,7 +33,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
-from . import chunks, classify, ids, jobs, render, silence, storage
+from . import chunks, classify, ids, jobs, render, silence, storage, subject_placement
 
 PIPELINE_JOB_NAME = "mini-run:render"
 DEFAULT_ARTIFACT_ROOT = os.getenv("MINI_RUN_ARTIFACT_ROOT", "/tmp/mini-run")
@@ -364,9 +364,32 @@ def execute_pipeline_job(
         max_chunk_words=int(data.get("maxChunkWords", 5)),
     )
 
-    # Generate authoritative font.json combinatorial manifest & attach per-chunk fontStyle
+    # Generate the typography plan first. Behind-subject tall-font choices are
+    # then positioned from the same MediaPipe observation used as render evidence.
     design = data.get("design") or None
     font_manifest = typography.generate_font_manifest(chunked, design)
+    behind_subject_chunks = [
+        chunk for chunk in font_manifest["chunks"]
+        if chunk.get("subjectLayering", {}).get("behindSubject")
+    ]
+    subject_observation = None
+    if behind_subject_chunks:
+        subject_observation = subject_placement.observe_subject(
+            str(source_path),
+            min(30000, int(timeline.get("outputDurationMs", source_duration_ms))),
+        )
+        placements = subject_placement.plan_subject_safe_placements(
+            font_manifest["chunks"], subject_observation,
+        )
+        for manifest_chunk, placement in zip(font_manifest["chunks"], placements):
+            manifest_chunk["placement"] = placement
+        font_manifest["subjectObservation"] = {
+            "status": "completed",
+            "frameCount": len(subject_observation.get("frames", [])),
+            "detector": subject_observation.get("detector", {}).get("providerId"),
+        }
+    else:
+        font_manifest["subjectObservation"] = {"status": "not_required", "frameCount": 0}
     manifest_dir = Path(artifact_root) / "media" / "mini-run" / "renders" / job_id
     manifest_dir.mkdir(parents=True, exist_ok=True)
     manifest_file = manifest_dir / "font_manifest.json"
@@ -388,6 +411,7 @@ def execute_pipeline_job(
         timeline=timeline,
         chunks=chunked,
         design=design,
+        subject_observation=subject_observation,
         audio=audio,
         output_root=str(output_root),
         job_id=job_id,
@@ -472,4 +496,3 @@ __all__ = [
     "build_worker",
     "_ensure_worker",
 ]
-
