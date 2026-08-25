@@ -14,7 +14,7 @@ Add a rare split-color typography treatment that uses CSS `mix-blend-mode: diffe
 
 ## Manifest Contract
 
-Eligible hero layers receive `blendMode: "difference"`. Other layers omit the field. The selection remains layer-scoped so companion text can preserve the selected font profile's original color treatment.
+Every layer in an eligible selected caption receives `blendMode: "difference"`. Caption-wide marking matches browser compositing: the transformed caption wrapper must blend as one group so every paired font layer receives predictable paint.
 
 When difference mode is selected, the generator emits solid white paint with no gradient, glow, or text shadow. This is necessary because white is the source color for exact RGB inversion and decorative paint effects would create halos or partially blended colors.
 
@@ -26,7 +26,7 @@ The Remotion layer renderer resolves paint through one exported, testable helper
 - solid white text
 - no background gradient, clipped text fill, filter, or text shadow
 
-Kinetic transforms and opacity animation continue unchanged. The treatment is foreground-only so it composites against the source video and any foreground matte as one finished visual frame.
+The transformed caption wrapper also receives `mixBlendMode: "difference"` and drops its normal filter, preventing an isolated compositing group from hiding the video backdrop. Kinetic transforms and opacity animation continue unchanged. The treatment is foreground-only so it composites against the source video and any foreground matte as one finished visual frame.
 
 ## Verification
 
