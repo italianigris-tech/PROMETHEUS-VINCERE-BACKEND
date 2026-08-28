@@ -471,11 +471,14 @@ export const resolveSceneVisualState = (
 };
 
 
-export const resolvePanScanMediaStyle = (state: SceneVisualState) => ({
-  objectPosition: `${state.focalXPercent}% 50%`,
-  transform: `scale(${state.cameraScale})`,
-  transformOrigin: "center",
-});
+export const resolvePanScanMediaStyle = (state: SceneVisualState, baseOverscan: number = 1.18) => {
+  const totalScale = state.cameraScale * baseOverscan;
+  return {
+    objectPosition: `${state.focalXPercent}% 50%`,
+    transform: `scale(${totalScale})`,
+    transformOrigin: "center center",
+  };
+};
 
 export type PrometheusMinRunProps = {
   videoSrc: string;
@@ -2851,19 +2854,14 @@ const MultiLayerTypographyCard: React.FC<{
 // ---------------------------------------------------------------------------
 // Main Composition Component & Stages
 // ---------------------------------------------------------------------------
-const MiniRunSourceStage: React.FC<{
-  videoSrc: string;
-  orchestration?: MiniRunOrchestration;
-  hasMatte?: boolean;
-  macroHookPlan?: NonNullable<CaptionChunk["hookPlan"]>;
-}> = ({ videoSrc, orchestration, hasMatte, macroHookPlan }) => {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const state = resolveSceneVisualState(orchestration, frame, fps);
-  const mediaStyle: React.CSSProperties = hasMatte ? {} : resolvePanScanMediaStyle(state);
-  const transitionBlur = state.transitionStrength * 8;
-
-  // Macro Hook visual transformation directly applied to the video
+// ---------------------------------------------------------------------------
+// Macro Hook Visual Transformation State
+// ---------------------------------------------------------------------------
+export const resolveHookTransformState = (
+  macroHookPlan: NonNullable<CaptionChunk["hookPlan"]> | undefined,
+  frame: number,
+  fps: number
+) => {
   let hookScale = 1.0;
   let hookBlur = 0;
   let hookBrightness = 1.0;
@@ -2924,6 +2922,40 @@ const MiniRunSourceStage: React.FC<{
     }
   }
 
+  const hookTransform = `perspective(1000px) rotateX(${hookRotateX}deg) rotateY(${hookRotateY}deg) translateY(${hookTranslateY}px) scale(${hookScale})`;
+  return {
+    hookScale,
+    hookBlur,
+    hookBrightness,
+    hookContrast,
+    hookSaturate,
+    hookRotateX,
+    hookRotateY,
+    hookTranslateY,
+    hookTransform,
+  };
+};
+
+const MiniRunSourceStage: React.FC<{
+  videoSrc: string;
+  orchestration?: MiniRunOrchestration;
+  hasMatte?: boolean;
+  macroHookPlan?: NonNullable<CaptionChunk["hookPlan"]>;
+}> = ({ videoSrc, orchestration, hasMatte, macroHookPlan }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const state = resolveSceneVisualState(orchestration, frame, fps);
+  const mediaStyle: React.CSSProperties = resolvePanScanMediaStyle(state, 1.18);
+  const transitionBlur = state.transitionStrength * 8;
+
+  const {
+    hookBlur,
+    hookBrightness,
+    hookContrast,
+    hookSaturate,
+    hookTransform,
+  } = resolveHookTransformState(macroHookPlan, frame, fps);
+
   const combinedBlur = Math.min(24, transitionBlur * 0.35 + hookBlur);
   const filterParts = [
     combinedBlur > 0.1 ? `blur(${combinedBlur.toFixed(1)}px)` : "",
@@ -2933,8 +2965,6 @@ const MiniRunSourceStage: React.FC<{
   ]
     .filter(Boolean)
     .join(" ");
-
-  const hookTransform = `perspective(1000px) rotateX(${hookRotateX}deg) rotateY(${hookRotateY}deg) translateY(${hookTranslateY}px) scale(${hookScale})`;
 
   return (
     <AbsoluteFill style={{ backgroundColor: "#000", overflow: "hidden", zIndex: 1 }}>
@@ -3468,23 +3498,30 @@ export const PrometheusMinRun: React.FC<PrometheusMinRunProps> = ({
       </Spatial3DCameraRig>
 
       {/* 3. Foreground Subject Matte Cutout Layer (Z: 50) */}
-      {matteSrc && (
-        <AbsoluteFill style={{ zIndex: 50, pointerEvents: "none", overflow: "hidden" }}>
-          <Video
-            src={staticFile(matteSrc)}
-            muted
-            pauseWhenBuffering
-            style={{
-              position: "absolute",
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              objectPosition: "center",
-              zIndex: 50,
-            }}
-          />
-        </AbsoluteFill>
-      )}
+      {matteSrc && (() => {
+        const state = resolveSceneVisualState(orchestration, frame, fps);
+        const mediaStyle = resolvePanScanMediaStyle(state, 1.18);
+        const { hookTransform } = resolveHookTransformState(macroHookPlan, frame, fps);
+        return (
+          <AbsoluteFill style={{ zIndex: 50, pointerEvents: "none", overflow: "hidden" }}>
+            <Video
+              src={staticFile(matteSrc)}
+              muted
+              pauseWhenBuffering
+              style={{
+                position: "absolute",
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                objectPosition: mediaStyle.objectPosition || "50% 50%",
+                transform: `${mediaStyle.transform || ""} ${hookTransform}`.trim(),
+                transformOrigin: "center center",
+                zIndex: 50,
+              }}
+            />
+          </AbsoluteFill>
+        );
+      })()}
     </AbsoluteFill>
   );
 };

@@ -76,6 +76,22 @@ def plan_mini_run_orchestration(
         layout = "pan_scan"
         scene_id = f"scene-{index + 1}"
         midpoint = start_ms + (end_ms - start_ms) // 2
+        base_subject_x = _nearest_subject_x(subject_observation, midpoint)
+
+        # Dynamic Editorial Pan Mileage:
+        # If chunk is flank_left_column -> shift speaker to right flank (60% - 66% X)
+        # If chunk is flank_right_column -> shift speaker to left flank (34% - 40% X)
+        # If cranial_crown or foreground -> keep centered at speaker's focal X
+        placement = chunk.get("placement") or {}
+        dom_zone = placement.get("dominantZone") or "cranial_crown"
+
+        if dom_zone == "flank_left_column":
+            target_focal_x = _clamp(base_subject_x + 11.0, 58.0, 66.0)
+        elif dom_zone == "flank_right_column":
+            target_focal_x = _clamp(base_subject_x - 11.0, 34.0, 42.0)
+        else:
+            target_focal_x = base_subject_x
+
         scenes.append({
             "id": scene_id,
             "startMs": start_ms,
@@ -83,11 +99,13 @@ def plan_mini_run_orchestration(
             "layout": layout,
             "salience": round(_salience(chunk), 3),
             "sourceAspectRatio": round(width / height, 4),
-            "focalPoint": {"xPercent": _nearest_subject_x(subject_observation, midpoint), "yPercent": 42.0},
+            "focalPoint": {"xPercent": round(target_focal_x, 2), "yPercent": 42.0},
+            "dominantZone": dom_zone,
+            "overscanScale": 1.18,
             "cause": {
                 "gate": "chunk_visual_treatment",
                 "chunkIds": [str(chunk.get("chunkIndex", index))],
-                "reason": "Pan & scan layout with subject tracking selected for portrait mini run.",
+                "reason": "Dynamic overscan editorial pan with subject tracking selected for portrait mini run.",
             },
         })
 
