@@ -3185,6 +3185,47 @@ const TransitionFXStage: React.FC<{
     );
   }
 
+  if (effect === "light_leak_sweep") {
+    const leakAngle = interpolate(p, [0, 1], [-45, -15]);
+    const leakShift = interpolate(p, [0, 1], [-120, 120]);
+    return (
+      <AbsoluteFill
+        style={{
+          zIndex: 8,
+          pointerEvents: "none",
+          overflow: "hidden",
+          opacity: strength * 0.65,
+          mixBlendMode: "screen",
+          filter: "blur(14px)",
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            inset: "-20%",
+            transform: `rotate(${leakAngle}deg) translateY(${leakShift}px)`,
+            background:
+              "linear-gradient(180deg, transparent 0%, rgba(255,180,50,0.5) 40%, rgba(255,230,180,0.85) 50%, rgba(180,120,255,0.4) 60%, transparent 100%)",
+          }}
+        />
+      </AbsoluteFill>
+    );
+  }
+
+  if (effect === "camera_crash_snap") {
+    return (
+      <AbsoluteFill
+        style={{
+          zIndex: 8,
+          pointerEvents: "none",
+          opacity: strength * 0.35,
+          mixBlendMode: "screen",
+          background: "radial-gradient(circle at 50% 50%, rgba(255,255,255,0.6) 0%, transparent 70%)",
+        }}
+      />
+    );
+  }
+
   return null;
 };
 

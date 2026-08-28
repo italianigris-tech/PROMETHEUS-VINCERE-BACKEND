@@ -204,33 +204,47 @@ def plan_subject_safe_placements(
     behind_subject_placement: Dict[str, Any]
 
     if head_top_y is not None:
-        # Available headroom between top guard and the estimated top of head/hair
-        headroom = max(0.04, head_top_y - UPPER_GUARD_RATIO)
-        
-        # Center the text in the headroom band, positioned so the upper portion
-        # is 100% clear of the head and the lower portion tucks behind the hair
-        text_center_y = round(max(0.06, min(0.14, UPPER_GUARD_RATIO + headroom * 0.52)), 4)
-        available_height_ratio = round(headroom + HAIR_OVERLAP_RATIO, 4)
+        if head_top_y < 0.12:
+            # Insufficient headroom above head (speaker's head fills upper frame)
+            # Gracefully fallback to safe foreground placement to avoid top-edge clipping
+            behind_subject_placement = {
+                "xPercent": "50%",
+                "yPercent": "68%",
+                "anchor": "center",
+                "safeRegionId": "foreground_lower_third_headroom_fallback",
+                "intersectsSubject": False,
+                "subjectBox": representative_subject_box,
+                "availableHeightRatio": 0.22,
+                "headTopY": round(head_top_y, 4),
+                "policy": "fallback_insufficient_headroom_lower_third",
+                "cranialArc": None,
+            }
+        else:
+            # Available headroom between top safe guard (0.05) and estimated top of head
+            headroom = max(0.06, head_top_y - UPPER_GUARD_RATIO)
+            # Center the text safely with a minimum yPercent of 10.0% to avoid top canvas clipping
+            text_center_y = round(max(0.10, min(0.15, UPPER_GUARD_RATIO + headroom * 0.50)), 4)
+            available_height_ratio = round(headroom + HAIR_OVERLAP_RATIO, 4)
 
-        behind_subject_placement = {
-            "xPercent": "50%",
-            "yPercent": f"{round(text_center_y * 100, 2)}%",
-            "anchor": "center",
-            "safeRegionId": "behind_subject_above_head",
-            "intersectsSubject": False,
-            "subjectBox": representative_subject_box,
-            "availableHeightRatio": available_height_ratio,
-            "headTopY": round(head_top_y, 4),
-            "policy": "above_head_mediapipe_headroom_maximized",
-            "cranialArc": {
-                "haloTop": f"{round(text_center_y * 100, 2)}%",
-                "orbitalLeft": f"{round((representative_subject_box['x'] if representative_subject_box else 0.5) * 100 - 18, 1)}%",
-                "orbitalRight": f"{round(((representative_subject_box['x'] + representative_subject_box.get('width', 0.4)) if representative_subject_box else 0.5) * 100 + 18, 1)}%",
-                "tiltDeg": 0.0,
-            },
-        }
+            behind_subject_placement = {
+                "xPercent": "50%",
+                "yPercent": f"{round(text_center_y * 100, 2)}%",
+                "anchor": "center",
+                "safeRegionId": "behind_subject_above_head",
+                "intersectsSubject": False,
+                "subjectBox": representative_subject_box,
+                "availableHeightRatio": available_height_ratio,
+                "headTopY": round(head_top_y, 4),
+                "policy": "above_head_mediapipe_headroom_maximized",
+                "cranialArc": {
+                    "haloTop": f"{round(text_center_y * 100, 2)}%",
+                    "orbitalLeft": f"{round((representative_subject_box['x'] if representative_subject_box else 0.5) * 100 - 18, 1)}%",
+                    "orbitalRight": f"{round(((representative_subject_box['x'] + representative_subject_box.get('width', 0.4)) if representative_subject_box else 0.5) * 100 + 18, 1)}%",
+                    "tiltDeg": 0.0,
+                },
+            }
     else:
-        # Fallback when no observation is provided: place in safe upper third
+        # Fallback when no observation is provided: place in safe upper third (12.5% minimum)
         behind_subject_placement = {
             "xPercent": "50%",
             "yPercent": f"{round(DEFAULT_BEHIND_SUBJECT_Y * 100, 1)}%",

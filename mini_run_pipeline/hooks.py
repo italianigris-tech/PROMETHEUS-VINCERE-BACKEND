@@ -119,8 +119,7 @@ HOOK_KEYWORD_MAP: List[Dict[str, Any]] = [
     },
     {
         "preset": "hook_crash_zoom_snap",
-        "patterns": [r"\bthis\b", r"\blook\b", r"\bsee\b", r"\bhere\b", r"\bnow\b",
-                     r"\bfast\b", r"\binstant\b", r"\bruns?\b", r"\bquick\b"],
+        "patterns": [r"\bcrash\b", r"\bexplode\b", r"\bsnap\b", r"\binstant\b", r"\bfast\b", r"\bquick\b", r"\bshock\b"],
         "weight": 85,
     },
     {
@@ -149,7 +148,10 @@ def select_hook_treatment(
     design: Optional[Dict[str, Any]] = None,
     prompt: Optional[str] = None,
 ) -> str:
-    """Select the optimal hook treatment based on transcript cues and design preferences."""
+    """Select the optimal hook treatment based on transcript cues and design preferences.
+
+    Provides rich entropy rotation to prevent overfitting or repetitive intros across runs.
+    """
     design = design or {}
 
     # 1. Explicit override from design preferences
@@ -159,21 +161,24 @@ def select_hook_treatment(
 
     text_corpus = f"{chunk_text} {prompt or ''}".lower()
 
-    # 2. Semantic pattern matching
+    # 2. Strong semantic pattern matching
     for entry in HOOK_KEYWORD_MAP:
         for pat in entry["patterns"]:
             if re.search(pat, text_corpus):
                 return entry["preset"]
 
-    # 3. Motion style preference fallback
-    motion_style = str(design.get("motionStyle", "cinematic")).lower()
-    if motion_style == "kinetic":
-        return "hook_crash_zoom_snap"
-    if motion_style == "editorial":
-        return "hook_bokeh_defocus_bloom"
-
-    # Default canonical cinematic opening
-    return "hook_cinematic_dolly_zoom"
+    # 3. Dynamic seed-based entropy rotation across rich cinematic hook repertoire (Anti-Overfitting)
+    seed = abs(hash(chunk_text.strip().lower())) % 1000
+    candidate_catalog = [
+        "hook_cinematic_dolly_zoom",
+        "hook_bokeh_defocus_bloom",
+        "hook_metallic_chrome_reflection",
+        "hook_liquid_ink_metaball_reveal",
+        "hook_vintage_film_burn_strobe",
+        "hook_rgb_chromatic_split_glitch",
+    ]
+    selected = candidate_catalog[seed % len(candidate_catalog)]
+    return selected
 
 
 def plan_hook_treatment(

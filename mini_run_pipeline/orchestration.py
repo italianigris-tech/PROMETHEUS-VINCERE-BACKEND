@@ -147,37 +147,47 @@ def plan_mini_run_orchestration(
             "causedByHook": hook_type,
         })
 
-    # 1b. Smart Cinematic Transition System (Narrative-Driven Rulebook)
+    # 1b. Smart Cinematic Transition System (Narrative-Driven Rulebook with Spacing & Variety)
     last_transition_ms = -100000
-    min_gap_ms = int(design.get("transitionMinGapMs", 1400))
+    last_film_burn_ms = -100000
+    film_burn_count = 0
+    min_gap_ms = int(design.get("transitionMinGapMs", 3400))  # Anti-spam: minimum 3.4s between transitions
     for previous, current in zip(scenes, scenes[1:]):
         salience_diff = current["salience"] - previous["salience"]
         duration_gap = current["startMs"] - previous["endMs"]
-        is_salient_shift = abs(salience_diff) > 0.10 or current["salience"] > 0.65
+        is_salient_shift = abs(salience_diff) > 0.12 or current["salience"] > 0.70
 
         if is_salient_shift and (current["startMs"] - last_transition_ms >= min_gap_ms):
-            duration = round(320 + intensity * 240)
+            duration = round(300 + intensity * 200)
             start_ms = max(previous["startMs"], current["startMs"] - duration // 2)
             end_ms = min(current["endMs"], start_ms + duration)
             transition_id = f"transition-{len(transitions) + 1}"
 
-            # Narrative-Driven Rulebook for Transition Selection
-            if salience_diff > 0.18 or current["salience"] > 0.78:
-                # Topic Pivot / Narrative Surge -> Incandescent Amber Film Burn Flash Bomb
+            # Narrative-Driven Rulebook with Rich Variety (Anti-Spam / Anti-Overfitting)
+            can_use_film_burn = (film_burn_count < 2) and (current["startMs"] - last_film_burn_ms >= 7000)
+
+            if can_use_film_burn and (salience_diff > 0.26 or current["salience"] > 0.85):
+                # Major Topic Pivot -> Incandescent Amber Film Burn (Rare cinematic highlight)
                 effect_kind = "film_burn_strobe"
-                sfx_cue = rng.choice(["shutter_snap", "impact_sharp", "glitch_digital"])
-            elif duration_gap > 300 or current["salience"] < 0.40:
+                sfx_cue = rng.choice(["shutter_snap", "impact_sharp"])
+                last_film_burn_ms = current["startMs"]
+                film_burn_count += 1
+            elif duration_gap > 350 or current["salience"] < 0.42:
                 # Pensive Reflective Beat -> Optical Bokeh Defocus Blend
                 effect_kind = "bokeh_defocus_blend"
                 sfx_cue = "slow_whoosh_reverb"
-            elif salience_diff < -0.12 or previous.get("salience", 0) > 0.75:
+            elif salience_diff < -0.15 or previous.get("salience", 0) > 0.80:
                 # Climax Punchline Drop -> Camera Crash Snap
                 effect_kind = "camera_crash_snap"
                 sfx_cue = rng.choice(["sub_impact_reverb", "sub_drop"])
-            else:
-                # Fast Dynamic Cadence -> Directional Whip Pan Blur
+            elif rng.random() < 0.50:
+                # Directional Whip Pan Streak
                 effect_kind = "whip_pan_blur"
                 sfx_cue = "whoosh_fast"
+            else:
+                # Subtle Light Leak Flare Sweep
+                effect_kind = "light_leak_sweep"
+                sfx_cue = "slow_whoosh_reverb"
 
             transition = {
                 "id": transition_id,
@@ -197,7 +207,7 @@ def plan_mini_run_orchestration(
                 "cue": sfx_cue,
                 "variant": rng.randint(1, 5),
                 "triggerMs": transition["peakVelocityMs"],
-                "gainDb": -13.5,
+                "gainDb": -14.0,
                 "causedByTransitionId": transition_id,
             })
 

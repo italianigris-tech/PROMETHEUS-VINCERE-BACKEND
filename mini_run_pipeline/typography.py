@@ -1466,16 +1466,16 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
 
             duration_ms = c.get("endMs", 0) - c.get("startMs", 0)
             word_count = len(c_words)
-            # Allow punchy 1 to 3 word chunks with sustained duration
-            is_punchy = 1 <= word_count <= 3
-            is_substantive = c_clean.lower() not in STOPWORDS and len(c_clean) >= 3
+            # Strictly prefer single punchy anchor keywords (1 word) or strong 2-word pairs
+            is_punchy = 1 <= word_count <= 2
+            is_substantive = c_clean.lower() not in STOPWORDS and len(c_clean) >= 3 and not c_text.endswith(",")
 
             if is_punchy and is_substantive and duration_ms >= 400:
-                base_score = c_signal["salience"] + (2.0 if word_count == 1 else 1.4)
+                base_score = c_signal["salience"] + (3.5 if word_count == 1 else 1.8)
                 if any(ch.isdigit() for ch in c_text):
-                    base_score += 1.0
+                    base_score += 1.2
                 # Add mild stochastic variation for true run-to-run diversity
-                score = base_score + rng.uniform(-0.25, 0.25)
+                score = base_score + rng.uniform(-0.15, 0.15)
                 candidate_scores.append((c_idx, score))
 
         candidate_scores.sort(key=lambda item: item[1], reverse=True)
