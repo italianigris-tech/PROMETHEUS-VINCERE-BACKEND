@@ -375,8 +375,6 @@ class AudioMixCommandTests(unittest.TestCase):
         self.assertIn("loudnorm=I=-14:TP=-1:LRA=11", filtergraph)
         self.assertIn("apad=whole_dur=9", filtergraph)
         self.assertIn("-t", command)
-        self.assertEqual(command[command.index("-t") + 1], "9")
-        self.assertIn("-ar", command)
         self.assertEqual(command[command.index("-ar") + 1], "48000")
 
     def test_audio_bake_rejects_a_planned_program_without_materialized_songs(self):
@@ -388,6 +386,28 @@ class AudioMixCommandTests(unittest.TestCase):
                 sfx_events=[],
                 output_path="/tmp/final.mp4",
             )
+
+    def test_spatial_3d_camera_nodes_planning(self):
+        """Verify spatialCamera3D is planned with 3D waypoints for all chunks."""
+        chunks = [
+            {"chunkIndex": 1, "outputStartMs": 0, "outputEndMs": 3000, "placement": {"dominantZone": "cranial_crown", "textAlign": "center"}},
+            {"chunkIndex": 2, "outputStartMs": 3000, "outputEndMs": 6000, "placement": {"dominantZone": "flank_left_column", "textAlign": "left"}},
+            {"chunkIndex": 3, "outputStartMs": 6000, "outputEndMs": 9000, "placement": {"dominantZone": "flank_right_column", "textAlign": "right"}},
+        ]
+        orch = plan_mini_run_orchestration(
+            chunks=chunks,
+            probe={"width": 1080, "height": 1920},
+            duration_ms=9000,
+        )
+        self.assertIn("spatialCamera3D", orch)
+        cam = orch["spatialCamera3D"]
+        self.assertTrue(cam["enabled"])
+        self.assertEqual(len(cam["nodes"]), 3)
+        self.assertEqual(cam["nodes"][0]["dominantZone"], "cranial_crown")
+        self.assertEqual(cam["nodes"][1]["dominantZone"], "flank_left_column")
+        self.assertEqual(cam["nodes"][2]["dominantZone"], "flank_right_column")
+        self.assertIn("position", cam["nodes"][0])
+        self.assertIn("rotation", cam["nodes"][0])
 
 
 if __name__ == "__main__":

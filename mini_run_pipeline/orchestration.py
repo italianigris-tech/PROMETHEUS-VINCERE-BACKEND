@@ -294,6 +294,48 @@ def plan_mini_run_orchestration(
             "causedBySceneId": scenes[-1]["id"],
         })
 
+    # 2.5D After Effects-Style Spatial 3D Camera & Node Rig Planning
+    # Computes 3D spatial waypoints for smooth camera orbits/pans across cranial/flank nodes
+    spatial_nodes: List[Dict[str, Any]] = []
+    for idx, chunk in enumerate(chunks):
+        c_start, c_end = _timing(chunk, idx, duration_ms)
+        placement = chunk.get("placement") or {}
+        dom_zone = placement.get("dominantZone") or "cranial_crown"
+        align = placement.get("textAlign") or "center"
+
+        # Map zone to 3D spatial node coordinates
+        if dom_zone == "flank_left_column":
+            node_x, node_y, node_z = -280.0, -20.0, -80.0
+            rot_x, rot_y, rot_z = 0.0, 8.5, -1.0
+        elif dom_zone == "flank_right_column":
+            node_x, node_y, node_z = 280.0, -20.0, -80.0
+            rot_x, rot_y, rot_z = 0.0, -8.5, 1.0
+        elif dom_zone == "foreground_lower_deck":
+            node_x, node_y, node_z = 0.0, 320.0, 60.0
+            rot_x, rot_y, rot_z = -4.0, 0.0, 0.0
+        else:  # cranial_crown
+            node_x, node_y, node_z = 0.0, -360.0, -140.0
+            rot_x, rot_y, rot_z = 6.0, 0.0, 0.0
+
+        spatial_nodes.append({
+            "nodeId": f"spatial-node-{idx + 1}",
+            "chunkIndex": idx + 1,
+            "startMs": c_start,
+            "endMs": c_end,
+            "dominantZone": dom_zone,
+            "alignment": align,
+            "position": {"x": node_x, "y": node_y, "z": node_z},
+            "rotation": {"pitchDeg": rot_x, "yawDeg": rot_y, "rollDeg": rot_z},
+            "scale": 1.0,
+        })
+
+    spatial_camera_3d = {
+        "enabled": bool(design.get("spatialCamera3D", True)),
+        "mode": design.get("spatialCameraMode", "spline_orbit"),
+        "perspectivePx": 1200,
+        "smoothingFactor": 0.85,
+        "nodes": spatial_nodes,
+    }
 
     return {
         "version": "1.0",
@@ -304,6 +346,7 @@ def plan_mini_run_orchestration(
         "transitions": transitions,
         "cameraMoves": camera_moves,
         "backgrounds": backgrounds,
+        "spatialCamera3D": spatial_camera_3d,
         "pip": pip,
         "sfx": sfx,
     }

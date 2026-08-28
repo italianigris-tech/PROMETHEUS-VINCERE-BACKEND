@@ -351,6 +351,23 @@ export type MiniRunOrchestration = {
     causedByTransitionId?: string | null;
     causedBySceneId?: string | null;
   }>;
+  spatialCamera3D?: {
+    enabled?: boolean;
+    mode?: "spline_orbit" | "pan_tilt" | "dolly_zoom";
+    perspectivePx?: number;
+    smoothingFactor?: number;
+    nodes?: Array<{
+      nodeId: string;
+      chunkIndex: number;
+      startMs: number;
+      endMs: number;
+      dominantZone?: string;
+      alignment?: string;
+      position: { x: number; y: number; z: number };
+      rotation: { pitchDeg: number; yawDeg: number; rollDeg: number };
+      scale?: number;
+    }>;
+  };
 };
 
 export type SceneVisualState = {
@@ -3233,6 +3250,130 @@ const TransitionFXStage: React.FC<{
   return null;
 };
 
+// ---------------------------------------------------------------------------
+// 2.5D After Effects-Style Spatial 3D Camera & Node Rig
+// ---------------------------------------------------------------------------
+
+export const computeSpatial3DCameraTransform = (
+  globalFrame: number,
+  fps: number,
+  spatialCamera?: MiniRunOrchestration["spatialCamera3D"]
+): {
+  camX: number;
+  camY: number;
+  camZ: number;
+  camPitch: number;
+  camYaw: number;
+  camRoll: number;
+} => {
+  if (!spatialCamera?.enabled || !spatialCamera.nodes || spatialCamera.nodes.length === 0) {
+    return { camX: 0, camY: 0, camZ: 0, camPitch: 0, camYaw: 0, camRoll: 0 };
+  }
+
+  const nodes = spatialCamera.nodes;
+  const currentMs = (globalFrame / fps) * 1000;
+
+  // Find active node or transition between nodes
+  let activeIndex = 0;
+  for (let i = 0; i < nodes.length; i++) {
+    if (currentMs >= nodes[i].startMs && currentMs <= nodes[i].endMs) {
+      activeIndex = i;
+      break;
+    }
+    if (currentMs < nodes[i].startMs) {
+      activeIndex = Math.max(0, i - 1);
+      break;
+    }
+    if (i === nodes.length - 1) {
+      activeIndex = i;
+    }
+  }
+
+  const currentNode = nodes[activeIndex];
+  const nextNode = nodes[Math.min(nodes.length - 1, activeIndex + 1)];
+
+  // Transition smoothing between nodes (last 450ms of current node)
+  const transitionLeadMs = 450;
+  const transitionStartMs = Math.max(currentNode.startMs, currentNode.endMs - transitionLeadMs);
+
+  if (activeIndex < nodes.length - 1 && currentMs >= transitionStartMs) {
+    const rawProgress = (currentMs - transitionStartMs) / Math.max(1, currentNode.endMs - transitionStartMs);
+    const progress = interpolate(rawProgress, [0, 1], [0, 1], {
+      easing: Easing.inOut(Easing.cubic),
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+    });
+
+    const camX = interpolate(progress, [0, 1], [currentNode.position.x * 0.35, nextNode.position.x * 0.35]);
+    const camY = interpolate(progress, [0, 1], [currentNode.position.y * 0.25, nextNode.position.y * 0.25]);
+    const camZ = interpolate(progress, [0, 1], [currentNode.position.z * 0.40, nextNode.position.z * 0.40]);
+    const camPitch = interpolate(progress, [0, 1], [currentNode.rotation.pitchDeg * 0.5, nextNode.rotation.pitchDeg * 0.5]);
+    const camYaw = interpolate(progress, [0, 1], [currentNode.rotation.yawDeg * 0.5, nextNode.rotation.yawDeg * 0.5]);
+    const camRoll = interpolate(progress, [0, 1], [currentNode.rotation.rollDeg * 0.5, nextNode.rotation.rollDeg * 0.5]);
+
+    return { camX, camY, camZ, camPitch, camYaw, camRoll };
+  }
+
+  // Active steady-state with subtle organic breathing camera drift
+  const driftPeriodFrames = fps * 4;
+  const driftFrame = globalFrame % driftPeriodFrames;
+  const microDriftX = Math.sin((driftFrame / driftPeriodFrames) * Math.PI * 2) * 3.5;
+  const microDriftY = Math.cos((driftFrame / driftPeriodFrames) * Math.PI * 2) * 2.5;
+
+  return {
+    camX: currentNode.position.x * 0.35 + microDriftX,
+    camY: currentNode.position.y * 0.25 + microDriftY,
+    camZ: currentNode.position.z * 0.40,
+    camPitch: currentNode.rotation.pitchDeg * 0.5,
+    camYaw: currentNode.rotation.yawDeg * 0.5,
+    camRoll: currentNode.rotation.rollDeg * 0.5,
+  };
+};
+
+export const Spatial3DCameraRig: React.FC<{
+  spatialCamera?: MiniRunOrchestration["spatialCamera3D"];
+  frame: number;
+  fps: number;
+  children: React.ReactNode;
+}> = ({ spatialCamera, frame, fps, children }) => {
+  if (!spatialCamera?.enabled) {
+    return <AbsoluteFill style={{ pointerEvents: "none" }}>{children}</AbsoluteFill>;
+  }
+
+  const { camX, camY, camZ, camPitch, camYaw, camRoll } = computeSpatial3DCameraTransform(
+    frame,
+    fps,
+    spatialCamera
+  );
+
+  const perspectivePx = spatialCamera.perspectivePx || 1200;
+
+  return (
+    <AbsoluteFill
+      style={{
+        pointerEvents: "none",
+        perspective: `${perspectivePx}px`,
+        perspectiveOrigin: "50% 50%",
+        transformStyle: "preserve-3d",
+        overflow: "hidden",
+      }}
+    >
+      <div
+        style={{
+          position: "absolute",
+          width: "100%",
+          height: "100%",
+          transformStyle: "preserve-3d",
+          transform: `translate3d(${-camX.toFixed(2)}px, ${-camY.toFixed(2)}px, ${-camZ.toFixed(2)}px) rotateX(${-camPitch.toFixed(2)}deg) rotateY(${-camYaw.toFixed(2)}deg) rotateZ(${-camRoll.toFixed(2)}deg)`,
+          willChange: "transform",
+        }}
+      >
+        {children}
+      </div>
+    </AbsoluteFill>
+  );
+};
+
 export const PrometheusMinRun: React.FC<PrometheusMinRunProps> = ({
   videoSrc,
   matteSrc,
@@ -3265,60 +3406,66 @@ export const PrometheusMinRun: React.FC<PrometheusMinRunProps> = ({
       {/* 1d. Transition Visual Effects Stage (Z: 8) — Film Burns, Flash Cuts, Whip Streaks */}
       <TransitionFXStage orchestration={orchestration} frame={frame} fps={fps} />
 
-      {/* 2. Multi-Layer Speech-Synchronized Kinetic Typography Chunks (Z: 10 / 100) */}
-      {(() => {
-        let runningEndFrame = 0;
-        return chunks.map((chunk, idx) => {
-          // Frame-accurate source time synchronization (prioritize startMs from source audio)
-          const startMs = chunk.startMs ?? chunk.outputStartMs ?? 0;
-          const endMs = chunk.endMs ?? chunk.outputEndMs ?? startMs + 1500;
-          const displayStartMs = chunk.displayStartMs ?? startMs;
-          const displayEndMs = chunk.displayEndMs ?? endMs;
+      {/* 2. Multi-Layer Speech-Synchronized Kinetic Typography Chunks in Spatial 3D Camera Rig (Z: 10 / 100) */}
+      <Spatial3DCameraRig
+        spatialCamera={orchestration?.spatialCamera3D}
+        frame={frame}
+        fps={fps}
+      >
+        {(() => {
+          let runningEndFrame = 0;
+          return chunks.map((chunk, idx) => {
+            // Frame-accurate source time synchronization (prioritize startMs from source audio)
+            const startMs = chunk.startMs ?? chunk.outputStartMs ?? 0;
+            const endMs = chunk.endMs ?? chunk.outputEndMs ?? startMs + 1500;
+            const displayStartMs = chunk.displayStartMs ?? startMs;
+            const displayEndMs = chunk.displayEndMs ?? endMs;
 
-          const contentStartFrame = Math.round((startMs / 1000) * fps);
-          const rawEndFrame = Math.round((displayEndMs / 1000) * fps);
-          const layers = chunk.layers || [];
-          const leadFrames = Math.max(
-            0,
-            ...layers.map((layer) =>
-              Math.round(
-                (((layer.effectiveEntryLeadMs ?? layer.entryLeadMs) ??
-                  (layer.isHero ? 280 : 160)) /
-                  1000) *
-                  fps
+            const contentStartFrame = Math.round((startMs / 1000) * fps);
+            const rawEndFrame = Math.round((displayEndMs / 1000) * fps);
+            const layers = chunk.layers || [];
+            const leadFrames = Math.max(
+              0,
+              ...layers.map((layer) =>
+                Math.round(
+                  (((layer.effectiveEntryLeadMs ?? layer.entryLeadMs) ??
+                    (layer.isHero ? 280 : 160)) /
+                    1000) *
+                    fps
+                )
               )
-            )
-          );
+            );
 
-          // Invariant: startFrame must NEVER precede previous chunk's endFrame (Zero Temporal Overlap)
-          const requestedStartFrame = Math.max(
-            0,
-            Math.round((displayStartMs / 1000) * fps),
-            contentStartFrame - leadFrames
-          );
-          const startFrame = Math.max(runningEndFrame, requestedStartFrame);
-          const endFrame = Math.max(startFrame + 1, rawEndFrame);
-          runningEndFrame = endFrame;
+            // Invariant: startFrame must NEVER precede previous chunk's endFrame (Zero Temporal Overlap)
+            const requestedStartFrame = Math.max(
+              0,
+              Math.round((displayStartMs / 1000) * fps),
+              contentStartFrame - leadFrames
+            );
+            const startFrame = Math.max(runningEndFrame, requestedStartFrame);
+            const endFrame = Math.max(startFrame + 1, rawEndFrame);
+            runningEndFrame = endFrame;
 
-          const relativeContentStartFrame = Math.max(0, contentStartFrame - startFrame);
-          const durationFrames = Math.max(1, endFrame - startFrame);
+            const relativeContentStartFrame = Math.max(0, contentStartFrame - startFrame);
+            const durationFrames = Math.max(1, endFrame - startFrame);
 
-          return (
-            <Sequence
-              key={`chunk-${idx}-${startMs}`}
-              from={startFrame}
-              durationInFrames={durationFrames}
-            >
-              <MultiLayerTypographyCard
-                chunk={chunk}
-                contentStartFrame={relativeContentStartFrame}
-                endFrame={durationFrames}
-                subjectMatteAvailable={Boolean(matteSrc)}
-              />
-            </Sequence>
-          );
-        });
-      })()}
+            return (
+              <Sequence
+                key={`chunk-${idx}-${startMs}`}
+                from={startFrame}
+                durationInFrames={durationFrames}
+              >
+                <MultiLayerTypographyCard
+                  chunk={chunk}
+                  contentStartFrame={relativeContentStartFrame}
+                  endFrame={durationFrames}
+                  subjectMatteAvailable={Boolean(matteSrc)}
+                />
+              </Sequence>
+            );
+          });
+        })()}
+      </Spatial3DCameraRig>
 
       {/* 3. Foreground Subject Matte Cutout Layer (Z: 50) */}
       {matteSrc && (
