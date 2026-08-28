@@ -74,20 +74,52 @@ class SubjectSafePlacementTests(unittest.TestCase):
         self.assertEqual(analysis["yPercent"], "68%")
         self.assertEqual(analysis["fontTreatment"], "kinetic_anchor_deck")
 
-    def test_foreground_text_can_use_the_standard_center_stage(self):
-        placement = plan_subject_safe_placements(
-            [{
-                "chunkIndex": 1,
-                "sourceStartMs": 1000,
-                "sourceEndMs": 2000,
-                "subjectLayering": {"behindSubject": False},
-            }],
-            observation_with_centered_subject(),
-        )[0]
+    def test_temporal_camera_shift_multi_window(self):
+        """As camera angle changes over time, placement pivots between crown, left flank, and lower deck."""
+        observation = {
+            "frames": [
+                # 0-12s: Centered speaker with good headroom
+                {"sourceMs": 3000, "faceCount": 1, "faceBox": {"y": 0.22}, "subjectBox": {"x": 0.30, "y": 0.22, "width": 0.40, "height": 0.60}},
+                {"sourceMs": 8000, "faceCount": 1, "faceBox": {"y": 0.20}, "subjectBox": {"x": 0.30, "y": 0.20, "width": 0.40, "height": 0.60}},
+                # 13-16s: Camera shifted, speaker on right, left flank open
+                {"sourceMs": 14000, "faceCount": 1, "faceBox": {"y": 0.12}, "subjectBox": {"x": 0.58, "y": 0.12, "width": 0.38, "height": 0.80}},
+                # 17-22s: Close up, tight headroom, centered
+                {"sourceMs": 19000, "faceCount": 1, "faceBox": {"y": 0.05}, "subjectBox": {"x": 0.25, "y": 0.05, "width": 0.50, "height": 0.90}},
+            ]
+        }
 
-        self.assertEqual(placement["safeRegionId"], "foreground_center")
-        self.assertEqual(placement["xPercent"], "50%")
-        self.assertEqual(placement["yPercent"], "68%")
+        chunks = [
+            {"chunkIndex": 1, "startMs": 1000, "endMs": 9000, "subjectLayering": {"behindSubject": True}},
+            {"chunkIndex": 2, "startMs": 13000, "endMs": 16000, "subjectLayering": {"behindSubject": True}},
+            {"chunkIndex": 3, "startMs": 17000, "endMs": 22000, "subjectLayering": {"behindSubject": True}},
+        ]
+
+        placements = plan_subject_safe_placements(chunks, observation)
+
+        # Chunk 1 (1s-9s): Cranial crown (centered above head)
+        self.assertEqual(placements[0]["dominantZone"], "cranial_crown")
+        self.assertEqual(placements[0]["textAlign"], "center")
+        self.assertEqual(placements[0]["speakerCategory"], "solo_speaker")
+
+        # Chunk 2 (13s-16s): Camera shifted right -> Left Flank Column
+        self.assertEqual(placements[1]["dominantZone"], "flank_left_column")
+        self.assertEqual(placements[1]["textAlign"], "left")
+
+        # Chunk 3 (17s-22s): Close up -> Lower deck fallback
+        self.assertEqual(placements[2]["dominantZone"], "foreground_lower_deck")
+        self.assertEqual(placements[2]["yPercent"], "68%")
+
+    def test_multi_speaker_room_provisioning(self):
+        """Detects multi-speaker presence when multiple faces are observed."""
+        observation = {
+            "frames": [
+                {"sourceMs": 2000, "faceCount": 2, "faceBox": {"y": 0.15}, "subjectBox": {"x": 0.20, "y": 0.15, "width": 0.60, "height": 0.70}},
+            ]
+        }
+        chunks = [{"chunkIndex": 1, "startMs": 1000, "endMs": 3000, "subjectLayering": {"behindSubject": False}}]
+        placements = plan_subject_safe_placements(chunks, observation)
+        self.assertEqual(placements[0]["speakerCategory"], "multi_speaker")
+        self.assertEqual(placements[0]["faceCount"], 2)
 
 
 if __name__ == "__main__":

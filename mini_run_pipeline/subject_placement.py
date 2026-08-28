@@ -294,64 +294,134 @@ def analyze_cranial_negative_space(
 # Main placement planner
 # ---------------------------------------------------------------------------
 
+def analyze_chunk_temporal_cranial_space(
+    chunk_start_ms: int,
+    chunk_end_ms: int,
+    observation: Optional[Dict[str, Any]],
+) -> Dict[str, Any]:
+    """Analyzes the MediaPipe frames within a specific chunk time-window [chunk_start_ms, chunk_end_ms].
+
+    Performs:
+    1. Multi-Speaker Detection: checks if multiple heads occupy the scene (solo vs multi-speaker room provisioning).
+    2. Dynamic Room Provisioning: measures temporal head top, left clearance, and right clearance for this exact moment.
+    3. Spatial Zone Classification: labels the interval (e.g. 0-12s cranial_crown, 13-16s flank_left_column).
+    """
+    if not observation or "frames" not in observation or not observation["frames"]:
+        res = analyze_cranial_negative_space(None, None)
+        res["speakerCategory"] = "solo_speaker"
+        res["faceCount"] = 1
+        res["temporalWindow"] = {"startMs": chunk_start_ms, "endMs": chunk_end_ms}
+        return res
+
+    # 1. Filter frames falling within [chunk_start_ms - 250, chunk_end_ms + 250]
+    matched_frames = [
+        f for f in observation["frames"]
+        if chunk_start_ms - 250 <= int(f.get("sourceMs", 0)) <= chunk_end_ms + 250
+    ]
+
+    if not matched_frames:
+        nearest = _nearest_frame(observation["frames"], chunk_start_ms)
+        matched_frames = [nearest] if nearest else []
+
+    # 2. Multi-speaker count analysis
+    max_faces = max((f.get("faceCount", 1) for f in matched_frames if f), default=1)
+    speaker_category = "solo_speaker" if max_faces <= 1 else "multi_speaker"
+
+    # 3. Aggregate subject box and head top for this specific temporal segment
+    head_tops = []
+    boxes = []
+    for f in matched_frames:
+        if not f:
+            continue
+        if "faceBox" in f and f["faceBox"]:
+            head_tops.append(float(f["faceBox"].get("y", 0.15)))
+        elif "subjectBox" in f and f["subjectBox"]:
+            head_tops.append(float(f["subjectBox"].get("y", 0.15)))
+        if "subjectBox" in f and f["subjectBox"]:
+            boxes.append(f["subjectBox"])
+
+    window_head_top = min(head_tops) if head_tops else None
+    if boxes:
+        window_box = {
+            "x": min(b["x"] for b in boxes),
+            "y": min(b["y"] for b in boxes),
+            "width": max(b["x"] + b.get("width", 0.4) for b in boxes) - min(b["x"] for b in boxes),
+            "height": max(b["y"] + b.get("height", 0.6) for b in boxes) - min(b["y"] for b in boxes),
+        }
+    else:
+        window_box = None
+
+    analysis = analyze_cranial_negative_space(window_box, window_head_top)
+    analysis["speakerCategory"] = speaker_category
+    analysis["faceCount"] = max_faces
+    analysis["temporalWindow"] = {
+        "startMs": chunk_start_ms,
+        "endMs": chunk_end_ms,
+    }
+    return analysis
+
+
+# ---------------------------------------------------------------------------
+# Main placement planner
+# ---------------------------------------------------------------------------
+
 def plan_subject_safe_placements(
     chunks: List[Dict[str, Any]],
     observation: Optional[Dict[str, Any]] = None,
 ) -> List[Dict[str, Any]]:
-    """Compute per-chunk placement dicts, respecting cranial negative space distribution.
+    """Compute per-chunk placement dicts, respecting dynamic temporal cranial negative space distribution.
 
-    Adapts dynamically to camera framing shifts (above-head crown, left flank column, right flank column,
-    or lower third anchor deck).
+    Adapts dynamically to camera framing shifts on a per-chunk basis (above-head crown, left flank column,
+    right flank column, or lower third anchor deck), checking multi-speaker occupancy and room provisioning.
     """
-    head_top_y: Optional[float] = None
-    representative_subject_box: Optional[Dict[str, float]] = None
-    if observation:
-        head_top_y = _aggregate_head_top(observation)
-        representative_subject_box = _aggregate_subject_box(observation)
-
-    cranial_analysis = analyze_cranial_negative_space(representative_subject_box, head_top_y)
-
-    behind_subject_placement: Dict[str, Any] = {
-        "xPercent": cranial_analysis["xPercent"],
-        "yPercent": cranial_analysis["yPercent"],
-        "anchor": cranial_analysis["anchor"],
-        "textAlign": cranial_analysis["textAlign"],
-        "dominantZone": cranial_analysis["dominantZone"],
-        "fontTreatment": cranial_analysis["fontTreatment"],
-        "safeRegionId": cranial_analysis["zoneId"],
-        "intersectsSubject": False,
-        "subjectBox": representative_subject_box,
-        "availableHeightRatio": cranial_analysis["headroomRatio"],
-        "headTopY": round(head_top_y, 4) if head_top_y is not None else None,
-        "policy": f"cranial_negative_space_{cranial_analysis['dominantZone']}",
-        "cranialArc": {
-            "haloTop": cranial_analysis["yPercent"],
-            "orbitalLeft": f"{round((representative_subject_box['x'] if representative_subject_box else 0.5) * 100 - 18, 1)}%",
-            "orbitalRight": f"{round(((representative_subject_box['x'] + representative_subject_box.get('width', 0.4)) if representative_subject_box else 0.5) * 100 + 18, 1)}%",
-            "tiltDeg": 0.0,
-        } if cranial_analysis["dominantZone"] == "cranial_crown" else None,
-    }
-
-    foreground_placement: Dict[str, Any] = {
-        "xPercent": "50%",
-        "yPercent": "68%",
-        "anchor": "center",
-        "textAlign": "center",
-        "dominantZone": "foreground_lower_deck",
-        "fontTreatment": "kinetic_anchor_deck",
-        "safeRegionId": "foreground_center",
-        "intersectsSubject": False,
-        "subjectBox": None,
-        "policy": "foreground_lower_third",
-        "cranialArc": None,
-    }
-
-    # --- assign per chunk ----------------------------------------------------
     planned: List[Dict[str, Any]] = []
+
     for chunk in chunks:
-        layering     = chunk.get("subjectLayering") or {}
-        behind_subj  = bool(layering.get("behindSubject"))
-        planned.append(behind_subject_placement if behind_subj else foreground_placement)
+        layering = chunk.get("subjectLayering") or {}
+        behind_subj = bool(layering.get("behindSubject"))
+        c_start = int(chunk.get("startMs", chunk.get("sourceStartMs", chunk.get("outputStartMs", 0))))
+        c_end = int(chunk.get("endMs", chunk.get("sourceEndMs", chunk.get("outputEndMs", c_start + 1500))))
+
+        cranial_analysis = analyze_chunk_temporal_cranial_space(c_start, c_end, observation)
+        dom_zone = cranial_analysis["dominantZone"]
+
+        if behind_subj:
+            planned.append({
+                "xPercent": cranial_analysis["xPercent"],
+                "yPercent": cranial_analysis["yPercent"],
+                "anchor": cranial_analysis["anchor"],
+                "textAlign": cranial_analysis["textAlign"],
+                "dominantZone": dom_zone,
+                "speakerCategory": cranial_analysis["speakerCategory"],
+                "faceCount": cranial_analysis["faceCount"],
+                "fontTreatment": cranial_analysis["fontTreatment"],
+                "safeRegionId": cranial_analysis["zoneId"],
+                "intersectsSubject": False,
+                "availableHeightRatio": cranial_analysis["headroomRatio"],
+                "headTopY": round(cranial_analysis["headroomRatio"], 4),
+                "policy": f"cranial_negative_space_{dom_zone}",
+                "cranialArc": {
+                    "haloTop": cranial_analysis["yPercent"],
+                    "orbitalLeft": "12.0%",
+                    "orbitalRight": "88.0%",
+                    "tiltDeg": 0.0,
+                } if dom_zone == "cranial_crown" else None,
+            })
+        else:
+            planned.append({
+                "xPercent": "50%",
+                "yPercent": "68%",
+                "anchor": "center",
+                "textAlign": "center",
+                "dominantZone": "foreground_lower_deck",
+                "speakerCategory": cranial_analysis["speakerCategory"],
+                "faceCount": cranial_analysis["faceCount"],
+                "fontTreatment": "kinetic_anchor_deck",
+                "safeRegionId": "foreground_center",
+                "intersectsSubject": False,
+                "policy": "foreground_lower_third",
+                "cranialArc": None,
+            })
 
     return planned
 
