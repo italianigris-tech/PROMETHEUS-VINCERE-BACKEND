@@ -186,6 +186,7 @@ const TYPOGRAPHY_30_PRESETS: ArchetypeVariant[] = [
     id: 10,
     badge: "TYPO #10",
     name: "Hand-Drawn Kinetic SVG Underline Engine",
+    type: "treatment",
     traitId: "trait_hand_drawn_underline",
     concern: "EnclosureAndAccents",
     targetScope: "word",
@@ -292,6 +293,7 @@ const TYPOGRAPHY_30_PRESETS: ArchetypeVariant[] = [
     id: 17,
     badge: "TYPO #17",
     name: "Apple Metallic Chrome 3D Count-Up Hero Engine",
+    type: "treatment",
     traitId: "trait_metallic_chrome_3d",
     concern: "MaterialTreatment",
     targetScope: "phrase",
@@ -307,6 +309,7 @@ const TYPOGRAPHY_30_PRESETS: ArchetypeVariant[] = [
     id: 18,
     badge: "TYPO #18",
     name: "Designali Soft Lavender Highlight Selection Engine",
+    type: "treatment",
     traitId: "trait_soft_lavender_pill",
     concern: "EnclosureAndAccents",
     targetScope: "word",
@@ -337,6 +340,7 @@ const TYPOGRAPHY_30_PRESETS: ArchetypeVariant[] = [
     id: 20,
     badge: "TYPO #20",
     name: "21st.dev Vector Stroke Outline & Sparkle Engine",
+    type: "treatment",
     traitId: "trait_vector_stroke_outline",
     concern: "MaterialTreatment",
     targetScope: "word",
@@ -442,6 +446,7 @@ const TYPOGRAPHY_30_PRESETS: ArchetypeVariant[] = [
     id: 27,
     badge: "TYPO #28",
     name: "Obsidian Stage & LED Dot-Matrix Scanline Engine",
+    type: "treatment",
     traitId: "trait_led_dot_matrix",
     concern: "MaterialTreatment + TextureFusion",
     targetScope: "phrase",
@@ -457,6 +462,7 @@ const TYPOGRAPHY_30_PRESETS: ArchetypeVariant[] = [
     id: 28,
     badge: "TYPO #29",
     name: "Geometric Circle Inversion & Kinetic Contrast Engine",
+    type: "treatment",
     traitId: "trait_geometric_circle_inversion",
     concern: "MaterialTreatment + LayoutComposition",
     targetScope: "phrase",
@@ -472,6 +478,7 @@ const TYPOGRAPHY_30_PRESETS: ArchetypeVariant[] = [
     id: 29,
     badge: "TYPO #30",
     name: "Cyber Acid Lime Heavy Grotesque & Matrix Glitch Engine",
+    type: "treatment",
     traitId: "trait_acid_lime_letter_glitch",
     concern: "MotionPhysics + GlyphDisplace",
     targetScope: "glyph",
@@ -601,6 +608,7 @@ const TYPOGRAPHY_30_PRESETS: ArchetypeVariant[] = [
     id: 38,
     badge: "TYPO #39",
     name: "3D Metallic Chrome Counter — Edits Later",
+    type: "treatment",
     traitId: "trait_3d_metallic_chrome_counter",
     concern: "MaterialTreatment + MotionPhysics",
     targetScope: "metric_number",
@@ -616,6 +624,7 @@ const TYPOGRAPHY_30_PRESETS: ArchetypeVariant[] = [
     id: 39,
     badge: "TYPO #40",
     name: "Apple-Style Kinetic Gaussian Chrome — GOAL",
+    type: "treatment",
     traitId: "trait_apple_gaussian_chrome_goal",
     concern: "MotionPhysics + MaterialTreatment",
     targetScope: "glyph",
@@ -656,6 +665,111 @@ const TYPOGRAPHY_30_PRESETS: ArchetypeVariant[] = [
     slug: "cinematic-distance-convergence",
     code: "@keyframes convergenceCloseDistance { 0% { letter-spacing: 0.45em; filter: blur(28px); } 70% { letter-spacing: -0.055em; filter: blur(0px); } }",
     html: `<div class="typo-convergence-stage"><div class="convergence-ambient"></div><div class="convergence-stage-content"><h1 class="convergence-text-cinematic">in this field</h1></div></div>`
+  },
+  {
+    id: 42,
+    badge: "TYPO #43",
+    name: "Simultaneous Letter Reveal & Sharp Highlight",
+    traitId: "trait_simultaneous_letter_reveal_sharp_highlight",
+    concern: "MotionPhysics + ClipPathSynchronization",
+    targetScope: "word",
+    channels: "opacity, filter.blur, transform.translateY, transform.scale, clipPath",
+    conflicts: "gooey_metaball_filter",
+    frameExpression: "stagger = 0.05s/char | letter reveal + 2-part clip-path highlight run concurrently at t=0",
+    footerSpec: "Inter 900 • Tracking -0.04em • Simultaneous Letter Reveal + Sharp Yellow Highlight",
+    slug: "simultaneous-letter-reveal-sharp-highlight",
+    code: "@keyframes sim-quad-letter-reveal { 0% { opacity: 0; transform: translateY(24px) scale(0.95); filter: blur(10px); } 100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0px); } }",
+    html: `<div class="sim-stage"><div class="sim-word-container"><div class="sim-text-layer sim-base-layer"></div><div class="sim-highlight-overlay"><div class="sim-text-layer sim-overlay-text"></div></div></div></div>`
+  },
+  {
+    id: 43,
+    badge: "TYPO #44",
+    name: "Masked Dual-Axis Text Reveal",
+    traitId: "trait_masked_dual_axis_text_reveal",
+    concern: "MotionPhysics + MaskedTranslation",
+    targetScope: "glyph",
+    channels: "transform.translateX, transform.translateY, opacity, filter.blur",
+    conflicts: "None",
+    frameExpression: "stagger = 0.08s/char | dual-axis (50px, 110%) -> (0,0) quad ease-out + blur decay",
+    footerSpec: "Montserrat 900 Italic • Dual-Axis X/Y Translation • Masked Bottom Clip",
+    slug: "masked-dual-axis-text-reveal",
+    code: "@keyframes mda-dual-axis-quad { 0% { opacity: 0; transform: translate(50px, 110%) scale(0.92); filter: blur(20px); } 45% { opacity: 0.7; filter: blur(6px); } 100% { opacity: 1; transform: translate(0, 0) scale(1); filter: blur(0px); } }",
+    html: `<div class="mda-stage"><div class="mda-text-container">First</div></div>`
+  },
+  {
+    id: 44,
+    badge: "TYPO #45",
+    name: "Compound Word Glitch & Blur Reveal",
+    traitId: "trait_compound_word_glitch_blur_reveal",
+    concern: "MotionPhysics + CompositeChoreography",
+    targetScope: "compound_word",
+    channels: "opacity, transform.translateX, text-shadow, filter.blur, transform.translateY",
+    conflicts: "hand_drawn_svg_path",
+    frameExpression: "part1 glitch flicker 0.85s steps(1,end) | part2 blur reveal baseDelay 0.5s + 0.08s/char",
+    footerSpec: "Playfair Display 700 Italic • Compound Glitch Flicker + Gaussian Blur Reveal",
+    slug: "compound-word-glitch-blur-reveal",
+    code: "@keyframes cwg-quad-blur { 0% { opacity: 0; transform: translateY(24px) scale(0.95); filter: blur(16px); } 50% { opacity: 0.7; filter: blur(4px); } 100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0px); } }",
+    html: `<div class="cwg-stage"><div class="cwg-compound-container" data-word="in-demand"></div></div>`
+  },
+  {
+    id: 45,
+    badge: "TYPO #46",
+    name: "Dynamic 3-Letter Flicker Animation",
+    traitId: "trait_dynamic_3_letter_flicker",
+    concern: "TemporalTrigger + StochasticSelection",
+    targetScope: "glyph",
+    channels: "opacity (binary hard flicker)",
+    conflicts: "None",
+    frameExpression: "random 3 unique letters | 0.6s steps(1,end) binary flicker | stagger 0-180ms",
+    footerSpec: "Inter 700 • Random 3-Letter Hard Flicker • Zero-Blur Step Animation",
+    slug: "dynamic-3-letter-flicker",
+    code: "@keyframes flk-hard-flicker { 0% { opacity: 0; } 12% { opacity: 1; } 24% { opacity: 0; } 38% { opacity: 1; } 50% { opacity: 0; } 65% { opacity: 1; } 78% { opacity: 0; } 88% { opacity: 1; } 95% { opacity: 0; } 100% { opacity: 1; } }",
+    html: `<div class="flk-stage"><div class="flk-text-word" data-word="awkward."></div></div>`
+  },
+  {
+    id: 46,
+    badge: "TYPO #47",
+    name: "Fluid Wave Text Effect",
+    traitId: "trait_fluid_wave_text_effect",
+    concern: "SVGMotionPhysics + ContinuousLoop",
+    targetScope: "phrase",
+    channels: "transform.translateX (wave sweep), transform.translateY (liquid bob)",
+    conflicts: "None",
+    frameExpression: "waveMove 3s linear infinite (translateX -400px loop) | liquidBob 4s alternate",
+    footerSpec: "Impact 900 • SVG Fluid Wave Mask • Seamless Liquid Loop",
+    slug: "fluid-wave-text-effect",
+    code: "@keyframes fwv-wave-move { 0% { transform: translateX(0); } 100% { transform: translateX(-400px); } }",
+    html: `<div class="fwv-stage"><div class="fwv-container"><svg viewBox="0 0 800 240" width="100%" height="100%" preserveAspectRatio="xMidYMid meet"><defs><linearGradient id="fwv-yellow-liquid" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#ffff00"/><stop offset="60%" stop-color="#ffcc00"/><stop offset="100%" stop-color="#ff8800"/></linearGradient><filter id="fwv-liquid-glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="6" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter><clipPath id="fwv-text-clip"><text x="50%" y="55%" text-anchor="middle" dominant-baseline="middle" font-size="130" font-weight="900" letter-spacing="3">2 THINGS</text></clipPath></defs><text x="50%" y="55%" text-anchor="middle" dominant-baseline="middle" font-size="130" font-weight="900" letter-spacing="3" fill="#a0a5a3">2 THINGS</text><g clip-path="url(#fwv-text-clip)"><g class="fwv-wave-group" filter="url(#fwv-liquid-glow)"><path class="fwv-wave-path" fill="url(#fwv-yellow-liquid)" d="M 0,125 C 100,105 150,145 200,125 C 250,105 300,145 400,125 C 500,105 550,145 600,125 C 650,105 700,145 800,125 C 850,105 900,145 1000,125 C 1050,105 1100,145 1200,125 V 250 H 0 Z"/></g></g></svg></div></div>`
+  },
+  {
+    id: 47,
+    badge: "TYPO #48",
+    name: "SaaS Letter Reveal Animation",
+    traitId: "trait_saas_letter_reveal",
+    concern: "MotionPhysics + GradientTextMaterial",
+    targetScope: "word",
+    channels: "opacity, transform.scale, transform.translate, filter.blur, filter.brightness",
+    conflicts: "None",
+    frameExpression: "staggered nth-child delays 0.3s-1.5s | momentary brightness flicker settle",
+    footerSpec: "Inter 700 • SaaS Purple Gradient Backdrop • Momentary Entry Flicker",
+    slug: "saas-letter-reveal",
+    code: "@keyframes saas-entry-flicker { 0% { opacity: 0; transform: scale(1.15) translate(-3px, -2px); filter: brightness(2.5) blur(3px); } 100% { opacity: 1; transform: scale(1) translate(0, 0); filter: brightness(1) blur(0); } }",
+    html: `<div class="saas-stage"><div class="saas-background"></div><div class="saas-text"><span>S</span><span>a</span><span>a</span><span>S</span></div></div>`
+  },
+  {
+    id: 48,
+    badge: "TYPO #49",
+    name: "Animated Word Swap",
+    traitId: "trait_animated_word_swap",
+    concern: "MaterialTreatment + MotionPhysics",
+    targetScope: "word",
+    channels: "background.gradient, filter.dropShadow, transform.scale, transform.translateY, opacity",
+    conflicts: "None",
+    frameExpression: "word swap every 2.4s | chrome shine sweep 1.8s infinite | kinetic overshoot enter/exit",
+    footerSpec: "Anton 900 • Chrome Metallic Gradient • Kinetic Shine-Sweep Work Cycle",
+    slug: "animated-word-swap",
+    code: "@keyframes swp-metal-absorb { 0% { transform: translateX(-130%) skewX(-18deg); opacity: 0; } 10% { opacity: 1; } 60% { opacity: 1; } 100% { transform: translateX(420%) skewX(-18deg); opacity: 0; } }",
+    html: `<div class="swp-stage"><div class="swp-dotgrid"></div><div class="swp-ambient"></div><div class="swp-single-word"><span class="swp-word active">WA</span></div><div class="swp-shine"></div></div>`
   }
 ];
 
@@ -3237,6 +3351,218 @@ const SAND_TYPO_CUSTOM_CSS = `
 }
 `;
 
+const NEW_TYPO_CUSTOM_CSS = `
+/* ========================================================================= */
+/* NEW TYPO PRESETS (TYPO #43 - #46) — HTML Animation Presets                */
+/* ========================================================================= */
+
+/* --- TYPO #43 SIMULTANEOUS LETTER REVEAL & SHARP HIGHLIGHT --- */
+.sim-stage {
+  width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+  background-color: #0a0a0c; font-family: 'Inter', system-ui, sans-serif; overflow: hidden; color: #ffffff;
+}
+.sim-stage .sim-word-container {
+  position: relative; display: inline-block; font-size: 6.5rem; font-weight: 900;
+  letter-spacing: -0.04em; padding: 0.12em 0.3em; user-select: none; white-space: nowrap;
+}
+.sim-stage .sim-text-layer { display: flex; align-items: center; white-space: nowrap; }
+.sim-stage .sim-base-layer { color: #ffffff; }
+.sim-stage .sim-letter {
+  display: inline-block; opacity: 0; will-change: transform, opacity, filter;
+  animation: sim-quad-letter-reveal 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+.sim-stage .sim-highlight-overlay {
+  position: absolute; inset: 0; padding: 0.12em 0.3em;
+  background-color: #ffe600; border-radius: 0; overflow: hidden;
+  will-change: clip-path, transform;
+  animation: sim-two-part-highlight 1.1s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+.sim-stage .sim-highlight-overlay .sim-overlay-text { color: #0a0a0c; }
+.sim-stage .sim-letter-static { color: #0a0a0c; }
+@keyframes sim-quad-letter-reveal {
+  0% { opacity: 0; transform: translateY(24px) scale(0.95); filter: blur(10px); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0px); }
+}
+@keyframes sim-two-part-highlight {
+  0% { clip-path: inset(100% 100% 0 0); transform: translateY(16px); }
+  35% { clip-path: inset(0% 100% 0 0); transform: translateY(0); }
+  100% { clip-path: inset(0% 0% 0 0); transform: translateY(0); }
+}
+
+/* --- TYPO #44 MASKED DUAL-AXIS TEXT REVEAL --- */
+.mda-stage {
+  width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+  background-color: #e5e5dd; overflow: hidden;
+}
+.mda-stage .mda-text-container {
+  font-size: 11rem; font-weight: 900; font-style: italic; color: #e63a0e;
+  display: flex; user-select: none; white-space: nowrap; padding: 0 0.1em;
+}
+.mda-stage .mda-letter-mask { overflow: hidden; display: inline-block; padding-right: 0.05em; margin-right: -0.02em; }
+.mda-stage .mda-letter-char {
+  display: inline-block; opacity: 0; will-change: transform, opacity, filter;
+  animation: mda-dual-axis-quad 1.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+@keyframes mda-dual-axis-quad {
+  0% { opacity: 0; transform: translate(50px, 110%) scale(0.92); filter: blur(20px); }
+  45% { opacity: 0.7; filter: blur(6px); }
+  100% { opacity: 1; transform: translate(0, 0) scale(1); filter: blur(0px); }
+}
+
+/* --- TYPO #45 COMPOUND WORD GLITCH & BLUR REVEAL --- */
+.cwg-stage {
+  width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+  background-color: #f4f5f8; overflow: hidden;
+}
+.cwg-stage .cwg-compound-container {
+  font-size: 7.5rem; font-weight: 700; font-style: italic; color: #122df4;
+  letter-spacing: -0.03em; display: flex; align-items: baseline; user-select: none; white-space: nowrap;
+}
+.cwg-stage .cwg-part-glitch {
+  display: inline-block; position: relative; will-change: opacity, transform, text-shadow;
+  animation: cwg-subtle-glitch 0.85s steps(1, end) 0.2s forwards;
+}
+@keyframes cwg-subtle-glitch {
+  0% { opacity: 0; transform: translateX(-2px); text-shadow: 2px 0 rgba(18, 45, 244, 0.4); }
+  15% { opacity: 0.9; transform: translateX(1px); text-shadow: -1px 0 rgba(0, 180, 255, 0.6); }
+  28% { opacity: 0.2; transform: translateX(0); text-shadow: none; }
+  42% { opacity: 1; transform: translateX(-1px); text-shadow: 1.5px 0 rgba(18, 45, 244, 0.5); }
+  58% { opacity: 0.4; transform: translateX(0.5px); }
+  72% { opacity: 0.95; transform: translateX(-0.5px); }
+  85% { opacity: 0.7; }
+  100% { opacity: 1; transform: translateX(0); text-shadow: none; }
+}
+.cwg-stage .cwg-part-blur-wrapper { display: inline-flex; }
+.cwg-stage .cwg-blur-char {
+  display: inline-block; opacity: 0; will-change: transform, opacity, filter;
+  animation: cwg-quad-blur 1.1s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+@keyframes cwg-quad-blur {
+  0% { opacity: 0; transform: translateY(24px) scale(0.95); filter: blur(16px); }
+  50% { opacity: 0.7; filter: blur(4px); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0px); }
+}
+
+/* --- TYPO #46 DYNAMIC 3-LETTER FLICKER --- */
+.flk-stage {
+  width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+  background-color: #140d0b; overflow: hidden;
+}
+.flk-stage .flk-text-word {
+  font-size: 7rem; font-weight: 700; color: #f7f3ec; letter-spacing: -0.05em;
+  display: flex; align-items: baseline; user-select: none;
+}
+.flk-stage .flk-dot { color: #b56c4d; }
+.flk-stage .flk-letter { display: inline-block; }
+.flk-stage .flk-flicker-hidden { opacity: 0; }
+.flk-stage .flk-flicker-active { animation: flk-hard-flicker 0.6s steps(1, end) forwards; }
+@keyframes flk-hard-flicker {
+  0% { opacity: 0; } 12% { opacity: 1; } 24% { opacity: 0; } 38% { opacity: 1; }
+  50% { opacity: 0; } 65% { opacity: 1; } 78% { opacity: 0; } 88% { opacity: 1; }
+  95% { opacity: 0; } 100% { opacity: 1; }
+}
+`;
+
+const NEW_TYPO_CUSTOM_CSS_2 = `
+/* --- TYPO #47 FLUID WAVE TEXT EFFECT --- */
+.fwv-stage {
+  width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+  background-color: #0b140d; overflow: hidden; padding: 10px; box-sizing: border-box;
+}
+.fwv-stage .fwv-container { width: 100%; max-width: 900px; }
+.fwv-stage .fwv-wave-path { animation: fwv-wave-move 3s linear infinite; }
+@keyframes fwv-wave-move { 0% { transform: translateX(0); } 100% { transform: translateX(-400px); } }
+.fwv-stage .fwv-wave-group { animation: fwv-liquid-bob 4s ease-in-out infinite alternate; }
+@keyframes fwv-liquid-bob { 0% { transform: translateY(0px); } 100% { transform: translateY(-10px); } }
+
+/* --- TYPO #48 SAAS LETTER REVEAL --- */
+.saas-stage {
+  width: 100%; height: 100%; position: relative; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+}
+.saas-stage .saas-background {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  background: linear-gradient(to bottom, #000000 0%, #000000 30%, #1a0025 55%, #4b0082 85%, #5e2a7e 100%); z-index: 1;
+}
+.saas-stage .saas-text {
+  position: relative; z-index: 2; font-size: 140px; font-weight: 700; letter-spacing: -2px; display: flex;
+}
+.saas-stage .saas-text span {
+  opacity: 0; display: inline-block;
+  background: linear-gradient(to bottom, #e0f7fa 0%, #80deea 25%, #0288d1 65%, #01579b 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: saas-entry-flicker 0.45s ease-out forwards;
+}
+.saas-stage .saas-text span:nth-child(1) { animation-delay: 0.3s; }
+.saas-stage .saas-text span:nth-child(2) { animation-delay: 0.7s; }
+.saas-stage .saas-text span:nth-child(3) { animation-delay: 1.1s; }
+.saas-stage .saas-text span:nth-child(4) { animation-delay: 1.5s; }
+@keyframes saas-entry-flicker {
+  0% { opacity: 0; transform: scale(1.15) translate(-3px, -2px); filter: brightness(2.5) blur(3px); }
+  20% { opacity: 0.9; transform: scale(0.95) translate(2px, 1px); filter: brightness(0.3); }
+  40% { opacity: 0.2; transform: scale(1.08) translate(-2px, 2px); filter: brightness(2.2) blur(1px); }
+  60% { opacity: 0.85; transform: scale(0.98) translate(1px, -1px); filter: brightness(0.7); }
+  80% { opacity: 1; transform: scale(1.02) translate(-0.5px, 0); filter: brightness(1.3); }
+  100% { opacity: 1; transform: scale(1) translate(0, 0); filter: brightness(1) blur(0); }
+}
+
+/* --- TYPO #49 ANIMATED WORD SWAP (METAL-KINETIC WORK CYCLE) --- */
+.swp-stage {
+  width: 100%; height: 100%; position: relative; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  background-color: #05070d;
+}
+.swp-stage .swp-dotgrid {
+  position: absolute; inset: 0; opacity: 0.4; pointer-events: none; z-index: 1;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.16) 1px, transparent 1px);
+  background-size: 10px 10px;
+}
+.swp-stage .swp-ambient {
+  position: absolute; left: 50%; top: 50%; width: 480px; height: 280px;
+  transform: translate(-50%, -50%); pointer-events: none; z-index: 1;
+  background: radial-gradient(circle, rgba(60, 120, 220, 0.3) 0%, rgba(5, 7, 13, 0) 70%);
+  filter: blur(48px);
+}
+.swp-stage .swp-single-word {
+  position: relative; z-index: 2; display: inline-block; text-align: left;
+  font-family: 'Anton', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+  font-size: clamp(64px, 15vw, 138px); font-weight: 900; line-height: 1;
+  letter-spacing: -0.01em; text-transform: uppercase; white-space: nowrap;
+  animation: swp-metal-breathe 2.4s ease-in-out infinite;
+}
+@keyframes swp-metal-breathe { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.22); } }
+.swp-stage .swp-word {
+  position: absolute; left: 0; top: 0; display: block; white-space: nowrap;
+  background: linear-gradient(175deg, #ffffff 0%, #e8f2ff 12%, #4a7fd4 30%, #0b1c3d 54%, #071122 70%, #27528f 86%, #9cc6ff 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(-3px -2px 1px rgba(255, 215, 110, 0.5)) drop-shadow(3px 2px 1px rgba(0, 230, 255, 0.5)) drop-shadow(0 16px 28px rgba(0, 0, 0, 0.9));
+}
+.swp-stage .swp-word.active { opacity: 1; transform: translateY(0) scale(1); }
+.swp-stage .swp-word.enter { animation: swp-word-enter 0.55s cubic-bezier(0.22, 1.2, 0.36, 1) forwards; }
+@keyframes swp-word-enter {
+  0% { opacity: 0; transform: translateY(42%) scale(0.86); }
+  60% { opacity: 1; transform: translateY(-4%) scale(1.05); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.swp-stage .swp-word.exit { animation: swp-word-exit 0.45s cubic-bezier(0.6, 0, 0.4, 1) forwards; }
+@keyframes swp-word-exit {
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-40%) scale(0.9); }
+}
+.swp-stage .swp-shine {
+  position: absolute; top: -10%; bottom: -10%; left: 0; width: 34%;
+  pointer-events: none; z-index: 3;
+  background: linear-gradient(105deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.14) 30%, rgba(255, 255, 255, 0.5) 50%, rgba(255, 255, 255, 0.14) 70%, rgba(255, 255, 255, 0) 100%);
+  animation: swp-metal-absorb 1.8s cubic-bezier(0.45, 0, 0.25, 1) infinite;
+}
+@keyframes swp-metal-absorb {
+  0% { transform: translateX(-130%) skewX(-18deg); opacity: 0; }
+  10% { opacity: 1; }
+  60% { opacity: 1; }
+  100% { transform: translateX(420%) skewX(-18deg); opacity: 0; }
+}
+`;
+
 interface BaseArchetypeExtraction {
   id: number;
   serialNumber: string;
@@ -3369,7 +3695,7 @@ function generateArchetypeVariants(def: { id: number; name: string; cat: string;
 
 // Assemble ALL 50 ARCHETYPES SUITES
 const ALL_50_ARCHETYPES_DATA: AnimaArchetypeFull[] = [
-  // 01. Typography Master Suite (41 Presets)
+  // 01. Typography Master Suite (48 Presets)
   {
     id: 1,
     serialNumber: "01",
@@ -3377,7 +3703,7 @@ const ALL_50_ARCHETYPES_DATA: AnimaArchetypeFull[] = [
     name: "Typography (Master Kinetic Suite)",
     category: "typography",
     categoryLabel: "Kinetic Typography",
-    definition: "Master typographic motion engine comprising 41 distinct kinetic treatments & stylizations (39 Motion Physics Engines + 2 High-Impact Editorial Treatments), 63 font JSON profiles, subpixel masking, and 60fps Remotion math.",
+    definition: "Master typographic motion engine comprising 48 distinct kinetic treatments & stylizations (46 Motion Physics Engines + 2 High-Impact Editorial Treatments), 63 font JSON profiles, subpixel masking, and 60fps Remotion math.",
     examplePrompt: "“Words are not static text overlays; they are tactile 3D physical meshes interacting with depth and sound.”",
     traitId: "trait_master_kinetic_typography_suite",
     concern: "KineticTypographyCore",
@@ -3386,10 +3712,10 @@ const ALL_50_ARCHETYPES_DATA: AnimaArchetypeFull[] = [
     conflicts: "raw_unstyled_system_fonts",
     frameExpression: "kineticWeight = 700 + sin(frame * 0.1) * 200",
     audioLinkage: "Mechanical Keystroke Clicks & Sandstorm Particle Whir (Pan: Center, Cutoff: 18,500 Hz)",
-    footerNote: "41 Active Presets • 39 Animation Physics + 2 Editorial Treatments",
+    footerNote: "48 Active Presets • 46 Animation Physics + 2 Editorial Treatments",
     slug: "typography",
     variants: TYPOGRAPHY_30_PRESETS,
-    customCss: typographyExtractedCss + "\n" + SAND_TYPO_CUSTOM_CSS
+    customCss: typographyExtractedCss + "\n" + SAND_TYPO_CUSTOM_CSS + "\n" + NEW_TYPO_CUSTOM_CSS + "\n" + NEW_TYPO_CUSTOM_CSS_2
   },
 
   // 02. Micro Asset Master Motion Suite (15 Advanced Complex Presets - Instagram Icon Subject)
@@ -3807,6 +4133,10 @@ const htmlOutput = `<!DOCTYPE html>
       cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 4px;
     }
     .inspect-btn:hover { background: #06b6d4; color: #000; box-shadow: 0 0 16px rgba(6,182,212,0.5); }
+    .inspect-btn.active { background: #a3e635; color: #000; border-color: #a3e635; box-shadow: 0 0 16px rgba(163,230,53,0.5); }
+    .inspect-btn.treat-btn { background: rgba(192,132,252,0.15); border: 1px solid rgba(192,132,252,0.4); color: #c084fc; }
+    .inspect-btn.treat-btn:hover { background: #c084fc; color: #000; box-shadow: 0 0 16px rgba(192,132,252,0.5); }
+
 
     .replay-btn {
       background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.16);
@@ -3850,6 +4180,12 @@ const htmlOutput = `<!DOCTYPE html>
     }
     .trait-drawer.open { display: block; }
     @keyframes slide-down { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes drawer-pop { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
+    @keyframes drawer-slant { from { opacity: 0; transform: translateX(-6px) skewX(-4deg); } to { opacity: 1; transform: translateX(0) skewX(0deg); } }
+    @keyframes drawer-settle { from { opacity: 0; transform: translateY(10px); filter: blur(4px); } to { opacity: 1; transform: translateY(0); filter: blur(0); } }
+    .trait-drawer.drawer-pop { animation: drawer-pop 0.25s ease-out; }
+    .trait-drawer.drawer-slant { animation: drawer-slant 0.25s ease-out; }
+    .trait-drawer.drawer-settle { animation: drawer-settle 0.28s ease-out; }
 
     .drawer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
     .drawer-tag { display: inline-block; background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 4px; color: #fff; margin-right: 6px; font-weight: 700; }
@@ -4048,6 +4384,8 @@ const htmlOutput = `<!DOCTYPE html>
               <button class="q-chip" onclick="loadSamplePrompt(2)">📈 Revenue $10k to $50k Trajectory</button>
               <button class="q-chip" onclick="loadSamplePrompt(3)">🔄 Before & After 70h Transformation</button>
               <button class="q-chip" onclick="loadSamplePrompt(4)">⚙️ Customer Onboarding Pipeline</button>
+              <button class="q-chip" onclick="loadSamplePrompt(9)">🔤 Editorial Typography & Big Type</button>
+
               <button class="q-chip" onclick="loadSamplePrompt(5)">🗺️ Geographic Lagos to London Expansion</button>
               <button class="q-chip" onclick="loadSamplePrompt(6)">⚛️ Atomic Compounding Flywheel Loop</button>
               <button class="q-chip" onclick="loadSamplePrompt(7)">👥 Founders Growth vs Focus Setup</button>
@@ -4108,9 +4446,13 @@ const htmlOutput = `<!DOCTYPE html>
 
           <!-- RIGHT: LIVE RENDERED PREVIEW STAGE FOR ROUTED ARCHETYPE -->
           <div class="radar-panel" style="display: flex; flex-direction: column; gap: 14px;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
               <span style="font-size: 13px; font-weight: 800; color: #fff;">📱 LIVE ANIMATION PREVIEW STAGE</span>
-              <button class="inspect-btn" onclick="jumpToRoutedArchetype()">🚀 Open Full Suite</button>
+              <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                <button class="inspect-btn" onclick="shuffleRoutedVariant()" title="Pick a random variant from the routed suite">🎲 Shuffle</button>
+                <button class="inspect-btn" id="routerSurfBtn" onclick="toggleRouterSurf(this)" title="Auto-cycle through every variant in the routed suite">▶ Auto-Surf</button>
+                <button class="inspect-btn" onclick="jumpToRoutedArchetype()">🚀 Open Full Suite</button>
+              </div>
             </div>
             
             <div class="preview-stage" id="routerLiveStage" style="height: 380px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.15);">
@@ -4145,7 +4487,8 @@ const htmlOutput = `<!DOCTYPE html>
       "We expanded our engineering team from Lagos to London.",
       "Growth doesn't come from doing more things. It comes from doing the right things repeatedly.",
       "Most founders don't have a growth problem; they have a focus problem.",
-      "and new tools."
+      "and new tools.",
+      "Typography: set 'BUILD THE FUTURE' as a giant headline with editorial typesetting."
     ];
 
     function switchMainMode(mode) {
@@ -4246,6 +4589,11 @@ const htmlOutput = `<!DOCTYPE html>
           initTypo3DMetallicCounter();
           initTypoAppleGaussianChrome();
           initTypoAppleBounceSequence();
+          initTypoSimultaneousReveal();
+          initTypoDualAxisMask();
+          initTypoCompoundGlitch();
+          initTypoRandomFlicker();
+          initTypoWordSwap();
         }, 50);
       }
     }
@@ -4367,6 +4715,179 @@ const htmlOutput = `<!DOCTYPE html>
       });
     }
 
+    function initTypoSimultaneousReveal() {
+      const stages = document.querySelectorAll('.sim-stage');
+      if (!stages.length) return;
+      stages.forEach(stage => {
+        const baseLayer = stage.querySelector('.sim-base-layer');
+        const overlayLayer = stage.querySelector('.sim-overlay-text');
+        if (!baseLayer || !overlayLayer) return;
+        baseLayer.innerHTML = '';
+        overlayLayer.innerHTML = '';
+        const singleWord = 'APOSTEL';
+        const staggerDelay = 0.05;
+        [...singleWord].forEach((char, index) => {
+          const delay = index * staggerDelay;
+          const spanBase = document.createElement('span');
+          spanBase.className = 'sim-letter';
+          spanBase.textContent = char;
+          spanBase.style.animationDelay = \`\${delay.toFixed(2)}s\`;
+          baseLayer.appendChild(spanBase);
+          const spanOverlay = document.createElement('span');
+          spanOverlay.className = 'sim-letter-static';
+          spanOverlay.textContent = char;
+          overlayLayer.appendChild(spanOverlay);
+        });
+      });
+    }
+
+    function initTypoDualAxisMask() {
+      const containers = document.querySelectorAll('.mda-stage .mda-text-container');
+      if (!containers.length) return;
+      containers.forEach(container => {
+        const text = container.textContent.trim();
+        container.innerHTML = '';
+        [...text].forEach((char, index) => {
+          const mask = document.createElement('span');
+          mask.className = 'mda-letter-mask';
+          const letter = document.createElement('span');
+          letter.className = 'mda-letter-char';
+          letter.textContent = char;
+          letter.style.animationDelay = \`\${index * 0.08}s\`;
+          mask.appendChild(letter);
+          container.appendChild(mask);
+        });
+      });
+    }
+
+    function initTypoCompoundGlitch() {
+      const containers = document.querySelectorAll('.cwg-stage .cwg-compound-container');
+      if (!containers.length) return;
+      containers.forEach(container => {
+        const fullWord = container.getAttribute('data-word') || 'in-demand';
+        container.innerHTML = '';
+        let prefix = '';
+        let mainPart = '';
+        if (fullWord.indexOf('-') !== -1) {
+          const parts = fullWord.split('-');
+          prefix = parts[0] + '-';
+          mainPart = parts.slice(1).join('-');
+        } else {
+          const splitIndex = Math.max(2, Math.floor(fullWord.length * 0.35));
+          prefix = fullWord.slice(0, splitIndex);
+          mainPart = fullWord.slice(splitIndex);
+        }
+        const glitchSpan = document.createElement('span');
+        glitchSpan.className = 'cwg-part-glitch';
+        glitchSpan.textContent = prefix;
+        container.appendChild(glitchSpan);
+        const blurWrapper = document.createElement('span');
+        blurWrapper.className = 'cwg-part-blur-wrapper';
+        const baseDelay = 0.5;
+        [...mainPart].forEach((char, index) => {
+          const charSpan = document.createElement('span');
+          charSpan.className = 'cwg-blur-char';
+          charSpan.textContent = char;
+          charSpan.style.animationDelay = \`\${(baseDelay + (index * 0.08)).toFixed(2)}s\`;
+          blurWrapper.appendChild(charSpan);
+        });
+        container.appendChild(blurWrapper);
+      });
+    }
+
+    function initTypoRandomFlicker() {
+      const containers = document.querySelectorAll('.flk-stage .flk-text-word');
+      if (!containers.length) return;
+      containers.forEach(container => {
+        const wordText = container.getAttribute('data-word') || 'awkward.';
+        container.innerHTML = '';
+        const letterElements = [];
+        for (let i = 0; i < wordText.length; i++) {
+          const char = wordText[i];
+          const span = document.createElement('span');
+          span.textContent = char;
+          span.className = 'flk-letter';
+          if (char === '.') {
+            span.classList.add('flk-dot');
+          } else {
+            letterElements.push(span);
+          }
+          container.appendChild(span);
+        }
+        const targetCount = 3;
+        const selectedIndices = new Set();
+        while (selectedIndices.size < Math.min(targetCount, letterElements.length)) {
+          selectedIndices.add(Math.floor(Math.random() * letterElements.length));
+        }
+        selectedIndices.forEach(index => {
+          letterElements[index].classList.add('flk-flicker-hidden');
+        });
+        setTimeout(() => {
+          selectedIndices.forEach(index => {
+            const span = letterElements[index];
+            span.style.animationDelay = \`\${(Math.random() * 0.18).toFixed(2)}s\`;
+            span.classList.remove('flk-flicker-hidden');
+            span.classList.add('flk-flicker-active');
+          });
+        }, 300);
+      });
+    }
+
+    function initTypoWordSwap() {
+      const containers = document.querySelectorAll('.swp-single-word');
+      if (!containers.length) return;
+      containers.forEach(container => {
+        const wordList = ['WA', 'WHEN', 'WHERE', 'ALWAYS'];
+        let currentIndex = 0;
+        function makeWord(text, cls) {
+          const span = document.createElement('span');
+          span.className = 'swp-word ' + cls;
+          span.innerText = text;
+          return span;
+        }
+        function measureWord(text) {
+          const measurer = makeWord(text, 'measurer');
+          measurer.style.visibility = 'hidden';
+          container.appendChild(measurer);
+          const rect = measurer.getBoundingClientRect();
+          measurer.remove();
+          return rect;
+        }
+        let maxW = 0;
+        let maxH = 0;
+        wordList.forEach(w => {
+          const r = measureWord(w);
+          if (r.width > maxW) maxW = r.width;
+          if (r.height > maxH) maxH = r.height;
+        });
+        container.style.width = maxW + 'px';
+        container.style.height = maxH + 'px';
+        function centerWord(el) {
+          el.style.left = ((maxW - el.getBoundingClientRect().width) / 2) + 'px';
+        }
+        let currentWord = container.querySelector('.swp-word.active');
+        if (!currentWord) {
+          currentWord = makeWord(wordList[0], 'active');
+          container.appendChild(currentWord);
+          centerWord(currentWord);
+        }
+        function animateWordSwap() {
+          currentIndex = (currentIndex + 1) % wordList.length;
+          const nextWord = makeWord(wordList[currentIndex], 'enter');
+          container.appendChild(nextWord);
+          centerWord(nextWord);
+          requestAnimationFrame(() => {
+            currentWord.className = 'swp-word exit';
+            nextWord.className = 'swp-word active';
+            centerWord(nextWord);
+          });
+          setTimeout(() => { if (currentWord.parentNode) currentWord.remove(); }, 600);
+          currentWord = nextWord;
+        }
+        setInterval(animateWordSwap, 2400);
+      });
+    }
+
     function prevArchetype() {
       let nextId = activeArchetypeId - 1;
       if (nextId < 1) nextId = 50;
@@ -4382,6 +4903,12 @@ const htmlOutput = `<!DOCTYPE html>
     function toggleDrawer(btn) {
       const card = btn.closest('.card');
       const drawer = card.querySelector('.trait-drawer');
+      // LIBERATED: vary the reveal animation on every open
+      const variants = ['drawer-pop', 'drawer-slant', 'drawer-settle'];
+      variants.forEach(c => drawer.classList.remove(c));
+      if (!drawer.classList.contains('open')) {
+        drawer.classList.add(variants[Math.floor(Math.random() * variants.length)]);
+      }
       drawer.classList.toggle('open');
     }
 
@@ -4397,6 +4924,11 @@ const htmlOutput = `<!DOCTYPE html>
           initTypo3DMetallicCounter();
           initTypoAppleGaussianChrome();
           initTypoAppleBounceSequence();
+          initTypoSimultaneousReveal();
+          initTypoDualAxisMask();
+          initTypoCompoundGlitch();
+          initTypoRandomFlicker();
+          initTypoWordSwap();
         }
       }, 20);
     }
@@ -4436,6 +4968,8 @@ const htmlOutput = `<!DOCTYPE html>
     const BEFORE_AFTER_KEYWORDS = ["before and after", "before", "after", "previously", "now", "transformed", "used to be"];
     const TIMELINE_KEYWORDS = ["first", "second", "then", "later", "eventually", "timeline", "years ago", "in 2020", "in 2024", "milestone", "decided"];
     const PROCESS_KEYWORDS = ["process", "workflow", "system", "steps", "funnel", "pipeline", "how it works", "lifecycle", "producing results"];
+    const TYPOGRAPHY_KEYWORDS = ["typography", "typographic", "typographically", "typeset", "typesetting", "typeface", "typefaces", "font", "fonts", "headline", "headlines", "slogan", "slogans", "motto", "wordmark", "lettering", "calligraphy", "glyph", "glyphs", "caption", "wording", "title card", "hero text", "banner text", "big type", "bold type", "giant type", "editorial type", "kinetic type", "type treatment"];
+
 
     function matchWordTokens(list, text) {
       return list.filter(item => new RegExp('\\\\b' + item + '\\\\b', 'i').test(text));
@@ -4570,6 +5104,15 @@ const htmlOutput = `<!DOCTYPE html>
         });
       }
 
+      const matchedTypo = matchWordTokens(TYPOGRAPHY_KEYWORDS, text);
+      if (matchedTypo.length > 0) {
+        signals.push({
+          id: 1, serial: "01", name: "Typography (Master Suite)", cat: "TYPOGRAPHY", conf: 0.985,
+          reason: "Typographic / typeset content detected: " + matchedTypo.join(', '),
+          preset: "TYPO #01 (Apple Pro Display Hero Revealer)", audio: "Subpixel Keystroke Click (Z:30, 18500Hz)"
+        });
+      }
+
       if (signals.length === 0) {
         signals.push({
           id: 1, serial: "01", name: "Typography (Master Suite)", cat: "TYPOGRAPHY", conf: 0.99,
@@ -4632,12 +5175,66 @@ const htmlOutput = `<!DOCTYPE html>
       document.getElementById('resZ30').innerText = p.preset;
       document.getElementById('resAudio').innerText = p.audio;
 
-      // Update Live Preview Stage
+      // Update Live Preview Stage — LIBERATED: rotate through the routed suite's FULL variant catalog
       const arch = ALL_ARCHETYPES.find(a => a.id === p.id) || ALL_ARCHETYPES[0];
-      const v = arch.variants[0];
+      routerStageArchetypeId = arch.id;
+      renderRouterStage(arch, pickRoutedVariant(arch));
+    }
+
+    // =========================================================================
+    // LIBERATED LIVE STAGE — full variant rotation for the mini-run modal
+    // =========================================================================
+    const variantRotation = {};
+    let routerStageArchetypeId = null;
+    let routerSurfTimer = null;
+    let routerSurfOn = false;
+
+    function pickRoutedVariant(arch) {
+      const n = arch.variants.length;
+      if (n <= 1) return arch.variants[0];
+      variantRotation[arch.id] = ((variantRotation[arch.id] || 0) + 1) % n;
+      return arch.variants[variantRotation[arch.id]];
+    }
+
+    function runVariantInits(v) {
+      if (!v || !v.slug) return;
+      const slug = String(v.slug).toLowerCase();
+      if (slug.indexOf('typewriter') !== -1) initTypoChromaticTypewriter();
+      if (slug.indexOf('chrome-counter') !== -1) initTypo3DMetallicCounter();
+      if (slug.indexOf('gaussian-chrome') !== -1) initTypoAppleGaussianChrome();
+      if (slug.indexOf('word-bounce') !== -1) initTypoAppleBounceSequence();
+      if (slug.indexOf('simultaneous-letter') !== -1) initTypoSimultaneousReveal();
+      if (slug.indexOf('dual-axis') !== -1) initTypoDualAxisMask();
+      if (slug.indexOf('compound-word') !== -1) initTypoCompoundGlitch();
+      if (slug.indexOf('flicker') !== -1) initTypoRandomFlicker();
+      if (slug.indexOf('word-swap') !== -1) initTypoWordSwap();
+    }
+
+    function renderRouterStage(arch, v) {
       const stage = document.getElementById('routerLiveStage');
       stage.innerHTML = v.html;
+      runVariantInits(v);
       document.getElementById('routerStagePreset').innerText = 'Active Live Preset: ' + v.badge + ' (' + v.name + ')';
+    }
+
+    function shuffleRoutedVariant() {
+      if (!routerStageArchetypeId) return;
+      const arch = ALL_ARCHETYPES.find(a => a.id === routerStageArchetypeId) || ALL_ARCHETYPES[0];
+      const v = arch.variants[Math.floor(Math.random() * arch.variants.length)];
+      renderRouterStage(arch, v);
+    }
+
+    function toggleRouterSurf(btn) {
+      routerSurfOn = !routerSurfOn;
+      if (routerSurfTimer) { clearInterval(routerSurfTimer); routerSurfTimer = null; }
+      if (btn) btn.classList.toggle('active', routerSurfOn);
+      if (routerSurfOn) {
+        routerSurfTimer = setInterval(function () {
+          if (!routerStageArchetypeId) return;
+          const arch = ALL_ARCHETYPES.find(a => a.id === routerStageArchetypeId) || ALL_ARCHETYPES[0];
+          renderRouterStage(arch, pickRoutedVariant(arch));
+        }, 2600);
+      }
     }
 
     function loadSamplePrompt(idx) {

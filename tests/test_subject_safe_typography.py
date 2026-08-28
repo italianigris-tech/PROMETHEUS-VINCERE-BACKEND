@@ -29,7 +29,7 @@ class SubjectSafePlacementTests(unittest.TestCase):
         self.assertEqual(observation["schemaVersion"], "maul-media-observation/v1")
         self.assertEqual(len(observation["frames"]), 1)
 
-    def test_tall_behind_subject_chunk_uses_visible_region_not_subject_center(self):
+    def test_tall_behind_subject_chunk_uses_the_top_center_martin_stage(self):
         placement = plan_subject_safe_placements(
             [{
                 "chunkIndex": 1,
@@ -40,9 +40,10 @@ class SubjectSafePlacementTests(unittest.TestCase):
             observation_with_centered_subject(),
         )[0]
 
-        self.assertIn(placement["safeRegionId"], {"upper_left", "upper_right", "lower_left", "lower_right"})
-        self.assertNotEqual(placement["xPercent"], "50%")
-        self.assertFalse(placement["intersectsSubject"])
+        self.assertEqual(placement["safeRegionId"], "behind_subject_center")
+        self.assertEqual(placement["xPercent"], "50%")
+        self.assertEqual(placement["yPercent"], "22%")
+        self.assertTrue(placement["intersectsSubject"])
 
     def test_foreground_text_can_use_the_standard_center_stage(self):
         placement = plan_subject_safe_placements(

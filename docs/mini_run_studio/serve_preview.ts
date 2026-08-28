@@ -2556,6 +2556,20 @@ function createServerInstance(port: number) {
       }
     }
 
+    // Disposable design-study page used during the Morty live-control review.
+    if ((req.method === "GET" || req.method === "HEAD") && (req.url === "/temptest" || req.url === "/temptest/")) {
+      const studyPath = path.join(studioDir, "temptest.html");
+      const stat = fs.statSync(studyPath);
+      res.writeHead(200, {
+        "Content-Type": "text/html; charset=utf-8",
+        "Content-Length": stat.size,
+        "Cache-Control": "no-cache"
+      });
+      if (req.method === "HEAD") { res.end(); return; }
+      fs.createReadStream(studyPath).pipe(res);
+      return;
+    }
+
     // API: Authoritative Sound Treatment JSON
     if ((req.method === "GET" || req.method === "HEAD") && req.url === "/api/authoritative_sound_treatment") {
       if (fs.existsSync(soundJsonPath)) {

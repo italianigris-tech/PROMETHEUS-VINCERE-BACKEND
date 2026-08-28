@@ -1,28 +1,43 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as https from "node:https";
+import { fileURLToPath } from "node:url";
 
-const API_KEY = "mix_live_d0b669c17843c336252e36c05ee82b1c1d70fad2d2a5418c";
+// ---------------------------------------------------------------------------
+// Mixfont Lens API keys. Credentials are ROTATED automatically: on an HTTP 402
+// (team credits exhausted) the script advances to the next key and never
+// retries an exhausted key for the rest of the run. Order = priority.
+//
+// KEY INVENTORY (for future reference). All four were valid; the Mixfont
+// team credits are now DEPLETED (each returned ~1 credit / shared team balance
+// that my validation calls consumed). Keys remain valid — only top-up needed.
+//   mix_live_a83c1a45624149ccc1749afac17b2ec26a51dfe645642ed8   ✅ key valid, team credits ⏹
+//   mix_live_3a4bc238912b393faee16fe60ebfba44e554829f0c867119   ✅ key valid, team credits ⏹
+//   mix_live_a78d4ade13fe2ff906ade0478e03a5544d7bf25121965209   ✅ key valid, team credits ⏹
+//   mix_live_d0b669c17843c336252e36c05ee82b1c1d70fad2d2a5418c   ✅ key valid, team credits ⏹ (original)
+// ---------------------------------------------------------------------------
+const API_KEYS: string[] = [
+  "mix_live_a83c1a45624149ccc1749afac17b2ec26a51dfe645642ed8",
+  "mix_live_3a4bc238912b393faee16fe60ebfba44e554829f0c867119",
+  "mix_live_a78d4ade13fe2ff906ade0478e03a5544d7bf25121965209",
+  "mix_live_d0b669c17843c336252e36c05ee82b1c1d70fad2d2a5418c",
+];
+
 const BASE_URL = "https://api.mixfont.com/v1/lens";
-const PUBLIC_HOST = "http://16.192.95.115:8080";
-const studioDir = __dirname;
+// Raw new screenshots are served from the uploads folder; the curated
+// "font pairing and placement" crops are served under /font_pairs/.
+const UPLOAD_HOST = "http://16.192.95.115:8080/uploaded_screenshots";
+const PAIRS_HOST = "http://16.192.95.115:8080/font_pairs";
+const studioDir = path.dirname(fileURLToPath(import.meta.url));
 const fontsDir = path.join(studioDir, "fonts");
 
 if (!fs.existsSync(fontsDir)) {
   fs.mkdirSync(fontsDir, { recursive: true });
 }
 
-// Specified images by user: Image 1, 3, 4, 6, 8, 33, 35, 36
-const TARGET_IMAGES = [
-  "image (1).png",
-  "image (3).png",
-  "image (4).png",
-  "image (6).png",
-  "image (8).png",
-  "image (33).png",
-  "image (35).png",
-  "image (36).png",
-];
+// CLI arg `--pairs` switches to the curated crops; default is raw uploads.
+const usePairs = process.argv.includes("--pairs");
+const PUBLIC_HOST = usePairs ? PAIRS_HOST : UPLOAD_HOST;
 
 interface FontFile {
   full_name: string;
@@ -46,53 +61,73 @@ interface LensResponse {
   error?: string;
 }
 
-async function callMixfontLens(imageUrl: string): Promise<LensResponse> {
-  return new Promise((resolve, reject) => {
-    const payload = JSON.stringify({
-      image_url: imageUrl,
-      top_k: 5,
-    });
+// Keys observed to be out of credits; skipped for the remainder of the run.
+const exhaustedKeys = new Set<string>();
 
+async function apiCallWithKey(
+  apiKey: string,
+  body: string,
+): Promise<{ status: number; text: string }> {
+  return new Promise((resolve, reject) => {
     const req = https.request(
       BASE_URL,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-api-key": API_KEY,
-          "Content-Length": Buffer.byteLength(payload),
+          "x-api-key": apiKey,
+          "Content-Length": Buffer.byteLength(body),
         },
         timeout: 45000,
       },
       (res) => {
-        let body = "";
-        res.on("data", (chunk) => {
-          body += chunk;
-        });
-        res.on("end", () => {
-          try {
-            const data = JSON.parse(body);
-            if (res.statusCode && res.statusCode >= 400) {
-              reject(new Error(`API HTTP ${res.statusCode}: ${body}`));
-            } else {
-              resolve(data);
-            }
-          } catch (e: any) {
-            reject(new Error(`Failed to parse JSON: ${body} (${e.message})`));
-          }
-        });
-      }
+        let data = "";
+        res.on("data", (chunk) => (data += chunk));
+        res.on("end", () => resolve({ status: res.statusCode || 0, text: data }));
+      },
     );
-
-    req.on("error", (err) => reject(err));
+    req.on("error", reject);
     req.on("timeout", () => {
       req.destroy();
       reject(new Error("Request timed out"));
     });
-
-    req.write(payload);
+    req.write(body);
     req.end();
   });
+}
+
+interface LensCallResult {
+  data: LensResponse | null;
+  keyUsed: string | null;
+  exhausted: string[];
+}
+
+async function callMixfontLens(imageUrl: string): Promise<LensCallResult> {
+  const payload = JSON.stringify({ image_url: imageUrl, top_k: 5 });
+  for (const key of API_KEYS) {
+    if (exhaustedKeys.has(key)) continue;
+    try {
+      const { status, text } = await apiCallWithKey(key, payload);
+      if (status === 402) {
+        exhaustedKeys.add(key);
+        console.warn(`   ⚠️  Key ${key.slice(0, 24)}… exhausted (402) — rotating.`);
+        continue;
+      }
+      let data: LensResponse;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error(`Failed to parse JSON (HTTP ${status}): ${text}`);
+      }
+      if (status >= 400) {
+        throw new Error(`API HTTP ${status}: ${text}`);
+      }
+      return { data, keyUsed: key, exhausted: [...exhaustedKeys] };
+    } catch (err: any) {
+      console.warn(`   ⚠️  Key ${key.slice(0, 24)}… failed: ${err.message}`);
+    }
+  }
+  return { data: null, keyUsed: null, exhausted: [...exhaustedKeys] };
 }
 
 async function downloadFile(url: string, destPath: string): Promise<number> {
@@ -124,86 +159,111 @@ async function downloadFile(url: string, destPath: string): Promise<number> {
   });
 }
 
+// ---------------------------------------------------------------------------
+// Batching: targets come from CLI args (screenshot filenames) or from an
+// optional --file <path> (one name per line). --start N / --limit N slice the
+// ordered list so we can run the pipeline in safe, punctuated batches.
+// ---------------------------------------------------------------------------
+function resolveTargets(): string[] {
+  const fileIdx = process.argv.indexOf("--file");
+  let names: string[] = [];
+  if (fileIdx !== -1 && process.argv[fileIdx + 1]) {
+    const contents = fs.readFileSync(process.argv[fileIdx + 1], "utf8");
+    names = contents
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter(Boolean);
+  } else {
+    names = process.argv.slice(2).filter((a) => !a.startsWith("--"));
+  }
+  const startIdx = process.argv.indexOf("--start");
+  const sliceStart = startIdx !== -1 ? parseInt(process.argv[startIdx + 1], 10) || 0 : 0;
+  const limitIdx = process.argv.indexOf("--limit");
+  const sliceLen = limitIdx !== -1 ? parseInt(process.argv[limitIdx + 1], 10) || Infinity : Infinity;
+  return names.slice(sliceStart, sliceStart + sliceLen);
+}
+
 async function main() {
-  console.log("================================================================================");
-  console.log("🎨 MIXFONT LENS EXTRACTION PIPELINE (Sequential Loop)");
-  console.log("================================================================================");
-  console.log(`Target Images: ${TARGET_IMAGES.length}`);
-  console.log(`Output Directory: ${fontsDir}`);
+  const targets = resolveTargets();
+  if (targets.length === 0) {
+    console.log(
+      "No targets. Usage: node extract_mixfonts.ts <name.png> [more...] | --file batch.txt [--start N --limit N] [--pairs]",
+    );
+    return;
+  }
+  console.log("=================================================================================");
+  console.log("🎨 MIXFONT LENS EXTRACTION PIPELINE (multi-key rotation, batched)");
+  console.log("=================================================================================");
+  console.log(`Target Images: ${targets.length}`);
+  console.log(`Public Host:   ${PUBLIC_HOST}`);
+  console.log(`Output:        ${fontsDir}`);
   console.log("--------------------------------------------------------------------------------\n");
 
   const results: any[] = [];
 
-  for (let i = 0; i < TARGET_IMAGES.length; i++) {
-    const imageName = TARGET_IMAGES[i];
-    const encodedImageName = encodeURIComponent(imageName);
-    const publicUrl = `${PUBLIC_HOST}/font_pairs/${encodedImageName}`;
+  for (let i = 0; i < targets.length; i++) {
+    const imageName = targets[i];
+    const publicUrl = `${PUBLIC_HOST}/${encodeURIComponent(imageName)}`;
 
-    console.log(`\n[${i + 1}/${TARGET_IMAGES.length}] 🔍 Analyzing: ${imageName}`);
-    console.log(`   Public URL: ${publicUrl}`);
+    console.log(`\n[${i + 1}/${targets.length}] 🔍 ${imageName}`);
+    console.log(`   URL: ${publicUrl}`);
 
-    try {
-      const response = await callMixfontLens(publicUrl);
-      console.log(`   ✅ Word Detected: "${response.word || "(none)"}" (Box: ${JSON.stringify(response.word_box)})`);
-      console.log(`   Matches Found: ${response.font_matches?.length || 0}`);
+    const { data, keyUsed, exhausted } = await callMixfontLens(publicUrl);
+    if (!data) {
+      console.error(`   ❌ All API keys exhausted for ${imageName}.`);
+      results.push({ image: imageName, error: "All API keys exhausted", status: "no_credits", exhausted });
+      break;
+    }
+    console.log(`   Key: ${(keyUsed || "").slice(0, 24)}…`);
+    console.log(`   ✅ Word: "${data.word || "(none)"}" Box: ${JSON.stringify(data.word_box)}`);
+    console.log(`   Matches: ${data.font_matches?.length || 0} (Exhausted: ${exhausted.length})`);
 
-      const downloadedFonts: string[] = [];
-
-      if (response.font_matches && response.font_matches.length > 0) {
-        for (let m = 0; m < response.font_matches.length; m++) {
-          const match = response.font_matches[m];
-          const rank = m + 1;
-          console.log(`     #${rank}: ${match.name} (Score: ${(match.score * 100).toFixed(1)}%)`);
-
-          // Download fonts for the matches
-          const fontsToDownload = (m === 0) ? match.fonts : match.fonts.slice(0, 1);
-
-          for (const fontFile of fontsToDownload) {
-            if (fontFile.url) {
-              const ext = path.extname(new URL(fontFile.url).pathname) || ".ttf";
-              const safeName = fontFile.full_name.replace(/[^a-zA-Z0-9_-]/g, "_") + ext;
-              const dest = path.join(fontsDir, safeName);
-
-              try {
-                const size = await downloadFile(fontFile.url, dest);
-                console.log(`        📥 Downloaded: ${safeName} (${(size / 1024).toFixed(1)} KB)`);
-                downloadedFonts.push(safeName);
-              } catch (dlErr: any) {
-                console.warn(`        ⚠️ Failed to download ${fontFile.url}: ${dlErr.message}`);
-              }
+    const downloadedFonts: string[] = [];
+    if (data.font_matches && data.font_matches.length > 0) {
+      for (let m = 0; m < data.font_matches.length; m++) {
+        const match = data.font_matches[m];
+        const rank = m + 1;
+        console.log(`     #${rank}: ${match.name} (Score: ${(match.score * 100).toFixed(1)}%)`);
+        const fontsToDownload = m === 0 ? match.fonts : match.fonts.slice(0, 1);
+        for (const fontFile of fontsToDownload) {
+          if (fontFile.url) {
+            const ext = path.extname(new URL(fontFile.url).pathname) || ".ttf";
+            const safeName = fontFile.full_name.replace(/[^a-zA-Z0-9_-]/g, "_") + ext;
+            const dest = path.join(fontsDir, safeName);
+            try {
+              const size = await downloadFile(fontFile.url, dest);
+              console.log(`        📥 ${safeName} (${(size / 1024).toFixed(1)} KB)`);
+              downloadedFonts.push(safeName);
+            } catch {
+              console.warn(`        ⚠️  Failed to download ${fontFile.url}`);
             }
           }
         }
       }
-
-      results.push({
-        image: imageName,
-        word: response.word,
-        word_box: response.word_box,
-        font_matches: response.font_matches,
-        downloaded: downloadedFonts,
-        status: "success",
-      });
-
-    } catch (err: any) {
-      console.error(`   ❌ Failed for ${imageName}: ${err.message}`);
-      results.push({
-        image: imageName,
-        error: err.message,
-        status: "failed",
-      });
     }
 
-    // Gentle delay between sequential requests
-    if (i < TARGET_IMAGES.length - 1) {
-      console.log("   ⏳ Pacing 1s delay...");
+    results.push({
+      image: imageName,
+      word: data.word,
+      word_box: data.word_box,
+      font_matches: data.font_matches,
+      downloaded: downloadedFonts,
+      key_used: keyUsed,
+      exhausted,
+      status: "success",
+    });
+
+    if (i < targets.length - 1) {
       await new Promise((r) => setTimeout(r, 1000));
     }
   }
 
-  const manifestPath = path.join(studioDir, "mixfont_extraction_manifest.json");
+  const manifestPath = path.join(studioDir, `mixfont_extraction_manifest_${Date.now()}.json`);
   fs.writeFileSync(manifestPath, JSON.stringify(results, null, 2), "utf8");
-  console.log(`\n📄 Saved complete extraction manifest to: ${manifestPath}`);
+  console.log(`\n📄 Saved manifest: ${manifestPath}`);
+  if (exhaustedKeys.size > 0) {
+    console.log(`ℹ️  Exhausted keys this run: ${[...exhaustedKeys].map((k) => k.slice(0, 24)).join(", ")}`);
+  }
 }
 
 main().catch((err) => {

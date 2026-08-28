@@ -56,6 +56,7 @@ class R2Storage:
             env.get("R2_BUCKET"), env.get("R2_BUCKET_NAME"), env.get("R2_UPLOAD_BUCKET"),
             default=DEFAULT_R2_BUCKET,
         )
+        self.music_bucket = env.get("R2_BUCKET_NAME") or self.bucket
         self.public_base = env.get("R2_PUBLIC_UPLOADS_BASE", "")
         self.upload_url_expires = int(
             env.get("R2_UPLOAD_URL_EXPIRES_SECONDS", DEFAULT_R2_UPLOAD_URL_EXPIRES_SECONDS)
@@ -108,6 +109,27 @@ class R2Storage:
         if not isinstance(parsed, dict):
             raise RuntimeError(f"R2 JSON artifact {key} must contain an object.")
         return parsed
+
+    def list_objects(self, prefix: str, bucket: Optional[str] = None) -> list[Dict[str, Any]]:
+        """List every object below a bounded prefix, following R2 pagination."""
+        if not self.enabled:
+            raise RuntimeError("R2Storage is not configured (missing R2 credentials).")
+        client = self._client()
+        target_bucket = bucket or self.bucket
+        continuation: Optional[str] = None
+        objects: list[Dict[str, Any]] = []
+        while True:
+            params: Dict[str, Any] = {"Bucket": target_bucket, "Prefix": prefix}
+            if continuation:
+                params["ContinuationToken"] = continuation
+            response = client.list_objects_v2(**params)
+            objects.extend(response.get("Contents") or [])
+            if not response.get("IsTruncated"):
+                break
+            continuation = response.get("NextContinuationToken")
+            if not continuation:
+                break
+        return objects
 
     def presigned_upload_url(self, key: str, content_type: str = "video/mp4") -> str:
         """Presigned PUT URL for direct-to-R2 uploads (backend ``createUploadUrl``)."""

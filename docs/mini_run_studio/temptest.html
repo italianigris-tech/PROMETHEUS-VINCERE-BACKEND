@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Morty Live Control Study</title>
+    <style>
+      :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; background: #0a0b0c; color: #f4f4f1; }
+      * { box-sizing: border-box; }
+      body { min-height: 100dvh; margin: 0; background: radial-gradient(ellipse 80% 54% at 50% -16%, #153239 0%, transparent 56%), #0a0b0c; }
+      main { width: min(1120px, calc(100% - 40px)); margin: 0 auto; padding: 9vh 0 56px; }
+      .eyebrow { margin: 0 0 20px; color: #a5d8d7; font-size: 10px; font-weight: 600; letter-spacing: .18em; text-transform: uppercase; }
+      h1 { max-width: 700px; margin: 0; font-size: clamp(31px, 5.2vw, 66px); font-weight: 440; line-height: .99; letter-spacing: -.05em; }
+      .intro { max-width: 510px; margin: 26px 0 64px; color: #989b9b; font-size: 15px; line-height: 1.6; }
+      .choices { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+      button { width: 100%; min-width: 0; padding: 0; color: inherit; text-align: left; background: #111213; border: 1px solid #2c2f30; border-radius: 4px; cursor: pointer; transition: border-color .18s ease, transform .18s ease, background .18s ease; }
+      button:hover, button:focus-visible, button.selected { border-color: #a7e9e6; background: #151818; outline: none; transform: translateY(-3px); }
+      button:focus-visible { box-shadow: 0 0 0 3px rgba(167, 233, 230, .15); }
+      .mock { position: relative; height: 280px; overflow: hidden; background: #0c0d0e; border-bottom: 1px solid #272a2b; }
+      .top { position: absolute; top: 18px; left: 20px; right: 20px; height: 16px; border-bottom: 1px solid #292c2d; color: #787d7e; font-size: 8px; letter-spacing: .17em; }
+      .frame { position: absolute; top: 57px; left: 20px; right: 20px; height: 138px; background: linear-gradient(132deg, #13282f, #273b3d 37%, #6a4b2d 74%, #151616); opacity: .82; }
+      .track { position: absolute; right: 20px; bottom: 22px; left: 20px; height: 2px; background: #2c3030; }
+      .track::after { position: absolute; width: 37%; height: 2px; background: #a7e9e6; content: ''; }
+      .plus { display: grid; width: 44px; height: 44px; place-items: center; color: #071011; font-size: 28px; font-weight: 280; line-height: 1; background: #d5fbf7; border-radius: 50%; box-shadow: 0 0 0 1px rgba(255,255,255,.25), 0 6px 24px rgba(118, 241, 232, .18); }
+      .pill { color: #e8eded; font-size: 10px; line-height: 1.2; background: rgba(20, 23, 24, .98); border: 1px solid #3b4141; border-radius: 99px; padding: 10px 14px; white-space: nowrap; }
+      .pill i { color: #91e9e4; font-style: normal; }
+      .edge .control { position: absolute; right: 20px; bottom: 40px; display: flex; align-items: center; gap: 8px; }
+      .context .control { position: absolute; top: 122px; left: 50%; display: flex; align-items: center; gap: 8px; transform: translateX(-50%); }
+      .context .plus { transform: rotate(45deg); }
+      .rail .frame { right: 83px; }
+      .rail .line { position: absolute; top: 57px; right: 17px; bottom: 40px; width: 1px; background: #303435; }
+      .rail .words { position: absolute; top: 68px; right: 17px; width: 49px; color: #bdc3c3; font-size: 8px; line-height: 1.65; }
+      .rail .words b { color: #91e9e4; font-weight: 500; }
+      .rail .plus { position: absolute; right: 22px; bottom: 44px; width: 37px; height: 37px; font-size: 23px; }
+      .copy { padding: 20px 20px 22px; }
+      h2 { margin: 0 0 9px; font-size: 16px; font-weight: 560; letter-spacing: -.02em; }
+      .copy p { min-height: 55px; margin: 0; color: #8c9190; font-size: 12px; line-height: 1.5; }
+      .status { min-height: 22px; margin: 28px 0 0; color: #8fe3df; font-size: 12px; }
+      @media (max-width: 760px) { main { width: min(100% - 28px, 460px); padding-top: 52px; } .intro { margin-bottom: 38px; } .choices { grid-template-columns: 1fr; } .mock { height: 220px; } .copy p { min-height: 0; } }
+      @media (prefers-reduced-motion: reduce) { button { transition: none; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p class="eyebrow">Morty / Live interaction</p>
+      <h1>Keep the conversation in the work.</h1>
+      <p class="intro">No floating chatbot. One quiet plus control opens a live voice state and only the minimum transcript needed to make the exchange legible.</p>
+      <section class="choices" aria-label="Minimal live control directions">
+        <button class="edge" data-choice="Edge dock" type="button">
+          <div class="mock"><div class="top">STUDIO / CURRENT CUT</div><div class="frame"></div><div class="track"></div><div class="control"><span class="pill">Listening&nbsp;&nbsp;<i>00:12</i></span><span class="plus">+</span></div></div>
+          <div class="copy"><h2>Edge dock</h2><p>A restrained lower-right live control, always reachable but visually quiet.</p></div>
+        </button>
+        <button class="context" data-choice="Context control" type="button">
+          <div class="mock"><div class="top">STUDIO / CURRENT CUT</div><div class="frame"></div><div class="track"></div><div class="control"><span class="plus">+</span><span class="pill">Say what to change<br><i>live signal</i></span></div></div>
+          <div class="copy"><h2>Context control</h2><p>A plus that opens directly beside the active work, then disappears without residue.</p></div>
+        </button>
+        <button class="rail" data-choice="Transcript rail" type="button">
+          <div class="mock"><div class="top">STUDIO / CURRENT CUT</div><div class="frame"></div><div class="line"></div><div class="words">YOU<br>trim this<br><br>MORTY<br><b>got it</b><br><br><b>•••</b></div><span class="plus">+</span></div>
+          <div class="copy"><h2>Transcript rail</h2><p>A thin, temporary trace of the live exchange. It exists only while you are talking.</p></div>
+        </button>
+      </section>
+      <p class="status" id="status" aria-live="polite">Choose a direction to continue.</p>
+    </main>
+    <script>
+      const controls = document.querySelectorAll('button[data-choice]');
+      const status = document.getElementById('status');
+      controls.forEach((control) => control.addEventListener('click', () => {
+        controls.forEach((item) => item.classList.toggle('selected', item === control));
+        status.textContent = `${control.dataset.choice} selected. Reply in chat with any adjustment.`;
+      }));
+    </script>
+  </body>
+</html>

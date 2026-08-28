@@ -120,3 +120,13 @@ docs/mini_run_studio/separated_stems/
 *.png.tmp
 lscape_*.js
 img*.png
+
+# Temporary mini run scratch & credentials
+scratch_tmp/
+final_run_output/
+*cred*.txt
+*contact_sheet*
+docs/mini_run_studio/uploaded_screenshots/
+docs/mini_run_studio/frame_checks/
+mini_run_*_manifest*.json
+

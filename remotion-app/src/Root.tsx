@@ -1,4 +1,8 @@
 import "../public/all_fonts_dynamic.css";
+import "../public/fonts/studio/studio_fonts.css";
+import "../public/fonts/studio/mixfonts/mixfonts.css";
+import "../public/fonts/studio/senza_bella.css";
+import "../public/fonts/hero/fonts.css";
 import React from "react";
 import {Composition, staticFile} from "remotion";
 import {UnifiedRenderManifestSchema, type UnifiedRenderManifest} from "@prometheus/shared-types";

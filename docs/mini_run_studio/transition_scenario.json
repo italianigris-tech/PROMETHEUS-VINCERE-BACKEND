@@ -1,0 +1,99 @@
+{
+  "meta": {
+    "seed": 7331,
+    "bpm": 120,
+    "videoDurationSec": 24,
+    "handoffSec": 14,
+    "sampleRate": 44100,
+    "integratedTargetLufs": -14,
+    "truePeakCeilingDb": -1.5,
+    "paletteMoodTag": "A==>B bridge mood  elev=0.55 momentum=0.65 warmth=0.60"
+  },
+  "dropouts": [
+    {
+      "id": "dialogue-dead-air",
+      "targetBedId": "bed-b",
+      "cutSec": 17,
+      "statementSec": 3,
+      "reEntrySec": 20,
+      "reEntryCrossfadeSec": 0.12,
+      "resumeLoopPhase": 0.716303
+    }
+  ],
+  "outro": {
+    "kind": "reverb_tail",
+    "bedId": "bed-b",
+    "startSec": 21.5,
+    "endSec": 24,
+    "tailDecaySec": 2.6,
+    "reverbMixDb": -6,
+    "cause": {
+      "gate": "video_end_tail",
+      "timeSec": 21.5,
+      "reason": "Reverb-tail outro: the bed is pushed through a long decay that rings past the video end, instead of a linear fade-out."
+    }
+  },
+  "mixClips": [
+    {
+      "id": "bed-a",
+      "kind": "bed",
+      "assetPath": "SOUND FX/LOOPS/Generdyn - INSTLoops - 01.wav",
+      "loopSec": 3.75,
+      "startSec": 0,
+      "endSec": 11,
+      "fadeInSec": 0.35,
+      "fadeOutSec": 10,
+      "gainDb": -13.5,
+      "pan": 0
+    },
+    {
+      "id": "bed-bridge-1",
+      "kind": "bed",
+      "assetPath": "SOUND FX/ATMOS/Generdyn - ATMOS - 06.wav",
+      "loopSec": 30,
+      "startSec": 10,
+      "endSec": 16.5,
+      "fadeInSec": 1,
+      "fadeOutSec": 1,
+      "gainDb": -14,
+      "pan": -0.05
+    },
+    {
+      "id": "bed-bridge-2",
+      "kind": "bed",
+      "assetPath": "SOUND FX/DRONES/idoberg-dark-drone-pad-467271.mp3",
+      "loopSec": 30,
+      "startSec": 10,
+      "endSec": 16.5,
+      "fadeInSec": 1,
+      "fadeOutSec": 1,
+      "gainDb": -17,
+      "pan": -0.05
+    },
+    {
+      "id": "bed-b",
+      "kind": "bed",
+      "assetPath": "SOUND FX/LOOPS/Generdyn - INSTLoops - 06.wav",
+      "loopSec": 7.5,
+      "startSec": 15.5,
+      "endSec": 24,
+      "fadeInSec": 1,
+      "fadeOutSec": 0.35,
+      "gainDb": -12.5,
+      "pan": 0.1
+    },
+    {
+      "id": "riser-bridge",
+      "kind": "riser",
+      "startSec": 13.2,
+      "endSec": 14.6,
+      "fadeInSec": 0,
+      "fadeOutSec": 0,
+      "gainDb": -8,
+      "pan": 0,
+      "freqStartHz": 140,
+      "freqEndHz": 3400,
+      "noise": true
+    }
+  ]
+}

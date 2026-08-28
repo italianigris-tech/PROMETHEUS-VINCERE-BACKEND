@@ -45,6 +45,12 @@ source_ignore = modal.FilePatternMatcher(
 
 studio_image = (
     modal.Image.from_registry("node:22-bookworm-slim", add_python="3.12")
+    .env(
+        {
+            "NVIDIA_DRIVER_CAPABILITIES": "all",
+            "REMOTION_CHROMIUM_HEADLESS_MODE": "new",
+        }
+    )
     .apt_install(
         "ca-certificates",
         "ffmpeg",
@@ -62,7 +68,12 @@ studio_image = (
         "libxdamage1",
         "libxrandr2",
         "libgbm1",
-        "libxshmfence1"
+        "libxshmfence1",
+        "libegl1",
+        "libgl1-mesa-dri",
+        "libgl1-mesa-glx",
+        "libgles2",
+        "libvulkan1",
     )
     .pip_install("numpy==1.26.4", "boto3", "mediapipe==0.10.21", "opencv-python-headless==4.11.0.86")
     .run_commands(
@@ -86,6 +97,7 @@ studio_image = (
     .run_commands(
         f"cd {APP_ROOT} && npm install --legacy-peer-deps",
         f"cd {APP_ROOT}/remotion-app && npm install --legacy-peer-deps",
+        f"cd {APP_ROOT}/remotion-app && npx remotion bundle src/index.ts /opt/prometheus/remotion-bundle",
     )
     .workdir(str(APP_ROOT))
 )
@@ -265,12 +277,136 @@ def smoke() -> dict:
     image=studio_image,
     secrets=[shared_secrets, backend_secrets],
     volumes={str(ARTIFACT_ROOT): artifacts},
-    cpu=4,
+    cpu=8,
     memory=8192,
     min_containers=0,
-    max_containers=4,
-    scaledown_window=30,
-    timeout=25 * 60,
+    max_containers=32,
+    scaledown_window=300,
+    timeout=5 * 60,
+)
+def render_remotion_slice(slice_spec: dict) -> dict:
+    """Render one frame-range slice of the Remotion composition on a dedicated high-CPU container."""
+    import os
+    import json
+    import time
+    import shutil
+    import subprocess
+    from pathlib import Path
+
+    try:
+        artifacts.reload()
+    except Exception:
+        pass
+
+    slice_index = slice_spec["sliceIndex"]
+    start_frame = slice_spec["startFrame"]
+    end_frame = slice_spec["endFrame"]
+    output_slice_path = Path(slice_spec["outputSlicePath"])
+    props = slice_spec.get("props") or {}
+    job_id = slice_spec.get("jobId", "job")
+    dest_video_path = slice_spec.get("destVideoPath")
+    dest_matte_path = slice_spec.get("destMattePath")
+
+    output_slice_path.parent.mkdir(parents=True, exist_ok=True)
+    remotion_app_dir = Path("/opt/prometheus/remotion-app")
+    public_source_dir = remotion_app_dir / "public" / "source"
+    public_source_dir.mkdir(parents=True, exist_ok=True)
+
+    # Ensure source video & matte are present in remotion-app/public/source directory
+    if dest_video_path:
+        found_video = False
+        for attempt in range(40):
+            try:
+                artifacts.reload()
+            except Exception:
+                pass
+            p = Path(dest_video_path)
+            if p.exists() and p.stat().st_size > 0:
+                found_video = True
+                break
+            time.sleep(0.3)
+
+        if not found_video:
+            raise FileNotFoundError(f"[slice {slice_index}] dest_video_path not found on volume: {dest_video_path}")
+
+        src_name = Path(dest_video_path).name
+        target = public_source_dir / src_name
+        if not target.exists() or target.stat().st_size != Path(dest_video_path).stat().st_size:
+            shutil.copyfile(dest_video_path, target)
+
+    if dest_matte_path:
+        found_matte = False
+        for attempt in range(40):
+            try:
+                artifacts.reload()
+            except Exception:
+                pass
+            p = Path(dest_matte_path)
+            if p.exists() and p.stat().st_size > 0:
+                found_matte = True
+                break
+            time.sleep(0.3)
+
+        if not found_matte:
+            raise FileNotFoundError(f"[slice {slice_index}] dest_matte_path not found on volume: {dest_matte_path}")
+
+        matte_name = Path(dest_matte_path).name
+        target_matte = public_source_dir / matte_name
+        if not target_matte.exists() or target_matte.stat().st_size != Path(dest_matte_path).stat().st_size:
+            shutil.copyfile(dest_matte_path, target_matte)
+
+    tmp_build = Path("/tmp/mini_run_build")
+    tmp_build.mkdir(parents=True, exist_ok=True)
+    props_path = tmp_build / f"props_{job_id}_slice_{slice_index}.json"
+    props_path.write_text(json.dumps(props, indent=2))
+
+    entry_target = "src/index.ts"
+
+    cmd = [
+        "npx", "remotion", "render",
+        entry_target, "PrometheusMinRun",
+        str(output_slice_path),
+        "--props", str(props_path),
+        f"--frames={start_frame}-{end_frame}",
+        "--concurrency", "8",
+        "--gl", "swangle",
+        "--pixel-format", "yuv420p",
+        "--jpeg-quality", "90",
+        "--muted",
+        "--timeout", "90000",
+    ]
+
+    t0 = time.monotonic()
+    env = {**os.environ, "TMPDIR": str(tmp_build)}
+    res = subprocess.run(cmd, cwd=str(remotion_app_dir), capture_output=True, text=True, env=env)
+    dur = time.monotonic() - t0
+
+    if res.returncode != 0:
+        print(
+            f"[modal_mini_run] Slice {slice_index} render failed (exit {res.returncode}) in {dur:.2f}s:\n"
+            f"STDOUT:\n{res.stdout}\nSTDERR:\n{res.stderr}",
+            flush=True,
+        )
+        raise RuntimeError(f"Remotion slice {slice_index} render failed with exit code {res.returncode}")
+
+    print(f"[modal_mini_run] Slice {slice_index} rendered in {dur:.2f}s (exit {res.returncode})", flush=True)
+    return {
+        "sliceIndex": slice_index,
+        "outputSlicePath": str(output_slice_path),
+        "startFrame": start_frame,
+        "endFrame": end_frame,
+        "exitCode": res.returncode,
+        "durationSec": dur,
+    }
+
+
+@app.function(
+    image=studio_image,
+    secrets=[shared_secrets, backend_secrets],
+    volumes={ARTIFACT_ROOT: artifacts},
+    timeout=600,
+    cpu=4.0,
+    memory=8192,
 )
 def run_mini_run(payload: dict) -> dict:
     import time
@@ -278,4 +414,34 @@ def run_mini_run(payload: dict) -> dict:
 
     job_id = payload.get("jobId") or f"modal_mini_run_{int(time.time())}"
     artifact_root = payload.get("artifactRoot") or str(ARTIFACT_ROOT)
-    return pipeline.execute_pipeline_job(job_id=job_id, data=payload, artifact_root=artifact_root)
+
+    def modal_slice_executor(slices: list[dict]) -> list[dict]:
+        print(
+            f"[modal_mini_run] Committing volume and dispatching {len(slices)} parallel CPU slices...",
+            flush=True,
+        )
+        try:
+            artifacts.commit()
+        except Exception:
+            pass
+        time.sleep(1.0)
+
+        t_start = time.monotonic()
+        results = list(render_remotion_slice.map(slices))
+        t_elapsed = time.monotonic() - t_start
+        try:
+            artifacts.reload()
+        except Exception:
+            pass
+        print(
+            f"[modal_mini_run] All {len(slices)} slices completed in parallel in {t_elapsed:.2f}s!",
+            flush=True,
+        )
+        return results
+
+    return pipeline.execute_pipeline_job(
+        job_id=job_id,
+        data=payload,
+        artifact_root=artifact_root,
+        slice_executor=modal_slice_executor,
+    )

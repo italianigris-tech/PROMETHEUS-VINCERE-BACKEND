@@ -33,7 +33,19 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
-from . import chunks, classify, ids, jobs, render, silence, storage, subject_placement
+from . import (
+    chunks,
+    classify,
+    ids,
+    jobs,
+    looks,
+    orchestration,
+    render,
+    silence,
+    song_program,
+    storage,
+    subject_placement,
+)
 
 PIPELINE_JOB_NAME = "mini-run:render"
 DEFAULT_ARTIFACT_ROOT = os.getenv("MINI_RUN_ARTIFACT_ROOT", "/tmp/mini-run")
@@ -316,23 +328,47 @@ def execute_pipeline_job(
     decision = classify.classify_call(data.get("metadata") or {})
     pipeline_job_id = classify.pipeline_job_id(decision["pipeline"], job_id, source_sha256)
 
-    # 3) media probe, then transcription + silence detection in parallel.
+    # 3) media probe, then transcription + silence detection + subject observation in parallel.
     probe = silence.probe_media(str(source_path))
     source_duration_ms = int(probe.get("durationMs", 0))
     update("processing", 30)
+
+    selected_window = data.get("selectedWindow") or {
+        "sourceStartMs": 0,
+        "sourceEndMs": source_duration_ms,
+    }
+    window_end_ms = int(selected_window.get("sourceEndMs", source_duration_ms))
+    effective_analysis_ms = min(source_duration_ms, window_end_ms) if window_end_ms > 0 else source_duration_ms
+    observe_duration_ms = min(30000, effective_analysis_ms) if effective_analysis_ms > 0 else 30000
 
     def transcribe_task() -> Dict[str, Any]:
         return transcribe_assemblyai(os.getenv("ASSEMBLYAI_API_KEY", ""), source_path)
 
     def silence_task() -> List[Dict[str, Any]]:
-        return silence.detect_silence_with_ffmpeg(str(source_path), source_duration_ms)
+        return silence.detect_silence_with_ffmpeg(
+            str(source_path),
+            source_duration_ms,
+            max_duration_ms=effective_analysis_ms,
+        )
+
+    def observe_task() -> Optional[Dict[str, Any]]:
+        try:
+            return subject_placement.observe_subject(
+                str(source_path),
+                observe_duration_ms,
+            )
+        except Exception as e:
+            print(f"[pipeline] Parallel subject observation error: {e}", flush=True)
+            return None
 
     leg_started_at = time.monotonic()
-    with ThreadPoolExecutor(max_workers=2) as pool:
+    with ThreadPoolExecutor(max_workers=3) as pool:
         transcribe_future = pool.submit(transcribe_task)
         silence_future = pool.submit(silence_task)
+        observe_future = pool.submit(observe_task)
         transcript = transcribe_future.result()
         silence_spans = silence_future.result()
+        precomputed_observation = observe_future.result()
     leg_ms = round((time.monotonic() - leg_started_at) * 1000)
 
     words = transcript.get("words") or []
@@ -340,10 +376,6 @@ def execute_pipeline_job(
 
 
     # 4) editorial timeline: protected pauses preserved, dead air cut.
-    selected_window = data.get("selectedWindow") or {
-        "sourceStartMs": 0,
-        "sourceEndMs": source_duration_ms,
-    }
     timeline = silence.build_editorial_timeline(
         selected_window=selected_window,
         words=words,
@@ -364,9 +396,36 @@ def execute_pipeline_job(
         max_chunk_words=int(data.get("maxChunkWords", 5)),
     )
 
-    # Generate the typography plan first. Behind-subject tall-font choices are
-    # then positioned from the same MediaPipe observation used as render evidence.
+    # 5b) COLOR GRADING / LOOKS — resolved *after* the transcript has been
+    # chunked and *before* the final render is handed off for treatment. The
+    # user prompt / design preferences / metadata drive which of the 10
+    # cinematic looks is applied. The resolved look manifest rides the render
+    # receipt so downstream consumers can see exactly which grade was used.
     design = data.get("design") or None
+    look_plan = looks.select_look(
+        design=design,
+        metadata=data.get("metadata") or {},
+        prompt=data.get("prompt"),
+    )
+    look_plan["lutsAvailable"] = looks.luts_available()
+    look_plan["lutFiles"] = looks.discover_luts()
+    look_plan["gradeFilter"] = looks.build_grade_filter(
+        look_plan,
+        video_width=int(probe.get("width", 0)) or None,
+        video_height=int(probe.get("height", 0)) or None,
+    )
+    look_manifest_path = looks.write_look_manifest(
+        look_plan, str(artifact_root), job_id
+    )
+    print(
+        f"[pipeline] look resolved: {look_plan['lookName']} "
+        f"({look_plan['resolution']}) intensity={look_plan['intensity']} "
+        f"luts={look_plan['lutsAvailable']}",
+        flush=True,
+    )
+
+    # Generate the typography plan first. Behind-subject tall-font choices are
+    # then positioned from the precomputed MediaPipe observation used as render evidence.
     font_manifest = typography.generate_font_manifest(chunked, design)
     behind_subject_chunks = [
         chunk for chunk in font_manifest["chunks"]
@@ -374,20 +433,29 @@ def execute_pipeline_job(
     ]
     subject_observation = None
     if behind_subject_chunks:
-        subject_observation = subject_placement.observe_subject(
-            str(source_path),
-            min(30000, int(timeline.get("outputDurationMs", source_duration_ms))),
-        )
-        placements = subject_placement.plan_subject_safe_placements(
-            font_manifest["chunks"], subject_observation,
-        )
-        for manifest_chunk, placement in zip(font_manifest["chunks"], placements):
-            manifest_chunk["placement"] = placement
-        font_manifest["subjectObservation"] = {
-            "status": "completed",
-            "frameCount": len(subject_observation.get("frames", [])),
-            "detector": subject_observation.get("detector", {}).get("providerId"),
-        }
+        subject_observation = precomputed_observation
+        if subject_observation is None:
+            try:
+                subject_observation = subject_placement.observe_subject(
+                    str(source_path),
+                    min(30000, int(timeline.get("outputDurationMs", source_duration_ms))),
+                )
+            except Exception as e:
+                print(f"[pipeline] Subject observation fallback failed: {e}", flush=True)
+                subject_observation = None
+        if subject_observation:
+            placements = subject_placement.plan_subject_safe_placements(
+                font_manifest["chunks"], subject_observation,
+            )
+            for manifest_chunk, placement in zip(font_manifest["chunks"], placements):
+                manifest_chunk["placement"] = placement
+            font_manifest["subjectObservation"] = {
+                "status": "completed",
+                "frameCount": len(subject_observation.get("frames", [])),
+                "detector": subject_observation.get("detector", {}).get("providerId"),
+            }
+        else:
+            font_manifest["subjectObservation"] = {"status": "failed", "frameCount": 0}
     else:
         font_manifest["subjectObservation"] = {"status": "not_required", "frameCount": 0}
     manifest_dir = Path(artifact_root) / "media" / "mini-run" / "renders" / job_id
@@ -400,12 +468,42 @@ def execute_pipeline_job(
             c_item.update(font_manifest["chunks"][c_idx])
     update("processing", 65)
 
-    # 6) compose the final MP4 via parallel slice workers.
-    
-    audio = data.get("audio") or None
-    if audio is not None and not isinstance(audio, dict):
+    # 6) Build independent visual and song plans, then compose one causal MP4.
+    audio = data.get("audio") or {}
+    if not isinstance(audio, dict):
         raise ValueError("audio option must be an object: {music?, cueBus?}")
     output_root = artifact_root / "media" / "mini-run" / "renders" / job_id
+    effective_duration_ms = min(30000, int(timeline.get("outputDurationMs", source_duration_ms)))
+    orchestration_manifest = orchestration.plan_mini_run_orchestration(
+        chunks=chunked,
+        probe=probe,
+        duration_ms=effective_duration_ms,
+        design=design,
+        subject_observation=subject_observation,
+    )
+    orchestration_file = manifest_dir / "orchestration_manifest.json"
+    orchestration_file.write_text(json.dumps(orchestration_manifest, indent=2))
+
+    materialized_song_program = None
+    if str(audio.get("songPolicy", "auto")) != "disabled":
+        try:
+            catalog = song_program.load_song_catalog(audio.get("catalogPath"), storage=r2)
+            song_design = {**(design or {}), **audio}
+            planned_song_program = song_program.plan_song_program(
+                catalog=catalog,
+                chunks=chunked,
+                duration_ms=effective_duration_ms,
+                design=song_design,
+            )
+            materialized_song_program = song_program.materialize_song_program(
+                planned_song_program,
+                storage=r2,
+                cache_dir=str(output_root / "songs"),
+            )
+        except Exception as e:
+            print(f"[pipeline] Song selection skipped / fallback: {e}", flush=True)
+
+
     render_receipt = render.render_final_video(
         source_path=str(source_path),
         timeline=timeline,
@@ -413,6 +511,9 @@ def execute_pipeline_job(
         design=design,
         subject_observation=subject_observation,
         audio=audio,
+        orchestration=orchestration_manifest,
+        song_program=materialized_song_program,
+        look_plan=look_plan,
         output_root=str(output_root),
         job_id=job_id,
         slice_executor=slice_executor,
@@ -437,6 +538,10 @@ def execute_pipeline_job(
         "mode": decision["mode"],
         "chunkCount": len(chunked),
         "fontManifest": font_manifest,
+        "orchestrationManifest": orchestration_manifest,
+        "lookManifest": look_plan,
+        "lookManifestPath": look_manifest_path,
+        "songProgram": materialized_song_program,
         "cutRanges": len(timeline["cutCandidates"]),
         "protectedRanges": len(timeline["protectedRanges"]),
         "sourceDurationMs": source_duration_ms,

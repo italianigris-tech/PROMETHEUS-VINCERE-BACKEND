@@ -1,0 +1,215 @@
+/* ────────────────────────────────────────────────────────────
+   PROMETHEUS MINI RUN STUDIO — MIXFONT TRIAL FAMILIES
+   Extracted from docs/mini_run_studio/fonts/*.zip
+   Paths are relative to this file (studio/mixfonts/).
+   ──────────────────────────────────────────────────────────── */
+
+/* Altone (trial) — modern geometric sans */
+@font-face {
+  font-family: "Altone";
+  src: url("./altone/Altone%20Trial-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Altone";
+  src: url("./altone/Altone%20Trial-Oblique.ttf") format("truetype");
+  font-weight: 400;
+  font-style: oblique;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Altone";
+  src: url("./altone/Altone%20Trial-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Altone";
+  src: url("./altone/Altone%20Trial-BoldOblique.ttf") format("truetype");
+  font-weight: 700;
+  font-style: oblique;
+  font-display: swap;
+}
+
+/* Apple Garamond — classic didone-style serif */
+@font-face {
+  font-family: "Apple Garamond";
+  src: url("./apple_garamond/AppleGaramond-Light.ttf") format("truetype");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Apple Garamond";
+  src: url("./apple_garamond/AppleGaramond-LightItalic.ttf") format("truetype");
+  font-weight: 300;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Apple Garamond";
+  src: url("./apple_garamond/AppleGaramond.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Apple Garamond";
+  src: url("./apple_garamond/AppleGaramond-Italic.ttf") format("truetype");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Apple Garamond";
+  src: url("./apple_garamond/AppleGaramond-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Apple Garamond";
+  src: url("./apple_garamond/AppleGaramond-BoldItalic.ttf") format("truetype");
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Candlescript — decorative hand/script */
+@font-face {
+  font-family: "Candlescript";
+  src: url("./candlescript/Candlescript%20Demo%20Version.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Freebooter Script — irregular display script */
+@font-face {
+  font-family: "Freebooter Script";
+  src: url("./freebooter_script/FREEBSCA.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Freebooter Script";
+  src: url("./freebooter_script/FREEBSC_.ttf") format("truetype");
+  font-weight: 400;
+  font-style: oblique;
+  font-display: swap;
+}
+
+/* Lemon Milk — rounded geometric sans */
+@font-face {
+  font-family: "Lemon Milk";
+  src: url("./lemon_milk/LEMONMILK-Light.otf") format("opentype");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Lemon Milk";
+  src: url("./lemon_milk/LEMONMILK-LightItalic.otf") format("opentype");
+  font-weight: 300;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Lemon Milk";
+  src: url("./lemon_milk/LEMONMILK-Regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Lemon Milk";
+  src: url("./lemon_milk/LEMONMILK-RegularItalic.otf") format("opentype");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Lemon Milk";
+  src: url("./lemon_milk/LEMONMILK-Medium.otf") format("opentype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Lemon Milk";
+  src: url("./lemon_milk/LEMONMILK-MediumItalic.otf") format("opentype");
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Lemon Milk";
+  src: url("./lemon_milk/LEMONMILK-Bold.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Lemon Milk";
+  src: url("./lemon_milk/LEMONMILK-BoldItalic.otf") format("opentype");
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* MADE Mirage — modern serif/display */
+@font-face {
+  font-family: "MADE Mirage";
+  src: url("./made_mirage/MADE%20Mirage%20Thin%20PERSONAL%20USE.otf") format("opentype");
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "MADE Mirage";
+  src: url("./made_mirage/MADE%20Mirage%20Regular%20PERSONAL%20USE.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "MADE Mirage";
+  src: url("./made_mirage/MADE%20Mirage%20Medium%20PERSONAL%20USE.otf") format("opentype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "MADE Mirage";
+  src: url("./made_mirage/MADE%20Mirage%20Bold%20PERSONAL%20USE.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "MADE Mirage";
+  src: url("./made_mirage/MADE%20Mirage%20Black%20PERSONAL%20USE.otf") format("opentype");
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Rhegina Darling — high-contrast decorative serif */
+@font-face {
+  font-family: "Rhegina Darling";
+  src: url("./rhegina_darling/RheginaDarling.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Rhegina Darling";
+  src: url("./rhegina_darling/RheginaDarlingRegular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}

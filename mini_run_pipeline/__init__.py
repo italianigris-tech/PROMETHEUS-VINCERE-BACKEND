@@ -22,6 +22,7 @@ from . import silence
 from . import chunks
 from . import storage
 from . import jobs
+from . import looks
 from . import render
 from . import pipeline
 
@@ -32,6 +33,7 @@ __all__ = [
     'chunks',
     'storage',
     'jobs',
+    'looks',
     'render',
     'pipeline',
 ]

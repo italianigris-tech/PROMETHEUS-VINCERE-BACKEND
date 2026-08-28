@@ -46,7 +46,7 @@ describe("runtime font selector", () => {
     expect(selection.fontPaletteId).toBe("crimson-voice");
   });
 
-  it("falls back out of pressure-release role until a runtime face exists for that lane", () => {
+  it("resolves the pressure-release lane to a runtime face now that it is populated", () => {
     const selection = selectRuntimeFontSelection({
       typographyRole: "keyword",
       contentEnergy: "high",
@@ -63,8 +63,31 @@ describe("runtime font selector", () => {
     });
 
     expect(selection.requestedRoleId).toBe("display_sans_pressure_release");
-    expect(selection.selectedRoleId).toBe("neutral_sans_core");
-    expect(selection.fontCandidateId).toBe("dm-sans");
-    expect(selection.rationale).toContain("pressure-release-runtime-face-missing");
+    expect(selection.selectedRoleId).toBe("display_sans_pressure_release");
+    expect(selection.fontCandidateId.startsWith("manifest-family_")).toBe(true);
+    expect(selection.rationale.some((line) => line.includes("pressure-release-runtime-face-missing"))).toBe(false);
+  });
+
+  it("falls back out of the hero-primary lane until a hero-primary runtime face exists", () => {
+    const selection = selectRuntimeFontSelection({
+      typographyRole: "headline",
+      contentEnergy: "high",
+      patternMood: "trailer",
+      targetMoods: ["trailer", "luxury"],
+      patternUnit: "word",
+      wordCount: 3,
+      emphasisCount: 1,
+      mode: "keyword-only",
+      surfaceTone: "dark",
+      motionTier: "hero",
+      semanticIntent: "punch-emphasis",
+      presentationMode: "reel",
+      treatmentFontProfileBucket: "hero_impact"
+    });
+
+    expect(selection.requestedRoleId).toBe("hero_serif_primary");
+    expect(selection.selectedRoleId).toBe("hero_serif_alternate");
+    expect(selection.fontCandidateId).toBe("noto-serif-display");
+    expect(selection.rationale).toContain("hero-primary-runtime-benchmark-missing");
   });
 });

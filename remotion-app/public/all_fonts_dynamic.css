@@ -1,3 +1,26 @@
+/* Local Font Registry - Zero HTTP overhead */
+
+@font-face {
+  font-family: "DM Sans";
+  src: url("./fonts/maul/dm-sans-700.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Cinzel Bold";
+  src: url("./fonts/hero/cinzel-bold-f33b1b30736a.otf") format("opentype");
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "League Gothic";
+  src: url("./fonts/studio/LeagueGothic-Variable.ttf") format("truetype");
+  font-display: swap;
+}
+
 @font-face {
   font-family: "Aesthico (Demo)";
   src: url("./fonts/library/aesthico-demo/aesthico-demo-regular-efbe4604facd.ttf") format("truetype");
@@ -451,6 +474,378 @@
 @font-face {
   font-family: "Goudy Bookletter";
   src: url("./fonts/hero/goudybookletter1911-29a7765f69d5.otf") format("opentype");
+  font-display: swap;
+}
+
+/* ────────────────────────────────────────────────────────────
+   ALL CUSTOM & PERSONAL FONT REGISTRATIONS (Zero HTTP)
+   ──────────────────────────────────────────────────────────── */
+
+@font-face {
+  font-family: "Altone";
+  src: url("./fonts/studio/Altone Trial-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Altone";
+  src: url("./fonts/studio/Altone Trial-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Altone Trial";
+  src: url("./fonts/studio/Altone Trial-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Altone Trial";
+  src: url("./fonts/studio/Altone Trial-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Candlescript";
+  src: url("./fonts/studio/Candlescript Demo Version.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Candle Script";
+  src: url("./fonts/studio/Candlescript Demo Version.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Candlescript Demo Version";
+  src: url("./fonts/studio/Candlescript Demo Version.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Freebooter Script";
+  src: url("./fonts/studio/FREEBSC_.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "FreeBooter Script";
+  src: url("./fonts/studio/FREEBSC_.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Rhegina Darling";
+  src: url("./fonts/studio/RheginaDarling.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "RHEGINA Darling";
+  src: url("./fonts/studio/RheginaDarling.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "MADE Mirage";
+  src: url("./fonts/studio/MADE Mirage Regular PERSONAL USE.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "MADE Mirage";
+  src: url("./fonts/studio/MADE Mirage Bold PERSONAL USE.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "MADE Mirage";
+  src: url("./fonts/studio/MADE Mirage Black PERSONAL USE.otf") format("opentype");
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Made Mirage";
+  src: url("./fonts/studio/MADE Mirage Regular PERSONAL USE.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Made Mirage";
+  src: url("./fonts/studio/MADE Mirage Bold PERSONAL USE.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Liminal Mirage";
+  src: url("./fonts/studio/liminal-mirage-display-regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Lumina Mirage";
+  src: url("./fonts/studio/liminal-mirage-display-regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Display Regular";
+  src: url("./fonts/studio/liminal-mirage-display-regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Liminal Mirage Display Regular";
+  src: url("./fonts/studio/liminal-mirage-display-regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Seric Grotesk";
+  src: url("./fonts/studio/xeric-grotesk-regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "SERIC Grotesk";
+  src: url("./fonts/studio/xeric-grotesk-regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "SERIC Grotesk Regular";
+  src: url("./fonts/studio/xeric-grotesk-regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Xeric Grotesk";
+  src: url("./fonts/studio/xeric-grotesk-regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Xeric Grotesk Regular";
+  src: url("./fonts/studio/xeric-grotesk-regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Zeri Grotesk Regular";
+  src: url("./fonts/studio/xeric-grotesk-regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Grand Cru";
+  src: url("./fonts/studio/GrandCru-LightS.otf") format("opentype");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "GrandCru";
+  src: url("./fonts/studio/GrandCru-LightS.otf") format("opentype");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Bellavoir Serif";
+  src: url("./fonts/studio/BellavoirSerif_PERSONAL_USE_ONLY.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "BellavoirSerif";
+  src: url("./fonts/studio/BellavoirSerif_PERSONAL_USE_ONLY.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Vogue";
+  src: url("./fonts/studio/Vogue.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Black Delights";
+  src: url("./fonts/studio/Black Delights.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Elegist";
+  src: url("./fonts/studio/Elegist.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Migra";
+  src: url("./fonts/studio/migra/Migra-Extrabold.woff2") format("woff2");
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Migra";
+  src: url("./fonts/studio/migra/Migra-Extralight.woff2") format("woff2");
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "ZT Otez";
+  src: url("./fonts/studio/zt_otez/ZTOtez-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "LEMON MILK";
+  src: url("./fonts/studio/LEMONMILK-Bold.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Lemon Milk";
+  src: url("./fonts/studio/LEMONMILK-Regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Apple Garamond";
+  src: url("./fonts/studio/AppleGaramond-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Apple Garamond";
+  src: url("./fonts/studio/AppleGaramond.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Fraunces";
+  src: url("./fonts/Fraunces/Fraunces-VariableFont_SOFT,WONK,opsz,wght.ttf") format("truetype");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Montserrat";
+  src: url("./fonts/studio/Montserrat-Variable.ttf") format("truetype");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Poppins";
+  src: url("./fonts/studio/Montserrat-Variable.ttf") format("truetype");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Inter";
+  src: url("./fonts/studio/Inter-Variable.ttf") format("truetype");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Outfit";
+  src: url("./fonts/studio/Montserrat-Variable.ttf") format("truetype");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  src: url("./fonts/studio/Inter-Variable.ttf") format("truetype");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Allura";
+  src: url("./fonts/studio/Allura-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Italianno";
+  src: url("./fonts/studio/Italianno-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Cinzel";
+  src: url("./fonts/hero/cinzel-bold-f33b1b30736a.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
   font-display: swap;
 }
 

@@ -88,6 +88,118 @@
     "warnings": []
   },
   {
+    "fontId": "font_altone_400",
+    "familyId": "family_altone",
+    "familyName": "Altone",
+    "fileName": "Altone Trial-Regular.ttf",
+    "originalFileName": "Altone Trial-Regular.ttf",
+    "weight": 400,
+    "style": "normal",
+    "format": "ttf",
+    "publicUrl": "/fonts/studio/mixfonts/altone/Altone%20Trial-Regular.ttf",
+    "localPublicPath": "public/fonts/studio/mixfonts/altone/Altone Trial-Regular.ttf",
+    "license": {
+      "licenseTexts": [
+        "Mixfont trial/studio extract: Altone"
+      ],
+      "canonicalSourceZip": "altone.zip",
+      "sourceZips": [
+        "altone.zip"
+      ],
+      "duplicateSourceZips": [],
+      "duplicateCount": 0
+    },
+    "needsManualLicenseReview": true,
+    "source": "mixfont-studio-extract",
+    "renderable": true,
+    "matchedBy": "manual",
+    "warnings": []
+  },
+  {
+    "fontId": "font_altone_400_oblique",
+    "familyId": "family_altone",
+    "familyName": "Altone",
+    "fileName": "Altone Trial-Oblique.ttf",
+    "originalFileName": "Altone Trial-Oblique.ttf",
+    "weight": 400,
+    "style": "oblique",
+    "format": "ttf",
+    "publicUrl": "/fonts/studio/mixfonts/altone/Altone%20Trial-Oblique.ttf",
+    "localPublicPath": "public/fonts/studio/mixfonts/altone/Altone Trial-Oblique.ttf",
+    "license": {
+      "licenseTexts": [
+        "Mixfont trial/studio extract: Altone"
+      ],
+      "canonicalSourceZip": "altone.zip",
+      "sourceZips": [
+        "altone.zip"
+      ],
+      "duplicateSourceZips": [],
+      "duplicateCount": 0
+    },
+    "needsManualLicenseReview": true,
+    "source": "mixfont-studio-extract",
+    "renderable": true,
+    "matchedBy": "manual",
+    "warnings": []
+  },
+  {
+    "fontId": "font_altone_700",
+    "familyId": "family_altone",
+    "familyName": "Altone",
+    "fileName": "Altone Trial-Bold.ttf",
+    "originalFileName": "Altone Trial-Bold.ttf",
+    "weight": 700,
+    "style": "normal",
+    "format": "ttf",
+    "publicUrl": "/fonts/studio/mixfonts/altone/Altone%20Trial-Bold.ttf",
+    "localPublicPath": "public/fonts/studio/mixfonts/altone/Altone Trial-Bold.ttf",
+    "license": {
+      "licenseTexts": [
+        "Mixfont trial/studio extract: Altone"
+      ],
+      "canonicalSourceZip": "altone.zip",
+      "sourceZips": [
+        "altone.zip"
+      ],
+      "duplicateSourceZips": [],
+      "duplicateCount": 0
+    },
+    "needsManualLicenseReview": true,
+    "source": "mixfont-studio-extract",
+    "renderable": true,
+    "matchedBy": "manual",
+    "warnings": []
+  },
+  {
+    "fontId": "font_altone_700_oblique",
+    "familyId": "family_altone",
+    "familyName": "Altone",
+    "fileName": "Altone Trial-BoldOblique.ttf",
+    "originalFileName": "Altone Trial-BoldOblique.ttf",
+    "weight": 700,
+    "style": "oblique",
+    "format": "ttf",
+    "publicUrl": "/fonts/studio/mixfonts/altone/Altone%20Trial-BoldOblique.ttf",
+    "localPublicPath": "public/fonts/studio/mixfonts/altone/Altone Trial-BoldOblique.ttf",
+    "license": {
+      "licenseTexts": [
+        "Mixfont trial/studio extract: Altone"
+      ],
+      "canonicalSourceZip": "altone.zip",
+      "sourceZips": [
+        "altone.zip"
+      ],
+      "duplicateSourceZips": [],
+      "duplicateCount": 0
+    },
+    "needsManualLicenseReview": true,
+    "source": "mixfont-studio-extract",
+    "renderable": true,
+    "matchedBy": "manual",
+    "warnings": []
+  },
+  {
     "fontId": "font_amerika_134a789cf9d0",
     "familyId": "family_amerika_709f3753",
     "familyName": "Amerika",
@@ -172,6 +284,174 @@
     "source": "hydrated-font-library",
     "renderable": true,
     "matchedBy": "hash",
+    "warnings": []
+  },
+  {
+    "fontId": "font_apple_garamond_300_italic",
+    "familyId": "family_apple_garamond",
+    "familyName": "Apple Garamond",
+    "fileName": "AppleGaramond-LightItalic.ttf",
+    "originalFileName": "AppleGaramond-LightItalic.ttf",
+    "weight": 300,
+    "style": "italic",
+    "format": "ttf",
+    "publicUrl": "/fonts/studio/mixfonts/apple_garamond/AppleGaramond-LightItalic.ttf",
+    "localPublicPath": "public/fonts/studio/mixfonts/apple_garamond/AppleGaramond-LightItalic.ttf",
+    "license": {
+      "licenseTexts": [
+        "Mixfont trial/studio extract: Apple Garamond"
+      ],
+      "canonicalSourceZip": "apple_garamond.zip",
+      "sourceZips": [
+        "apple_garamond.zip"
+      ],
+      "duplicateSourceZips": [],
+      "duplicateCount": 0
+    },
+    "needsManualLicenseReview": true,
+    "source": "mixfont-studio-extract",
+    "renderable": true,
+    "matchedBy": "manual",
+    "warnings": []
+  },
+  {
+    "fontId": "font_apple_garamond_300",
+    "familyId": "family_apple_garamond",
+    "familyName": "Apple Garamond",
+    "fileName": "AppleGaramond-Light.ttf",
+    "originalFileName": "AppleGaramond-Light.ttf",
+    "weight": 300,
+    "style": "normal",
+    "format": "ttf",
+    "publicUrl": "/fonts/studio/mixfonts/apple_garamond/AppleGaramond-Light.ttf",
+    "localPublicPath": "public/fonts/studio/mixfonts/apple_garamond/AppleGaramond-Light.ttf",
+    "license": {
+      "licenseTexts": [
+        "Mixfont trial/studio extract: Apple Garamond"
+      ],
+      "canonicalSourceZip": "apple_garamond.zip",
+      "sourceZips": [
+        "apple_garamond.zip"
+      ],
+      "duplicateSourceZips": [],
+      "duplicateCount": 0
+    },
+    "needsManualLicenseReview": true,
+    "source": "mixfont-studio-extract",
+    "renderable": true,
+    "matchedBy": "manual",
+    "warnings": []
+  },
+  {
+    "fontId": "font_apple_garamond_400_italic",
+    "familyId": "family_apple_garamond",
+    "familyName": "Apple Garamond",
+    "fileName": "AppleGaramond-Italic.ttf",
+    "originalFileName": "AppleGaramond-Italic.ttf",
+    "weight": 400,
+    "style": "italic",
+    "format": "ttf",
+    "publicUrl": "/fonts/studio/mixfonts/apple_garamond/AppleGaramond-Italic.ttf",
+    "localPublicPath": "public/fonts/studio/mixfonts/apple_garamond/AppleGaramond-Italic.ttf",
+    "license": {
+      "licenseTexts": [
+        "Mixfont trial/studio extract: Apple Garamond"
+      ],
+      "canonicalSourceZip": "apple_garamond.zip",
+      "sourceZips": [
+        "apple_garamond.zip"
+      ],
+      "duplicateSourceZips": [],
+      "duplicateCount": 0
+    },
+    "needsManualLicenseReview": true,
+    "source": "mixfont-studio-extract",
+    "renderable": true,
+    "matchedBy": "manual",
+    "warnings": []
+  },
+  {
+    "fontId": "font_apple_garamond_400",
+    "familyId": "family_apple_garamond",
+    "familyName": "Apple Garamond",
+    "fileName": "AppleGaramond.ttf",
+    "originalFileName": "AppleGaramond.ttf",
+    "weight": 400,
+    "style": "normal",
+    "format": "ttf",
+    "publicUrl": "/fonts/studio/mixfonts/apple_garamond/AppleGaramond.ttf",
+    "localPublicPath": "public/fonts/studio/mixfonts/apple_garamond/AppleGaramond.ttf",
+    "license": {
+      "licenseTexts": [
+        "Mixfont trial/studio extract: Apple Garamond"
+      ],
+      "canonicalSourceZip": "apple_garamond.zip",
+      "sourceZips": [
+        "apple_garamond.zip"
+      ],
+      "duplicateSourceZips": [],
+      "duplicateCount": 0
+    },
+    "needsManualLicenseReview": true,
+    "source": "mixfont-studio-extract",
+    "renderable": true,
+    "matchedBy": "manual",
+    "warnings": []
+  },
+  {
+    "fontId": "font_apple_garamond_700_italic",
+    "familyId": "family_apple_garamond",
+    "familyName": "Apple Garamond",
+    "fileName": "AppleGaramond-BoldItalic.ttf",
+    "originalFileName": "AppleGaramond-BoldItalic.ttf",
+    "weight": 700,
+    "style": "italic",
+    "format": "ttf",
+    "publicUrl": "/fonts/studio/mixfonts/apple_garamond/AppleGaramond-BoldItalic.ttf",
+    "localPublicPath": "public/fonts/studio/mixfonts/apple_garamond/AppleGaramond-BoldItalic.ttf",
+    "license": {
+      "licenseTexts": [
+        "Mixfont trial/studio extract: Apple Garamond"
+      ],
+      "canonicalSourceZip": "apple_garamond.zip",
+      "sourceZips": [
+        "apple_garamond.zip"
+      ],
+      "duplicateSourceZips": [],
+      "duplicateCount": 0
+    },
+    "needsManualLicenseReview": true,
+    "source": "mixfont-studio-extract",
+    "renderable": true,
+    "matchedBy": "manual",
+    "warnings": []
+  },
+  {
+    "fontId": "font_apple_garamond_700",
+    "familyId": "family_apple_garamond",
+    "familyName": "Apple Garamond",
+    "fileName": "AppleGaramond-Bold.ttf",
+    "originalFileName": "AppleGaramond-Bold.ttf",
+    "weight": 700,
+    "style": "normal",
+    "format": "ttf",
+    "publicUrl": "/fonts/studio/mixfonts/apple_garamond/AppleGaramond-Bold.ttf",
+    "localPublicPath": "public/fonts/studio/mixfonts/apple_garamond/AppleGaramond-Bold.ttf",
+    "license": {
+      "licenseTexts": [
+        "Mixfont trial/studio extract: Apple Garamond"
+      ],
+      "canonicalSourceZip": "apple_garamond.zip",
+      "sourceZips": [
+        "apple_garamond.zip"
+      ],
+      "duplicateSourceZips": [],
+      "duplicateCount": 0
+    },
+    "needsManualLicenseReview": true,
+    "source": "mixfont-studio-extract",
+    "renderable": true,
+    "matchedBy": "manual",
     "warnings": []
   },
   {
@@ -324,6 +604,34 @@
     "warnings": []
   },
   {
+    "fontId": "font_candlescript_400",
+    "familyId": "family_candlescript",
+    "familyName": "Candlescript",
+    "fileName": "Candlescript Demo Version.otf",
+    "originalFileName": "Candlescript Demo Version.otf",
+    "weight": 400,
+    "style": "normal",
+    "format": "otf",
+    "publicUrl": "/fonts/studio/mixfonts/candlescript/Candlescript%20Demo%20Version.otf",
+    "localPublicPath": "public/fonts/studio/mixfonts/candlescript/Candlescript Demo Version.otf",
+    "license": {
+      "licenseTexts": [
+        "Mixfont trial/studio extract: Candlescript"
+      ],
+      "canonicalSourceZip": "candlescript.zip",
+      "sourceZips": [
+        "candlescript.zip"
+      ],
+      "duplicateSourceZips": [],
+      "duplicateCount": 0
+    },
+    "needsManualLicenseReview": true,
+    "source": "mixfont-studio-extract",
+    "renderable": true,
+    "matchedBy": "manual",
+    "warnings": []
+  },
+  {
     "fontId": "font_cavergizregular_761b0f36a3cc",
     "familyId": "family_cavergiz_b318eb58",
     "familyName": "Cavergiz",
@@ -351,6 +659,286 @@
     "source": "hydrated-font-library",
     "renderable": true,
     "matchedBy": "hash",
+    "warnings": []
+  },
+  {
+    "fontId": "font_freebooter_script_400",
+    "familyId": "family_freebooter_script",
+    "familyName": "Freebooter Script",
+    "fileName": "FREEBSCA.ttf",
+    "originalFileName": "FREEBSCA.ttf",
+    "weight": 400,
+    "style": "normal",
+    "format": "ttf",
+    "publicUrl": "/fonts/studio/mixfonts/freebooter_script/FREEBSCA.ttf",
+    "localPublicPath": "public/fonts/studio/mixfonts/freebooter_script/FREEBSCA.ttf",
+    "license": {
+      "licenseTexts": [
+        "Mixfont trial/studio extract: Freebooter Script"
+      ],
+      "canonicalSourceZip": "freebooter_script.zip",
+      "sourceZips": [
+        "freebooter_script.zip"
+      ],
+      "duplicateSourceZips": [],
+      "duplicateCount": 0
+    },
+    "needsManualLicenseReview": true,
+    "source": "mixfont-studio-extract",
+    "renderable": true,
+    "matchedBy": "manual",
+    "warnings": []
+  },
+  {
+    "fontId": "font_freebooter_script_400_oblique",
+    "familyId": "family_freebooter_script",
+    "familyName": "Freebooter Script",
+    "fileName": "FREEBSC_.ttf",
+    "originalFileName": "FREEBSC_.ttf",
+    "weight": 400,
+    "style": "oblique",
+    "format": "ttf",
+    "publicUrl": "/fonts/studio/mixfonts/freebooter_script/FREEBSC_.ttf",
+    "localPublicPath": "public/fonts/studio/mixfonts/freebooter_script/FREEBSC_.ttf",
+    "license": {
+      "licenseTexts": [
+        "Mixfont trial/studio extract: Freebooter Script"
+      ],
+      "canonicalSourceZip": "freebooter_script.zip",
+      "sourceZips": [
+        "freebooter_script.zip"
+      ],
+      "duplicateSourceZips": [],
+      "duplicateCount": 0
+    },
+    "needsManualLicenseReview": true,
+    "source": "mixfont-studio-extract",
+    "renderable": true,
+    "matchedBy": "manual",
+    "warnings": []
+  },
+  {
+    "fontId": "font_lemon_milk_300_italic",
+    "familyId": "family_lemon_milk",
+    "familyName": "Lemon Milk",
+    "fileName": "LEMONMILK-LightItalic.otf",
+    "originalFileName": "LEMONMILK-LightItalic.otf",
+    "weight": 300,
+    "style": "italic",
+    "format": "otf",
+    "publicUrl": "/fonts/studio/mixfonts/lemon_milk/LEMONMILK-LightItalic.otf",
+    "localPublicPath": "public/fonts/studio/mixfonts/lemon_milk/LEMONMILK-LightItalic.otf",
+    "license": {
+      "licenseTexts": [
+        "Mixfont trial/studio extract: Lemon Milk"
+      ],
+      "canonicalSourceZip": "lemon_milk.zip",
+      "sourceZips": [
+        "lemon_milk.zip"
+      ],
+      "duplicateSourceZips": [],
+      "duplicateCount": 0
+    },
+    "needsManualLicenseReview": true,
+    "source": "mixfont-studio-extract",
+    "renderable": true,
+    "matchedBy": "manual",
+    "warnings": []
+  },
+  {
+    "fontId": "font_lemon_milk_300",
+    "familyId": "family_lemon_milk",
+    "familyName": "Lemon Milk",
+    "fileName": "LEMONMILK-Light.otf",
+    "originalFileName": "LEMONMILK-Light.otf",
+    "weight": 300,
+    "style": "normal",
+    "format": "otf",
+    "publicUrl": "/fonts/studio/mixfonts/lemon_milk/LEMONMILK-Light.otf",
+    "localPublicPath": "public/fonts/studio/mixfonts/lemon_milk/LEMONMILK-Light.otf",
+    "license": {
+      "licenseTexts": [
+        "Mixfont trial/studio extract: Lemon Milk"
+      ],
+      "canonicalSourceZip": "lemon_milk.zip",
+      "sourceZips": [
+        "lemon_milk.zip"
+      ],
+      "duplicateSourceZips": [],
+      "duplicateCount": 0
+    },
+    "needsManualLicenseReview": true,
+    "source": "mixfont-studio-extract",
+    "renderable": true,
+    "matchedBy": "manual",
+    "warnings": []
+  },
+  {
+    "fontId": "font_lemon_milk_400_italic",
+    "familyId": "family_lemon_milk",
+    "familyName": "Lemon Milk",
+    "fileName": "LEMONMILK-RegularItalic.otf",
+    "originalFileName": "LEMONMILK-RegularItalic.otf",
+    "weight": 400,
+    "style": "italic",
+    "format": "otf",
+    "publicUrl": "/fonts/studio/mixfonts/lemon_milk/LEMONMILK-RegularItalic.otf",
+    "localPublicPath": "public/fonts/studio/mixfonts/lemon_milk/LEMONMILK-RegularItalic.otf",
+    "license": {
+      "licenseTexts": [
+        "Mixfont trial/studio extract: Lemon Milk"
+      ],
+      "canonicalSourceZip": "lemon_milk.zip",
+      "sourceZips": [
+        "lemon_milk.zip"
+      ],
+      "duplicateSourceZips": [],
+      "duplicateCount": 0
+    },
+    "needsManualLicenseReview": true,
+    "source": "mixfont-studio-extract",
+    "renderable": true,
+    "matchedBy": "manual",
+    "warnings": []
+  },
+  {
+    "fontId": "font_lemon_milk_400",
+    "familyId": "family_lemon_milk",
+    "familyName": "Lemon Milk",
+    "fileName": "LEMONMILK-Regular.otf",
+    "originalFileName": "LEMONMILK-Regular.otf",
+    "weight": 400,
+    "style": "normal",
+    "format": "otf",
+    "publicUrl": "/fonts/studio/mixfonts/lemon_milk/LEMONMILK-Regular.otf",
+    "localPublicPath": "public/fonts/studio/mixfonts/lemon_milk/LEMONMILK-Regular.otf",
+    "license": {
+      "licenseTexts": [
+        "Mixfont trial/studio extract: Lemon Milk"
+      ],
+      "canonicalSourceZip": "lemon_milk.zip",
+      "sourceZips": [
+        "lemon_milk.zip"
+      ],
+      "duplicateSourceZips": [],
+      "duplicateCount": 0
+    },
+    "needsManualLicenseReview": true,
+    "source": "mixfont-studio-extract",
+    "renderable": true,
+    "matchedBy": "manual",
+    "warnings": []
+  },
+  {
+    "fontId": "font_lemon_milk_500_italic",
+    "familyId": "family_lemon_milk",
+    "familyName": "Lemon Milk",
+    "fileName": "LEMONMILK-MediumItalic.otf",
+    "originalFileName": "LEMONMILK-MediumItalic.otf",
+    "weight": 500,
+    "style": "italic",
+    "format": "otf",
+    "publicUrl": "/fonts/studio/mixfonts/lemon_milk/LEMONMILK-MediumItalic.otf",
+    "localPublicPath": "public/fonts/studio/mixfonts/lemon_milk/LEMONMILK-MediumItalic.otf",
+    "license": {
+      "licenseTexts": [
+        "Mixfont trial/studio extract: Lemon Milk"
+      ],
+      "canonicalSourceZip": "lemon_milk.zip",
+      "sourceZips": [
+        "lemon_milk.zip"
+      ],
+      "duplicateSourceZips": [],
+      "duplicateCount": 0
+    },
+    "needsManualLicenseReview": true,
+    "source": "mixfont-studio-extract",
+    "renderable": true,
+    "matchedBy": "manual",
+    "warnings": []
+  },
+  {
+    "fontId": "font_lemon_milk_500",
+    "familyId": "family_lemon_milk",
+    "familyName": "Lemon Milk",
+    "fileName": "LEMONMILK-Medium.otf",
+    "originalFileName": "LEMONMILK-Medium.otf",
+    "weight": 500,
+    "style": "normal",
+    "format": "otf",
+    "publicUrl": "/fonts/studio/mixfonts/lemon_milk/LEMONMILK-Medium.otf",
+    "localPublicPath": "public/fonts/studio/mixfonts/lemon_milk/LEMONMILK-Medium.otf",
+    "license": {
+      "licenseTexts": [
+        "Mixfont trial/studio extract: Lemon Milk"
+      ],
+      "canonicalSourceZip": "lemon_milk.zip",
+      "sourceZips": [
+        "lemon_milk.zip"
+      ],
+      "duplicateSourceZips": [],
+      "duplicateCount": 0
+    },
+    "needsManualLicenseReview": true,
+    "source": "mixfont-studio-extract",
+    "renderable": true,
+    "matchedBy": "manual",
+    "warnings": []
+  },
+  {
+    "fontId": "font_lemon_milk_700_italic",
+    "familyId": "family_lemon_milk",
+    "familyName": "Lemon Milk",
+    "fileName": "LEMONMILK-BoldItalic.otf",
+    "originalFileName": "LEMONMILK-BoldItalic.otf",
+    "weight": 700,
+    "style": "italic",
+    "format": "otf",
+    "publicUrl": "/fonts/studio/mixfonts/lemon_milk/LEMONMILK-BoldItalic.otf",
+    "localPublicPath": "public/fonts/studio/mixfonts/lemon_milk/LEMONMILK-BoldItalic.otf",
+    "license": {
+      "licenseTexts": [
+        "Mixfont trial/studio extract: Lemon Milk"
+      ],
+      "canonicalSourceZip": "lemon_milk.zip",
+      "sourceZips": [
+        "lemon_milk.zip"
+      ],
+      "duplicateSourceZips": [],
+      "duplicateCount": 0
+    },
+    "needsManualLicenseReview": true,
+    "source": "mixfont-studio-extract",
+    "renderable": true,
+    "matchedBy": "manual",
+    "warnings": []
+  },
+  {
+    "fontId": "font_lemon_milk_700",
+    "familyId": "family_lemon_milk",
+    "familyName": "Lemon Milk",
+    "fileName": "LEMONMILK-Bold.otf",
+    "originalFileName": "LEMONMILK-Bold.otf",
+    "weight": 700,
+    "style": "normal",
+    "format": "otf",
+    "publicUrl": "/fonts/studio/mixfonts/lemon_milk/LEMONMILK-Bold.otf",
+    "localPublicPath": "public/fonts/studio/mixfonts/lemon_milk/LEMONMILK-Bold.otf",
+    "license": {
+      "licenseTexts": [
+        "Mixfont trial/studio extract: Lemon Milk"
+      ],
+      "canonicalSourceZip": "lemon_milk.zip",
+      "sourceZips": [
+        "lemon_milk.zip"
+      ],
+      "duplicateSourceZips": [],
+      "duplicateCount": 0
+    },
+    "needsManualLicenseReview": true,
+    "source": "mixfont-studio-extract",
+    "renderable": true,
+    "matchedBy": "manual",
     "warnings": []
   },
   {
@@ -438,6 +1026,146 @@
     "source": "hydrated-font-library",
     "renderable": true,
     "matchedBy": "hash",
+    "warnings": []
+  },
+  {
+    "fontId": "font_made_mirage_100",
+    "familyId": "family_made_mirage",
+    "familyName": "MADE Mirage",
+    "fileName": "MADE Mirage Thin PERSONAL USE.otf",
+    "originalFileName": "MADE Mirage Thin PERSONAL USE.otf",
+    "weight": 100,
+    "style": "normal",
+    "format": "otf",
+    "publicUrl": "/fonts/studio/mixfonts/made_mirage/MADE%20Mirage%20Thin%20PERSONAL%20USE.otf",
+    "localPublicPath": "public/fonts/studio/mixfonts/made_mirage/MADE Mirage Thin PERSONAL USE.otf",
+    "license": {
+      "licenseTexts": [
+        "Mixfont trial/studio extract: MADE Mirage"
+      ],
+      "canonicalSourceZip": "made_mirage.zip",
+      "sourceZips": [
+        "made_mirage.zip"
+      ],
+      "duplicateSourceZips": [],
+      "duplicateCount": 0
+    },
+    "needsManualLicenseReview": true,
+    "source": "mixfont-studio-extract",
+    "renderable": true,
+    "matchedBy": "manual",
+    "warnings": []
+  },
+  {
+    "fontId": "font_made_mirage_400",
+    "familyId": "family_made_mirage",
+    "familyName": "MADE Mirage",
+    "fileName": "MADE Mirage Regular PERSONAL USE.otf",
+    "originalFileName": "MADE Mirage Regular PERSONAL USE.otf",
+    "weight": 400,
+    "style": "normal",
+    "format": "otf",
+    "publicUrl": "/fonts/studio/mixfonts/made_mirage/MADE%20Mirage%20Regular%20PERSONAL%20USE.otf",
+    "localPublicPath": "public/fonts/studio/mixfonts/made_mirage/MADE Mirage Regular PERSONAL USE.otf",
+    "license": {
+      "licenseTexts": [
+        "Mixfont trial/studio extract: MADE Mirage"
+      ],
+      "canonicalSourceZip": "made_mirage.zip",
+      "sourceZips": [
+        "made_mirage.zip"
+      ],
+      "duplicateSourceZips": [],
+      "duplicateCount": 0
+    },
+    "needsManualLicenseReview": true,
+    "source": "mixfont-studio-extract",
+    "renderable": true,
+    "matchedBy": "manual",
+    "warnings": []
+  },
+  {
+    "fontId": "font_made_mirage_500",
+    "familyId": "family_made_mirage",
+    "familyName": "MADE Mirage",
+    "fileName": "MADE Mirage Medium PERSONAL USE.otf",
+    "originalFileName": "MADE Mirage Medium PERSONAL USE.otf",
+    "weight": 500,
+    "style": "normal",
+    "format": "otf",
+    "publicUrl": "/fonts/studio/mixfonts/made_mirage/MADE%20Mirage%20Medium%20PERSONAL%20USE.otf",
+    "localPublicPath": "public/fonts/studio/mixfonts/made_mirage/MADE Mirage Medium PERSONAL USE.otf",
+    "license": {
+      "licenseTexts": [
+        "Mixfont trial/studio extract: MADE Mirage"
+      ],
+      "canonicalSourceZip": "made_mirage.zip",
+      "sourceZips": [
+        "made_mirage.zip"
+      ],
+      "duplicateSourceZips": [],
+      "duplicateCount": 0
+    },
+    "needsManualLicenseReview": true,
+    "source": "mixfont-studio-extract",
+    "renderable": true,
+    "matchedBy": "manual",
+    "warnings": []
+  },
+  {
+    "fontId": "font_made_mirage_700",
+    "familyId": "family_made_mirage",
+    "familyName": "MADE Mirage",
+    "fileName": "MADE Mirage Bold PERSONAL USE.otf",
+    "originalFileName": "MADE Mirage Bold PERSONAL USE.otf",
+    "weight": 700,
+    "style": "normal",
+    "format": "otf",
+    "publicUrl": "/fonts/studio/mixfonts/made_mirage/MADE%20Mirage%20Bold%20PERSONAL%20USE.otf",
+    "localPublicPath": "public/fonts/studio/mixfonts/made_mirage/MADE Mirage Bold PERSONAL USE.otf",
+    "license": {
+      "licenseTexts": [
+        "Mixfont trial/studio extract: MADE Mirage"
+      ],
+      "canonicalSourceZip": "made_mirage.zip",
+      "sourceZips": [
+        "made_mirage.zip"
+      ],
+      "duplicateSourceZips": [],
+      "duplicateCount": 0
+    },
+    "needsManualLicenseReview": true,
+    "source": "mixfont-studio-extract",
+    "renderable": true,
+    "matchedBy": "manual",
+    "warnings": []
+  },
+  {
+    "fontId": "font_made_mirage_900",
+    "familyId": "family_made_mirage",
+    "familyName": "MADE Mirage",
+    "fileName": "MADE Mirage Black PERSONAL USE.otf",
+    "originalFileName": "MADE Mirage Black PERSONAL USE.otf",
+    "weight": 900,
+    "style": "normal",
+    "format": "otf",
+    "publicUrl": "/fonts/studio/mixfonts/made_mirage/MADE%20Mirage%20Black%20PERSONAL%20USE.otf",
+    "localPublicPath": "public/fonts/studio/mixfonts/made_mirage/MADE Mirage Black PERSONAL USE.otf",
+    "license": {
+      "licenseTexts": [
+        "Mixfont trial/studio extract: MADE Mirage"
+      ],
+      "canonicalSourceZip": "made_mirage.zip",
+      "sourceZips": [
+        "made_mirage.zip"
+      ],
+      "duplicateSourceZips": [],
+      "duplicateCount": 0
+    },
+    "needsManualLicenseReview": true,
+    "source": "mixfont-studio-extract",
+    "renderable": true,
+    "matchedBy": "manual",
     "warnings": []
   },
   {
@@ -556,6 +1284,62 @@
     "source": "hydrated-font-library",
     "renderable": true,
     "matchedBy": "hash",
+    "warnings": []
+  },
+  {
+    "fontId": "font_rhegina_darling_400",
+    "familyId": "family_rhegina_darling",
+    "familyName": "Rhegina Darling",
+    "fileName": "RheginaDarling.otf",
+    "originalFileName": "RheginaDarling.otf",
+    "weight": 400,
+    "style": "normal",
+    "format": "otf",
+    "publicUrl": "/fonts/studio/mixfonts/rhegina_darling/RheginaDarling.otf",
+    "localPublicPath": "public/fonts/studio/mixfonts/rhegina_darling/RheginaDarling.otf",
+    "license": {
+      "licenseTexts": [
+        "Mixfont trial/studio extract: Rhegina Darling"
+      ],
+      "canonicalSourceZip": "rhegina_darling.zip",
+      "sourceZips": [
+        "rhegina_darling.zip"
+      ],
+      "duplicateSourceZips": [],
+      "duplicateCount": 0
+    },
+    "needsManualLicenseReview": true,
+    "source": "mixfont-studio-extract",
+    "renderable": true,
+    "matchedBy": "manual",
+    "warnings": []
+  },
+  {
+    "fontId": "font_rhegina_darling_400_regular",
+    "familyId": "family_rhegina_darling",
+    "familyName": "Rhegina Darling",
+    "fileName": "RheginaDarlingRegular.ttf",
+    "originalFileName": "RheginaDarlingRegular.ttf",
+    "weight": 400,
+    "style": "normal",
+    "format": "ttf",
+    "publicUrl": "/fonts/studio/mixfonts/rhegina_darling/RheginaDarlingRegular.ttf",
+    "localPublicPath": "public/fonts/studio/mixfonts/rhegina_darling/RheginaDarlingRegular.ttf",
+    "license": {
+      "licenseTexts": [
+        "Mixfont trial/studio extract: Rhegina Darling"
+      ],
+      "canonicalSourceZip": "rhegina_darling.zip",
+      "sourceZips": [
+        "rhegina_darling.zip"
+      ],
+      "duplicateSourceZips": [],
+      "duplicateCount": 0
+    },
+    "needsManualLicenseReview": true,
+    "source": "mixfont-studio-extract",
+    "renderable": true,
+    "matchedBy": "manual",
     "warnings": []
   },
   {

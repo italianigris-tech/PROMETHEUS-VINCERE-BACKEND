@@ -2,10 +2,15 @@ import {describe, expect, test} from "vitest";
 
 import {
   normalizeRuntimePreset,
+  resolveBehindSubjectTypographyMetrics,
   resolveTypographyZIndex,
   resolveSafeStageScaleX,
   resolveChunkEntranceFrame,
+  resolvePanScanMediaStyle,
   resolveSceneVisualState,
+  resolveTypographyContainerBlendMode,
+  resolveTypographyContainerFilter,
+  resolveTypographyPaintStyle,
   resolveWordEntranceFrames,
   unsupportedRuntimeTreatments,
 } from "../PrometheusMinRun";
@@ -116,5 +121,107 @@ describe("resolveSceneVisualState", () => {
     expect(state.cameraMoveId).toBe("camera-transition-1");
     expect(state.cameraScale).toBeGreaterThan(1);
     expect(state.cameraScale).toBeLessThanOrEqual(1.055);
+  });
+});
+
+describe("resolvePanScanMediaStyle", () => {
+  test("gives source and Martin foreground one shared spatial transform", () => {
+    const state = resolveSceneVisualState({
+      durationMs: 3000,
+      scenes: [
+        {id: "scene-1", startMs: 0, endMs: 3000, layout: "pan_scan", focalPoint: {xPercent: 43, yPercent: 42}},
+      ],
+      backgrounds: [],
+      pip: [],
+      transitions: [],
+      cameraMoves: [],
+    }, 30, 30);
+
+    expect(resolvePanScanMediaStyle(state)).toEqual({
+      objectPosition: "43% 50%",
+      transform: "scale(1)",
+      transformOrigin: "center",
+    });
+  });
+});
+
+describe("resolveTypographyPaintStyle", () => {
+  test("uses neutral white difference paint without decorative effects", () => {
+    expect(resolveTypographyPaintStyle({
+      blendMode: "difference",
+      color: "#FF334B",
+      textFillColor: "#FF334B",
+      gradient: "linear-gradient(90deg, #fff, #f00)",
+      glow: "0 0 10px red",
+      shadow: "0 2px 8px black",
+      hasGradient: true,
+    })).toEqual({
+      color: "#FFFFFF",
+      backgroundImage: undefined,
+      WebkitBackgroundClip: undefined,
+      WebkitTextFillColor: undefined,
+      filter: undefined,
+      textShadow: undefined,
+      mixBlendMode: "difference",
+    });
+  });
+
+  test("preserves the normal clipped-gradient paint path", () => {
+    expect(resolveTypographyPaintStyle({
+      color: "#FF334B",
+      textFillColor: "#FF334B",
+      gradient: "linear-gradient(90deg, #fff, #f00)",
+      glow: "rgba(255,255,255,0.4)",
+      shadow: "0 2px 8px black",
+      hasGradient: true,
+    })).toEqual({
+      color: undefined,
+      backgroundImage: "linear-gradient(90deg, #fff, #f00)",
+      WebkitBackgroundClip: "text",
+      WebkitTextFillColor: "transparent",
+      filter: "drop-shadow(0 4px 18px rgba(0, 0, 0, 0.95)) drop-shadow(0 0 10px rgba(255,255,255,0.4))",
+      textShadow: undefined,
+      mixBlendMode: undefined,
+    });
+  });
+
+  test("removes the ancestor filter that would isolate difference blending", () => {
+    expect(resolveTypographyContainerFilter([{blendMode: "difference"}])).toBeUndefined();
+    expect(resolveTypographyContainerFilter([{blendMode: undefined}])).toBe("drop-shadow(0 4px 20px rgba(0, 0, 0, 0.85))");
+    expect(resolveTypographyContainerBlendMode([{blendMode: "difference"}])).toBe("difference");
+    expect(resolveTypographyContainerBlendMode([{blendMode: undefined}])).toBeUndefined();
+  });
+});
+
+describe("resolveBehindSubjectTypographyMetrics", () => {
+  test("dynamically scales font and proportions for generous headroom", () => {
+    const metrics = resolveBehindSubjectTypographyMetrics({
+      charLength: 7,
+      availableHeightRatio: 0.25,
+    });
+    expect(metrics.fontSize).toBe(220);
+    expect(metrics.scaleY).toBe(1.25);
+    expect(metrics.scaleX).toBe(1.02);
+  });
+
+  test("tightens font size and vertical scale when headroom is constrained", () => {
+    const metrics = resolveBehindSubjectTypographyMetrics({
+      charLength: 7,
+      availableHeightRatio: 0.10,
+    });
+    expect(metrics.fontSize).toBe(155);
+    expect(metrics.scaleY).toBe(1.15);
+    expect(metrics.scaleX).toBe(1.08);
+  });
+
+  test("handles short impact words with wide kerning and balanced scaling", () => {
+    const metrics = resolveBehindSubjectTypographyMetrics({
+      charLength: 4,
+      availableHeightRatio: 0.15,
+    });
+    expect(metrics.fontSize).toBe(220);
+    expect(metrics.scaleY).toBe(1.25);
+    expect(metrics.scaleX).toBe(1.10);
+    expect(metrics.letterSpacing).toBe("0.07em");
   });
 });

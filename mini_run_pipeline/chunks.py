@@ -11,8 +11,8 @@ from __future__ import annotations
 
 from typing import Any, List, Optional
 
-TARGET_CHUNK_WORDS = 3
-MAX_CHUNK_WORDS = 4
+TARGET_CHUNK_WORDS = 2
+MAX_CHUNK_WORDS = 3
 
 
 def chunk_transcript_words(
@@ -100,6 +100,10 @@ def smart_chunk_words(
         span_boundaries.add(int(span["sourceStartMs"]))
         span_boundaries.add(int(span["sourceEndMs"]))
 
+    def is_sentence_terminal(word: dict[str, Any]) -> bool:
+        t = str(word.get("text", "")).strip()
+        return t.endswith((".", "!", "?", "...", "—", ":"))
+
     def is_hard_boundary(word: dict[str, Any]) -> bool:
         return any(
             abs(int(word["start_ms"]) - boundary) <= 20 for boundary in protected_boundaries
@@ -109,9 +113,12 @@ def smart_chunk_words(
         return any(abs(int(word["start_ms"]) - boundary) <= 20 for boundary in span_boundaries)
 
     runs: List[List[dict[str, Any]]] = [[]]
-    for word in normalized:
+    for i, word in enumerate(normalized):
         current = runs[-1]
-        if current and (is_hard_boundary(word) or is_span_boundary(word)):
+        prev_word = normalized[i - 1] if i > 0 else None
+        prev_is_terminal = prev_word and is_sentence_terminal(prev_word)
+        
+        if current and (prev_is_terminal or is_hard_boundary(word) or is_span_boundary(word)):
             runs.append([word])
         else:
             current.append(word)
@@ -181,15 +188,23 @@ def _greedy(
             take = remaining
         else:
             take = target
-            # If taking 3 leaves exactly 1 word behind, take 4 words instead
             if remaining - take == 1 and take < max_chunk_words:
                 take = min(take + 1, max_chunk_words)
                 
+        # Check if any word before the end of the candidate window is a sentence terminal
+        # If so, truncate take right after that terminal word so we never cross sentences
+        for offset in range(take):
+            w_text = str(words[index + offset].get("text", "")).strip()
+            if w_text.endswith((".", "!", "?", "...", "—", ":")) and offset < take - 1:
+                take = offset + 1
+                break
+
         selected = words[index : index + take]
         index += take
         
-        # Merge 1-word dangling chunks with previous chunk if feasible
-        if len(selected) == 1 and chunks and len(chunks[-1]["words"]) < max_chunk_words:
+        # Merge 1-word dangling chunks with previous chunk ONLY if previous chunk did not end with a sentence terminal
+        prev_has_terminal = chunks and str(chunks[-1]["words"][-1].get("text", "")).strip().endswith((".", "!", "?", "...", "—", ":"))
+        if len(selected) == 1 and chunks and not prev_has_terminal and len(chunks[-1]["words"]) < max_chunk_words:
             prev = chunks.pop()
             merged_words = prev["words"] + selected
             chunks.append(_chunk_from_words(merged_words, prev["chunkIndex"]))

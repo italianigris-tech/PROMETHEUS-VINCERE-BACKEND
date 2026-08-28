@@ -73,22 +73,29 @@ def detect_silence_with_ffmpeg(
     noise_threshold_db: float = DEFAULT_NOISE_THRESHOLD_DB,
     minimum_silence_ms: int = DEFAULT_MINIMUM_SILENCE_MS,
     ffmpeg_binary: str = "ffmpeg",
+    max_duration_ms: Optional[int] = None,
 ) -> List[dict[str, Any]]:
     """Detect silence spans with FFmpeg ``silencedetect`` (same filter as MAUL)."""
+    effective_duration_ms = min(source_duration_ms, max_duration_ms) if max_duration_ms and max_duration_ms > 0 else source_duration_ms
+    cmd = [
+        ffmpeg_binary,
+        "-hide_banner",
+        "-nostats",
+    ]
+    if max_duration_ms and max_duration_ms > 0:
+        cmd.extend(["-t", f"{(max_duration_ms / 1000.0):.3f}"])
+    cmd.extend([
+        "-i",
+        str(source_path),
+        "-vn",
+        "-af",
+        f"silencedetect=noise={noise_threshold_db}dB:d={(minimum_silence_ms / 1000):.3f}",
+        "-f",
+        "null",
+        "-",
+    ])
     completed = subprocess.run(
-        [
-            ffmpeg_binary,
-            "-hide_banner",
-            "-nostats",
-            "-i",
-            str(source_path),
-            "-vn",
-            "-af",
-            f"silencedetect=noise={noise_threshold_db}dB:d={(minimum_silence_ms / 1000):.3f}",
-            "-f",
-            "null",
-            "-",
-        ],
+        cmd,
         capture_output=True,
         text=True,
         timeout=FFMPEG_TIMEOUT_SECONDS,
@@ -96,7 +103,7 @@ def detect_silence_with_ffmpeg(
     if completed.returncode != 0:
         stderr = completed.stderr.strip() or completed.stdout.strip()
         raise RuntimeError(f"silence detection failed: {stderr[-2000:]}")
-    return parse_ffmpeg_silence_detect(completed.stderr, source_duration_ms)
+    return parse_ffmpeg_silence_detect(completed.stderr, effective_duration_ms)
 
 # ---------------------------------------------------------------------------
 # Protected pause classification

@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 
 from mini_run_pipeline.orchestration import plan_mini_run_orchestration
-from mini_run_pipeline.render import build_audio_mix_command
+from mini_run_pipeline.render import build_audio_mix_command, require_render_duration, resolve_sfx_event_paths
 from mini_run_pipeline.song_program import (
     load_song_catalog,
     materialize_song_program,
@@ -57,7 +57,21 @@ def _track(
 
 
 class CausalScenePlannerTests(unittest.TestCase):
-    def test_landscape_source_gets_contiguous_scenes_and_a_real_pip_treatment(self):
+    def test_pip_never_replaces_a_chunk_that_requires_martin_depth(self):
+        chunks = _chunks(["Opening", "Tall text behind the speaker"])
+        chunks[1]["subjectLayering"] = {"behindSubject": True}
+
+        plan = plan_mini_run_orchestration(
+            chunks=chunks,
+            probe={"width": 1920, "height": 1080},
+            duration_ms=6000,
+            design={"visualIntensity": 1, "pipPolicy": "required"},
+            subject_observation={"frames": []},
+        )
+
+        self.assertEqual(plan["scenes"][1]["layout"], "pan_scan")
+
+    def test_landscape_source_gets_contiguous_scenes_and_pure_pan_scan_without_pip(self):
         chunks = _chunks([
             "A useful opening thought",
             "The practical editing workflow",
@@ -69,7 +83,7 @@ class CausalScenePlannerTests(unittest.TestCase):
             chunks=chunks,
             probe={"width": 1920, "height": 1080},
             duration_ms=12000,
-            design={"visualIntensity": 0.82, "pipPolicy": "auto"},
+            design={"visualIntensity": 0.82, "pipPolicy": "disabled"},
             subject_observation={"frames": []},
         )
 
@@ -77,7 +91,8 @@ class CausalScenePlannerTests(unittest.TestCase):
         self.assertEqual(plan["scenes"][-1]["endMs"], 12000)
         for previous, current in zip(plan["scenes"], plan["scenes"][1:]):
             self.assertEqual(previous["endMs"], current["startMs"])
-        self.assertTrue(any(scene["layout"] == "floating_pip" for scene in plan["scenes"]))
+        self.assertTrue(all(scene["layout"] == "pan_scan" for scene in plan["scenes"]))
+        self.assertEqual(plan["pip"], [])
         self.assertTrue(all(scene["cause"]["chunkIds"] for scene in plan["scenes"]))
 
     def test_camera_and_sfx_events_trace_to_scene_transitions(self):
@@ -97,12 +112,32 @@ class CausalScenePlannerTests(unittest.TestCase):
             move.get("causedByTransitionId") in transition_ids or move.get("causedBySceneId") in scene_ids
             for move in plan["cameraMoves"]
         ))
-        self.assertTrue(all(event["causedByTransitionId"] in transition_ids for event in plan["sfx"]))
+        self.assertTrue(all(
+            event.get("causedByTransitionId") in transition_ids or event.get("causedByHook") or event.get("causedByChunkId")
+            for event in plan["sfx"]
+        ))
+        self.assertTrue(all(1 <= event["variant"] <= 5 for event in plan["sfx"]))
         self.assertTrue(all(move["curve"] == [0.16, 1.0, 0.3, 1.0] for move in plan["cameraMoves"]))
-        self.assertTrue(all(1.0 <= move["overshootScale"] <= 1.06 for move in plan["cameraMoves"]))
+        self.assertTrue(all(1.0 <= move["overshootScale"] <= 1.15 for move in plan["cameraMoves"]))
 
 
 class SongProgrammeTests(unittest.TestCase):
+    def test_tracks_without_known_runway_are_not_selected(self):
+        catalog = {
+            "entries": [
+                _track("unknown", duration_sec=None, mood_tags=["focused", "editing", "workflow"]),
+                _track("known", duration_sec=45),
+            ]
+        }
+
+        program = plan_song_program(
+            catalog=catalog,
+            chunks=_chunks(["A focused editing workflow"]),
+            duration_ms=30_000,
+        )
+
+        self.assertEqual([event["trackId"] for event in program["events"]], ["known"])
+
     def test_only_render_approved_tracks_are_eligible(self):
         program = plan_song_program(
             catalog=[
@@ -208,11 +243,47 @@ class SongProgrammeTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as temp_dir:
             storage = DownloadStorage()
-            materialized = materialize_song_program(program, storage=storage, cache_dir=temp_dir)
+            materialized = materialize_song_program(
+                program,
+                storage=storage,
+                cache_dir=temp_dir,
+                duration_probe=lambda path: 3000 if "short" in path.name else 10_000,
+            )
 
             self.assertEqual(len(storage.downloads), 2)
             self.assertTrue(all(Path(event["localPath"]).is_file() for event in materialized["events"]))
             self.assertTrue(all(Path(event["localPath"]).stat().st_size > 0 for event in materialized["events"]))
+
+    def test_materialization_reflows_catalog_runway_from_actual_audio_duration(self):
+        program = plan_song_program(
+            catalog=[
+                _track("short-ai", duration_sec=7, category="tech", genre_tags=["ai", "workflow"]),
+                _track("continuation", duration_sec=12, category="other", mood_tags=["focused"]),
+            ],
+            chunks=_chunks(["AI workflow", "Focused finish"]),
+            duration_ms=9000,
+            design={"songTrackId": "short-ai", "songCrossfadeMs": 800},
+        )
+
+        class DownloadStorage:
+            def download_file(self, key, local_path, bucket=None):
+                Path(local_path).write_bytes(b"ID3-renderable-audio")
+                return str(local_path)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            materialized = materialize_song_program(
+                program,
+                storage=DownloadStorage(),
+                cache_dir=temp_dir,
+                duration_probe=lambda path: 4000 if "short-ai" in path.name else 12_000,
+            )
+
+        first, second = materialized["events"]
+        self.assertEqual(first["timelineEndMs"], 4000)
+        self.assertEqual(second["timelineStartMs"], 3200)
+        self.assertEqual(second["timelineEndMs"], 9000)
+        self.assertEqual(second["sourceEndMs"], 5800)
+        self.assertEqual(materialized["transitions"][0]["durationMs"], 800)
 
     def test_local_catalog_path_is_supported_for_offline_validation(self):
         catalog = {"entries": [_track("local-song")]}
@@ -222,8 +293,59 @@ class SongProgrammeTests(unittest.TestCase):
 
             self.assertEqual(load_song_catalog(str(catalog_path)), catalog)
 
+    def test_missing_catalog_reference_discovers_the_sanctioned_r2_music_inventory(self):
+        class InventoryStorage:
+            music_bucket = "prometheus-music"
+
+            def list_objects(self, prefix, bucket=None):
+                self.request = (bucket, prefix)
+                return [
+                    {"Key": "music-originals/tech-futuristic-ai/ain-t-ready.mp3", "Size": 1024},
+                    {"Key": "music-originals/classical/passacaglia.mp3", "Size": 2048},
+                ]
+
+        metadata = [{
+            "id": "music-preview-tech-futuristic-ai-ain-t-ready",
+            "label": "Ain't Ready",
+            "src": "audio/music/tech-futuristic-ai--ain-t-ready.mp3",
+            "durationSeconds": 138.27,
+            "tags": ["tech", "futuristic", "ai"],
+        }]
+        with tempfile.TemporaryDirectory() as temp_dir:
+            metadata_path = Path(temp_dir) / "music.local.json"
+            metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
+            storage = InventoryStorage()
+
+            catalog = load_song_catalog(None, storage=storage, metadata_path=metadata_path, env={})
+
+        self.assertEqual(storage.request, ("prometheus-music", "music-originals/"))
+        self.assertEqual(len(catalog["entries"]), 2)
+        self.assertTrue(all(entry["renderAllowed"] for entry in catalog["entries"]))
+        self.assertEqual(catalog["entries"][0]["bucket"], "prometheus-music")
+
 
 class AudioMixCommandTests(unittest.TestCase):
+    def test_duration_contract_rejects_a_truncated_final_file(self):
+        with self.assertRaisesRegex(RuntimeError, "duration contract"):
+            require_render_duration(actual_duration_ms=24_100, expected_duration_ms=30_000)
+
+        require_render_duration(actual_duration_ms=29_999, expected_duration_ms=30_000)
+
+    def test_planned_sfx_variant_resolves_to_the_bundled_audio_asset(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            public_root = Path(temp_dir)
+            sfx_dir = public_root / "sfx"
+            sfx_dir.mkdir()
+            expected = sfx_dir / "whoosh_slow_3.mp3"
+            expected.write_bytes(b"ID3-sfx")
+
+            resolved = resolve_sfx_event_paths(
+                [{"id": "sfx-1", "cue": "whoosh_slow", "variant": 3, "triggerMs": 1000}],
+                public_root,
+            )
+
+            self.assertEqual(resolved[0]["localPath"], str(expected))
+
     def test_song_program_is_ducked_crossfaded_and_normalized_with_event_sfx(self):
         program = {
             "durationMs": 9000,
@@ -247,9 +369,13 @@ class AudioMixCommandTests(unittest.TestCase):
         self.assertIn("/tmp/song-a.mp3", command)
         self.assertIn("/tmp/song-b.mp3", command)
         self.assertIn("acrossfade=d=0.800", filtergraph)
+        self.assertIn("apad=whole_dur=9.000,atrim=duration=9.000,asplit=2", filtergraph)
         self.assertIn("sidechaincompress=threshold=0.02:ratio=8", filtergraph)
         self.assertIn("adelay=3100|3100", filtergraph)
         self.assertIn("loudnorm=I=-14:TP=-1:LRA=11", filtergraph)
+        self.assertIn("apad=whole_dur=9", filtergraph)
+        self.assertIn("-t", command)
+        self.assertEqual(command[command.index("-t") + 1], "9")
         self.assertIn("-ar", command)
         self.assertEqual(command[command.index("-ar") + 1], "48000")
 

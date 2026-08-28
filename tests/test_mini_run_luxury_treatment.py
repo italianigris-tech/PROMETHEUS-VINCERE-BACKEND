@@ -180,16 +180,17 @@ class GenerativeTypographyTests(unittest.TestCase):
         self.assertEqual(commits, ["prometheus-render-artifacts"])
         self.assertEqual(receipt["stitch"][0]["foregroundFile"], "martin/test/full.webm")
 
-    def test_explicit_seed_cannot_replay_a_selection_trajectory(self):
+    def test_explicit_seed_is_deterministic_and_replays_selection_trajectory(self):
         from mini_run_pipeline.typography import generate_font_manifest
 
         design = {"seed": "stable", "creativity": "expressive"}
         first = generate_font_manifest(chunks(["Shape the raw story", "Then refine the rhythm"]), design)
         second = generate_font_manifest(chunks(["Shape the raw story", "Then refine the rhythm"]), design)
 
-        self.assertNotEqual(first["selectionNonce"], second["selectionNonce"])
-        self.assertEqual(first["selectionMode"], "entropy")
-        self.assertEqual(second["selectionMode"], "entropy")
+        self.assertEqual(first["selectionNonce"], second["selectionNonce"])
+        self.assertEqual(first["selectionMode"], "seed")
+        self.assertEqual(second["selectionMode"], "seed")
+        self.assertEqual(first["chunks"], second["chunks"])
 
     def test_selection_nonce_changes_a_valid_selection_trajectory(self):
         from mini_run_pipeline.typography import generate_font_manifest
@@ -202,7 +203,7 @@ class GenerativeTypographyTests(unittest.TestCase):
             [(item["profileId"], item["selection"]["primaryFx"]) for item in right["chunks"]],
         )
 
-    def test_default_expressive_manifest_uses_multiple_curated_palettes(self):
+    def test_default_expressive_manifest_keeps_one_cohesive_video_palette(self):
         from mini_run_pipeline.typography import generate_font_manifest
 
         manifest = generate_font_manifest(
@@ -213,7 +214,47 @@ class GenerativeTypographyTests(unittest.TestCase):
             {"seed": "palette-proof", "creativity": "expressive"},
         )
 
-        self.assertGreaterEqual(len({chunk["paletteId"] for chunk in manifest["chunks"]}), 4)
+        self.assertEqual(len({chunk["paletteId"] for chunk in manifest["chunks"]}), 1)
+
+    def test_difference_treatment_is_rare_spaced_and_applies_to_the_full_caption(self):
+        from mini_run_pipeline.typography import generate_font_manifest
+
+        manifest = generate_font_manifest(
+            chunks([f"Make frame {index} matter" for index in range(20)]),
+            {"seed": "difference-proof", "creativity": "expressive"},
+        )
+        treated = [
+            chunk for chunk in manifest["chunks"]
+            if any(layer.get("blendMode") == "difference" for layer in chunk["layers"])
+        ]
+
+        self.assertEqual(len(treated), 2)
+        self.assertGreaterEqual(abs(treated[1]["chunkIndex"] - treated[0]["chunkIndex"]), 5)
+        for chunk in treated:
+            self.assertFalse(chunk["subjectLayering"]["behindSubject"])
+            self.assertTrue(any(layer["isHero"] for layer in chunk["layers"]))
+            for layer in chunk["layers"]:
+                self.assertEqual(layer.get("blendMode"), "difference")
+                self.assertEqual(layer["textFillColor"], "#FFFFFF")
+                self.assertEqual(layer["gradient"], "none")
+                self.assertEqual(layer["glow"], "none")
+                self.assertEqual(layer["shadow"], "none")
+                self.assertFalse(layer["hasGradient"])
+
+    def test_difference_treatment_replays_with_an_explicit_seed(self):
+        from mini_run_pipeline.typography import generate_font_manifest
+
+        inputs = chunks([f"Build the scene {index}" for index in range(10)])
+        design = {"seed": "difference-replay", "creativity": "expressive"}
+        first = generate_font_manifest(inputs, design)
+        second = generate_font_manifest(inputs, design)
+
+        treated_indices = lambda manifest: [
+            chunk["chunkIndex"] for chunk in manifest["chunks"]
+            if any(layer.get("blendMode") == "difference" for layer in chunk["layers"])
+        ]
+        self.assertEqual(treated_indices(first), treated_indices(second))
+        self.assertEqual(len(treated_indices(first)), 1)
 
     def test_literal_phrasing_is_not_recorded_as_a_treatment_selector(self):
         from mini_run_pipeline.typography import generate_font_manifest
