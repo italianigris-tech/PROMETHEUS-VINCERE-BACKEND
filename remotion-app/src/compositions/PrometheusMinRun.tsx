@@ -2936,6 +2936,12 @@ export const resolveHookTransformState = (
   };
 };
 
+export const resolveSourceUri = (src?: string): string => {
+  if (!src) return "";
+  if (src.startsWith("http://") || src.startsWith("https://")) return src;
+  return staticFile(src);
+};
+
 const MiniRunSourceStage: React.FC<{
   videoSrc: string;
   orchestration?: MiniRunOrchestration;
@@ -2969,8 +2975,7 @@ const MiniRunSourceStage: React.FC<{
   return (
     <AbsoluteFill style={{ backgroundColor: "#000", overflow: "hidden", zIndex: 1 }}>
       <Video
-        src={staticFile(videoSrc)}
-        muted
+        src={resolveSourceUri(videoSrc)}
         pauseWhenBuffering
         style={{
           position: "absolute",
@@ -3367,7 +3372,7 @@ export const Spatial3DCameraRig: React.FC<{
   children: React.ReactNode;
 }> = ({ spatialCamera, frame, fps, children }) => {
   if (!spatialCamera?.enabled) {
-    return <AbsoluteFill style={{ pointerEvents: "none" }}>{children}</AbsoluteFill>;
+    return <AbsoluteFill style={{ pointerEvents: "none", zIndex: 25 }}>{children}</AbsoluteFill>;
   }
 
   const { camX, camY, camZ, camPitch, camYaw, camRoll } = computeSpatial3DCameraTransform(
@@ -3385,7 +3390,7 @@ export const Spatial3DCameraRig: React.FC<{
         perspective: `${perspectivePx}px`,
         perspectiveOrigin: "50% 50%",
         transformStyle: "preserve-3d",
-        overflow: "hidden",
+        zIndex: 25,
       }}
     >
       <div
@@ -3505,7 +3510,7 @@ export const PrometheusMinRun: React.FC<PrometheusMinRunProps> = ({
         return (
           <AbsoluteFill style={{ zIndex: 50, pointerEvents: "none", overflow: "hidden" }}>
             <Video
-              src={staticFile(matteSrc)}
+              src={resolveSourceUri(matteSrc)}
               muted
               pauseWhenBuffering
               style={{

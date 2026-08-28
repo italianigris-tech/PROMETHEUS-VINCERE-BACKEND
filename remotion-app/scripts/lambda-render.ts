@@ -49,7 +49,7 @@ export async function runLambdaRender(options: LambdaRenderOptions = {}) {
     composition: compositionId,
     inputProps: options.inputProps || {},
     codec: "h264",
-    framesPerLambda: options.framesPerLambda || 20,
+    framesPerLambda: options.framesPerLambda || Number(process.env.REMOTION_FRAMES_PER_LAMBDA || 75),
     downloadBehavior: {
       type: "download",
       fileName: options.outPath ? path.basename(options.outPath) : "rendered-output.mp4",
@@ -87,12 +87,13 @@ export async function runLambdaRender(options: LambdaRenderOptions = {}) {
 
 if (process.argv[1]?.endsWith("lambda-render.ts")) {
   const manifestPath = process.argv[2];
+  const framesPerLambda = process.argv[3] ? parseInt(process.argv[3], 10) : 75;
   let inputProps = {};
   if (manifestPath && fs.existsSync(manifestPath)) {
     inputProps = JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
   }
 
-  runLambdaRender({ inputProps })
+  runLambdaRender({ inputProps, framesPerLambda })
     .then((res) => {
       console.log("[Lambda Render] Success:", res);
       process.exit(0);
