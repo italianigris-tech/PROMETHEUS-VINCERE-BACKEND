@@ -53,6 +53,10 @@ export type TypographyLayer = {
   doubleUnderline?: boolean;
   marginTopPx?: number;
   blendMode?: "difference";
+  isOverlapping?: boolean;
+  zIndex?: number;
+  depthZPx?: number;
+  focusPriority?: number;
 };
 
 type TypographyPaintInput = Pick<TypographyLayer, "color"> & Partial<Pick<
@@ -697,7 +701,7 @@ const KineticLayerRenderer: React.FC<{
     lineHeight: isBehindSubject ? 0.85 : layer.lineHeight,
     marginTop: layer.marginTopPx !== undefined ? `${layer.marginTopPx}px` : undefined,
     position: "relative",
-    zIndex: (layer.marginTopPx && layer.marginTopPx < 0) ? 2 : 1,
+    zIndex: layer.zIndex !== undefined ? layer.zIndex : (layer.marginTopPx && layer.marginTopPx < 0 ? ((layer.layerIndex || 0) + 1) * 2 : (layer.layerIndex || 0) + 1),
     maxWidth: isBehindSubject ? "1020px" : "100%",
     borderBottom: layer.doubleUnderline ? `3px double ${textColor}` : "none",
     paddingBottom: layer.doubleUnderline ? "6px" : "0px",
@@ -710,8 +714,10 @@ const KineticLayerRenderer: React.FC<{
     color: hasGrad ? undefined : textColor,
     WebkitTextFillColor: hasGrad ? undefined : textColor,
     transform: isBehindSubject
-      ? `scaleY(${behindSubjectScaleY}) scaleX(${behindSubjectScaleX})`
-      : `translateY(${restingFloatY}px)`,
+      ? `scaleY(${behindSubjectScaleY}) scaleX(${behindSubjectScaleX}) translateZ(${layer.depthZPx || -100}px)`
+      : `translate3d(0, ${restingFloatY}px, ${layer.depthZPx || (layer.isHero ? 140 : 0)}px) rotateX(${Math.sin((frame + (layer.layerIndex || 0) * 4) * 0.08) * 1.5}deg) rotateY(${Math.cos((frame + (layer.layerIndex || 0) * 4) * 0.08) * 2.0}deg)`,
+    transformStyle: "preserve-3d",
+    opacity: (!layer.isHero && !isBehindSubject) ? 0.92 : 1.0,
     clipPath: layer.treatmentOverlay === "cinematic_viewport_mask_sweep"
       ? `polygon(0 0, ${overlayProgress * 100}% 0, ${overlayProgress * 100}% 100%, 0 100%)`
       : undefined,
@@ -2576,6 +2582,9 @@ const MultiLayerTypographyCard: React.FC<{
         textAlign: "center",
         zIndex: resolveTypographyZIndex(behindSubject, chunk.placement?.safeRegionId),
         pointerEvents: "none",
+        perspective: "1200px",
+        perspectiveOrigin: "50% 50%",
+        transformStyle: "preserve-3d",
       }}
     >
 
@@ -2890,33 +2899,52 @@ const TransitionFXStage: React.FC<{
   const effect = activeTrans.effect || "bokeh_defocus_blend";
 
   if (effect === "film_burn_strobe") {
-    const burnP = interpolate(strength, [0, 1], [0, 0.75]);
+    const burnP = interpolate(strength, [0, 1], [0, 0.92], { easing: Easing.out(Easing.quad) });
+    const coreBrightness = interpolate(strength, [0, 1], [1.0, 1.40]);
     return (
       <AbsoluteFill
         style={{
-          zIndex: 8,
+          zIndex: 12,
           pointerEvents: "none",
           overflow: "hidden",
-          mixBlendMode: "screen",
           opacity: burnP,
-          background:
-            "radial-gradient(ellipse at 80% 20%, rgba(255,180,50,0.9) 0%, rgba(255,90,0,0.7) 40%, rgba(180,20,0,0.3) 70%, transparent 100%)",
-          filter: "blur(6px)",
+          mixBlendMode: "screen",
+          filter: `blur(6px) brightness(${coreBrightness})`,
         }}
-      />
+      >
+        {/* Hot incandescent core bloom */}
+        <div
+          style={{
+            position: "absolute",
+            inset: "-15%",
+            background:
+              "radial-gradient(ellipse at 60% 35%, rgba(255, 255, 235, 0.98) 0%, rgba(255, 205, 70, 0.92) 22%, rgba(255, 95, 10, 0.78) 48%, rgba(190, 25, 0, 0.50) 72%, transparent 100%)",
+          }}
+        />
+        {/* Warm amber light leak sweep */}
+        <div
+          style={{
+            position: "absolute",
+            inset: "0",
+            background:
+              "linear-gradient(135deg, rgba(255, 140, 0, 0.65) 0%, rgba(255, 220, 100, 0.75) 38%, rgba(255, 50, 0, 0.35) 75%, transparent 100%)",
+            mixBlendMode: "screen",
+          }}
+        />
+      </AbsoluteFill>
     );
   }
 
   if (effect === "flash_cut") {
-    const flashP = interpolate(strength, [0, 1], [0, 0.70], { easing: Easing.out(Easing.quad) });
+    const flashP = interpolate(strength, [0, 1], [0, 0.75], { easing: Easing.out(Easing.quad) });
     return (
       <AbsoluteFill
         style={{
-          zIndex: 8,
+          zIndex: 12,
           pointerEvents: "none",
-          backgroundColor: "#FFFFFF",
           opacity: flashP,
           mixBlendMode: "screen",
+          background: "radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 240, 200, 0.75) 60%, rgba(255, 160, 50, 0.3) 100%)",
         }}
       />
     );

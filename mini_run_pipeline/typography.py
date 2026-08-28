@@ -1720,14 +1720,16 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
             if is_single_word and is_hero_layer:
                 letter_spacing = max(0.04, letter_spacing)
 
-            vertical_margin_top = int(f_style.get("vertical_margin_top_px", 0))
-            if vertical_margin_top < 0:
-                # Proportional negative margin clamp: max -20% of font size to prevent overlapping collision
-                margin_top_px = max(-int(font_size_px * 0.20), int(vertical_margin_top * 0.40))
-            elif vertical_margin_top > 0:
-                margin_top_px = min(int(font_size_px * 0.25), int(vertical_margin_top * 0.80))
+            base_size = max(1.0, float(f_style.get("size_px_base", 60)))
+            vertical_margin_top = float(f_style.get("vertical_margin_top_px", 0))
+            if vertical_margin_top != 0:
+                # Proportional scaling to the target 1080x1920 font size to faithfully express overlap
+                overlap_ratio = vertical_margin_top / base_size
+                margin_top_px = round(overlap_ratio * font_size_px)
             else:
                 margin_top_px = 0
+
+            is_overlapping = margin_top_px < 0
 
             rendered_layers.append({
                 "layerIndex": layer_idx,
@@ -1763,6 +1765,10 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                 "textFillColor": style_treatment["textFillColor"],
                 "hasGradient": style_treatment["hasGradient"],
                 "doubleUnderline": bool(layer_effects.get("double_underline", False)),
+                "isOverlapping": is_overlapping,
+                "zIndex": (layer_idx + 1) * 2 if is_overlapping else layer_idx + 1,
+                "depthZPx": 140 if is_hero_layer else (-110 if behind_subject else (-30 if layer_idx > 0 else 0)),
+                "focusPriority": 1 if is_hero_layer else (3 if behind_subject else 2),
             })
 
         manifest_chunks.append({

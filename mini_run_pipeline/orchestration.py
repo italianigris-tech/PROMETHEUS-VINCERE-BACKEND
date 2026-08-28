@@ -133,9 +133,9 @@ def plan_mini_run_orchestration(
         if "glitch" in hook_type:
             hook_sfx_cue = "glitch_digital"
         elif "flash" in hook_type or "flare" in hook_type:
-            hook_sfx_cue = "impact_sharp"
+            hook_sfx_cue = "shutter_snap"
         elif "dolly" in hook_type or "crash" in hook_type:
-            hook_sfx_cue = "sub_drop"
+            hook_sfx_cue = "sub_impact_reverb"
         else:
             hook_sfx_cue = "impact_deep"
         sfx.append({
@@ -147,24 +147,38 @@ def plan_mini_run_orchestration(
             "causedByHook": hook_type,
         })
 
-    transition_effects = [
-        "film_burn_strobe",
-        "bokeh_defocus_blend",
-        "flash_cut",
-        "whip_pan_blur",
-        "camera_crash_snap",
-    ]
+    # 1b. Smart Cinematic Transition System (Narrative-Driven Rulebook)
     last_transition_ms = -100000
     min_gap_ms = int(design.get("transitionMinGapMs", 1400))
     for previous, current in zip(scenes, scenes[1:]):
-        # Trigger transitions on salient shifts with minimum gap
-        is_salient_shift = abs(current["salience"] - previous["salience"]) > 0.10 or current["salience"] > 0.65
+        salience_diff = current["salience"] - previous["salience"]
+        duration_gap = current["startMs"] - previous["endMs"]
+        is_salient_shift = abs(salience_diff) > 0.10 or current["salience"] > 0.65
+
         if is_salient_shift and (current["startMs"] - last_transition_ms >= min_gap_ms):
             duration = round(320 + intensity * 240)
             start_ms = max(previous["startMs"], current["startMs"] - duration // 2)
             end_ms = min(current["endMs"], start_ms + duration)
             transition_id = f"transition-{len(transitions) + 1}"
-            effect_kind = rng.choice(transition_effects)
+
+            # Narrative-Driven Rulebook for Transition Selection
+            if salience_diff > 0.18 or current["salience"] > 0.78:
+                # Topic Pivot / Narrative Surge -> Incandescent Amber Film Burn Flash Bomb
+                effect_kind = "film_burn_strobe"
+                sfx_cue = rng.choice(["shutter_snap", "impact_sharp", "glitch_digital"])
+            elif duration_gap > 300 or current["salience"] < 0.40:
+                # Pensive Reflective Beat -> Optical Bokeh Defocus Blend
+                effect_kind = "bokeh_defocus_blend"
+                sfx_cue = "slow_whoosh_reverb"
+            elif salience_diff < -0.12 or previous.get("salience", 0) > 0.75:
+                # Climax Punchline Drop -> Camera Crash Snap
+                effect_kind = "camera_crash_snap"
+                sfx_cue = rng.choice(["sub_impact_reverb", "sub_drop"])
+            else:
+                # Fast Dynamic Cadence -> Directional Whip Pan Blur
+                effect_kind = "whip_pan_blur"
+                sfx_cue = "whoosh_fast"
+
             transition = {
                 "id": transition_id,
                 "startMs": start_ms,
@@ -178,42 +192,53 @@ def plan_mini_run_orchestration(
             transitions.append(transition)
             last_transition_ms = current["startMs"]
 
-            # Map transition effect to auditory SFX cue
-            if effect_kind == "film_burn_strobe":
-                sfx_cue = rng.choice(["glitch_digital", "impact_sharp"])
-            elif effect_kind == "flash_cut":
-                sfx_cue = "impact_sharp"
-            elif effect_kind == "camera_crash_snap":
-                sfx_cue = "sub_drop"
-            elif effect_kind == "whip_pan_blur":
-                sfx_cue = "whoosh_fast"
-            else:
-                sfx_cue = "whoosh_slow"
-
             sfx.append({
                 "id": f"sfx-{transition_id}",
                 "cue": sfx_cue,
                 "variant": rng.randint(1, 5),
                 "triggerMs": transition["peakVelocityMs"],
-                "gainDb": -14.0,
+                "gainDb": -13.5,
                 "causedByTransitionId": transition_id,
             })
 
-    # 2. Hero Chunk Kinetic Text Entry SFX
+    # 2. Intelligent Sound Orchestration for Kinetic Typography (Hero-Anchor Audio Policy)
+    # Only applies audio to primary focus / hero anchor words, avoiding repetitive noise
+    last_text_sfx_ms = -100000
     for c_idx, chunk in enumerate(chunks):
         if c_idx == 0:
-            continue  # Covered by opening hook
-        is_hero_chunk = bool(chunk.get("isHero") or any(l.get("isHero") for l in chunk.get("layers", [])))
-        if is_hero_chunk:
-            c_start = int(chunk.get("startMs", chunk.get("outputStartMs", 0)))
+            continue  # Covered by opening hook impact
+        c_start = int(chunk.get("startMs", chunk.get("outputStartMs", 0)))
+        if c_start - last_text_sfx_ms < 650:
+            continue  # Enforce minimum audio pacing window between speech sounds
+
+        layers = chunk.get("layers", [])
+        words = chunk.get("words", [])
+        is_single_word = len(words) == 1 or (len(chunk.get("text", "").split()) == 1)
+        hero_layers = [l for l in layers if l.get("isHero") or l.get("role") == "primary_focus_word"]
+
+        if is_single_word:
+            # Single-word rhythmic punch gets tactile mechanical click
             sfx.append({
                 "id": f"sfx-text-entry-{c_idx}",
-                "cue": rng.choice(["pop_text", "impact_sharp", "riser_short"]),
+                "cue": rng.choice(["mechanical_click", "pop_text"]),
                 "variant": rng.randint(1, 5),
                 "triggerMs": c_start,
-                "gainDb": -16.0,
+                "gainDb": -18.0,
                 "causedByChunkId": str(chunk.get("chunkIndex", c_idx)),
             })
+            last_text_sfx_ms = c_start
+        elif hero_layers:
+            # Major multi-word stack: only sound the entrance of the primary hero keyword
+            hero_cue = rng.choice(["shutter_snap", "impact_sharp", "pop_text", "riser_short"])
+            sfx.append({
+                "id": f"sfx-text-entry-{c_idx}",
+                "cue": hero_cue,
+                "variant": rng.randint(1, 5),
+                "triggerMs": c_start,
+                "gainDb": -15.0,
+                "causedByChunkId": str(chunk.get("chunkIndex", c_idx)),
+            })
+            last_text_sfx_ms = c_start
 
     # 3. Dynamic Cinematic Camera Zoom System (Multiple expressive zoom movements)
     camera_moves: List[Dict[str, Any]] = []

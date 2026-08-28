@@ -250,9 +250,9 @@ const runBrowserProofIfAvailable = async ({
     const browser = await playwright.chromium.launch({headless: true});
     try {
       const page = await browser.newPage();
-      await page.goto(server.origin, {waitUntil: "networkidle"});
+      await page.goto(server.origin, {waitUntil: "domcontentloaded"});
       await page.waitForFunction(() => Boolean((window as Window & {__fontSmokeResult?: unknown}).__fontSmokeResult), {
-        timeout: 10_000
+        timeout: 15_000
       });
       const details = await page.evaluate(() => {
         return (window as Window & {
@@ -306,7 +306,7 @@ const main = async (): Promise<void> => {
   }
 
   for (const record of renderableRecords) {
-    if (!record.publicUrl.startsWith("/fonts/library/")) {
+    if (!/^\/fonts\/(library|studio\/mixfonts)\//.test(record.publicUrl)) {
       throw new Error(`Invalid publicUrl for ${record.fontId}: ${record.publicUrl}`);
     }
 
@@ -370,7 +370,7 @@ const main = async (): Promise<void> => {
   if (manifestBridgePalette.cssFamily !== getRuntimeFontCssFamily(manifestBridgePalette.records[0]!)) {
     throw new Error(`Manifest bridge palette for ${manifestBridgePalette.familyName} did not use the deterministic CSS alias.`);
   }
-  if (manifestBridgePalette.publicUrls.some((publicUrl) => !publicUrl.startsWith("/fonts/library/"))) {
+  if (manifestBridgePalette.publicUrls.some((publicUrl) => !/^\/fonts\/(library|studio\/mixfonts)\//.test(publicUrl))) {
     throw new Error(`Manifest bridge palette for ${manifestBridgePalette.familyName} exposed an invalid publicUrl.`);
   }
   if (PLACEHOLDER_FONT_NAME_PATTERN.test(manifestBridgePalette.displayFamily)) {

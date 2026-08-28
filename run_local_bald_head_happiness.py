@@ -13,9 +13,9 @@ VIDEO = "/home/ec2-user/PROMETHEUS-CORE-BACKEND/LANDSCAPE VIDEOS FOR USE/Bald He
 OUTPUT_DIR = Path("/home/ec2-user/PROMETHEUS-CORE-BACKEND/final_run_output")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-DEST_VIDEO = OUTPUT_DIR / "bald_head_happiness_master.mp4"
-DEST_MANIFEST = OUTPUT_DIR / "bald_head_happiness_manifest.json"
-ROOT_COPY = Path("/home/ec2-user/bald_head_happiness_master.mp4")
+DEST_VIDEO = OUTPUT_DIR / "bald_head_happiness_master_v2.mp4"
+DEST_MANIFEST = OUTPUT_DIR / "bald_head_happiness_manifest_v2.json"
+ROOT_COPY = Path("/home/ec2-user/bald_head_happiness_master_v2.mp4")
 
 def main():
     job_id = f"mini_run_bald_head_happiness_local_{int(time.time())}"

@@ -222,6 +222,12 @@ def plan_subject_safe_placements(
             "availableHeightRatio": available_height_ratio,
             "headTopY": round(head_top_y, 4),
             "policy": "above_head_mediapipe_headroom_maximized",
+            "cranialArc": {
+                "haloTop": f"{round(text_center_y * 100, 2)}%",
+                "orbitalLeft": f"{round((representative_subject_box['x'] if representative_subject_box else 0.5) * 100 - 18, 1)}%",
+                "orbitalRight": f"{round(((representative_subject_box['x'] + representative_subject_box.get('width', 0.4)) if representative_subject_box else 0.5) * 100 + 18, 1)}%",
+                "tiltDeg": 0.0,
+            },
         }
     else:
         # Fallback when no observation is provided: place in safe upper third
@@ -234,6 +240,7 @@ def plan_subject_safe_placements(
             "subjectBox": None,
             "availableHeightRatio": 0.16,
             "policy": "fallback_no_observation",
+            "cranialArc": None,
         }
 
     # --- foreground placement (unchanged) ------------------------------------
@@ -245,6 +252,7 @@ def plan_subject_safe_placements(
         "intersectsSubject": False,
         "subjectBox": None,
         "policy": "foreground_lower_third",
+        "cranialArc": None,
     }
 
     # --- assign per chunk ----------------------------------------------------

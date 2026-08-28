@@ -634,7 +634,7 @@ def render_final_video(
                     "--concurrency", "1",
                     "--gl", "swangle",
                     "--muted",
-                    "--timeout", "180000",
+                    "--timeout", "600000",
                 ]
                 s_env = {**os.environ, "TMPDIR": str(tmp_build)}
                 s_res = subprocess.run(s_cmd, cwd=str(remotion_app_dir), capture_output=True, text=True, env=s_env)
@@ -684,7 +684,7 @@ def render_final_video(
             "--concurrency", render_concurrency,
             "--gl", primary_gl,
             "--muted",
-            "--timeout", "90000",
+            "--timeout", "600000",
         ]
         env = {**os.environ, "TMPDIR": str(tmp_build)}
         res = subprocess.run(cmd, cwd=str(remotion_app_dir), capture_output=True, text=True, env=env)
