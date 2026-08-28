@@ -147,35 +147,55 @@ def plan_mini_run_orchestration(
             "causedByHook": hook_type,
         })
 
-    transition_effects = ["defocus_blend", "bezier_push", "camera_pass"]
+    transition_effects = [
+        "film_burn_strobe",
+        "bokeh_defocus_blend",
+        "flash_cut",
+        "whip_pan_blur",
+        "camera_crash_snap",
+    ]
     last_transition_ms = -100000
-    min_gap_ms = int(design.get("transitionMinGapMs", 1800))
+    min_gap_ms = int(design.get("transitionMinGapMs", 1400))
     for previous, current in zip(scenes, scenes[1:]):
-        # Trigger transitions on major salience shifts with minimum gap
-        is_salient_shift = abs(current["salience"] - previous["salience"]) > 0.15 or current["salience"] > 0.75
+        # Trigger transitions on salient shifts with minimum gap
+        is_salient_shift = abs(current["salience"] - previous["salience"]) > 0.10 or current["salience"] > 0.65
         if is_salient_shift and (current["startMs"] - last_transition_ms >= min_gap_ms):
-            duration = round(360 + intensity * 260)
+            duration = round(320 + intensity * 240)
             start_ms = max(previous["startMs"], current["startMs"] - duration // 2)
             end_ms = min(current["endMs"], start_ms + duration)
             transition_id = f"transition-{len(transitions) + 1}"
+            effect_kind = rng.choice(transition_effects)
             transition = {
                 "id": transition_id,
                 "startMs": start_ms,
                 "endMs": end_ms,
                 "peakVelocityMs": start_ms + round((end_ms - start_ms) * 0.48),
-                "effect": rng.choice(transition_effects),
+                "effect": effect_kind,
                 "fromSceneId": previous["id"],
                 "toSceneId": current["id"],
                 "causedBySceneId": current["id"],
             }
             transitions.append(transition)
             last_transition_ms = current["startMs"]
+
+            # Map transition effect to auditory SFX cue
+            if effect_kind == "film_burn_strobe":
+                sfx_cue = rng.choice(["glitch_digital", "impact_sharp"])
+            elif effect_kind == "flash_cut":
+                sfx_cue = "impact_sharp"
+            elif effect_kind == "camera_crash_snap":
+                sfx_cue = "sub_drop"
+            elif effect_kind == "whip_pan_blur":
+                sfx_cue = "whoosh_fast"
+            else:
+                sfx_cue = "whoosh_slow"
+
             sfx.append({
                 "id": f"sfx-{transition_id}",
-                "cue": "whoosh_slow" if end_ms - start_ms >= 450 else "whoosh_fast",
+                "cue": sfx_cue,
                 "variant": rng.randint(1, 5),
                 "triggerMs": transition["peakVelocityMs"],
-                "gainDb": -15.0,
+                "gainDb": -14.0,
                 "causedByTransitionId": transition_id,
             })
 

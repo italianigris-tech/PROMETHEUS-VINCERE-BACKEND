@@ -463,9 +463,19 @@ def execute_pipeline_job(
     manifest_file = manifest_dir / "font_manifest.json"
     manifest_file.write_text(json.dumps(font_manifest, indent=2))
 
+    effective_duration_ms = min(30000, int(timeline.get("outputDurationMs", source_duration_ms)))
     for c_idx, c_item in enumerate(chunked):
         if c_idx < len(font_manifest["chunks"]):
             c_item.update(font_manifest["chunks"][c_idx])
+            # Royal text behind principal speaker lingers longer on screen before exit
+            is_behind = bool(
+                c_item.get("subjectLayering", {}).get("behindSubject")
+                or any(l.get("behindSubject") for l in c_item.get("layers", []))
+                or c_item.get("placement", {}).get("safeRegionId") == "upper_third"
+            )
+            if is_behind:
+                raw_end = int(c_item.get("displayEndMs", c_item.get("endMs", c_item.get("outputEndMs", 0))))
+                c_item["displayEndMs"] = min(effective_duration_ms, raw_end + 650)
     update("processing", 65)
 
     # 6) Build independent visual and song plans, then compose one causal MP4.

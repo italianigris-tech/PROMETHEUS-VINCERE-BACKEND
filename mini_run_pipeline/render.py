@@ -128,6 +128,61 @@ def build_audio_mix_command(
     return command
 
 
+def build_sfx_dialogue_mix_command(
+    *,
+    muted_video_path: str,
+    dialogue_path: str,
+    sfx_events: List[Dict[str, Any]],
+    duration_ms: int,
+    output_path: str,
+) -> List[str]:
+    """Mix dialogue track with timed SFX events when no music bed is active."""
+    renderable_sfx = [event for event in sfx_events if event.get("localPath")]
+    duration_sec = max(0.001, float(duration_ms) / 1000.0)
+
+    if not renderable_sfx:
+        return [
+            "ffmpeg", "-y", "-i", str(muted_video_path), "-i", str(dialogue_path),
+            "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-ac", "2",
+            "-movflags", "+faststart", "-shortest", str(output_path),
+        ]
+
+    command = ["ffmpeg", "-y", "-loglevel", "error", "-i", str(muted_video_path), "-i", str(dialogue_path)]
+    for event in renderable_sfx:
+        command.extend(["-i", str(event["localPath"])])
+
+    filters: List[str] = [
+        "[1:a]aresample=48000,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo,"
+        f"asetpts=PTS-STARTPTS,apad=whole_dur={duration_sec:.3f},"
+        f"atrim=duration={duration_sec:.3f}[dialogue_mix]"
+    ]
+    mix_labels = ["[dialogue_mix]"]
+    sfx_input_start = 2
+    for index, event in enumerate(renderable_sfx):
+        label = f"sfx{index}"
+        delay_ms = max(0, int(event.get("triggerMs", 0)))
+        gain = _ffmpeg_number(event.get("gainDb", -14))
+        filters.append(
+            f"[{sfx_input_start + index}:a]atrim=start=0:end=2,asetpts=PTS-STARTPTS,"
+            "aresample=48000,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo,"
+            f"volume={gain}dB,adelay={delay_ms}|{delay_ms}[{label}]"
+        )
+        mix_labels.append(f"[{label}]")
+
+    filters.append(
+        f"{''.join(mix_labels)}amix=inputs={len(mix_labels)}:duration=longest:normalize=0:dropout_transition=0,"
+        f"apad=whole_dur={duration_sec:.3f},atrim=duration={duration_sec:.3f},"
+        "loudnorm=I=-14:TP=-1:LRA=11,alimiter=limit=0.891[aout]"
+    )
+    command.extend([
+        "-filter_complex", ";".join(filters),
+        "-map", "0:v:0", "-map", "[aout]",
+        "-c:v", "copy", "-c:a", "aac", "-b:a", "256k", "-ar", "48000", "-ac", "2",
+        "-t", _ffmpeg_number(duration_sec), "-movflags", "+faststart", str(output_path),
+    ])
+    return command
+
+
 def resolve_sfx_event_paths(events: List[Dict[str, Any]], public_root: Path) -> List[Dict[str, Any]]:
     """Resolve only planner-selected SFX variants from the bundled corpus."""
     resolved: List[Dict[str, Any]] = []
@@ -688,15 +743,17 @@ def render_final_video(
             "sampleRate": 48000,
         }
     else:
-        _run_ffmpeg([
-            "ffmpeg", "-y", "-i", str(render_video), "-i", str(audio_tmp),
-            "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-ac", "2",
-            "-movflags", "+faststart", "-shortest", str(final_output),
-        ])
+        _run_ffmpeg(build_sfx_dialogue_mix_command(
+            muted_video_path=str(render_video),
+            dialogue_path=str(audio_tmp),
+            sfx_events=resolved_sfx,
+            duration_ms=effective_duration_ms,
+            output_path=str(final_output),
+        ))
         audio_mix = {
-            "status": "dialogue_only",
+            "status": "dialogue_and_sfx",
             "songCount": 0,
-            "sfxCount": 0,
+            "sfxCount": len(resolved_sfx),
             "sampleRate": 48000,
         }
 

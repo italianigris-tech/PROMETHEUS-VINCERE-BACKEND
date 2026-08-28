@@ -1968,8 +1968,11 @@ const KineticLayerRenderer: React.FC<{
     fx === "gaussian_blur_reveal_sweep" ||
     fx === "blur_reveal_sweep" ||
     fx === "gaussian_blur_letter_reveal" ||
-    fx === "letter_gaussian_blur_sweep"
+    fx === "letter_gaussian_blur_sweep" ||
+    fx === "royal_gaussian_blur_letter_sweep" ||
+    fx === "royal_behind_subject_sweep"
   ) {
+    const isRoyal = fx.includes("royal") || Boolean(layer.behindSubject);
     let globalCharIndex = 0;
     return (
       <div style={{ ...baseTextStyle, display: "flex", flexWrap: "wrap", justifyContent: "center", alignItems: "center" }}>
@@ -1989,18 +1992,20 @@ const KineticLayerRenderer: React.FC<{
               }}
             >
               {letters.map((char, cIdx) => {
-                const charStagger = (wordCharStartIndex + cIdx) * 1.3;
-                // Pre-roll lead-in: start 4 frames earlier for buttery smooth anticipation
-                const localFrame = Math.max(0, (frame + 4) - (wordStart + charStagger));
-                const p = interpolate(localFrame, [0, 9], [0, 1], {
+                const charStagger = (wordCharStartIndex + cIdx) * (isRoyal ? 1.6 : 1.2);
+                // Pre-roll lead-in: start 5 frames earlier for buttery smooth royal anticipation
+                const localFrame = Math.max(0, (frame + 5) - (wordStart + charStagger));
+                const animDuration = isRoyal ? 13 : 9;
+                const p = interpolate(localFrame, [0, animDuration], [0, 1], {
                   extrapolateLeft: "clamp",
                   extrapolateRight: "clamp",
                   easing: Easing.out(Easing.cubic),
                 });
-                const translateY = interpolate(p, [0, 1], [18, 0]);
-                const blur = interpolate(p, [0, 0.7, 1], [22, 2, 0]);
+                const startBlur = isRoyal ? 28 : 22;
+                const translateY = interpolate(p, [0, 1], [isRoyal ? 22 : 18, 0]);
+                const blur = interpolate(p, [0, 0.75, 1], [startBlur, 2, 0]);
                 const opacity = interpolate(p, [0, 0.35, 1], [0, 0.9, 1]);
-                const scale = interpolate(p, [0, 1], [0.90, 1.0]);
+                const scale = interpolate(p, [0, 1], [isRoyal ? 0.92 : 0.90, 1.0]);
 
                 return (
                   <span
@@ -2010,8 +2015,13 @@ const KineticLayerRenderer: React.FC<{
                       opacity,
                       transform: `translateY(${translateY}px) scale(${scale})`,
                       filter: `blur(${blur}px)`,
+                      letterSpacing: isRoyal ? "0.08em" : undefined,
                       ...wordPaintStyle,
-                      textShadow: kineticTextShadow("0 4px 20px rgba(0, 0, 0, 0.95), 0 2px 8px rgba(0, 0, 0, 0.90)"),
+                      textShadow: kineticTextShadow(
+                        isRoyal
+                          ? "0 6px 28px rgba(0, 0, 0, 0.98), 0 2px 10px rgba(0, 0, 0, 0.92)"
+                          : "0 4px 20px rgba(0, 0, 0, 0.95), 0 2px 8px rgba(0, 0, 0, 0.90)"
+                      ),
                     }}
                   >
                     {char}
@@ -2479,6 +2489,12 @@ const MultiLayerTypographyCard: React.FC<{
           },
         ];
   const behindSubject = subjectMatteAvailable && layers.some((layer) => layer.behindSubject);
+  const isBehindSubject = Boolean(
+    behindSubject ||
+    chunk.placement?.safeRegionId === "upper_third" ||
+    chunk.placement?.anchor === "top_headroom" ||
+    layers.some((l) => l.behindSubject)
+  );
   const topPosition = chunk.placement?.yPercent || (behindSubject ? "10%" : "68%");
 
   // Overall chunk entrance & exit kinetic spring
@@ -2488,9 +2504,26 @@ const MultiLayerTypographyCard: React.FC<{
     easing: Easing.out(Easing.back(1.2)),
   });
 
-  const chunkExit = interpolate(frame, [Math.max(0, totalFrames - 3), totalFrames], [1, 0], {
+  const exitFrames = isBehindSubject ? 12 : 3;
+  const exitBlur = isBehindSubject
+    ? interpolate(frame, [Math.max(0, totalFrames - exitFrames), totalFrames], [0, 24], {
+        extrapolateLeft: "clamp",
+        extrapolateRight: "clamp",
+        easing: Easing.in(Easing.cubic),
+      })
+    : 0;
+
+  const exitScale = isBehindSubject
+    ? interpolate(frame, [Math.max(0, totalFrames - exitFrames), totalFrames], [1.0, 1.04], {
+        extrapolateLeft: "clamp",
+        extrapolateRight: "clamp",
+      })
+    : 1.0;
+
+  const chunkExit = interpolate(frame, [Math.max(0, totalFrames - exitFrames), totalFrames], [1, 0], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
+    easing: isBehindSubject ? Easing.in(Easing.quad) : undefined,
   });
 
   // Full-card hook & cinematic impact transforms
@@ -2529,13 +2562,13 @@ const MultiLayerTypographyCard: React.FC<{
         position: "absolute",
         left: "50%",
         top: topPosition,
-        transform: `translate(calc(-50% + ${hookTranslateX}px), -50%) scale(${interpolate(chunkEntrance, [0, 1], [0.94, 1.0]) * hookScale})`,
+        transform: `translate(calc(-50% + ${hookTranslateX}px), -50%) scale(${interpolate(chunkEntrance, [0, 1], [0.94, 1.0]) * hookScale * exitScale})`,
         opacity: Math.min(chunkEntrance, chunkExit),
         display: "flex",
         flexDirection: "column",
         justifyContent: "center",
         alignItems: "center",
-        filter: `${resolveTypographyContainerFilter(layers) || ""} brightness(${hookBrightness})`.trim() || undefined,
+        filter: `${resolveTypographyContainerFilter(layers) || ""} ${exitBlur > 0.1 ? `blur(${exitBlur.toFixed(1)}px)` : ""} brightness(${hookBrightness})`.trim() || undefined,
         mixBlendMode: resolveTypographyContainerBlendMode(layers),
         gap: "0px",
         width: "92%",
@@ -2835,6 +2868,81 @@ const BackgroundCanvasStage: React.FC<{
   );
 };
 
+// ---------------------------------------------------------------------------
+// TransitionFXStage — Renders cinematic transition overlays across scenes
+// (film burns, white flash cuts, bokeh defocus blends, whip pan streaks)
+// ---------------------------------------------------------------------------
+const TransitionFXStage: React.FC<{
+  orchestration?: MiniRunOrchestration;
+  frame: number;
+  fps: number;
+}> = ({ orchestration, frame, fps }) => {
+  const nowMs = (frame / fps) * 1000;
+  const transitions = (orchestration as any)?.transitions || [];
+  if (transitions.length === 0) return null;
+
+  const activeTrans = transitions.find((tr: any) => nowMs >= tr.startMs && nowMs <= tr.endMs);
+  if (!activeTrans) return null;
+
+  const dur = Math.max(1, activeTrans.endMs - activeTrans.startMs);
+  const p = (nowMs - activeTrans.startMs) / dur;
+  const strength = 1 - Math.abs(p - 0.5) * 2; // 0 -> 1 -> 0
+  const effect = activeTrans.effect || "bokeh_defocus_blend";
+
+  if (effect === "film_burn_strobe") {
+    const burnP = interpolate(strength, [0, 1], [0, 0.75]);
+    return (
+      <AbsoluteFill
+        style={{
+          zIndex: 8,
+          pointerEvents: "none",
+          overflow: "hidden",
+          mixBlendMode: "screen",
+          opacity: burnP,
+          background:
+            "radial-gradient(ellipse at 80% 20%, rgba(255,180,50,0.9) 0%, rgba(255,90,0,0.7) 40%, rgba(180,20,0,0.3) 70%, transparent 100%)",
+          filter: "blur(6px)",
+        }}
+      />
+    );
+  }
+
+  if (effect === "flash_cut") {
+    const flashP = interpolate(strength, [0, 1], [0, 0.70], { easing: Easing.out(Easing.quad) });
+    return (
+      <AbsoluteFill
+        style={{
+          zIndex: 8,
+          pointerEvents: "none",
+          backgroundColor: "#FFFFFF",
+          opacity: flashP,
+          mixBlendMode: "screen",
+        }}
+      />
+    );
+  }
+
+  if (effect === "whip_pan_blur") {
+    const whipOffset = interpolate(p, [0, 0.5, 1], [-60, 0, 60]);
+    return (
+      <AbsoluteFill
+        style={{
+          zIndex: 8,
+          pointerEvents: "none",
+          overflow: "hidden",
+          opacity: strength * 0.45,
+          mixBlendMode: "screen",
+          transform: `translateX(${whipOffset}px)`,
+          background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%)",
+          filter: "blur(8px)",
+        }}
+      />
+    );
+  }
+
+  return null;
+};
+
 export const PrometheusMinRun: React.FC<PrometheusMinRunProps> = ({
   videoSrc,
   matteSrc,
@@ -2863,6 +2971,9 @@ export const PrometheusMinRun: React.FC<PrometheusMinRunProps> = ({
 
       {/* 1c. Texture Background Canvas Stage (Z: 5) */}
       <BackgroundCanvasStage orchestration={orchestration} frame={frame} fps={fps} />
+
+      {/* 1d. Transition Visual Effects Stage (Z: 8) — Film Burns, Flash Cuts, Whip Streaks */}
+      <TransitionFXStage orchestration={orchestration} frame={frame} fps={fps} />
 
       {/* 2. Multi-Layer Speech-Synchronized Kinetic Typography Chunks (Z: 10 / 100) */}
       {(() => {
