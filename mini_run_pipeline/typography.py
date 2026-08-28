@@ -16,6 +16,8 @@ import hashlib
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from mini_run_pipeline.motif import resolve_brand_motif, motif_to_brand_palette
+
 FONT_JSON_DIR = Path(__file__).resolve().parent.parent / "Yuan Prometheus Screenshots" / "font JSON"
 FONT_PAIRS_DIR = Path(__file__).resolve().parent.parent / "Yuan Prometheus Screenshots" / "font pairing and placement"
 OPT_FONT_DIR = Path("/opt/prometheus/Yuan Prometheus Screenshots/font JSON")
@@ -1417,21 +1419,28 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
 
     policy = resolve_typography_policy(design_override)
 
-    # Unified Video-Level Brand Palette
-    explicit_palette_id = _explicit_brand_palette_id(design_input)
-    if explicit_palette_id:
-        if explicit_palette_id == "custom":
-            brand_input = design_input.get("brand") or design_input
-            video_palette = resolve_brand_palette(brand_input)
-            video_palette_id = "custom"
-        else:
-            video_palette = resolve_brand_palette(explicit_palette_id)
-            video_palette_id = explicit_palette_id
+    # Brand Motif System (Toggle-based: OFF by default unless enabled)
+    motif_plan = resolve_brand_motif(design_input)
+    if motif_plan:
+        video_palette = motif_to_brand_palette(motif_plan)
+        video_palette_id = motif_plan.get("preset", "custom")
+        explicit_palette_id = video_palette_id
     else:
-        # Dynamic variety: pick with rng across all curated high-end palettes (no hardcoded single default)
-        palette_choices = list(DEFAULT_VARIATION_PALETTES)
-        video_palette_id = _weighted_choice(rng, palette_choices, [1.0] * len(palette_choices))
-        video_palette = BRAND_PALETTES[video_palette_id].copy()
+        # Unified Video-Level Brand Palette (dynamic variation by default)
+        explicit_palette_id = _explicit_brand_palette_id(design_input)
+        if explicit_palette_id:
+            if explicit_palette_id == "custom":
+                brand_input = design_input.get("brand") or design_input
+                video_palette = resolve_brand_palette(brand_input)
+                video_palette_id = "custom"
+            else:
+                video_palette = resolve_brand_palette(explicit_palette_id)
+                video_palette_id = explicit_palette_id
+        else:
+            # Dynamic variety: pick with rng across all curated high-end palettes (no hardcoded single default)
+            palette_choices = list(DEFAULT_VARIATION_PALETTES)
+            video_palette_id = _weighted_choice(rng, palette_choices, [1.0] * len(palette_choices))
+            video_palette = BRAND_PALETTES[video_palette_id].copy()
     video_palette["id"] = video_palette_id
 
     # Select behind-subject depth treatment moments with temporal distribution & variety
@@ -1841,7 +1850,8 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
         "profileCount": len(profiles),
         "chunkCount": len(manifest_chunks),
         "brandPalette": video_palette,
-        "palettePolicy": "explicit" if explicit_palette_id else "balanced_curated_variation",
+        "motif": motif_plan,
+        "palettePolicy": "brand_motif" if motif_plan else ("explicit" if explicit_palette_id else "balanced_curated_variation"),
         "selectionPolicy": policy,
         "selectionMode": selection_mode,
         "selectionSeed": seed_str if selection_mode == "seed" else selection_nonce,

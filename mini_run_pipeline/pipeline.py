@@ -40,6 +40,7 @@ from . import (
     jobs,
     looks,
     orchestration,
+    motif,
     render,
     silence,
     song_program,
@@ -427,6 +428,18 @@ def execute_pipeline_job(
     # Generate the typography plan first. Behind-subject tall-font choices are
     # then positioned from the precomputed MediaPipe observation used as render evidence.
     font_manifest = typography.generate_font_manifest(chunked, design)
+    resolved_motif = font_manifest.get("motif")
+    if resolved_motif:
+        print(
+            f"[pipeline] brand motif active: {resolved_motif['name']} "
+            f"(primary={resolved_motif['colors']['primary']}, "
+            f"base={resolved_motif['colors']['base']}, "
+            f"accent={resolved_motif['colors']['accent']})",
+            flush=True,
+        )
+    else:
+        print("[pipeline] brand motif: disabled (default dynamic palette mode)", flush=True)
+
     behind_subject_chunks = [
         chunk for chunk in font_manifest["chunks"]
         if chunk.get("subjectLayering", {}).get("behindSubject")
@@ -548,6 +561,7 @@ def execute_pipeline_job(
         "mode": decision["mode"],
         "chunkCount": len(chunked),
         "fontManifest": font_manifest,
+        "motif": resolved_motif,
         "orchestrationManifest": orchestration_manifest,
         "lookManifest": look_plan,
         "lookManifestPath": look_manifest_path,
