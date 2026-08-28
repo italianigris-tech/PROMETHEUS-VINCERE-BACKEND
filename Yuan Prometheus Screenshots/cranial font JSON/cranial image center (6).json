@@ -1,0 +1,113 @@
+{
+  "filename": "cranial image center (6).json",
+  "profile_id": "cranial image center (6)",
+  "profile_name": "Asymmetric_Prefix_Teal_Gradient_Crown",
+  "version": "1.0.0",
+  "cranial_spec": {
+    "alignment": "center",
+    "dominant_zone": "cranial_crown",
+    "head_framing": {
+      "x": 0.432,
+      "y": 0.483,
+      "width": 0.162,
+      "height": 0.256,
+      "headroom_ratio": 0.483
+    },
+    "text_relationship": "asymmetric_prefix_and_emerald_teal_crown",
+    "suitable_word_counts": [
+      3,
+      4,
+      5
+    ],
+    "character_count_range": [
+      8,
+      22
+    ]
+  },
+  "metadata": {
+    "target_aspect_ratio": "9:16",
+    "overall_mood": "Organic Modern Luxe, Emerald Teal Deep Gradient with Peach Torso Accent",
+    "casing_strategy": "mixed",
+    "total_word_count": 5,
+    "total_character_count": 19,
+    "paired_image": "cranial image center (6).png"
+  },
+  "layout_rules": {
+    "horizontal_alignment": "center",
+    "vertical_position": "cranial_split",
+    "upper_cranial_y_percent": 26.0,
+    "lower_torso_y_percent": 78.0,
+    "behind_subject_depth": true
+  },
+  "typography_layers": [
+    {
+      "layer_name": "asymmetric_upper_prefix",
+      "role": "context_prefix",
+      "raw_text": "the way your",
+      "font_classification": "Geometric Medium Sans",
+      "font_family": "Plus Jakarta Sans",
+      "accent_font": "Inter",
+      "font_style": {
+        "weight": 500,
+        "style": "normal",
+        "casing": "lowercase",
+        "color": "#FFFFFF",
+        "size_px_base": 52,
+        "letter_spacing_em": -0.01,
+        "line_height": 1.0
+      },
+      "effects": {
+        "shadow": "0 3px 12px rgba(0,0,0,0.85)",
+        "behindSubject": true,
+        "depthZPx": 105
+      }
+    },
+    {
+      "layer_name": "giant_teal_gradient_keyword",
+      "role": "primary_focus_word",
+      "raw_text": "HOME",
+      "font_classification": "Heavy Wide Architectural Sans",
+      "font_family": "Montserrat",
+      "accent_font": "Syne",
+      "font_style": {
+        "weight": 900,
+        "style": "normal",
+        "casing": "uppercase",
+        "color": "#0D9488",
+        "size_px_base": 160,
+        "letter_spacing_em": -0.03,
+        "line_height": 0.88
+      },
+      "effects": {
+        "gradient": "linear-gradient(135deg, #0D9488 0%, #14B8A6 50%, #042F2E 100%)",
+        "hasGradient": true,
+        "glow": "0 0 22px rgba(13,148,136,0.5)",
+        "shadow": "0 8px 30px rgba(0,0,0,0.92)",
+        "behindSubject": true,
+        "depthZPx": 130
+      }
+    },
+    {
+      "layer_name": "lower_torso_anchor",
+      "role": "secondary_clause",
+      "raw_text": "is",
+      "font_classification": "Modern Bold Sans Accent",
+      "font_family": "Montserrat",
+      "accent_font": "Plus Jakarta Sans",
+      "font_style": {
+        "weight": 700,
+        "style": "normal",
+        "casing": "lowercase",
+        "color": "#FB923C",
+        "size_px_base": 48,
+        "letter_spacing_em": 0.02,
+        "line_height": 1.0
+      },
+      "effects": {
+        "shadow": "0 2px 10px rgba(0,0,0,0.7)",
+        "behindSubject": false,
+        "depthZPx": 0
+      }
+    }
+  ]
+}

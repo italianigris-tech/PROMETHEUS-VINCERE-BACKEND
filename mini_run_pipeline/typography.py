@@ -21,6 +21,8 @@ from mini_run_pipeline import listicles
 
 FONT_JSON_DIR = Path(__file__).resolve().parent.parent / "Yuan Prometheus Screenshots" / "font JSON"
 FONT_PAIRS_DIR = Path(__file__).resolve().parent.parent / "Yuan Prometheus Screenshots" / "font pairing and placement"
+CRANIAL_FONT_JSON_DIR = Path(__file__).resolve().parent.parent / "Yuan Prometheus Screenshots" / "cranial font JSON"
+CRANIAL_PLACEMENT_DIR = Path(__file__).resolve().parent.parent / "Yuan Prometheus Screenshots" / "cranial font placement"
 OPT_FONT_DIR = Path("/opt/prometheus/Yuan Prometheus Screenshots/font JSON")
 OPT_PAIRS_DIR = Path("/opt/prometheus/Yuan Prometheus Screenshots/font pairing and placement")
 
@@ -776,6 +778,70 @@ def load_all_font_json_profiles(include_landscape: bool = False) -> List[Dict[st
                     "typography_layers": layers,
                     "total_words": total_words,
                     "is_landscape": is_landscape_file or "landscape" in pname.lower(),
+                    "is_cranial_profile": False,
+                    "raw": data,
+                })
+            except Exception:
+                pass
+
+    if CRANIAL_FONT_JSON_DIR.exists():
+        for file_path in sorted(CRANIAL_FONT_JSON_DIR.glob("*.json")):
+            try:
+                data = json.loads(file_path.read_text(encoding="utf-8"))
+                pname = data.get("profile_name", file_path.stem)
+                img_name = file_path.stem + ".png"
+                img_exists = (CRANIAL_PLACEMENT_DIR / img_name).exists()
+                layers = data.get("typography_layers", [])
+                meta = data.get("metadata", {})
+                total_words = meta.get("total_word_count", len(layers))
+
+                profiles.append({
+                    "id": file_path.stem,
+                    "filename": file_path.name,
+                    "profile_name": pname,
+                    "paired_image": img_name if img_exists else None,
+                    "paired_image_exists": img_exists,
+                    "cranial_spec": data.get("cranial_spec", {}),
+                    "metadata": meta,
+                    "layout_rules": data.get("layout_rules", {}),
+                    "typography_layers": layers,
+                    "total_words": total_words,
+                    "is_landscape": False,
+                    "is_cranial_profile": True,
+                    "raw": data,
+                })
+            except Exception:
+                pass
+
+    return profiles
+
+
+def load_all_cranial_font_json_profiles() -> List[Dict[str, Any]]:
+    """Loads all authoritative Cranial Font JSON profiles."""
+    profiles = []
+    if CRANIAL_FONT_JSON_DIR.exists():
+        for file_path in sorted(CRANIAL_FONT_JSON_DIR.glob("*.json")):
+            try:
+                data = json.loads(file_path.read_text(encoding="utf-8"))
+                img_name = file_path.stem + ".png"
+                img_exists = (CRANIAL_PLACEMENT_DIR / img_name).exists()
+                layers = data.get("typography_layers", [])
+                meta = data.get("metadata", {})
+                total_words = meta.get("total_word_count", len(layers))
+
+                profiles.append({
+                    "id": file_path.stem,
+                    "filename": file_path.name,
+                    "profile_name": data.get("profile_name", file_path.stem),
+                    "paired_image": img_name if img_exists else None,
+                    "paired_image_exists": img_exists,
+                    "cranial_spec": data.get("cranial_spec", {}),
+                    "metadata": meta,
+                    "layout_rules": data.get("layout_rules", {}),
+                    "typography_layers": layers,
+                    "total_words": total_words,
+                    "is_landscape": False,
+                    "is_cranial_profile": True,
                     "raw": data,
                 })
             except Exception:
@@ -1158,6 +1224,16 @@ def eligible_portrait_profile_ids() -> List[str]:
     return [profile["id"] for profile in load_all_portrait_font_json_profiles()]
 
 
+def _is_cranial_profile(profile: Dict[str, Any]) -> bool:
+    pid = (profile.get("id") or "").lower()
+    pname = (profile.get("profile_name") or "").lower()
+    pfile = (profile.get("filename") or "").lower()
+    metadata = profile.get("metadata", {})
+    if profile.get("is_cranial_profile") or "cranial" in pid or "cranial" in pfile or "cranial" in pname:
+        return True
+    return bool(metadata.get("cranial_placement_optimized"))
+
+
 def _is_tall_matte_profile(profile: Dict[str, Any]) -> bool:
     pid = (profile.get("id") or "").lower()
     pname = (profile.get("profile_name") or "").lower()
@@ -1170,6 +1246,11 @@ def _is_tall_matte_profile(profile: Dict[str, Any]) -> bool:
     if any(t in pname for t in ("ultratall", "ultra_tall", "ultracondensed", "ultra_condensed", "pill_grotesk", "hairline_tall", "industrial_block", "spiked_stem", "skywall")):
         return True
     return False
+
+
+def _is_behind_subject_candidate_profile(profile: Dict[str, Any]) -> bool:
+    """Checks if profile is qualified for behind-subject cranial / tall matte placement."""
+    return _is_tall_matte_profile(profile) or _is_cranial_profile(profile)
 
 
 
@@ -1522,13 +1603,13 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
         signal = _chunk_signal(chunk)
         behind_subject = (idx in behind_subject_indices)
 
-        # Strict Tall vs Foreground separation:
-        # Background chunks MUST strictly use Tall Font profiles.
-        # Foreground chunks MUST strictly EXCLUDE Tall Font profiles.
+        # Strict Behind-Subject (Cranial / Tall Matte) vs Foreground separation:
+        # Background chunks strictly use Cranial Font or Tall Matte profiles.
+        # Foreground chunks strictly EXCLUDE Behind-Subject profiles.
         if behind_subject:
-            pool = [p for p in profiles if _is_tall_matte_profile(p)] or profiles
+            pool = [p for p in profiles if _is_behind_subject_candidate_profile(p)] or profiles
         else:
-            pool = [p for p in profiles if not _is_tall_matte_profile(p)] or profiles
+            pool = [p for p in profiles if not _is_behind_subject_candidate_profile(p)] or profiles
 
         if is_single_word:
             # Match 1-word profiles, prioritizing exact single-word sample_text profiles (like image 51 "less.")

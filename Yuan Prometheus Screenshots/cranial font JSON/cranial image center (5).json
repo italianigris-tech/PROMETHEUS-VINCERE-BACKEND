@@ -1,0 +1,88 @@
+{
+  "filename": "cranial image center (5).json",
+  "profile_id": "cranial image center (5)",
+  "profile_name": "Dual_Stack_Grotesque_Coral_Keyword_Crown",
+  "version": "1.0.0",
+  "cranial_spec": {
+    "alignment": "center",
+    "dominant_zone": "cranial_crown",
+    "head_framing": {
+      "x": 0.44,
+      "y": 0.632,
+      "width": 0.143,
+      "height": 0.249,
+      "headroom_ratio": 0.632
+    },
+    "text_relationship": "generous_headroom_double_stack_crown",
+    "suitable_word_counts": [
+      2,
+      3,
+      4
+    ],
+    "character_count_range": [
+      6,
+      18
+    ]
+  },
+  "metadata": {
+    "target_aspect_ratio": "9:16",
+    "overall_mood": "Chic Modern Lifestyle, Pastel Coral Accent with Crisp White",
+    "casing_strategy": "mixed",
+    "total_word_count": 3,
+    "total_character_count": 15,
+    "paired_image": "cranial image center (5).png"
+  },
+  "layout_rules": {
+    "horizontal_alignment": "center",
+    "vertical_position": "above_head_cranial_stack",
+    "upper_cranial_y_percent": 38.0,
+    "behind_subject_depth": true
+  },
+  "typography_layers": [
+    {
+      "layer_name": "upper_prefix_header",
+      "role": "context_prefix",
+      "raw_text": "that most",
+      "font_classification": "Geometric Bold Sans",
+      "font_family": "Plus Jakarta Sans",
+      "accent_font": "Inter",
+      "font_style": {
+        "weight": 700,
+        "style": "normal",
+        "casing": "lowercase",
+        "color": "#FFFFFF",
+        "size_px_base": 56,
+        "letter_spacing_em": -0.02,
+        "line_height": 1.0
+      },
+      "effects": {
+        "shadow": "0 3px 12px rgba(0,0,0,0.85)",
+        "behindSubject": true,
+        "depthZPx": 110
+      }
+    },
+    {
+      "layer_name": "giant_coral_hero_keyword",
+      "role": "primary_focus_word",
+      "raw_text": "AGENTS",
+      "font_classification": "Heavy Wide Punch Sans",
+      "font_family": "Montserrat",
+      "accent_font": "Syne",
+      "font_style": {
+        "weight": 900,
+        "style": "normal",
+        "casing": "uppercase",
+        "color": "#FFB5A7",
+        "size_px_base": 165,
+        "letter_spacing_em": -0.03,
+        "line_height": 0.88
+      },
+      "effects": {
+        "glow": "0 0 24px rgba(255,181,167,0.5)",
+        "shadow": "0 8px 30px rgba(0,0,0,0.92)",
+        "behindSubject": true,
+        "depthZPx": 135
+      }
+    }
+  ]
+}
