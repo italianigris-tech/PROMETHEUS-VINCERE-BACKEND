@@ -269,6 +269,36 @@ export type CaptionChunk = {
   };
   layers?: TypographyLayer[];
   words?: WordTiming[];
+  palette?: {
+    hero_color?: string;
+    companion_color?: string;
+    accent_border?: string;
+    glow?: string;
+    shadow?: string;
+  };
+  listicle?: {
+    isListicle?: boolean;
+    mode?: "teaser_blur" | "step_item";
+    itemNumber?: number;
+    itemNumberFormatted?: string;
+    totalCount?: number;
+    treatment?: string;
+    badgeText?: string;
+    numberStyle?: {
+      fontFamily?: string;
+      fontSizePx?: number;
+      stroke?: boolean;
+      strokeWidthPx?: number;
+      maskBottomFade?: boolean;
+      blurOblivion?: boolean;
+    };
+    teaserItems?: Array<{
+      itemNumber: number;
+      indexFormatted: string;
+      label: string;
+      blurred: boolean;
+    }>;
+  };
 };
 
 export type MiniRunScene = {
@@ -2449,6 +2479,185 @@ const KineticLayerRenderer: React.FC<{
 };
 
 // ---------------------------------------------------------------------------
+// Listicle & Numerical Language Component
+// ---------------------------------------------------------------------------
+const ListicleRenderer: React.FC<{
+  listicle: NonNullable<CaptionChunk["listicle"]>;
+  frame: number;
+  fps: number;
+  palette?: CaptionChunk["palette"];
+}> = ({ listicle, frame, fps, palette }) => {
+  const brandPrimary = palette?.hero_color || "#C084FC";
+  const brandAccent = palette?.accent_border || "#A78BFA";
+  const brandGlow = palette?.glow || `0 0 20px ${brandPrimary}88`;
+
+  // Mode A: "List & Blur" Retention Teaser
+  if (listicle.mode === "teaser_blur" && listicle.teaserItems && listicle.teaserItems.length > 0) {
+    const listEntrance = spring({ frame, fps, config: { damping: 15, stiffness: 120 } });
+    return (
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "10px",
+          width: "100%",
+          maxWidth: "760px",
+          marginBottom: "16px",
+          transform: `scale(${interpolate(listEntrance, [0, 1], [0.92, 1.0])})`,
+          opacity: listEntrance,
+        }}
+      >
+        {listicle.badgeText && (
+          <div
+            style={{
+              alignSelf: "center",
+              padding: "4px 14px",
+              borderRadius: "999px",
+              background: `linear-gradient(90deg, ${brandPrimary}, ${brandAccent})`,
+              color: "#FFFFFF",
+              fontSize: "20px",
+              fontWeight: 900,
+              letterSpacing: "0.15em",
+              textTransform: "uppercase",
+              boxShadow: brandGlow,
+              marginBottom: "8px",
+            }}
+          >
+            {listicle.badgeText}
+          </div>
+        )}
+        {listicle.teaserItems.map((item, idx) => {
+          const itemSpring = spring({
+            frame: Math.max(0, frame - idx * 2),
+            fps,
+            config: { damping: 14, stiffness: 140 },
+          });
+          return (
+            <div
+              key={`teaser-item-${idx}`}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "14px",
+                padding: "8px 18px",
+                borderRadius: "12px",
+                background: item.blurred
+                  ? "rgba(15, 23, 42, 0.45)"
+                  : `linear-gradient(90deg, rgba(255,255,255,0.15) 0%, rgba(${brandPrimary}, 0.25) 100%)`,
+                backdropFilter: item.blurred ? "blur(14px)" : "blur(4px)",
+                border: item.blurred ? "1px solid rgba(255,255,255,0.1)" : `1.5px solid ${brandPrimary}`,
+                transform: `translateX(${interpolate(itemSpring, [0, 1], [-25, 0])}px)`,
+                opacity: itemSpring,
+              }}
+            >
+              <span
+                style={{
+                  fontFamily: '"Anton", "Montserrat", sans-serif',
+                  fontSize: "32px",
+                  fontWeight: 900,
+                  color: item.blurred ? "#94A3B8" : brandPrimary,
+                  letterSpacing: "0.05em",
+                }}
+              >
+                {item.indexFormatted}
+              </span>
+              <span
+                style={{
+                  fontFamily: '"Montserrat", sans-serif',
+                  fontSize: "24px",
+                  fontWeight: 700,
+                  color: "#FFFFFF",
+                  filter: item.blurred ? "blur(7px)" : "none",
+                  userSelect: "none",
+                }}
+              >
+                {item.label}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  // Mode B: Step-by-Step Giant Numeral Treatment
+  const numFormatted = listicle.itemNumberFormatted || `${listicle.itemNumber || 1}`;
+  const numStyle = listicle.numberStyle || {};
+  const numFont = numStyle.fontFamily || "Anton";
+  const numSize = numStyle.fontSizePx || 310;
+  const treatmentId = listicle.treatment || "gradient_fade_oblivion";
+
+  const numEntrance = spring({ frame, fps, config: { damping: 16, stiffness: 130 } });
+  const flickerOpacity = treatmentId === "glitch_flicker_counter" && frame < 6
+    ? (frame % 2 === 0 ? 0.35 : 1.0)
+    : 1.0;
+  const bokehBlur = treatmentId === "cinematic_slide_blur"
+    ? interpolate(frame, [0, 8], [28, 0], { extrapolateRight: "clamp" })
+    : 0;
+
+  const isOutline = Boolean(numStyle.stroke || treatmentId === "outline_cutout_glow");
+  const isGradientOblivion = Boolean(numStyle.maskBottomFade || treatmentId === "gradient_fade_oblivion");
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        marginBottom: "-35px",
+        zIndex: 1,
+        transform: `scale(${interpolate(numEntrance, [0, 1], [0.85, 1.0])}) translateY(${interpolate(numEntrance, [0, 1], [30, 0])}px)`,
+        opacity: numEntrance * flickerOpacity,
+        filter: bokehBlur > 0.1 ? `blur(${bokehBlur.toFixed(1)}px)` : undefined,
+      }}
+    >
+      {listicle.badgeText && (
+        <span
+          style={{
+            fontFamily: '"Montserrat", sans-serif',
+            fontSize: "18px",
+            fontWeight: 900,
+            letterSpacing: "0.2em",
+            color: brandAccent,
+            textTransform: "uppercase",
+            marginBottom: "-12px",
+            textShadow: brandGlow,
+          }}
+        >
+          {listicle.badgeText}
+        </span>
+      )}
+      <div
+        style={{
+          fontFamily: `"${numFont}", "Anton", sans-serif`,
+          fontSize: `${numSize}px`,
+          fontWeight: 900,
+          lineHeight: 0.82,
+          letterSpacing: "-0.04em",
+          color: isOutline ? "transparent" : (isGradientOblivion ? "#FFFFFF" : brandPrimary),
+          WebkitTextStroke: isOutline ? `3px ${brandPrimary}` : undefined,
+          backgroundImage: isGradientOblivion
+            ? `linear-gradient(180deg, #FFFFFF 0%, ${brandPrimary} 65%, rgba(0,0,0,0) 100%)`
+            : undefined,
+          WebkitBackgroundClip: isGradientOblivion ? "text" : undefined,
+          WebkitTextFillColor: isGradientOblivion ? "transparent" : (isOutline ? "transparent" : undefined),
+          WebkitMaskImage: isGradientOblivion
+            ? "linear-gradient(180deg, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 95%)"
+            : undefined,
+          maskImage: isGradientOblivion
+            ? "linear-gradient(180deg, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 95%)"
+            : undefined,
+          textShadow: isOutline ? brandGlow : `0 4px 24px rgba(0,0,0,0.6), ${brandGlow}`,
+        }}
+      >
+        {numFormatted}
+      </div>
+    </div>
+  );
+};
+
+// ---------------------------------------------------------------------------
 // Multi-Layer Editorial Graphic Typography Component
 // ---------------------------------------------------------------------------
 const MultiLayerTypographyCard: React.FC<{
@@ -2587,6 +2796,14 @@ const MultiLayerTypographyCard: React.FC<{
         transformStyle: "preserve-3d",
       }}
     >
+      {chunk.listicle?.isListicle && (
+        <ListicleRenderer
+          listicle={chunk.listicle}
+          frame={frame}
+          fps={fps}
+          palette={chunk.palette}
+        />
+      )}
 
       {layers.map((layer, lIdx) => {
         return (

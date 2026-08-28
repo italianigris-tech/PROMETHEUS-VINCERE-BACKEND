@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from mini_run_pipeline.motif import resolve_brand_motif, motif_to_brand_palette
+from mini_run_pipeline import listicles
 
 FONT_JSON_DIR = Path(__file__).resolve().parent.parent / "Yuan Prometheus Screenshots" / "font JSON"
 FONT_PAIRS_DIR = Path(__file__).resolve().parent.parent / "Yuan Prometheus Screenshots" / "font pairing and placement"
@@ -1494,6 +1495,9 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                         if score >= 1.0 or (rng.random() < 0.70 and score >= 0.7):
                             behind_subject_indices.add(c_idx)
 
+    # Listicle Intelligence & Numerical Planning
+    listicle_planning = listicles.detect_and_plan_listicles(chunks, design_input)
+
     manifest_chunks = []
     recent_primary_fx: List[str] = []
     preset_usage_counts: Dict[str, int] = {item["id"]: 0 for item in ANIMA_RUNTIME_TREATMENTS}
@@ -1817,6 +1821,7 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
             "endMs": chunk.get("endMs", 0),
             "layers": rendered_layers,
             "words": chunk_word_objs,
+            "listicle": listicle_planning["plans"].get(idx),
         })
 
     difference_chunk_indices = _select_difference_chunk_indices(
@@ -1857,6 +1862,7 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
         "selectionSeed": seed_str if selection_mode == "seed" else selection_nonce,
         "selectionNonce": selection_nonce,
         "eligiblePortraitProfileCount": len(profiles),
+        "listicleCatalog": listicle_planning,
         "runtimeTreatmentCatalog": [item["id"] for item in ANIMA_RUNTIME_TREATMENTS],
         "chunks": manifest_chunks,
     }
