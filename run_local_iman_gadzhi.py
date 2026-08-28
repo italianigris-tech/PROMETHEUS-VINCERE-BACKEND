@@ -13,9 +13,9 @@ VIDEO = "/home/ec2-user/PROMETHEUS-CORE-BACKEND/RAW HEAD VIDS PINTEREST/IMAN GAD
 OUTPUT_DIR = Path("/home/ec2-user/PROMETHEUS-CORE-BACKEND/final_run_output")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-DEST_VIDEO = OUTPUT_DIR / "iman_gadzhi_master.mp4"
-DEST_MANIFEST = OUTPUT_DIR / "iman_gadzhi_manifest.json"
-ROOT_COPY = Path("/home/ec2-user/iman_gadzhi_master.mp4")
+DEST_VIDEO = OUTPUT_DIR / "iman_gadzhi_master_v2.mp4"
+DEST_MANIFEST = OUTPUT_DIR / "iman_gadzhi_manifest_v2.json"
+ROOT_COPY = Path("/home/ec2-user/iman_gadzhi_master_v2.mp4")
 
 def main():
     job_id = f"mini_run_iman_gadzhi_local_{int(time.time())}"
