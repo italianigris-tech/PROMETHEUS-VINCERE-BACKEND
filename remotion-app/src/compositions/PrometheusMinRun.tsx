@@ -2710,7 +2710,6 @@ const MultiLayerTypographyCard: React.FC<{
     chunk.placement?.anchor === "top_headroom" ||
     layers.some((l) => l.behindSubject)
   );
-  const topPosition = chunk.placement?.yPercent || (behindSubject ? "10%" : "68%");
 
   // Overall chunk entrance & exit kinetic spring
   const chunkEntrance = interpolate(frame, [0, resolveChunkEntranceFrame(contentStartFrame, totalFrames)], [0, 1], {
@@ -2771,24 +2770,29 @@ const MultiLayerTypographyCard: React.FC<{
       })
     : 1.0;
 
+  const leftPosition = chunk.placement?.xPercent || "50%";
+  const topPosition = chunk.placement?.yPercent || (behindSubject ? "11%" : "68%");
+  const textAlign = (chunk.placement as any)?.textAlign || "center";
+  const alignItems = textAlign === "left" ? "flex-start" : (textAlign === "right" ? "flex-end" : "center");
+
   return (
     <div
       style={{
         position: "absolute",
-        left: "50%",
+        left: leftPosition,
         top: topPosition,
         transform: `translate(calc(-50% + ${hookTranslateX}px), -50%) scale(${interpolate(chunkEntrance, [0, 1], [0.94, 1.0]) * hookScale * exitScale})`,
         opacity: Math.min(chunkEntrance, chunkExit),
         display: "flex",
         flexDirection: "column",
         justifyContent: "center",
-        alignItems: "center",
+        alignItems,
         filter: `${resolveTypographyContainerFilter(layers) || ""} ${exitBlur > 0.1 ? `blur(${exitBlur.toFixed(1)}px)` : ""} brightness(${hookBrightness})`.trim() || undefined,
         mixBlendMode: resolveTypographyContainerBlendMode(layers),
         gap: "0px",
         width: "92%",
         maxWidth: "980px",
-        textAlign: "center",
+        textAlign,
         zIndex: resolveTypographyZIndex(behindSubject, chunk.placement?.safeRegionId),
         pointerEvents: "none",
         perspective: "1200px",

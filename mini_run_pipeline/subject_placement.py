@@ -183,17 +183,125 @@ def _aggregate_subject_box(observation: Dict[str, Any]) -> Optional[Dict[str, fl
 # Main placement planner
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Cranial Negative Space Director & Dynamic Editorial Placement Engine
+# ---------------------------------------------------------------------------
+
+def analyze_cranial_negative_space(
+    subject_box: Optional[Dict[str, float]],
+    head_top_y: Optional[float],
+) -> Dict[str, Any]:
+    """Analyzes the spatial negative space distribution around the speaker's head.
+
+    Identifies dominant space provisions:
+    - top_headroom (space above hair)
+    - left_flank (space to the left of the head)
+    - right_flank (space to the right of the head)
+    - lower_deck (space below the head/chest)
+
+    Returns the dominant zone, recommended placement coordinates, anchor, and specialized font treatment.
+    """
+    if not subject_box:
+        # Default centered layout when no observation is available
+        return {
+            "dominantZone": "cranial_crown",
+            "zoneId": "behind_subject_above_head",
+            "xPercent": "50%",
+            "yPercent": "11.0%",
+            "anchor": "center",
+            "textAlign": "center",
+            "fontTreatment": "tall_didone_arch",
+            "headroomRatio": 0.15,
+            "flankLeftRatio": 0.30,
+            "flankRightRatio": 0.30,
+        }
+
+    x = float(subject_box.get("x", 0.30))
+    y = float(subject_box.get("y", 0.15))
+    w = float(subject_box.get("width", 0.40))
+    h = float(subject_box.get("height", 0.60))
+
+    actual_head_top = head_top_y if head_top_y is not None else y
+    top_headroom = max(0.0, actual_head_top)
+    left_flank = max(0.0, x)
+    right_flank = max(0.0, 1.0 - (x + w))
+    lower_deck = max(0.0, 1.0 - (y + h))
+
+    # Priority 1: Large Cranial Headroom (Crown Halo Arch)
+    if top_headroom >= 0.14:
+        center_y = round(max(0.10, min(0.15, 0.025 + (top_headroom - 0.025) * 0.50)), 4)
+        return {
+            "dominantZone": "cranial_crown",
+            "zoneId": "behind_subject_above_head",
+            "xPercent": "50%",
+            "yPercent": f"{round(center_y * 100, 2)}%",
+            "anchor": "center",
+            "textAlign": "center",
+            "fontTreatment": "tall_didone_arch",
+            "headroomRatio": round(top_headroom, 3),
+            "flankLeftRatio": round(left_flank, 3),
+            "flankRightRatio": round(right_flank, 3),
+        }
+
+    # Priority 2: Left Flank Provision (Speaker positioned right of center)
+    if left_flank >= 0.28 and left_flank > (right_flank + 0.06):
+        col_x = round(left_flank * 0.52, 3)
+        return {
+            "dominantZone": "flank_left_column",
+            "zoneId": "flank_left_editorial_pillar",
+            "xPercent": f"{round(col_x * 100, 1)}%",
+            "yPercent": "46%",
+            "anchor": "center",
+            "textAlign": "left",
+            "fontTreatment": "editorial_column_stack",
+            "headroomRatio": round(top_headroom, 3),
+            "flankLeftRatio": round(left_flank, 3),
+            "flankRightRatio": round(right_flank, 3),
+        }
+
+    # Priority 3: Right Flank Provision (Speaker positioned left of center)
+    if right_flank >= 0.28 and right_flank > (left_flank + 0.06):
+        col_x = round((1.0 - right_flank) + (right_flank * 0.48), 3)
+        return {
+            "dominantZone": "flank_right_column",
+            "zoneId": "flank_right_editorial_pillar",
+            "xPercent": f"{round(col_x * 100, 1)}%",
+            "yPercent": "46%",
+            "anchor": "center",
+            "textAlign": "right",
+            "fontTreatment": "editorial_column_stack",
+            "headroomRatio": round(top_headroom, 3),
+            "flankLeftRatio": round(left_flank, 3),
+            "flankRightRatio": round(right_flank, 3),
+        }
+
+    # Priority 4: Lower Third Anchor Deck (Centered speaker with low headroom)
+    return {
+        "dominantZone": "foreground_lower_deck",
+        "zoneId": "foreground_lower_third",
+        "xPercent": "50%",
+        "yPercent": "68%",
+        "anchor": "center",
+        "textAlign": "center",
+        "fontTreatment": "kinetic_anchor_deck",
+        "headroomRatio": round(top_headroom, 3),
+        "flankLeftRatio": round(left_flank, 3),
+        "flankRightRatio": round(right_flank, 3),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Main placement planner
+# ---------------------------------------------------------------------------
+
 def plan_subject_safe_placements(
     chunks: List[Dict[str, Any]],
     observation: Optional[Dict[str, Any]] = None,
 ) -> List[Dict[str, Any]]:
-    """Compute per-chunk placement dicts, respecting head position and maximizing headroom.
+    """Compute per-chunk placement dicts, respecting cranial negative space distribution.
 
-    For behind-subject chunks the text is positioned in the upper headroom zone above
-    the speaker's head/hair, ensuring maximum legibility while preserving the cinematic
-    depth layering.
-
-    For foreground chunks the text lives in the safe lower-third zone (68 % Y).
+    Adapts dynamically to camera framing shifts (above-head crown, left flank column, right flank column,
+    or lower third anchor deck).
     """
     head_top_y: Optional[float] = None
     representative_subject_box: Optional[Dict[str, float]] = None
@@ -201,67 +309,36 @@ def plan_subject_safe_placements(
         head_top_y = _aggregate_head_top(observation)
         representative_subject_box = _aggregate_subject_box(observation)
 
-    behind_subject_placement: Dict[str, Any]
+    cranial_analysis = analyze_cranial_negative_space(representative_subject_box, head_top_y)
 
-    if head_top_y is not None:
-        if head_top_y < 0.12:
-            # Insufficient headroom above head (speaker's head fills upper frame)
-            # Gracefully fallback to safe foreground placement to avoid top-edge clipping
-            behind_subject_placement = {
-                "xPercent": "50%",
-                "yPercent": "68%",
-                "anchor": "center",
-                "safeRegionId": "foreground_lower_third_headroom_fallback",
-                "intersectsSubject": False,
-                "subjectBox": representative_subject_box,
-                "availableHeightRatio": 0.22,
-                "headTopY": round(head_top_y, 4),
-                "policy": "fallback_insufficient_headroom_lower_third",
-                "cranialArc": None,
-            }
-        else:
-            # Available headroom between top safe guard (0.05) and estimated top of head
-            headroom = max(0.06, head_top_y - UPPER_GUARD_RATIO)
-            # Center the text safely with a minimum yPercent of 10.0% to avoid top canvas clipping
-            text_center_y = round(max(0.10, min(0.15, UPPER_GUARD_RATIO + headroom * 0.50)), 4)
-            available_height_ratio = round(headroom + HAIR_OVERLAP_RATIO, 4)
+    behind_subject_placement: Dict[str, Any] = {
+        "xPercent": cranial_analysis["xPercent"],
+        "yPercent": cranial_analysis["yPercent"],
+        "anchor": cranial_analysis["anchor"],
+        "textAlign": cranial_analysis["textAlign"],
+        "dominantZone": cranial_analysis["dominantZone"],
+        "fontTreatment": cranial_analysis["fontTreatment"],
+        "safeRegionId": cranial_analysis["zoneId"],
+        "intersectsSubject": False,
+        "subjectBox": representative_subject_box,
+        "availableHeightRatio": cranial_analysis["headroomRatio"],
+        "headTopY": round(head_top_y, 4) if head_top_y is not None else None,
+        "policy": f"cranial_negative_space_{cranial_analysis['dominantZone']}",
+        "cranialArc": {
+            "haloTop": cranial_analysis["yPercent"],
+            "orbitalLeft": f"{round((representative_subject_box['x'] if representative_subject_box else 0.5) * 100 - 18, 1)}%",
+            "orbitalRight": f"{round(((representative_subject_box['x'] + representative_subject_box.get('width', 0.4)) if representative_subject_box else 0.5) * 100 + 18, 1)}%",
+            "tiltDeg": 0.0,
+        } if cranial_analysis["dominantZone"] == "cranial_crown" else None,
+    }
 
-            behind_subject_placement = {
-                "xPercent": "50%",
-                "yPercent": f"{round(text_center_y * 100, 2)}%",
-                "anchor": "center",
-                "safeRegionId": "behind_subject_above_head",
-                "intersectsSubject": False,
-                "subjectBox": representative_subject_box,
-                "availableHeightRatio": available_height_ratio,
-                "headTopY": round(head_top_y, 4),
-                "policy": "above_head_mediapipe_headroom_maximized",
-                "cranialArc": {
-                    "haloTop": f"{round(text_center_y * 100, 2)}%",
-                    "orbitalLeft": f"{round((representative_subject_box['x'] if representative_subject_box else 0.5) * 100 - 18, 1)}%",
-                    "orbitalRight": f"{round(((representative_subject_box['x'] + representative_subject_box.get('width', 0.4)) if representative_subject_box else 0.5) * 100 + 18, 1)}%",
-                    "tiltDeg": 0.0,
-                },
-            }
-    else:
-        # Fallback when no observation is provided: place in safe upper third (12.5% minimum)
-        behind_subject_placement = {
-            "xPercent": "50%",
-            "yPercent": f"{round(DEFAULT_BEHIND_SUBJECT_Y * 100, 1)}%",
-            "anchor": "center",
-            "safeRegionId": "behind_subject_center",
-            "intersectsSubject": False,
-            "subjectBox": None,
-            "availableHeightRatio": 0.16,
-            "policy": "fallback_no_observation",
-            "cranialArc": None,
-        }
-
-    # --- foreground placement (unchanged) ------------------------------------
     foreground_placement: Dict[str, Any] = {
         "xPercent": "50%",
         "yPercent": "68%",
         "anchor": "center",
+        "textAlign": "center",
+        "dominantZone": "foreground_lower_deck",
+        "fontTreatment": "kinetic_anchor_deck",
         "safeRegionId": "foreground_center",
         "intersectsSubject": False,
         "subjectBox": None,
