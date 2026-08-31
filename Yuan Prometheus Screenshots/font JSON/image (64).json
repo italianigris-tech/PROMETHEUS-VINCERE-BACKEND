@@ -1,0 +1,94 @@
+{
+  "num": 64,
+  "screenshot": "Screenshot_64_155332.png",
+  "profile_name": "Unique_Effects_Italic_Serif_Rounded_Sans_Stack",
+  "metadata": {
+    "target_aspect_ratio": "9:16",
+    "overall_mood": "Modern Product Focus, Slate Italic Serif over Rounded Bold Sans",
+    "casing_strategy": "lowercase_all",
+    "total_word_count": 2,
+    "total_character_count": 13,
+    "per_word_character_counts": [
+      { "word": "unique", "character_count": 6 },
+      { "word": "effects", "character_count": 7 }
+    ],
+    "mixed_fonts_verified": true,
+    "mixfont_extracted_at": "2026-08-26T00:00:00Z"
+  },
+  "layout_rules": {
+    "horizontal_alignment": "center",
+    "vertical_position": "center",
+    "bottom_margin_percent": 25,
+    "max_width_percent": 85,
+    "scrim_overlay": {
+      "enabled": false,
+      "type": "none",
+      "opacity": 0,
+      "color": "#EDEBE7"
+    }
+  },
+  "typography_layers": [
+    {
+      "layer_name": "lead_unique",
+      "role": "context_clause",
+      "font_classification": "Italic Display Serif",
+      "matched_font_candidates": ["Playfair Display", "Apple Garamond"],
+      "font_style": {
+        "weight": 500,
+        "style": "italic",
+        "casing": "lowercase",
+        "color": "#3C4A4D",
+        "size_px_base": 100,
+        "relative_scale": 1.1,
+        "letter_spacing_em": 0.0,
+        "line_height": 0.9,
+        "vertical_margin_top_px": 0
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 2,
+          "blur_radius": 4,
+          "color": "rgba(0, 0, 0, 0.15)"
+        }
+      },
+      "sample_text": "unique",
+      "word_count": 1,
+      "character_count": 6,
+      "per_word_character_counts": [
+        { "word": "unique", "character_count": 6 }
+      ]
+    },
+    {
+      "layer_name": "hero_effects",
+      "role": "primary_focus_word",
+      "font_classification": "Rounded Bold Geometric Sans",
+      "matched_font_candidates": ["Montserrat", "Poppins", "Lemon Milk"],
+      "font_style": {
+        "weight": 700,
+        "style": "normal",
+        "casing": "lowercase",
+        "color": "#3C4A4D",
+        "size_px_base": 120,
+        "relative_scale": 1.3,
+        "letter_spacing_em": -0.02,
+        "line_height": 0.85,
+        "vertical_margin_top_px": 4
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 3,
+          "blur_radius": 6,
+          "color": "rgba(60, 74, 77, 0.18)"
+        }
+      },
+      "sample_text": "effects",
+      "word_count": 1,
+      "character_count": 7,
+      "per_word_character_counts": [
+        { "word": "effects", "character_count": 7 }
+      ]
+    }
+  ]
+}

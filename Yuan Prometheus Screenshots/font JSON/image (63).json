@@ -1,0 +1,62 @@
+{
+  "num": 63,
+  "screenshot": "Screenshot_63_153819.png",
+  "profile_name": "Difference_Italic_Serif_Red_Arc_Accent",
+  "metadata": {
+    "target_aspect_ratio": "9:16",
+    "overall_mood": "Elegant Editorial Contrast, Italic Serif with Red Arc Accent",
+    "casing_strategy": "lowercase_all",
+    "total_word_count": 1,
+    "total_character_count": 10,
+    "per_word_character_counts": [
+      { "word": "difference", "character_count": 10 }
+    ],
+    "mixed_fonts_verified": false,
+    "mixfont_extracted_at": "2026-08-26T00:00:00Z"
+  },
+  "layout_rules": {
+    "horizontal_alignment": "center",
+    "vertical_position": "center",
+    "bottom_margin_percent": 30,
+    "max_width_percent": 80,
+    "scrim_overlay": {
+      "enabled": false,
+      "type": "none",
+      "opacity": 0,
+      "color": "#FFFFFF"
+    }
+  },
+  "typography_layers": [
+    {
+      "layer_name": "hero_difference",
+      "role": "primary_focus_word",
+      "font_classification": "Italic Display Serif",
+      "matched_font_candidates": ["Playfair Display", "Cormorant Garamond", "Apple Garamond"],
+      "font_style": {
+        "weight": 500,
+        "style": "italic",
+        "casing": "lowercase",
+        "color": "#1A1A1A",
+        "size_px_base": 130,
+        "relative_scale": 1.4,
+        "letter_spacing_em": 0.0,
+        "line_height": 0.95,
+        "vertical_margin_top_px": 0
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 3,
+          "blur_radius": 6,
+          "color": "rgba(0, 0, 0, 0.18)"
+        }
+      },
+      "sample_text": "difference",
+      "word_count": 1,
+      "character_count": 10,
+      "per_word_character_counts": [
+        { "word": "difference", "character_count": 10 }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,100 @@
+{
+  "num": 59,
+  "screenshot": "Screenshot_59_152102.png",
+  "profile_name": "And_How_To_Fix_Heavy_White_Sans_Punch",
+  "metadata": {
+    "target_aspect_ratio": "9:16",
+    "overall_mood": "Transformation Hook, Heavy White Grotesk with Orange Accent Mark",
+    "casing_strategy": "lowercase_all",
+    "total_word_count": 5,
+    "total_character_count": 16,
+    "per_word_character_counts": [
+      { "word": "and", "character_count": 3 },
+      { "word": "how", "character_count": 3 },
+      { "word": "to", "character_count": 2 },
+      { "word": "fix", "character_count": 3 },
+      { "word": "yours", "character_count": 5 }
+    ],
+    "mixed_fonts_verified": false,
+    "mixfont_extracted_at": "2026-08-26T00:00:00Z"
+  },
+  "layout_rules": {
+    "horizontal_alignment": "center",
+    "vertical_position": "center",
+    "bottom_margin_percent": 20,
+    "max_width_percent": 90,
+    "scrim_overlay": {
+      "enabled": true,
+      "type": "gradient",
+      "opacity": 0.3,
+      "color": "#000000"
+    }
+  },
+  "typography_layers": [
+    {
+      "layer_name": "context_prefix",
+      "role": "context_clause",
+      "font_classification": "Modern Grotesk Sans",
+      "matched_font_candidates": ["Montserrat", "Inter", "Poppins"],
+      "font_style": {
+        "weight": 700,
+        "style": "normal",
+        "casing": "lowercase",
+        "color": "#FFFFFF",
+        "size_px_base": 60,
+        "relative_scale": 0.5,
+        "letter_spacing_em": -0.01,
+        "line_height": 1.0,
+        "vertical_margin_top_px": 0
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 4,
+          "blur_radius": 8,
+          "color": "rgba(0, 0, 0, 0.45)"
+        }
+      },
+      "sample_text": "and how to fix",
+      "word_count": 4,
+      "character_count": 11,
+      "per_word_character_counts": [
+        { "word": "and", "character_count": 3 },
+        { "word": "how", "character_count": 3 },
+        { "word": "to", "character_count": 2 },
+        { "word": "fix", "character_count": 3 }
+      ]
+    },
+    {
+      "layer_name": "hero_yours",
+      "role": "primary_focus_word",
+      "font_classification": "Heavy Extended Grotesk Sans",
+      "matched_font_candidates": ["Montserrat", "Anton", "Altone"],
+      "font_style": {
+        "weight": 800,
+        "style": "normal",
+        "casing": "lowercase",
+        "color": "#FFFFFF",
+        "size_px_base": 190,
+        "relative_scale": 1.6,
+        "letter_spacing_em": -0.03,
+        "line_height": 0.8,
+        "vertical_margin_top_px": 4
+      },
+      "effects": {
+        "drop_shadow": {
+          "x_offset": 0,
+          "y_offset": 6,
+          "blur_radius": 12,
+          "color": "rgba(0, 0, 0, 0.5)"
+        }
+      },
+      "sample_text": "yours",
+      "word_count": 1,
+      "character_count": 5,
+      "per_word_character_counts": [
+        { "word": "yours", "character_count": 5 }
+      ]
+    }
+  ]
+}

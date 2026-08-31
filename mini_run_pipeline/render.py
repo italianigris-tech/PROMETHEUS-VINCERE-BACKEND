@@ -622,11 +622,12 @@ def render_final_video(
 
     if not parallel_render_success and parallel_slice_count > 1 and len(slice_specs) > 1:
         # Local concurrent thread pool fallback
+        npx_bin = "npx.cmd" if os.name == "nt" else "npx"
         try:
             from concurrent.futures import ThreadPoolExecutor
             def _render_local_slice(spec: Dict[str, Any]) -> None:
                 s_cmd = [
-                    "npx", "remotion", "render",
+                    npx_bin, "remotion", "render",
                     "src/index.ts", "PrometheusMinRun",
                     spec["outputSlicePath"],
                     "--props", str(props_path),
@@ -677,7 +678,7 @@ def render_final_video(
         primary_gl = str(os.getenv("REMOTION_GL", "swangle"))
 
         cmd = [
-            "npx", "remotion", "render",
+            npx_bin, "remotion", "render",
             "src/index.ts", "PrometheusMinRun",
             str(muted_output),
             "--props", str(props_path),
