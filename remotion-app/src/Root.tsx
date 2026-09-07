@@ -364,12 +364,25 @@ export const RemotionRoot: React.FC = () => {
       <Composition
         id="PrometheusMinRun"
         component={PrometheusMinRun}
+        calculateMetadata={async ({ props }) => {
+          const baseFps = 30;
+          const durationFrames = props?.durationMs
+            ? Math.max(1, Math.round((props.durationMs / 1000) * baseFps))
+            : 900;
+          return {
+            width: 1080,
+            height: 1920,
+            fps: baseFps,
+            durationInFrames: durationFrames,
+            props,
+          };
+        }}
         width={1080}
         height={1920}
         fps={30}
         durationInFrames={900}
         defaultProps={{
-          videoSrc: "source/test.mp4",
+          videoSrc: "source/source.mp4",
           chunks: [],
           durationMs: 30000,
         }}

@@ -1,4 +1,4 @@
-﻿"""gha_download_inputs.py - Download source video + props from R2 for a slice runner."""
+"""gha_download_inputs.py - Download source video + props from R2 for a slice runner."""
 import os, boto3
 from botocore.config import Config
 from pathlib import Path
@@ -19,11 +19,21 @@ s3.download_file(PROCESSED_BUCKET, PROPS_KEY, props_local)
 print(f"[download] Props → {props_local}", flush=True)
 
 # Make source available under remotion-app/public/source/ for Remotion
+src_dir = Path("remotion-app/public/source")
+src_dir.mkdir(parents=True, exist_ok=True)
+src_local = src_dir / "source.mp4"
+
 if SOURCE_KEY:
-    src_dir = Path("remotion-app/public/source")
-    src_dir.mkdir(parents=True, exist_ok=True)
-    src_local = src_dir / "source.mp4"
     s3.download_file(PROCESSED_BUCKET, SOURCE_KEY, str(src_local))
     print(f"[download] Source → {src_local} ({src_local.stat().st_size/1024/1024:.1f} MB)", flush=True)
-else:
-    print("[download] No source key - skipping video download", flush=True)
+elif not src_local.exists():
+    fallback = src_dir / "MALE-BLACK-TALKING-HEAD-PODCAST.mp4"
+    if fallback.exists():
+        import shutil
+        shutil.copyfile(fallback, src_local)
+        print(f"[download] Copied fallback to source.mp4", flush=True)
+
+# Also create test.mp4 copy as safety net
+if src_local.exists():
+    import shutil
+    shutil.copyfile(src_local, src_dir / "test.mp4")

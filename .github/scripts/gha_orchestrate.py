@@ -1,4 +1,4 @@
-﻿"""
+"""
 gha_orchestrate.py - Stage 1: transcription + typography planning + R2 upload.
 """
 from __future__ import annotations
@@ -153,11 +153,15 @@ def main():
     design      = payload.get("design", {})
     duration_ms = end_ms - start_ms
     props = {
-        "jobId": job_id, "durationMs": duration_ms, "chunks": chunks,
-        "design": design, "sourcePath": "source/source.mp4",
-        "aspectRatio": design.get("aspectRatio","9:16"),
-        "typographySystem": design.get("typographySystem","hakt"),
-        "motif": design.get("motif","royal_amethyst"),
+        "jobId": job_id,
+        "videoSrc": "source/source.mp4",
+        "sourcePath": "source/source.mp4",
+        "durationMs": duration_ms,
+        "chunks": chunks,
+        "design": design,
+        "aspectRatio": design.get("aspectRatio", "9:16"),
+        "typographySystem": design.get("typographySystem", "hakt"),
+        "motif": design.get("motif", "royal_amethyst"),
     }
     props_path = workdir / f"props_{job_id}.json"
     props_path.write_text(json.dumps(props, indent=2))

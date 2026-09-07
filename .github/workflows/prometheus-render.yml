@@ -1,4 +1,4 @@
-﻿name: Prometheus Render
+name: Prometheus Render
 
 on:
   workflow_dispatch:
@@ -89,8 +89,8 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install ffmpeg
-        run: sudo apt-get install -y ffmpeg --quiet
+      - name: Install ffmpeg and OpenGL libraries
+        run: sudo apt-get install -y --quiet ffmpeg libgl1-mesa-dri libgl1-mesa-glx libegl1 libgles2 fonts-liberation
 
       - name: Build shared types
         run: |
@@ -135,6 +135,7 @@ jobs:
             --frames=${START_FRAME}-${END_FRAME} \
             --concurrency=2 \
             --gl=swangle \
+            --disable-web-security \
             --pixel-format=yuv420p \
             --jpeg-quality=90 \
             --muted \
