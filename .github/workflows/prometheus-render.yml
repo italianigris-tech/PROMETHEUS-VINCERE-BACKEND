@@ -95,15 +95,31 @@ jobs:
       - name: Install ffmpeg and OpenGL libraries
         run: sudo apt-get install -y --quiet ffmpeg libgl1-mesa-dri libgl1-mesa-glx libegl1 libgles2 fonts-liberation
 
+      - name: Cache npm and Remotion browser
+        uses: actions/cache@v4
+        id: remotion-cache
+        with:
+          path: |
+            node_modules
+            remotion-app/node_modules
+            ~/.cache/remotion
+          key: remotion-cache-${{ runner.os }}-${{ hashFiles('remotion-app/package.json') }}
+          restore-keys: |
+            remotion-cache-${{ runner.os }}-
+
       - name: Build shared types
         run: |
-          npm install --legacy-peer-deps --no-audit --no-fund
-          npm --workspace @prometheus/shared-types run build
+          if [ ! -d "node_modules/@prometheus/shared-types/dist" ]; then
+            npm install --legacy-peer-deps --no-audit --no-fund
+            npm --workspace @prometheus/shared-types run build
+          fi
 
       - name: Install Remotion deps and browser
         working-directory: remotion-app
         run: |
-          npm ci --legacy-peer-deps --prefer-offline --no-audit --no-fund
+          if [ ! -d "node_modules/remotion" ]; then
+            npm ci --legacy-peer-deps --prefer-offline --no-audit --no-fund
+          fi
           npx remotion browser ensure
           mkdir -p public/textures
           cp -rn ../mini_run_pipeline/textures/* public/textures/ 2>/dev/null || true

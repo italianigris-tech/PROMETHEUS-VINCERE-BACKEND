@@ -22,7 +22,7 @@ PAYLOAD = {
     "selectedWindow": {"sourceStartMs": 0, "sourceEndMs": 30000},
     "maxClipMs": 30000,
     "silencePolicy": "preserve",
-    "parallelSlices": 20,
+    "parallelSlices": 10,
     "metadata": {"pipeline": "minirun", "jobName": "pbd_30s_hakt_gha"},
     "design": {
         "aspectRatio": "9:16",

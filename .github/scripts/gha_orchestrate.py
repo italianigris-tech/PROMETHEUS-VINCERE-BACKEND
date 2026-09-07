@@ -166,6 +166,9 @@ def main():
             {"text": "TYPOGRAPHY", "start": 7500, "end": 10000},
         ]
 
+    design      = payload.get("design", {})
+    duration_ms = end_ms - start_ms
+
     # Enhance raw words with smart phrase grouping and full HAKT typography manifest
     try:
         from mini_run_pipeline import chunks as chunk_lib, typography
@@ -194,8 +197,6 @@ def main():
         print(f"[orchestrate] Typography decoration notice: {e}", flush=True)
 
     # Build props.json for Remotion
-    design      = payload.get("design", {})
-    duration_ms = end_ms - start_ms
     props = {
         "jobId": job_id,
         "videoSrc": "source/source.mp4",
