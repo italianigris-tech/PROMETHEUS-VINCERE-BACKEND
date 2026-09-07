@@ -29,6 +29,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import subprocess
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -315,6 +316,62 @@ CINEMATIC_LOOKS: List[Dict[str, Any]] = [
             "colortemperature": 5800,
         },
     },
+    {
+        "id": "kodak_2383_print",
+        "name": "Kodak 2383 Print Stock",
+        "description": "Authentic Kodak Vision Color Print Film 2383 emulation: deep rich blacks, warm amber highlight roll-off, subtractive saturation where reds stay dense and deep cyans live in the shadows.",
+        "mood": "filmic, analog, rich, warm, vintage cinema, timeless",
+        "keywords": ["kodak", "2383", "vision", "print", "film print", "print stock", "celluloid", "subtractive", "amber", "rich blacks", "analog", "35mm"],
+        "policies": {
+            "intensityRange": [0.0, 1.5],
+            "recommendedIntensity": 1.0,
+            "bestFor": ["narrative", "talking head", "cinematic", "documentary"],
+            "avoidFor": ["hyper-saturated corporate", "neon"],
+            "notes": "Classic Hollywood release print stock. Subtractive saturation pulls dense ruby reds.",
+        },
+        "params": {
+            "colorbalance": {
+                "shadows": [-0.035, 0.015, 0.040],
+                "midtones": [0.0, 0.0, 0.0],
+                "highlights": [0.045, 0.018, -0.060],
+            },
+            "curves": {
+                "red": "0/0 0.35/0.31 0.70/0.74 1/1",
+                "green": "0/0 0.35/0.33 0.70/0.72 1/1",
+                "blue": "0/0 0.35/0.36 0.70/0.67 1/1",
+            },
+            "eq": {"contrast": 1.24, "saturation": 1.05, "brightness": 0.0, "gamma": 0.98},
+            "colortemperature": 5500,
+        },
+    },
+    {
+        "id": "fuji_3513_print",
+        "name": "Fujifilm 3513 Print Stock",
+        "description": "Fujifilm 3513 print stock emulation: cooler greens/teals, soft magenta highlights, cinematic contrast.",
+        "mood": "filmic, cool, emerald, magenta, elegant, atmospheric",
+        "keywords": ["fuji", "fujifilm", "3513", "eterna", "emerald", "teal green", "magenta highlights", "cool shadows"],
+        "policies": {
+            "intensityRange": [0.0, 1.5],
+            "recommendedIntensity": 1.0,
+            "bestFor": ["narrative", "outdoor", "moody", "drama", "fashion"],
+            "avoidFor": ["warm sunset", "golden hour"],
+            "notes": "Signature Fujifilm DI print stock. Emerald foliage and soft magenta highlight roll-off.",
+        },
+        "params": {
+            "colorbalance": {
+                "shadows": [-0.025, 0.0, 0.028],
+                "midtones": [-0.02, 0.03, 0.01],
+                "highlights": [0.030, -0.035, 0.022],
+            },
+            "curves": {
+                "red": "0/0 0.35/0.32 0.70/0.72 1/1",
+                "green": "0/0 0.35/0.35 0.70/0.70 1/1",
+                "blue": "0/0 0.35/0.37 0.70/0.71 1/1",
+            },
+            "eq": {"contrast": 1.18, "saturation": 1.02, "brightness": 0.0, "gamma": 1.0},
+            "colortemperature": 6200,
+        },
+    },
 ]
 
 _LOOKS_BY_ID = {look["id"]: look for look in CINEMATIC_LOOKS}
@@ -447,13 +504,27 @@ def build_look_filter_string(
     ``vignette``.
     """
     params = look_manifest.get("params", {})
+    optical = look_manifest.get("opticalFinishing") or params.get("opticalFinishing") or {}
     intensity = look_manifest.get("intensity", 1.0)
     if intensity <= 0:
         return ""
     filters: List[str] = []
+
+    # 1. Optical Finishing: Gate Weave & Film Breathe (sub-pixel gate jitter + subtle exposure breathe)
+    if optical.get("gateWeave", False) or optical.get("enableAll", False):
+        filters.append(
+            "crop=in_w-4:in_h-4:'2+0.25*sin(14.5*t)':'2+0.2*cos(11.9*t)',scale=in_w:in_h,eq=brightness='0.008*sin(8.8*t)':contrast='1.0+0.01*sin(8.8*t)'"
+        )
+
+    # 2. Optical Finishing: Subtle Optical Distortion / Lens Geometry
+    if optical.get("lensDistortion", False) or optical.get("enableAll", False):
+        filters.append("lenscorrection=cx=0.5:cy=0.5:k1=0.008:k2=0.002")
+
+    # 3. Core Color Grade: 3D LUT (Tetrahedral interpolation) or Parametric Color Science
     lut_path = _resolve_lut_for_look(look_manifest)
     if lut_path:
-        filters.append(f"lut3d=file={_ffmpeg_escape(str(lut_path))}:interp=trilinear")
+        lut_str = _format_lut_path(lut_path)
+        filters.append(f"lut3d=file='{lut_str}':interp=tetrahedral")
     else:
         ct = params.get("colortemperature")
         if ct is not None:
@@ -473,20 +544,49 @@ def build_look_filter_string(
         eq = params.get("eq")
         if eq:
             _add_eq(filters, eq, intensity)
+
+    # 4. Optical Finishing: Non-Linear Highlight Roll-Off (Soft Shoulder Compression)
+    if optical.get("shoulderRollOff", False) or optical.get("enableAll", False):
+        if not any("curves=all" in f for f in filters):
+            filters.append("curves=all='0/0 0.5/0.5 0.75/0.75 0.88/0.85 0.96/0.92 1.0/0.965'")
+
+    # 5. Optical Finishing: Split-Toned Ambient Density (Subtractive Color Saturation)
+    if optical.get("subtractiveSaturation", False) or optical.get("enableAll", False):
+        if not any("colorbalance" in f for f in filters):
+            filters.append("colorbalance=rs=-0.08:gs=0.02:bs=0.06:rh=0.04:gh=0.01:bh=-0.04,eq=saturation=1.10")
+
+    # 6. Analog Emulsion Film Grain (Luminance-weighted temporal grain)
+    grain_enabled = optical.get("filmGrain", False) or optical.get("enableAll", False)
     noise = params.get("noise")
-    if noise:
+    if grain_enabled and not noise:
+        filters.append("noise=alls=10:allf=t")
+    elif noise:
         _add_noise(filters, noise, intensity)
-    vignette = params.get("vignette")
+
+    # 7. Lens Vignette
+    vignette = params.get("vignette") or ({"amount": 0.20} if optical.get("vignette") else None)
     if vignette:
         _add_vignette(filters, vignette, intensity, width, height)
+
     extra_hs = params.get("huesaturation_final")
     if extra_hs:
         _add_huesaturation(filters, extra_hs, intensity, suffix="_final")
     return ",".join(filters)
 
+def _format_lut_path(lut_path: Path) -> str:
+    """Format LUT path for FFmpeg, preferring relative path when inside cwd."""
+    try:
+        cwd = Path.cwd().resolve()
+        rel = os.path.relpath(lut_path.resolve(), cwd).replace("\\", "/")
+        if not rel.startswith(".."):
+            return rel
+    except Exception:
+        pass
+    return _ffmpeg_escape(str(lut_path.resolve()))
+
 def _ffmpeg_escape(value: str) -> str:
     """Escape a value for use in an FFmpeg filter chain."""
-    result = value.replace("\\", "\\\\").replace(":", "\\:").replace("'", "'\\''")
+    result = value.replace("\\", "/").replace(":", "\\:").replace(",", "\\,").replace("'", "'\\''")
     return result
 
 def _resolve_lut_for_look(look_manifest: Dict[str, Any]) -> Optional[Path]:
@@ -671,6 +771,57 @@ def write_look_manifest(look_manifest: Dict[str, Any], output_dir: str, job_id: 
     manifest_path.write_text(json.dumps(payload, indent=2))
     return str(manifest_path)
 
+def grade_video_shot(
+    input_shot_path: Path | str,
+    output_shot_path: Path | str,
+    look_plan: Dict[str, Any],
+    *,
+    width: Optional[int] = None,
+    height: Optional[int] = None,
+    ffmpeg_bin: str = "ffmpeg",
+) -> Path:
+    """Causally grades a video shot segment with the resolved look and optical finishing stack.
+
+    Position in Pipeline (Strict Causality):
+    Source Ingest -> Shot Extraction -> **Shot Color Grade (here)** -> Subject Matting (Martin) -> Typography / In-Treatment Composition -> Final Mix
+
+    Why Shot-First Grading is Architecturally Mandatory:
+    1. Efficiency: Only active shot frames are processed, never the full 40-60min landscape source.
+    2. Edge & Lighting Fidelity: The MediaPipe/Martin foreground segmentation cutout matches the color-graded
+       scene lighting, contrast, and black pedestal.
+    3. Typography Protection: Kinetic text, quotes, and HUD overlays composited in Remotion sit cleanly
+       over (or behind) the graded speaker without having their brand colors or whites contaminated by
+       a post-composition grading filter.
+    """
+    input_shot = Path(input_shot_path).resolve()
+    output_shot = Path(output_shot_path).resolve()
+    output_shot.parent.mkdir(parents=True, exist_ok=True)
+
+    if not input_shot.exists():
+        raise FileNotFoundError(f"Input shot not found for color grading: {input_shot}")
+
+    grade_filter = build_grade_filter(look_plan, video_width=width, video_height=height)
+    if not grade_filter:
+        import shutil
+        if str(input_shot) != str(output_shot):
+            shutil.copyfile(input_shot, output_shot)
+        return output_shot
+
+    cmd = [
+        ffmpeg_bin, "-y", "-loglevel", "error",
+        "-i", str(input_shot),
+        "-vf", grade_filter,
+        "-c:v", "libx264", "-preset", "fast", "-crf", "17",
+        "-pix_fmt", "yuv420p",
+        "-c:a", "copy",
+        "-movflags", "+faststart",
+        str(output_shot),
+    ]
+    res = subprocess.run(cmd, capture_output=True, text=True)
+    if res.returncode != 0:
+        raise RuntimeError(f"Shot color grading failed (code {res.returncode}): {res.stderr[-1000:]}")
+    return output_shot
+
 __all__ = [
     "CINEMATIC_LOOKS",
     "get_look",
@@ -682,6 +833,7 @@ __all__ = [
     "luts_available",
     "build_look_filter_string",
     "build_grade_filter",
+    "grade_video_shot",
     "write_look_manifest",
     "LUT_DIR",
 ]

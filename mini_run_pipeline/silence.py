@@ -370,14 +370,17 @@ def build_editorial_timeline(
     source_duration_ms: int,
     source_width: int = 0,
     source_height: int = 0,
+    silence_policy: str = "auto",
 ) -> dict[str, Any]:
     """Assemble the full editorial timeline for a source.
 
     Mirrors the MAUL editorial-timeline flow:
       1. filter silence spans to the selected window,
-      2. classify protected rhetorical pauses (<= 900ms after sentence end),
-      3. remaining verified non-protected dead air >= 250ms becomes cut,
-      4. build voice spans + the output timestamp map.
+      2. if silence_policy is 'preserve' / 'continuous': preserve all natural pauses
+         so talking-head video and captions stay in 1:1 real-time frame lock.
+      3. if silence_policy is 'cut': classify protected rhetorical pauses
+         (<= 900ms after sentence end) and cut remaining dead air >= 250ms.
+      4. build voice spans + the output timestamp map + outputDurationMs.
     """
     window_start_ms = int(selected_window.get("sourceStartMs", 0))
     window_end_ms = int(selected_window.get("sourceEndMs", source_duration_ms))
@@ -398,21 +401,32 @@ def build_editorial_timeline(
 
     protected_ranges: List[dict[str, Any]] = []
     cut_candidates: List[dict[str, Any]] = []
-    for silence in clipped:
-        protected = classify_protected_pause(silence, words)
-        if protected:
-            protected_ranges.append(protected)
-        elif (
-            int(silence["sourceEndMs"]) - int(silence["sourceStartMs"])
-            >= CUT_MIN_SILENCE_MS
-        ):
-            cut_candidates.append(silence)
+
+    normalized_policy = str(silence_policy or "auto").lower()
+    should_preserve = normalized_policy in ("preserve", "continuous", "uncut", "none")
+
+    if not should_preserve:
+        for silence in clipped:
+            protected = classify_protected_pause(silence, words)
+            if protected:
+                protected_ranges.append(protected)
+            elif (
+                int(silence["sourceEndMs"]) - int(silence["sourceStartMs"])
+                >= CUT_MIN_SILENCE_MS
+            ):
+                cut_candidates.append(silence)
 
     voice_spans = build_voice_spans(words, silence_spans=clipped)
     timestamp_map = build_timestamp_map(
         selected_window={"sourceStartMs": window_start_ms, "sourceEndMs": window_end_ms},
         cut_ranges=cut_candidates,
         protected_ranges=protected_ranges,
+    )
+
+    output_duration_ms = (
+        int(timestamp_map[-1]["outputEndMs"])
+        if timestamp_map
+        else (window_end_ms - window_start_ms)
     )
 
     return {
@@ -425,8 +439,11 @@ def build_editorial_timeline(
         "cutCandidates": cut_candidates,
         "voiceSpans": voice_spans,
         "timestampMap": timestamp_map,
+        "outputDurationMs": output_duration_ms,
+        "silencePolicy": "preserve" if should_preserve else "cut",
         "sourceDurationMs": source_duration_ms,
         "sourceWidth": source_width,
         "sourceHeight": source_height,
     }
+
 

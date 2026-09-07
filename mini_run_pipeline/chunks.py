@@ -137,38 +137,65 @@ def smart_chunk_words(
                 )
                 if output_start_ms is None or output_end_ms is None:
                     continue
+                sub_chunk["sourceStartMs"] = sub_chunk["startMs"]
+                sub_chunk["sourceEndMs"] = sub_chunk["endMs"]
                 sub_chunk["outputStartMs"] = output_start_ms
                 sub_chunk["outputEndMs"] = output_end_ms
+                sub_chunk["startMs"] = output_start_ms
+                sub_chunk["endMs"] = output_end_ms
+                sub_chunk["startSec"] = round(output_start_ms / 1000.0, 3)
+                sub_chunk["endSec"] = round(output_end_ms / 1000.0, 3)
+
+                for w in sub_chunk.get("words", []):
+                    w["sourceStartMs"] = int(w.get("start_ms", 0))
+                    w["sourceEndMs"] = int(w.get("end_ms", 0))
+                    w_out_s = _map_to_output(timestamp_map, w["sourceStartMs"])
+                    w_out_e = _map_to_output(timestamp_map, w["sourceEndMs"])
+                    w["start_ms"] = (
+                        w_out_s if w_out_s is not None
+                        else max(0, w["sourceStartMs"] - sub_chunk["sourceStartMs"] + output_start_ms)
+                    )
+                    w["end_ms"] = (
+                        w_out_e if w_out_e is not None
+                        else max(w["start_ms"] + 1, w["sourceEndMs"] - sub_chunk["sourceStartMs"] + output_start_ms)
+                    )
             else:
                 sub_chunk["outputStartMs"] = sub_chunk["startMs"]
                 sub_chunk["outputEndMs"] = sub_chunk["endMs"]
             chunk_index += 1
             chunks.append(sub_chunk)
 
-    # Rhythmic Pacing: Bridge natural speech gaps for comfortable minimum reading persistence
+    # Rhythmic Pacing: Bridge natural speech gaps for comfortable reading persistence and complete reveal animations
     MIN_PERSISTENCE_MS = 1200
-    TRANSITION_GAP_MS = 100
+    TRANSITION_GAP_MS = 80
+    MIN_LAST_WORD_HOLD_MS = 750
 
     for i in range(len(chunks)):
         curr = chunks[i]
-        curr_start = curr.get("outputStartMs", curr.get("startMs", 0))
-        curr_end = curr.get("outputEndMs", curr.get("endMs", 0))
-        raw_dur = curr_end - curr_start
+        curr_start = curr.get("startMs", curr.get("outputStartMs", 0))
+        curr_end = curr.get("endMs", curr.get("outputEndMs", 0))
+        words_list = curr.get("words", [])
+        last_word_start = (
+            words_list[-1].get("start_ms", curr_start)
+            if words_list else curr_start
+        )
 
         if i + 1 < len(chunks):
-            next_start = chunks[i + 1].get("outputStartMs", chunks[i + 1].get("startMs", curr_end))
+            next_start = chunks[i + 1].get("startMs", chunks[i + 1].get("outputStartMs", curr_end))
             # Extend through breath pause up to the start of the next chunk
             max_allowed_end = max(curr_end, next_start - TRANSITION_GAP_MS)
-            ideal_end = max(curr_end, curr_start + MIN_PERSISTENCE_MS)
-            extended_end = min(ideal_end, max_allowed_end)
+            ideal_end = max(curr_end, curr_start + MIN_PERSISTENCE_MS, last_word_start + MIN_LAST_WORD_HOLD_MS)
+            # Bridge silence gaps up to 600ms
+            silence_bridge = min(curr_end + 600, max_allowed_end)
+            extended_end = min(max(ideal_end, silence_bridge), max_allowed_end)
             if extended_end > curr_end:
                 curr["outputEndMs"] = extended_end
-                curr["endMs"] = curr.get("startMs", 0) + (extended_end - curr_start)
+                curr["endMs"] = extended_end
         else:
             # Last chunk persistence
-            extended_end = max(curr_end, curr_start + 1500)
+            extended_end = max(curr_end, curr_start + 1500, last_word_start + 850)
             curr["outputEndMs"] = extended_end
-            curr["endMs"] = curr.get("startMs", 0) + (extended_end - curr_start)
+            curr["endMs"] = extended_end
 
     return chunks
 

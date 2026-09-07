@@ -67,7 +67,8 @@ HOOK_TREATMENTS: Set[str] = {
     "hook_full_zoom_up",
 
     # Family D: Digital Distortion, Glitch & Signal Artifacts
-    "hook_rgb_chromatic_split_glitch",
+    # (hook_rgb_chromatic_split_glitch removed: RGB channel-split two-coloration
+    # treatment is banned from mini-run output.)
     "hook_crt_scanline_matrix_decode",
     "hook_vhs_tape_tracking_tear",
 
@@ -100,16 +101,14 @@ HOOK_KEYWORD_MAP: List[Dict[str, Any]] = [
         "weight": 95,
     },
     {
-        "preset": "hook_rgb_chromatic_split_glitch",
-        "patterns": [r"\bglitch\b", r"\bcode\b", r"\btech\b", r"\bhack\b", r"\bai\b",
-                     r"\bsoftware\b", r"\bdata\b", r"\bbreak\b", r"\bbroken\b", r"\berror\b"],
-        "weight": 92,
-    },
-    {
+        # RGB channel-split hook removed; tech/code/AI cues route to the CRT
+        # matrix-decode hook (same digital family, no two-coloration split).
         "preset": "hook_crt_scanline_matrix_decode",
-        "patterns": [r"\bmatrix\b", r"\bcyber\b", r"\bterminal\b", r"\bsystem\b", r"\bsecret\b",
+        "patterns": [r"\bglitch\b", r"\bcode\b", r"\btech\b", r"\bhack\b", r"\bai\b",
+                     r"\bsoftware\b", r"\bdata\b", r"\bbreak\b", r"\bbroken\b", r"\berror\b",
+                     r"\bmatrix\b", r"\bcyber\b", r"\bterminal\b", r"\bsystem\b", r"\bsecret\b",
                      r"\bdecode\b", r"\bprompt\b", r"\banaly\b"],
-        "weight": 90,
+        "weight": 92,
     },
     {
         "preset": "hook_sharp_white_flash_cut",
@@ -175,7 +174,7 @@ def select_hook_treatment(
         "hook_metallic_chrome_reflection",
         "hook_liquid_ink_metaball_reveal",
         "hook_vintage_film_burn_strobe",
-        "hook_rgb_chromatic_split_glitch",
+        "hook_crt_scanline_matrix_decode",
     ]
     selected = candidate_catalog[seed % len(candidate_catalog)]
     return selected

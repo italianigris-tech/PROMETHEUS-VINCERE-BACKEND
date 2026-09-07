@@ -25,6 +25,9 @@ from . import jobs
 from . import looks
 from . import render
 from . import pipeline
+from . import viral_selector
+from . import longform_pipeline
+from . import resolution
 
 __all__ = [
     'ids',
@@ -36,4 +39,7 @@ __all__ = [
     'looks',
     'render',
     'pipeline',
+    'viral_selector',
+    'longform_pipeline',
+    'resolution',
 ]

@@ -175,19 +175,39 @@ def detect_and_plan_listicles(
 
         # Check for sequential step item mentions (e.g. "Number 1", "First", "Step 2", "3")
         step_number = None
+        # Explicit enumerator words that genuinely announce a list item. Bare
+        # ordinals ("first", "2nd", "3") inside idiomatic phrases — "the first
+        # time I…" — are NOT enumeration and must never mint a phantom badge.
+        EXPLICIT_ENUMERATORS = ("number", "step", "rule", "tip", "point", "lesson", "secret", "reason")
+        DIGIT_TOKENS = {str(n) for n in range(1, 13)}
+        text_lower = raw_text.lower()
+        has_explicit_enumerator = any(w in text_lower for w in EXPLICIT_ENUMERATORS)
         for pattern in STEP_ITEM_PATTERNS:
             match = pattern.search(raw_text)
             if match:
                 matched_str = match.group(1).lower().replace("step", "").replace("rule", "").replace("tip", "").strip()
-                step_number = int(matched_str) if matched_str.isdigit() else WORD_TO_DIGIT.get(matched_str)
+                candidate = int(matched_str) if matched_str.isdigit() else WORD_TO_DIGIT.get(matched_str)
+                if candidate is None:
+                    continue
+                is_bare_ordinal = (
+                    matched_str in WORD_TO_DIGIT
+                    and matched_str not in DIGIT_TOKENS
+                    and not has_explicit_enumerator
+                    and active_sequence is None
+                )
+                if is_bare_ordinal:
+                    continue
+                step_number = candidate
                 break
 
-        # Standalone leading digit in words
+        # Standalone leading digit in words — also requires enumeration context
+        # (explicit enumerator or an active teaser sequence) for word-form
+        # ordinals; bare digits ("3 ...") still count as chunk openers.
         if step_number is None and words:
             first_word_clean = re.sub(r"[^\w]", "", words[0].get("word", "")).lower()
             if first_word_clean.isdigit() and 1 <= int(first_word_clean) <= 12:
                 step_number = int(first_word_clean)
-            elif first_word_clean in WORD_TO_DIGIT:
+            elif first_word_clean in WORD_TO_DIGIT and (has_explicit_enumerator or active_sequence is not None):
                 step_number = WORD_TO_DIGIT[first_word_clean]
 
         if step_number is not None and 1 <= step_number <= 12:

@@ -28,6 +28,8 @@ MOTIF_PRESETS: Dict[str, Dict[str, Any]] = {
             "primary": "#C084FC",
             "accent": "#A78BFA",
             "glowRgb": "192, 132, 252",
+            "volumetricGradient": "linear-gradient(180deg, #FFFFFF 0%, #F5EBFF 10%, #E0BFFC 24%, #C084FC 55%, #603099 88%, #783CAE 100%)",
+            "companionGradient": "linear-gradient(180deg, #FFFFFF 0%, #FAF5FF 35%, #EDE9FE 70%, #DDD6FE 100%)",
         },
         "defaultFonts": {
             "primaryFamily": "Montserrat",
@@ -42,6 +44,8 @@ MOTIF_PRESETS: Dict[str, Dict[str, Any]] = {
             "primary": "#FF453A",
             "accent": "#FF3B30",
             "glowRgb": "255, 69, 58",
+            "volumetricGradient": "linear-gradient(180deg, #FFFFFF 0%, #FFE4E6 10%, #FDA4AF 24%, #FF453A 55%, #881337 88%, #9F1239 100%)",
+            "companionGradient": "linear-gradient(180deg, #FFFFFF 0%, #FFF1F2 35%, #FFE4E6 70%, #FECDD3 100%)",
         },
         "defaultFonts": {
             "primaryFamily": "Montserrat ExtraBold",
@@ -56,6 +60,8 @@ MOTIF_PRESETS: Dict[str, Dict[str, Any]] = {
             "primary": "#00F0FF",
             "accent": "#00D2FF",
             "glowRgb": "0, 240, 255",
+            "volumetricGradient": "linear-gradient(180deg, #FFFFFF 0%, #CFFAFE 10%, #A5F3FC 24%, #00F0FF 55%, #0E7490 88%, #0891B2 100%)",
+            "companionGradient": "linear-gradient(180deg, #FFFFFF 0%, #F0FDFA 35%, #CCFBF1 70%, #99F6E4 100%)",
         },
         "defaultFonts": {
             "primaryFamily": "DIN Alternate",
@@ -70,6 +76,8 @@ MOTIF_PRESETS: Dict[str, Dict[str, Any]] = {
             "primary": "#34D399",
             "accent": "#10B981",
             "glowRgb": "52, 211, 153",
+            "volumetricGradient": "linear-gradient(180deg, #FFFFFF 0%, #D1FAE5 10%, #A7F3D0 24%, #34D399 55%, #064E3B 88%, #047857 100%)",
+            "companionGradient": "linear-gradient(180deg, #FFFFFF 0%, #F0FDF4 35%, #DCFCE7 70%, #BBF7D0 100%)",
         },
         "defaultFonts": {
             "primaryFamily": "Playfair Display",
@@ -84,6 +92,8 @@ MOTIF_PRESETS: Dict[str, Dict[str, Any]] = {
             "primary": "#FBBF24",
             "accent": "#F59E0B",
             "glowRgb": "251, 191, 36",
+            "volumetricGradient": "linear-gradient(180deg, #FFFFFF 0%, #FEF08A 10%, #FDE047 24%, #FBBF24 55%, #854D0E 88%, #A16207 100%)",
+            "companionGradient": "linear-gradient(180deg, #FFFFFF 0%, #FEFCE8 35%, #FEF9C3 70%, #FEF08A 100%)",
         },
         "defaultFonts": {
             "primaryFamily": "Anton",
@@ -98,6 +108,8 @@ MOTIF_PRESETS: Dict[str, Dict[str, Any]] = {
             "primary": "#FB7185",
             "accent": "#F43F5E",
             "glowRgb": "251, 113, 133",
+            "volumetricGradient": "linear-gradient(180deg, #FFFFFF 0%, #FFE4E6 10%, #FECDD3 24%, #FB7185 55%, #9F1239 88%, #BE123C 100%)",
+            "companionGradient": "linear-gradient(180deg, #FFFFFF 0%, #FFF1F2 35%, #FFE4E6 70%, #FECDD3 100%)",
         },
         "defaultFonts": {
             "primaryFamily": "Montserrat Black",
@@ -112,6 +124,8 @@ MOTIF_PRESETS: Dict[str, Dict[str, Any]] = {
             "primary": "#FFFFFF",
             "accent": "#F1F5F9",
             "glowRgb": "255, 255, 255",
+            "volumetricGradient": "linear-gradient(180deg, #FFFFFF 0%, #FAFBFD 15%, #F1F5F9 35%, #E2E8F0 65%, #94A3B8 88%, #CBD5E1 100%)",
+            "companionGradient": "linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 35%, #F1F5F9 70%, #E2E8F0 100%)",
         },
         "defaultFonts": {
             "primaryFamily": "Helvetica Neue",
@@ -171,7 +185,7 @@ def resolve_brand_motif(
         or data_dict.get("brand")
     )
 
-    if raw_motif is None or raw_motif is False:
+    if raw_motif is None or raw_motif is False or str(raw_motif).lower().strip() in ("none", "auto", "default", "disabled"):
         return None
 
     # Handle boolean true (enable default royal amethyst)
@@ -261,16 +275,36 @@ def _build_motif_manifest(
     colors: Dict[str, str],
     fonts: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
-    """Construct full Brand Motif manifest."""
+    """Construct full Brand Motif manifest with 3D physical lighting and volumetric gradients."""
     primary = colors.get("primary", "#C084FC")
     base = colors.get("base", "#FFFFFF")
     accent = colors.get("accent", primary)
     glow_rgb = colors.get("glowRgb", "192, 132, 252")
 
+    preset_data = MOTIF_PRESETS.get(preset_key, {})
+    preset_colors = preset_data.get("colors", {})
+    volumetric_grad = (
+        colors.get("volumetricGradient")
+        or preset_colors.get("volumetricGradient")
+        or f"linear-gradient(180deg, #FFFFFF 0%, #FAFBFD 15%, {primary} 55%, {primary} 100%)"
+    )
+    companion_grad = (
+        colors.get("companionGradient")
+        or preset_colors.get("companionGradient")
+        or "linear-gradient(180deg, #FFFFFF 0%, #FAFBFD 35%, #EDECE9 70%, #DCD7CD 100%)"
+    )
+
+    multi_tier_shadow = (
+        "0 3px 6px rgba(0, 0, 0, 0.95), "
+        "0 1px 2px rgba(0, 0, 0, 0.90), "
+        "0 12px 30px rgba(0, 0, 0, 0.55), "
+        "0 4px 14px rgba(0, 0, 0, 0.40)"
+    )
+
     return {
         "enabled": True,
         "preset": preset_key,
-        "name": MOTIF_PRESETS.get(preset_key, {}).get("name", "Custom Brand Motif"),
+        "name": preset_data.get("name", "Custom Brand Motif"),
         "colors": {
             "base": base,
             "primary": primary,
@@ -280,9 +314,16 @@ def _build_motif_manifest(
             "companionColor": base,
             "accentBorder": accent,
             "glow": f"0 0 18px rgba({glow_rgb}, 0.50)",
-            "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
+            "shadow": multi_tier_shadow,
+            "volumetricGradient": volumetric_grad,
+            "companionGradient": companion_grad,
+            "specularChamfer": True,
+            "specularAngle": -35,
+            "contactShadow": "0 3px 6px rgba(0, 0, 0, 0.95)",
+            "ambientShadow": "0 12px 30px rgba(0, 0, 0, 0.55)",
+            "opticalBleed": f"0 0 16px rgba({glow_rgb}, 0.50)",
         },
-        "fonts": fonts or MOTIF_PRESETS.get(preset_key, {}).get("defaultFonts", {}),
+        "fonts": fonts or preset_data.get("defaultFonts", {}),
         "zone": {
             "name": preset_key,
             "primary": primary,
@@ -290,6 +331,8 @@ def _build_motif_manifest(
             "base": base,
             "keyword": primary,
             "glow_rgb": glow_rgb,
+            "volumetric_gradient": volumetric_grad,
+            "companion_gradient": companion_grad,
         },
         "policy": "brand_motif_resonance",
     }
@@ -305,7 +348,14 @@ def motif_to_brand_palette(motif_dict: Dict[str, Any]) -> Dict[str, Any]:
         "companion_color": colors.get("base", "#FFFFFF"),
         "accent_border": colors.get("accent", "#A78BFA"),
         "glow": colors.get("glow", "0 0 18px rgba(192, 132, 252, 0.50)"),
-        "shadow": colors.get("shadow", "0 2px 10px rgba(0, 0, 0, 0.45)"),
+        "shadow": colors.get("shadow", "0 3px 6px rgba(0, 0, 0, 0.95), 0 12px 30px rgba(0, 0, 0, 0.55)"),
+        "volumetric_gradient": colors.get("volumetricGradient"),
+        "companion_gradient": colors.get("companionGradient"),
+        "specular_chamfer": colors.get("specularChamfer", True),
+        "specular_angle": colors.get("specularAngle", -35),
+        "contact_shadow": colors.get("contactShadow", "0 3px 6px rgba(0, 0, 0, 0.95)"),
+        "ambient_shadow": colors.get("ambientShadow", "0 12px 30px rgba(0, 0, 0, 0.55)"),
+        "optical_bleed": colors.get("opticalBleed"),
         "zone": zone,
         "isMotif": True,
         "motifName": motif_dict.get("name"),

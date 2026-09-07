@@ -190,6 +190,9 @@ def _aggregate_subject_box(observation: Dict[str, Any]) -> Optional[Dict[str, fl
 def analyze_cranial_negative_space(
     subject_box: Optional[Dict[str, float]],
     head_top_y: Optional[float],
+    face_bottom_y: Optional[float] = None,
+    face_left_x: Optional[float] = None,
+    face_right_x: Optional[float] = None,
 ) -> Dict[str, Any]:
     """Analyzes the spatial negative space distribution around the speaker's head.
 
@@ -202,91 +205,139 @@ def analyze_cranial_negative_space(
     Returns the dominant zone, recommended placement coordinates, anchor, and specialized font treatment.
     """
     if not subject_box:
-        # Default centered layout when no observation is available
+        # Default centered layout when no observation is available:
+        # Nestles text in cranial crown directly behind the principal speaker's head (24%), not in top rafters (10-11%)
+        below_head_y = 0.54 if face_bottom_y is None else round(max(0.44, min(0.68, face_bottom_y + 0.11)), 3)
         return {
             "dominantZone": "cranial_crown",
             "zoneId": "behind_subject_above_head",
             "xPercent": "50%",
-            "yPercent": "11.0%",
+            "yPercent": "24.0%",
             "anchor": "center",
             "textAlign": "center",
             "fontTreatment": "tall_didone_arch",
-            "headroomRatio": 0.15,
+            "headroomRatio": 0.28,
             "flankLeftRatio": 0.30,
             "flankRightRatio": 0.30,
+            "faceBottom": face_bottom_y,
+            "belowHeadY": below_head_y,
         }
 
-    x = float(subject_box.get("x", 0.30))
-    y = float(subject_box.get("y", 0.15))
-    w = float(subject_box.get("width", 0.40))
-    h = float(subject_box.get("height", 0.60))
+    x = float(subject_box.get("x", 0.30)) if subject_box else 0.30
+    y = float(subject_box.get("y", 0.15)) if subject_box else 0.15
+    w = float(subject_box.get("width", 0.40)) if subject_box else 0.40
+    h = float(subject_box.get("height", 0.60)) if subject_box else 0.60
 
     actual_head_top = head_top_y if head_top_y is not None else y
     top_headroom = max(0.0, actual_head_top)
-    left_flank = max(0.0, x)
-    right_flank = max(0.0, 1.0 - (x + w))
+
+    # Lateral clearance beside the speaker's head at cranial height:
+    # Uses precise face/head horizontal boundaries when available, falling back to subject_box.
+    head_left = face_left_x if face_left_x is not None else x
+    head_right = face_right_x if face_right_x is not None else (x + w)
+    cranial_left_flank = max(0.0, head_left)
+    cranial_right_flank = max(0.0, 1.0 - head_right)
+
+    left_flank = cranial_left_flank
+    right_flank = cranial_right_flank
     lower_deck = max(0.0, 1.0 - (y + h))
 
-    # Priority 1: Large Cranial Headroom (Crown Halo Arch)
-    if top_headroom >= 0.14:
-        center_y = round(max(0.10, min(0.15, 0.025 + (top_headroom - 0.025) * 0.50)), 4)
-        return {
-            "dominantZone": "cranial_crown",
-            "zoneId": "behind_subject_above_head",
-            "xPercent": "50%",
-            "yPercent": f"{round(center_y * 100, 2)}%",
-            "anchor": "center",
-            "textAlign": "center",
-            "fontTreatment": "tall_didone_arch",
-            "headroomRatio": round(top_headroom, 3),
-            "flankLeftRatio": round(left_flank, 3),
-            "flankRightRatio": round(right_flank, 3),
-        }
-
-    # Priority 2: Left Flank Provision (Speaker positioned right of center)
-    if left_flank >= 0.28 and left_flank > (right_flank + 0.06):
-        col_x = round(left_flank * 0.52, 3)
-        return {
-            "dominantZone": "flank_left_column",
-            "zoneId": "flank_left_editorial_pillar",
-            "xPercent": f"{round(col_x * 100, 1)}%",
-            "yPercent": "46%",
-            "anchor": "center",
-            "textAlign": "left",
-            "fontTreatment": "editorial_column_stack",
-            "headroomRatio": round(top_headroom, 3),
-            "flankLeftRatio": round(left_flank, 3),
-            "flankRightRatio": round(right_flank, 3),
-        }
-
-    # Priority 3: Right Flank Provision (Speaker positioned left of center)
-    if right_flank >= 0.28 and right_flank > (left_flank + 0.06):
-        col_x = round((1.0 - right_flank) + (right_flank * 0.48), 3)
+    # Priority 1: Dominant Right Flank Provision (Speaker positioned left of center)
+    # When the speaker is framed left of center, the right flank offers an expansive vertical column
+    # of clear negative space beside the head and torso.
+    # Text is placed in the upper-flank negative space (Y ~ 22-28%) beside the head, safely clearing
+    # the sloping shoulder (Y ~ 42-50%) and strictly bounded within safe margins (<= 94% X, maxWidth <= 30%).
+    if right_flank >= 0.26 and right_flank >= (left_flank + 0.06):
+        safe_right_margin = 0.94
+        safe_left_bound = min(0.68, max(head_right, x + w) + 0.04)
+        col_x = round((safe_left_bound + safe_right_margin) / 2.0, 3)
+        center_y = round(max(0.22, min(0.30, actual_head_top + 0.08)), 3)
         return {
             "dominantZone": "flank_right_column",
             "zoneId": "flank_right_editorial_pillar",
             "xPercent": f"{round(col_x * 100, 1)}%",
-            "yPercent": "46%",
+            "yPercent": f"{round(center_y * 100, 1)}%",
             "anchor": "center",
-            "textAlign": "right",
+            "textAlign": "center",
+            "maxWidthPercent": "30%",
             "fontTreatment": "editorial_column_stack",
             "headroomRatio": round(top_headroom, 3),
             "flankLeftRatio": round(left_flank, 3),
             "flankRightRatio": round(right_flank, 3),
+            "faceBottom": round(face_bottom_y, 3) if face_bottom_y is not None else None,
         }
 
-    # Priority 4: Lower Third Anchor Deck (Centered speaker with low headroom)
+    # Priority 2: Dominant Left Flank Provision (Speaker positioned right of center)
+    if left_flank >= 0.26 and left_flank >= (right_flank + 0.06):
+        safe_left_margin = 0.06
+        safe_right_bound = max(0.32, min(head_left, x) - 0.04)
+        col_x = round((safe_left_margin + safe_right_bound) / 2.0, 3)
+        center_y = round(max(0.22, min(0.30, actual_head_top + 0.08)), 3)
+        return {
+            "dominantZone": "flank_left_column",
+            "zoneId": "flank_left_editorial_pillar",
+            "xPercent": f"{round(col_x * 100, 1)}%",
+            "yPercent": f"{round(center_y * 100, 1)}%",
+            "anchor": "center",
+            "textAlign": "center",
+            "maxWidthPercent": "30%",
+            "fontTreatment": "editorial_column_stack",
+            "headroomRatio": round(top_headroom, 3),
+            "flankLeftRatio": round(left_flank, 3),
+            "flankRightRatio": round(right_flank, 3),
+            "faceBottom": round(face_bottom_y, 3) if face_bottom_y is not None else None,
+        }
+
+    # Priority 3: Large Cranial Headroom (Crown Halo Arch / Editorial Masthead)
+    # Follows the Gestalt Occlusion Rule: headline text sits high enough in the headroom
+    # so letter ascenders and uppercase bodies are fully exposed above the hair (top 75%),
+    # with only the bottom baseline nestled behind the silhouette, NOT obscured by the skull.
+    if top_headroom >= 0.14:
+        center_y = round(max(0.07, min(0.16, actual_head_top - 0.07)), 4)
+        head_mid_x = (head_left + head_right) / 2.0
+        if head_mid_x < 0.44:
+            text_x = round(min(0.60, head_mid_x + 0.12), 3)
+        elif head_mid_x > 0.56:
+            text_x = round(max(0.40, head_mid_x - 0.12), 3)
+        else:
+            text_x = 0.50
+
+        return {
+            "dominantZone": "cranial_crown",
+            "zoneId": "behind_subject_above_head",
+            "xPercent": f"{round(text_x * 100, 1)}%",
+            "yPercent": f"{round(center_y * 100, 2)}%",
+            "anchor": "center",
+            "textAlign": "center",
+            "maxWidthPercent": "85%",
+            "fontTreatment": "tall_didone_arch",
+            "headroomRatio": round(top_headroom, 3),
+            "flankLeftRatio": round(left_flank, 3),
+            "flankRightRatio": round(right_flank, 3),
+            "faceBottom": round(face_bottom_y, 3) if face_bottom_y is not None else None,
+        }
+
+    # Priority 4: Sensible Below-Head Placement (Dynamic Clearance Avoiding Speaker's Head)
+    if face_bottom_y is not None:
+        below_head_y = round(max(0.44, min(0.82, face_bottom_y + 0.08)), 4)
+    elif subject_box and "y" in subject_box:
+        below_head_y = round(max(0.44, min(0.82, float(subject_box["y"]) + 0.35)), 4)
+    else:
+        below_head_y = 0.60
+
     return {
         "dominantZone": "foreground_lower_deck",
         "zoneId": "foreground_lower_third",
         "xPercent": "50%",
-        "yPercent": "68%",
+        "yPercent": f"{round(below_head_y * 100, 1)}%",
         "anchor": "center",
         "textAlign": "center",
         "fontTreatment": "kinetic_anchor_deck",
         "headroomRatio": round(top_headroom, 3),
         "flankLeftRatio": round(left_flank, 3),
         "flankRightRatio": round(right_flank, 3),
+        "faceBottom": round(face_bottom_y, 3) if face_bottom_y is not None else None,
+        "belowHeadY": below_head_y,
     }
 
 
@@ -303,7 +354,7 @@ def analyze_chunk_temporal_cranial_space(
 
     Performs:
     1. Multi-Speaker Detection: checks if multiple heads occupy the scene (solo vs multi-speaker room provisioning).
-    2. Dynamic Room Provisioning: measures temporal head top, left clearance, and right clearance for this exact moment.
+    2. Dynamic Room Provisioning: measures temporal head top, chin bottom, left clearance, and right clearance.
     3. Spatial Zone Classification: labels the interval (e.g. 0-12s cranial_crown, 13-16s flank_left_column).
     """
     if not observation or "frames" not in observation or not observation["frames"]:
@@ -327,20 +378,53 @@ def analyze_chunk_temporal_cranial_space(
     max_faces = max((f.get("faceCount", 1) for f in matched_frames if f), default=1)
     speaker_category = "solo_speaker" if max_faces <= 1 else "multi_speaker"
 
-    # 3. Aggregate subject box and head top for this specific temporal segment
+    # 3. Aggregate subject box, head top, and face bottom for this specific temporal segment
     head_tops = []
+    face_bottoms = []
     boxes = []
+    face_lefts = []
+    face_rights = []
     for f in matched_frames:
         if not f:
             continue
         if "faceBox" in f and f["faceBox"]:
-            head_tops.append(float(f["faceBox"].get("y", 0.15)))
+            fb = f["faceBox"]
+            fy = fb.get("y", fb.get("y_pct"))
+            fh = fb.get("height", fb.get("height_pct"))
+            fx = fb.get("x", fb.get("x_pct"))
+            fw = fb.get("width", fb.get("width_pct"))
+            if isinstance(fy, (int, float)):
+                head_tops.append(float(fy))
+                if isinstance(fh, (int, float)):
+                    face_bottoms.append(float(fy) + float(fh))
+            if isinstance(fx, (int, float)):
+                face_lefts.append(float(fx))
+                if isinstance(fw, (int, float)):
+                    face_rights.append(float(fx) + float(fw))
         elif "subjectBox" in f and f["subjectBox"]:
-            head_tops.append(float(f["subjectBox"].get("y", 0.15)))
+            sb = f["subjectBox"]
+            sy = sb.get("y", sb.get("y_pct", 0.15))
+            head_tops.append(float(sy))
         if "subjectBox" in f and f["subjectBox"]:
             boxes.append(f["subjectBox"])
+        elif "faceBox" in f and f["faceBox"]:
+            fb = f["faceBox"]
+            fx = float(fb.get("x", fb.get("x_pct", 0.3)))
+            fy = float(fb.get("y", fb.get("y_pct", 0.15)))
+            fw = float(fb.get("width", fb.get("width_pct", 0.3)))
+            fh = float(fb.get("height", fb.get("height_pct", 0.25)))
+            center_x = fx + fw / 2.0
+            body_w = min(0.62, fw * 1.8)
+            body_x = max(0.0, min(1.0 - body_w, center_x - body_w / 2.0))
+            body_h = min(1.0 - fy, fh * 4.0)
+            boxes.append({"x": body_x, "y": fy, "width": body_w, "height": body_h})
 
     window_head_top = min(head_tops) if head_tops else None
+    # Use max of face_bottoms during this chunk to guarantee the lowest chin extent is cleared
+    window_face_bottom = max(face_bottoms) if face_bottoms else None
+    window_face_left = min(face_lefts) if face_lefts else None
+    window_face_right = max(face_rights) if face_rights else None
+
     if boxes:
         window_box = {
             "x": min(b["x"] for b in boxes),
@@ -351,9 +435,19 @@ def analyze_chunk_temporal_cranial_space(
     else:
         window_box = None
 
-    analysis = analyze_cranial_negative_space(window_box, window_head_top)
+    analysis = analyze_cranial_negative_space(
+        window_box,
+        window_head_top,
+        face_bottom_y=window_face_bottom,
+        face_left_x=window_face_left,
+        face_right_x=window_face_right,
+    )
     analysis["speakerCategory"] = speaker_category
     analysis["faceCount"] = max_faces
+    analysis["faceBottom"] = window_face_bottom
+    analysis["faceTop"] = window_head_top
+    analysis["faceLeft"] = window_face_left
+    analysis["faceRight"] = window_face_right
     analysis["temporalWindow"] = {
         "startMs": chunk_start_ms,
         "endMs": chunk_end_ms,
@@ -365,16 +459,36 @@ def analyze_chunk_temporal_cranial_space(
 # Main placement planner
 # ---------------------------------------------------------------------------
 
+def _estimate_chunk_height_ratio(chunk: Dict[str, Any], canvas_height: int = 1920) -> float:
+    """Estimate the vertical height ratio of the rendered typography card from its layers."""
+    layers = chunk.get("layers") or []
+    if not layers:
+        return 0.06
+    total_px = 0.0
+    for l in layers:
+        size = float(l.get("fontSizePx", 80))
+        lh = float(l.get("lineHeight", 1.0))
+        total_px += size * lh
+    if chunk.get("listicle"):
+        total_px += 100.0
+    return max(0.04, min(0.22, total_px / canvas_height))
+
+
 def plan_subject_safe_placements(
     chunks: List[Dict[str, Any]],
     observation: Optional[Dict[str, Any]] = None,
 ) -> List[Dict[str, Any]]:
-    """Compute per-chunk placement dicts, respecting dynamic temporal cranial negative space distribution.
+    """Compute per-chunk placement dicts, dynamically adapting to MediaPipe tracking.
 
-    Adapts dynamically to camera framing shifts on a per-chunk basis (above-head crown, left flank column,
-    right flank column, or lower third anchor deck), checking multi-speaker occupancy and room provisioning.
+    At all times strictly avoids the principal speaker's head:
+    1. Behind-subject chunks sit in the cranial crown headroom or open flanks.
+    2. Foreground chunks dynamically sit safely below the speaker's chin (or in open lateral
+       flanks if framed off-center or chin extends into lower deck), with inter-chunk
+       hysteresis smoothing to prevent micro-jitter while guaranteeing zero face occlusion.
     """
     planned: List[Dict[str, Any]] = []
+    prev_fg_y: Optional[float] = None
+    prev_zone: Optional[str] = None
 
     for chunk in chunks:
         layering = chunk.get("subjectLayering") or {}
@@ -383,43 +497,137 @@ def plan_subject_safe_placements(
         c_end = int(chunk.get("endMs", chunk.get("sourceEndMs", chunk.get("outputEndMs", c_start + 1500))))
 
         cranial_analysis = analyze_chunk_temporal_cranial_space(c_start, c_end, observation)
-        dom_zone = cranial_analysis["dominantZone"]
+        dom_zone = cranial_analysis.get("dominantZone", "foreground_lower_deck")
+
+        # Depth Layering Invariant: If a chunk is marked behind_subj but cranial_analysis
+        # determined dominantZone is foreground_lower_deck, there is no cranial/flank headroom.
+        # Demote behind_subj to False so it renders cleanly in front without spurious VP9 matting.
+        if behind_subj and dom_zone == "foreground_lower_deck":
+            behind_subj = False
+            if isinstance(chunk.get("subjectLayering"), dict):
+                chunk["subjectLayering"]["behindSubject"] = False
+            for lyr in chunk.get("layers", []):
+                if isinstance(lyr, dict):
+                    lyr["behindSubject"] = False
 
         if behind_subj:
             planned.append({
                 "xPercent": cranial_analysis["xPercent"],
                 "yPercent": cranial_analysis["yPercent"],
-                "anchor": cranial_analysis["anchor"],
-                "textAlign": cranial_analysis["textAlign"],
+                "anchor": cranial_analysis.get("anchor", "center"),
+                "textAlign": cranial_analysis.get("textAlign", "center"),
                 "dominantZone": dom_zone,
-                "speakerCategory": cranial_analysis["speakerCategory"],
-                "faceCount": cranial_analysis["faceCount"],
-                "fontTreatment": cranial_analysis["fontTreatment"],
-                "safeRegionId": cranial_analysis["zoneId"],
+                "speakerCategory": cranial_analysis.get("speakerCategory", "solo_speaker"),
+                "faceCount": cranial_analysis.get("faceCount", 1),
+                "fontTreatment": cranial_analysis.get("fontTreatment", "tall_didone_arch"),
+                "safeRegionId": cranial_analysis.get("zoneId", "behind_subject_above_head"),
+                "maxWidthPercent": cranial_analysis.get("maxWidthPercent", "32%"),
                 "intersectsSubject": False,
-                "availableHeightRatio": cranial_analysis["headroomRatio"],
-                "headTopY": round(cranial_analysis["headroomRatio"], 4),
+                "availableHeightRatio": cranial_analysis.get("headroomRatio", 0.15),
+                "headTopY": round(cranial_analysis.get("headroomRatio", 0.15), 4),
                 "policy": f"cranial_negative_space_{dom_zone}",
-                "cranialArc": {
-                    "haloTop": cranial_analysis["yPercent"],
-                    "orbitalLeft": "12.0%",
-                    "orbitalRight": "88.0%",
-                    "tiltDeg": 0.0,
-                } if dom_zone == "cranial_crown" else None,
+                "cranialArc": None,
             })
         else:
+            # Foreground captions: NEVER OCCLUDE THE SPEAKER'S HEAD/FACE.
+            stamped = chunk.get("placement") if isinstance(chunk.get("placement"), dict) else None
+            font_json = stamped if (stamped and stamped.get("layoutSource") == "font_json_layout_rules") else None
+
+            face_bottom = cranial_analysis.get("faceBottom")
+            flank_left = float(cranial_analysis.get("flankLeftRatio", 0.30))
+            flank_right = float(cranial_analysis.get("flankRightRatio", 0.30))
+
+            # Stack-aware height calculation: accounts for multi-line typography cards
+            # so the TOP of the card is guaranteed to sit cleanly below the chin.
+            chunk_h_ratio = _estimate_chunk_height_ratio(chunk)
+            half_h = chunk_h_ratio / 2.0
+            breathing_margin = 0.05  # 5% screen height (~96px) clean breathing clearance
+            target_clearance = max(0.08, half_h + breathing_margin)
+            min_safe_clearance = max(0.06, half_h + 0.025)
+
+            if face_bottom is not None:
+                ideal_y = face_bottom + target_clearance
+                min_safe_y = face_bottom + min_safe_clearance
+            else:
+                ideal_y = 0.60
+                min_safe_y = 0.54
+
+            # 1. Lateral Flank: If speaker is framed off-center, place in open column
+            if flank_left >= 0.38 and flank_left > flank_right + 0.10:
+                chosen_x = f"{round(max(0.20, flank_left * 0.48) * 100, 1)}%"
+                chosen_y_float = min(0.65, max(0.44, ideal_y))
+                chosen_zone = "flank_left_column"
+                chosen_align = (font_json or {}).get("textAlign", "left")
+                safe_id = "flank_left_pillar"
+            elif flank_right >= 0.38 and flank_right > flank_left + 0.10:
+                chosen_x = f"{round(min(0.80, (1.0 - flank_right) + flank_right * 0.52) * 100, 1)}%"
+                chosen_y_float = min(0.65, max(0.44, ideal_y))
+                chosen_zone = "flank_right_column"
+                chosen_align = (font_json or {}).get("textAlign", "right")
+                safe_id = "flank_right_pillar"
+            elif ideal_y > 0.83:
+                # Speaker's chin is extraordinarily low (extreme close-up filling lower frame).
+                # To avoid platform UI, check cranial headroom
+                top_head = float(cranial_analysis.get("headroomRatio", 0.28))
+                if top_head >= 0.12:
+                    chosen_x = "50%"
+                    chosen_y_float = round(max(0.20, min(0.28, top_head - 0.04)), 3)
+                    chosen_zone = "cranial_crown"
+                    chosen_align = (font_json or {}).get("textAlign", "center")
+                    safe_id = "cranial_crown_headroom"
+                else:
+                    chosen_x = "50%"
+                    chosen_y_float = 0.82
+                    chosen_zone = "foreground_lower_deck"
+                    chosen_align = (font_json or {}).get("textAlign", "center")
+                    safe_id = "foreground_below_head_dynamic"
+            else:
+                # Standard centered framing: dynamically placed safely below the chin
+                chosen_x = "50%"
+                chosen_zone = "foreground_lower_deck"
+                chosen_align = (font_json or {}).get("textAlign", "center")
+                safe_id = "foreground_below_head_dynamic"
+
+                bounded_ideal_y = max(0.44, min(0.82, ideal_y))
+
+                # Inter-chunk hysteresis smoothing:
+                # Hold previous Y if it still satisfies the chin clearance invariant for this chunk
+                # AND is within a subtle deadband (<= 4.5% difference).
+                if prev_fg_y is not None and prev_zone == chosen_zone:
+                    is_safe_above_chin = (prev_fg_y >= min_safe_y)
+                    in_smoothing_deadband = (abs(prev_fg_y - bounded_ideal_y) <= 0.045)
+                    if is_safe_above_chin and in_smoothing_deadband:
+                        chosen_y_float = prev_fg_y
+                    else:
+                        chosen_y_float = bounded_ideal_y
+                        prev_fg_y = chosen_y_float
+                else:
+                    chosen_y_float = bounded_ideal_y
+                    prev_fg_y = chosen_y_float
+
+            prev_zone = chosen_zone
+            y_percent_str = f"{round(chosen_y_float * 100, 1)}%"
+            if y_percent_str.endswith(".0%"):
+                y_percent_str = y_percent_str[:-3] + "%"
+
             planned.append({
-                "xPercent": "50%",
-                "yPercent": "68%",
-                "anchor": "center",
-                "textAlign": "center",
-                "dominantZone": "foreground_lower_deck",
-                "speakerCategory": cranial_analysis["speakerCategory"],
-                "faceCount": cranial_analysis["faceCount"],
-                "fontTreatment": "kinetic_anchor_deck",
-                "safeRegionId": "foreground_center",
+                "xPercent": chosen_x,
+                "yPercent": y_percent_str,
+                "anchor": "center" if chosen_x == "50%" else (font_json or {}).get("anchor", "center"),
+                "textAlign": chosen_align,
+                "dominantZone": chosen_zone,
+                "maxWidthPercent": (font_json or {}).get("maxWidthPercent", "85"),
+                "layoutSource": "font_json_layout_rules" if font_json else None,
+                "speakerCategory": cranial_analysis.get("speakerCategory", "solo_speaker"),
+                "faceCount": cranial_analysis.get("faceCount", 1),
+                "fontTreatment": "font_json_layout" if font_json else "kinetic_anchor_deck",
+                "safeRegionId": safe_id,
                 "intersectsSubject": False,
-                "policy": "foreground_lower_third",
+                "policy": (
+                    "dynamic_below_head_font_json_alignment"
+                    if font_json
+                    else f"dynamic_subject_avoidance_{chosen_zone}"
+                ),
                 "cranialArc": None,
             })
 
