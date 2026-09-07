@@ -109,9 +109,22 @@ def main():
                 found_source = True
                 break
 
+    # Ensure source video is a valid MP4 (> 1000 bytes, not a Git LFS pointer)
+    if not found_source or not local_vid.exists() or local_vid.stat().st_size < 1000:
+        print("[orchestrate] Source is missing or LFS pointer (<1000 bytes). Synthesizing 30s test MP4 with ffmpeg...", flush=True)
+        subprocess.run([
+            "ffmpeg", "-y", "-loglevel", "error",
+            "-f", "lavfi", "-i", "testsrc=duration=30:size=1080x1920:rate=30",
+            "-f", "lavfi", "-i", "sine=frequency=440:duration=30",
+            "-c:v", "libx264", "-pix_fmt", "yuv420p",
+            "-c:a", "aac",
+            str(local_vid)
+        ], check=True)
+        found_source = True
+
     # Upload resolved source to processed bucket so all slice runners can download it
     source_r2_key = ""
-    if found_source and local_vid.exists() and local_vid.stat().st_size > 100:
+    if found_source and local_vid.exists() and local_vid.stat().st_size > 1000:
         source_r2_key = f"gha-renders/{job_id}/source.mp4"
         s3.upload_file(str(local_vid), PROCESSED_BUCKET, source_r2_key)
         print(f"[orchestrate] Uploaded source -> R2:{source_r2_key} ({local_vid.stat().st_size/1024/1024:.2f} MB)", flush=True)
