@@ -3,8 +3,8 @@
 on:
   workflow_dispatch:
     inputs:
-      payload:
-        description: "JSON pipeline payload"
+      payload_b64:
+        description: "Base64 encoded JSON pipeline payload"
         required: true
         type: string
 
@@ -27,6 +27,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
@@ -34,18 +39,15 @@ jobs:
           cache: "pip"
 
       - name: Install Python deps
-        run: |
-          pip install --quiet assemblyai boto3 mediapipe==0.10.21 opencv-python-headless numpy requests
+        run: pip install --quiet assemblyai boto3 mediapipe==0.10.21 opencv-python-headless numpy requests
 
       - name: Install ffmpeg
         run: sudo apt-get install -y ffmpeg --quiet
 
-      - name: Write payload to file
+      - name: Decode payload
         run: |
-          cat > /tmp/pipeline_payload.json << 'PAYLOAD_EOF'
-          ${{ inputs.payload }}
-          PAYLOAD_EOF
-          echo "Payload file written:"
+          echo "${{ inputs.payload_b64 }}" | base64 -d > /tmp/pipeline_payload.json
+          echo "Payload decoded:"
           cat /tmp/pipeline_payload.json
 
       - name: Run orchestration plan
@@ -62,7 +64,6 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           PYTHONUTF8: "1"
-          PAYLOAD_FILE: "/tmp/pipeline_payload.json"
         run: python .github/scripts/gha_orchestrate.py
 
   render_slice:
@@ -82,15 +83,27 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
-          cache-dependency-path: remotion-app/package-lock.json
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
       - name: Install ffmpeg
         run: sudo apt-get install -y ffmpeg --quiet
 
-      - name: Install Node deps
+      - name: Build shared types
+        run: |
+          npm install --legacy-peer-deps --no-audit --no-fund
+          npm --workspace @prometheus/shared-types run build
+
+      - name: Install Remotion deps and browser
         working-directory: remotion-app
-        run: npm ci --prefer-offline --no-audit --no-fund
+        run: |
+          npm ci --legacy-peer-deps --prefer-offline --no-audit --no-fund
+          npx remotion browser ensure
+          mkdir -p public/textures
+          cp -rn ../mini_run_pipeline/textures/* public/textures/ 2>/dev/null || true
 
       - name: Install boto3 for R2
         run: pip install --quiet boto3
@@ -122,6 +135,8 @@ jobs:
             --frames=${START_FRAME}-${END_FRAME} \
             --concurrency=2 \
             --gl=swangle \
+            --pixel-format=yuv420p \
+            --jpeg-quality=90 \
             --muted \
             --timeout=600000
         working-directory: remotion-app

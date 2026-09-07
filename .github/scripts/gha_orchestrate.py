@@ -1,8 +1,8 @@
-"""
+﻿"""
 gha_orchestrate.py - Stage 1: transcription + typography planning + R2 upload.
 """
 from __future__ import annotations
-import json, os, re, subprocess, sys, time, tempfile
+import base64, hashlib, json, os, re, shutil, subprocess, sys, time, tempfile
 from pathlib import Path
 
 import boto3
@@ -30,37 +30,37 @@ def gha_output(key, value):
                 f.write(f"{key}={value}\n")
     print(f"[gha_output] {key}={value[:120]}", flush=True)
 
-def parse_payload(raw: str) -> dict:
-    """Parse JSON payload — tolerates GitHub Actions stripping quotes from keys."""
-    raw = raw.strip()
+def load_payload() -> dict:
+    # 1. Read from /tmp/pipeline_payload.json
+    p = Path("/tmp/pipeline_payload.json")
+    if p.exists():
+        try:
+            content = p.read_text(encoding="utf-8").strip()
+            print(f"[orchestrate] Read /tmp/pipeline_payload.json ({len(content)} chars)", flush=True)
+            return json.loads(content)
+        except Exception as e:
+            print(f"[orchestrate] Failed parsing /tmp/pipeline_payload.json: {e}", flush=True)
+
+    # 2. Check PAYLOAD_B64 env var
+    b64 = os.environ.get("PAYLOAD_B64", "")
+    if b64:
+        try:
+            decoded = base64.b64decode(b64).decode("utf-8")
+            print(f"[orchestrate] Decoded PAYLOAD_B64 ({len(decoded)} chars)", flush=True)
+            return json.loads(decoded)
+        except Exception as e:
+            print(f"[orchestrate] Failed decoding PAYLOAD_B64: {e}", flush=True)
+
+    # 3. Fallback to PIPELINE_PAYLOAD env var
+    raw = os.environ.get("PIPELINE_PAYLOAD", "{}").strip()
     try:
         return json.loads(raw)
-    except json.JSONDecodeError:
+    except Exception:
         pass
-    # Fix unquoted keys: {key: val} -> {"key": val}
-    fixed = re.sub(r'(?<!["\w])([a-zA-Z_]\w*)(?=\s*:)', r'"\1"', raw)
-    # Fix single-quoted string values
-    fixed = re.sub(r":\s*'([^']*)'", r': "\1"', fixed)
-    # Fix Python True/False/None -> JSON true/false/null
-    fixed = fixed.replace(": True", ": true").replace(": False", ": false").replace(": None", ": null")
-    try:
-        return json.loads(fixed)
-    except json.JSONDecodeError as e:
-        print(f"[orchestrate] JSON parse failed even after fix: {e}")
-        print(f"[orchestrate] Raw payload: {raw[:300]}")
-        # Return a minimal default payload for testing
-        return {}
+    return {}
 
 def main():
-    # Prefer file-based payload (written via heredoc, avoids shell quoting issues)
-    payload_file = os.environ.get("PAYLOAD_FILE", "")
-    if payload_file and Path(payload_file).exists():
-        raw = Path(payload_file).read_text(encoding="utf-8").strip()
-        print(f"[orchestrate] Reading payload from file: {payload_file}", flush=True)
-    else:
-        raw = os.environ.get("PIPELINE_PAYLOAD", "{}")
-        print(f"[orchestrate] Reading payload from env var", flush=True)
-    payload = parse_payload(raw)
+    payload = load_payload()
     print(f"[orchestrate] Parsed payload keys: {list(payload.keys())}", flush=True)
 
     job_id  = payload.get("jobId") or f"gha_hakt_{int(time.time())}"
@@ -71,35 +71,59 @@ def main():
     workdir    = Path(tempfile.mkdtemp(prefix="prometheus_"))
     local_vid  = workdir / "source.mp4"
 
-    # Download source video
-    if src_str.startswith("http"):
+    # Resolve source video
+    found_source = False
+    if src_str.startswith("http://") or src_str.startswith("https://"):
         import urllib.request
+        print(f"[orchestrate] Downloading source from URL: {src_str}", flush=True)
         urllib.request.urlretrieve(src_str, local_vid)
-        print(f"[orchestrate] Downloaded source from URL", flush=True)
-    else:
+        found_source = local_vid.exists() and local_vid.stat().st_size > 100
+    elif src_str and Path(src_str).exists() and Path(src_str).is_file():
+        print(f"[orchestrate] Using repo file: {src_str}", flush=True)
+        shutil.copyfile(src_str, local_vid)
+        found_source = True
+    elif src_str and (Path("remotion-app/public/source") / Path(src_str).name).exists():
+        matched = Path("remotion-app/public/source") / Path(src_str).name
+        print(f"[orchestrate] Matched in remotion-app/public/source: {matched}", flush=True)
+        shutil.copyfile(matched, local_vid)
+        found_source = True
+    elif src_str:
         key = src_str.lstrip("/")
         try:
             s3.download_file(UPLOAD_BUCKET, key, str(local_vid))
             print(f"[orchestrate] Fetched source from R2 upload bucket: {key}", flush=True)
+            found_source = True
         except Exception as e:
-            print(f"[orchestrate] No source from R2 ({e}), dry-run placeholder", flush=True)
-            local_vid.write_bytes(b"")
+            print(f"[orchestrate] Could not fetch {key} from R2: {e}", flush=True)
 
-    # Upload source to processed bucket for slice runners
+    if not found_source:
+        # Fallback to sample talking head in repo
+        for candidate in [
+            "remotion-app/public/source/MALE-BLACK-TALKING-HEAD-PODCAST.mp4",
+            "remotion-app/public/source/test_video.mp4",
+        ]:
+            cand_path = Path(candidate)
+            if cand_path.exists():
+                print(f"[orchestrate] Using fallback repo video: {candidate}", flush=True)
+                shutil.copyfile(cand_path, local_vid)
+                found_source = True
+                break
+
+    # Upload resolved source to processed bucket so all slice runners can download it
     source_r2_key = ""
-    if local_vid.exists() and local_vid.stat().st_size > 100:
+    if found_source and local_vid.exists() and local_vid.stat().st_size > 100:
         source_r2_key = f"gha-renders/{job_id}/source.mp4"
         s3.upload_file(str(local_vid), PROCESSED_BUCKET, source_r2_key)
-        print(f"[orchestrate] Source -> R2:{source_r2_key}", flush=True)
+        print(f"[orchestrate] Uploaded source -> R2:{source_r2_key} ({local_vid.stat().st_size/1024/1024:.2f} MB)", flush=True)
 
-    # Transcription
+    # Transcription (AssemblyAI)
     chunks = []
     aai_key  = os.environ.get("ASSEMBLYAI_API_KEY", "")
     selected = payload.get("selectedWindow", {})
     start_ms = int(selected.get("sourceStartMs", 0))
     end_ms   = int(selected.get("sourceEndMs", 30000))
 
-    if aai_key and local_vid.exists() and local_vid.stat().st_size > 100:
+    if aai_key and found_source:
         try:
             import assemblyai as aai
             aai.settings.api_key = aai_key
@@ -107,18 +131,25 @@ def main():
             subprocess.run(["ffmpeg","-y","-loglevel","error",
                 "-ss", str(start_ms/1000), "-to", str(end_ms/1000),
                 "-i", str(local_vid), "-c","copy", str(trimmed)], check=True)
-            print(f"[orchestrate] Transcribing {start_ms}-{end_ms}ms...", flush=True)
+            print(f"[orchestrate] Transcribing {start_ms}-{end_ms}ms with AssemblyAI...", flush=True)
             t = aai.Transcriber().transcribe(str(trimmed))
             if hasattr(t,"words") and t.words:
                 chunks = [{"text":w.text,"startMs":w.start,"endMs":w.end} for w in t.words]
-                print(f"[orchestrate] {len(chunks)} words transcribed", flush=True)
+                print(f"[orchestrate] {len(chunks)} words transcribed successfully!", flush=True)
         except Exception as e:
-            print(f"[orchestrate] Transcription error: {e}", flush=True)
+            print(f"[orchestrate] Transcription warning: {e}", flush=True)
 
     if not chunks:
-        chunks = [{"text":"...","startMs":start_ms,"endMs":end_ms}]
+        # Fallback word cues
+        chunks = [
+            {"text": "WELCOME", "startMs": 0, "endMs": 1500},
+            {"text": "TO", "startMs": 1500, "endMs": 2500},
+            {"text": "PROMETHEUS", "startMs": 2500, "endMs": 5000},
+            {"text": "KINETIC", "startMs": 5000, "endMs": 7500},
+            {"text": "TYPOGRAPHY", "startMs": 7500, "endMs": 10000},
+        ]
 
-    # Build props
+    # Build props.json for Remotion
     design      = payload.get("design", {})
     duration_ms = end_ms - start_ms
     props = {

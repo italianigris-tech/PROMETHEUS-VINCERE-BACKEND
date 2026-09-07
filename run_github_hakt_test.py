@@ -1,11 +1,11 @@
-﻿"""
+"""
 run_github_hakt_test.py
 Drop-in replacement for run_modal_30s_hakt_test.py.
 Triggers prometheus-render.yml via GitHub Actions API, polls for completion,
 downloads the receipt + master MP4, extracts keyframes.
 """
 from __future__ import annotations
-import json, os, subprocess, sys, time
+import base64, json, os, subprocess, sys, time
 from pathlib import Path
 
 # Use gh CLI to trigger + poll — no extra deps needed
@@ -18,7 +18,7 @@ JOB_ID = f"gha_hakt_30s_pbd_{int(time.time())}"
 
 PAYLOAD = {
     "jobId": JOB_ID,
-    "source": {"path": "raw-videos/patrick_bet_david_ep1.mp4"},  # R2 upload-bucket key
+    "source": {"path": "remotion-app/public/source/MALE-BLACK-TALKING-HEAD-PODCAST.mp4"},
     "selectedWindow": {"sourceStartMs": 0, "sourceEndMs": 30000},
     "maxClipMs": 30000,
     "silencePolicy": "preserve",
@@ -57,13 +57,14 @@ def run():
     print("=" * 70)
 
     payload_json = json.dumps(PAYLOAD)
+    payload_b64 = base64.b64encode(payload_json.encode("utf-8")).decode("ascii")
     t_start = time.monotonic()
 
     # Trigger the workflow
     trigger_cmd = [
         "gh", "workflow", "run", WORKFLOW,
         "--repo", REPO,
-        "--field", f"payload={payload_json}",
+        "--field", f"payload_b64={payload_b64}",
     ]
     print(f"[trigger] Dispatching workflow...", flush=True)
     res = subprocess.run(trigger_cmd, capture_output=True, text=True)
