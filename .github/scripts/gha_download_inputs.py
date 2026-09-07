@@ -1,5 +1,6 @@
-"""gha_download_inputs.py - Download source video + props from R2 for a slice runner."""
-import os, boto3
+"""gha_download_inputs.py - Download source video + props + matte from R2 for a slice runner."""
+from __future__ import annotations
+import os, boto3, shutil
 from botocore.config import Config
 from pathlib import Path
 
@@ -12,6 +13,7 @@ PROCESSED_BUCKET = os.environ.get("R2_PROCESSED_BUCKET", "prometheus-processed")
 JOB_ID           = os.environ["JOB_ID"]
 PROPS_KEY        = os.environ["PROPS_R2_KEY"]
 SOURCE_KEY       = os.environ.get("SOURCE_R2_KEY", "")
+MATTE_KEY        = os.environ.get("MATTE_R2_KEY", "")
 
 # Download props.json
 props_local = f"/tmp/props_{JOB_ID}.json"
@@ -29,11 +31,16 @@ if SOURCE_KEY:
 elif not src_local.exists():
     fallback = src_dir / "MALE-BLACK-TALKING-HEAD-PODCAST.mp4"
     if fallback.exists():
-        import shutil
         shutil.copyfile(fallback, src_local)
         print(f"[download] Copied fallback to source.mp4", flush=True)
 
-# Also create test.mp4 copy as safety net
+if MATTE_KEY:
+    matte_local = src_dir / "matte.webm"
+    try:
+        s3.download_file(PROCESSED_BUCKET, MATTE_KEY, str(matte_local))
+        print(f"[download] Matte → {matte_local} ({matte_local.stat().st_size/1024/1024:.1f} MB)", flush=True)
+    except Exception as e:
+        print(f"[download] Warning: could not download matte: {e}", flush=True)
+
 if src_local.exists():
-    import shutil
     shutil.copyfile(src_local, src_dir / "test.mp4")

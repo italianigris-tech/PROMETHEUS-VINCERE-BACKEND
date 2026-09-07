@@ -20,6 +20,8 @@ jobs:
       slice_matrix: ${{ steps.plan.outputs.slice_matrix }}
       props_r2_key: ${{ steps.plan.outputs.props_r2_key }}
       source_r2_key: ${{ steps.plan.outputs.source_r2_key }}
+      matte_r2_key: ${{ steps.plan.outputs.matte_r2_key }}
+      song_r2_key: ${{ steps.plan.outputs.song_r2_key }}
       receipt_partial: ${{ steps.plan.outputs.receipt_partial }}
       total_slices: ${{ steps.plan.outputs.total_slices }}
 
@@ -136,6 +138,7 @@ jobs:
           R2_PROCESSED_BUCKET: ${{ secrets.R2_PROCESSED_BUCKET }}
           PROPS_R2_KEY: ${{ needs.orchestrate.outputs.props_r2_key }}
           SOURCE_R2_KEY: ${{ needs.orchestrate.outputs.source_r2_key }}
+          MATTE_R2_KEY: ${{ needs.orchestrate.outputs.matte_r2_key }}
           JOB_ID: ${{ needs.orchestrate.outputs.job_id }}
         run: python .github/scripts/gha_download_inputs.py
 
@@ -144,9 +147,14 @@ jobs:
           SLICE_INDEX: ${{ matrix.slice_index }}
           START_FRAME: ${{ matrix.start_frame }}
           END_FRAME: ${{ matrix.end_frame }}
+          SCALE: ${{ matrix.scale }}
           JOB_ID: ${{ needs.orchestrate.outputs.job_id }}
         run: |
           mkdir -p /tmp/slices
+          SCALE_ARG=""
+          if [ -n "$SCALE" ] && [ "$SCALE" != "1.0" ] && [ "$SCALE" != "1" ]; then
+            SCALE_ARG="--scale=$SCALE"
+          fi
           npx remotion render \
             src/index.ts PrometheusMinRun \
             /tmp/slices/slice_${SLICE_INDEX}.mp4 \
@@ -158,7 +166,8 @@ jobs:
             --pixel-format=yuv420p \
             --jpeg-quality=90 \
             --muted \
-            --timeout=600000
+            --timeout=600000 \
+            $SCALE_ARG
         working-directory: remotion-app
 
       - name: Upload slice to R2
@@ -200,8 +209,11 @@ jobs:
           R2_PROCESSED_BUCKET: ${{ secrets.R2_PROCESSED_BUCKET }}
           R2_PUBLIC_PROCESSED_BASE: ${{ secrets.R2_PUBLIC_PROCESSED_BASE }}
           JOB_ID: ${{ needs.orchestrate.outputs.job_id }}
+          PROPS_R2_KEY: ${{ needs.orchestrate.outputs.props_r2_key }}
+          SONG_R2_KEY: ${{ needs.orchestrate.outputs.song_r2_key }}
           RECEIPT_PARTIAL: ${{ needs.orchestrate.outputs.receipt_partial }}
           TOTAL_SLICES: ${{ needs.orchestrate.outputs.total_slices }}
+          PYTHONPATH: "."
         run: python .github/scripts/gha_stitch.py
 
       - name: Upload receipt artifact

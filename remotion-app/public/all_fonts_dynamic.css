@@ -29,13 +29,13 @@
 
 @font-face {
   font-family: "Amerika Alternates";
-  src: url("./fonts/library/amerika-alternates/amerikaa-26bc8e73b088.ttf") format("truetype");
+  src: url("./fonts/library/cinzel/cinzel-regular-43bf68a48bcf.ttf") format("truetype");
   font-display: swap;
 }
 
 @font-face {
   font-family: "Amerika";
-  src: url("./fonts/library/amerika/amerika-134a789cf9d0.ttf") format("truetype");
+  src: url("./fonts/library/cinzel/cinzel-regular-43bf68a48bcf.ttf") format("truetype");
   font-display: swap;
 }
 
@@ -228,6 +228,12 @@
 @font-face {
   font-family: "Sacramento";
   src: url("./fonts/studio/Sacramento-Regular.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Saira Extra Condensed";
+  src: url("./fonts/studio/SairaExtraCondensed-Bold.ttf") format("truetype");
   font-display: swap;
 }
 
@@ -764,9 +770,16 @@
 
 @font-face {
   font-family: "Apple Garamond";
-  src: url("./fonts/studio/AppleGaramond-Bold.ttf") format("truetype");
-  font-weight: 700;
+  src: url("./fonts/studio/AppleGaramond-Light.ttf") format("truetype");
+  font-weight: 300;
   font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Apple Garamond";
+  src: url("./fonts/studio/AppleGaramond-LightItalic.ttf") format("truetype");
+  font-weight: 300;
+  font-style: italic;
   font-display: swap;
 }
 @font-face {
@@ -774,6 +787,27 @@
   src: url("./fonts/studio/AppleGaramond.ttf") format("truetype");
   font-weight: 400;
   font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Apple Garamond";
+  src: url("./fonts/studio/AppleGaramond-Italic.ttf") format("truetype");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Apple Garamond";
+  src: url("./fonts/studio/AppleGaramond-Bold.ttf") format("truetype");
+  font-weight: 700 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Apple Garamond";
+  src: url("./fonts/studio/AppleGaramond-BoldItalic.ttf") format("truetype");
+  font-weight: 700 900;
+  font-style: italic;
   font-display: swap;
 }
 
@@ -849,4 +883,91 @@
   font-display: swap;
 }
 
+
+
+/* --- user-supplied reference-accurate script fonts (v3 spec corrections) --- */
+
+@font-face {
+  font-family: "Exmouth";
+  src: url("./fonts/library/exmouth/exmouth_.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Champignon";
+  src: url("./fonts/library/champignon/Champignon.otf") format("opentype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Champignon Alt Swash";
+  src: url("./fonts/library/champignon/champignonaltswash.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Brotherhood Script";
+  src: url("./fonts/library/brotherhood_script/Brotherhood_Script.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Bromello";
+  src: url("./fonts/library/bromello/bromello-Regular.otf") format("opentype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Bucklane Script";
+  src: url("./fonts/library/bucklane_script/BucklaneScript_PERSONAL_USE_ONLY.otf") format("opentype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Formale Script";
+  src: url("./fonts/library/formale_script/FormaleScript_PERSONAL_USE_ONLY.otf") format("opentype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Cavas";
+  src: url("./fonts/library/cavas/Cavas%20Demo.ttf") format("truetype");
+  font-display: swap;
+}
+
+/* --- Asgard Fit (user-supplied condensed-fit grotesque, v4) --- */
+
+@font-face {
+  font-family: "Asgard Fit";
+  src: url("./fonts/library/asgard-fit/AsgardTrial-FitLight.ttf") format("truetype");
+  font-weight: 300;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Asgard Fit";
+  src: url("./fonts/library/asgard-fit/AsgardTrial-FitRegular.ttf") format("truetype");
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Asgard Fit";
+  src: url("./fonts/library/asgard-fit/AsgardTrial-FitBold.ttf") format("truetype");
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Asgard Fit";
+  src: url("./fonts/library/asgard-fit/AsgardTrial-FitFat.ttf") format("truetype");
+  font-weight: 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Kraton Modern Ligature Font free";
+  src: url("./fonts/Kraton Modern Ligature Font free.otf") format("opentype");
+  font-display: swap;
+}
 

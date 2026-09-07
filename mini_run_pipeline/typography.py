@@ -13,11 +13,13 @@ import random
 import secrets
 import datetime
 import hashlib
+import string
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from mini_run_pipeline.motif import resolve_brand_motif, motif_to_brand_palette
 from mini_run_pipeline import listicles
+from mini_run_pipeline import typography_catalog as _catalog
 
 FONT_JSON_DIR = Path(__file__).resolve().parent.parent / "Yuan Prometheus Screenshots" / "font JSON"
 FONT_PAIRS_DIR = Path(__file__).resolve().parent.parent / "Yuan Prometheus Screenshots" / "font pairing and placement"
@@ -164,12 +166,13 @@ UNSAFE_PIXEL_FONTS = {"vt323", "press start 2p", "special elite", "silkscreen"}
 UNSAFE_PIXEL_FONTS = {"vt323", "press start 2p", "special elite", "silkscreen"}
 
 UNSAFE_DISTORTED_FONTS: Dict[str, str] = {
-    "foglihten-068": "Bodoni Moda",
-    "foglihten": "Bodoni Moda",
-    "berylium": "Playfair Display",
-    "echelon": "Playfair Display",
     "silver hairline": "Bodoni Moda",
     "brushelva": "Great Vibes",
+    "amerika": "Bodoni Moda",
+    "amerika alternates": "Bodoni Moda",
+    "kraton": "Bodoni Moda",
+    "kraton free font": "Bodoni Moda",
+    "kraton modern ligature font free": "Bodoni Moda",
 }
 
 
@@ -195,6 +198,8 @@ FONT_FAMILY_REGISTRY: Dict[str, str] = {
     "anton": "Anton",
     "oswald": "Oswald",
     "great vibes": "Great Vibes",
+    "alex brush": "Alex Brush",
+    "alexbrush": "Alex Brush",
     "dancing script": "Dancing Script",
     "sacramento": "Sacramento",
     "pinyon script": "Pinyon Script",
@@ -227,10 +232,6 @@ FONT_FAMILY_REGISTRY: Dict[str, str] = {
     "aulion demo": "Aulion Demo",
     "aesthico (demo)": "Aesthico (Demo)",
     "aesthico": "Aesthico (Demo)",
-    "amerika": "Amerika",
-    "amerika alternates": "Amerika Alternates",
-    "kraton free font": "Kraton free Font",
-    "kraton": "Kraton free Font",
     "quanton personal use only": "Quanton PERSONAL USE ONLY",
     "quanton": "Quanton PERSONAL USE ONLY",
     "blaak thin personal use": "Blaak Thin PERSONAL USE",
@@ -298,6 +299,44 @@ FONT_FAMILY_REGISTRY: Dict[str, str] = {
     "poppins": "Poppins",
     "outfit": "Outfit",
     "plus jakarta sans": "Plus Jakarta Sans",
+    # --- Commercial / Unbundled Mappings to Loaded Font Faces ----------------
+    "neue haas grotesk": "Montserrat",
+    "neue haas grotesk display": "Montserrat",
+    "helvetica now display": "Montserrat",
+    "helvetica now": "Montserrat",
+    "helvetica": "Montserrat",
+    "haas unica": "Montserrat",
+    "haas unica black": "Montserrat",
+    "dm serif display": "Playfair Display",
+    "didot": "Bodoni Moda",
+    "impact": "Anton",
+    "lora": "Playfair Display",
+    "lora italic": "Playfair Display",
+    "kalam": "Dancing Script",
+    "caveat": "Sacramento",
+    "rozha one": "Abril Fatface",
+    "barlow condensed": "Saira Extra Condensed",
+    "black han sans": "Anton",
+    "im fell english": "Cormorant Garamond",
+    "raleway": "Montserrat",
+    "lato": "DM Sans",
+    "source serif": "Apple Garamond",
+    "source sans": "DM Sans",
+    "sf pro display": "Montserrat",
+    "open sans": "DM Sans",
+    "leviathan": "Six Caps",
+    # --- user-supplied reference-accurate script fonts (v3 spec corrections) ---
+    "exmouth": "Exmouth",
+    "champignon": "Champignon",
+    "brotherhood script": "Brotherhood Script",
+    "brotherhood_script": "Brotherhood Script",
+    "bromello": "Bromello",
+    "bucklane script": "Bucklane Script",
+    "formale script": "Formale Script",
+    "cavas": "Cavas",
+    # --- user-supplied condensed-fit grotesque (v4 spec corrections) ---
+    "asgard fit": "Asgard Fit",
+    "asgard": "Asgard Fit",
 }
 
 # Families that require an explicit renderer @font-face/Google registration
@@ -307,6 +346,9 @@ REGISTRY_NEEDS_LOAD = {
     "Inter", "Kalam", "Lato", "Lora",
     "Open Sans", "Outfit", "Plus Jakarta Sans", "Raleway", "Rozha One",
     "Source Sans", "Source Serif",
+    # user-supplied reference-accurate script fonts, loaded locally
+    "Exmouth", "Champignon", "Brotherhood Script", "Bromello",
+    "Bucklane Script", "Formale Script", "Cavas",
 }
 
 
@@ -338,13 +380,40 @@ def resolve_safe_font_candidate(candidate: str) -> str:
 
 
 def apply_casing_strategy(text: str, casing: str, font_family: str = "") -> str:
+    # Clean up non-standard Unicode punctuation that might break decorative fonts
+    text = (
+        text.replace("’", "'")
+        .replace("‘", "'")
+        .replace("“", '"')
+        .replace("”", '"')
+        .replace("—", " - ")
+        .replace("–", " - ")
+    )
     f_lower = font_family.lower()
+
+    # Critical rule: Calligraphic script fonts are NEVER all-caps.
+    # All-caps in cursive/script fonts causes colliding flourishes, broken ligatures, and illegible glyphs.
+    is_script = any(k in f_lower for k in ("script", "vibes", "brush", "alex", "dancing", "pinyon", "brotherhood", "bromello", "exmouth", "champignon", "bucklane", "formale", "cavas"))
+    if is_script:
+        if casing in ("uppercase", "all_caps"):
+            casing = "title"
+        if casing in ("title", "title_case", "capitalize"):
+            words = text.split()
+            return " ".join(w.capitalize() for w in words)
+        if casing == "lowercase":
+            return text.lower()
+        # Natural title-case fallback for script: first letter capitalized, rest lowercase
+        words = text.split()
+        if words:
+            return words[0].capitalize() + (" " + " ".join(w.lower() for w in words[1:]) if len(words) > 1 else "")
+        return text
+
     # Condensed grotesque display banners look great in uppercase
     if any(k in f_lower for k in ("anton", "bebas", "six caps", "teko", "saira")):
         return text.upper()
     
     # Editorial didone & serif fonts look best in natural casing or title case for multi-word phrases
-    if any(k in f_lower for k in ("playfair", "bodoni", "cormorant", "italiana")):
+    if any(k in f_lower for k in ("playfair", "bodoni", "cormorant", "italiana", "garamond", "cinzel")):
         if casing == "uppercase" and len(text.split()) > 1:
             return " ".join(w.capitalize() if w.lower() not in STOPWORDS else w.lower() for w in text.split())
 
@@ -352,7 +421,7 @@ def apply_casing_strategy(text: str, casing: str, font_family: str = "") -> str:
         return text.lower()
     if casing == "uppercase":
         return text.upper()
-    if casing in ("title_case", "capitalize"):
+    if casing in ("title", "title_case", "capitalize"):
         return " ".join(w.capitalize() for w in text.split())
     return text
 
@@ -377,14 +446,39 @@ UNSPLITTABLE_TAILS = {
 }
 
 
+def _clean_token(w: str) -> str:
+    return w.lower().strip(".,!?:;\"'")
+
+
+def _is_substantive(w: str) -> bool:
+    clean = _clean_token(w)
+    return bool(clean and clean not in STOPWORDS and len(clean) > 1)
+
+
+def _find_best_hero_index(word_list: List[str]) -> int:
+    """Select the index of the primary content word (longest/most salient, avoiding short function words)."""
+    if not word_list:
+        return 0
+    sub_indices = [i for i, w in enumerate(word_list) if _is_substantive(w)]
+    candidates = sub_indices if sub_indices else list(range(len(word_list)))
+    return max(candidates, key=lambda i: len(_clean_token(word_list[i])))
+
+
 def smart_partition_chunk_words(
     words: List[str], profile_layers: List[Dict[str, Any]]
 ) -> List[Dict[str, Any]]:
-    """Intelligently partition words across profile layers matching the font profile's hierarchy and relative_scale."""
+    """Intelligently partition words across profile layers matching the font profile's hierarchy,
+    strictly ensuring small functional words ('are', 'the', 'and', 'is', 'to') NEVER become the hero."""
     token_count = len(words)
     if not profile_layers or token_count <= 1:
         l0 = profile_layers[0] if profile_layers else {}
-        is_hero = l0.get("role") in ("primary_focus_word", "hero", "hero_accent_bold", "see_through_hero", "header") or float(l0.get("font_style", {}).get("relative_scale", 1.0)) >= 0.75
+        is_hero = (
+            l0.get("role") in ("primary_focus_word", "hero", "hero_accent_bold", "see_through_hero", "header")
+            or float(l0.get("font_style", {}).get("relative_scale", 1.0)) >= 0.75
+        )
+        # If single token is a stopword and not alone, prevent hero inflation
+        if token_count == 1 and not _is_substantive(words[0]):
+            is_hero = False
         return [{"layer": l0, "words": words, "is_hero": is_hero}]
 
     num_layers = len(profile_layers)
@@ -393,45 +487,145 @@ def smart_partition_chunk_words(
         l1 = profile_layers[1]
         scale0 = float(l0.get("font_style", {}).get("relative_scale", 1.0))
         scale1 = float(l1.get("font_style", {}).get("relative_scale", 0.5))
-        hero0 = scale0 >= scale1 if scale0 != scale1 else (l0.get("role") in ("primary_focus_word", "hero", "hero_accent_bold") or scale0 >= 0.75)
-        hero1 = scale1 > scale0 if scale0 != scale1 else (l1.get("role") in ("primary_focus_word", "hero", "hero_accent_bold") or scale1 >= 0.75)
+        l0_is_designed_hero = scale0 > scale1
 
-        # If layer 0 is the primary dominant hero (e.g. image 6, image 35), preserve layer 0 dominance
-        if scale0 > scale1:
-            if token_count == 2:
+        if token_count == 2:
+            w0_sub = _is_substantive(words[0])
+            w1_sub = _is_substantive(words[1])
+
+            if w0_sub and not w1_sub:
                 return [
                     {"layer": l0, "words": [words[0]], "is_hero": True},
                     {"layer": l1, "words": [words[1]], "is_hero": False},
                 ]
-            elif token_count == 3:
-                return [
-                    {"layer": l0, "words": words[:1], "is_hero": True},
-                    {"layer": l1, "words": words[1:], "is_hero": False},
-                ]
-            else:
-                mid = max(1, token_count // 2)
-                return [
-                    {"layer": l0, "words": words[:mid], "is_hero": True},
-                    {"layer": l1, "words": words[mid:], "is_hero": False},
-                ]
-        else:
-            if token_count == 2:
+            elif w1_sub and not w0_sub:
                 return [
                     {"layer": l0, "words": [words[0]], "is_hero": False},
                     {"layer": l1, "words": [words[1]], "is_hero": True},
                 ]
-            elif token_count == 3:
+            else:
+                if l0_is_designed_hero:
+                    return [
+                        {"layer": l0, "words": [words[0]], "is_hero": True},
+                        {"layer": l1, "words": [words[1]], "is_hero": False},
+                    ]
+                else:
+                    return [
+                        {"layer": l0, "words": [words[0]], "is_hero": False},
+                        {"layer": l1, "words": [words[1]], "is_hero": True},
+                    ]
+
+        elif token_count == 3:
+            hero_idx = _find_best_hero_index(words)
+            if hero_idx == 0:
+                return [
+                    {"layer": l0, "words": [words[0]], "is_hero": True},
+                    {"layer": l1, "words": words[1:], "is_hero": False},
+                ]
+            elif hero_idx == 2:
                 return [
                     {"layer": l0, "words": words[:2], "is_hero": False},
                     {"layer": l1, "words": [words[2]], "is_hero": True},
                 ]
             else:
+                if l0_is_designed_hero:
+                    return [
+                        {"layer": l0, "words": words[:2], "is_hero": True},
+                        {"layer": l1, "words": [words[2]], "is_hero": False},
+                    ]
+                else:
+                    return [
+                        {"layer": l0, "words": [words[0]], "is_hero": False},
+                        {"layer": l1, "words": words[1:], "is_hero": True},
+                    ]
+        else:
+            if l0_is_designed_hero:
+                split_idx = 1
+                while split_idx < token_count - 1 and _is_substantive(words[split_idx]):
+                    split_idx += 1
                 return [
-                    {"layer": l0, "words": words[:-1], "is_hero": False},
-                    {"layer": l1, "words": [words[-1]], "is_hero": True},
+                    {"layer": l0, "words": words[:split_idx], "is_hero": True},
+                    {"layer": l1, "words": words[split_idx:], "is_hero": False},
+                ]
+            else:
+                second_last = _clean_token(words[-2])
+                emphatic_modifier = second_last.isdigit() or second_last in (
+                    "ten", "two", "three", "four", "five", "full", "best", "real", "hard", "new", "top", "big", "great"
+                )
+                if token_count >= 4 and (_is_substantive(words[-2]) or emphatic_modifier):
+                    split_idx = token_count - 2
+                else:
+                    split_idx = token_count - 1
+                return [
+                    {"layer": l0, "words": words[:split_idx], "is_hero": False},
+                    {"layer": l1, "words": words[split_idx:], "is_hero": True},
                 ]
 
-    # If profile has 3+ layers (e.g. image 2, image 48)
+    # If profile has 3+ layers
+    if num_layers == 3 and token_count >= 3:
+        if token_count == 3:
+            hero_word_idx = _find_best_hero_index(words)
+            # Identify which layer in profile_layers is the designed hero
+            hero_layer_idx = 1
+            max_scale = -1.0
+            for l_i, l_spec in enumerate(profile_layers):
+                role = str(l_spec.get("role", "")).lower()
+                scale = float(l_spec.get("font_style", {}).get("relative_scale", 1.0))
+                if role in ("primary_focus_word", "hero", "hero_accent_bold", "hero_industry_word"):
+                    hero_layer_idx = l_i
+                    break
+                if scale > max_scale:
+                    max_scale = scale
+                    hero_layer_idx = l_i
+
+            allocations = [None, None, None]
+            allocations[hero_layer_idx] = {
+                "layer": profile_layers[hero_layer_idx],
+                "words": [words[hero_word_idx]],
+                "is_hero": True,
+            }
+            other_words = [words[i] for i in range(3) if i != hero_word_idx]
+            other_layer_indices = [i for i in range(3) if i != hero_layer_idx]
+            for o_layer_idx, o_word in zip(other_layer_indices, other_words):
+                allocations[o_layer_idx] = {
+                    "layer": profile_layers[o_layer_idx],
+                    "words": [o_word],
+                    "is_hero": False,
+                }
+            return allocations
+        elif token_count == 4:
+            hero_idx = _find_best_hero_index(words)
+            if hero_idx in (1, 2):
+                return [
+                    {"layer": profile_layers[0], "words": [words[0]], "is_hero": False},
+                    {"layer": profile_layers[1], "words": words[1:3], "is_hero": True},
+                    {"layer": profile_layers[2], "words": [words[3]], "is_hero": False},
+                ]
+            elif hero_idx == 3:
+                return [
+                    {"layer": profile_layers[0], "words": [words[0]], "is_hero": False},
+                    {"layer": profile_layers[1], "words": words[1:3], "is_hero": False},
+                    {"layer": profile_layers[2], "words": [words[3]], "is_hero": True},
+                ]
+            else:
+                return [
+                    {"layer": profile_layers[0], "words": [words[0]], "is_hero": True},
+                    {"layer": profile_layers[1], "words": words[1:3], "is_hero": False},
+                    {"layer": profile_layers[2], "words": [words[3]], "is_hero": False},
+                ]
+        else:
+            mid_start = max(1, token_count // 3)
+            while mid_start < token_count - 2 and not _is_substantive(words[mid_start]):
+                mid_start += 1
+            mid_end = min(token_count - 1, mid_start + 2)
+            if mid_end <= mid_start:
+                mid_end = mid_start + 1
+            return [
+                {"layer": profile_layers[0], "words": words[:mid_start], "is_hero": False},
+                {"layer": profile_layers[1], "words": words[mid_start:mid_end], "is_hero": True},
+                {"layer": profile_layers[2], "words": words[mid_end:], "is_hero": False},
+            ]
+
     allocations = []
     chunk_size = max(1, token_count // num_layers)
     for idx, layer in enumerate(profile_layers):
@@ -442,6 +636,9 @@ def smart_partition_chunk_words(
             break
         scale = float(layer.get("font_style", {}).get("relative_scale", 1.0))
         is_hero = layer.get("role") in ("primary_focus_word", "hero", "hero_accent_bold") or scale >= 0.75
+        # Ensure layer with only stopwords is not hero if other layers exist
+        if is_hero and all(not _is_substantive(w) for w in layer_words) and len(words) > len(layer_words):
+            is_hero = False
         allocations.append({"layer": layer, "words": layer_words or [words[-1]], "is_hero": is_hero})
     return allocations
 
@@ -477,6 +674,21 @@ BRAND_PALETTES: Dict[str, Dict[str, str]] = {
             "base": "#FFFFFF",
             "keyword": "#FF453A",
             "glow_rgb": "255, 69, 58",
+        },
+    },
+    "crimson_editorial": {
+        "hero_color": "#FF2A55",
+        "companion_color": "#FFFFFF",
+        "glow": "0 0 20px rgba(255, 42, 85, 0.65), 0 0 35px rgba(255, 42, 85, 0.35)",
+        "shadow": "0 4px 22px rgba(0, 0, 0, 0.95), 0 2px 6px rgba(0, 0, 0, 0.90)",
+        "accent_border": "#E11D48",
+        "zone": {
+            "name": "crimson_editorial",
+            "primary": "#FF2A55",
+            "accent": "#E11D48",
+            "base": "#FFFFFF",
+            "keyword": "#FF2A55",
+            "glow_rgb": "255, 42, 85",
         },
     },
     "electric_cyan": {
@@ -650,10 +862,27 @@ def _select_chunk_palette(
 ) -> tuple[str, Dict[str, str]]:
     if explicit_palette_id:
         return explicit_palette_id, explicit_palette
-    candidates = [palette_id for palette_id in DEFAULT_VARIATION_PALETTES if palette_id not in recent]
-    candidates = candidates or list(DEFAULT_VARIATION_PALETTES)
-    palette_id = _weighted_choice(rng, candidates, [1.0 / (1 + usage.get(candidate, 0)) for candidate in candidates])
-    return palette_id, BRAND_PALETTES[palette_id]
+
+    # Creator-first editorial distribution:
+    # Top-tier creators standardise on pure white text (#FFFFFF) as the primary base (~70%),
+    # paired with high-contrast iridescent/beveled crimson/red for emphasis (~25%), avoiding
+    # repetitive candy-color spam.
+    BASE_PALETTE_WEIGHTS = {
+        "pure_editorial_mono": 7.0,
+        "crimson_editorial": 2.5,
+        "champagne_gold": 0.5,
+    }
+    candidates = [
+        p for p in BASE_PALETTE_WEIGHTS
+        if (p == "pure_editorial_mono" and recent[-3:].count("pure_editorial_mono") < 3)
+        or (p != "pure_editorial_mono" and (not recent or recent[-1] != p))
+    ] or list(BASE_PALETTE_WEIGHTS.keys())
+    weights = [
+        (BASE_PALETTE_WEIGHTS[c] / (1.0 + usage.get(c, 0) * 0.8))
+        for c in candidates
+    ]
+    palette_id = _weighted_choice(rng, candidates, weights)
+    return palette_id, BRAND_PALETTES[palette_id].copy()
 
 
 BASIC_FONTS = {"dm sans", "roboto", "open sans", "inter", "arial", "helvetica", "sans-serif", "system-ui"}
@@ -682,33 +911,57 @@ HERO_DISPLAY_FONTS = [
     "Bebas Neue",
 ]
 
-# High-tier companion fonts
+# Clean, modern, supportive companion fonts (geometric and grotesque sans) that never clash with hero serifs/scripts
 COMPANION_UPGRADE_FONTS = [
-    "Playfair Display",
-    "Bodoni Moda",
-    "Cormorant Garamond",
     "Montserrat",
-    "Foglihten-068",
-    "Goudy Bookletter",
+    "Outfit",
+    "DM Sans",
+    "Altone",
+    "Pathway Extreme",
 ]
 
+GENERIC_FALLBACK_FONTS = {"sans-serif", "serif", "system-ui", "arial", "helvetica", ""}
 
 
-def upgrade_font_candidate(font_name: str, is_hero: bool, role: str = "body", rng: Optional[random.Random] = None) -> str:
-    """Upgrade basic / generic fonts to authoritative cinematic editorial fonts.
+def is_serif_font(font_name: str) -> bool:
+    f = (font_name or "").lower().strip()
+    return any(k in f for k in ("bodoni", "playfair", "garamond", "cinzel", "foglihten", "goudy", "berylium", "abril", "erotique", "serif", "didone", "aesthetic"))
 
-    Routes to the 4 new hero fonts (Berylium, Echelon, Foglihten-068, Goudy Bookletter)
-    plus Bodoni Moda / Playfair Display for variety, using RNG for deterministic-but-varied
-    selection per chunk.
+
+def is_script_font(font_name: str) -> bool:
+    f = (font_name or "").lower().strip()
+    return any(k in f for k in ("script", "vibes", "brush", "pinyon", "dancing", "candle", "freebooter", "darling", "flourish", "cursive"))
+
+
+def upgrade_font_candidate(font_name: str, is_hero: bool, role: str = "body", rng: Optional[random.Random] = None, hero_font: str = "") -> str:
+    """Upgrade truly generic/empty fallback fonts while strictly respecting font JSON parents.
+
+    Guarantees strict font policies:
+    - If font_name is a valid font from the profile, it is strictly preserved.
+    - If a companion font clashes with the hero (e.g. Serif + Serif or Script + Script),
+      re-anchors the companion to a clean supportive Sans (Montserrat/Outfit/DM Sans)
+      so the hero word remains the clean, uncluttered visual focus.
     """
     _rng = rng or random.Random()
+    f_clean = (font_name or "").lower().strip()
 
-    f_clean = font_name.lower().strip()
-    if f_clean in BASIC_FONTS or not font_name:
+    # Only replace truly unstyled generic fallbacks
+    if f_clean in GENERIC_FALLBACK_FONTS or not font_name:
         if is_hero:
             return _rng.choice(HERO_UPGRADE_FONTS)
         else:
             return _rng.choice(COMPANION_UPGRADE_FONTS)
+
+    # Anti-clash policy: if this is a companion layer, ensure it never clashes with the hero font
+    if not is_hero and hero_font:
+        hero_is_serif = is_serif_font(hero_font)
+        hero_is_script = is_script_font(hero_font)
+        cand_is_serif = is_serif_font(font_name)
+        cand_is_script = is_script_font(font_name)
+
+        if (hero_is_serif and cand_is_serif and font_name != hero_font) or (hero_is_script and cand_is_script) or (hero_is_script and cand_is_serif):
+            return _rng.choice(COMPANION_UPGRADE_FONTS)
+
     return font_name
 
 
@@ -723,130 +976,64 @@ KINETIC_HERO_PRESETS = [
     "dynamic_staggered_character_cascade",
     "cinematic_viewport_mask_sweep",
     "obsidian_heavy_grotesque",
+    "gold_gradient_scale_blur",
+    "refraction_shimmer_mask",
+    "stagger_blur_word_reveal",
+    "keyword_highlight_sweep",
+    "cyan_swoosh_underline",
+    "circle_orbit_reveal",
+    "typewriter_cursor",
+    "neon_wrong_choice_pill",
+    "chromatic_aberration_wipe",
+    "gold_selection_box_reveal",
+    "glass_pill_three_words",
+    "cta_glass_dual_color_pill",
+    "blue_blur_underline_reveal",
+    "dramatic_scale_entry",
+    "word_by_word_3d_flip",
 ]
 
 SINGLE_WORD_HERO_PRESETS = [
+    "gold_gradient_scale_blur",
+    "refraction_shimmer_mask",
+    "keyword_highlight_sweep",
+    "cyan_swoosh_underline",
+    "circle_orbit_reveal",
+    "neon_wrong_choice_pill",
+    "chromatic_aberration_wipe",
+    "gold_selection_box_reveal",
+    "blue_blur_underline_reveal",
+    "dramatic_scale_entry",
     "focus_hunting_bokeh_shimmer",
     "kinetic_slot_character_reel",
     "spring_blur_physics_engine",
     "gaussian_blur_reveal_sweep",
     "obsidian_heavy_grotesque",
+    "blue_lantern_magnetic",
+    "chiseled_prism_metallic",
+    "prism_chisel_hard_bevel",
 ]
 
 
 def load_all_font_json_profiles(include_landscape: bool = False) -> List[Dict[str, Any]]:
-    """Load font JSON profiles.
+    """Load font JSON profiles via the unified typography_catalog.
 
-    Landscape (16:9): Full Admin Access — permitted to load the entire corpus (all 77+ portrait + landscape profiles).
-    Mini Runs (9:16): Restricted Access — strictly excludes profiles with 'landscape' in filename/profile_name.
+    Landscape (16:9): Full Admin Access — entire corpus (77+ portrait + landscape profiles).
+    Mini Runs (9:16): Restricted Access — strictly excludes landscape profiles.
+
+    All profile hydration (pairing, wall_man_z_plane filtering, cranial merge) is
+    performed inside typography_catalog.build_catalog(); this function is now a
+    thin delegation wrapper so callers see zero API change.
     """
-    json_dir = FONT_JSON_DIR if FONT_JSON_DIR.exists() else OPT_FONT_DIR
-    pairs_dir = FONT_PAIRS_DIR if FONT_PAIRS_DIR.exists() else OPT_PAIRS_DIR
-    profiles = []
-
-    if json_dir.exists():
-        for file_path in sorted(json_dir.glob("*.json")):
-            is_landscape_file = "landscape" in file_path.name.lower()
-            if not include_landscape and is_landscape_file:
-                continue
-            try:
-                data = json.loads(file_path.read_text(encoding="utf-8"))
-                pname = data.get("profile_name", file_path.stem)
-                if not include_landscape and "landscape" in pname.lower():
-                    continue
-                # Exclude wall_man_z_plane profiles from mini-run portrait pool.
-                # These profiles embed environmental sample text (e.g. "my mom") into their
-                # design and are incompatible with transcript-driven word rendering.
-                meta_ts = data.get("metadata", {}).get("treatment_system", "")
-                if not include_landscape and meta_ts == "wall_man_z_plane":
-                    continue
-
-                img_name = file_path.stem + ".png"
-                img_exists = (pairs_dir / img_name).exists()
-                layers = data.get("typography_layers", [])
-                meta = data.get("metadata", {})
-                total_words = meta.get("total_word_count", len(layers))
-
-                profiles.append({
-                    "id": file_path.stem,
-                    "filename": file_path.name,
-                    "profile_name": pname,
-                    "paired_image": img_name if img_exists else None,
-                    "paired_image_exists": img_exists,
-                    "metadata": meta,
-                    "layout_rules": data.get("layout_rules", {}),
-                    "typography_layers": layers,
-                    "total_words": total_words,
-                    "is_landscape": is_landscape_file or "landscape" in pname.lower(),
-                    "is_cranial_profile": False,
-                    "raw": data,
-                })
-            except Exception:
-                pass
-
-    if CRANIAL_FONT_JSON_DIR.exists():
-        for file_path in sorted(CRANIAL_FONT_JSON_DIR.glob("*.json")):
-            try:
-                data = json.loads(file_path.read_text(encoding="utf-8"))
-                pname = data.get("profile_name", file_path.stem)
-                img_name = file_path.stem + ".png"
-                img_exists = (CRANIAL_PLACEMENT_DIR / img_name).exists()
-                layers = data.get("typography_layers", [])
-                meta = data.get("metadata", {})
-                total_words = meta.get("total_word_count", len(layers))
-
-                profiles.append({
-                    "id": file_path.stem,
-                    "filename": file_path.name,
-                    "profile_name": pname,
-                    "paired_image": img_name if img_exists else None,
-                    "paired_image_exists": img_exists,
-                    "cranial_spec": data.get("cranial_spec", {}),
-                    "metadata": meta,
-                    "layout_rules": data.get("layout_rules", {}),
-                    "typography_layers": layers,
-                    "total_words": total_words,
-                    "is_landscape": False,
-                    "is_cranial_profile": True,
-                    "raw": data,
-                })
-            except Exception:
-                pass
-
-    return profiles
+    catalog = _catalog.build_catalog(include_landscape=include_landscape)
+    if include_landscape:
+        return [p.as_legacy_dict() for p in catalog.all_profiles()]
+    return [p.as_legacy_dict() for p in catalog.portrait_profiles]
 
 
 def load_all_cranial_font_json_profiles() -> List[Dict[str, Any]]:
-    """Loads all authoritative Cranial Font JSON profiles."""
-    profiles = []
-    if CRANIAL_FONT_JSON_DIR.exists():
-        for file_path in sorted(CRANIAL_FONT_JSON_DIR.glob("*.json")):
-            try:
-                data = json.loads(file_path.read_text(encoding="utf-8"))
-                img_name = file_path.stem + ".png"
-                img_exists = (CRANIAL_PLACEMENT_DIR / img_name).exists()
-                layers = data.get("typography_layers", [])
-                meta = data.get("metadata", {})
-                total_words = meta.get("total_word_count", len(layers))
-
-                profiles.append({
-                    "id": file_path.stem,
-                    "filename": file_path.name,
-                    "profile_name": data.get("profile_name", file_path.stem),
-                    "paired_image": img_name if img_exists else None,
-                    "paired_image_exists": img_exists,
-                    "cranial_spec": data.get("cranial_spec", {}),
-                    "metadata": meta,
-                    "layout_rules": data.get("layout_rules", {}),
-                    "typography_layers": layers,
-                    "total_words": total_words,
-                    "is_landscape": False,
-                    "is_cranial_profile": True,
-                    "raw": data,
-                })
-            except Exception:
-                pass
-    return profiles
+    """Load all authoritative Cranial Font JSON profiles via the unified catalog."""
+    return _catalog.get_all_cranial_profiles()
 
 
 def load_all_portrait_font_json_profiles() -> List[Dict[str, Any]]:
@@ -956,6 +1143,73 @@ def ensure_mixed_font_badge(
     }
 
 
+def build_volumetric_luminance_gradient(
+    color_val: Optional[str],
+    role: str = "hero",
+    angle_deg: int = 180,
+) -> str:
+    """Build a 6-stop convex physical luminance gradient for illuminated 3D typography.
+
+    Simulates an angled overhead key light striking a domed/cylindrical letterform:
+    1. Specular rim (0%): bright highlight / chamfer light catch (#FFFFFF)
+    2. Keylight transition (10%): desaturated bright tint
+    3. Crown highlight (24%): convex pillowing peak
+    4. Saturated core body (58%): full vibrant tone
+    5. Inner shadow crevice (88%): deeper shadow in letter folds
+    6. Ground bounce reflection (100%): subtle bounce backplate
+    """
+    if not color_val:
+        return "linear-gradient(180deg, #FFFFFF 0%, #FAFBFD 35%, #EDECE9 70%, #DCD7CD 100%)"
+
+    parsed = parse_color_to_rgba(color_val)
+    if parsed is None:
+        return "linear-gradient(180deg, #FFFFFF 0%, #FAFBFD 35%, #EDECE9 70%, #DCD7CD 100%)"
+
+    r, g, b, _ = parsed
+    # If pure or near white:
+    if r >= 235 and g >= 235 and b >= 235:
+        return (
+            f"linear-gradient({angle_deg}deg, #FFFFFF 0%, #FAFBFD 20%, "
+            f"#F1F5F9 45%, #E2E8F0 72%, #CBD5E1 100%)"
+        )
+
+    # Compute 6-stop physical illumination stops
+    rim_r = min(255, int(255 * 0.88 + r * 0.12))
+    rim_g = min(255, int(255 * 0.88 + g * 0.12))
+    rim_b = min(255, int(255 * 0.88 + b * 0.12))
+    rim_hex = f"#{rim_r:02X}{rim_g:02X}{rim_b:02X}"
+
+    key_r = min(255, int(255 * 0.58 + r * 0.42))
+    key_g = min(255, int(255 * 0.58 + g * 0.42))
+    key_b = min(255, int(255 * 0.58 + b * 0.42))
+    key_hex = f"#{key_r:02X}{key_g:02X}{key_b:02X}"
+
+    crown_r = min(255, int(255 * 0.28 + r * 0.72))
+    crown_g = min(255, int(255 * 0.28 + g * 0.72))
+    crown_b = min(255, int(255 * 0.28 + b * 0.72))
+    crown_hex = f"#{crown_r:02X}{crown_g:02X}{crown_b:02X}"
+
+    core_hex = f"#{r:02X}{g:02X}{b:02X}"
+
+    # Shadow crevice: deep saturation and ~50% luminance
+    shadow_r = max(0, int(r * 0.50))
+    shadow_g = max(0, int(g * 0.50))
+    shadow_b = max(0, int(b * 0.50))
+    shadow_hex = f"#{shadow_r:02X}{shadow_g:02X}{shadow_b:02X}"
+
+    # Ground bounce: slightly lifted from deepest shadow
+    bounce_r = max(0, min(255, int(r * 0.62)))
+    bounce_g = max(0, min(255, int(g * 0.62)))
+    bounce_b = max(0, min(255, int(b * 0.62)))
+    bounce_hex = f"#{bounce_r:02X}{bounce_g:02X}{bounce_b:02X}"
+
+    return (
+        f"linear-gradient({angle_deg}deg, #FFFFFF 0%, {rim_hex} 10%, "
+        f"{key_hex} 24%, {crown_hex} 40%, {core_hex} 58%, "
+        f"{shadow_hex} 88%, {bounce_hex} 100%)"
+    )
+
+
 def resolve_layer_gradient_and_glow(
     profile_name: str,
     role: str,
@@ -968,6 +1222,69 @@ def resolve_layer_gradient_and_glow(
 ) -> Dict[str, Any]:
     """Resolve color, gradient, glow, and shadow treatments respecting the font JSON unless overridden by prompt or contrast."""
     layer_effects = layer_effects or {}
+
+    # 1b. Material semantics from corrected font JSON specs (v3):
+    #     metallic_chrome / luminance_gradient / specular_sweep / matte_editorial.
+    material_gradient: Optional[str] = None
+    material_glow: Optional[str] = None
+    material_shadow: Optional[str] = None
+    material_matte = False
+
+    def _hex_to_rgb(c: str) -> tuple:
+        c = str(c).strip().lstrip("#")
+        if len(c) == 3:
+            c = "".join(ch * 2 for ch in c)
+        try:
+            return tuple(int(c[i:i + 2], 16) for i in (0, 2, 4))
+        except (ValueError, IndexError):
+            return (255, 255, 255)
+
+    def _darken(c: str, f: float = 0.32) -> str:
+        r, g, b = _hex_to_rgb(c)
+        return "#{:02X}{:02X}{:02X}".format(int(r * f), int(g * f), int(b * f))
+
+    chrome = layer_effects.get("metallic_chrome")
+    if isinstance(chrome, dict):
+        stops = chrome.get("stops") or ["#8A5A2B", "#C98A4B", "#E8D9C0", "#FFFFFF", "#B9BEC9"]
+        angle = chrome.get("angle", 105)
+        band = chrome.get("specular_band") or {}
+        pos = float(band.get("position", 0.62))
+        width = float(band.get("width", 0.2)) / 2 * 100
+        body = ", ".join(f"{c} {int(i * 100 / (len(stops) - 1))}%" for i, c in enumerate(stops))
+        tail = stops[-1]
+        material_gradient = (
+            f"linear-gradient({angle}deg, {body}, #FFFFFF {max(0.0, pos * 100 - width):.0f}%, "
+            f"{tail} {min(100.0, pos * 100 + width):.0f}%)"
+        )
+        material_shadow = "0 6px 18px rgba(0, 0, 0, 0.35)"
+
+    lum = layer_effects.get("luminance_gradient")
+    if isinstance(lum, dict):
+        low = lum.get("low") or _darken(str(raw_color or "#93C5E8"))
+        high = lum.get("high") or "#FFFFFF"
+        layers_bg = [f"linear-gradient(178deg, {low} 0%, {low} 38%, #FFFFFF 62%, {high} 80%)"]
+        sweep = layer_effects.get("specular_sweep")
+        if isinstance(sweep, dict):
+            s_angle = sweep.get("angle", 115)
+            s_width = float(sweep.get("width", 0.22)) * 50
+            s_intensity = float(sweep.get("intensity", 0.9))
+            layers_bg.insert(0, (
+                f"linear-gradient({s_angle}deg, rgba(255,255,255,0) "
+                f"{50 - s_width:.0f}%, rgba(255,255,255,{s_intensity}) 50%, "
+                f"rgba(255,255,255,0) {50 + s_width:.0f}%)"
+            ))
+        material_gradient = ", ".join(layers_bg)
+        g = layer_effects.get("glow")
+        if isinstance(g, dict):
+            material_glow = f"0 0 {int(g.get('radius', 26))}px {g.get('color', 'rgba(205, 230, 255, 0.85)')}"
+        material_shadow = "none"
+
+    if isinstance(layer_effects.get("matte_editorial"), dict) and \
+            layer_effects["matte_editorial"].get("enabled"):
+        material_matte = True
+        material_gradient = None
+        material_glow = "none"
+        material_shadow = "none"
 
     # 1. Color resolution:
     if explicit_user_override:
@@ -983,7 +1300,7 @@ def resolve_layer_gradient_and_glow(
         )
         palette_id = brand_palette.get("id", "custom")
 
-    # 2. Shadow resolution (multi-layer contrast backing guaranteeing readability over video):
+    # 2. Multi-tier shadow resolution (After Effects contact shadow + ambient falloff):
     is_light_bg = background_luminance is not None and background_luminance > 0.55
     if is_light_bg:
         shadow = "0 1px 4px rgba(0, 0, 0, 0.20), 0 1px 2px rgba(0, 0, 0, 0.12)"
@@ -992,9 +1309,9 @@ def resolve_layer_gradient_and_glow(
         ds = layer_effects.get("drop_shadow")
         if isinstance(ds, dict):
             blur = ds.get("blur_radius", 8)
-            shadow = f"0 4px 20px rgba(0, 0, 0, 0.95), 0 2px {blur}px rgba(0, 0, 0, 0.90)"
+            shadow = f"0 3px 6px rgba(0, 0, 0, 0.95), 0 1px 2px rgba(0, 0, 0, 0.90), 0 12px 30px rgba(0, 0, 0, 0.55), 0 2px {blur}px rgba(0, 0, 0, 0.40)"
         else:
-            shadow = "0 4px 20px rgba(0, 0, 0, 0.95), 0 2px 6px rgba(0, 0, 0, 0.90)"
+            shadow = "0 3px 6px rgba(0, 0, 0, 0.95), 0 1px 2px rgba(0, 0, 0, 0.90), 0 12px 30px rgba(0, 0, 0, 0.55), 0 4px 14px rgba(0, 0, 0, 0.40)"
 
         custom_glow = layer_effects.get("glow")
         if isinstance(custom_glow, str):
@@ -1002,36 +1319,125 @@ def resolve_layer_gradient_and_glow(
         elif is_hero:
             glow = brand_palette.get("glow") or f"0 0 16px {text_fill_color}66"
         else:
-            glow = "0 0 10px rgba(255, 255, 255, 0.20)"
+            glow = brand_palette.get("glow") or "0 0 10px rgba(255, 255, 255, 0.20)"
 
-    # 4. Gradient resolution:
-    has_gradient = bool(layer_effects.get("gradient") or (is_hero and text_fill_color not in ("#FFFFFF", "#0F172A")) or explicit_user_override)
-    if has_gradient and not is_light_bg:
+    # 4. Volumetric Shading & Gradient resolution (never flat 2D silhouettes):
+    if material_gradient is not None:
+        gradient = material_gradient
+        has_gradient = True
+    else:
+        GRADIENT_MAP = {
+            "champagne_gold": "linear-gradient(180deg, #FFFFFF 0%, #FEF08A 10%, #FDE047 24%, #FBBF24 55%, #854D0E 88%, #A16207 100%)",
+            "obsidian_crimson": "linear-gradient(180deg, #FFFFFF 0%, #FFE4E6 10%, #FDA4AF 24%, #FF453A 55%, #881337 88%, #9F1239 100%)",
+            "crimson_editorial": "linear-gradient(180deg, #FFFFFF 0%, #FFE4E6 10%, #FDA4AF 24%, #FF2A55 55%, #881337 88%, #9F1239 100%)",
+            "electric_cyan": "linear-gradient(180deg, #FFFFFF 0%, #CFFAFE 10%, #A5F3FC 24%, #00F0FF 55%, #0E7490 88%, #0891B2 100%)",
+            "emerald_luxury": "linear-gradient(180deg, #FFFFFF 0%, #D1FAE5 10%, #A7F3D0 24%, #34D399 55%, #064E3B 88%, #047857 100%)",
+            "royal_amethyst": "linear-gradient(180deg, #FFFFFF 0%, #F5EBFF 10%, #E0BFFC 24%, #C084FC 55%, #603099 88%, #783CAE 100%)",
+            "sunset_amber": "linear-gradient(180deg, #FFFFFF 0%, #FEF08A 10%, #FDE047 24%, #FF8C00 55%, #7C2D12 88%, #9A3412 100%)",
+            "pure_editorial_mono": "linear-gradient(180deg, #FFFFFF 0%, #FAFBFD 15%, #F1F5F9 35%, #E2E8F0 65%, #94A3B8 88%, #CBD5E1 100%)",
+        }
+
         if isinstance(layer_effects.get("gradient"), str):
             gradient = layer_effects["gradient"]
-        elif explicit_user_override:
-            GRADIENT_MAP = {
-                "champagne_gold": "linear-gradient(135deg, #FFFFFF 0%, #F5E6C4 45%, #D4AF37 100%)",
-                "obsidian_crimson": "linear-gradient(135deg, #FFFFFF 0%, #FF453A 40%, #D70015 100%)",
-                "electric_cyan": "linear-gradient(135deg, #FFFFFF 0%, #00F0FF 45%, #0099FF 100%)",
-                "emerald_luxury": "linear-gradient(135deg, #FFFFFF 0%, #34D399 45%, #059669 100%)",
-                "royal_amethyst": "linear-gradient(135deg, #FFFFFF 0%, #C084FC 45%, #7C3AED 100%)",
-                "sunset_amber": "linear-gradient(135deg, #FFFFFF 0%, #FBBF24 45%, #D97706 100%)",
-                "pure_editorial_mono": "linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 45%, #CBD5E1 100%)",
-            }
-            gradient = GRADIENT_MAP.get(palette_id, f"linear-gradient(135deg, #FFFFFF 0%, {text_fill_color} 48%, {text_fill_color} 100%)")
+            has_gradient = True
+        elif brand_palette.get("volumetric_gradient") and is_hero:
+            gradient = brand_palette["volumetric_gradient"]
+            has_gradient = True
+        elif brand_palette.get("companion_gradient") and not is_hero:
+            gradient = brand_palette["companion_gradient"]
+            has_gradient = True
+        elif palette_id in GRADIENT_MAP and is_hero:
+            gradient = GRADIENT_MAP[palette_id]
+            has_gradient = True
+        elif not is_light_bg:
+            # Physical volumetric illumination derived from text color
+            gradient = build_volumetric_luminance_gradient(text_fill_color, role="hero" if is_hero else "companion")
+            has_gradient = True
         else:
-            gradient = f"linear-gradient(135deg, #FFFFFF 0%, {text_fill_color} 45%, {text_fill_color} 100%)"
-    else:
-        gradient = "none"
+            gradient = "none"
+            has_gradient = False
 
-    return {
+    raw_v_grad = layer_effects.get("vertical_gradient") or layer_effects.get("verticalGradient")
+    vertical_grad = None
+    if raw_v_grad and isinstance(raw_v_grad, str):
+        v_low = raw_v_grad.lower()
+        is_dark_v_grad = any(k in v_low for k in ("#000000", "#111111", "#0f172a", "#1e293b", "rgba(0, 0, 0", "rgba(17, 17, 17", "rgb(0, 0, 0", "rgb(17, 17, 17"))
+        if is_dark_v_grad and not is_light_bg:
+            vertical_grad = f"linear-gradient(180deg, {text_fill_color} 0%, {text_fill_color} 35%, rgba(255, 255, 255, 0.20) 80%, transparent 100%)"
+        else:
+            vertical_grad = raw_v_grad
+
+    if material_matte:
+        return {
+            "gradient": "none",
+            "verticalGradient": vertical_grad,
+            "glow": "none",
+            "shadow": "none",
+            "textFillColor": text_fill_color,
+            "hasGradient": False,
+            "specularChamfer": False,
+            "volumetricShading": False,
+        }
+
+    air_frontal = (
+        layer_effects.get("air_frontal_optical_bloom")
+        or layer_effects.get("in_the_air_diffusion_bloom")
+        or layer_effects.get("optical_bloom")
+        or "air_frontal" in profile_name.lower()
+    )
+
+    base_res = {
         "gradient": gradient,
-        "glow": glow,
-        "shadow": shadow,
+        "verticalGradient": vertical_grad or gradient,
+        "glow": material_glow if material_glow is not None else glow,
+        "shadow": material_shadow if material_shadow is not None else shadow,
         "textFillColor": text_fill_color,
-        "hasGradient": has_gradient and gradient != "none",
+        "hasGradient": (has_gradient and gradient != "none") or bool(vertical_grad),
+        "specularChamfer": True,
+        "specularSheen": True,
+        "specularAngle": -35,
+        "volumetricShading": True,
+        "contactShadow": "0 3px 6px rgba(0, 0, 0, 0.95)",
+        "ambientShadow": "0 12px 30px rgba(0, 0, 0, 0.55)",
+        "opticalBleed": glow,
     }
+
+    chiseled = (
+        layer_effects.get("chiseled_prism_metallic")
+        or layer_effects.get("prism_chisel_hard_bevel")
+        or layer_effects.get("chiseled_prism")
+        or "chiseled" in profile_name.lower()
+        or "prism" in profile_name.lower()
+    )
+
+    if air_frontal:
+        base_res.update({
+            "gradient": "linear-gradient(180deg, #FFFFFF 0%, #FAFBFD 35%, #EDECE9 70%, #DCD7CD 100%)",
+            "verticalGradient": "linear-gradient(180deg, #FFFFFF 0%, #FAFBFD 35%, #EDECE9 70%, #DCD7CD 100%)",
+            "hasGradient": True,
+            "glow": "drop-shadow(0 0 10px rgba(255, 255, 255, 0.60)) drop-shadow(0 0 22px rgba(255, 250, 240, 0.35))",
+            "shadow": "0 0 28px rgba(0, 0, 0, 0.45), 0 2px 14px rgba(0, 0, 0, 0.38), 0 0 6px rgba(0, 0, 0, 0.30)",
+            "opticalBloom": True,
+            "edgeFeatherPx": 0.35,
+            "backplateShadow": "0 0 28px rgba(0, 0, 0, 0.45), 0 2px 14px rgba(0, 0, 0, 0.38), 0 0 6px rgba(0, 0, 0, 0.30)",
+            "atmosphericBlend": "screen",
+            "treatmentOverlay": "air_frontal_optical_bloom",
+        })
+    elif chiseled:
+        split_gradient = "linear-gradient(180deg, #FFFFFF 0%, #F1F5F9 47%, #334155 49%, #1E293B 100%)"
+        base_res.update({
+            "gradient": split_gradient,
+            "verticalGradient": split_gradient,
+            "hasGradient": True,
+            "glow": "0 0 14px rgba(255, 255, 255, 0.40)",
+            "shadow": "0 1px 0 #CBD5E1, 0 -1px 0 #0F172A, 0 8px 24px rgba(0, 0, 0, 0.95), 0 2px 8px rgba(0, 0, 0, 0.90)",
+            "textFillColor": "#FFFFFF",
+            "boundaryStroke": "2.5px rgba(0, 0, 0, 0.95)",
+            "chiseledPrism": True,
+            "treatmentOverlay": "chiseled_prism_metallic",
+        })
+
+    return base_res
 
 
 
@@ -1044,53 +1450,82 @@ def split_single_word_syllables(word: str) -> List[str]:
 
 
 ANIMA_RUNTIME_TREATMENTS: List[Dict[str, Any]] = [
-    # This is the runtime counterpart of every TYPOGRAPHY_30_PRESETS entry in
-    # Anima. The selector uses only its motion metadata, never transcript text.
-    {"id": "apple_pro_display_hero_revealer", "styles": {"cinematic", "editorial"}, "energy": 0.33},
+    # Full Anima Kinetic Motion Catalog (Hooks + Prestigious Typographic Engines)
+    {"id": "apple_pro_display_hero_revealer", "styles": {"cinematic", "editorial"}, "energy": 0.35},
     {"id": "dynamic_staggered_character_cascade", "styles": {"kinetic", "cinematic"}, "energy": 0.70},
     {"id": "apple_keynote_headline_punch", "styles": {"kinetic", "editorial"}, "energy": 0.75},
     {"id": "subpixel_glow_mask", "styles": {"cinematic", "editorial"}, "energy": 0.35},
-    {"id": "textrotate_kinetic_word_cycler", "styles": {"kinetic", "editorial"}, "energy": 0.66},
     {"id": "gaussian_blur_reveal_sweep", "styles": {"cinematic", "editorial"}, "energy": 0.40},
-    {"id": "typewriter_ghost_cursor", "styles": {"editorial", "kinetic"}, "energy": 0.44},
-    {"id": "vercel_kinetic_highlight_box", "styles": {"editorial", "cinematic"}, "energy": 0.48},
-    {"id": "isometric_kinetic_perspective_stack", "styles": {"kinetic", "cinematic"}, "energy": 0.72},
-    {"id": "hand_drawn_kinetic_underline", "styles": {"editorial", "cinematic"}, "energy": 0.32},
-    {"id": "horizontal_gradient_sweep_fade", "styles": {"cinematic", "editorial"}, "energy": 0.36},
-    {"id": "liquid_gooey_ink_morph", "styles": {"kinetic", "cinematic"}, "energy": 0.64},
-    {"id": "cinematic_viewport_mask_sweep", "styles": {"cinematic", "editorial"}, "energy": 0.30},
-    {"id": "elegant_paraword_spring_bloom", "styles": {"cinematic", "editorial"}, "energy": 0.38},
+    {"id": "cinematic_viewport_mask_sweep", "styles": {"cinematic", "editorial"}, "energy": 0.35},
     {"id": "cyber_matrix_text_scramble", "styles": {"kinetic", "editorial"}, "energy": 0.80},
     {"id": "kinetic_slot_character_reel", "styles": {"kinetic", "editorial"}, "energy": 0.78},
     {"id": "metallic_chrome_countup_hero", "styles": {"cinematic", "kinetic"}, "energy": 0.56},
-    {"id": "lavender_highlight_selection", "styles": {"editorial", "cinematic"}, "energy": 0.32},
-    {"id": "electric_blue_emoji_line_revealer", "styles": {"kinetic", "editorial"}, "energy": 0.62},
     {"id": "vector_stroke_sparkle", "styles": {"cinematic", "editorial"}, "energy": 0.45},
-    {"id": "figma_collaborative_frame_expansion", "styles": {"editorial", "kinetic"}, "energy": 0.54},
-    {"id": "hybrid_figma_kinetic_slot", "styles": {"kinetic", "editorial"}, "energy": 0.68},
-    {"id": "glow_search_pulsing_caret", "styles": {"editorial", "cinematic"}, "energy": 0.42},
     {"id": "dotted_grid_shimmer_wave", "styles": {"kinetic", "cinematic"}, "energy": 0.58},
     {"id": "top_down_staggered_character_drop", "styles": {"kinetic", "cinematic"}, "energy": 0.74},
     {"id": "dotted_grid_elastic_word_pull", "styles": {"kinetic", "editorial"}, "energy": 0.60},
-    {"id": "led_dot_matrix_scanline", "styles": {"editorial", "kinetic"}, "energy": 0.52},
-    {"id": "geometric_circle_inversion", "styles": {"cinematic", "kinetic"}, "energy": 0.58},
     {"id": "obsidian_heavy_grotesque", "styles": {"kinetic", "editorial"}, "energy": 0.82},
-    {"id": "sandstorm_grain_dissolve", "styles": {"cinematic", "kinetic"}, "energy": 0.66},
     {"id": "canva_tall_glyph_stack", "styles": {"cinematic", "editorial"}, "energy": 0.40},
     {"id": "hightech_chromatic_brands", "styles": {"kinetic", "cinematic"}, "energy": 0.76},
     {"id": "kinetic_cyber_phrase_expansion", "styles": {"kinetic", "editorial"}, "energy": 0.69},
     {"id": "kinetic_glow_sweep", "styles": {"kinetic", "cinematic"}, "energy": 0.55},
-    {"id": "kinetic_word_fast_pulse", "styles": {"kinetic", "editorial"}, "energy": 0.84},
     {"id": "kinetic_dynamic_slant", "styles": {"kinetic", "cinematic"}, "energy": 0.72},
-    {"id": "kinetic_chromatic_typewriter", "styles": {"kinetic", "editorial"}, "energy": 0.63},
     {"id": "metallic_chrome_counter", "styles": {"cinematic", "kinetic"}, "energy": 0.50},
     {"id": "apple_gaussian_chrome", "styles": {"cinematic", "editorial"}, "energy": 0.43},
+    {"id": "cinematic_distance_convergence", "styles": {"cinematic", "editorial"}, "energy": 0.45},
+    {"id": "subpixel_blowup_mask", "styles": {"cinematic", "editorial"}, "energy": 0.42},
+    {"id": "fluid_wave_text_effect", "styles": {"kinetic", "editorial"}, "energy": 0.65},
+    {"id": "dynamic_3letter_flicker", "styles": {"kinetic", "editorial"}, "energy": 0.75},
+    {"id": "see_through_glass_letterform", "styles": {"cinematic", "editorial"}, "energy": 0.40},
+    {"id": "gold_gradient_scale_blur", "styles": {"cinematic", "editorial"}, "energy": 0.40},
+    {"id": "refraction_shimmer_mask", "styles": {"cinematic", "kinetic"}, "energy": 0.55},
+    {"id": "stagger_blur_word_reveal", "styles": {"editorial", "cinematic"}, "energy": 0.35},
+    {"id": "zora_mask_reveal", "styles": {"cinematic", "editorial"}, "energy": 0.42},
+    {"id": "textrotate_kinetic_word_cycler", "styles": {"kinetic", "editorial"}, "energy": 0.66},
+    {"id": "typewriter_ghost_cursor", "styles": {"editorial", "kinetic"}, "energy": 0.44},
+    {"id": "liquid_gooey_ink_morph", "styles": {"kinetic", "cinematic"}, "energy": 0.64},
+    {"id": "electric_blue_emoji_line_revealer", "styles": {"kinetic", "editorial"}, "energy": 0.62},
+    {"id": "kinetic_word_fast_pulse", "styles": {"kinetic", "editorial"}, "energy": 0.84},
+    {"id": "kinetic_chromatic_typewriter", "styles": {"kinetic", "editorial"}, "energy": 0.63},
     {"id": "cinematic_apple_word_bounce", "styles": {"cinematic", "kinetic"}, "energy": 0.61},
-    {"id": "cinematic_distance_convergence", "styles": {"cinematic", "editorial"}, "energy": 0.37},
+    {"id": "quote_glow_reveal", "styles": {"editorial", "cinematic"}, "energy": 0.38},
+    {"id": "typewriter_cursor", "styles": {"editorial", "kinetic"}, "energy": 0.48},
+    {"id": "chromatic_aberration_wipe", "styles": {"kinetic", "cinematic"}, "energy": 0.75},
+    {"id": "dramatic_scale_entry", "styles": {"kinetic", "cinematic"}, "energy": 0.80},
+    {"id": "word_by_word_3d_flip", "styles": {"kinetic", "cinematic"}, "energy": 0.68},
+    {"id": "blue_lantern_magnetic", "styles": {"editorial", "cinematic"}, "energy": 0.45, "applicationBias": 0.90},
+    {"id": "air_frontal_optical_bloom", "styles": {"editorial", "cinematic", "frontal"}, "energy": 0.42},
+    {"id": "in_the_air_diffusion_bloom", "styles": {"editorial", "cinematic", "frontal"}, "energy": 0.42},
+    {"id": "hierarchical_asymmetric_lockup", "styles": {"editorial", "cinematic", "kinetic", "luxury"}, "energy": 0.45},
+    {"id": "documentary_lockup_captions", "styles": {"editorial", "cinematic", "kinetic", "luxury"}, "energy": 0.45},
+    {"id": "micro_macro_kinetic_type", "styles": {"editorial", "cinematic", "kinetic", "luxury"}, "energy": 0.45},
+    {"id": "chiseled_prism_metallic", "styles": {"kinetic", "cinematic", "special_ops"}, "energy": 0.85},
+    {"id": "prism_chisel_hard_bevel", "styles": {"kinetic", "cinematic", "special_ops"}, "energy": 0.85},
+    {"id": "vj_kinetic_typography", "styles": {"kinetic", "special_ops"}, "energy": 0.90},
+    {"id": "vjkt", "styles": {"kinetic", "special_ops"}, "energy": 0.90},
+    # Patrik Key 10 Viral Caption Styles Suite
+    {"id": "real_estate_luxury_curve", "styles": {"editorial", "luxury", "special_ops"}, "energy": 0.48},
+    {"id": "real_estate_captions", "styles": {"editorial", "luxury", "special_ops"}, "energy": 0.48},
+    {"id": "viral_3d_compound_tilt", "styles": {"kinetic", "cinematic", "special_ops"}, "energy": 0.82},
+    {"id": "viral_3d_captions", "styles": {"kinetic", "cinematic", "special_ops"}, "energy": 0.82},
+    {"id": "split_mask_duotone_gradient", "styles": {"kinetic", "editorial", "special_ops"}, "energy": 0.70},
+    {"id": "gradient_text_split_mask", "styles": {"kinetic", "editorial", "special_ops"}, "energy": 0.70},
+    {"id": "multi_word_slide_up_stagger", "styles": {"editorial", "cinematic", "special_ops"}, "energy": 0.55},
+    {"id": "multiple_word_slide_up", "styles": {"editorial", "cinematic", "special_ops"}, "energy": 0.55},
+    {"id": "apple_variable_curve_pop", "styles": {"editorial", "kinetic", "special_ops"}, "energy": 0.60},
+    {"id": "apple_style_captions", "styles": {"editorial", "kinetic", "special_ops"}, "energy": 0.60},
+    {"id": "smooth_pop_opacity_sync", "styles": {"kinetic", "editorial", "special_ops"}, "energy": 0.65},
+    {"id": "pop_animated_captions", "styles": {"kinetic", "editorial", "special_ops"}, "energy": 0.65},
+    {"id": "animated_split_highlighter", "styles": {"kinetic", "editorial", "special_ops"}, "energy": 0.72},
+    {"id": "text_highlighter", "styles": {"kinetic", "editorial", "special_ops"}, "energy": 0.72},
+    {"id": "film_strip_specular_shine", "styles": {"cinematic", "special_ops"}, "energy": 0.58},
+    {"id": "shine_effect", "styles": {"cinematic", "special_ops"}, "energy": 0.58},
+    {"id": "strobe_flicker_ignition", "styles": {"kinetic", "special_ops"}, "energy": 0.88},
+    {"id": "flicker_effect", "styles": {"kinetic", "special_ops"}, "energy": 0.88},
+    {"id": "premium_circular_caption_stack", "styles": {"editorial", "cinematic", "luxury", "special_ops"}, "energy": 0.50},
+    {"id": "premium_caption_stack", "styles": {"editorial", "cinematic", "luxury", "special_ops"}, "energy": 0.50},
     # -----------------------------------------------------------------------
-    # HOOKS — Intro kinetic treatments designed for the critical first 3-5s
-    # of viewer attention. These are DISABLED for non-first chunks by default
-    # and are activated by the Hooks feature module (see hooks.py).
+    # HOOKS (Chunk 0 Cinematic Intros)
     # -----------------------------------------------------------------------
     {"id": "hook_bokeh_defocus_bloom", "styles": {"cinematic", "hook"}, "energy": 0.50},
     {"id": "hook_gaussian_lens_reveal", "styles": {"cinematic", "hook"}, "energy": 0.42},
@@ -1106,24 +1541,34 @@ ANIMA_RUNTIME_TREATMENTS: List[Dict[str, Any]] = [
     {"id": "hook_vertical_kinetic_pedestal", "styles": {"kinetic", "hook"}, "energy": 0.64},
     {"id": "hook_smooth_zoom_in", "styles": {"cinematic", "hook"}, "energy": 0.48},
     {"id": "hook_full_zoom_up", "styles": {"kinetic", "hook"}, "energy": 0.60},
-    {"id": "hook_rgb_chromatic_split_glitch", "styles": {"kinetic", "hook"}, "energy": 0.85},
     {"id": "hook_crt_scanline_matrix_decode", "styles": {"kinetic", "hook"}, "energy": 0.76},
     {"id": "hook_vhs_tape_tracking_tear", "styles": {"kinetic", "hook"}, "energy": 0.72},
     {"id": "hook_metallic_chrome_reflection", "styles": {"cinematic", "hook"}, "energy": 0.58},
     {"id": "hook_liquid_ink_metaball_reveal", "styles": {"cinematic", "hook"}, "energy": 0.54},
     {"id": "hook_zora_aperture_mask_bloom", "styles": {"cinematic", "hook"}, "energy": 0.46},
     {"id": "hook_motion_blur_word", "styles": {"kinetic", "hook"}, "energy": 0.52},
-    # -----------------------------------------------------------------------
-    # ZORA'S MASK — Cinematic mask treatment that reveals text through a
-    # stylized, organic mask shape (not a hard cut-out). The mask blooms
-    # from the keyword outward, creating a sophisticated reveal.
-    # -----------------------------------------------------------------------
-    {"id": "zora_mask_reveal", "styles": {"cinematic", "editorial"}, "energy": 0.42},
 ]
+
+SINGLE_WORD_HERO_PRESETS: set[str] = {
+    "kinetic_glow_sweep",
+    "apple_keynote_headline_punch",
+    "dynamic_3letter_flicker",
+    "top_down_staggered_character_drop",
+    "subpixel_blowup_mask",
+    "metallic_chrome_countup_hero",
+    "obsidian_heavy_grotesque",
+    "apple_gaussian_chrome",
+    "cinematic_distance_convergence",
+    "blue_lantern_magnetic",
+    "air_frontal_optical_bloom",
+    "in_the_air_diffusion_bloom",
+    "chiseled_prism_metallic",
+    "prism_chisel_hard_bevel",
+}
 
 ANIMA_OVERLAY_TREATMENTS = [
     "cinematic_viewport_mask_sweep",
-    "soft_pixel_blowup_mask",
+    "subpixel_blowup_mask",
 ]
 
 TALL_FONT_RUNTIME_TREATMENTS = (
@@ -1159,6 +1604,13 @@ def resolve_typography_policy(design_override: Optional[Dict[str, Any]] = None) 
         str(preset) for preset in design.get("avoidPresets", [])
         if isinstance(preset, str) and preset in {item["id"] for item in ANIMA_RUNTIME_TREATMENTS}
     })
+    if "typographySystem" in design:
+        resolved["typographySystem"] = str(design.get("typographySystem", "")).lower()
+    resolved["specialOps"] = bool(
+        design.get("specialOps", False)
+        or design.get("specialOpsMode", False)
+        or str(design.get("typographySystem", "")).lower() in ("special_ops", "special_ops_tier")
+    )
     return resolved
 
 
@@ -1179,8 +1631,12 @@ TALL_MATTE_FONTS = [
 
 
 HIGH_TIER_SCREENSHOT_PROFILES = {
-    "image (1)", "image (2)", "image (3)", "image (6)", "image (8)",
-    "image (14)", "image (15)", "image (16)", "image (17)", "image (18)", "image (21)"
+    "image (1)", "image (2)", "image (3)", "image (6)", "image (7)", "image (8)",
+    "image (14)", "image (15)", "image (16)", "image (17)", "image (18)", "image (21)",
+    "image (24)", "image (27)", "image (31)", "image (35)", "image (36)", "image (40)",
+    "image (47)", "image (48)", "image (51)", "image (52)", "image (53)", "image (54)",
+    "image (55)", "image (56)", "image (57)", "image (66)", "image (67)", "image (68)", "image (69)",
+    "Image Landscape 5", "Image Landscape 6", "Image Landscape 8",
 }
 
 
@@ -1199,25 +1655,25 @@ def _resolve_font_json_treatment(
     avoid = set(policy.get("avoidPresets", []))
 
     if any(k in classification or k in mood for k in ("3d", "metallic", "chrome", "extruded")):
-        candidates = ["gaussian_blur_reveal_sweep", "metallic_chrome_countup_hero", "kinetic_slot_character_reel"]
+        candidates = ["gold_gradient_scale_blur", "refraction_shimmer_mask", "apple_pro_display_hero_revealer", "gaussian_blur_reveal_sweep", "dramatic_scale_entry"]
     elif any(k in classification or k in mood for k in ("script", "calligraphic", "cursive", "brush", "handwriting")):
-        candidates = ["gaussian_blur_reveal_sweep", "elegant_paraword_spring_bloom", "hand_drawn_kinetic_underline"]
+        candidates = ["apple_pro_display_hero_revealer", "gaussian_blur_reveal_sweep", "kinetic_glow_sweep", "stagger_blur_word_reveal", "kinetic_dynamic_slant"]
     elif any(k in classification or k in mood for k in ("compressed", "ultra-compressed", "tall", "heavy sans", "grotesque")):
-        candidates = ["gaussian_blur_reveal_sweep", "obsidian_heavy_grotesque", "top_down_staggered_character_drop"]
+        candidates = ["apple_pro_display_hero_revealer", "gaussian_blur_reveal_sweep", "obsidian_heavy_grotesque", "refraction_shimmer_mask", "gold_gradient_scale_blur", "canva_tall_glyph_stack"]
     elif any(k in classification or k in mood for k in ("didone", "modern serif", "classic editorial", "refined")):
-        candidates = ["gaussian_blur_reveal_sweep", "apple_pro_display_hero_revealer", "cinematic_viewport_mask_sweep"]
+        candidates = ["apple_pro_display_hero_revealer", "gaussian_blur_reveal_sweep", "quote_glow_reveal", "stagger_blur_word_reveal", "cinematic_viewport_mask_sweep"]
     elif any(k in classification or k in mood for k in ("swiss", "poster", "display", "headline")):
-        candidates = ["gaussian_blur_reveal_sweep", "apple_keynote_headline_punch", "apple_pro_display_hero_revealer"]
+        candidates = ["apple_pro_display_hero_revealer", "gaussian_blur_reveal_sweep", "apple_keynote_headline_punch", "stagger_blur_word_reveal"]
     elif any(k in classification or k in mood for k in ("matrix", "cyber", "terminal", "code")):
-        candidates = ["cyber_matrix_text_scramble", "typewriter_ghost_cursor", "led_dot_matrix_scanline"]
+        candidates = ["typewriter_ghost_cursor", "apple_pro_display_hero_revealer", "gaussian_blur_reveal_sweep"]
     else:
         if is_hero:
-            candidates = ["gaussian_blur_reveal_sweep", "apple_pro_display_hero_revealer", "focus_hunting_bokeh_shimmer"]
+            candidates = ["apple_pro_display_hero_revealer", "gaussian_blur_reveal_sweep", "gold_gradient_scale_blur", "refraction_shimmer_mask", "apple_keynote_headline_punch", "blue_lantern_magnetic"]
         else:
-            candidates = ["gaussian_blur_reveal_sweep", "apple_pro_display_hero_revealer", "subpixel_glow_mask"]
+            candidates = ["apple_pro_display_hero_revealer", "gaussian_blur_reveal_sweep", "stagger_blur_word_reveal", "subpixel_glow_mask"]
 
     eligible = [c for c in candidates if c not in avoid]
-    return rng.choice(eligible) if eligible else "gaussian_blur_reveal_sweep"
+    return rng.choice(eligible) if eligible else "apple_pro_display_hero_revealer"
 
 
 def eligible_portrait_profile_ids() -> List[str]:
@@ -1266,7 +1722,14 @@ def schedule_caption_timing(chunks: List[Dict[str, Any]]) -> List[Dict[str, Any]
             int(scheduled[index + 1].get("startMs", scheduled[index + 1].get("outputStartMs", natural_end_ms)))
             if index + 1 < len(scheduled) else natural_end_ms
         )
-        display_end_ms = max(content_start_ms + 1, min(natural_end_ms, next_start_ms))
+        words_list = chunk.get("words", [])
+        last_word_start = (
+            int(words_list[-1].get("start_ms", content_start_ms))
+            if words_list else content_start_ms
+        )
+        max_allowed_end = max(natural_end_ms, next_start_ms - 80) if index + 1 < len(scheduled) else natural_end_ms + 600
+        desired_hold = max(natural_end_ms, last_word_start + 750, natural_end_ms + 500)
+        display_end_ms = max(content_start_ms + 1, min(desired_hold, max_allowed_end))
         layers = [dict(layer) for layer in chunk.get("layers", [])]
         requested_lead_ms = max((int(layer.get("entryLeadMs", 0)) for layer in layers), default=0)
         display_start_ms = max(previous_end_ms, content_start_ms - requested_lead_ms)
@@ -1394,39 +1857,140 @@ def _select_primary_treatment(
     recent: List[str],
     is_single_word: bool = False,
 ) -> str:
+    highlight_presets = {"vercel_kinetic_highlight_box", "lavender_highlight_selection"}
+    has_recent_highlight = any(h in recent[-3:] for h in highlight_presets)
+
+    # STRICT RULE: hook_* presets are EXCLUSIVELY reserved for chunk 0 via hook_plan.
+    # They must NEVER be assigned to regular dialogue chunks.
+    _HOOK_ONLY_PRESETS = {item["id"] for item in ANIMA_RUNTIME_TREATMENTS if "hook" in item.get("styles", set())}
+
     candidates = [
         item for item in ANIMA_RUNTIME_TREATMENTS
-        if item["id"] not in policy["avoidPresets"] and item["id"] not in recent
-    ] or [item for item in ANIMA_RUNTIME_TREATMENTS if item["id"] not in policy["avoidPresets"]]
+        if item["id"] not in policy["avoidPresets"]
+        and item["id"] not in recent
+        and item["id"] not in _HOOK_ONLY_PRESETS
+        and not (has_recent_highlight and item["id"] in highlight_presets)
+    ] or [
+        item for item in ANIMA_RUNTIME_TREATMENTS
+        if item["id"] not in policy["avoidPresets"]
+        and item["id"] not in _HOOK_ONLY_PRESETS
+    ]
     if not candidates:
         candidates = [item for item in ANIMA_RUNTIME_TREATMENTS if item["id"] == "apple_pro_display_hero_revealer"]
-    creativity = {"reserved": 0.55, "balanced": 1.0, "expressive": 1.55}[policy["creativity"]]
+    creativity = {"reserved": 0.65, "balanced": 1.1, "expressive": 1.65}[policy["creativity"]]
     desired_energy = {
         "slow": 0.32,
         "adaptive": 0.42 if signal["cadenceMs"] >= 340 else 0.62,
         "fast": 0.75,
     }[policy["pacing"]]
-    # Single-word chunks: strongly prefer focal single-word treatments from SINGLE_WORD_HERO_PRESETS.
-    # These are the treatments specifically designed for maximum impact on a single focal word.
+    # Single-word chunks: strongly prefer focal single-word treatments from
+    # SINGLE_WORD_HERO_PRESETS.
     single_word_boost = 3.5 if is_single_word else 1.0
-    return _weighted_choice(rng, candidates, [
-        (2.3 if policy["motionStyle"] in item["styles"] else 0.35)
-        * (single_word_boost if item["id"] in SINGLE_WORD_HERO_PRESETS else 1.0)
-        * (1.0 / (1 + usage.get(item["id"], 0)))
-        * (1.0 / (1.0 + abs(item["energy"] - desired_energy) * 2.4))
-        * creativity
-        for item in candidates
-    ])["id"]
+    # Fluid-motion family (blur rises, glass, sweeps, slides, letter-by-letter)
+    # is the default editorial look. They carry a selection boost AND a
+    # flattened energy penalty so fast talking-head cadence (high desired
+    # energy) can no longer suppress them in favour of chunk-level pops.
+    # The pop family (countups, scale punches, flickers) gets a mild damping
+    # so the mix reads as fluid motion with occasional pops, not the reverse.
+    FLUID_FAMILY = {
+        "blue_lantern_magnetic", "gaussian_blur_reveal_sweep", "stagger_blur_word_reveal",
+        "spring_blur_physics_engine", "subpixel_glow_mask", "apple_gaussian_chrome",
+        "cinematic_distance_convergence", "quote_glow_reveal", "apple_pro_display_hero_revealer",
+        "zora_mask_reveal", "gold_gradient_scale_blur", "refraction_shimmer_mask",
+        "kinetic_slot_character_reel", "dynamic_staggered_character_cascade",
+        "top_down_staggered_character_drop", "cinematic_viewport_mask_sweep",
+        "focus_hunting_bokeh_shimmer", "see_through_glass_letterform",
+        "hierarchical_asymmetric_lockup", "documentary_lockup_captions", "micro_macro_kinetic_type",
+    }
+    POP_FAMILY = {
+        "metallic_chrome_countup_hero", "metallic_chrome_counter", "dramatic_scale_entry",
+        "apple_keynote_headline_punch", "kinetic_word_fast_pulse", "dynamic_3letter_flicker",
+        "obsidian_heavy_grotesque", "word_by_word_3d_flip", "kinetic_chromatic_typewriter",
+    }
+    SPECIAL_OPS_FAMILY = {
+        "chiseled_prism_metallic", "prism_chisel_hard_bevel",
+        "vj_kinetic_typography", "vjkt",
+        "air_frontal_optical_bloom", "in_the_air_diffusion_bloom",
+        "see_through_glass_letterform",
+        "hierarchical_asymmetric_lockup", "documentary_lockup_captions", "micro_macro_kinetic_type",
+    }
+    fluid_boost = 2.4
+    letter_boost = 1.5
+    pop_damp = 0.55
+
+    def _treatment_weight(item: Dict[str, Any]) -> float:
+        energy_gap = abs(item["energy"] - desired_energy)
+        energy_factor = 1.0 / (1.0 + energy_gap * 2.0)
+        if item["id"] in FLUID_FAMILY:
+            # Flatten the energy penalty: fluid motion stays selectable at any cadence.
+            energy_factor = max(energy_factor, 0.85)
+        boost = 1.0
+        if item["id"] in FLUID_FAMILY:
+            boost *= fluid_boost
+        # Letter-by-letter treatments get an extra nudge on top of the fluid boost
+        if item["id"] in ("kinetic_slot_character_reel", "dynamic_staggered_character_cascade", "top_down_staggered_character_drop"):
+            boost *= letter_boost
+        if item["id"] in POP_FAMILY:
+            boost *= pop_damp
+
+        # Cognitive Fatigue Cap: high-salience treatments (VJKT strobe, etc.)
+        # enforce max 2 occurrences per sequence to prevent sensory fatigue.
+        if item["id"] in ("vj_kinetic_typography", "vjkt"):
+            vj_total = usage.get("vj_kinetic_typography", 0) + usage.get("vjkt", 0)
+            if vj_total >= 2:
+                return 0.0
+            if signal.get("cadenceMs", 400) > 310 and policy.get("pacing") != "fast":
+                return 0.05
+
+        # Special Ops Causal Hierarchy & Anti-Dilution:
+        if policy.get("specialOps") and item["id"] in SPECIAL_OPS_FAMILY:
+            boost *= 3.8
+
+        # Word-count fit enforcement: single-word presets must not be assigned to multi-word lines
+        if is_single_word:
+            word_fit_boost = single_word_boost if item["id"] in SINGLE_WORD_HERO_PRESETS else 0.8
+        else:
+            # Multi-word line mandate: penalize single-word monolithic presets, heavily favor word-by-word staggered reveals
+            if item["id"] in SINGLE_WORD_HERO_PRESETS:
+                word_fit_boost = 0.05
+            elif item["id"] in (
+                "cinematic_apple_word_bounce", "stagger_blur_word_reveal", "spring_blur_physics_engine",
+                "dynamic_staggered_character_cascade", "apple_keynote_headline_punch",
+                "hierarchical_asymmetric_lockup", "documentary_lockup_captions", "micro_macro_kinetic_type"
+            ):
+                word_fit_boost = 3.5
+            else:
+                word_fit_boost = 1.25
+
+        return (
+            (2.3 if policy["motionStyle"] in item["styles"] else 0.45)
+            * word_fit_boost
+            * boost
+            * (1.0 / (1 + usage.get(item["id"], 0) * 1.5))
+            * energy_factor
+            * creativity
+        )
+
+
+    selected = _weighted_choice(rng, candidates, [_treatment_weight(item) for item in candidates])
+    if selected.get("applicationBias") is not None and rng.random() > float(selected["applicationBias"]):
+        remaining = [c for c in candidates if c["id"] != selected["id"]]
+        if remaining:
+            selected = _weighted_choice(rng, remaining, [_treatment_weight(item) for item in remaining])
+    return selected["id"]
 
 
 
 
 def _entry_lead_ms(policy: Dict[str, Any], signal: Dict[str, float], is_hero: bool, primary_fx: str) -> int:
-    baseline = {"slow": 340, "adaptive": 250, "fast": 150}[policy["pacing"]]
-    cadence_bonus = min(100, max(-60, int((signal["cadenceMs"] - 310) * 0.28)))
-    hero_bonus = 55 if is_hero else 0
-    blur_bonus = 45 if "blur" in primary_fx or "focus" in primary_fx else 0
-    return max(100, min(480, baseline + cadence_bonus + hero_bonus + blur_bonus))
+    # Mention-sync lock: a word's entrance must begin at (or within ~0.13s of)
+    # the moment it is spoken. The old 340–480ms leads made words visibly
+    # appear before they were ever stated.
+    baseline = {"slow": 120, "adaptive": 100, "fast": 70}[policy["pacing"]]
+    cadence_bonus = min(20, max(-15, int((signal["cadenceMs"] - 310) * 0.08)))
+    hero_bonus = 10 if is_hero else 0
+    blur_bonus = 10 if "blur" in primary_fx or "focus" in primary_fx else 0
+    return max(40, min(130, baseline + cadence_bonus + hero_bonus + blur_bonus))
 
 
 def _select_overlay(rng: random.Random, policy: Dict[str, Any], signal: Dict[str, float], primary_fx: str) -> Optional[str]:
@@ -1445,32 +2009,140 @@ def _select_difference_chunk_indices(
     rng: random.Random,
     creativity: str = "balanced",
 ) -> set[int]:
-    """Choose rare, well-spaced foreground heroes for color inversion when explicitly expressive."""
-    if creativity != "expressive":
+    """Dynamically and sensibly select high-contrast chunks for Difference-Mode Inversion
+    (Dynamic Knockout Typography).
+    
+    Inverts underlying visual footage pixels (|255 - BG|) with razor-thin boundary strokes.
+    Spaced at least 3 chunks apart to avoid visual fatigue while delivering the signature
+    cinematic see-through effect.
+    """
+    total = len(manifest_chunks)
+    if total < 2:
         return set()
-    candidates = []
-    incompatible_fx = {"see_through_glass_letterform", "metallic_chrome_countup_hero"}
-    for position, chunk in enumerate(manifest_chunks):
-        layers = chunk.get("layers", [])
-        if chunk.get("subjectLayering", {}).get("behindSubject"):
-            continue
-        if not any(layer.get("isHero") for layer in layers):
-            continue
-        if any(layer.get("fxPreset") in incompatible_fx for layer in layers):
-            continue
-        salience = float(chunk.get("selection", {}).get("salience", 0.0))
-        candidates.append((salience, rng.random(), position))
 
-    target_count = min(1 if len(manifest_chunks) <= 15 else 2, len(candidates))
-    selected: set[int] = set()
-    for _, _, position in sorted(candidates, reverse=True):
-        if all(abs(position - existing) >= 5 for existing in selected):
-            selected.add(position)
-        if len(selected) >= target_count:
-            break
+    selected = set()
+    last_idx = -10
+
+    for idx, c in enumerate(manifest_chunks):
+        if idx - last_idx < 3:
+            continue
+
+        # Do not override explicitly requested frontal treatments such as optical bloom
+        if c.get("frontalTreatment") == "air_frontal_optical_bloom" or any(
+            l.get("frontalTreatment") == "air_frontal_optical_bloom" for l in c.get("layers", [])
+        ):
+            continue
+
+        words = c.get("words", [])
+        word_count = len(words) if words else len(c.get("text", "").split())
+
+        # Target punchy chunks (1-4 words), scene transitions, B-roll cuts, or key semantic moments
+        is_candidate = (
+            1 <= word_count <= 4
+            or c.get("isSceneBoundary")
+            or c.get("hasTransition")
+            or c.get("causedByTransitionId")
+            or c.get("backgroundKind") in ("broll_cutaway", "negative_space_stencil", "editorial_glass", "texture_canvas")
+            or c.get("treatmentSystem") in ("hierarchical_asymmetric_lockup", "see_through_glass_letterform")
+            or any(l.get("isHero") for l in c.get("layers", []))
+        )
+
+        if is_candidate and (idx % 4 == 2 or rng.random() < 0.22):
+            selected.add(idx)
+            last_idx = idx
+
     return selected
 
 
+
+
+# ---------------------------------------------------------------------------
+# Pivot-satellite composition (Bug C): pick the core/pivot word semantically
+# (first significant content word), and treat the remaining words as satellites
+# for the renderer to anchor around the pivot's first/last letters.
+# ---------------------------------------------------------------------------
+_PIVOT_STOPWORDS = {
+    "in", "on", "the", "a", "an", "to", "of", "and", "or", "at", "for", "that",
+    "this", "is", "are", "was", "were", "it", "its", "if", "you", "we", "they",
+    "your", "their", "my", "our", "i", "he", "she", "be", "been", "as", "but",
+    "so", "not", "no", "then", "than", "could", "would", "should",
+}
+
+
+def _layout_rules_placement(prof: Dict[str, Any]) -> Dict[str, str]:
+    """Translate the profile's font-JSON ``layout_rules`` into chunk placement.
+
+    Rectification (talking-head occlusion): the JSON's vertical_position /
+    bottom_margin_percent describe static poster compositions and were making
+    the deck jump between 16% and 76% across chunks — straight through the
+    speaker's face. Vertical placement is now owned by the subject-safe pass
+    (one video-wide lower-third deck, face-exclusion guarded). The font JSON
+    still governs what it expresses faithfully: horizontal alignment and
+    container width.
+    """
+    rules = prof.get("layout_rules") or {}
+    alignment = str(rules.get("horizontal_alignment", "center")).lower()
+    try:
+        max_width = float(rules.get("max_width_percent") or 85)
+    except (TypeError, ValueError):
+        max_width = 85
+
+    if "left" in alignment:
+        align = "left"
+    elif "right" in alignment:
+        align = "right"
+    else:
+        align = "center"
+
+    return {
+        "xPercent": "50%",
+        "yPercent": "54%",
+        "anchor": align,
+        "textAlign": align,
+        "dominantZone": "foreground_lower_deck",
+        "maxWidthPercent": str(max_width),
+        "layoutSource": "font_json_layout_rules",
+    }
+
+
+def select_pivot_layout(chunk: Dict[str, Any]) -> Dict[str, Any]:
+    """Determine which layer is the core/pivot word for a chunk.
+
+    The pivot is the first significant *content* word of the utterance (skipping
+    leading function/stopwords), matching the short-form "core word centered,
+    satellites anchored to its first/last letters" composition. Falls back to the
+    first layer so every chunk keeps a stable pivot.
+    """
+    raw = str(chunk.get("text") or "")
+    tokens = [t for t in raw.split() if t.strip()]
+    content_idx = 0
+    for i, tok in enumerate(tokens):
+        cleaned = tok.strip(string.punctuation).strip().lower()
+        if cleaned and cleaned not in _PIVOT_STOPWORDS:
+            content_idx = i
+            break
+    pivot_word = tokens[content_idx].strip(string.punctuation).strip()
+
+    layers = list(chunk.get("layers") or [])
+
+    def _layer_text(layer: Dict[str, Any]) -> str:
+        return str(layer.get("text") or layer.get("rawText") or "")
+
+    if not layers:
+        return {"pivotLayerIndex": 0, "pivotWord": pivot_word, "satelliteLayerIndices": []}
+
+    # The pivot is the emphasis/focus layer: the explicit hero (big focal word),
+    # or the largest layer. Centering the big emphasis word is what stays legible.
+    hero_idx = next((i for i, layer in enumerate(layers) if layer.get("isHero")), None)
+    if hero_idx is None:
+        hero_idx = max(range(len(layers)), key=lambda i: float(layers[i].get("fontSizePx") or 0))
+    pivot_idx = hero_idx
+    satellites = [i for i in range(len(layers)) if i != pivot_idx]
+    return {
+        "pivotLayerIndex": pivot_idx,
+        "pivotWord": pivot_word,
+        "satelliteLayerIndices": satellites,
+    }
 
 
 def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -1525,16 +2197,33 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
             video_palette = BRAND_PALETTES[video_palette_id].copy()
     video_palette["id"] = video_palette_id
 
+    # Check if lockup treatment is desired across the entire design/prompt
+    explicit_fx_check = (
+        design_input.get("fxPreset")
+        or design_input.get("motionPreset")
+        or design_input.get("treatment")
+        or design_input.get("treatmentSystem")
+    )
+    prompt_wants_lockup = any(k in str(design_input.get("prompt", "")).lower() for k in ("luxury", "documentary", "hierarchical", "asymmetric", "lockup", "micro-macro", "micro_macro"))
+    wants_lockup_overall = (
+        explicit_fx_check in ("hierarchical_asymmetric_lockup", "documentary_lockup_captions", "micro_macro_kinetic_type")
+        or prompt_wants_lockup
+        or str(design_input.get("treatment", "")).lower() in ("hierarchical_asymmetric_lockup", "documentary_lockup_captions", "micro_macro_kinetic_type")
+        or str(design_input.get("treatmentSystem", "")).lower() in ("hierarchical_asymmetric_lockup", "documentary_lockup_captions", "micro_macro_kinetic_type")
+    )
+
     # Select behind-subject depth treatment moments with temporal distribution & variety
     behind_subject_indices = set()
     if policy["subjectLayering"] != "disabled":
         # Dynamic count based on video length
         if len(chunks) <= 8:
             max_behind_count = 1
-        elif len(chunks) <= 20:
+        elif len(chunks) <= 18:
             max_behind_count = 2
-        else:
+        elif len(chunks) <= 24:
             max_behind_count = 3
+        else:
+            max_behind_count = 4
 
         candidate_scores = []
         for c_idx, c in enumerate(chunks):
@@ -1547,34 +2236,50 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
 
             duration_ms = c.get("endMs", 0) - c.get("startMs", 0)
             word_count = len(c_words)
-            # Strictly prefer single punchy anchor keywords (1 word) or strong 2-word pairs
-            is_punchy = 1 <= word_count <= 2
-            is_substantive = c_clean.lower() not in STOPWORDS and len(c_clean) >= 3 and not c_text.endswith(",")
+            if wants_lockup_overall:
+                # Hierarchical lockups qualify with 1 to 4 words when anchor has high salience
+                is_punchy = 1 <= word_count <= 4
+                is_substantive = c_clean.lower() not in STOPWORDS and len(c_clean) >= 3
+            else:
+                # Strictly prefer single punchy anchor keywords (1 word) or strong 2-word pairs
+                is_punchy = 1 <= word_count <= 2
+                is_substantive = c_clean.lower() not in STOPWORDS and len(c_clean) >= 3 and not c_text.endswith(",")
 
             if is_punchy and is_substantive and duration_ms >= 400:
-                base_score = c_signal["salience"] + (3.5 if word_count == 1 else 1.8)
+                base_score = c_signal["salience"] + (3.5 if word_count == 1 else (2.2 if wants_lockup_overall else 1.8))
                 if any(ch.isdigit() for ch in c_text):
                     base_score += 1.2
                 # Add mild stochastic variation for true run-to-run diversity
                 score = base_score + rng.uniform(-0.15, 0.15)
-                candidate_scores.append((c_idx, score))
+                candidate_scores.append((c_idx, c_clean.lower(), score))
 
-        candidate_scores.sort(key=lambda item: item[1], reverse=True)
+        candidate_scores.sort(key=lambda item: item[2], reverse=True)
 
         if policy["subjectLayering"] == "required" and not candidate_scores and chunks:
             shortest_idx = min(range(len(chunks)), key=lambda i: len(str(chunks[i].get("text", "")).split()))
             behind_subject_indices.add(shortest_idx)
         else:
-            for c_idx, score in candidate_scores:
+            used_behind_roots: set[str] = set()
+            for c_idx, c_root, score in candidate_scores:
                 if len(behind_subject_indices) >= max_behind_count:
                     break
-                # Cooldown of at least 3 chunks between behind-subject occurrences
-                if all(abs(c_idx - existing_idx) >= 3 for existing_idx in behind_subject_indices):
+                # Keyword deduplication: avoid repeating identical root words behind the subject
+                if c_root in used_behind_roots:
+                    continue
+                c_start = chunks[c_idx].get("startMs", 0)
+                # Cooldown of at least 3 chunks and at least 2800ms between behind-subject occurrences
+                has_cooldown = all(
+                    abs(c_idx - existing_idx) >= 3 and abs(c_start - chunks[existing_idx].get("startMs", 0)) >= 2800
+                    for existing_idx in behind_subject_indices
+                )
+                if has_cooldown:
                     if policy["subjectLayering"] == "required":
                         behind_subject_indices.add(c_idx)
+                        used_behind_roots.add(c_root)
                     elif policy["subjectLayering"] == "auto":
                         if score >= 1.0 or (rng.random() < 0.70 and score >= 0.7):
                             behind_subject_indices.add(c_idx)
+                            used_behind_roots.add(c_root)
 
     # Listicle Intelligence & Numerical Planning
     listicle_planning = listicles.detect_and_plan_listicles(chunks, design_input)
@@ -1584,6 +2289,8 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
     preset_usage_counts: Dict[str, int] = {item["id"]: 0 for item in ANIMA_RUNTIME_TREATMENTS}
     profile_usage_counts: Dict[str, int] = {}
     recent_profile_ids: List[str] = []  # sliding window to prevent rapid re-selection
+    palette_usage_counts: Dict[str, int] = {}
+    recent_palette_ids: List[str] = []
 
     tall_font_usage_counts: Dict[str, int] = {f: 0 for f in TALL_MATTE_FONTS}
     recent_tall_fonts: List[str] = []
@@ -1618,18 +2325,24 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
             one_layer_pool = [p for p in pool if len(p.get("typography_layers", [])) == 1]
             matching_profiles = single_word_pool or one_layer_pool or pool
         else:
+            # Dialogue Legibility Invariant: For multi-word speech cues (3+ words),
+            # restrict to profiles with at most 2 layers (hero + modifier) to prevent
+            # conversational speech from being chopped into vertical single-word column stacks.
+            dialogue_base = [p for p in pool if len(p.get("typography_layers", [])) <= 2] if word_count >= 3 else pool
+            candidate_pool = dialogue_base if dialogue_base else pool
+
             # Tier 1: Exact ±1 word count match — the preferred, word-count-faithful pool.
             tier1 = [
-                p for p in pool
+                p for p in candidate_pool
                 if abs(p.get("total_words", len(p.get("typography_layers", []))) - word_count) <= 1
             ]
             # Tier 2: ±3 word count tolerance — still respects the rough scale of the chunk.
             tier2 = [
-                p for p in pool
+                p for p in candidate_pool
                 if abs(p.get("total_words", len(p.get("typography_layers", []))) - word_count) <= 3
             ]
             # Tier 3: Full pool fallback.
-            matching_profiles = tier1 or tier2 or pool
+            matching_profiles = tier1 or tier2 or candidate_pool
 
         if not matching_profiles:
             matching_profiles = pool
@@ -1646,13 +2359,40 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
         if len(recent_profile_ids) > max_recent:
             recent_profile_ids.pop(0)
 
-        hero_fx_preset = _select_primary_treatment(
-            rng, policy, signal, preset_usage_counts, recent_primary_fx,
-            is_single_word=is_single_word,
+        explicit_fx = (
+            design_input.get("fxPreset")
+            or design_input.get("motionPreset")
+            or design_input.get("treatment")
+            or design_input.get("treatmentSystem")
         )
+        is_special_ops_system = bool(
+            policy.get("specialOps")
+            or design_input.get("typographySystem") in ("special_ops", "special_ops_tier")
+        )
+        prompt_wants_lockup = any(k in str(design_input.get("prompt", "")).lower() for k in ("luxury", "documentary", "hierarchical", "asymmetric", "lockup", "micro-macro", "micro_macro"))
+        wants_lockup = (
+            explicit_fx in ("hierarchical_asymmetric_lockup", "documentary_lockup_captions", "micro_macro_kinetic_type")
+            or prompt_wants_lockup
+            or str(design_input.get("treatment", "")).lower() in ("hierarchical_asymmetric_lockup", "documentary_lockup_captions", "micro_macro_kinetic_type")
+            or str(design_input.get("treatmentSystem", "")).lower() in ("hierarchical_asymmetric_lockup", "documentary_lockup_captions", "micro_macro_kinetic_type")
+        )
+
+        if explicit_fx and any(item["id"] == explicit_fx for item in ANIMA_RUNTIME_TREATMENTS):
+            hero_fx_preset = explicit_fx
+        elif wants_lockup:
+            hero_fx_preset = "hierarchical_asymmetric_lockup"
+        elif is_special_ops_system and is_single_word and (preset_usage_counts.get("chiseled_prism_metallic", 0) < 2):
+            hero_fx_preset = "chiseled_prism_metallic"
+        elif is_special_ops_system and (signal["cadenceMs"] < 280 or policy["pacing"] == "fast") and preset_usage_counts.get("vj_kinetic_typography", 0) < 2:
+            hero_fx_preset = "vj_kinetic_typography"
+        else:
+            hero_fx_preset = _select_primary_treatment(
+                rng, policy, signal, preset_usage_counts, recent_primary_fx,
+                is_single_word=is_single_word,
+            )
         preset_usage_counts[hero_fx_preset] = preset_usage_counts.get(hero_fx_preset, 0) + 1
         recent_primary_fx.append(hero_fx_preset)
-        if len(recent_primary_fx) > 2:
+        if len(recent_primary_fx) > 4:
             recent_primary_fx.pop(0)
         overlay_fx = _select_overlay(rng, policy, signal, hero_fx_preset)
 
@@ -1673,14 +2413,48 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                 )
             except Exception as exc:  # never let the hook break the render
                 print(f"[typography] hook plan skipped: {exc}", flush=True)
-        if hook_plan is not None:
-            # Hook chunks lead with the dynamically planned cinematic hook treatment.
+        if hook_plan is not None and not wants_lockup and not explicit_fx:
+            # Hook chunks lead with the dynamically planned cinematic hook treatment only if not an explicit typography style.
             hero_fx_preset = hook_plan.get("hookType") or "hook_cinematic_dolly_zoom"
             preset_usage_counts[hero_fx_preset] = preset_usage_counts.get(hero_fx_preset, 0) + 1
 
+        is_lockup_treatment = wants_lockup or (hero_fx_preset in ("hierarchical_asymmetric_lockup", "documentary_lockup_captions", "micro_macro_kinetic_type"))
+        resolved_lockup_opt = "top_tucked"
+
         # If single word is paired with a 2-layer profile, split by stem/suffix
         target_layers = prof.get("typography_layers", [])
-        if is_single_word and len(target_layers) >= 2:
+        if is_lockup_treatment and word_count >= 2:
+            modifier_stopwords = {
+                "the", "a", "an", "up", "in", "on", "at", "to", "for", "of", "with", "by", "from",
+                "was", "were", "is", "are", "been", "be", "only", "one", "didn't", "did", "not",
+                "it", "its", "that", "this", "these", "those", "have", "has", "had", "we", "you", "they"
+            }
+            w0_clean = "".join(ch for ch in words[0].lower() if ch.isalnum())
+            last_clean = "".join(ch for ch in words[-1].lower() if ch.isalnum())
+
+            if w0_clean in modifier_stopwords and word_count >= 3:
+                split_idx = 1
+                while split_idx < word_count - 1 and "".join(ch for ch in words[split_idx].lower() if ch.isalnum()) in modifier_stopwords:
+                    split_idx += 1
+                allocations = [
+                    {"layer": {"role": "modifier", "font_style": {"weight": 600, "relative_scale": 0.30}}, "words": words[:split_idx], "is_hero": False},
+                    {"layer": {"role": "hero", "font_style": {"weight": 900, "relative_scale": 1.0}}, "words": words[split_idx:], "is_hero": True},
+                ]
+                resolved_lockup_opt = "top_tucked"
+            elif last_clean in modifier_stopwords or (word_count >= 3 and "".join(ch for ch in words[1].lower() if ch.isalnum()) in modifier_stopwords):
+                split_idx = 2 if (word_count >= 4 and words[0][0].isupper() and words[1][0].isupper()) else 1
+                allocations = [
+                    {"layer": {"role": "hero", "font_style": {"weight": 900, "relative_scale": 1.0}}, "words": words[:split_idx], "is_hero": True},
+                    {"layer": {"role": "modifier", "font_style": {"weight": 600, "relative_scale": 0.30}}, "words": words[split_idx:], "is_hero": False},
+                ]
+                resolved_lockup_opt = "bottom_tucked"
+            else:
+                allocations = [
+                    {"layer": {"role": "modifier", "font_style": {"weight": 600, "relative_scale": 0.30}}, "words": [words[0]], "is_hero": False},
+                    {"layer": {"role": "hero", "font_style": {"weight": 900, "relative_scale": 1.0}}, "words": words[1:], "is_hero": True},
+                ]
+                resolved_lockup_opt = "top_tucked"
+        elif is_single_word and len(target_layers) >= 2:
             syllables = split_single_word_syllables(words[0])
             if len(syllables) >= 2:
                 allocations = [
@@ -1699,17 +2473,39 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
         is_see_through = "see_through" in prof.get("metadata", {}).get("treatment_system", "") or "see_through" in prof_name_lower
         is_3d_extrusion = "3d" in prof.get("metadata", {}).get("overall_mood", "").lower() or "3d" in prof_name_lower
 
+        # Pre-resolve the designed hero font for this chunk to enforce parent pairing fidelity
+        chunk_hero_font = ""
+        for h_alloc in allocations:
+            if h_alloc.get("is_hero"):
+                h_cands = [resolve_safe_font_candidate(c) for c in h_alloc.get("layer", {}).get("matched_font_candidates", [])]
+                h_cands = [c for c in h_cands if c]
+                if h_cands:
+                    chunk_hero_font = h_cands[0]
+                    break
+
+        used_word_obj_ids = set()
         for layer_idx, alloc in enumerate(allocations):
             layer_spec = alloc.get("layer", {})
             layer_words = alloc.get("words", [])
             w_count = len(layer_words)
 
-            # Map word timestamps if available
+            # Map word timestamps faithfully from chunk_word_objs
             layer_word_items = []
             for w_i, w_text in enumerate(layer_words):
-                curr_w_idx = word_offset + w_i
-                if curr_w_idx < len(chunk_word_objs):
-                    layer_word_items.append(chunk_word_objs[curr_w_idx])
+                clean_target = "".join(ch for ch in w_text.lower() if ch.isalnum())
+                matched_obj = None
+                for c_obj in chunk_word_objs:
+                    clean_c = "".join(ch for ch in str(c_obj.get("text", "")).lower() if ch.isalnum())
+                    if clean_c == clean_target and id(c_obj) not in used_word_obj_ids:
+                        matched_obj = c_obj
+                        used_word_obj_ids.add(id(c_obj))
+                        break
+                if matched_obj is not None:
+                    layer_word_items.append(matched_obj)
+                elif word_offset + w_i < len(chunk_word_objs):
+                    fallback_obj = chunk_word_objs[word_offset + w_i]
+                    layer_word_items.append(fallback_obj)
+                    used_word_obj_ids.add(id(fallback_obj))
                 else:
                     layer_word_items.append({
                         "text": w_text,
@@ -1725,19 +2521,47 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
             f_style = layer_spec.get("font_style", {})
             role = layer_spec.get("role", "body")
             is_hero_layer = alloc.get("is_hero", False)
+            # Strict stop-word guard: small functional words ("are", "and", "the", "to", "in", "is")
+            # can NEVER be the focal hero layer if any other layer has substantive content words!
+            if is_hero_layer and all(not _is_substantive(w) for w in layer_words):
+                other_has_substantive = any(
+                    any(_is_substantive(w) for w in other_alloc.get("words", []))
+                    for o_idx, other_alloc in enumerate(allocations) if o_idx != layer_idx
+                )
+                if other_has_substantive:
+                    is_hero_layer = False
             casing = f_style.get("casing", prof.get("metadata", {}).get("casing_strategy", "mixed"))
 
             # Authoritative Font Candidate from Font JSON with safe bitmap fallback
-            candidates = [resolve_safe_font_candidate(c) for c in layer_spec.get("matched_font_candidates", [])]
+            raw_cands = layer_spec.get("matched_font_candidates", [])
+            candidates = [resolve_safe_font_candidate(c) for c in raw_cands]
+            candidates = [c for c in candidates if c]
+
             if candidates:
                 primary_font = candidates[0]
                 accent_font = candidates[1] if len(candidates) > 1 else candidates[0]
             else:
-                primary_font = "Playfair Display"
-                accent_font = "Playfair Display"
+                primary_font = "Playfair Display" if is_hero_layer else "Montserrat"
+                accent_font = primary_font
+
+            # Strictly respect font JSON parents; only upgrade unstyled fallbacks and enforce anti-clash policy
+            primary_font = upgrade_font_candidate(primary_font, is_hero_layer, role=layer_spec.get("role", "body"), rng=rng, hero_font=chunk_hero_font)
+            accent_font = upgrade_font_candidate(accent_font, False, role="companion", rng=rng, hero_font=chunk_hero_font)
+
+            clean_len = max(1, len(raw_layer_text))
+            # Policy: Script / calligraphic fonts are strictly prohibited on short words (<= 4 characters, e.g. 'Do.', 'need', 'is', 'to', 'of', 'a')
+            # or any functional stopwords / auxiliary verbs ('have', 'are', 'was', 'were', 'been', etc.)
+            is_script_candidate = any(s in primary_font.lower() for s in ("script", "exmouth", "brotherhood", "bromello", "bucklane", "alex", "pinyon", "champignon", "dancing", "sacramento", "cavas", "formale"))
+            is_all_stopwords = all(w.lower().strip(".,!?:;\"'") in STOPWORDS for w in layer_words)
+            if is_script_candidate and (clean_len <= 4 or is_all_stopwords):
+                primary_font = "Playfair Display" if is_hero_layer else "Outfit"
+                accent_font = "Bodoni Moda" if is_hero_layer else "Inter"
 
             base_size = int(f_style.get("size_px_base", 50))
             relative_scale = float(f_style.get("relative_scale", 1.0 if is_hero_layer else 0.7))
+            is_script = any(s in primary_font.lower() for s in ("exmouth", "champignon", "brotherhood", "bromello", "script", "cavas", "bucklane", "formale"))
+            is_spencerian = any(s in primary_font.lower() for s in ("exmouth", "champignon", "brotherhood"))
+            script_floor = 115 if is_spencerian else (80 if is_script else 50)
 
             # Sensible, readable, professional mobile typography sizing consistency envelope:
             if is_landscape:
@@ -1750,42 +2574,85 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                 elif is_hero_layer:
                     font_size_px = max(80, min(130, int(base_size * 1.8 * max(0.85, relative_scale))))
                     resolved_weight = int(f_style.get("weight", 800))
-                    layer_fx = _resolve_font_json_treatment(prof, layer_spec, is_hero=True, is_single_word=is_single_word, rng=rng, policy=policy)
+                    layer_fx = hero_fx_preset
                     layer_overlay = overlay_fx
                 else:
                     font_size_px = max(55, min(75, int(base_size * 1.3 * max(0.7, relative_scale))))
                     resolved_weight = int(f_style.get("weight", 600))
                     layer_fx = _resolve_font_json_treatment(prof, layer_spec, is_hero=False, is_single_word=is_single_word, rng=rng, policy=policy)
                     layer_overlay = None
-            elif behind_subject:
-                # Towering colossal tall font behind subject in 9:16 portrait (broad billboard span)
-                clean_len = max(1, len(raw_layer_text))
-                if clean_len <= 5:
-                    font_size_px = 320
-                elif clean_len <= 8:
-                    font_size_px = 280
+            # Average char aspect width ratio based on font type and letterform geometry
+            is_ultra_tall = any(k in primary_font.lower() for k in ("anton", "bebas", "six caps", "teko", "saira", "senzabella", "oswald", "antenna"))
+            is_script_font = any(k in primary_font.lower() or k in str(f_style.get("style", "")).lower() for k in ("script", "pinyon", "dancing", "italic", "great vibes", "alex"))
+            is_wide_serif = any(k in primary_font.lower() for k in ("bodoni", "playfair", "cinzel", "prata", "cormorant", "didot", "caslon"))
+            base_aspect = 0.40 if is_ultra_tall else (0.50 if is_script_font else (0.64 if is_wide_serif else 0.56))
+            is_upper = str(casing).lower() == "uppercase" or str(f_style.get("casing", "")).lower() == "uppercase" or raw_layer_text.isupper()
+            char_aspect = base_aspect * (1.35 if is_upper else 1.0)
+            # Safe text margin: 820px on 1080 portrait gives rock-solid 130px margins on left and right
+            max_safe_width = 1500 if is_landscape else 820
+
+            if is_landscape:
+                if behind_subject:
+                    target_font_size = max(130, min(180, int(base_size * 2.4 * max(0.9, relative_scale))))
+                    resolved_weight = int(f_style.get("weight", 900))
+                    casing = f_style.get("casing", "uppercase")
+                    layer_fx = hero_fx_preset
+                    layer_overlay = overlay_fx
+                elif is_hero_layer:
+                    target_font_size = max(80, min(130, int(base_size * 1.8 * max(0.85, relative_scale))))
+                    resolved_weight = int(f_style.get("weight", 800))
+                    layer_fx = hero_fx_preset
+                    layer_overlay = overlay_fx
                 else:
-                    font_size_px = 245
+                    target_font_size = max(55, min(75, int(base_size * 1.3 * max(0.7, relative_scale))))
+                    resolved_weight = int(f_style.get("weight", 600))
+                    layer_fx = _resolve_font_json_treatment(prof, layer_spec, is_hero=False, is_single_word=is_single_word, rng=rng, policy=policy)
+                    layer_overlay = None
+            elif behind_subject:
+                # Responsive behind-subject typography scale respecting character length
+                if clean_len <= 4:
+                    target_font_size = 210
+                elif clean_len <= 6:
+                    target_font_size = 175
+                elif clean_len <= 8:
+                    target_font_size = 140
+                elif clean_len <= 11:
+                    target_font_size = 110
+                else:
+                    target_font_size = 85
                 resolved_weight = int(f_style.get("weight", 900))
                 casing = f_style.get("casing", "uppercase")
-                layer_fx = "canva_tall_glyph_stack"
+                layer_fx = hero_fx_preset or "apple_pro_display_hero_revealer"
                 layer_overlay = overlay_fx
             elif is_hero_layer:
+                is_script = any(s in primary_font.lower() for s in ("exmouth", "champignon", "brotherhood", "bromello", "script", "cavas", "bucklane", "formale"))
+                is_spencerian = any(s in primary_font.lower() for s in ("exmouth", "champignon", "brotherhood"))
+                script_floor = 115 if is_spencerian else 80
+                scale_boost = 1.45 if is_spencerian else (1.30 if is_script else 1.0)
                 if is_single_word:
-                    # Single-word focal hero (120px–160px)
-                    font_size_px = max(120, min(160, int(base_size * 2.5 * max(0.85, relative_scale))))
+                    # Single-word focal hero (100px–150px)
+                    target_font_size = max(script_floor, min(155, int(base_size * 2.2 * max(0.85, relative_scale) * scale_boost)))
                 else:
-                    # Multi-word hero headline (105px–140px)
-                    font_size_px = max(105, min(140, int(base_size * 2.2 * max(0.8, relative_scale))))
+                    # Multi-word hero headline (80px–138px)
+                    target_font_size = max(script_floor, min(138, int(base_size * 1.9 * max(0.8, relative_scale) * scale_boost)))
+                if is_script:
+                    target_font_size = max(script_floor, target_font_size)
                 resolved_weight = int(f_style.get("weight", 800))
-                layer_fx = _resolve_font_json_treatment(prof, layer_spec, is_hero=True, is_single_word=is_single_word, rng=rng, policy=policy)
+                layer_fx = hero_fx_preset
                 layer_overlay = overlay_fx
             else:
-                # Companion / secondary subtitle line (consistent, readable floor: 65px–90px)
-                font_size_px = max(65, min(90, int(base_size * 1.8 * max(0.65, relative_scale))))
+                # Companion / secondary subtitle line (legible floor: 56px–78px; script floor: 80px)
+                is_script = any(s in primary_font.lower() for s in ("exmouth", "champignon", "brotherhood", "bromello", "script", "cavas", "bucklane", "formale"))
+                is_spencerian = any(s in primary_font.lower() for s in ("exmouth", "champignon", "brotherhood"))
+                script_floor = 100 if is_spencerian else 80
+                target_font_size = max(script_floor if is_script else 56, min(110 if is_script else 78, int(base_size * 1.35 * max(0.6, relative_scale))))
                 resolved_weight = int(f_style.get("weight", 600))
                 layer_fx = _resolve_font_json_treatment(prof, layer_spec, is_hero=False, is_single_word=is_single_word, rng=rng, policy=policy)
                 layer_overlay = None
+
+            # Enforce max horizontal text width clamp so words NEVER overflow canvas boundaries
+            max_size_for_width = int(max_safe_width / (clean_len * char_aspect))
+            font_size_px = max(script_floor if is_script else 50, min(target_font_size, max_size_for_width))
 
             raw_color = f_style.get("color")
             layer_effects = layer_spec.get("effects", {})
@@ -1800,30 +2667,172 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                 background_luminance=0.15,  # default dark video background
             )
 
-            if is_see_through:
+            if is_lockup_treatment:
+                primary_font = "Apple Garamond"
+                accent_font = "Apple Garamond"
+                f_style["style"] = "italic"
+                if is_hero_layer:
+                    font_size_px = max(96, min(140, 120))
+                    resolved_weight = 900
+                    letter_spacing = -0.035
+                    casing = "capitalize" if any(w[0].isupper() for w in layer_words) else "title"
+                    layer_fx = "hierarchical_asymmetric_lockup"
+                    layer_overlay = overlay_fx
+                    style_treatment["verticalGradient"] = "linear-gradient(180deg, #FFFFFF 0%, #FAFAFA 40%, #D4D4D4 100%)"
+                    style_treatment["hasGradient"] = True
+                    style_treatment["fontStyle"] = "italic"
+                    style_treatment["fontFamily"] = "Apple Garamond"
+                    style_treatment["shadow"] = "0 6px 24px rgba(0, 0, 0, 0.95), 0 2px 6px rgba(0, 0, 0, 0.90)"
+                else:
+                    font_size_px = max(26, min(38, 34))  # 3:1 to 4:1 scale ratio
+                    resolved_weight = 300
+                    letter_spacing = -0.025
+                    casing = "lowercase"
+                    layer_fx = "hierarchical_asymmetric_lockup"
+                    layer_overlay = None
+                    style_treatment["textFillColor"] = "#F2F2F2"
+                    style_treatment["color"] = "#F2F2F2"
+                    style_treatment["hasGradient"] = False
+                    style_treatment["fontStyle"] = "italic"
+                    style_treatment["fontFamily"] = "Apple Garamond"
+                    style_treatment["shadow"] = "0 2px 10px rgba(0, 0, 0, 0.95), 0 1px 3px rgba(0, 0, 0, 0.90)"
+
+            if is_see_through and not is_lockup_treatment:
+                # Rectified glass letterform: the frame's opaque ink color is
+                # authoritative. The renderer still adds the frosted glass
+                # backplate + outline, but the glyphs themselves are always
+                # solid and legible (never a translucent near-invisible fill).
                 layer_fx = "see_through_glass_letterform"
-                style_treatment["textFillColor"] = f_style.get("color", "rgba(232, 196, 160, 0.76)")
-                style_treatment["shadow"] = "none"
+                glass_fill = f_style.get("color") or "rgba(232, 196, 160, 0.95)"
+                if "rgba" in str(glass_fill):
+                    import re as _re
+                    glass_fill = _re.sub(
+                        r"(,\s*)0?\.\d+\s*\)$",
+                        r"\g<1>0.95)",
+                        str(glass_fill),
+                    )
+                style_treatment["textFillColor"] = glass_fill
+                style_treatment["shadow"] = "0 2px 10px rgba(0, 0, 0, 0.55)"
                 style_treatment["glow"] = "none"
                 style_treatment["hasGradient"] = False
-            elif is_3d_extrusion and is_hero_layer:
+            elif is_3d_extrusion and is_hero_layer and not is_lockup_treatment:
                 layer_fx = "metallic_chrome_countup_hero"
                 style_treatment["shadow"] = "1px 1px 0 #0055b3, 2px 2px 0 #004499, 3px 3px 0 #003380, 4px 4px 0 #002266, 0 8px 24px rgba(0, 102, 255, 0.85)"
 
-            letter_spacing = float(f_style.get("letter_spacing_em", 0.01))
-            if is_single_word and is_hero_layer:
-                letter_spacing = max(0.04, letter_spacing)
+            wants_air_frontal = (
+                not behind_subject
+                and (
+                    design_input.get("frontalTreatment") in ("air_frontal_optical_bloom", "in_the_air_diffusion_bloom", "atmospheric_optical_bloom", "frontal_air_bloom")
+                    or design_input.get("textTreatment") in ("air_frontal_optical_bloom", "in_the_air_diffusion_bloom", "atmospheric_optical_bloom", "frontal_air_bloom")
+                    or policy.get("frontalTreatment") in ("air_frontal_optical_bloom", "in_the_air_diffusion_bloom")
+                    or layer_fx in ("air_frontal_optical_bloom", "in_the_air_diffusion_bloom")
+                )
+            )
+            if wants_air_frontal:
+                layer_fx = "air_frontal_optical_bloom"
+                layer_overlay = "air_frontal_optical_bloom"
+                style_treatment["gradient"] = "linear-gradient(180deg, #FFFFFF 0%, #FAFBFD 35%, #EDECE9 70%, #DCD7CD 100%)"
+                style_treatment["verticalGradient"] = "linear-gradient(180deg, #FFFFFF 0%, #FAFBFD 35%, #EDECE9 70%, #DCD7CD 100%)"
+                style_treatment["hasGradient"] = True
+                style_treatment["glow"] = "drop-shadow(0 0 10px rgba(255, 255, 255, 0.60)) drop-shadow(0 0 22px rgba(255, 250, 240, 0.35))"
+                style_treatment["shadow"] = "0 0 28px rgba(0, 0, 0, 0.45), 0 2px 14px rgba(0, 0, 0, 0.38), 0 0 6px rgba(0, 0, 0, 0.30)"
+                style_treatment["opticalBloom"] = True
+                style_treatment["edgeFeatherPx"] = 0.35
+                style_treatment["backplateShadow"] = "0 0 28px rgba(0, 0, 0, 0.45), 0 2px 14px rgba(0, 0, 0, 0.38), 0 0 6px rgba(0, 0, 0, 0.30)"
+                style_treatment["atmosphericBlend"] = "screen"
+                style_treatment["treatmentOverlay"] = "air_frontal_optical_bloom"
+
+            wants_chiseled_prism = (
+                not behind_subject
+                and (
+                    layer_fx in ("chiseled_prism_metallic", "prism_chisel_hard_bevel")
+                    or design_input.get("textTreatment") in ("chiseled_prism_metallic", "prism_chisel_hard_bevel")
+                    or (is_special_ops_system and is_single_word and is_hero_layer and idx % 3 == 0)
+                )
+            )
+            if wants_chiseled_prism:
+                layer_fx = "chiseled_prism_metallic"
+                resolved_weight = max(800, resolved_weight)
+                split_gradient = "linear-gradient(180deg, #FFFFFF 0%, #F1F5F9 47%, #334155 49%, #1E293B 100%)"
+                style_treatment["gradient"] = split_gradient
+                style_treatment["verticalGradient"] = split_gradient
+                style_treatment["hasGradient"] = True
+                style_treatment["textFillColor"] = "#FFFFFF"
+                style_treatment["glow"] = "0 0 14px rgba(255, 255, 255, 0.40)"
+                style_treatment["shadow"] = "0 1px 0 #CBD5E1, 0 -1px 0 #0F172A, 0 8px 24px rgba(0, 0, 0, 0.95), 0 2px 8px rgba(0, 0, 0, 0.90)"
+                style_treatment["boundaryStroke"] = "2.5px rgba(0, 0, 0, 0.95)"
+                style_treatment["chiseledPrism"] = True
+                style_treatment["treatmentOverlay"] = "chiseled_prism_metallic"
+
+            wants_vjkt = (
+                not behind_subject
+                and (
+                    layer_fx in ("vj_kinetic_typography", "vjkt", "vj_kinetic")
+                    or design_input.get("textTreatment") in ("vj_kinetic_typography", "vjkt")
+                )
+            )
+            if wants_vjkt:
+                layer_fx = "vj_kinetic_typography"
+                resolved_weight = max(800, resolved_weight)
+                style_treatment["treatmentOverlay"] = "vj_kinetic_typography"
+                style_treatment["vjkt"] = True
+
+            if is_lockup_treatment:
+                letter_spacing = -0.035 if is_hero_layer else -0.025
+            else:
+                letter_spacing = float(f_style.get("letter_spacing_em", 0.01))
+                if is_single_word and is_hero_layer:
+                    letter_spacing = max(0.04, letter_spacing)
 
             base_size = max(1.0, float(f_style.get("size_px_base", 60)))
             vertical_margin_top = float(f_style.get("vertical_margin_top_px", 0))
             if vertical_margin_top != 0:
-                # Proportional scaling to the target 1080x1920 font size to faithfully express overlap
+                # Proportional scaling to the target font size
                 overlap_ratio = vertical_margin_top / base_size
                 margin_top_px = round(overlap_ratio * font_size_px)
             else:
                 margin_top_px = 0
 
+            # Descender collision avoidance policy:
+            # If the preceding line contains characters with descenders ('g', 'j', 'p', 'q', 'y'),
+            # aggressive negative margins crash into the hanging tails. Clamp to safe clearance.
+            if margin_top_px < 0 and layer_idx > 0 and len(rendered_layers) > 0:
+                prev_text = str(rendered_layers[-1].get("rawText", ""))
+                has_descenders = any(ch in prev_text for ch in "gjpqyQ")
+                if has_descenders:
+                    margin_top_px = max(-4, margin_top_px // 3)
+
             is_overlapping = margin_top_px < 0
+
+            # Spatial Layout Archetypes: Cascading Diagonal Step, Shoulder Overlap, & Cortex Tri-Stack
+            margin_left_px = int(f_style.get("margin_left_px", layer_spec.get("margin_left_px", 0)))
+            align_self = str(f_style.get("align_self", layer_spec.get("align_self", "center")))
+            pid = str(prof.get("id", ""))
+            ts_meta = str(prof.get("metadata", {}).get("treatment_system", "")).lower()
+
+            if margin_left_px == 0 and align_self == "center":
+                if pid in ("image (52)", "image (53)", "image (54)", "image (55)") or "diagonal" in ts_meta:
+                    margin_left_px = layer_idx * 48
+                    align_self = "flex-start"
+                elif pid == "image (7)":
+                    if layer_idx == 0:
+                        margin_left_px = -36
+                        align_self = "center"
+                    else:
+                        margin_left_px = 24
+                        align_self = "center"
+                elif pid == "image (97)":
+                    if layer_idx == 0:
+                        align_self = "flex-end"
+                        margin_left_px = 0
+                    elif layer_idx == 1:
+                        align_self = "center"
+                        margin_left_px = 0
+                    else:
+                        align_self = "flex-start"
+                        margin_left_px = 0
+                elif pid == "image (58)":
+                    align_self = "flex-start"
 
             rendered_layers.append({
                 "layerIndex": layer_idx,
@@ -1840,13 +2849,23 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                 "color": style_treatment["textFillColor"],
                 "casing": casing,
                 "letterSpacingEm": letter_spacing,
-                "lineHeight": float(f_style.get("line_height", 1.05)),
+                "lineHeight": (0.88 if is_hero_layer else 1.0) if is_lockup_treatment else float(f_style.get("line_height", 1.05)),
                 "marginTopPx": margin_top_px,
+                "marginLeftPx": margin_left_px,
+                "alignSelf": align_self,
                 "isHero": is_hero_layer,
                 "fxPreset": layer_fx,
                 "entryLeadMs": _entry_lead_ms(policy, signal, is_hero_layer, layer_fx),
                 "behindSubject": behind_subject,
                 "treatmentOverlay": layer_overlay,
+                "frontalTreatment": "air_frontal_optical_bloom" if wants_air_frontal else None,
+                "opticalBloom": style_treatment.get("opticalBloom", False),
+                "edgeFeatherPx": style_treatment.get("edgeFeatherPx"),
+                "backplateShadow": style_treatment.get("backplateShadow"),
+                "atmosphericBlend": style_treatment.get("atmosphericBlend"),
+                "chiseledPrism": bool(style_treatment.get("chiseledPrism", False)),
+                "boundaryStroke": style_treatment.get("boundaryStroke"),
+                "vjkt": bool(style_treatment.get("vjkt", False)),
                 "selection": {
                     "role": "hero" if is_hero_layer else "companion",
                     "primaryFx": layer_fx,
@@ -1857,13 +2876,86 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                 "glow": style_treatment["glow"],
                 "shadow": style_treatment["shadow"],
                 "textFillColor": style_treatment["textFillColor"],
-                "hasGradient": style_treatment["hasGradient"],
+                "hasGradient": style_treatment["hasGradient"] or bool(layer_effects.get("vertical_gradient") or layer_effects.get("verticalGradient")),
+                "verticalGradient": (
+                    style_treatment.get("verticalGradient")
+                    or layer_effects.get("vertical_gradient")
+                    or layer_effects.get("verticalGradient")
+                ),
+                "specularChamfer": style_treatment.get("specularChamfer", True),
+                "specularSheen": style_treatment.get("specularSheen", True),
+                "specularAngle": style_treatment.get("specularAngle", -35),
+                "volumetricShading": style_treatment.get("volumetricShading", True),
+                "contactShadow": style_treatment.get("contactShadow", "0 3px 6px rgba(0, 0, 0, 0.95)"),
+                "ambientShadow": style_treatment.get("ambientShadow", "0 12px 30px rgba(0, 0, 0, 0.55)"),
+                "opticalBleed": style_treatment.get("opticalBleed"),
                 "doubleUnderline": bool(layer_effects.get("double_underline", False)),
                 "isOverlapping": is_overlapping,
-                "zIndex": (layer_idx + 1) * 2 if is_overlapping else layer_idx + 1,
+                "isUnderlapping": False,
+                "isOverlayAtop": False,
+                "zIndex": int(layer_spec.get("z_index")) if "z_index" in layer_spec else ((layer_idx + 1) * 2 if is_overlapping else layer_idx + 1),
                 "depthZPx": 140 if is_hero_layer else (-110 if behind_subject else (-30 if layer_idx > 0 else 0)),
                 "focusPriority": 1 if is_hero_layer else (3 if behind_subject else 2),
             })
+
+        # Resolve inter-layer stacking hierarchy, overlay depth shadows, and underlapping vertical linear gradients
+        num_rend = len(rendered_layers)
+        for i in range(1, num_rend):
+            curr_layer = rendered_layers[i]
+            prev_layer = rendered_layers[i - 1]
+            curr_spec = allocations[i].get("layer", {})
+            prev_spec = allocations[i - 1].get("layer", {})
+            prev_effects = prev_spec.get("effects", {})
+            curr_effects = curr_spec.get("effects", {})
+
+            # Check if current layer steps upward over previous layer
+            if curr_layer.get("marginTopPx", 0) < 0:
+                prev_role = str(prev_layer.get("role", "")).lower()
+                prev_name = str(prev_layer.get("layerName", "")).lower()
+                prev_font = str(prev_layer.get("fontFamily", "")).lower()
+                prev_style = str(prev_layer.get("fontStyle", "")).lower()
+
+                # Archetype A: Top Flourish / Script / Accent Overlay placed ATOP the base word
+                # (e.g. image (124) 'My Signature', 'Special for you...')
+                is_prev_atop = (
+                    prev_role in ("accent_top_overlay", "overlay")
+                    or prev_name in ("flourish_script_top", "overlay_script", "script_overlay")
+                    or pid == "image (124)"
+                    or (prev_style == "italic" and any(k in prev_font for k in ("script", "vibes", "brush", "alex", "dancing", "exmouth", "champignon")) and curr_layer.get("isHero"))
+                    or (int(prev_spec.get("z_index", 0)) > int(curr_spec.get("z_index", 0)) if ("z_index" in prev_spec and "z_index" in curr_spec) else False)
+                )
+
+                if is_prev_atop:
+                    # Top layer sits in front atop the base layer
+                    prev_layer["zIndex"] = int(prev_spec.get("z_index", 10))
+                    prev_layer["isOverlapping"] = True
+                    prev_layer["isOverlayAtop"] = True
+                    prev_layer["shadow"] = "0 6px 20px rgba(0, 0, 0, 0.95), 0 2px 6px rgba(0, 0, 0, 0.90)"
+                    curr_layer["zIndex"] = int(curr_spec.get("z_index", 2))
+                    curr_layer["isUnderlapping"] = True
+                    curr_layer["isOverlapping"] = False
+                    if curr_effects.get("vertical_gradient") or curr_effects.get("verticalGradient"):
+                        curr_layer["verticalGradient"] = curr_effects.get("vertical_gradient") or curr_effects.get("verticalGradient")
+                        curr_layer["hasGradient"] = True
+                else:
+                    # Archetype B: Standard Overlap where current layer steps in front,
+                    # and the rear underlapping layer receives a vertical linear gradient fade to transparent
+                    # (e.g. image (150) 'over again', image (151) 'zoom-out effect', image (152) 'unreadable overlapping')
+                    curr_layer["zIndex"] = int(curr_spec.get("z_index", (i + 1) * 2))
+                    curr_layer["isOverlapping"] = True
+                    curr_layer["shadow"] = "0 6px 22px rgba(0, 0, 0, 0.95), 0 2px 8px rgba(0, 0, 0, 0.90)"
+
+                    prev_layer["zIndex"] = int(prev_spec.get("z_index", i))
+                    prev_layer["isUnderlapping"] = True
+                    prev_color = prev_layer.get("textFillColor") or prev_layer.get("color") or "#FFFFFF"
+                    # The rear layer under the step receives the linear vertical gradient that fades downwards into the screen
+                    if not prev_layer.get("verticalGradient"):
+                        prev_layer["verticalGradient"] = (
+                            prev_effects.get("vertical_gradient")
+                            or prev_effects.get("verticalGradient")
+                            or f"linear-gradient(180deg, {prev_color} 0%, {prev_color} 40%, rgba(255, 255, 255, 0.15) 85%, transparent 100%)"
+                        )
+                        prev_layer["hasGradient"] = True
 
         manifest_chunks.append({
             "chunkIndex": chunk.get("chunkIndex", idx + 1),
@@ -1874,7 +2966,8 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
             "pairedImage": prof.get("paired_image"),
             "paletteId": palette_id,
             "palette": chunk_palette,
-            "fxPreset": hero_fx_preset,
+            "fxPreset": "air_frontal_optical_bloom" if wants_air_frontal else hero_fx_preset,
+            "frontalTreatment": "air_frontal_optical_bloom" if wants_air_frontal else None,
             "hookPlan": hook_plan,
             "selection": {
                 "profilePoolSize": len(profiles),
@@ -1889,20 +2982,42 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                 "isTallProfile": _is_tall_matte_profile(prof),
                 "mode": policy["subjectLayering"],
             },
-            "placement": {
-                "xPercent": "50%",
-                "yPercent": "10%" if behind_subject else "68%",
-                "anchor": "center",
-            },
+            "placement": (
+                {
+                    "xPercent": "50%",
+                    "yPercent": "24%",
+                    "anchor": "center",
+                    "dominantZone": "cranial_crown",
+                }
+                if behind_subject
+                # Font-JSON layout_rules honoring is mini-run (9:16) only —
+                # the landscape composition keeps its own placement regime.
+                else (_layout_rules_placement(prof) if not is_landscape else {
+                    "xPercent": "50%",
+                    "yPercent": "54%",
+                    "anchor": "center",
+                    "dominantZone": "foreground_lower_deck",
+                })
+            ),
             "sourceStartMs": chunk.get("sourceStartMs", chunk.get("startMs", 0)),
             "sourceEndMs": chunk.get("sourceEndMs", chunk.get("endMs", 0)),
             "outputStartMs": chunk.get("outputStartMs", chunk.get("startMs", 0)),
             "outputEndMs": chunk.get("outputEndMs", chunk.get("endMs", 0)),
+            "displayStartMs": chunk.get("displayStartMs", chunk.get("outputStartMs", chunk.get("startMs", 0))),
+            "displayEndMs": chunk.get("displayEndMs", chunk.get("outputEndMs", chunk.get("endMs", 0))),
             "startMs": chunk.get("startMs", 0),
             "endMs": chunk.get("endMs", 0),
             "layers": rendered_layers,
             "words": chunk_word_objs,
             "listicle": listicle_planning["plans"].get(idx),
+            "treatmentSystem": "hierarchical_asymmetric_lockup" if is_lockup_treatment else prof.get("metadata", {}).get("treatment_system", ""),
+            "lockupOption": resolved_lockup_opt if is_lockup_treatment else None,
+            "lockupAnimationMode": (
+                design_input.get("lockupAnimationMode")
+                or ("spatial_push_spring", "blue_lantern_magnetic", "cinematic_slide_up", "docking_modifier", "kinetic_impact_snap")[idx % 5]
+            ) if is_lockup_treatment else None,
+            "chiseledPrism": any(l.get("chiseledPrism") for l in rendered_layers),
+            "vjkt": any(l.get("vjkt") for l in rendered_layers),
         })
 
     difference_chunk_indices = _select_difference_chunk_indices(
@@ -1910,12 +3025,35 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
         rng,
         creativity=policy.get("creativity", "balanced"),
     )
+    knockout_variants = ("difference_exclusion", "frosted_glass_stencil", "luma_inversion", "negative_space_cutout")
     for position in difference_chunk_indices:
         chunk = manifest_chunks[position]
+        variant = knockout_variants[position % len(knockout_variants)]
         chunk["selection"]["blendMode"] = "difference"
+        chunk["seeThrough"] = True
+        chunk["blendMode"] = "difference"
+        chunk["isKnockout"] = True
+        chunk["knockoutVariant"] = variant
+        chunk["boundaryStroke"] = "0.85px rgba(255, 255, 255, 0.75)"
+        chunk["refractionDispersion"] = True
+        chunk["chromaticAberration"] = {
+            "redOffsetPx": -0.85,
+            "blueOffsetPx": 0.85,
+            "blurPx": 1.0,
+        }
         for layer in chunk["layers"]:
             layer.update({
                 "blendMode": "difference",
+                "isSeeThrough": True,
+                "isKnockout": True,
+                "knockoutVariant": variant,
+                "boundaryStroke": "0.85px rgba(255, 255, 255, 0.75)",
+                "refractionDispersion": True,
+                "chromaticAberration": {
+                    "redOffsetPx": -0.85,
+                    "blueOffsetPx": 0.85,
+                    "blurPx": 1.0,
+                },
                 "color": "#FFFFFF",
                 "gradient": "none",
                 "glow": "none",
@@ -1924,6 +3062,11 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                 "hasGradient": False,
                 "doubleUnderline": False,
             })
+
+    # Stamp the pivot-satellite composition marker on every chunk (Bug C) so the
+    # renderer can lay the core word centered with satellites anchored to it.
+    for chunk in manifest_chunks:
+        chunk["pivotLayout"] = select_pivot_layout(chunk)
 
     font_manifest = {
         "composition": "JosephLandscapeEdit" if is_landscape else "PrometheusMinRun",
@@ -1945,6 +3088,15 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
         "eligiblePortraitProfileCount": len(profiles),
         "listicleCatalog": listicle_planning,
         "runtimeTreatmentCatalog": [item["id"] for item in ANIMA_RUNTIME_TREATMENTS],
+        "specialOpsEnabled": is_special_ops_system,
+        "specialOpsCatalog": [
+            "chiseled_prism_metallic",
+            "vj_kinetic_typography",
+            "difference_mode_inversion",
+            "air_frontal_optical_bloom",
+            "see_through_glass_letterform",
+            "hierarchical_asymmetric_lockup",
+        ],
         "chunks": manifest_chunks,
     }
     return font_manifest

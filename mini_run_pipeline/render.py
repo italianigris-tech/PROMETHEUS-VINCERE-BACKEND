@@ -71,7 +71,7 @@ def build_audio_mix_command(
         f"asetpts=PTS-STARTPTS,apad=whole_dur={duration_sec:.3f},"
         f"atrim=duration={duration_sec:.3f},asplit=2[dialogue_sc][dialogue_mix]"
     ]
-    gain_db = _ffmpeg_number(song_program.get("baseGainDb", -18))
+    gain_db = _ffmpeg_number(song_program.get("baseGainDb", -7.0))
     for index, song in enumerate(songs):
         source_start = max(0.0, float(song.get("sourceStartMs", 0)) / 1000.0)
         source_end = max(source_start + 0.001, float(song.get("sourceEndMs", 0)) / 1000.0)
@@ -79,6 +79,7 @@ def build_audio_mix_command(
             f"[{index + 2}:a]atrim=start={source_start:.3f}:end={source_end:.3f},"
             "asetpts=PTS-STARTPTS,aresample=48000,"
             "aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo,"
+            "afade=t=in:st=0:d=0.060,"
             f"volume={gain_db}dB[song{index}]"
         )
 
@@ -92,13 +93,21 @@ def build_audio_mix_command(
         )
         music_label = output_label
 
+    # Small Speaker & Mobile Presence Optimization:
+    # 1. High-pass filter at 80 Hz: Removes sub-bass rumble that overloads phone and laptop speaker cones.
+    # 2. Presence contour at 1200 Hz (+1.5 dB): Guarantees melody and rhythm project clearly on open speakers without earpieces.
+    eq_label = f"{music_label}_presence"
+    filters.append(
+        f"[{music_label}]highpass=f=80,equalizer=f=1200:t=q:w=1.0:g=+1.5[{eq_label}]"
+    )
+
     ducking = song_program.get("dialogueDucking") or {}
     filters.append(
-        f"[{music_label}][dialogue_sc]sidechaincompress="
-        f"threshold={_ffmpeg_number(ducking.get('threshold', 0.02))}:"
-        f"ratio={_ffmpeg_number(ducking.get('ratio', 8))}:"
-        f"attack={_ffmpeg_number(ducking.get('attackMs', 20))}:"
-        f"release={_ffmpeg_number(ducking.get('releaseMs', 350))}[ducked_music]"
+        f"[{eq_label}][dialogue_sc]sidechaincompress="
+        f"threshold={_ffmpeg_number(ducking.get('threshold', 0.085))}:"
+        f"ratio={_ffmpeg_number(ducking.get('ratio', 2.2))}:"
+        f"attack={_ffmpeg_number(ducking.get('attackMs', 85))}:"
+        f"release={_ffmpeg_number(ducking.get('releaseMs', 400))}[ducked_music]"
     )
 
     mix_labels = ["[dialogue_mix]", "[ducked_music]"]
@@ -106,7 +115,7 @@ def build_audio_mix_command(
     for index, event in enumerate(renderable_sfx):
         label = f"sfx{index}"
         delay_ms = max(0, int(event.get("triggerMs", 0)))
-        gain = _ffmpeg_number(event.get("gainDb", -15))
+        gain = _ffmpeg_number(event.get("gainDb", -6.5))
         filters.append(
             f"[{sfx_input_start + index}:a]atrim=start=0:end=2,asetpts=PTS-STARTPTS,"
             "aresample=48000,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo,"
@@ -161,7 +170,7 @@ def build_sfx_dialogue_mix_command(
     for index, event in enumerate(renderable_sfx):
         label = f"sfx{index}"
         delay_ms = max(0, int(event.get("triggerMs", 0)))
-        gain = _ffmpeg_number(event.get("gainDb", -14))
+        gain = _ffmpeg_number(event.get("gainDb", -9.0))
         filters.append(
             f"[{sfx_input_start + index}:a]atrim=start=0:end=2,asetpts=PTS-STARTPTS,"
             "aresample=48000,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo,"
@@ -191,7 +200,11 @@ def resolve_sfx_event_paths(events: List[Dict[str, Any]], public_root: Path) -> 
         variant = int(event.get("variant", 1))
         candidates = [
             public_root / "sfx" / f"{cue}_{variant}.mp3",
+            public_root / "sfx" / f"{cue}_{variant}.wav",
             public_root / "sfx" / f"{cue}.mp3",
+            public_root / "sfx" / f"{cue}.wav",
+            public_root / "sfx" / f"{cue}_bupu.mp3",
+            public_root / "sfx" / f"{cue}_bupu.wav",
         ]
         local_path = next((candidate for candidate in candidates if candidate.is_file()), None)
         if local_path is not None:
@@ -212,6 +225,12 @@ def extract_matte_windows_from_chunks(
             or any(l.get("behindSubject") for l in chunk.get("layers", []))
         )
         if not is_behind:
+            continue
+        placement = chunk.get("placement") or {}
+        dom_zone = placement.get("dominantZone")
+        safe_region = placement.get("safeRegionId")
+        intersects = placement.get("intersectsSubject")
+        if dom_zone == "foreground_lower_deck" and safe_region != "behind_subject_above_head" and not intersects:
             continue
         start_ms = int(chunk.get("outputStartMs", chunk.get("startMs", 0)))
         end_ms = int(chunk.get("outputEndMs", chunk.get("endMs", start_ms + 1500)))
@@ -264,12 +283,21 @@ def stitch_matte_windows(
     for entry in stitch:
         fg_file = entry.get("foregroundFile")
         if fg_file:
-            full_fg_path = Path(artifact_root) / "media" / fg_file
-            if full_fg_path.exists():
+            candidates = [
+                Path(artifact_root) / "media" / fg_file,
+                Path(artifact_root) / fg_file,
+                Path(output_path).parent / fg_file,
+                Path(output_path).parent.parent.parent.parent / "media" / fg_file,
+            ]
+            full_fg_path = next((p for p in candidates if p.exists()), None)
+            if full_fg_path:
                 valid_entries.append((entry, full_fg_path))
 
     if not valid_entries:
         raise RuntimeError("None of the Martin foreground window assets exist on disk.")
+
+    # Sort valid entries by outputStartMs
+    valid_entries.sort(key=lambda item: int(item[0].get("outputStartMs", 0)))
 
     # If single window covers the entire timeline [0, duration], copy directly
     if len(valid_entries) == 1:
@@ -280,42 +308,94 @@ def stitch_matte_windows(
             shutil.copyfile(fg_path, output_path)
             return output_path
 
-    # Multi-window or partial-window: construct full-timeline transparent canvas and overlay
-    duration_sec = max(0.1, effective_duration_ms / 1000.0)
+    # Multi-window or partial-window: construct full-timeline transparent canvas via concatenation
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    temp_dir = output_path.parent / f"tmp_stitch_{output_path.stem}"
+    temp_dir.mkdir(parents=True, exist_ok=True)
 
-    cmd = [
-        "ffmpeg", "-y", "-loglevel", "error",
-        "-f", "lavfi",
-        "-i", f"color=c=black@0.0:s={width}x{height}:r={fps:.3f}:d={duration_sec:.3f}",
-    ]
-    for _, fg_path in valid_entries:
-        cmd.extend(["-i", str(fg_path)])
+    try:
+        concat_files = []
+        cur_ms = 0
+        blank_idx = 0
 
-    filter_parts = []
-    current_input = "[0:v]"
-    for idx, (entry, _) in enumerate(valid_entries):
-        start_sec = max(0.0, float(entry.get("outputStartMs", 0)) / 1000.0)
-        win_label = f"win{idx + 1}"
-        filter_parts.append(f"[{idx + 1}:v]setpts=PTS-STARTPTS+{start_sec:.3f}/TB[{win_label}]")
-        next_input = f"[tmp{idx + 1}]" if idx < len(valid_entries) - 1 else "[outv]"
-        filter_parts.append(f"{current_input}[{win_label}]overlay=x=0:y=0:format=auto:eof_action=pass{next_input}")
-        current_input = next_input
+        for entry, fg_path in valid_entries:
+            start_ms = max(0, int(entry.get("outputStartMs", 0)))
+            end_ms = max(start_ms + 100, int(entry.get("outputEndMs", start_ms + 1000)))
 
-    cmd.extend([
-        "-filter_complex", ";".join(filter_parts),
-        "-map", "[outv]",
-        "-c:v", "libvpx-vp9",
-        "-pix_fmt", "yuva420p",
-        "-b:v", "0",
-        "-crf", "18",
-        "-deadline", "realtime",
-        "-cpu-used", "4",
-        "-an",
-        str(output_path),
-    ])
+            if start_ms > cur_ms:
+                gap_sec = (start_ms - cur_ms) / 1000.0
+                blank_file = temp_dir / f"blank_{blank_idx}.webm"
+                blank_idx += 1
+                subprocess.run([
+                    "ffmpeg", "-y", "-loglevel", "error",
+                    "-f", "lavfi",
+                    "-i", f"color=c=black@0.0:s={width}x{height}:r={fps:.3f}:d={gap_sec:.3f},format=yuva420p",
+                    "-c:v", "libvpx-vp9",
+                    "-pix_fmt", "yuva420p",
+                    "-b:v", "0",
+                    "-crf", "10",
+                    "-deadline", "realtime",
+                    "-cpu-used", "4",
+                    "-an",
+                    str(blank_file),
+                ], check=True)
+                concat_files.append(blank_file)
 
-    _run_ffmpeg(cmd, timeout=300)
+            concat_files.append(fg_path)
+            cur_ms = end_ms
+
+        if cur_ms < effective_duration_ms:
+            tail_sec = (effective_duration_ms - cur_ms) / 1000.0
+            blank_file = temp_dir / f"blank_{blank_idx}.webm"
+            subprocess.run([
+                "ffmpeg", "-y", "-loglevel", "error",
+                "-f", "lavfi",
+                "-i", f"color=c=black@0.0:s={width}x{height}:r={fps:.3f}:d={tail_sec:.3f},format=yuva420p",
+                "-c:v", "libvpx-vp9",
+                "-pix_fmt", "yuva420p",
+                "-b:v", "0",
+                "-crf", "10",
+                "-deadline", "realtime",
+                "-cpu-used", "4",
+                "-an",
+                str(blank_file),
+            ], check=True)
+            concat_files.append(blank_file)
+
+        list_file = temp_dir / "concat_list.txt"
+        with open(list_file, "w", encoding="utf-8") as f:
+            for p in concat_files:
+                p_str = str(p.resolve()).replace("\\", "/")
+                f.write(f"file '{p_str}'\n")
+
+        # Try fast stream copy concat first
+        copy_cmd = [
+            "ffmpeg", "-y", "-loglevel", "error",
+            "-f", "concat", "-safe", "0",
+            "-i", str(list_file),
+            "-c", "copy",
+            str(output_path),
+        ]
+        res = subprocess.run(copy_cmd, capture_output=True, text=True)
+        if res.returncode != 0 or not output_path.exists() or output_path.stat().st_size == 0:
+            # Fallback to VP9 yuva420p re-encode
+            reencode_cmd = [
+                "ffmpeg", "-y", "-loglevel", "error",
+                "-f", "concat", "-safe", "0",
+                "-i", str(list_file),
+                "-c:v", "libvpx-vp9",
+                "-pix_fmt", "yuva420p",
+                "-b:v", "0",
+                "-crf", "12",
+                "-deadline", "realtime",
+                "-cpu-used", "4",
+                "-an",
+                str(output_path),
+            ]
+            _run_ffmpeg(reencode_cmd, timeout=300)
+    finally:
+        shutil.rmtree(temp_dir, ignore_errors=True)
+
     if not output_path.exists() or output_path.stat().st_size == 0:
         raise RuntimeError(f"FFmpeg failed to create stitched matte at {output_path}")
     return output_path
@@ -383,6 +463,89 @@ def cut_part(
     return {"file": str(output_path)}
 
 
+def cut_editorial_shot(
+    source_path: str,
+    timeline: Dict[str, Any],
+    output_path: str,
+    max_clip_ms: int = 30000,
+) -> Dict[str, Any]:
+    """Cut video shot with frame-accurate parity with editorial timeline.
+
+    If timestampMap contains 'cut' segments, trims and concatenates kept intervals
+    via FFmpeg filter_complex (matching backend/src/maul/editorial-timeline.ts).
+    If no cut segments exist, performs a single continuous slice.
+    """
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+    selected_window = (timeline or {}).get("selectedWindow") or {}
+    source_start_ms = int(selected_window.get("sourceStartMs", 0))
+    timestamp_map = (timeline or {}).get("timestampMap") or []
+
+    cut_segments = [s for s in timestamp_map if s.get("mode") == "cut"]
+    kept_segments = [s for s in timestamp_map if s.get("mode") != "cut"]
+
+    if not cut_segments or not kept_segments:
+        effective_duration_ms = int((timeline or {}).get("outputDurationMs", 0)) or max_clip_ms
+        return cut_part(
+            source_path=source_path,
+            source_start_ms=source_start_ms,
+            source_end_ms=source_start_ms + min(max_clip_ms, effective_duration_ms),
+            output_path=output_path,
+        )
+
+    # Filter and cap kept segments to max_clip_ms
+    active_kept: List[Dict[str, Any]] = []
+    accumulated_ms = 0
+    for seg in kept_segments:
+        seg_dur = int(seg["sourceEndMs"]) - int(seg["sourceStartMs"])
+        if seg_dur <= 0:
+            continue
+        if accumulated_ms + seg_dur > max_clip_ms:
+            clipped_end = int(seg["sourceStartMs"]) + (max_clip_ms - accumulated_ms)
+            if clipped_end > int(seg["sourceStartMs"]):
+                active_kept.append({
+                    "sourceStartMs": int(seg["sourceStartMs"]),
+                    "sourceEndMs": clipped_end,
+                })
+                accumulated_ms = max_clip_ms
+            break
+        active_kept.append(seg)
+        accumulated_ms += seg_dur
+
+    if not active_kept:
+        return cut_part(source_path, source_start_ms, source_start_ms + max_clip_ms, output_path)
+
+    if len(active_kept) == 1:
+        seg = active_kept[0]
+        return cut_part(source_path, int(seg["sourceStartMs"]), int(seg["sourceEndMs"]), output_path)
+
+    filters: List[str] = []
+    for idx, seg in enumerate(active_kept):
+        s_sec = int(seg["sourceStartMs"]) / 1000.0
+        e_sec = int(seg["sourceEndMs"]) / 1000.0
+        filters.append(
+            f"[0:v]trim=start={s_sec:.3f}:end={e_sec:.3f},setpts=PTS-STARTPTS[v{idx}]"
+        )
+        filters.append(
+            f"[0:a]atrim=start={s_sec:.3f}:end={e_sec:.3f},asetpts=PTS-STARTPTS[a{idx}]"
+        )
+    inputs = "".join(f"[v{i}][a{i}]" for i in range(len(active_kept)))
+    filters.append(f"{inputs}concat=n={len(active_kept)}:v=1:a=1[vout][aout]")
+
+    cmd = [
+        "ffmpeg", "-y", "-loglevel", "error",
+        "-i", str(source_path),
+        "-filter_complex", ";".join(filters),
+        "-map", "[vout]", "-map", "[aout]",
+        "-c:v", "libx264", "-preset", "ultrafast", "-crf", "18",
+        "-g", "15", "-keyint_min", "15", "-sc_threshold", "0",
+        "-c:a", "aac", "-b:a", "192k",
+        "-pix_fmt", "yuv420p", "-movflags", "+faststart",
+        str(output_path),
+    ]
+    _run_ffmpeg(cmd)
+    return {"file": str(output_path), "segments": len(active_kept), "outputDurationMs": accumulated_ms}
+
+
 def render_final_video(
     source_path: str,
     timeline: Dict[str, Any],
@@ -397,13 +560,23 @@ def render_final_video(
     job_id: str = "job",
     max_parallel: int = MAX_PARALLEL_SLICES,
     slice_executor: Optional[SliceExecutor] = None,
+    max_clip_ms: int = 30000,
+    resolution_plan: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Render 9:16 mini-run via Remotion CLI engine with full studio Font JSON typography.
+
+    ``resolution_plan`` carries the authoritative resolution retention and increment
+    plan (see ``mini_run_pipeline.resolution``). Guaranteed non-depreciation invariant:
+    4K input produces 4K/8K output. If increment is active, steps up tier (1080p -> 4K,
+    4K -> 8K). Remotion renders slices with ``--scale`` factor matching the target tier.
 
     ``look_plan`` carries the resolved color-grade manifest (see
     ``mini_run_pipeline.looks``). The grade is applied via FFmpeg to the muted
     composed video *after* Remotion renders it and *before* the audio bake /
     mux step — i.e. causally after chunking, before final treatment handoff.
+
+    ``max_clip_ms``: ceiling for the rendered duration (default 30 000 ms for
+    standard mini-runs; pass a higher value for long-form clips).
     """
     started_at = time.monotonic()
     output_root = Path(output_root)
@@ -426,28 +599,60 @@ def render_final_video(
 
     timestamp_map = timeline.get("timestampMap") or []
     output_duration_ms = int(timeline.get("outputDurationMs", 0)) or (
-        timestamp_map[-1]["outputEndMs"] if timestamp_map else 30000
+        timestamp_map[-1]["outputEndMs"] if timestamp_map else max_clip_ms
     )
-    effective_duration_ms = min(30000, output_duration_ms) if output_duration_ms > 0 else 30000
+    effective_duration_ms = min(max_clip_ms, output_duration_ms) if output_duration_ms > 0 else max_clip_ms
 
     remotion_app_dir = Path(__file__).resolve().parent.parent / "remotion-app"
     public_source_dir = remotion_app_dir / "public" / "source"
     public_source_dir.mkdir(parents=True, exist_ok=True)
 
-    rel_video_filename = f"source_{job_id}.mp4"
-    dest_video_path = output_root / rel_video_filename
-    local_video_symlink = public_source_dir / rel_video_filename
+    # 1. Cut shot segment of effective_duration_ms to shared volume
+    raw_shot_filename = f"raw_shot_{job_id}.mp4"
+    raw_shot_path = output_root / raw_shot_filename
+    cut_editorial_shot(source_path, timeline, str(raw_shot_path), max_clip_ms=effective_duration_ms)
 
-    # Cut 30s clip directly to shared volume
-    cut_part(source_path, 0, effective_duration_ms, str(dest_video_path))
+    # 2. Causal Shot Color Grading:
+    # We grade the shot segment BEFORE Remotion composition and BEFORE Martin matting.
+    # This guarantees that:
+    # 1. Only active shot frames are graded (efficient for landscape/longform content).
+    # 2. Foreground matting cuts out pixels matching the graded background.
+    # 3. Typography rendered atop or behind the speaker remains pure and uncorrupted.
+    active_shot_path = raw_shot_path
+    rel_video_filename = raw_shot_filename
+
+    if grade_applied:
+        graded_shot_filename = f"shot_graded_{job_id}.mp4"
+        graded_shot_path = output_root / graded_shot_filename
+        try:
+            from . import looks
+            looks.grade_video_shot(
+                input_shot_path=raw_shot_path,
+                output_shot_path=graded_shot_path,
+                look_plan=look_plan,
+                width=int((timeline or {}).get("sourceWidth") or 0) or None,
+                height=int((timeline or {}).get("sourceHeight") or 0) or None,
+            )
+            if graded_shot_path.exists() and graded_shot_path.stat().st_size > 0:
+                active_shot_path = graded_shot_path
+                rel_video_filename = graded_shot_filename
+                print(f"[render] Causally graded shot segment: {graded_shot_path} (look={look_plan.get('lookName')})", flush=True)
+        except Exception as e:
+            print(f"[render] Warning: Shot color grading failed, falling back to raw shot: {e}", flush=True)
+            active_shot_path = raw_shot_path
+            rel_video_filename = raw_shot_filename
+
+    dest_video_path = active_shot_path
+    local_video_symlink = public_source_dir / rel_video_filename
     if not local_video_symlink.exists() or str(dest_video_path) != str(local_video_symlink):
         import shutil
         shutil.copyfile(dest_video_path, local_video_symlink)
 
     # Build props JSON for Remotion
     if not chunks:
-        # Fallback continuous chunks across the full 30s duration
+        # Fallback continuous chunks across the full duration
         default_texts = [
+
             ("Here's how unedited", "The secret"),
             ("videos made me", "Viral editing"),
             ("a better editor.", "The transformation"),
@@ -474,22 +679,51 @@ def render_final_video(
             for i, (text, label) in enumerate(default_texts)
         ]
 
+    def _is_effective_behind_subject(c: Dict[str, Any]) -> bool:
+        is_b = bool(
+            c.get("subjectLayering", {}).get("behindSubject")
+            or any(l.get("behindSubject") for l in c.get("layers", []))
+        )
+        if not is_b:
+            return False
+        placement = c.get("placement") or {}
+        dom_zone = placement.get("dominantZone")
+        safe_region = placement.get("safeRegionId")
+        intersects = placement.get("intersectsSubject")
+        if dom_zone == "foreground_lower_deck" and safe_region != "behind_subject_above_head" and not intersects:
+            return False
+        return True
+
     behind_subject_chunk_count = sum(
         1 for chunk in chunks
-        if chunk.get("subjectLayering", {}).get("behindSubject") or any(l.get("behindSubject") for l in chunk.get("layers", []))
+        if _is_effective_behind_subject(chunk)
     )
     required_subject_layering = bool(
         (design or {}).get("subjectLayering") == "required" and behind_subject_chunk_count
     )
+    from . import resolution
+    if resolution_plan is None:
+        source_w = int((timeline or {}).get("sourceWidth") or 1080)
+        source_h = int((timeline or {}).get("sourceHeight") or 1920)
+        resolution_plan = resolution.plan_resolution(source_w, source_h, options=design)
+
+    target_width = int(resolution_plan["target"]["width"])
+    target_height = int(resolution_plan["target"]["height"])
+    scale_factor = float(resolution_plan.get("scaleFactor", 1.0))
+
     props = {
         "videoSrc": f"source/{rel_video_filename}",
         "chunks": chunks,
         "durationMs": effective_duration_ms,
         "orchestration": orchestration,
+        "targetWidth": target_width,
+        "targetHeight": target_height,
+        "scale": scale_factor,
+        "resolutionPlan": resolution_plan,
     }
 
-    video_probe_width = int((timeline or {}).get("sourceWidth") or 1080)
-    video_probe_height = int((timeline or {}).get("sourceHeight") or 1920)
+    video_probe_width = target_width
+    video_probe_height = target_height
     video_probe_fps = 30.0
     try:
         from . import silence
@@ -513,7 +747,7 @@ def render_final_video(
             import shutil
             from mini_run_gateway import handle_matte
 
-            matte_buffer_ms = int((design or {}).get("matteBufferMs", 750))
+            matte_buffer_ms = int((design or {}).get("matteBufferMs", 250))
             windows = extract_matte_windows_from_chunks(
                 chunks=chunks,
                 effective_duration_ms=effective_duration_ms,
@@ -527,7 +761,17 @@ def render_final_video(
                     "bufferMs": 0,
                     "windows": windows,
                 })
-                artifact_root = os.getenv("MINI_RUN_ARTIFACT_ROOT", str(output_root))
+                env_artifact_root = os.getenv("MINI_RUN_ARTIFACT_ROOT")
+                if not env_artifact_root:
+                    p = Path(output_root).resolve()
+                    while p.parent != p:
+                        if p.name == "renders" and p.parent.name == "mini-run" and p.parent.parent.name == "media":
+                            env_artifact_root = str(p.parent.parent.parent)
+                            break
+                        p = p.parent
+                    if not env_artifact_root:
+                        env_artifact_root = str(output_root)
+                artifact_root = env_artifact_root
                 try:
                     import modal
                     reload_martin_artifact_volume(modal.Volume.from_name("prometheus-render-artifacts"))
@@ -580,9 +824,9 @@ def render_final_video(
     muted_output = output_root / f"mini_run_{job_id}_muted.mp4"
     final_output = output_root / f"mini_run_{job_id}-timeline.mp4"
 
-    # Step 1: Parallel Slice Cloud Rendering (8 parallel workers)
+    # Step 1: Parallel Slice Cloud Rendering (30 parallel cloud workers for 30s)
     total_frames = max(1, int(round((effective_duration_ms / 1000.0) * 30)))
-    parallel_slice_count = int(os.getenv("REMOTION_PARALLEL_SLICES", "8"))
+    parallel_slice_count = int(os.getenv("REMOTION_PARALLEL_SLICES", "30"))
     frames_per_slice = (total_frames + parallel_slice_count - 1) // parallel_slice_count
 
     slice_specs: List[Dict[str, Any]] = []
@@ -602,55 +846,54 @@ def render_final_video(
             "jobId": job_id,
             "destVideoPath": str(dest_video_path),
             "destMattePath": str(dest_matte_path) if props.get("matteSrc") else None,
+            "scale": scale_factor,
+            "targetWidth": target_width,
+            "targetHeight": target_height,
         })
 
     render_started = time.monotonic()
     parallel_render_success = False
 
     if slice_executor is not None:
-        try:
-            print(f"[render] Executing {len(slice_specs)} parallel GPU slices via slice_executor...", flush=True)
-            slice_results = slice_executor(slice_specs)
-            # Verify all slices were produced
-            missing = [s for s in slice_specs if not Path(s["outputSlicePath"]).exists()]
-            if not missing:
-                parallel_render_success = True
-            else:
-                print(f"[render] Missing slice files: {missing}, falling back to single render", flush=True)
-        except Exception as e:
-            print(f"[render] Parallel slice_executor failed ({e}), falling back to single render", flush=True)
-
-    if not parallel_render_success and parallel_slice_count > 1 and len(slice_specs) > 1:
-        # Local concurrent thread pool fallback
+        print(f"[render] Executing {len(slice_specs)} parallel GPU slices via slice_executor...", flush=True)
+        slice_results = slice_executor(slice_specs)
+        missing = [s for s in slice_specs if not Path(s["outputSlicePath"]).exists()]
+        if missing:
+            raise RuntimeError(f"[render] Parallel rendering failed: {len(missing)} slices missing on disk: {[s['sliceIndex'] for s in missing]}")
+        parallel_render_success = True
+    elif parallel_slice_count > 1 and len(slice_specs) > 1:
+        # Local concurrent thread pool
         npx_bin = "npx.cmd" if os.name == "nt" else "npx"
-        try:
-            from concurrent.futures import ThreadPoolExecutor
-            def _render_local_slice(spec: Dict[str, Any]) -> None:
-                s_cmd = [
-                    npx_bin, "remotion", "render",
-                    "src/index.ts", "PrometheusMinRun",
-                    spec["outputSlicePath"],
-                    "--props", str(props_path),
-                    f"--frames={spec['startFrame']}-{spec['endFrame']}",
-                    "--concurrency", "1",
-                    "--gl", "swangle",
-                    "--muted",
-                    "--timeout", "600000",
-                ]
-                s_env = {**os.environ, "TMPDIR": str(tmp_build)}
-                s_res = subprocess.run(s_cmd, cwd=str(remotion_app_dir), capture_output=True, text=True, env=s_env)
-                if s_res.returncode != 0:
-                    raise RuntimeError(f"Local slice {spec['sliceIndex']} failed: {s_res.stderr[-500:]}")
+        from concurrent.futures import ThreadPoolExecutor
+        def _render_local_slice(spec: Dict[str, Any]) -> None:
+            s_cmd = [
+                npx_bin, "remotion", "render",
+                "src/index.ts", "PrometheusMinRun",
+                spec["outputSlicePath"],
+                "--props", str(props_path),
+                f"--frames={spec['startFrame']}-{spec['endFrame']}",
+                "--concurrency", "1",
+                "--gl", "swangle",
+                "--muted",
+                "--timeout", "600000",
+            ]
+            if float(spec.get("scale", 1.0)) != 1.0:
+                s_cmd.extend(["--scale", str(spec["scale"])])
+            s_env = {**os.environ, "TMPDIR": str(tmp_build)}
+            s_res = subprocess.run(s_cmd, cwd=str(remotion_app_dir), capture_output=True, text=True, env=s_env)
+            if s_res.returncode != 0:
+                raise RuntimeError(f"Local slice {spec['sliceIndex']} failed: {s_res.stderr[-500:]}")
 
-            max_local_workers = min(len(slice_specs), max(1, os.cpu_count() or 2))
-            with ThreadPoolExecutor(max_workers=max_local_workers) as pool:
-                list(pool.map(_render_local_slice, slice_specs))
+        max_local_workers = min(len(slice_specs), max(1, os.cpu_count() or 2))
+        with ThreadPoolExecutor(max_workers=max_local_workers) as pool:
+            list(pool.map(_render_local_slice, slice_specs))
 
-            missing = [s for s in slice_specs if not Path(s["outputSlicePath"]).exists()]
-            if not missing:
-                parallel_render_success = True
-        except Exception as e:
-            print(f"[render] Local concurrent slices failed ({e}), falling back to monolithic render", flush=True)
+        missing = [s for s in slice_specs if not Path(s["outputSlicePath"]).exists()]
+        if missing:
+            raise RuntimeError(f"[render] Local parallel rendering failed: {len(missing)} slices missing: {[s['sliceIndex'] for s in missing]}")
+        parallel_render_success = True
+    else:
+        raise RuntimeError("[render] Monolithic single render is forbidden. Must use parallel slicing.")
 
     if parallel_render_success:
         # Concat all slices via zero-reencode stream copy
@@ -672,14 +915,42 @@ def render_final_video(
         ]
         _run_ffmpeg(concat_cmd)
         print(f"[render] Successfully concatenated {len(slice_specs)} parallel slices into {muted_output}", flush=True)
+
+        # Invariant check on concatenated slices: verify dimensions match planned target
+        muted_probe = silence.probe_media(str(muted_output))
+        actual_muted_w = int(muted_probe.get("width") or 0)
+        actual_muted_h = int(muted_probe.get("height") or 0)
+        if actual_muted_w < target_width or actual_muted_h < target_height:
+            print(
+                f"[render] Aligning concatenated video to target resolution: "
+                f"{actual_muted_w}x{actual_muted_h} -> {target_width}x{target_height} via Lanczos",
+                flush=True,
+            )
+            aligned_output = output_root / f"mini_run_{job_id}_muted_aligned.mp4"
+            enforce_filter = resolution.build_resolution_enforcement_filter(
+                actual_muted_w, actual_muted_h, target_width, target_height
+            )
+            if enforce_filter:
+                align_cmd = [
+                    "ffmpeg", "-y", "-loglevel", "error",
+                    "-i", str(muted_output),
+                    "-vf", enforce_filter,
+                    "-c:v", "libx264", "-preset", "ultrafast", "-crf", "12",
+                    "-pix_fmt", "yuv420p", "-movflags", "+faststart",
+                    str(aligned_output),
+                ]
+                _run_ffmpeg(align_cmd)
+                muted_output = aligned_output
     else:
         # Monolithic single-process fallback
         render_concurrency = str(min(os.cpu_count() or 2, int(os.getenv("REMOTION_CONCURRENCY", "4"))))
         primary_gl = str(os.getenv("REMOTION_GL", "swangle"))
+        prebundled = Path("/opt/prometheus/remotion-bundle")
+        bundle_target = str(prebundled) if prebundled.exists() else "src/index.ts"
 
         cmd = [
             npx_bin, "remotion", "render",
-            "src/index.ts", "PrometheusMinRun",
+            bundle_target, "PrometheusMinRun",
             str(muted_output),
             "--props", str(props_path),
             "--concurrency", render_concurrency,
@@ -687,33 +958,41 @@ def render_final_video(
             "--muted",
             "--timeout", "600000",
         ]
+        if scale_factor > 1.0:
+            cmd.extend(["--scale", str(scale_factor)])
         env = {**os.environ, "TMPDIR": str(tmp_build)}
         res = subprocess.run(cmd, cwd=str(remotion_app_dir), capture_output=True, text=True, env=env)
         if res.returncode != 0:
             raise RuntimeError(f"Remotion render failed ({res.returncode}): {res.stderr[-2000:]}")
 
+        muted_probe = silence.probe_media(str(muted_output))
+        actual_muted_w = int(muted_probe.get("width") or 0)
+        actual_muted_h = int(muted_probe.get("height") or 0)
+        if actual_muted_w < target_width or actual_muted_h < target_height:
+            aligned_output = output_root / f"mini_run_{job_id}_muted_aligned.mp4"
+            enforce_filter = resolution.build_resolution_enforcement_filter(
+                actual_muted_w, actual_muted_h, target_width, target_height
+            )
+            if enforce_filter:
+                align_cmd = [
+                    "ffmpeg", "-y", "-loglevel", "error",
+                    "-i", str(muted_output),
+                    "-vf", enforce_filter,
+                    "-c:v", "libx264", "-preset", "ultrafast", "-crf", "12",
+                    "-pix_fmt", "yuv420p", "-movflags", "+faststart",
+                    str(aligned_output),
+                ]
+                _run_ffmpeg(align_cmd)
+                muted_output = aligned_output
+
     render_ms = round((time.monotonic() - render_started) * 1000)
 
-    # Step 1b: Apply color grade to the muted video (if a look was resolved).
-    # The grade is applied *before* the audio bake so the entire final output
-    # carries the correct colour treatment.
-    if grade_applied:
-        graded_output = output_root / f"mini_run_{job_id}_graded.mp4"
-        grade_cmd = [
-            "ffmpeg", "-y", "-loglevel", "error",
-            "-i", str(muted_output),
-            "-vf", grade_filter,
-            "-c:a", "copy",
-            "-c:v", "libx264", "-preset", "fast", "-crf", "18",
-            "-pix_fmt", "yuv420p", "-movflags", "+faststart",
-            str(graded_output),
-        ]
-        _run_ffmpeg(grade_cmd)
-        render_video = graded_output
-        print(f"[render] color grade applied: {look_plan.get('lookName', 'unknown')} "
-              f"filter='{grade_filter[:80]}...'", flush=True)
-    else:
-        render_video = muted_output
+    # Step 1b: Causal Pipeline Verification
+    # The shot segment was already causally graded BEFORE Martin matting and Remotion composition.
+    # Therefore, muted_output already contains the graded video plate with pristine, uncorrupted
+    # typography, HUD badges, and brand motif overlays rendered on top or behind the speaker.
+    # We do NOT re-grade muted_output here, guaranteeing clean text and graphic elements.
+    render_video = muted_output
 
     # Step 2: Extract audio from source 30s clip
     audio_tmp = tmp_build / f"audio_{job_id}.aac"
@@ -765,6 +1044,14 @@ def render_final_video(
     )
     audio_mix["encodedDurationMs"] = final_duration_ms
 
+    # Step 4: Causal Verification Fixture for Resolution Non-Depreciation & Increment
+    resolution_receipt = resolution.verify_output_resolution(
+        output_path=str(final_output),
+        plan=resolution_plan,
+        input_width=int((timeline or {}).get("sourceWidth", 0)),
+        input_height=int((timeline or {}).get("sourceHeight", 0)),
+    )
+
     total_ms = round((time.monotonic() - started_at) * 1000)
 
     return {
@@ -775,6 +1062,7 @@ def render_final_video(
         "outputPath": str(final_output),
         "encoder": "libx264+remotion",
         "frameSlices": len(slice_specs) if parallel_render_success else 1,
+        "resolution": resolution_receipt,
         "audioMix": audio_mix,
         "orchestration": {
             "status": "baked" if orchestration else "not_planned",
