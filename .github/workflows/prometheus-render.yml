@@ -1,0 +1,176 @@
+﻿name: Prometheus Render
+
+on:
+  workflow_dispatch:
+    inputs:
+      payload:
+        description: "JSON pipeline payload"
+        required: true
+        type: string
+
+concurrency:
+  group: prometheus-render-${{ github.run_id }}
+
+jobs:
+  orchestrate:
+    name: "Orchestrate pipeline"
+    runs-on: ubuntu-22.04
+    outputs:
+      job_id: ${{ steps.plan.outputs.job_id }}
+      slice_matrix: ${{ steps.plan.outputs.slice_matrix }}
+      props_r2_key: ${{ steps.plan.outputs.props_r2_key }}
+      source_r2_key: ${{ steps.plan.outputs.source_r2_key }}
+      receipt_partial: ${{ steps.plan.outputs.receipt_partial }}
+      total_slices: ${{ steps.plan.outputs.total_slices }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install Python deps
+        run: |
+          pip install --quiet assemblyai boto3 mediapipe==0.10.21 opencv-python-headless numpy requests
+
+      - name: Install ffmpeg
+        run: sudo apt-get install -y ffmpeg --quiet
+
+      - name: Run orchestration plan
+        id: plan
+        env:
+          ASSEMBLYAI_API_KEY: ${{ secrets.ASSEMBLYAI_API_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_UPLOAD_BUCKET: ${{ secrets.R2_UPLOAD_BUCKET }}
+          R2_PROCESSED_BUCKET: ${{ secrets.R2_PROCESSED_BUCKET }}
+          PIPELINE_PAYLOAD: ${{ inputs.payload }}
+          PARALLEL_SLICES: "20"
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          PYTHONUTF8: "1"
+        run: python .github/scripts/gha_orchestrate.py
+
+  render_slice:
+    name: "Slice ${{ matrix.slice_index }}"
+    needs: orchestrate
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        include: ${{ fromJson(needs.orchestrate.outputs.slice_matrix) }}
+      fail-fast: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: remotion-app/package-lock.json
+
+      - name: Install ffmpeg
+        run: sudo apt-get install -y ffmpeg --quiet
+
+      - name: Install Node deps
+        working-directory: remotion-app
+        run: npm ci --prefer-offline --no-audit --no-fund
+
+      - name: Install boto3 for R2
+        run: pip install --quiet boto3
+
+      - name: Download source video + props from R2
+        env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_UPLOAD_BUCKET: ${{ secrets.R2_UPLOAD_BUCKET }}
+          R2_PROCESSED_BUCKET: ${{ secrets.R2_PROCESSED_BUCKET }}
+          PROPS_R2_KEY: ${{ needs.orchestrate.outputs.props_r2_key }}
+          SOURCE_R2_KEY: ${{ needs.orchestrate.outputs.source_r2_key }}
+          JOB_ID: ${{ needs.orchestrate.outputs.job_id }}
+        run: python .github/scripts/gha_download_inputs.py
+
+      - name: Render slice
+        env:
+          SLICE_INDEX: ${{ matrix.slice_index }}
+          START_FRAME: ${{ matrix.start_frame }}
+          END_FRAME: ${{ matrix.end_frame }}
+          JOB_ID: ${{ needs.orchestrate.outputs.job_id }}
+        run: |
+          mkdir -p /tmp/slices
+          npx remotion render \
+            src/index.ts PrometheusMinRun \
+            /tmp/slices/slice_${SLICE_INDEX}.mp4 \
+            --props /tmp/props_${JOB_ID}.json \
+            --frames=${START_FRAME}-${END_FRAME} \
+            --concurrency=2 \
+            --gl=swangle \
+            --muted \
+            --timeout=600000
+        working-directory: remotion-app
+
+      - name: Upload slice to R2
+        env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_PROCESSED_BUCKET: ${{ secrets.R2_PROCESSED_BUCKET }}
+          SLICE_INDEX: ${{ matrix.slice_index }}
+          JOB_ID: ${{ needs.orchestrate.outputs.job_id }}
+        run: python .github/scripts/gha_upload_slice.py
+
+  stitch:
+    name: "Stitch & finalise"
+    needs: [orchestrate, render_slice]
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install Python deps
+        run: pip install --quiet boto3 requests
+
+      - name: Install ffmpeg
+        run: sudo apt-get install -y ffmpeg --quiet
+
+      - name: Download all slices + stitch
+        env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_PROCESSED_BUCKET: ${{ secrets.R2_PROCESSED_BUCKET }}
+          R2_PUBLIC_PROCESSED_BASE: ${{ secrets.R2_PUBLIC_PROCESSED_BASE }}
+          JOB_ID: ${{ needs.orchestrate.outputs.job_id }}
+          RECEIPT_PARTIAL: ${{ needs.orchestrate.outputs.receipt_partial }}
+          TOTAL_SLICES: ${{ needs.orchestrate.outputs.total_slices }}
+        run: python .github/scripts/gha_stitch.py
+
+      - name: Upload receipt artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: render-receipt-${{ needs.orchestrate.outputs.job_id }}
+          path: /tmp/receipt_${{ needs.orchestrate.outputs.job_id }}.json
+          retention-days: 7
+
+      - name: Upload master MP4 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: render-master-${{ needs.orchestrate.outputs.job_id }}
+          path: /tmp/master_${{ needs.orchestrate.outputs.job_id }}.mp4
+          retention-days: 7
