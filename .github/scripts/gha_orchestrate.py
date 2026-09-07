@@ -155,12 +155,39 @@ def main():
     if not chunks:
         # Fallback word cues
         chunks = [
-            {"text": "WELCOME", "startMs": 0, "endMs": 1500},
-            {"text": "TO", "startMs": 1500, "endMs": 2500},
-            {"text": "PROMETHEUS", "startMs": 2500, "endMs": 5000},
-            {"text": "KINETIC", "startMs": 5000, "endMs": 7500},
-            {"text": "TYPOGRAPHY", "startMs": 7500, "endMs": 10000},
+            {"text": "WELCOME", "start": 0, "end": 1500},
+            {"text": "TO", "start": 1500, "end": 2500},
+            {"text": "PROMETHEUS", "start": 2500, "end": 5000},
+            {"text": "KINETIC", "start": 5000, "end": 7500},
+            {"text": "TYPOGRAPHY", "start": 7500, "end": 10000},
         ]
+
+    # Enhance raw words with smart phrase grouping and full HAKT typography manifest
+    try:
+        from mini_run_pipeline import chunks as chunk_lib, typography
+        # Format words for chunker
+        formatted_words = []
+        for w in chunks:
+            formatted_words.append({
+                "text": w.get("text", ""),
+                "start": w.get("start", w.get("startMs", 0)),
+                "end": w.get("end", w.get("endMs", 0)),
+            })
+        smart_chunks = chunk_lib.smart_chunk_words(
+            formatted_words,
+            voice_spans=[{"sourceStartMs": 0, "sourceEndMs": duration_ms}],
+            target_words=3,
+            max_chunk_words=5,
+        )
+        if smart_chunks:
+            font_m = typography.generate_font_manifest(smart_chunks, design)
+            if font_m and "chunks" in font_m:
+                chunks = font_m["chunks"]
+                print(f"[orchestrate] Generated full HAKT typography manifest ({len(chunks)} multi-word chunks with layers, fonts, motifs)", flush=True)
+            else:
+                chunks = smart_chunks
+    except Exception as e:
+        print(f"[orchestrate] Typography decoration notice: {e}", flush=True)
 
     # Build props.json for Remotion
     design      = payload.get("design", {})
