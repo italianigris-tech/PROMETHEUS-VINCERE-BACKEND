@@ -17,9 +17,9 @@ import string
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from mini_run_pipeline.motif import resolve_brand_motif, motif_to_brand_palette
-from mini_run_pipeline import listicles
-from mini_run_pipeline import typography_catalog as _catalog
+from .motif import resolve_brand_motif, motif_to_brand_palette
+from . import listicles
+from . import typography_catalog as _catalog
 
 FONT_JSON_DIR = Path(__file__).resolve().parent.parent / "Yuan Prometheus Screenshots" / "font JSON"
 FONT_PAIRS_DIR = Path(__file__).resolve().parent.parent / "Yuan Prometheus Screenshots" / "font pairing and placement"
