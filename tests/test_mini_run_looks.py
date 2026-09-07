@@ -15,11 +15,13 @@ class MiniRunLooksTests(unittest.TestCase):
     def test_all_ten_canonical_looks_registered(self):
         from mini_run_pipeline import looks
         ids = [look["id"] for look in looks.list_looks()]
-        self.assertEqual(len(ids), 10)
+        self.assertGreaterEqual(len(ids), 10)
         self.assertIn("teal_and_orange_blockbuster", ids)
         self.assertIn("sci_netone_balanced", ids)
         self.assertIn("neon_tokyo_cyberpunk", ids)
         self.assertIn("faded_black_and_white", ids)
+        self.assertIn("kodak_2383_print", ids)
+        self.assertIn("fuji_3513_print", ids)
         # every look must carry a default intensity within its range
         for look in looks.list_looks():
             lo, hi = look["policies"]["intensityRange"]
@@ -84,9 +86,14 @@ class MiniRunLooksTests(unittest.TestCase):
 
     def test_lut_discovery_finds_none_and_does_not_crash(self):
         from mini_run_pipeline import looks
-        # no .cube LUTs are shipped in the repo; discovery must be safe + empty
-        self.assertFalse(looks.luts_available())
-        self.assertEqual(looks.discover_luts(), [])
+        # Shipped LUTs are discovered automatically from mini_run_pipeline/luts
+        self.assertTrue(looks.luts_available())
+        self.assertGreaterEqual(len(looks.discover_luts()), 10)
+        # In an empty directory, discovery must be safe + empty
+        with tempfile.TemporaryDirectory() as tmp:
+            empty_dir = Path(tmp) / "empty_luts"
+            self.assertFalse(looks.luts_available(empty_dir))
+            self.assertEqual(looks.discover_luts(empty_dir), [])
 
     def test_lut_discovery_returns_files_when_present(self):
         import mini_run_pipeline.looks as looks

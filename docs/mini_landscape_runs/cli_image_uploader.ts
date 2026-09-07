@@ -20,10 +20,8 @@ import * as readline from "node:readline";
 import { generatePhotoTreatmentBlueprint } from "./photo_treatment_engine.js";
 
 const repoRoot = path.resolve(__dirname, "../..");
-const targetUploadDir = path.join(repoRoot, "docs/mini_run_studio/uploaded_screenshots");
 const targetLandscapeDir = path.join(repoRoot, "docs/mini_landscape_runs/uploaded_assets");
 
-if (!fs.existsSync(targetUploadDir)) fs.mkdirSync(targetUploadDir, { recursive: true });
 if (!fs.existsSync(targetLandscapeDir)) fs.mkdirSync(targetLandscapeDir, { recursive: true });
 
 function formatBytes(bytes: number): string {
@@ -35,7 +33,7 @@ function formatBytes(bytes: number): string {
 }
 
 function generateTargetFilename(originalNameHint: string = "image.png"): string {
-  const existingCount = fs.readdirSync(targetUploadDir).filter(f => /\.(png|jpe?g|webp|gif|svg|avif)$/i.test(f)).length;
+  const existingCount = fs.readdirSync(targetLandscapeDir).filter(f => /\.(png|jpe?g|webp|gif|svg|avif)$/i.test(f)).length;
   const nextIdx = String(existingCount + 1).padStart(2, "0");
   const now = new Date();
   const timeFormatted = `${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
@@ -52,11 +50,9 @@ function generateTargetFilename(originalNameHint: string = "image.png"): string 
 
 export async function saveAndProcessImage(buffer: Buffer, filenameHint: string = "image.png") {
   const filename = generateTargetFilename(filenameHint);
-  const primaryPath = path.join(targetUploadDir, filename);
-  const landscapeCopyPath = path.join(targetLandscapeDir, filename);
+  const primaryPath = path.join(targetLandscapeDir, filename);
 
   fs.writeFileSync(primaryPath, buffer);
-  fs.copyFileSync(primaryPath, landscapeCopyPath);
 
   // Generate Photo Treatment
   const blueprint = generatePhotoTreatmentBlueprint({
@@ -220,7 +216,16 @@ Web Browser Dropzone & Clipboard Paste:
   process.exit(1);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+const isDirectRun = Boolean(
+  process.argv[1] && (
+    process.argv[1].endsWith("cli_image_uploader.ts") ||
+    process.argv[1].endsWith("cli_image_uploader.js") ||
+    process.argv[1].includes("cli_image_uploader") ||
+    process.argv[1].includes("upload-image")
+  )
+);
+
+if (isDirectRun) {
   main().catch((err) => {
     console.error("❌ Upload failed:", err);
     process.exit(1);

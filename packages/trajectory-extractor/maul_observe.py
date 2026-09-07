@@ -236,12 +236,21 @@ def subject_box_for(
         if pose_box:
             boxes.append(pose_box)
     if face_box:
-        boxes.append(face_box)
+        fx = face_box.get("x", face_box.get("x_pct", 0.0))
+        fy = face_box.get("y", face_box.get("y_pct", 0.0))
+        fw = face_box.get("width", face_box.get("width_pct", 0.0))
+        fh = face_box.get("height", face_box.get("height_pct", 0.0))
+        normalized_face = normalized_box(fx, fy, fw, fh)
+        if normalized_face:
+            boxes.append(normalized_face)
+        center_x = fx + fw / 2.0
+        body_w = min(0.62, fw * 1.8)
+        body_x = max(0.0, min(1.0 - body_w, center_x - body_w / 2.0))
         approximate_body = normalized_box(
-            face_box["x"] - face_box["width"] * 0.9,
-            face_box["y"],
-            face_box["width"] * 2.8,
-            min(1.0 - face_box["y"], face_box["height"] * 4.4),
+            body_x,
+            fy,
+            body_w,
+            min(1.0 - fy, fh * 4.0),
         )
         if approximate_body:
             boxes.append(approximate_body)
@@ -256,8 +265,10 @@ def linear_channel(channel: float) -> float:
 
 
 def luminance_grid_rgb(cv2: Any, frame: Any) -> dict[str, Any]:
-    resized = cv2.resize(frame, (GRID_COLUMNS, GRID_ROWS), interpolation=cv2.INTER_AREA)
     samples: list[float] = []
+    # Downsample to the grid resolution before iterating so the luminance
+    # samples align with the declared GRID_COLUMNS x GRID_ROWS receipt.
+    resized = cv2.resize(frame, (GRID_COLUMNS, GRID_ROWS), interpolation=cv2.INTER_AREA)
     for row in resized:
         for red, green, blue in row:
             luminance = (
@@ -267,6 +278,29 @@ def luminance_grid_rgb(cv2: Any, frame: Any) -> dict[str, Any]:
             )
             samples.append(round(luminance, 6))
     return {"columns": GRID_COLUMNS, "rows": GRID_ROWS, "samples": samples}
+
+
+def build_frame_observation(
+    timestamp_ms: int,
+    face_box: dict[str, Any] | None,
+    pose_landmarks: list[dict[str, Any]],
+    pose_sampled: bool,
+    cv2_module: Any = None,
+    rgb_frame: Any = None,
+) -> dict[str, Any]:
+    """Assemble one sampled-frame receipt (schema: maul-media-observation/v1)."""
+    luminance_grid = None
+    if cv2_module is not None and rgb_frame is not None:
+        luminance_grid = luminance_grid_rgb(cv2_module, rgb_frame)
+    subject_box = subject_box_for(face_box, pose_landmarks)
+    return {
+        "sourceMs": timestamp_ms,
+        "faceBox": face_box,
+        "poseSampled": pose_sampled,
+        "poseLandmarks": pose_landmarks,
+        "subjectBox": subject_box,
+        "luminanceGrid": luminance_grid,
+    }
 
 
 def missing_spans(frames: list[dict[str, Any]], sample_interval_ms: int, duration_ms: int) -> list[dict[str, Any]]:
@@ -387,6 +421,8 @@ def main() -> None:
                             face_box=face_box,
                             pose_landmarks=pose_landmarks,
                             pose_sampled=pose_sampled,
+                            cv2_module=cv2,
+                            rgb_frame=rgb,
                         )
                     )
                     post_process_ms += (time.perf_counter() - post_started_at) * 1000

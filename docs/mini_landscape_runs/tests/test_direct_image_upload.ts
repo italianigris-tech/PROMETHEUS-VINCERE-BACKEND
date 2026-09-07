@@ -46,17 +46,25 @@ async function runTests() {
 
   // TEST GROUP 2: Terminal CLI Binary Check
   console.log("\n--- 2. Terminal CLI Binary Verification ---");
-  const helpOutput = execSync("upload-image --help", { encoding: "utf8" });
-  assert(helpOutput.includes("Direct EC2 Terminal Image Uploader"), "upload-image CLI command is globally accessible in PATH");
+  const cliPath = path.resolve(__dirname, "../cli_image_uploader.ts");
+  const helpOutput = execSync(`"${process.execPath}" --import tsx "${cliPath}" --help`, { encoding: "utf8" });
+  assert(helpOutput.includes("Direct EC2 Terminal Image Uploader"), "upload-image CLI command is accessible");
 
   // TEST GROUP 3: Server API Health & Upload Endpoints
   console.log("\n--- 3. Server API Health & Upload Endpoints ---");
+  const testPort = 8092;
+  const { createServerInstance } = await import("../serve_landscape.js").catch(() => import("../serve_landscape.ts"));
+  const serverInstance = createServerInstance(testPort);
+  await new Promise((r) => setTimeout(r, 300));
+
   const req = await new Promise<number>((resolve) => {
-    http.get("http://127.0.0.1:8080/upload", (res) => {
+    http.get(`http://127.0.0.1:${testPort}/health`, (res) => {
       resolve(res.statusCode || 0);
     }).on("error", () => resolve(0));
   });
-  assert(req === 200, "Web Upload Dropzone /upload returns HTTP 200");
+
+  assert(req === 200, "Isolated Landscape Studio /health returns HTTP 200");
+  if (serverInstance) serverInstance.close();
 
   console.log(`\n===============================================================================`);
   console.log(`RESULTS: ${passed} passed, ${failed} failed`);

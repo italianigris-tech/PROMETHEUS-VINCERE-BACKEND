@@ -98,4 +98,33 @@ describe("Joseph background primitive system", () => {
       cinematic.primitives.every((primitive) => primitive.renderStrategy === "curated_mesh"),
     ).toBe(true);
   });
+
+  it("supports ambient gobo, hierarchical staging, retinal inversion, attention bokeh, and continuous descent", () => {
+    const ids = JOSEPH_BACKGROUND_PRIMITIVE_CATALOG.map((p) => p.primitiveId);
+    expect(ids).toContain("gobo.ambient-shadow-drift");
+    expect(ids).toContain("spatial.hierarchical-hero-quad");
+    expect(ids).toContain("canvas.continuous-vertical-descent");
+    expect(ids).toContain("optics.attention-gated-bokeh");
+    expect(ids).toContain("retinal.micro-flash-inversion");
+
+    const gobo = JOSEPH_BACKGROUND_PRIMITIVE_CATALOG.find((p) => p.primitiveId === "gobo.ambient-shadow-drift")!;
+    expect(gobo.blendMode).toBe("multiply");
+    expect(gobo.defaultParameters.opacity).toBeGreaterThanOrEqual(0.15);
+    expect(gobo.defaultParameters.opacity).toBeLessThanOrEqual(0.35);
+
+    const retinal = JOSEPH_BACKGROUND_PRIMITIVE_CATALOG.find((p) => p.primitiveId === "retinal.micro-flash-inversion")!;
+    expect(retinal.layer).toBe("accent");
+    expect(retinal.defaultParameters.speed).toBeGreaterThanOrEqual(0.9);
+
+    const spatial = JOSEPH_BACKGROUND_PRIMITIVE_CATALOG.find((p) => p.primitiveId === "spatial.hierarchical-hero-quad")!;
+    expect(spatial.layer).toBe("overlay_support");
+    expect(spatial.blendMode).toBe("soft_light");
+
+    const canvas = JOSEPH_BACKGROUND_PRIMITIVE_CATALOG.find((p) => p.primitiveId === "canvas.continuous-vertical-descent")!;
+    expect(canvas.layer).toBe("foundation");
+
+    const bokeh = JOSEPH_BACKGROUND_PRIMITIVE_CATALOG.find((p) => p.primitiveId === "optics.attention-gated-bokeh")!;
+    expect(bokeh.family).toBe("focus_tunnel");
+  });
 });
+

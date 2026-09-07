@@ -1,0 +1,3391 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#060810">
+  <title>Prometheus Core // 9:16 Backgrounds & Transitions Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,600;0,700;0,800;0,900;1,400;1,700;1,800;1,900&family=Playfair+Display:ital,wght@1,400;1,600;1,700;1,900&family=Syne:wght@700;800;900&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-space: #070912;
+      --bg-panel: #0E1322;
+      --bg-card: #151C30;
+      --bg-card-hover: #1C2540;
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-bright: rgba(255, 255, 255, 0.20);
+      --cyan: #00F0FF;
+      --cyan-glow: rgba(0, 240, 255, 0.45);
+      --gold: #FFE066;
+      --gold-glow: rgba(255, 224, 102, 0.4);
+      --accent-coral: #FF3366;
+      --accent-green: #00FF88;
+      --accent-purple: #8A2BE2;
+      --white: #FFFFFF;
+      --text-main: #F1F5F9;
+      --text-muted: #94A3B8;
+      --text-dim: #64748B;
+      --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-out-quad: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      --ease-out-cubic: cubic-bezier(0.215, 0.61, 0.355, 1);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg-space);
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 24px 60px;
+      overflow-x: hidden;
+      background-image:
+        radial-gradient(circle at 50% 0%, rgba(0, 240, 255, 0.07) 0%, transparent 60%),
+        radial-gradient(circle at 85% 50%, rgba(255, 224, 102, 0.04) 0%, transparent 50%),
+        radial-gradient(circle at 15% 65%, rgba(138, 43, 226, 0.05) 0%, transparent 50%);
+    }
+
+    /* ==========================================================================
+       HEADER & NAVIGATION
+       ========================================================================== */
+    .studio-header {
+      width: 100%;
+      max-width: 1600px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .brand-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .brand-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-badge {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      background: rgba(0, 240, 255, 0.12);
+      border: 1px solid rgba(0, 240, 255, 0.35);
+      color: var(--cyan);
+      box-shadow: 0 0 16px rgba(0, 240, 255, 0.2);
+    }
+
+    .brand-title {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(22px, 3.0vw, 30px);
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: #FFF;
+      background: linear-gradient(135deg, #FFF 20%, #CBD5E1 60%, var(--cyan) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-subtitle {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .header-telemetry-hud {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .time-hud {
+      font-family: 'Space Mono', monospace;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--cyan);
+      background: rgba(0, 240, 255, 0.08);
+      border: 1px solid rgba(0, 240, 255, 0.25);
+      padding: 8px 14px;
+      border-radius: 8px;
+      letter-spacing: 1px;
+    }
+
+    /* TOP VIEW NAVIGATION BUTTONS */
+    .view-nav-bar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .nav-btn {
+      padding: 11px 20px;
+      border-radius: 10px;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-panel);
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .nav-btn:hover {
+      border-color: rgba(0, 240, 255, 0.4);
+      color: #FFF;
+      background: #141A2E;
+    }
+
+    .nav-btn.active {
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.16) 0%, rgba(14, 19, 34, 0.95) 100%);
+      border: 1px solid var(--cyan);
+      color: #FFF;
+      box-shadow: 0 0 20px rgba(0, 240, 255, 0.25);
+    }
+
+    .nav-badge {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.08);
+      color: #CBD5E1;
+    }
+
+    .nav-badge.highlight {
+      background: rgba(255, 224, 102, 0.18);
+      color: var(--gold);
+    }
+
+    /* ==========================================================================
+       MAIN WORKSPACE CONTAINER
+       ========================================================================== */
+    .studio-container {
+      width: 100%;
+      max-width: 1600px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* VIEW 1: INTERACTIVE VIEWPORT (3-COLUMN WORKSPACE) */
+    .interactive-workspace {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 390px 480px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    @media (max-width: 1400px) {
+      .interactive-workspace {
+        grid-template-columns: 350px 440px 1fr;
+        gap: 18px;
+      }
+    }
+
+    @media (max-width: 1140px) {
+      .interactive-workspace {
+        grid-template-columns: 1fr;
+        justify-items: center;
+      }
+    }
+
+    /* PANEL BASE */
+    .studio-panel {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+    }
+
+    .panel-header {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--cyan);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .category-title {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* ==========================================================================
+       COLUMN 1: 18 BACKGROUND FORMS SELECTOR
+       ========================================================================== */
+    .bg-selector-scroll {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 520px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .bg-selector-scroll::-webkit-scrollbar {
+      width: 6px;
+    }
+    .bg-selector-scroll::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 3px;
+    }
+    .bg-selector-scroll::-webkit-scrollbar-thumb {
+      background: #1E2842;
+      border-radius: 3px;
+    }
+
+    .bg-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 10px 14px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      transition: all 0.2s ease;
+    }
+
+    .bg-card:hover {
+      background: var(--bg-card-hover);
+      border-color: rgba(0, 240, 255, 0.35);
+      transform: translateX(3px);
+    }
+
+    .bg-card.active {
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.12) 0%, rgba(21, 28, 48, 0.95) 100%);
+      border: 1px solid var(--cyan);
+      box-shadow: 0 0 16px rgba(0, 240, 255, 0.2);
+    }
+
+    .bg-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .bg-card-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #FFF;
+    }
+
+    .bg-card-badge {
+      font-family: 'Space Mono', monospace;
+      font-size: 9.5px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-muted);
+    }
+
+    .bg-card.active .bg-card-badge {
+      background: rgba(0, 240, 255, 0.2);
+      color: var(--cyan);
+    }
+
+    .bg-card-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    /* LIVE PARAMETERS BOX */
+    .live-params-box {
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .param-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .param-label-row {
+      display: flex;
+      justify-content: space-between;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .param-val {
+      color: var(--gold);
+      font-weight: 700;
+    }
+
+    .studio-slider {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: #1A2238;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .studio-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--cyan);
+      border: 2px solid #FFF;
+      cursor: pointer;
+      box-shadow: 0 0 10px var(--cyan-glow);
+    }
+
+    .studio-select {
+      background: #141A2C;
+      color: #FFF;
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 12px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .color-swatches-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .color-swatch {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: transform 0.15s ease;
+    }
+
+    .color-swatch:hover {
+      transform: scale(1.15);
+    }
+
+    .color-swatch.active {
+      border-color: #FFF;
+      box-shadow: 0 0 10px currentColor;
+    }
+
+    /* ==========================================================================
+       COLUMN 2: 9:16 PORTRAIT CANONICAL VIEWPORT (1080x1920 Proportional)
+       ========================================================================== */
+    .viewport-column {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .stage-frame {
+      position: relative;
+      width: 440px;
+      height: 782px;
+      background: #0A0D16;
+      border-radius: 36px;
+      border: 10px solid #1A2234;
+      box-shadow:
+        0 30px 100px rgba(0, 0, 0, 0.85),
+        0 0 0 1px rgba(255, 255, 255, 0.1),
+        0 0 35px rgba(0, 240, 255, 0.15);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* STAGE TOP HUD BAR */
+    .stage-hud {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      right: 14px;
+      z-index: 50;
+      background: rgba(10, 13, 22, 0.88);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 10px;
+      padding: 8px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+      pointer-events: none;
+    }
+
+    .stage-hud-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+    }
+
+    .hud-bg-label {
+      color: var(--cyan);
+      font-weight: 700;
+    }
+
+    .hud-trans-label {
+      color: var(--gold);
+      font-weight: 700;
+    }
+
+    .hud-status-badge {
+      background: rgba(0, 255, 136, 0.15);
+      color: var(--accent-green);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-weight: 700;
+    }
+
+    .hud-status-badge.peak {
+      background: rgba(255, 224, 102, 0.2);
+      color: var(--gold);
+    }
+
+    /* DYNAMIC BACKGROUND VIEWPORT (Z: 5) */
+    .bg-viewport-plate {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      overflow: hidden;
+      transform-origin: center center;
+      transition: transform 0.05s linear;
+    }
+
+    .bg-canvas-image {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center center;
+      transition: background-image 0.2s ease, opacity 0.2s ease;
+    }
+
+    .bg-tint-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      mix-blend-mode: overlay;
+      opacity: 0;
+      transition: all 0.2s ease;
+    }
+
+    /* CINEMATIC TRANSITION OVERLAY LAYER (Z: 45) */
+    .transition-fx-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 45;
+      pointer-events: none;
+      opacity: 0;
+      overflow: hidden;
+    }
+
+    /* VIEWPORT CONTEXT OVERLAYS (CAN TOGGLE) */
+    .viewfinder-scaffold {
+      position: absolute;
+      top: 14%;
+      left: 7%;
+      right: 7%;
+      height: 68%;
+      z-index: 10;
+      background: #FFFFFF;
+      border-radius: 16px;
+      box-shadow: 0 30px 90px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(0, 0, 0, 0.08);
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+      overflow: visible;
+      transition: transform 0.4s var(--ease-out-expo);
+    }
+
+    .corner-bracket {
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      border-color: #0F172A;
+      border-style: solid;
+      pointer-events: none;
+      z-index: 25;
+    }
+
+    .bracket-tl { top: -6px; left: -6px; border-width: 3px 0 0 3px; }
+    .bracket-tr { top: -6px; right: -6px; border-width: 3px 3px 0 0; }
+    .bracket-bl { bottom: -6px; left: -6px; border-width: 0 0 3px 3px; }
+    .bracket-br { bottom: -6px; right: -6px; border-width: 0 3px 3px 0; }
+
+    .viewfinder-metadata-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      color: #0F172A;
+      letter-spacing: 0.8px;
+      margin-bottom: 10px;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.12);
+      padding-bottom: 6px;
+    }
+
+    .barcode-svg {
+      width: 48px;
+      height: 14px;
+    }
+
+    .reticle-crosshair {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      pointer-events: none;
+      opacity: 0.4;
+    }
+    .reticle-crosshair::before, .reticle-crosshair::after {
+      content: '';
+      position: absolute;
+      background: #0F172A;
+    }
+    .reticle-crosshair::before { top: 5px; left: 0; width: 12px; height: 1.5px; }
+    .reticle-crosshair::after { top: 0; left: 5px; width: 1.5px; height: 12px; }
+    .crosshair-mid-left { top: 50%; left: -14px; transform: translateY(-50%); }
+    .crosshair-mid-right { top: 50%; right: -14px; transform: translateY(-50%); }
+
+    .inner-media-viewport {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #0F1420;
+      border: 1px solid rgba(15, 23, 42, 0.15);
+      z-index: 12;
+    }
+
+    .frame-breaking-cutout-wrap {
+      position: absolute;
+      top: -16%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 88%;
+      height: 85%;
+      z-index: 22;
+      pointer-events: none;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      filter: drop-shadow(0 26px 38px rgba(0, 0, 0, 0.65));
+      transition: all 0.45s var(--ease-out-expo);
+    }
+
+    .cutout-sprite-img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      transform-origin: center bottom;
+      transition: transform 0.4s var(--ease-out-expo);
+    }
+
+    .contact-shadow-plate {
+      position: absolute;
+      bottom: 22%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60%;
+      height: 24px;
+      background: radial-gradient(ellipse at center, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 75%);
+      z-index: 11;
+      pointer-events: none;
+    }
+
+    .vector-rail-svg-wrap {
+      position: absolute;
+      inset: 0;
+      z-index: 18;
+      pointer-events: none;
+      overflow: visible;
+    }
+
+    .vector-rail-path {
+      fill: none;
+      stroke: var(--cyan);
+      stroke-width: 5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      filter: drop-shadow(0 0 10px var(--cyan-glow));
+      stroke-dasharray: 1200;
+      stroke-dashoffset: 0;
+      transition: stroke-dashoffset 0.1s linear;
+    }
+
+    .vector-rail-accent-path {
+      fill: none;
+      stroke: var(--gold);
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-dasharray: 8 12;
+      animation: dashMove 2.5s linear infinite;
+    }
+
+    @keyframes dashMove {
+      to { stroke-dashoffset: -40; }
+    }
+
+    .rail-dock-checkpoint {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--bg-space);
+      border: 2.5px solid var(--cyan);
+      box-shadow: 0 0 16px var(--cyan);
+      transform: translate(-50%, -50%);
+      z-index: 20;
+      display: grid;
+      place-items: center;
+    }
+
+    .rail-dock-checkpoint::after {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--gold);
+    }
+
+    .cgi-canvas-wrap {
+      position: absolute;
+      inset: 0;
+      z-index: 14;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #stage-cgi-canvas {
+      width: 100%;
+      height: 100%;
+    }
+
+    .curved-text-svg {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      z-index: 24;
+      pointer-events: none;
+      overflow: visible;
+    }
+
+    .curved-text-path {
+      fill: #0F172A;
+      font-family: 'Syne', sans-serif;
+      font-size: 19px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .carousel-module {
+      position: absolute;
+      bottom: 24px;
+      left: 14px;
+      right: 14px;
+      height: 94px;
+      background: rgba(15, 23, 42, 0.94);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 12px;
+      z-index: 28;
+      overflow: hidden;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
+      padding: 12px 16px;
+    }
+
+    .carousel-card-slider {
+      position: relative;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.4s var(--ease-out-cubic);
+    }
+
+    .carousel-card-item {
+      min-height: 70px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 4px;
+    }
+
+    .carousel-headline {
+      font-family: 'Syne', sans-serif;
+      font-size: 14px;
+      font-weight: 800;
+      color: #FFF;
+      letter-spacing: 0.5px;
+    }
+
+    .carousel-caption-mono {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      color: var(--cyan);
+      letter-spacing: 0.5px;
+    }
+
+    .kinetic-typography-stage {
+      position: absolute;
+      bottom: 136px;
+      left: 14px;
+      right: 14px;
+      z-index: 30;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 6px;
+    }
+
+    .typo-prefix-row {
+      font-family: 'Playfair Display', serif;
+      font-style: italic;
+      font-size: 20px;
+      color: #FFF;
+      text-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
+    }
+
+    .typo-hero-box-wrap {
+      position: relative;
+      display: inline-flex;
+      padding: 6px 18px;
+    }
+
+    .dynamic-bounding-box-svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      overflow: visible;
+    }
+
+    .dynamic-bounding-rect {
+      fill: rgba(0, 240, 255, 0.15);
+      stroke: var(--cyan);
+      stroke-width: 2.5;
+      stroke-dasharray: 400;
+      stroke-dashoffset: 0;
+      transition: stroke-dashoffset 0.3s ease;
+      filter: drop-shadow(0 0 8px var(--cyan-glow));
+    }
+
+    .reticle-corner-dot {
+      fill: var(--gold);
+    }
+
+    .typo-hero-text {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 900;
+      font-size: clamp(28px, 6vw, 36px);
+      text-transform: uppercase;
+      letter-spacing: -1px;
+      color: #FFF;
+      position: relative;
+      z-index: 2;
+      text-shadow: 0 4px 18px rgba(0, 0, 0, 0.9);
+    }
+
+    .typo-sub-row {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      color: var(--gold);
+      background: rgba(0, 0, 0, 0.5);
+      padding: 4px 10px;
+      border-radius: 4px;
+    }
+
+    /* STAGE CONTROLS & CONTEXT TOGGLES */
+    .viewport-controls-bar {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+      max-width: 440px;
+    }
+
+    .scrub-box {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .context-pills-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .context-pill {
+      padding: 6px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 6px;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-card);
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .context-pill.active {
+      border-color: var(--cyan);
+      color: #FFF;
+      background: rgba(0, 240, 255, 0.12);
+    }
+
+    /* ==========================================================================
+       COLUMN 3: 14 TRANSITIONS TO SAID BACKGROUNDS BENCH
+       ========================================================================== */
+    .trigger-cluster-card {
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .big-trigger-btn {
+      width: 100%;
+      padding: 14px;
+      font-size: 14px;
+      font-weight: 800;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      background: linear-gradient(135deg, #00F0FF 0%, #0077FE 100%);
+      color: #FFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 0 24px rgba(0, 240, 255, 0.35);
+      transition: all 0.2s ease;
+    }
+
+    .big-trigger-btn:hover {
+      box-shadow: 0 0 35px rgba(0, 240, 255, 0.6);
+      transform: translateY(-1px);
+    }
+
+    .quick-auto-cluster {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .quick-btn {
+      padding: 8px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 6px;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-card);
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .quick-btn:hover {
+      border-color: rgba(255, 255, 255, 0.25);
+      color: #FFF;
+    }
+
+    .quick-btn.active {
+      border-color: var(--gold);
+      background: rgba(255, 224, 102, 0.15);
+      color: var(--gold);
+    }
+
+    .progress-bar-wrap {
+      width: 100%;
+      height: 6px;
+      background: #192036;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--cyan), var(--gold));
+      transition: width 0.05s linear;
+    }
+
+    .sfx-paired-badge {
+      font-family: 'Space Mono', monospace;
+      font-size: 10.5px;
+      color: var(--cyan);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(0, 240, 255, 0.08);
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid rgba(0, 240, 255, 0.2);
+    }
+
+    .transitions-scroll {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 480px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .transitions-scroll::-webkit-scrollbar {
+      width: 6px;
+    }
+    .transitions-scroll::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 3px;
+    }
+    .transitions-scroll::-webkit-scrollbar-thumb {
+      background: #1E2842;
+      border-radius: 3px;
+    }
+
+    .trans-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 10px 14px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      transition: all 0.2s ease;
+    }
+
+    .trans-card:hover {
+      background: var(--bg-card-hover);
+      border-color: rgba(255, 224, 102, 0.35);
+      transform: translateX(3px);
+    }
+
+    .trans-card.active {
+      background: linear-gradient(135deg, rgba(255, 224, 102, 0.12) 0%, rgba(21, 28, 48, 0.95) 100%);
+      border: 1px solid var(--gold);
+      box-shadow: 0 0 16px rgba(255, 224, 102, 0.2);
+    }
+
+    .trans-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .trans-card-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #FFF;
+    }
+
+    .trans-card-badge {
+      font-family: 'Space Mono', monospace;
+      font-size: 9.5px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-muted);
+    }
+
+    .trans-card.active .trans-card-badge {
+      background: rgba(255, 224, 102, 0.2);
+      color: var(--gold);
+    }
+
+    .trans-card-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    /* CODE INSPECTOR */
+    .code-inspector-card {
+      background: #090C16;
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .code-tabs {
+      display: flex;
+      gap: 8px;
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 8px;
+    }
+
+    .code-tab-btn {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: none;
+      background: transparent;
+      color: var(--text-dim);
+      cursor: pointer;
+    }
+
+    .code-tab-btn.active {
+      background: rgba(0, 240, 255, 0.15);
+      color: var(--cyan);
+    }
+
+    .code-pre-box {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      color: #CBD5E1;
+      background: #060910;
+      border-radius: 8px;
+      padding: 10px;
+      line-height: 1.5;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      max-height: 140px;
+    }
+
+    /* ==========================================================================
+       VIEW 2 & 3: GRID MATRICES & RUNWAY
+       ========================================================================== */
+    .grid-view-container {
+      width: 100%;
+      display: none;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .cards-matrix-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 16px;
+    }
+
+    .matrix-display-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+
+    .matrix-display-card:hover {
+      border-color: var(--cyan);
+      transform: translateY(-3px);
+      box-shadow: 0 10px 30px rgba(0, 240, 255, 0.15);
+    }
+
+    .matrix-display-card.active {
+      border-color: var(--cyan);
+      box-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
+    }
+
+    .mini-thumb-stage {
+      position: relative;
+      width: 100%;
+      height: 240px;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #080B14;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    /* MASTER TECHNICAL REFERENCE TABLES */
+    .tech-tables-section {
+      width: 100%;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+      margin-top: 10px;
+    }
+
+    .tech-table-wrap {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    .tech-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .tech-table th {
+      text-align: left;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 10px 12px;
+      background: rgba(0, 0, 0, 0.25);
+    }
+
+    .tech-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border-subtle);
+      color: #E2E8F0;
+      vertical-align: middle;
+    }
+
+    .tech-table tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="studio-header">
+    <div class="brand-row">
+      <div class="brand-title-wrap">
+        <span class="brand-badge">PROMETHEUS CORE // MINI-RUN V8.2</span>
+        <h1 class="brand-title">9:16 Backgrounds & Transitions Studio</h1>
+      </div>
+      <div class="header-telemetry-hud">
+        <div class="time-hud" id="hud-clock">PORTRAIT 9:16 // 60 FPS</div>
+      </div>
+    </div>
+    <p class="brand-subtitle">
+      Authoritative architectural exhibition of the 9:16 vertical mini-run engine: <strong>All 18 Background Archetypes</strong> and <strong>All 14 Transitions to Said Backgrounds</strong> implemented in <code>PrometheusMinRun.tsx</code> (lines 4726–5280), <code>backgrounds.py</code>, and <code>orchestration.py</code>.
+    </p>
+
+    <!-- NAVIGATION TABS -->
+    <nav class="view-nav-bar">
+      <button class="nav-btn active" id="btn-view-interactive" onclick="switchView('interactive')">
+        <span>📱</span> <span>Interactive Studio Viewport</span>
+        <span class="nav-badge highlight">Live Controls</span>
+      </button>
+      <button class="nav-btn" id="btn-view-bg-matrix" onclick="switchView('bg-matrix')">
+        <span>🗂️</span> <span>All 18 Backgrounds Matrix</span>
+        <span class="nav-badge">Gallery Grid</span>
+      </button>
+      <button class="nav-btn" id="btn-view-trans-matrix" onclick="switchView('trans-matrix')">
+        <span>⚡</span> <span>All 14 Transitions Bench</span>
+        <span class="nav-badge">Kinematics</span>
+      </button>
+      <button class="nav-btn" id="btn-view-runway" onclick="switchView('runway')">
+        <span>🎬</span> <span>30s Sequence Runway</span>
+        <span class="nav-badge">Continuous Cuts</span>
+      </button>
+    </nav>
+  </header>
+
+  <!-- MAIN WORKSPACE WRAPPER -->
+  <main class="studio-container">
+
+    <!-- =======================================================================
+         VIEW 1: INTERACTIVE VIEWPORT (3-COLUMN REAL-TIME PLAYGROUND)
+         ======================================================================= -->
+    <section class="interactive-workspace" id="view-interactive">
+
+      <!-- COLUMN 1: 18 BACKGROUND FORMS LIBRARY -->
+      <aside class="studio-panel">
+        <div class="panel-header">
+          <span>9:16 Background Forms</span>
+          <span style="color:var(--cyan);">18 ARCHETYPES</span>
+        </div>
+
+        <div class="bg-selector-scroll" id="bg-selector-list">
+          <!-- Populated by JavaScript -->
+        </div>
+
+        <!-- LIVE PARAMETERS CONTROLS -->
+        <div class="live-params-box">
+          <div class="panel-header" style="padding-bottom: 6px;">
+            <span>Live Parameters</span>
+            <span style="color:var(--gold);">REAL-TIME</span>
+          </div>
+
+          <div class="param-row">
+            <div class="param-label-row">
+              <span>Intensity / Opacity:</span>
+              <span class="param-val" id="lbl-intensity">0.22</span>
+            </div>
+            <input type="range" class="studio-slider" id="slider-intensity" min="0.05" max="1.0" step="0.01" value="0.22" oninput="onParamChange()">
+          </div>
+
+          <div class="param-row">
+            <div class="param-label-row">
+              <span>Backdrop Blur:</span>
+              <span class="param-val" id="lbl-blur">0px</span>
+            </div>
+            <input type="range" class="studio-slider" id="slider-blur" min="0" max="48" step="1" value="0" oninput="onParamChange()">
+          </div>
+
+          <div class="param-row">
+            <div class="param-label-row">
+              <span>CSS Blend Mode:</span>
+            </div>
+            <select class="studio-select" id="select-blend" onchange="onParamChange()">
+              <option value="soft-light">soft-light (Textures Default)</option>
+              <option value="screen">screen (Ink / Glass / Atmosphere)</option>
+              <option value="overlay">overlay (Brand Tint Wash)</option>
+              <option value="normal">normal (Scaffolds & Solid Plates)</option>
+              <option value="multiply">multiply (Deep Dark Tone)</option>
+            </select>
+          </div>
+
+          <div class="param-row">
+            <div class="param-label-row">
+              <span>Brand Tint Overlay:</span>
+            </div>
+            <div class="color-swatches-row">
+              <div class="color-swatch active" style="background:#00F0FF;" onclick="selectTint('#00F0FF', this)"></div>
+              <div class="color-swatch" style="background:#FFE066;" onclick="selectTint('#FFE066', this)"></div>
+              <div class="color-swatch" style="background:#7928CA;" onclick="selectTint('#7928CA', this)"></div>
+              <div class="color-swatch" style="background:#FF3366;" onclick="selectTint('#FF3366', this)"></div>
+              <div class="color-swatch" style="background:#00FF88;" onclick="selectTint('#00FF88', this)"></div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- COLUMN 2: 9:16 PORTRAIT CANONICAL VIEWPORT -->
+      <div class="viewport-column">
+        <div class="stage-frame" id="main-stage-frame">
+
+          <!-- TOP TELEMETRY HUD -->
+          <div class="stage-hud">
+            <div class="stage-hud-row">
+              <span class="hud-bg-label" id="hud-bg-name">BG // texture_canvas: paper</span>
+              <span class="hud-status-badge" id="hud-status">READY</span>
+            </div>
+            <div class="stage-hud-row">
+              <span class="hud-trans-label" id="hud-trans-name">TRANSITION // zoom_punch</span>
+              <span id="hud-duration">DUR: 420ms</span>
+            </div>
+          </div>
+
+          <!-- LAYER 1: DYNAMIC BACKGROUND VIEWPORT (ACCEPTS ALL 18 FORMS) -->
+          <div class="bg-viewport-plate" id="stage-bg-plate">
+            <div class="bg-canvas-image" id="stage-bg-image"></div>
+            <div class="bg-tint-overlay" id="stage-bg-tint"></div>
+
+            <!-- 3D CGI CANVAS -->
+            <div class="cgi-canvas-wrap" id="stage-cgi-wrap" style="display:none;">
+              <canvas id="stage-cgi-canvas" width="360" height="480"></canvas>
+            </div>
+          </div>
+
+          <!-- LAYER 2: PERSISTENT WHITE VIEWFINDER SCAFFOLD -->
+          <div class="viewfinder-scaffold" id="stage-scaffold-layer" style="display:none;">
+            <div class="corner-bracket bracket-tl"></div>
+            <div class="corner-bracket bracket-tr"></div>
+            <div class="corner-bracket bracket-bl"></div>
+            <div class="corner-bracket bracket-br"></div>
+            <div class="reticle-crosshair crosshair-mid-left"></div>
+            <div class="reticle-crosshair crosshair-mid-right"></div>
+            <div class="viewfinder-metadata-bar">
+              <span>SYS.REC // 00:07.14</span>
+              <svg class="barcode-svg" viewBox="0 0 50 14">
+                <rect x="0" y="0" width="2" height="14" fill="#0F172A" />
+                <rect x="4" y="0" width="1" height="14" fill="#0F172A" />
+                <rect x="7" y="0" width="3" height="14" fill="#0F172A" />
+                <rect x="12" y="0" width="1" height="14" fill="#0F172A" />
+                <rect x="15" y="0" width="2" height="14" fill="#0F172A" />
+                <rect x="19" y="0" width="4" height="14" fill="#0F172A" />
+                <rect x="25" y="0" width="1" height="14" fill="#0F172A" />
+                <rect x="28" y="0" width="3" height="14" fill="#0F172A" />
+                <rect x="33" y="0" width="2" height="14" fill="#0F172A" />
+                <rect x="37" y="0" width="1" height="14" fill="#0F172A" />
+                <rect x="40" y="0" width="4" height="14" fill="#0F172A" />
+                <rect x="46" y="0" width="2" height="14" fill="#0F172A" />
+              </svg>
+              <span>ISO 800 • F/2.8</span>
+            </div>
+            <div class="inner-media-viewport" id="stage-scaffold-inner"></div>
+          </div>
+
+          <!-- LAYER 3: 2.5D FRAME-BREAKING CUTOUT POP -->
+          <div class="contact-shadow-plate" id="stage-contact-shadow" style="display:none;"></div>
+          <div class="frame-breaking-cutout-wrap" id="stage-cutout-layer" style="display:none;">
+            <img class="cutout-sprite-img" id="stage-cutout-sprite" src="" alt="Subject Pop">
+          </div>
+
+          <!-- LAYER 4: CONTINUOUS VECTOR RAIL -->
+          <div class="vector-rail-svg-wrap" id="stage-rail-layer" style="display:none;">
+            <svg width="100%" height="100%" viewBox="0 0 440 782">
+              <path id="stage-rail-path" class="vector-rail-path" d="M 40 180 C 140 160, 220 320, 200 440 S 360 560, 390 680" />
+              <path class="vector-rail-accent-path" d="M 40 180 C 140 160, 220 320, 200 440 S 360 560, 390 680" />
+            </svg>
+            <div class="rail-dock-checkpoint" style="top: 24%; left: 20%;"></div>
+            <div class="rail-dock-checkpoint" style="top: 56%; left: 52%;"></div>
+            <div class="rail-dock-checkpoint" style="top: 86%; left: 88%;"></div>
+          </div>
+
+          <!-- LAYER 5: VERTICAL KINETIC CAROUSEL -->
+          <div class="carousel-module" id="stage-carousel-layer" style="display:none;">
+            <div class="carousel-card-slider" id="stage-carousel-slider">
+              <div class="carousel-card-item">
+                <div class="carousel-headline">OPPORTUNITY DENSITY MATRIX</div>
+                <div class="carousel-caption-mono">NODE: PERPETUAL_LEVERAGE // ACTIVE</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- LAYER 6: KINETIC TYPOGRAPHY -->
+          <div class="kinetic-typography-stage" id="stage-typo-layer" style="display:none;">
+            <div class="typo-prefix-row">Everything starts looking</div>
+            <div class="typo-hero-box-wrap">
+              <svg class="dynamic-bounding-box-svg" viewBox="0 0 280 60">
+                <rect class="dynamic-bounding-rect" id="stage-bounding-rect" x="4" y="4" width="272" height="52" rx="8" />
+                <circle class="reticle-corner-dot" cx="4" cy="4" r="3" />
+                <circle class="reticle-corner-dot" cx="276" cy="4" r="3" />
+                <circle class="reticle-corner-dot" cx="4" cy="56" r="3" />
+                <circle class="reticle-corner-dot" cx="276" cy="56" r="3" />
+              </svg>
+              <span class="typo-hero-text" id="stage-typo-text">OPPORTUNITY</span>
+            </div>
+            <div class="typo-sub-row">FOCUS_CADENCE // 120 BPM</div>
+          </div>
+
+          <!-- LAYER 7: CINEMATIC TRANSITION OVERLAYS (Z: 45) -->
+          <div class="transition-fx-overlay" id="stage-trans-overlay"></div>
+
+        </div>
+
+        <!-- STAGE CONTROLS & CONTEXT TOGGLES -->
+        <div class="viewport-controls-bar">
+          <div class="scrub-box">
+            <div class="param-label-row">
+              <span>Transition Scrub Inspection:</span>
+              <span class="param-val" id="lbl-scrub-pct">0%</span>
+            </div>
+            <input type="range" class="studio-slider" id="scrubber-slider" min="0" max="100" value="0" oninput="onScrubberInput(this.value)">
+          </div>
+
+          <div class="context-pills-row">
+            <button class="context-pill" id="tog-scaffold" onclick="toggleContext('scaffold')">
+              <span>◻</span> <span>Scaffold</span>
+            </button>
+            <button class="context-pill" id="tog-cutout" onclick="toggleContext('cutout')">
+              <span>✂</span> <span>2.5D Cutout</span>
+            </button>
+            <button class="context-pill" id="tog-rail" onclick="toggleContext('rail')">
+              <span>⚡</span> <span>Vector Rail</span>
+            </button>
+            <button class="context-pill" id="tog-carousel" onclick="toggleContext('carousel')">
+              <span>☰</span> <span>Carousel</span>
+            </button>
+            <button class="context-pill" id="tog-typo" onclick="toggleContext('typo')">
+              <span>🔤</span> <span>Typography</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- COLUMN 3: 14 TRANSITIONS TO SAID BACKGROUNDS BENCH -->
+      <aside class="studio-panel">
+        <div class="panel-header">
+          <span>Transitions to Backgrounds</span>
+          <span style="color:var(--gold);">14 EFFECTS</span>
+        </div>
+
+        <!-- TRIGGER CLUSTER -->
+        <div class="trigger-cluster-card">
+          <button class="big-trigger-btn" id="btn-fire-trans" onclick="fireTransition()">
+            <span>⚡</span> <span>TRIGGER TRANSITION NOW</span>
+          </button>
+
+          <div class="progress-bar-wrap">
+            <div class="progress-bar-fill" id="trans-progress-fill"></div>
+          </div>
+
+          <div class="quick-auto-cluster">
+            <button class="quick-btn" id="btn-auto-trans" onclick="toggleAutoTransitions()">
+              <span>▶</span> <span id="lbl-auto-trans">Cycle 14 Transitions</span>
+            </button>
+            <button class="quick-btn" id="btn-auto-bgs" onclick="toggleAutoBackgrounds()">
+              <span>▶</span> <span id="lbl-auto-bgs">Cycle 18 BGs</span>
+            </button>
+          </div>
+
+          <div class="param-row">
+            <div class="param-label-row">
+              <span>Transition Duration:</span>
+              <span class="param-val" id="lbl-trans-dur">420ms</span>
+            </div>
+            <input type="range" class="studio-slider" id="slider-trans-dur" min="150" max="1500" step="10" value="420" oninput="onTransDurChange(this.value)">
+          </div>
+
+          <div class="sfx-paired-badge">
+            <span>🔊 CAUSAL AUDIO SFX:</span>
+            <strong id="lbl-sfx-cue" style="color:#FFF;">whoosh_fast.wav @ -6.5 dB</strong>
+          </div>
+        </div>
+
+        <!-- TRANSITIONS LIST -->
+        <div class="transitions-scroll" id="transitions-list">
+          <!-- Populated by JavaScript -->
+        </div>
+
+        <!-- CODE INSPECTOR -->
+        <div class="code-inspector-card">
+          <div class="code-tabs">
+            <button class="code-tab-btn active" id="tab-remotion" onclick="switchCodeTab('remotion')">REMOTION TSX</button>
+            <button class="code-tab-btn" id="tab-py-bg" onclick="switchCodeTab('py-bg')">PYTHON BG</button>
+            <button class="code-tab-btn" id="tab-py-orch" onclick="switchCodeTab('py-orch')">PYTHON ORCH</button>
+          </div>
+          <pre class="code-pre-box" id="code-output-box">// Production Code</pre>
+        </div>
+      </aside>
+
+    </section>
+
+    <!-- =======================================================================
+         VIEW 2: ALL 18 BACKGROUNDS MATRIX GALLERY GRID
+         ======================================================================= -->
+    <section class="grid-view-container" id="view-bg-matrix">
+      <div class="panel-header">
+        <span>Complete 9:16 Background Archetype Gallery</span>
+        <span style="color:var(--cyan);">18 FORMS SIMULTANEOUS VIEW</span>
+      </div>
+      <div class="cards-matrix-grid" id="bg-gallery-grid">
+        <!-- Populated by JavaScript -->
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         VIEW 3: ALL 14 TRANSITIONS BENCH GRID
+         ======================================================================= -->
+    <section class="grid-view-container" id="view-trans-matrix">
+      <div class="panel-header">
+        <span>All 14 Transition Kinematics & Shaders</span>
+        <span style="color:var(--gold);">COMPARISON BENCH</span>
+      </div>
+      <div class="cards-matrix-grid" id="trans-gallery-grid">
+        <!-- Populated by JavaScript -->
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         VIEW 4: 30-SECOND SEQUENCE RUNWAY SIMULATOR
+         ======================================================================= -->
+    <section class="grid-view-container" id="view-runway">
+      <div class="studio-panel">
+        <div class="panel-header">
+          <span>30-Second Sequence Runway Simulator</span>
+          <span style="color:var(--accent-green);">CONTINUOUS NARRATIVE CUTS</span>
+        </div>
+        <p style="font-size:13px; color:var(--text-muted); line-height:1.6;">
+          Demonstrates how the Prometheus Core mini-run engine chains multiple background forms across a 30-second vertical run, punctuating narrative pivot turning points with synchronized transitions and broadcast audio cues.
+        </p>
+        <div style="display:flex; align-items:center; gap:12px; margin-top:8px;">
+          <button class="big-trigger-btn" style="max-width:240px;" id="btn-runway-play" onclick="toggleRunwayPlay()">
+            <span>▶</span> <span id="lbl-runway-play">START 30S RUNWAY</span>
+          </button>
+          <div class="time-hud" id="hud-runway-tc">TC // 00:00.00</div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:12px; margin-top:16px;">
+          <div class="bg-card" id="runway-scene-1">
+            <span style="font-family:'Space Mono', monospace; font-size:10px; color:var(--cyan);">SCENE 01 // 00:00 - 00:06</span>
+            <strong>texture_canvas: paper</strong>
+            <span style="font-size:11px; color:var(--text-muted);">Hook: "Everything starts looking"</span>
+          </div>
+          <div class="bg-card" id="runway-scene-2">
+            <span style="font-family:'Space Mono', monospace; font-size:10px; color:var(--gold);">TRANSITION // 00:06</span>
+            <strong>film_burn: amber_gate</strong>
+            <span style="font-size:11px; color:var(--cyan);">SFX: whoosh_fast.wav (-6.5 dB)</span>
+          </div>
+          <div class="bg-card" id="runway-scene-3">
+            <span style="font-family:'Space Mono', monospace; font-size:10px; color:var(--cyan);">SCENE 02 // 00:06 - 00:14</span>
+            <strong>editorial_glass + 2.5D</strong>
+            <span style="font-size:11px; color:var(--text-muted);">"like an OPPORTUNITY"</span>
+          </div>
+          <div class="bg-card" id="runway-scene-4">
+            <span style="font-family:'Space Mono', monospace; font-size:10px; color:var(--gold);">TRANSITION // 00:14</span>
+            <strong>whip_pan_transition</strong>
+            <span style="font-size:11px; color:var(--cyan);">SFX: whoosh_heavy_impact (-6.0 dB)</span>
+          </div>
+          <div class="bg-card" id="runway-scene-5">
+            <span style="font-family:'Space Mono', monospace; font-size:10px; color:var(--cyan);">SCENE 03 // 00:14 - 00:22</span>
+            <strong>continuous_vector_rail</strong>
+            <span style="font-size:11px; color:var(--text-muted);">"building a MACHINE"</span>
+          </div>
+          <div class="bg-card" id="runway-scene-6">
+            <span style="font-family:'Space Mono', monospace; font-size:10px; color:var(--gold);">TRANSITION // 00:22</span>
+            <strong>iris_wipe</strong>
+            <span style="font-size:11px; color:var(--cyan);">SFX: slow_whoosh_reverb (-7.0 dB)</span>
+          </div>
+          <div class="bg-card" id="runway-scene-7">
+            <span style="font-family:'Space Mono', monospace; font-size:10px; color:var(--cyan);">SCENE 04 // 00:22 - 00:30</span>
+            <strong>vertical_kinetic_carousel</strong>
+            <span style="font-size:11px; color:var(--text-muted);">"OPERATE WITHOUT YOU"</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         MASTER TECHNICAL ARCHITECTURAL MATRICES
+         ======================================================================= -->
+    <section class="tech-tables-section">
+      <div class="panel-header">
+        <span>Engine Architectural Matrices // Codebase Reference</span>
+        <span style="color:var(--gold);">18 BACKGROUNDS & 14 TRANSITIONS</span>
+      </div>
+
+      <!-- TABLE 1 -->
+      <div>
+        <h3 style="font-family:'Syne',sans-serif; font-size:16px; font-weight:800; color:#FFF; margin-bottom:12px;">
+          Master Taxonomy: All 18 Background Forms for 9:16 Runs
+        </h3>
+        <div class="tech-table-wrap">
+          <table class="tech-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Background Form Name</th>
+                <th>Category</th>
+                <th>Domain Trigger Patterns</th>
+                <th>Default Blend</th>
+                <th>Default Intensity</th>
+                <th>Compositing Z-Depth</th>
+                <th>Codebase Location</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>01</code></td>
+                <td><strong>texture_canvas (paper)</strong></td>
+                <td>Tactile Bitmaps</td>
+                <td><code>list_stack</code>, <code>steps</code>, <code>habits</code>, <code>clearer</code></td>
+                <td><code>soft-light</code></td>
+                <td><code>0.20</code></td>
+                <td>Z: 05 (Canvas Plate)</td>
+                <td><code>PrometheusMinRun.tsx:4936</code></td>
+              </tr>
+              <tr>
+                <td><code>02</code></td>
+                <td><strong>texture_canvas (fabric)</strong></td>
+                <td>Tactile Bitmaps</td>
+                <td><code>lifestyle</code>, <code>routine</code>, <code>foundation</code></td>
+                <td><code>soft-light</code></td>
+                <td><code>0.20</code></td>
+                <td>Z: 05 (Canvas Plate)</td>
+                <td><code>backgrounds.py:74</code></td>
+              </tr>
+              <tr>
+                <td><code>03</code></td>
+                <td><strong>texture_canvas (ink_paint)</strong></td>
+                <td>Tactile Bitmaps</td>
+                <td><code>detonation</code>, <code>surge</code>, <code>opportunity</code></td>
+                <td><code>screen</code></td>
+                <td><code>0.25</code></td>
+                <td>Z: 05 (Canvas Plate)</td>
+                <td><code>backgrounds.py:75</code></td>
+              </tr>
+              <tr>
+                <td><code>04</code></td>
+                <td><strong>texture_canvas (grunge)</strong></td>
+                <td>Tactile Bitmaps</td>
+                <td><code>industrial</code>, <code>grit</code>, <code>machine</code>, <code>hustle</code></td>
+                <td><code>soft-light</code></td>
+                <td><code>0.20</code></td>
+                <td>Z: 05 (Canvas Plate)</td>
+                <td><code>backgrounds.py:76</code></td>
+              </tr>
+              <tr>
+                <td><code>05</code></td>
+                <td><strong>texture_canvas (glass)</strong></td>
+                <td>Tactile Bitmaps</td>
+                <td><code>crystalline</code>, <code>focus</code>, <code>clarity</code></td>
+                <td><code>screen</code></td>
+                <td><code>0.20</code></td>
+                <td>Z: 05 (Canvas Plate)</td>
+                <td><code>backgrounds.py:77</code></td>
+              </tr>
+              <tr>
+                <td><code>06</code></td>
+                <td><strong>brand_canvas</strong></td>
+                <td>Tactile Bitmaps</td>
+                <td><code>brand_authority</code>, <code>identity</code></td>
+                <td><code>overlay</code></td>
+                <td><code>0.35</code></td>
+                <td>Z: 05 (Canvas + Tint)</td>
+                <td><code>PrometheusMinRun.tsx:4959</code></td>
+              </tr>
+              <tr>
+                <td><code>07</code></td>
+                <td><strong>editorial_glass</strong></td>
+                <td>Atmosphere & Optics</td>
+                <td><code>screencast</code>, <code>dashboard</code>, <code>interface</code>, <code>app</code></td>
+                <td><code>normal</code></td>
+                <td><code>0.85</code></td>
+                <td>Z: 10 (24px Frosted Card)</td>
+                <td><code>PrometheusMinRun.tsx:4771</code></td>
+              </tr>
+              <tr>
+                <td><code>08</code></td>
+                <td><strong>gradient_atmosphere</strong></td>
+                <td>Atmosphere & Optics</td>
+                <td><code>ambient_glow</code>, <code>mood</code>, <code>spacious</code></td>
+                <td><code>screen + overlay</code></td>
+                <td><code>0.88</code></td>
+                <td>Z: 05 (Radial Atmosphere)</td>
+                <td><code>PrometheusMinRun.tsx:4835</code></td>
+              </tr>
+              <tr>
+                <td><code>09</code></td>
+                <td><strong>defocus_depth</strong></td>
+                <td>Atmosphere & Optics</td>
+                <td><code>quote_heirloom</code>, <code>wisdom</code>, <code>reflection</code></td>
+                <td><code>normal</code></td>
+                <td><code>0.80</code></td>
+                <td>Z: 08 (32px Focal Blur)</td>
+                <td><code>PrometheusMinRun.tsx:4914</code></td>
+              </tr>
+              <tr>
+                <td><code>10</code></td>
+                <td><strong>broll_cutaway</strong></td>
+                <td>Atmosphere & Optics</td>
+                <td><code>broll_scene</code>, <code>cutaway</code>, <code>context</code></td>
+                <td><code>normal</code></td>
+                <td><code>0.90</code></td>
+                <td>Z: 05 (1.05x Punch Scale)</td>
+                <td><code>PrometheusMinRun.tsx:4866</code></td>
+              </tr>
+              <tr>
+                <td><code>11</code></td>
+                <td><strong>negative_space_stencil</strong></td>
+                <td>Atmosphere & Optics</td>
+                <td><code>knockout</code>, <code>contrast</code>, <code>minimal</code></td>
+                <td><code>normal</code></td>
+                <td><code>0.94</code></td>
+                <td>Z: 05 (Solid Blackout)</td>
+                <td><code>PrometheusMinRun.tsx:4896</code></td>
+              </tr>
+              <tr>
+                <td><code>12</code></td>
+                <td><strong>blurred_wings</strong></td>
+                <td>Atmosphere & Optics</td>
+                <td><code>pillarbox</code>, <code>winged_video</code></td>
+                <td><code>normal</code></td>
+                <td><code>0.75</code></td>
+                <td>Z: 02 (Flanking Wings)</td>
+                <td><code>backgrounds.py:54</code></td>
+              </tr>
+              <tr>
+                <td><code>13</code></td>
+                <td><strong>viewfinder_scaffold</strong></td>
+                <td>Scaffolds & 2.5D</td>
+                <td><code>opportunity_filter</code>, <code>viewfinder</code></td>
+                <td><code>normal</code></td>
+                <td><code>1.00</code></td>
+                <td>Z: 10 (White Container)</td>
+                <td><code>backgrounds.py:57</code></td>
+              </tr>
+              <tr>
+                <td><code>14</code></td>
+                <td><strong>frame_break_cutout_2_5d</strong></td>
+                <td>Scaffolds & 2.5D</td>
+                <td><code>brain_detonation</code>, <code>frame_break</code></td>
+                <td><code>normal</code></td>
+                <td><code>1.00</code></td>
+                <td>Z: 22 (Extruded Pop)</td>
+                <td><code>backgrounds.py:58</code></td>
+              </tr>
+              <tr>
+                <td><code>15</code></td>
+                <td><strong>vintage_halftone_lithograph</strong></td>
+                <td>Scaffolds & 2.5D</td>
+                <td><code>vintage_halftone</code>, <code>lithograph</code></td>
+                <td><code>overlay</code></td>
+                <td><code>0.90</code></td>
+                <td>Z: 02 (Dot Matrix Screen)</td>
+                <td><code>backgrounds.py:63</code></td>
+              </tr>
+              <tr>
+                <td><code>16</code></td>
+                <td><strong>continuous_vector_rail</strong></td>
+                <td>Scaffolds & 2.5D</td>
+                <td><code>vector_rail</code>, <code>narrative_path</code></td>
+                <td><code>normal</code></td>
+                <td><code>1.00</code></td>
+                <td>Z: 18 (Bezier Ribbon)</td>
+                <td><code>backgrounds.py:59</code></td>
+              </tr>
+              <tr>
+                <td><code>17</code></td>
+                <td><strong>cgi_hybrid_path_typography</strong></td>
+                <td>Scaffolds & 2.5D</td>
+                <td><code>3d_wireframe</code>, <code>spline_typography</code></td>
+                <td><code>normal</code></td>
+                <td><code>1.00</code></td>
+                <td>Z: 14 (3D Canvas Sphere)</td>
+                <td><code>backgrounds.py:60</code></td>
+              </tr>
+              <tr>
+                <td><code>18</code></td>
+                <td><strong>vertical_kinetic_carousel</strong></td>
+                <td>Scaffolds & 2.5D</td>
+                <td><code>machine_automation</code>, <code>vertical_carousel</code></td>
+                <td><code>normal</code></td>
+                <td><code>1.00</code></td>
+                <td>Z: 28 (Step-Scroll Module)</td>
+                <td><code>backgrounds.py:61</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TABLE 2 -->
+      <div>
+        <h3 style="font-family:'Syne',sans-serif; font-size:16px; font-weight:800; color:#FFF; margin-bottom:12px;">
+          Master Taxonomy: All 14 Transition Kinematics & Shaders
+        </h3>
+        <div class="tech-table-wrap">
+          <table class="tech-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Transition Effect</th>
+                <th>Class</th>
+                <th>Kinematic Formula / Shader</th>
+                <th>Peak Velocity Point</th>
+                <th>Paired SFX Asset</th>
+                <th>Broadcast Gain</th>
+                <th>Source Line</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>TR-01</code></td>
+                <td><strong>zoom_punch</strong></td>
+                <td>Kinematic Motion</td>
+                <td><code>scale: 1.08 → 1.0 (quad out)</code></td>
+                <td><code>48% of duration</code></td>
+                <td><code>whoosh_fast.wav</code></td>
+                <td><code>-6.5 dB</code></td>
+                <td><code>PrometheusMinRun.tsx:4731</code></td>
+              </tr>
+              <tr>
+                <td><code>TR-02</code></td>
+                <td><strong>directional_slide_right</strong></td>
+                <td>Kinematic Motion</td>
+                <td><code>translateX: -48px → 0px (cubic out)</code></td>
+                <td><code>48% of duration</code></td>
+                <td><code>whoosh_fast.wav</code></td>
+                <td><code>-6.5 dB</code></td>
+                <td><code>PrometheusMinRun.tsx:4738</code></td>
+              </tr>
+              <tr>
+                <td><code>TR-03</code></td>
+                <td><strong>directional_slide_left</strong></td>
+                <td>Kinematic Motion</td>
+                <td><code>translateX: +48px → 0px (cubic out)</code></td>
+                <td><code>48% of duration</code></td>
+                <td><code>whoosh_fast.wav</code></td>
+                <td><code>-6.5 dB</code></td>
+                <td><code>PrometheusMinRun.tsx:4745</code></td>
+              </tr>
+              <tr>
+                <td><code>TR-04</code></td>
+                <td><strong>iris_wipe</strong></td>
+                <td>Kinematic Motion</td>
+                <td><code>clipPath: circle(0% → 150%)</code></td>
+                <td><code>48% of duration</code></td>
+                <td><code>slow_whoosh_reverb.wav</code></td>
+                <td><code>-7.0 dB</code></td>
+                <td><code>PrometheusMinRun.tsx:4752</code></td>
+              </tr>
+              <tr>
+                <td><code>TR-05</code></td>
+                <td><strong>whip_pan_transition</strong></td>
+                <td>Kinematic Motion</td>
+                <td><code>translateX: 120px → -15px → 0px</code></td>
+                <td><code>40% of duration</code></td>
+                <td><code>whoosh_heavy_impact.wav</code></td>
+                <td><code>-6.0 dB</code></td>
+                <td><code>PrometheusMinRun.tsx:4759</code></td>
+              </tr>
+              <tr>
+                <td><code>TR-06</code></td>
+                <td><strong>crossfade</strong></td>
+                <td>Kinematic Motion</td>
+                <td><code>opacity: 0.0 → 1.0 (smooth)</code></td>
+                <td><code>50% of duration</code></td>
+                <td><code>subtle_air_sweep.wav</code></td>
+                <td><code>-9.0 dB</code></td>
+                <td><code>PrometheusMinRun.tsx:4726</code></td>
+              </tr>
+              <tr>
+                <td><code>TR-07</code></td>
+                <td><strong>luma_cut</strong></td>
+                <td>Kinematic Motion</td>
+                <td><code>instant hard cut + 15% flash snap</code></td>
+                <td><code>50% of duration</code></td>
+                <td><code>film_shutter_click.wav</code></td>
+                <td><code>-7.5 dB</code></td>
+                <td><code>orchestration.py:540</code></td>
+              </tr>
+              <tr>
+                <td><code>TR-08</code></td>
+                <td><strong>film_burn (Variant 1: Amber Gate)</strong></td>
+                <td>Cinematic Overlay</td>
+                <td><code>Top-Right 115° flare + counter leak</code></td>
+                <td><code>48% of duration</code></td>
+                <td><code>whoosh_fast.wav</code></td>
+                <td><code>-6.5 dB</code></td>
+                <td><code>PrometheusMinRun.tsx:5167</code></td>
+              </tr>
+              <tr>
+                <td><code>TR-09</code></td>
+                <td><strong>film_burn (Variant 2: Bleach Burst)</strong></td>
+                <td>Cinematic Overlay</td>
+                <td><code>Flank-Left anamorphic bar + copper</code></td>
+                <td><code>48% of duration</code></td>
+                <td><code>slow_whoosh_reverb.wav</code></td>
+                <td><code>-7.0 dB</code></td>
+                <td><code>PrometheusMinRun.tsx:5013</code></td>
+              </tr>
+              <tr>
+                <td><code>TR-10</code></td>
+                <td><strong>film_burn (Variant 3: Solar Sunburst)</strong></td>
+                <td>Cinematic Overlay</td>
+                <td><code>Top-Left solar sunburst + 48° streak</code></td>
+                <td><code>48% of duration</code></td>
+                <td><code>whoosh_fast.wav</code></td>
+                <td><code>-6.5 dB</code></td>
+                <td><code>PrometheusMinRun.tsx:5067</code></td>
+              </tr>
+              <tr>
+                <td><code>TR-11</code></td>
+                <td><strong>film_burn (Variant 4: Perforation Roll)</strong></td>
+                <td>Cinematic Overlay</td>
+                <td><code>Bottom-edge gate breach + 88° beam</code></td>
+                <td><code>48% of duration</code></td>
+                <td><code>slow_whoosh_reverb.wav</code></td>
+                <td><code>-7.0 dB</code></td>
+                <td><code>PrometheusMinRun.tsx:5121</code></td>
+              </tr>
+              <tr>
+                <td><code>TR-12</code></td>
+                <td><strong>light_leak_sweep</strong></td>
+                <td>Cinematic Overlay</td>
+                <td><code>45° anamorphic leak -140px → +140px</code></td>
+                <td><code>50% of duration</code></td>
+                <td><code>whoosh_fast.wav</code></td>
+                <td><code>-6.5 dB</code></td>
+                <td><code>PrometheusMinRun.tsx:5220</code></td>
+              </tr>
+              <tr>
+                <td><code>TR-13</code></td>
+                <td><strong>bokeh_defocus_blend</strong></td>
+                <td>Cinematic Overlay</td>
+                <td><code>Concentric optical bokeh spheres 16px</code></td>
+                <td><code>50% of duration</code></td>
+                <td><code>slow_whoosh_reverb.wav</code></td>
+                <td><code>-7.0 dB</code></td>
+                <td><code>PrometheusMinRun.tsx:5250</code></td>
+              </tr>
+              <tr>
+                <td><code>TR-14</code></td>
+                <td><strong>flash_cut</strong></td>
+                <td>Cinematic Overlay</td>
+                <td><code>Golden exposure bloom 8px blur</code></td>
+                <td><code>50% of duration</code></td>
+                <td><code>shutter_snap.wav</code></td>
+                <td><code>-6.8 dB</code></td>
+                <td><code>PrometheusMinRun.tsx:5267</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- =======================================================================
+       JAVASCRIPT ENGINE
+       ======================================================================= -->
+  <script>
+    // -------------------------------------------------------------------------
+    // EMBEDDED REAL ASSET URIS
+    // -------------------------------------------------------------------------
+    const ASSETS = {
+      paper: "__PAPER_B64__",
+      fabric: "__FABRIC_B64__",
+      ink_paint: "__INK_B64__",
+      grunge: "__GRUNGE_B64__",
+      glass: "__GLASS_B64__",
+      thinkCutout: "__THINK_B64__",
+      halftonePlate: "__HALFTONE_B64__",
+      gearsCutout: "__GEARS_B64__",
+      monumentCutout: "__MONUMENT_B64__"
+    };
+
+    // -------------------------------------------------------------------------
+    // COMPLETE 18 BACKGROUND FORMS DEFINITION
+    // -------------------------------------------------------------------------
+    const BACKGROUND_FORMS = [
+      {
+        id: "paper",
+        name: "texture_canvas: paper",
+        category: "Tactile Canvas",
+        categoryClass: "tactile",
+        badge: "Texturelabs 270XL",
+        desc: "Tactile paper pulp grain with organic micro-creases and fiber flecks. Renders as an authentic physical sheet behind typography.",
+        blend: "soft-light",
+        intensity: 0.22,
+        blur: 0,
+        assetKey: "paper",
+        remotion: `// Remotion JSX (PrometheusMinRun.tsx:4936)
+<AbsoluteFill style={{
+  zIndex: 5,
+  opacity: baseOpacity * 0.20,
+  mixBlendMode: "soft-light",
+  backgroundImage: "url(/textures/Texturelabs_Paper_270XL.jpg)",
+  backgroundSize: "cover",
+  backgroundPosition: "center center",
+  transform: \`scale(\${scale})\${transformExtra}\`
+}} />`,
+        pyBg: `# mini_run_pipeline/backgrounds.py:73
+{
+    "candidate": "texture_canvas",
+    "texture": {
+        "family": "paper",
+        "fileName": "Texturelabs_Paper_270XL.jpg",
+        "blendMode": "soft-light",
+        "intensity": 0.20
+    }
+}`
+      },
+      {
+        id: "fabric",
+        name: "texture_canvas: fabric",
+        category: "Tactile Canvas",
+        categoryClass: "tactile",
+        badge: "Texturelabs 145L",
+        desc: "Dense textile linen weave with cross-hatch warp and weft fibers. Adds physical organic weight to lifestyle and routine sequences.",
+        blend: "soft-light",
+        intensity: 0.20,
+        blur: 0,
+        assetKey: "fabric",
+        remotion: `// Remotion JSX (PrometheusMinRun.tsx:4936)
+<AbsoluteFill style={{
+  zIndex: 5,
+  opacity: baseOpacity * 0.20,
+  mixBlendMode: "soft-light",
+  backgroundImage: "url(/textures/Texturelabs_Fabric_145L.jpg)",
+  backgroundSize: "cover"
+}} />`,
+        pyBg: `# mini_run_pipeline/backgrounds.py:74
+{
+    "candidate": "texture_canvas",
+    "texture": {
+        "family": "fabric",
+        "fileName": "Texturelabs_Fabric_145L.jpg",
+        "blendMode": "soft-light",
+        "intensity": 0.20
+    }
+}`
+      },
+      {
+        id: "ink_paint",
+        name: "texture_canvas: ink_paint",
+        category: "Tactile Canvas",
+        categoryClass: "tactile",
+        badge: "Texturelabs 397XL",
+        desc: "Screened high-contrast splatter droplets and fluid pigment spray distress. Heightens kinetic detonation beats.",
+        blend: "screen",
+        intensity: 0.25,
+        blur: 0,
+        assetKey: "ink_paint",
+        remotion: `// Remotion JSX (PrometheusMinRun.tsx:4936)
+<AbsoluteFill style={{
+  zIndex: 5,
+  opacity: baseOpacity * 0.25,
+  mixBlendMode: "screen",
+  backgroundImage: "url(/textures/Texturelabs_InkPaint_397XL.jpg)",
+  backgroundSize: "cover"
+}} />`,
+        pyBg: `# mini_run_pipeline/backgrounds.py:75
+{
+    "candidate": "texture_canvas",
+    "texture": {
+        "family": "ink_paint",
+        "fileName": "Texturelabs_InkPaint_397XL.jpg",
+        "blendMode": "screen",
+        "intensity": 0.25
+    }
+}`
+      },
+      {
+        id: "grunge",
+        name: "texture_canvas: grunge",
+        category: "Tactile Canvas",
+        categoryClass: "tactile",
+        badge: "Texturelabs 146XL",
+        desc: "Distressed abrasive weathering, micro-scratches, and industrial patina. Paired with gritty mechanical narratives.",
+        blend: "soft-light",
+        intensity: 0.20,
+        blur: 0,
+        assetKey: "grunge",
+        remotion: `// Remotion JSX (PrometheusMinRun.tsx:4936)
+<AbsoluteFill style={{
+  zIndex: 5,
+  opacity: baseOpacity * 0.20,
+  mixBlendMode: "soft-light",
+  backgroundImage: "url(/textures/Texturelabs_Grunge_146XL.jpg)",
+  backgroundSize: "cover"
+}} />`,
+        pyBg: `# mini_run_pipeline/backgrounds.py:76
+{
+    "candidate": "texture_canvas",
+    "texture": {
+        "family": "grunge",
+        "fileName": "Texturelabs_Grunge_146XL.jpg",
+        "blendMode": "soft-light",
+        "intensity": 0.20
+    }
+}`
+      },
+      {
+        id: "glass",
+        name: "texture_canvas: glass",
+        category: "Tactile Canvas",
+        categoryClass: "tactile",
+        badge: "Texturelabs 121L",
+        desc: "Specular crystal light facets, chromatic prism aberrations, and caustic light refraction flecks.",
+        blend: "screen",
+        intensity: 0.20,
+        blur: 0,
+        assetKey: "glass",
+        remotion: `// Remotion JSX (PrometheusMinRun.tsx:4936)
+<AbsoluteFill style={{
+  zIndex: 5,
+  opacity: baseOpacity * 0.20,
+  mixBlendMode: "screen",
+  backgroundImage: "url(/textures/Texturelabs_Glass_121L.jpg)",
+  backgroundSize: "cover"
+}} />`,
+        pyBg: `# mini_run_pipeline/backgrounds.py:77
+{
+    "candidate": "texture_canvas",
+    "texture": {
+        "family": "glass",
+        "fileName": "Texturelabs_Glass_121L.jpg",
+        "blendMode": "screen",
+        "intensity": 0.20
+    }
+}`
+      },
+      {
+        id: "brand_canvas",
+        name: "brand_canvas",
+        category: "Tactile Canvas",
+        categoryClass: "tactile",
+        badge: "Texture + Wash",
+        desc: "Physical texture bitmap bathed in brand color wash tint (rgba(0, 240, 255, 0.25)) in overlay blend mode.",
+        blend: "overlay",
+        intensity: 0.35,
+        blur: 0,
+        assetKey: "paper",
+        brandTint: "rgba(0, 240, 255, 0.25)",
+        remotion: `// Remotion JSX (PrometheusMinRun.tsx:4959)
+<AbsoluteFill style={{
+  zIndex: 5,
+  opacity: baseOpacity * 0.35,
+  mixBlendMode: "overlay",
+  backgroundImage: "url(/textures/Texturelabs_Paper_270XL.jpg)",
+  backgroundColor: "rgba(0, 240, 255, 0.25)"
+}}>
+  <AbsoluteFill style={{ backgroundColor: brandTint, mixBlendMode: "overlay", opacity: 0.35 }} />
+</AbsoluteFill>`,
+        pyBg: `# mini_run_pipeline/backgrounds.py:53
+{
+    "candidate": "brand_canvas",
+    "brandTint": "rgba(0, 240, 255, 0.25)",
+    "texture": {"family": "paper", "intensity": 0.20}
+}`
+      },
+      {
+        id: "editorial_glass",
+        name: "editorial_glass",
+        category: "Atmosphere & Optics",
+        categoryClass: "optics",
+        badge: "24px Frosted Glass",
+        desc: "Floating frosted glass stage with 24px backdrop-filter blur, specular top sheen sweep, and subtle 1px border.",
+        blend: "normal",
+        intensity: 0.85,
+        blur: 24,
+        remotion: `// Remotion JSX (PrometheusMinRun.tsx:4771)
+<AbsoluteFill style={{ zIndex: 5, opacity: baseOpacity }}>
+  <div style={{
+    inset: "48px 28px", borderRadius: 28,
+    backdropFilter: "blur(24px) saturate(180%)",
+    backgroundColor: "rgba(16, 20, 32, 0.70)",
+    border: "1px solid rgba(255, 255, 255, 0.14)",
+    boxShadow: "0 16px 48px rgba(0, 0, 0, 0.45)"
+  }}>
+    <div style={{ height: "40%", background: "linear-gradient(180deg, rgba(255,255,255,0.09), transparent)" }} />
+  </div>
+</AbsoluteFill>`,
+        pyBg: `# mini_run_pipeline/backgrounds.py:50
+{
+    "candidate": "editorial_glass",
+    "glass": {"blurPx": 24, "tint": "rgba(16, 20, 32, 0.70)", "borderColor": "rgba(255, 255, 255, 0.14)"}
+}`
+      },
+      {
+        id: "gradient_atmosphere",
+        name: "gradient_atmosphere",
+        category: "Atmosphere & Optics",
+        categoryClass: "optics",
+        badge: "Radial Dual-Mode",
+        desc: "Dynamic ambient radial gradient using electric cyan glow (#00F0FF screen) with deep violet overlay accent (#7928CA).",
+        blend: "screen",
+        intensity: 0.90,
+        blur: 0,
+        remotion: `// Remotion JSX (PrometheusMinRun.tsx:4835)
+<AbsoluteFill style={{
+  zIndex: 5, opacity: baseOpacity * 0.88,
+  background: "radial-gradient(circle at 50% 36%, rgba(0, 240, 255, 0.32) 0%, rgba(14, 16, 26, 0.82) 55%, rgba(6, 8, 14, 0.95) 100%)",
+  mixBlendMode: "screen"
+}}>
+  <div style={{ inset: 0, background: "radial-gradient(circle at 75% 65%, #7928CA33 0%, transparent 50%)", mixBlendMode: "overlay" }} />
+</AbsoluteFill>`,
+        pyBg: `# mini_run_pipeline/backgrounds.py:51
+{
+    "candidate": "gradient_atmosphere",
+    "atmosphere": {"glowRgb": "0, 240, 255", "accent": "#7928CA"}
+}`
+      },
+      {
+        id: "defocus_depth",
+        name: "defocus_depth",
+        category: "Atmosphere & Optics",
+        categoryClass: "optics",
+        badge: "32px Focal Separation",
+        desc: "Deep cinematic focal plane separation with 32px backdrop blur, 0.72 brightness reduction, and 0.65 radial vignette.",
+        blend: "normal",
+        intensity: 0.80,
+        blur: 32,
+        remotion: `// Remotion JSX (PrometheusMinRun.tsx:4914)
+<AbsoluteFill style={{
+  zIndex: 5, opacity: baseOpacity,
+  backdropFilter: "blur(32px) brightness(0.72)",
+  background: "radial-gradient(circle at center, transparent 20%, rgba(0, 0, 0, 0.65) 100%)"
+}} />`,
+        pyBg: `# mini_run_pipeline/backgrounds.py:52
+{
+    "candidate": "defocus_depth",
+    "defocus": {"blurPx": 32, "vignetteStrength": 0.65}
+}`
+      },
+      {
+        id: "broll_cutaway",
+        name: "broll_cutaway",
+        category: "Atmosphere & Optics",
+        categoryClass: "optics",
+        badge: "1.05x Punch Scale",
+        desc: "Contextual documentary cutaway stage with 1.05x to 1.0x scale punch and deep inner drop shadow vignette.",
+        blend: "normal",
+        intensity: 0.90,
+        blur: 0,
+        remotion: `// Remotion JSX (PrometheusMinRun.tsx:4866)
+<AbsoluteFill style={{
+  zIndex: 5, opacity: baseOpacity,
+  transform: "scale(1.05)",
+  background: "radial-gradient(circle at center, rgba(20, 24, 36, 0.85) 0%, rgba(8, 10, 16, 0.96) 100%)",
+  boxShadow: "inset 0 0 120px rgba(0, 0, 0, 0.85)"
+}} />`,
+        pyBg: `# mini_run_pipeline/backgrounds.py:55
+{
+    "candidate": "broll_cutaway",
+    "cutaway": {"punchScale": 1.05, "innerShadow": 0.85}
+}`
+      },
+      {
+        id: "negative_space_stencil",
+        name: "negative_space_stencil",
+        category: "Atmosphere & Optics",
+        categoryClass: "optics",
+        badge: "Solid Knockout",
+        desc: "Solid dark blackout canvas (rgba(10, 10, 12, 0.94)) providing zero visual noise and maximal typographic contrast.",
+        blend: "normal",
+        intensity: 0.95,
+        blur: 0,
+        remotion: `// Remotion JSX (PrometheusMinRun.tsx:4896)
+<AbsoluteFill style={{
+  zIndex: 5, opacity: baseOpacity,
+  background: "rgba(10, 10, 12, 0.94)"
+}} />`,
+        pyBg: `# mini_run_pipeline/backgrounds.py:56
+{
+    "candidate": "negative_space_stencil",
+    "stencil": {"color": "rgba(10, 10, 12, 0.94)"}
+}`
+      },
+      {
+        id: "blurred_wings",
+        name: "blurred_wings",
+        category: "Atmosphere & Optics",
+        categoryClass: "optics",
+        badge: "Pillarbox Blur",
+        desc: "Pillarbox blurred wings flanking vertical 9:16 subject with high-velocity motion blur and vignette.",
+        blend: "normal",
+        intensity: 0.80,
+        blur: 28,
+        remotion: `// Remotion Blurred Wings
+<AbsoluteFill style={{ zIndex: 2, filter: "blur(28px) brightness(0.65)" }}>
+  <OffthreadVideo src={sourceVideo} style={{ transform: "scale(1.4)" }} />
+</AbsoluteFill>`,
+        pyBg: `# mini_run_pipeline/backgrounds.py:54
+{
+    "candidate": "blurred_wings",
+    "wings": {"blurPx": 28, "brightness": 0.65}
+}`
+      },
+      {
+        id: "viewfinder_scaffold",
+        name: "viewfinder_scaffold",
+        category: "Scaffolds & 2.5D",
+        categoryClass: "scaffold",
+        badge: "Persistent White Container",
+        desc: "Persistent pure white card container (#FFFFFF) framed by precision L-bracket corner marks, coordinate reticles, and serials.",
+        blend: "normal",
+        intensity: 1.0,
+        blur: 0,
+        remotion: `// Remotion Persistent White Container Scaffold
+<div style={{
+  position: "absolute", top: "14%", left: "7%", right: "7%", height: "68%",
+  background: "#FFFFFF", borderRadius: 16,
+  boxShadow: "0 30px 90px rgba(0, 0, 0, 0.65)"
+}}>
+  <CornerRegistrationBrackets />
+  <MetadataBar serial="SYS.REC // 00:07.14" />
+</div>`,
+        pyBg: `# mini_run_pipeline/backgrounds.py:57
+{
+    "candidate": "viewfinder_scaffold",
+    "scaffold": {"color": "#FFFFFF", "brackets": True, "serial": True}
+}`
+      },
+      {
+        id: "frame_break_cutout_2_5d",
+        name: "frame_break_cutout_2_5d",
+        category: "Scaffolds & 2.5D",
+        categoryClass: "scaffold",
+        badge: "Extruded Pop",
+        desc: "2.5D layer isolation: matted anatomical subject cutouts erupt past container top edge, casting diffuse contact drop shadow.",
+        blend: "normal",
+        intensity: 1.0,
+        blur: 0,
+        remotion: `// Remotion 2.5D Layer Isolation
+<div style={{
+  position: "absolute", top: "-16%", left: "50%",
+  transform: "translateX(-50%) scale(1.28)",
+  filter: "drop-shadow(0 26px 38px rgba(0, 0, 0, 0.65))"
+}}>
+  <img src={mattedCutoutUri} />
+</div>`,
+        pyBg: `# mini_run_pipeline/backgrounds.py:58
+{
+    "candidate": "frame_break_cutout_2_5d",
+    "cutoutPop": {"scale": 1.28, "zOverflow": 42}
+}`
+      },
+      {
+        id: "vintage_halftone_lithograph",
+        name: "vintage_halftone_lithograph",
+        category: "Scaffolds & 2.5D",
+        categoryClass: "scaffold",
+        badge: "Dot Matrix 120Hz",
+        desc: "Monochrome dot matrix raster screen + horizontal scanline raster filter + zero-background matted cutouts.",
+        blend: "overlay",
+        intensity: 0.90,
+        blur: 0,
+        assetKey: "halftonePlate",
+        remotion: `// Remotion Halftone Raster
+<AbsoluteFill style={{
+  backgroundImage: "radial-gradient(circle, #FFFFFF 1.5px, transparent 1.6px)",
+  backgroundSize: "8px 8px", opacity: 0.14, mixBlendMode: "overlay"
+}}>
+  <div style={{ background: "repeating-linear-gradient(0deg, rgba(0,0,0,0.2) 0px, transparent 4px)" }} />
+</AbsoluteFill>`,
+        pyBg: `# mini_run_pipeline/backgrounds.py:63
+{
+    "candidate": "vintage_halftone_lithograph",
+    "halftone": {"pitchPx": 3.8, "frequency": 120}
+}`
+      },
+      {
+        id: "continuous_vector_rail",
+        name: "continuous_vector_rail",
+        category: "Scaffolds & 2.5D",
+        categoryClass: "scaffold",
+        badge: "Bezier Camera Cam",
+        desc: "Glowing electric cyan vector ribbon (#00F0FF / #FFE066) driving virtual camera X/Y panning across narrative milestones.",
+        blend: "normal",
+        intensity: 1.0,
+        blur: 0,
+        remotion: `// Remotion Continuous Vector Rail Navigation
+<svg viewBox="0 0 440 782">
+  <path d="M 40 180 C 140 160, 220 320, 200 440 S 360 560, 390 680"
+        stroke="#00F0FF" strokeWidth="5" strokeDasharray="1200"
+        strokeDashoffset={1200 * (1 - railProg)} />
+</svg>`,
+        pyBg: `# mini_run_pipeline/backgrounds.py:59
+{
+    "candidate": "continuous_vector_rail",
+    "vectorRail": {"strokeColor": "#00F0FF", "accent": "#FFE066"}
+}`
+      },
+      {
+        id: "cgi_hybrid_path_typography",
+        name: "cgi_hybrid_path_typography",
+        category: "Scaffolds & 2.5D",
+        categoryClass: "scaffold",
+        badge: "3D Wireframe + Spline",
+        desc: "Real-time rotating 3D polyhedral wireframe sphere with circular SVG path-bound typography (<textPath>).",
+        blend: "normal",
+        intensity: 1.0,
+        blur: 0,
+        remotion: `// Remotion CGI Spline Typography
+<Canvas><ThreeWireframeSphere /></Canvas>
+<svg><text><textPath href="#circlePath">• OPPORTUNITY •</textPath></text></svg>`,
+        pyBg: `# mini_run_pipeline/backgrounds.py:60
+{
+    "candidate": "cgi_hybrid_path_typography",
+    "cgiWireframe": {"rings": 6, "speed": 1.0}
+}`
+      },
+      {
+        id: "vertical_kinetic_carousel",
+        name: "vertical_kinetic_carousel",
+        category: "Scaffolds & 2.5D",
+        categoryClass: "scaffold",
+        badge: "Damped Spring Carousel",
+        desc: "Centered container with discrete step-scrolling cards snapping on vertical Y-axis with synced real-time metadata lookups.",
+        blend: "normal",
+        intensity: 1.0,
+        blur: 0,
+        remotion: `// Remotion Vertical Kinetic Carousel
+<div style={{ transform: "translateY(" + (springIndex * -64) + "px)" }}>
+  <CarouselCards items={metadataNodes} />
+</div>`,
+        pyBg: `# mini_run_pipeline/backgrounds.py:61
+{
+    "candidate": "vertical_kinetic_carousel",
+    "carousel": {"stiffness": 170, "damping": 26}
+}`
+      }
+    ];
+
+    // -------------------------------------------------------------------------
+    // COMPLETE 14 TRANSITIONS TO SAID BACKGROUNDS DEFINITION
+    // -------------------------------------------------------------------------
+    const TRANSITION_EFFECTS = [
+      {
+        id: "zoom_punch",
+        name: "zoom_punch",
+        group: "Kinematic Motion Transitions",
+        groupClass: "kinematic",
+        badge: "Scale 1.08x → 1.0x",
+        sfx: "whoosh_fast.wav @ -6.5 dB",
+        duration: 320,
+        desc: "Explosive punch scale on scene entry with quadratic ease-out (Easing.out(quad)). Resets focal urgency.",
+        remotion: `// Remotion (PrometheusMinRun.tsx:4731)
+const punchScale = interpolate(entryP, [0, 1], [1.08, 1.0], {
+  easing: Easing.out(Easing.quad)
+});
+transformExtra = \` scale(\${punchScale})\`;`,
+        pyOrch: `# orchestration.py:716
+zoom_kind = "fast_punch_in"
+zoom_spec = ZOOM_KINDS[zoom_kind]`
+      },
+      {
+        id: "directional_slide_right",
+        name: "directional_slide_right",
+        group: "Kinematic Motion Transitions",
+        groupClass: "kinematic",
+        badge: "X: -48px → 0",
+        sfx: "whoosh_fast.wav @ -6.5 dB",
+        duration: 360,
+        desc: "Subtle lateral slide-in from stage-left with cubic ease-out, bringing background plane into registration.",
+        remotion: `// Remotion (PrometheusMinRun.tsx:4738)
+const slideX = interpolate(entryP, [0, 1], [-48, 0], {
+  easing: Easing.out(Easing.cubic)
+});
+transformExtra = \` translateX(\${slideX}px)\`;`,
+        pyOrch: `# orchestration.py:675
+transition = {"effect": "directional_slide_right", "duration": 360}`
+      },
+      {
+        id: "directional_slide_left",
+        name: "directional_slide_left",
+        group: "Kinematic Motion Transitions",
+        groupClass: "kinematic",
+        badge: "X: +48px → 0",
+        sfx: "whoosh_fast.wav @ -6.5 dB",
+        duration: 360,
+        desc: "Subtle lateral slide-in from stage-right with cubic ease-out for reverse narrative motion.",
+        remotion: `// Remotion (PrometheusMinRun.tsx:4745)
+const slideX = interpolate(entryP, [0, 1], [48, 0], {
+  easing: Easing.out(Easing.cubic)
+});
+transformExtra = \` translateX(\${slideX}px)\`;`,
+        pyOrch: `# orchestration.py:675
+transition = {"effect": "directional_slide_left", "duration": 360}`
+      },
+      {
+        id: "iris_wipe",
+        name: "iris_wipe",
+        group: "Kinematic Motion Transitions",
+        groupClass: "kinematic",
+        badge: "Circle 0% → 150%",
+        sfx: "slow_whoosh_reverb.wav @ -7.0 dB",
+        duration: 450,
+        desc: "Expanding circular mask reveal expanding smoothly from the center of the frame outward.",
+        remotion: `// Remotion (PrometheusMinRun.tsx:4752)
+const radius = interpolate(entryP, [0, 1], [0, 150], {
+  easing: Easing.out(Easing.cubic)
+});
+clipPathExtra = \`circle(\${radius}% at 50% 50%)\`;`,
+        pyOrch: `# orchestration.py:675
+transition = {"effect": "iris_wipe", "duration": 450}`
+      },
+      {
+        id: "whip_pan_transition",
+        name: "whip_pan_transition",
+        group: "Kinematic Motion Transitions",
+        groupClass: "kinematic",
+        badge: "X: 120 → -15 → 0",
+        sfx: "whoosh_heavy_impact.wav @ -6.0 dB",
+        duration: 400,
+        desc: "High-velocity camera whip pan across the frame with slight spring overshoot and settle.",
+        remotion: `// Remotion (PrometheusMinRun.tsx:4759)
+const whipX = interpolate(entryP, [0, 0.4, 1], [120, -15, 0], {
+  easing: Easing.out(Easing.cubic)
+});
+transformExtra = \` translateX(\${whipX}px)\`;`,
+        pyOrch: `# orchestration.py:675
+transition = {"effect": "whip_pan_transition", "duration": 400}`
+      },
+      {
+        id: "crossfade",
+        name: "crossfade",
+        group: "Kinematic Motion Transitions",
+        groupClass: "kinematic",
+        badge: "Opacity 0 → 1",
+        sfx: "subtle_air_sweep.wav @ -9.0 dB",
+        duration: 380,
+        desc: "Smooth linear / cubic optical opacity crossfade between background plates.",
+        remotion: `// Remotion (PrometheusMinRun.tsx:4726)
+const baseOpacity = Math.min(entryP, 1 - exitP);`,
+        pyOrch: `# orchestration.py:675
+transition = {"effect": "crossfade", "duration": 380}`
+      },
+      {
+        id: "luma_cut",
+        name: "luma_cut",
+        group: "Kinematic Motion Transitions",
+        groupClass: "kinematic",
+        badge: "Instant Hard Cut",
+        sfx: "film_shutter_click.wav @ -7.5 dB",
+        duration: 180,
+        desc: "Crisp instant cut timed precisely to rhythmic downbeats with a brief 15% brightness flash snap.",
+        remotion: `// Instantaneous hard luma cut at scene boundary
+const lumaOpacity = entryP < 0.5 ? 0 : 1;`,
+        pyOrch: `# orchestration.py:540
+transition = {"effect": "luma_cut", "duration": 180}`
+      },
+      {
+        id: "film_burn_v1",
+        name: "film_burn: amber_gate",
+        group: "Cinematic Transition Overlays",
+        groupClass: "cinematic",
+        badge: "Variant 1 (Top-Right)",
+        sfx: "whoosh_fast.wav @ -6.5 dB",
+        duration: 420,
+        desc: "Top-right gate flare, 115° diagonal streak, lower-left counter-leak, whole-frame warm exposure bloom.",
+        remotion: `// Remotion TransitionFXStage Variant 1 (PrometheusMinRun.tsx:5167)
+<AbsoluteFill style={{ opacity: burnOpacity, mixBlendMode: "screen", filter: "blur(12px)" }}>
+  <div style={{ background: "radial-gradient(circle at 85% 18%, rgba(255,245,190,1) 0%, transparent 92%)" }} />
+  <div style={{ transform: "rotate(115deg)", background: "linear-gradient(180deg, transparent 15%, rgba(255,140,25,0.7) 35%, transparent 85%)" }} />
+</AbsoluteFill>`,
+        pyOrch: `# orchestration.py:657
+transition = {"effect": "film_burn", "variant": 1, "colorway": "amber_gate"}`
+      },
+      {
+        id: "film_burn_v2",
+        name: "film_burn: bleach_burst",
+        group: "Cinematic Transition Overlays",
+        groupClass: "cinematic",
+        badge: "Variant 2 (Flank-Left)",
+        sfx: "slow_whoosh_reverb.wav @ -7.0 dB",
+        duration: 420,
+        desc: "Flank-left horizontal anamorphic flare bar sweeping mid-frame, platinum core, fiery copper perimeter.",
+        remotion: `// Remotion TransitionFXStage Variant 2 (PrometheusMinRun.tsx:5013)
+<AbsoluteFill style={{ opacity: burnOpacity, mixBlendMode: "screen", filter: "blur(10px)" }}>
+  <div style={{ background: "radial-gradient(circle at 12% 48%, rgba(255,253,240,1) 0%, transparent 90%)" }} />
+  <div style={{ transform: "rotate(-8deg)", background: "linear-gradient(180deg, transparent 20%, rgba(255,160,40,0.75) 38%, transparent 80%)" }} />
+</AbsoluteFill>`,
+        pyOrch: `# orchestration.py:658
+transition = {"effect": "film_burn", "variant": 2, "colorway": "bleach_burst"}`
+      },
+      {
+        id: "film_burn_v3",
+        name: "film_burn: solar_sunburst",
+        group: "Cinematic Transition Overlays",
+        groupClass: "cinematic",
+        badge: "Variant 3 (Top-Left)",
+        sfx: "whoosh_fast.wav @ -6.5 dB",
+        duration: 420,
+        desc: "Radiant top-left solar sunburst, downward 48° diagonal gate streak, yellow-amber corona wash.",
+        remotion: `// Remotion TransitionFXStage Variant 3 (PrometheusMinRun.tsx:5067)
+<AbsoluteFill style={{ opacity: burnOpacity, mixBlendMode: "screen", filter: "blur(11px)" }}>
+  <div style={{ background: "radial-gradient(circle at 18% 12%, rgba(255,250,200,1) 0%, transparent 92%)" }} />
+  <div style={{ transform: "rotate(48deg)", background: "linear-gradient(180deg, transparent 18%, rgba(255,180,50,0.7) 36%, transparent 82%)" }} />
+</AbsoluteFill>`,
+        pyOrch: `# orchestration.py:659
+transition = {"effect": "film_burn", "variant": 3, "colorway": "prismatic_solar"}`
+      },
+      {
+        id: "film_burn_v4",
+        name: "film_burn: perforation_roll",
+        group: "Cinematic Transition Overlays",
+        groupClass: "cinematic",
+        badge: "Variant 4 (Bottom Breach)",
+        sfx: "slow_whoosh_reverb.wav @ -7.0 dB",
+        duration: 420,
+        desc: "Bottom-edge projector gate breach with near-vertical 88° rising beam surge and projector bloom.",
+        remotion: `// Remotion TransitionFXStage Variant 4 (PrometheusMinRun.tsx:5121)
+<AbsoluteFill style={{ opacity: burnOpacity, mixBlendMode: "screen", filter: "blur(12px)" }}>
+  <div style={{ background: "radial-gradient(circle at 50% 92%, rgba(255,248,205,1) 0%, transparent 92%)" }} />
+  <div style={{ transform: "rotate(88deg)", background: "linear-gradient(180deg, transparent 22%, rgba(255,150,30,0.72) 38%, transparent 78%)" }} />
+</AbsoluteFill>`,
+        pyOrch: `# orchestration.py:660
+transition = {"effect": "film_burn", "variant": 4, "colorway": "bottom_streak"}`
+      },
+      {
+        id: "light_leak_sweep",
+        name: "light_leak_sweep",
+        group: "Cinematic Transition Overlays",
+        groupClass: "cinematic",
+        badge: "Prismatic Anamorphic",
+        sfx: "whoosh_fast.wav @ -6.5 dB",
+        duration: 460,
+        desc: "45° diagonal prismatic anamorphic light leak sweeping from -140px to +140px with 18px blur.",
+        remotion: `// Remotion TransitionFXStage (PrometheusMinRun.tsx:5220)
+const leakAngle = interpolate(p, [0, 1], [-35, -5]);
+const leakShift = interpolate(p, [0, 1], [-140, 140]);
+<AbsoluteFill style={{ opacity: peakStrength * 0.76, mixBlendMode: "screen", filter: "blur(18px)" }}>
+  <div style={{ transform: \`rotate(\${leakAngle}deg) translateY(\${leakShift}px)\`, background: "linear-gradient(180deg, transparent 0%, rgba(255,195,95,0.75) 30%, rgba(255,248,220,0.96) 50%, rgba(190,150,255,0.55) 68%, transparent 100%)" }} />
+</AbsoluteFill>`,
+        pyOrch: `# orchestration.py:553
+pref_effect = "light_leak_sweep"`
+      },
+      {
+        id: "bokeh_defocus_blend",
+        name: "bokeh_defocus_blend",
+        group: "Cinematic Transition Overlays",
+        groupClass: "cinematic",
+        badge: "Optical Bokeh Spheres",
+        sfx: "slow_whoosh_reverb.wav @ -7.0 dB",
+        duration: 440,
+        desc: "Warm concentric optical bokeh spheres blooming across center with 16px blur and screen blend.",
+        remotion: `// Remotion TransitionFXStage (PrometheusMinRun.tsx:5250)
+<AbsoluteFill style={{
+  opacity: peakStrength * 0.68, mixBlendMode: "screen", filter: "blur(16px)",
+  background: "radial-gradient(circle at 50% 50%, rgba(255,255,255,0.75) 0%, rgba(255,225,170,0.55) 32%, rgba(255,180,110,0.3) 58%, transparent 80%)"
+}} />`,
+        pyOrch: `# orchestration.py:555
+pref_effect = "bokeh_defocus_blend"`
+      },
+      {
+        id: "flash_cut",
+        name: "flash_cut",
+        group: "Cinematic Transition Overlays",
+        groupClass: "cinematic",
+        badge: "Golden Exposure Bloom",
+        sfx: "shutter_snap.wav @ -6.8 dB",
+        duration: 240,
+        desc: "Subtle golden exposure bloom (rgba(255, 248, 230, 0.9)) crash snap; never harsh raw white.",
+        remotion: `// Remotion TransitionFXStage (PrometheusMinRun.tsx:5267)
+<AbsoluteFill style={{
+  opacity: peakStrength * 0.42, mixBlendMode: "screen", filter: "blur(8px)",
+  background: "rgba(255, 248, 230, 0.9)"
+}} />`,
+        pyOrch: `# orchestration.py:540
+transition = {"effect": "flash_cut", "duration": 240}`
+      }
+    ];
+
+    // -------------------------------------------------------------------------
+    // STUDIO STATE
+    // -------------------------------------------------------------------------
+    let activeBgId = "paper";
+    let activeTransId = "zoom_punch";
+    let activeTint = "#00F0FF";
+    let activeCodeTab = "remotion";
+    let currentTransDuration = 420;
+    let transitionAnimId = null;
+    let autoTransTimer = null;
+    let autoBgTimer = null;
+    let runwayTimer = null;
+    let runwayTimeSec = 0;
+
+    const contextMap = {
+      scaffold: false,
+      cutout: false,
+      rail: false,
+      carousel: false,
+      typo: false
+    };
+
+    // 3D CGI CANVAS
+    const cgiCanvas = document.getElementById("stage-cgi-canvas");
+    const cgiCtx = cgiCanvas ? cgiCanvas.getContext("2d") : null;
+    let cgiAngle = 0;
+
+    function render3DCGI() {
+      if (!cgiCtx || !cgiCanvas) return;
+      if (document.getElementById("stage-cgi-wrap").style.display === "none") return;
+      const w = cgiCanvas.width;
+      const h = cgiCanvas.height;
+      cgiCtx.clearRect(0, 0, w, h);
+      const cx = w / 2;
+      const cy = h / 2;
+      const radius = 95;
+
+      cgiCtx.save();
+      cgiCtx.translate(cx, cy);
+      cgiAngle += 0.02;
+      const cosY = Math.cos(cgiAngle);
+      const sinY = Math.sin(cgiAngle);
+      const cosX = Math.cos(cgiAngle * 0.7);
+      const sinX = Math.sin(cgiAngle * 0.7);
+
+      for (let i = 0; i < 6; i++) {
+        const phi = (i / 6) * Math.PI;
+        const rRing = radius * Math.sin(phi);
+        const yRing = radius * Math.cos(phi) * cosX;
+        cgiCtx.beginPath();
+        cgiCtx.ellipse(0, yRing, Math.max(1, rRing), Math.max(1, rRing * 0.35), cgiAngle * 0.4, 0, Math.PI * 2);
+        cgiCtx.strokeStyle = i % 2 === 0 ? "rgba(0, 240, 255, 0.45)" : "rgba(255, 224, 102, 0.35)";
+        cgiCtx.lineWidth = 1.5;
+        cgiCtx.stroke();
+      }
+      cgiCtx.restore();
+    }
+
+    // -------------------------------------------------------------------------
+    // INITIALIZATION & DOM GENERATION
+    // -------------------------------------------------------------------------
+    function initStudio() {
+      renderBgList();
+      renderTransitionsList();
+      renderBgGalleryGrid();
+      renderTransGalleryGrid();
+      selectBackground("paper");
+      selectTransition("zoom_punch");
+
+      // Loop CGI animation
+      function loopCGI() {
+        render3DCGI();
+        requestAnimationFrame(loopCGI);
+      }
+      requestAnimationFrame(loopCGI);
+    }
+
+    function renderBgList() {
+      const list = document.getElementById("bg-selector-list");
+      list.innerHTML = "";
+
+      let currentCat = "";
+      BACKGROUND_FORMS.forEach(bg => {
+        if (bg.category !== currentCat) {
+          currentCat = bg.category;
+          const title = document.createElement("div");
+          title.className = "category-title";
+          title.innerHTML = `<span>${currentCat}</span> <span>FORM</span>`;
+          list.appendChild(title);
+        }
+
+        const card = document.createElement("div");
+        card.className = `bg-card ${bg.id === activeBgId ? 'active' : ''}`;
+        card.id = `bgcard-${bg.id}`;
+        card.onclick = () => selectBackground(bg.id);
+        card.innerHTML = `
+          <div class="bg-card-header">
+            <span class="bg-card-name">${bg.name}</span>
+            <span class="bg-card-badge">${bg.badge}</span>
+          </div>
+          <div class="bg-card-desc">${bg.desc}</div>
+        `;
+        list.appendChild(card);
+      });
+    }
+
+    function renderTransitionsList() {
+      const list = document.getElementById("transitions-list");
+      list.innerHTML = "";
+
+      let currentGrp = "";
+      TRANSITION_EFFECTS.forEach(tr => {
+        if (tr.group !== currentGrp) {
+          currentGrp = tr.group;
+          const title = document.createElement("div");
+          title.className = "category-title";
+          title.innerHTML = `<span>${currentGrp}</span> <span>KINEMATIC</span>`;
+          list.appendChild(title);
+        }
+
+        const card = document.createElement("div");
+        card.className = `trans-card ${tr.id === activeTransId ? 'active' : ''}`;
+        card.id = `transcard-${tr.id}`;
+        card.onclick = () => selectTransition(tr.id);
+        card.innerHTML = `
+          <div class="trans-card-header">
+            <span class="trans-card-name">${tr.name}</span>
+            <span class="trans-card-badge">${tr.badge}</span>
+          </div>
+          <div class="trans-card-desc">${tr.desc}</div>
+        `;
+        list.appendChild(card);
+      });
+    }
+
+    // -------------------------------------------------------------------------
+    // BACKGROUND SELECTION & RENDERING
+    // -------------------------------------------------------------------------
+    function selectBackground(bgId) {
+      activeBgId = bgId;
+      const bg = BACKGROUND_FORMS.find(b => b.id === bgId);
+      if (!bg) return;
+
+      // Update selector list active classes
+      document.querySelectorAll(".bg-card").forEach(c => c.classList.remove("active"));
+      const card = document.getElementById(`bgcard-${bgId}`);
+      if (card) card.classList.add("active");
+
+      // Update parameters UI
+      document.getElementById("slider-intensity").value = bg.intensity;
+      document.getElementById("lbl-intensity").textContent = bg.intensity.toFixed(2);
+      document.getElementById("slider-blur").value = bg.blur || 0;
+      document.getElementById("lbl-blur").textContent = `${bg.blur || 0}px`;
+      document.getElementById("select-blend").value = bg.blend;
+
+      // Update HUD
+      document.getElementById("hud-bg-name").textContent = `BG // ${bg.name}`;
+
+      // Render Stage Plate
+      applyBackgroundToStage(bg);
+      updateCodeOutput();
+    }
+
+    function applyBackgroundToStage(bg) {
+      const imageNode = document.getElementById("stage-bg-image");
+      const tintNode = document.getElementById("stage-bg-tint");
+      const cgiWrap = document.getElementById("stage-cgi-wrap");
+
+      const intensity = parseFloat(document.getElementById("slider-intensity").value);
+      const blurPx = parseInt(document.getElementById("slider-blur").value);
+      const blendMode = document.getElementById("select-blend").value;
+
+      imageNode.style.mixBlendMode = blendMode;
+      imageNode.style.opacity = intensity;
+      imageNode.style.filter = blurPx > 0 ? `blur(${blurPx}px)` : "none";
+      tintNode.style.opacity = "0";
+      cgiWrap.style.display = "none";
+
+      if (bg.assetKey && ASSETS[bg.assetKey]) {
+        imageNode.style.backgroundImage = `url('${ASSETS[bg.assetKey]}')`;
+        imageNode.style.backgroundColor = "transparent";
+      } else if (bg.id === "editorial_glass") {
+        imageNode.style.backgroundImage = "none";
+        imageNode.style.backgroundColor = "rgba(16, 20, 32, 0.70)";
+        imageNode.style.backdropFilter = "blur(24px) saturate(180%)";
+        imageNode.style.border = "1px solid rgba(255, 255, 255, 0.14)";
+      } else if (bg.id === "gradient_atmosphere") {
+        imageNode.style.backgroundImage = "radial-gradient(circle at 50% 36%, rgba(0, 240, 255, 0.32) 0%, rgba(14, 16, 26, 0.82) 55%, rgba(6, 8, 14, 0.95) 100%)";
+        tintNode.style.background = "radial-gradient(circle at 75% 65%, rgba(121, 40, 202, 0.3) 0%, transparent 50%)";
+        tintNode.style.opacity = "1";
+      } else if (bg.id === "defocus_depth") {
+        imageNode.style.backgroundImage = "radial-gradient(circle at center, transparent 20%, rgba(0, 0, 0, 0.65) 100%)";
+        imageNode.style.backgroundColor = "rgba(10, 14, 22, 0.75)";
+        imageNode.style.filter = `blur(${Math.max(16, blurPx)}px) brightness(0.72)`;
+      } else if (bg.id === "broll_cutaway") {
+        imageNode.style.backgroundImage = `url('${ASSETS.halftonePlate}')`;
+        imageNode.style.backgroundColor = "rgba(20, 24, 36, 0.85)";
+        imageNode.style.boxShadow = "inset 0 0 120px rgba(0, 0, 0, 0.85)";
+      } else if (bg.id === "negative_space_stencil") {
+        imageNode.style.backgroundImage = "none";
+        imageNode.style.backgroundColor = "rgba(10, 10, 12, 0.94)";
+      } else if (bg.id === "blurred_wings") {
+        imageNode.style.backgroundImage = `url('${ASSETS.paper}')`;
+        imageNode.style.filter = "blur(28px) brightness(0.65)";
+      } else if (bg.id === "cgi_hybrid_path_typography") {
+        imageNode.style.backgroundImage = "radial-gradient(circle at center, #10162A 0%, #060810 100%)";
+        cgiWrap.style.display = "flex";
+      } else {
+        imageNode.style.backgroundImage = `url('${ASSETS.paper}')`;
+      }
+
+      if (bg.brandTint || activeTint) {
+        tintNode.style.background = bg.brandTint || activeTint;
+        tintNode.style.opacity = bg.brandTint ? "1" : "0.22";
+      }
+    }
+
+    function onParamChange() {
+      const intensity = parseFloat(document.getElementById("slider-intensity").value);
+      const blurPx = parseInt(document.getElementById("slider-blur").value);
+      document.getElementById("lbl-intensity").textContent = intensity.toFixed(2);
+      document.getElementById("lbl-blur").textContent = `${blurPx}px`;
+
+      const bg = BACKGROUND_FORMS.find(b => b.id === activeBgId);
+      if (bg) applyBackgroundToStage(bg);
+    }
+
+    function selectTint(color, el) {
+      activeTint = color;
+      document.querySelectorAll(".color-swatch").forEach(s => s.classList.remove("active"));
+      el.classList.add("active");
+      const bg = BACKGROUND_FORMS.find(b => b.id === activeBgId);
+      if (bg) applyBackgroundToStage(bg);
+    }
+
+    // -------------------------------------------------------------------------
+    // TRANSITION SELECTION & EXECUTION
+    // -------------------------------------------------------------------------
+    function selectTransition(transId) {
+      activeTransId = transId;
+      const tr = TRANSITION_EFFECTS.find(t => t.id === transId);
+      if (!tr) return;
+
+      document.querySelectorAll(".trans-card").forEach(c => c.classList.remove("active"));
+      const card = document.getElementById(`transcard-${transId}`);
+      if (card) card.classList.add("active");
+
+      document.getElementById("hud-trans-name").textContent = `TRANSITION // ${tr.name}`;
+      document.getElementById("lbl-sfx-cue").textContent = tr.sfx;
+      document.getElementById("slider-trans-dur").value = tr.duration;
+      document.getElementById("lbl-trans-dur").textContent = `${tr.duration}ms`;
+      document.getElementById("hud-duration").textContent = `DUR: ${tr.duration}ms`;
+      currentTransDuration = tr.duration;
+
+      updateCodeOutput();
+    }
+
+    function onTransDurChange(val) {
+      currentTransDuration = parseInt(val);
+      document.getElementById("lbl-trans-dur").textContent = `${val}ms`;
+      document.getElementById("hud-duration").textContent = `DUR: ${val}ms`;
+    }
+
+    function fireTransition() {
+      if (transitionAnimId) cancelAnimationFrame(transitionAnimId);
+      const transId = activeTransId;
+      const duration = currentTransDuration;
+      const startTime = performance.now();
+
+      const hudStatus = document.getElementById("hud-status");
+      hudStatus.textContent = "PLAYING";
+      hudStatus.className = "hud-status-badge";
+
+      function transTick(now) {
+        const elapsed = now - startTime;
+        const p = Math.min(1.0, elapsed / duration);
+        applyTransitionPhysics(p, transId);
+
+        document.getElementById("trans-progress-fill").style.width = `${(p * 100).toFixed(0)}%`;
+        document.getElementById("scrubber-slider").value = Math.round(p * 100);
+        document.getElementById("lbl-scrub-pct").textContent = `${Math.round(p * 100)}%`;
+
+        if (p >= 0.44 && p <= 0.52) {
+          hudStatus.textContent = "PEAK (48%)";
+          hudStatus.className = "hud-status-badge peak";
+        }
+
+        if (p < 1.0) {
+          transitionAnimId = requestAnimationFrame(transTick);
+        } else {
+          applyTransitionPhysics(1.0, transId);
+          hudStatus.textContent = "COMPLETE";
+          hudStatus.className = "hud-status-badge";
+          setTimeout(() => {
+            resetTransitionVisuals();
+            hudStatus.textContent = "READY";
+            hudStatus.className = "hud-status-badge";
+            document.getElementById("trans-progress-fill").style.width = "0%";
+            document.getElementById("scrubber-slider").value = 0;
+            document.getElementById("lbl-scrub-pct").textContent = "0%";
+          }, 350);
+        }
+      }
+
+      transitionAnimId = requestAnimationFrame(transTick);
+    }
+
+    function onScrubberInput(val) {
+      const p = parseFloat(val) / 100;
+      document.getElementById("lbl-scrub-pct").textContent = `${val}%`;
+      applyTransitionPhysics(p, activeTransId);
+    }
+
+    function easeOutQuad(t) { return t * (2 - t); }
+    function easeOutCubic(t) { return (--t) * t * t + 1; }
+
+    function applyTransitionPhysics(p, transId) {
+      const bgPlate = document.getElementById("stage-bg-plate");
+      const overlay = document.getElementById("stage-trans-overlay");
+      const peakStrength = Math.pow(Math.sin(p * Math.PI), 1.5);
+
+      // 1. KINEMATIC BACKGROUND MOTION TRANSITIONS
+      if (transId === "zoom_punch") {
+        const scale = 1.08 - 0.08 * easeOutQuad(p);
+        bgPlate.style.transform = `scale(${scale})`;
+        bgPlate.style.clipPath = "none";
+        overlay.style.opacity = "0";
+      } else if (transId === "directional_slide_right") {
+        const x = -48 * (1 - easeOutCubic(p));
+        bgPlate.style.transform = `translateX(${x}px)`;
+        bgPlate.style.clipPath = "none";
+        overlay.style.opacity = "0";
+      } else if (transId === "directional_slide_left") {
+        const x = 48 * (1 - easeOutCubic(p));
+        bgPlate.style.transform = `translateX(${x}px)`;
+        bgPlate.style.clipPath = "none";
+        overlay.style.opacity = "0";
+      } else if (transId === "iris_wipe") {
+        const r = p * 150;
+        bgPlate.style.clipPath = `circle(${r}% at 50% 50%)`;
+        bgPlate.style.transform = "none";
+        overlay.style.opacity = "0";
+      } else if (transId === "whip_pan_transition") {
+        let whipX = 0;
+        if (p < 0.4) whipX = 120 * (1 - p / 0.4);
+        else if (p < 0.7) whipX = -15 * Math.sin(((p - 0.4) / 0.3) * Math.PI);
+        else whipX = 0;
+        bgPlate.style.transform = `translateX(${whipX}px)`;
+        bgPlate.style.clipPath = "none";
+        overlay.style.opacity = "0";
+      } else if (transId === "crossfade") {
+        bgPlate.style.transform = "none";
+        bgPlate.style.opacity = p;
+        overlay.style.opacity = "0";
+      } else if (transId === "luma_cut") {
+        bgPlate.style.transform = "none";
+        bgPlate.style.filter = p < 0.4 ? "brightness(1.2)" : "none";
+        overlay.style.opacity = "0";
+      }
+
+      // 2. CINEMATIC MULTI-LAYER TRANSITION OVERLAYS
+      else if (transId === "film_burn_v1") {
+        bgPlate.style.transform = "none";
+        bgPlate.style.clipPath = "none";
+        overlay.style.opacity = peakStrength * 0.95;
+        overlay.style.mixBlendMode = "screen";
+        overlay.style.filter = "blur(12px)";
+        overlay.innerHTML = `
+          <div style="position:absolute; inset:-15%; background: radial-gradient(circle at 85% 18%, rgba(255, 245, 190, 1.0) 0%, rgba(255, 175, 50, 0.92) 22%, rgba(255, 90, 20, 0.8) 46%, rgba(190, 25, 8, 0.45) 70%, transparent 92%);"></div>
+          <div style="position:absolute; inset:-20%; transform: rotate(115deg); background: linear-gradient(180deg, transparent 15%, rgba(255, 140, 25, 0.7) 35%, rgba(255, 250, 220, 0.95) 50%, rgba(255, 100, 15, 0.65) 65%, transparent 85%);"></div>
+          <div style="position:absolute; inset:-15%; background: radial-gradient(circle at 15% 82%, rgba(255, 215, 130, 0.85) 0%, transparent 85%);"></div>
+          <div style="position:absolute; inset:0; background: rgba(255, 235, 195, ${peakStrength * 0.26});"></div>
+        `;
+      } else if (transId === "film_burn_v2") {
+        bgPlate.style.transform = "none";
+        bgPlate.style.clipPath = "none";
+        overlay.style.opacity = peakStrength * 0.95;
+        overlay.style.mixBlendMode = "screen";
+        overlay.style.filter = "blur(10px)";
+        overlay.innerHTML = `
+          <div style="position:absolute; inset:-15%; background: radial-gradient(circle at 12% 48%, rgba(255, 253, 240, 1.0) 0%, rgba(255, 210, 80, 0.94) 20%, rgba(255, 120, 25, 0.82) 44%, rgba(180, 20, 15, 0.45) 68%, transparent 90%);"></div>
+          <div style="position:absolute; inset:-20%; transform: rotate(-8deg); background: linear-gradient(180deg, transparent 20%, rgba(255, 160, 40, 0.75) 38%, rgba(255, 255, 245, 0.98) 50%, rgba(255, 110, 20, 0.70) 62%, transparent 80%);"></div>
+          <div style="position:absolute; inset:0; background: rgba(255, 242, 215, ${peakStrength * 0.28});"></div>
+        `;
+      } else if (transId === "film_burn_v3") {
+        bgPlate.style.transform = "none";
+        bgPlate.style.clipPath = "none";
+        overlay.style.opacity = peakStrength * 0.95;
+        overlay.style.mixBlendMode = "screen";
+        overlay.style.filter = "blur(11px)";
+        overlay.innerHTML = `
+          <div style="position:absolute; inset:-15%; background: radial-gradient(circle at 18% 12%, rgba(255, 250, 200, 1.0) 0%, rgba(255, 185, 45, 0.95) 24%, rgba(255, 95, 20, 0.78) 48%, transparent 92%);"></div>
+          <div style="position:absolute; inset:-20%; transform: rotate(48deg); background: linear-gradient(180deg, transparent 18%, rgba(255, 180, 50, 0.7) 36%, rgba(255, 252, 230, 0.96) 50%, transparent 82%);"></div>
+          <div style="position:absolute; inset:0; background: rgba(255, 240, 190, ${peakStrength * 0.25});"></div>
+        `;
+      } else if (transId === "film_burn_v4") {
+        bgPlate.style.transform = "none";
+        bgPlate.style.clipPath = "none";
+        overlay.style.opacity = peakStrength * 0.95;
+        overlay.style.mixBlendMode = "screen";
+        overlay.style.filter = "blur(12px)";
+        overlay.innerHTML = `
+          <div style="position:absolute; inset:-15%; background: radial-gradient(circle at 50% 92%, rgba(255, 248, 205, 1.0) 0%, rgba(255, 170, 45, 0.94) 25%, rgba(255, 80, 15, 0.82) 50%, transparent 92%);"></div>
+          <div style="position:absolute; inset:-20%; transform: rotate(88deg); background: linear-gradient(180deg, transparent 22%, rgba(255, 150, 30, 0.72) 38%, rgba(255, 250, 225, 0.95) 50%, transparent 78%);"></div>
+          <div style="position:absolute; inset:0; background: rgba(255, 230, 185, ${peakStrength * 0.26});"></div>
+        `;
+      } else if (transId === "light_leak_sweep") {
+        bgPlate.style.transform = "none";
+        bgPlate.style.clipPath = "none";
+        const leakAngle = -35 + 30 * p;
+        const leakShift = -140 + 280 * p;
+        overlay.style.opacity = peakStrength * 0.85;
+        overlay.style.mixBlendMode = "screen";
+        overlay.style.filter = "blur(18px)";
+        overlay.innerHTML = `
+          <div style="position:absolute; inset:-25%; transform: rotate(${leakAngle}deg) translateY(${leakShift}px); background: linear-gradient(180deg, transparent 0%, rgba(255, 195, 95, 0.75) 30%, rgba(255, 248, 220, 0.96) 50%, rgba(190, 150, 255, 0.55) 68%, transparent 100%);"></div>
+        `;
+      } else if (transId === "bokeh_defocus_blend") {
+        bgPlate.style.transform = "none";
+        bgPlate.style.clipPath = "none";
+        overlay.style.opacity = peakStrength * 0.75;
+        overlay.style.mixBlendMode = "screen";
+        overlay.style.filter = "blur(16px)";
+        overlay.innerHTML = `
+          <div style="position:absolute; inset:0; background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.75) 0%, rgba(255, 225, 170, 0.55) 32%, rgba(255, 180, 110, 0.3) 58%, transparent 80%);"></div>
+        `;
+      } else if (transId === "flash_cut") {
+        bgPlate.style.transform = "none";
+        bgPlate.style.clipPath = "none";
+        overlay.style.opacity = peakStrength * 0.55;
+        overlay.style.mixBlendMode = "screen";
+        overlay.style.filter = "blur(8px)";
+        overlay.innerHTML = `
+          <div style="position:absolute; inset:0; background: rgba(255, 248, 230, 0.9);"></div>
+        `;
+      }
+    }
+
+    function resetTransitionVisuals() {
+      const bgPlate = document.getElementById("stage-bg-plate");
+      const overlay = document.getElementById("stage-trans-overlay");
+      bgPlate.style.transform = "none";
+      bgPlate.style.clipPath = "none";
+      bgPlate.style.opacity = "1";
+      bgPlate.style.filter = "none";
+      overlay.style.opacity = "0";
+      overlay.innerHTML = "";
+    }
+
+    // -------------------------------------------------------------------------
+    // CONTEXT TOGGLES (SCAFFOLD, CUTOUT, RAIL, CAROUSEL, TYPO)
+    // -------------------------------------------------------------------------
+    function toggleContext(key) {
+      contextMap[key] = !contextMap[key];
+      const btn = document.getElementById(`tog-${key}`);
+      if (contextMap[key]) btn.classList.add("active");
+      else btn.classList.remove("active");
+
+      if (key === "scaffold") {
+        document.getElementById("stage-scaffold-layer").style.display = contextMap.scaffold ? "flex" : "none";
+      } else if (key === "cutout") {
+        const layer = document.getElementById("stage-cutout-layer");
+        const shadow = document.getElementById("stage-contact-shadow");
+        const sprite = document.getElementById("stage-cutout-sprite");
+        layer.style.display = contextMap.cutout ? "flex" : "none";
+        shadow.style.display = contextMap.cutout ? "block" : "none";
+        sprite.src = ASSETS.thinkCutout;
+      } else if (key === "rail") {
+        document.getElementById("stage-rail-layer").style.display = contextMap.rail ? "block" : "none";
+      } else if (key === "carousel") {
+        document.getElementById("stage-carousel-layer").style.display = contextMap.carousel ? "flex" : "none";
+      } else if (key === "typo") {
+        document.getElementById("stage-typo-layer").style.display = contextMap.typo ? "flex" : "none";
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // AUTO-CYCLE LOGIC
+    // -------------------------------------------------------------------------
+    function toggleAutoTransitions() {
+      const btn = document.getElementById("btn-auto-trans");
+      const lbl = document.getElementById("lbl-auto-trans");
+      if (autoTransTimer) {
+        clearInterval(autoTransTimer);
+        autoTransTimer = null;
+        lbl.textContent = "Cycle 14 Transitions";
+        btn.classList.remove("active");
+      } else {
+        lbl.textContent = "Stop Trans Cycle";
+        btn.classList.add("active");
+        let idx = TRANSITION_EFFECTS.findIndex(t => t.id === activeTransId);
+        autoTransTimer = setInterval(() => {
+          idx = (idx + 1) % TRANSITION_EFFECTS.length;
+          selectTransition(TRANSITION_EFFECTS[idx].id);
+          fireTransition();
+        }, 1500);
+      }
+    }
+
+    function toggleAutoBackgrounds() {
+      const btn = document.getElementById("btn-auto-bgs");
+      const lbl = document.getElementById("lbl-auto-bgs");
+      if (autoBgTimer) {
+        clearInterval(autoBgTimer);
+        autoBgTimer = null;
+        lbl.textContent = "Cycle 18 BGs";
+        btn.classList.remove("active");
+      } else {
+        lbl.textContent = "Stop BG Cycle";
+        btn.classList.add("active");
+        let idx = BACKGROUND_FORMS.findIndex(b => b.id === activeBgId);
+        autoBgTimer = setInterval(() => {
+          idx = (idx + 1) % BACKGROUND_FORMS.length;
+          selectBackground(BACKGROUND_FORMS[idx].id);
+        }, 2600);
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // 30-SECOND SEQUENCE RUNWAY SIMULATOR
+    // -------------------------------------------------------------------------
+    function toggleRunwayPlay() {
+      const btn = document.getElementById("btn-runway-play");
+      const lbl = document.getElementById("lbl-runway-play");
+      const tc = document.getElementById("hud-runway-tc");
+
+      if (runwayTimer) {
+        clearInterval(runwayTimer);
+        runwayTimer = null;
+        lbl.textContent = "START 30S RUNWAY";
+        btn.style.background = "";
+      } else {
+        lbl.textContent = "PAUSE RUNWAY";
+        btn.style.background = "linear-gradient(135deg, #FF3366, #FF6600)";
+        runwayTimeSec = 0;
+
+        runwayTimer = setInterval(() => {
+          runwayTimeSec += 0.5;
+          if (runwayTimeSec > 30.0) runwayTimeSec = 0;
+
+          const mm = Math.floor(runwayTimeSec / 60).toString().padStart(2, '0');
+          const ss = Math.floor(runwayTimeSec % 60).toString().padStart(2, '0');
+          tc.textContent = `TC // ${mm}:${ss}.00`;
+
+          // Trigger narrative scene changes
+          if (Math.abs(runwayTimeSec - 6.0) < 0.25) {
+            selectTransition("film_burn_v1");
+            fireTransition();
+            selectBackground("editorial_glass");
+          } else if (Math.abs(runwayTimeSec - 14.0) < 0.25) {
+            selectTransition("whip_pan_transition");
+            fireTransition();
+            selectBackground("continuous_vector_rail");
+          } else if (Math.abs(runwayTimeSec - 22.0) < 0.25) {
+            selectTransition("iris_wipe");
+            fireTransition();
+            selectBackground("vertical_kinetic_carousel");
+          }
+        }, 500);
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // CODE INSPECTOR
+    // -------------------------------------------------------------------------
+    function switchCodeTab(tab) {
+      activeCodeTab = tab;
+      document.getElementById("tab-remotion").classList.toggle("active", tab === "remotion");
+      document.getElementById("tab-py-bg").classList.toggle("active", tab === "py-bg");
+      document.getElementById("tab-py-orch").classList.toggle("active", tab === "py-orch");
+      updateCodeOutput();
+    }
+
+    function updateCodeOutput() {
+      const bg = BACKGROUND_FORMS.find(b => b.id === activeBgId);
+      const tr = TRANSITION_EFFECTS.find(t => t.id === activeTransId);
+      const box = document.getElementById("code-output-box");
+      if (!bg || !tr) return;
+
+      if (activeCodeTab === "remotion") {
+        box.textContent = `${bg.remotion}\n\n${tr.remotion}`;
+      } else if (activeCodeTab === "py-bg") {
+        box.textContent = bg.pyBg;
+      } else {
+        box.textContent = tr.pyOrch;
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // VIEWS NAVIGATION (INTERACTIVE, BG MATRIX, TRANS MATRIX, RUNWAY)
+    // -------------------------------------------------------------------------
+    function switchView(viewName) {
+      document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+      document.getElementById(`btn-view-${viewName}`).classList.add("active");
+
+      document.getElementById("view-interactive").style.display = viewName === "interactive" ? "grid" : "none";
+      document.getElementById("view-bg-matrix").style.display = viewName === "bg-matrix" ? "flex" : "none";
+      document.getElementById("view-trans-matrix").style.display = viewName === "trans-matrix" ? "flex" : "none";
+      document.getElementById("view-runway").style.display = viewName === "runway" ? "flex" : "none";
+    }
+
+    function renderBgGalleryGrid() {
+      const grid = document.getElementById("bg-gallery-grid");
+      grid.innerHTML = "";
+      BACKGROUND_FORMS.forEach(bg => {
+        const card = document.createElement("div");
+        card.className = `matrix-display-card ${bg.id === activeBgId ? 'active' : ''}`;
+        card.onclick = () => {
+          selectBackground(bg.id);
+          switchView("interactive");
+        };
+
+        let previewBg = "#0D1220";
+        if (bg.assetKey && ASSETS[bg.assetKey]) {
+          previewBg = `url('${ASSETS[bg.assetKey]}') center/cover`;
+        } else if (bg.id === "gradient_atmosphere") {
+          previewBg = "radial-gradient(circle, #00F0FF33 0%, #7928CA22 60%, #080B14 100%)";
+        } else if (bg.id === "editorial_glass") {
+          previewBg = "rgba(16, 20, 32, 0.70)";
+        } else if (bg.id === "negative_space_stencil") {
+          previewBg = "#0A0A0C";
+        }
+
+        card.innerHTML = `
+          <div class="mini-thumb-stage" style="background:${previewBg};">
+            <div style="position:absolute; bottom:8px; left:8px; font-family:'Space Mono', monospace; font-size:9px; color:var(--cyan); background:rgba(0,0,0,0.6); padding:2px 6px; border-radius:4px;">
+              ${bg.badge}
+            </div>
+          </div>
+          <div>
+            <strong style="font-size:13px; color:#FFF;">${bg.name}</strong>
+            <p style="font-size:11px; color:var(--text-muted); margin-top:4px;">${bg.category} • Blend: ${bg.blend}</p>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function renderTransGalleryGrid() {
+      const grid = document.getElementById("trans-gallery-grid");
+      grid.innerHTML = "";
+      TRANSITION_EFFECTS.forEach(tr => {
+        const card = document.createElement("div");
+        card.className = `matrix-display-card ${tr.id === activeTransId ? 'active' : ''}`;
+        card.onclick = () => {
+          selectTransition(tr.id);
+          switchView("interactive");
+          fireTransition();
+        };
+
+        card.innerHTML = `
+          <div class="mini-thumb-stage" style="display:flex; align-items:center; justify-content:center; background:#0B0E18;">
+            <span style="font-size:32px;">⚡</span>
+            <div style="position:absolute; bottom:8px; left:8px; font-family:'Space Mono', monospace; font-size:9px; color:var(--gold); background:rgba(0,0,0,0.6); padding:2px 6px; border-radius:4px;">
+              ${tr.badge}
+            </div>
+          </div>
+          <div>
+            <strong style="font-size:13px; color:#FFF;">${tr.name}</strong>
+            <p style="font-size:11px; color:var(--text-muted); margin-top:4px;">${tr.group}</p>
+            <p style="font-size:10px; color:var(--cyan); font-family:'Space Mono', monospace; margin-top:2px;">${tr.sfx}</p>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    // -------------------------------------------------------------------------
+    // KEYBOARD SHORTCUTS
+    // -------------------------------------------------------------------------
+    window.addEventListener("keydown", (e) => {
+      if (e.code === "Space") {
+        e.preventDefault();
+        fireTransition();
+      }
+    });
+
+    window.addEventListener("DOMContentLoaded", initStudio);
+  </script>
+</body>
+</html>

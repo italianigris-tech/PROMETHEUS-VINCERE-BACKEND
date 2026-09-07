@@ -12,6 +12,8 @@ import {
   resolveTypographyContainerFilter,
   resolveTypographyPaintStyle,
   resolveWordEntranceFrames,
+  deriveVolumetricGradient,
+  buildPhysicalLightingFilter,
   unsupportedRuntimeTreatments,
 } from "../PrometheusMinRun";
 
@@ -185,6 +187,32 @@ describe("resolveTypographyPaintStyle", () => {
     });
   });
 
+  test("derives 6-stop convex physical gradient from flat color", () => {
+    const grad = deriveVolumetricGradient("#A855F7");
+    expect(grad).toContain("linear-gradient(180deg");
+    expect(grad).toContain("#FFFFFF 0%");
+    expect(grad).toContain("#A855F7");
+  });
+
+  test("emits 5-pillar physical lighting filter chain when specularChamfer is enabled", () => {
+    const style = resolveTypographyPaintStyle({
+      color: "#A855F7",
+      textFillColor: "#A855F7",
+      gradient: "linear-gradient(180deg, #FFFFFF 0%, #A855F7 58%, #542A7B 88%)",
+      glow: "0 0 16px rgba(168, 85, 247, 0.4)",
+      shadow: "0 3px 6px rgba(0, 0, 0, 0.95)",
+      contactShadow: "0 3px 6px rgba(0, 0, 0, 0.95)",
+      ambientShadow: "0 12px 30px rgba(0, 0, 0, 0.55)",
+      hasGradient: true,
+      specularChamfer: true,
+    });
+    expect(style.filter).toContain("drop-shadow(-0.8px -1.2px 0.4px rgba(255, 255, 255, 0.85))");
+    expect(style.filter).toContain("drop-shadow(1.0px 1.4px 0.5px rgba(0, 0, 0, 0.78))");
+    expect(style.filter).toContain("drop-shadow(0 3px 6px rgba(0, 0, 0, 0.95))");
+    expect(style.filter).toContain("drop-shadow(0 12px 30px rgba(0, 0, 0, 0.55))");
+    expect(style.filter).toContain("drop-shadow(0 0 16px rgba(168, 85, 247, 0.4))");
+  });
+
   test("removes the ancestor filter that would isolate difference blending", () => {
     expect(resolveTypographyContainerFilter([{blendMode: "difference"}])).toBeUndefined();
     expect(resolveTypographyContainerFilter([{blendMode: undefined}])).toBe("drop-shadow(0 4px 20px rgba(0, 0, 0, 0.85))");
@@ -199,9 +227,9 @@ describe("resolveBehindSubjectTypographyMetrics", () => {
       charLength: 7,
       availableHeightRatio: 0.25,
     });
-    expect(metrics.fontSize).toBe(220);
-    expect(metrics.scaleY).toBe(1.25);
-    expect(metrics.scaleX).toBe(1.02);
+    expect(metrics.fontSize).toBe(140);
+    expect(metrics.scaleY).toBe(1.14);
+    expect(metrics.scaleX).toBe(1.0);
   });
 
   test("tightens font size and vertical scale when headroom is constrained", () => {
@@ -209,9 +237,9 @@ describe("resolveBehindSubjectTypographyMetrics", () => {
       charLength: 7,
       availableHeightRatio: 0.10,
     });
-    expect(metrics.fontSize).toBe(155);
-    expect(metrics.scaleY).toBe(1.15);
-    expect(metrics.scaleX).toBe(1.08);
+    expect(metrics.fontSize).toBe(120);
+    expect(metrics.scaleY).toBe(1.14);
+    expect(metrics.scaleX).toBe(1.0);
   });
 
   test("handles short impact words with wide kerning and balanced scaling", () => {
@@ -219,9 +247,258 @@ describe("resolveBehindSubjectTypographyMetrics", () => {
       charLength: 4,
       availableHeightRatio: 0.15,
     });
-    expect(metrics.fontSize).toBe(220);
-    expect(metrics.scaleY).toBe(1.25);
-    expect(metrics.scaleX).toBe(1.10);
-    expect(metrics.letterSpacing).toBe("0.07em");
+    expect(metrics.fontSize).toBe(210);
+    expect(metrics.scaleY).toBe(1.22);
+    expect(metrics.scaleX).toBe(1.05);
+    expect(metrics.letterSpacing).toBe("0.06em");
   });
 });
+
+describe("Dynamic Zoom Archetypes & Eye-Line Anchoring", () => {
+  test("joseph_edit: ramps scale smoothly then cuts back sharply to 1.00x at endMs", () => {
+    const orch: any = {
+      durationMs: 6000,
+      scenes: [{ id: "scene-1", startMs: 0, endMs: 6000, layout: "pan_scan" }],
+      cameraMoves: [
+        {
+          id: "zoom-joseph",
+          startMs: 1000,
+          endMs: 4000,
+          kind: "joseph_edit",
+          curve: [0.25, 0.1, 0.25, 1.0],
+          startScale: 1.0,
+          endScale: 1.10,
+          overshootScale: 1.10,
+          cutbackAtEnd: true,
+          anchorPoint: { xPercent: 48, yPercent: 38 },
+        },
+      ],
+    };
+
+    // Frame during push (2500ms -> frame 75 at 30fps)
+    const midState = resolveSceneVisualState(orch, 75, 30);
+    expect(midState.cameraScale).toBeGreaterThan(1.0);
+    expect(midState.cameraScale).toBeLessThanOrEqual(1.10);
+    expect(midState.anchorXPercent).toBe(48);
+    expect(midState.anchorYPercent).toBe(38);
+
+    // Frame at endMs (4000ms -> frame 120 at 30fps): instant cut-back to 1.00x
+    const endState = resolveSceneVisualState(orch, 120, 30);
+    expect(endState.cameraScale).toBe(1.0);
+  });
+
+  test("punch_zoom: step jump immediately to endScale", () => {
+    const orch: any = {
+      durationMs: 5000,
+      scenes: [{ id: "scene-1", startMs: 0, endMs: 5000, layout: "pan_scan" }],
+      cameraMoves: [
+        {
+          id: "zoom-punch",
+          startMs: 1000,
+          endMs: 2000,
+          kind: "punch_zoom",
+          curve: [0, 0, 0, 1],
+          startScale: 1.0,
+          endScale: 1.14,
+          overshootScale: 1.14,
+          instantJump: true,
+        },
+      ],
+    };
+
+    // Right after startMs (1100ms -> frame 33 at 30fps)
+    const state = resolveSceneVisualState(orch, 33, 30);
+    expect(state.cameraScale).toBe(1.14);
+  });
+
+  test("twist_zoom: applies rotation and eye-line transformOrigin", () => {
+    const orch: any = {
+      durationMs: 5000,
+      scenes: [{ id: "scene-1", startMs: 0, endMs: 5000, layout: "pan_scan" }],
+      cameraMoves: [
+        {
+          id: "zoom-twist",
+          startMs: 1000,
+          endMs: 2000,
+          kind: "twist_zoom",
+          curve: [0.33, 1, 0.68, 1],
+          startScale: 1.0,
+          endScale: 1.15,
+          overshootScale: 1.15,
+          rotationDeg: -4.5,
+          anchorPoint: { xPercent: 52, yPercent: 36 },
+        },
+      ],
+    };
+
+    const state = resolveSceneVisualState(orch, 35, 30);
+    expect(state.cameraRotationDeg).toBeLessThan(0);
+    expect(state.anchorXPercent).toBe(52);
+    expect(state.anchorYPercent).toBe(36);
+
+    const style = resolvePanScanMediaStyle(state);
+    expect(style.transformOrigin).toBe("52% 36%");
+    expect(style.transform).toContain("rotate(");
+    expect(style.transform).toContain("scale(");
+  });
+
+  test("hitchcock_dolly: calculates differential dollyBackgroundScale", () => {
+    const orch: any = {
+      durationMs: 5000,
+      scenes: [{ id: "scene-1", startMs: 0, endMs: 5000, layout: "pan_scan" }],
+      cameraMoves: [
+        {
+          id: "zoom-hitchcock",
+          startMs: 1000,
+          endMs: 4000,
+          kind: "hitchcock_dolly",
+          curve: [0.42, 0, 0.58, 1],
+          startScale: 1.0,
+          endScale: 1.18,
+          overshootScale: 1.18,
+          dollyParallax: { backgroundScale: 1.22, subjectScale: 1.02 },
+        },
+      ],
+    };
+
+    const state = resolveSceneVisualState(orch, 60, 30);
+    expect(state.cameraScale).toBeLessThanOrEqual(1.02);
+    expect(state.dollyBackgroundScale).toBeGreaterThan(1.0);
+    expect(state.dollyBackgroundScale).toBeLessThanOrEqual(1.22);
+  });
+});
+
+describe("Architectural Background Systems (5 Pillars)", () => {
+  test("resolves ambient_shadow_gobo background state across scene timeline", () => {
+    const orch: any = {
+      durationMs: 4000,
+      scenes: [{ id: "scene-gobo", startMs: 0, endMs: 4000, layout: "pan_scan" }],
+      backgrounds: [
+        {
+          id: "bg-gobo",
+          sceneId: "scene-gobo",
+          kind: "ambient_shadow_gobo",
+          shadowGobo: {
+            frequencyHz: 0.35,
+            opacity: 0.25,
+            blendMode: "multiply",
+          },
+        },
+      ],
+    };
+
+    const state = resolveSceneVisualState(orch, 30, 30);
+    expect(state.layout).toBe("pan_scan");
+    expect(orch.backgrounds[0].kind).toBe("ambient_shadow_gobo");
+    expect(orch.backgrounds[0].shadowGobo.frequencyHz).toBe(0.35);
+    expect(orch.backgrounds[0].shadowGobo.blendMode).toBe("multiply");
+  });
+
+  test("resolves hierarchical_spatial_staging background state with hero quadrant and peripheral micro-assets", () => {
+    const orch: any = {
+      durationMs: 5000,
+      scenes: [{ id: "scene-spatial", startMs: 0, endMs: 5000, layout: "pan_scan" }],
+      backgrounds: [
+        {
+          id: "bg-spatial",
+          sceneId: "scene-spatial",
+          kind: "hierarchical_spatial_staging",
+          hierarchicalStaging: {
+            coreHeroAnchor: {
+              targetQuadrant: "center_primary_focal",
+              scaleSettle: { from: 1.07, to: 1.0 },
+              microTiltDeg: { min: 2.0, max: 5.0 },
+              specularSheen: true,
+            },
+            peripheralMicroAssets: [
+              { assetId: "tool_fountain_pen", quadrant: "top_left" },
+              { assetId: "aged_paper_document", quadrant: "top_right" },
+              { assetId: "stationery_paperclip", quadrant: "bottom_left" },
+              { assetId: "polaroid_snapshot_frame", quadrant: "bottom_right" },
+            ],
+          },
+        },
+      ],
+    };
+
+    const state = resolveSceneVisualState(orch, 45, 30);
+    expect(orch.backgrounds[0].kind).toBe("hierarchical_spatial_staging");
+    expect(orch.backgrounds[0].hierarchicalStaging.coreHeroAnchor.targetQuadrant).toBe("center_primary_focal");
+    expect(orch.backgrounds[0].hierarchicalStaging.peripheralMicroAssets).toHaveLength(4);
+  });
+
+  test("resolves attention_gated_bokeh optical defocus rack state", () => {
+    const orch: any = {
+      durationMs: 4000,
+      scenes: [{ id: "scene-bokeh", startMs: 0, endMs: 4000, layout: "pan_scan" }],
+      backgrounds: [
+        {
+          id: "bg-bokeh",
+          sceneId: "scene-bokeh",
+          kind: "attention_gated_bokeh",
+          attentionBokeh: {
+            focusRouting: "incoming_hero_sharp_peripherals_defocused",
+            minBlurRadiusPx: 0,
+            maxBlurRadiusPx: 32,
+            rackFocusDurationMs: 380,
+            transitionCurve: "smooth_s_curve",
+          },
+        },
+      ],
+    };
+
+    expect(orch.backgrounds[0].kind).toBe("attention_gated_bokeh");
+    expect(orch.backgrounds[0].attentionBokeh.maxBlurRadiusPx).toBe(32);
+    expect(orch.backgrounds[0].attentionBokeh.rackFocusDurationMs).toBe(380);
+  });
+
+  test("resolves continuous_spatial_canvas vertical descent state", () => {
+    const orch: any = {
+      durationMs: 6000,
+      scenes: [{ id: "scene-canvas", startMs: 0, endMs: 6000, layout: "pan_scan" }],
+      backgrounds: [
+        {
+          id: "bg-canvas",
+          sceneId: "scene-canvas",
+          kind: "continuous_spatial_canvas",
+          spatialCanvas: {
+            unifiedPlane: true,
+            axis: "Y",
+            inertialHandoff: "damped_spring_easing",
+            cameraHandoffSpring: { stiffness: 140, damping: 18, mass: 1.0 },
+          },
+        },
+      ],
+    };
+
+    expect(orch.backgrounds[0].kind).toBe("continuous_spatial_canvas");
+    expect(orch.backgrounds[0].spatialCanvas.axis).toBe("Y");
+    expect(orch.backgrounds[0].spatialCanvas.inertialHandoff).toBe("damped_spring_easing");
+  });
+
+  test("resolves single_frame_retinal_inversion 1-2 frame micro-flash state", () => {
+    const orch: any = {
+      durationMs: 3000,
+      scenes: [{ id: "scene-retinal", startMs: 0, endMs: 3000, layout: "pan_scan" }],
+      backgrounds: [
+        {
+          id: "bg-retinal",
+          sceneId: "scene-retinal",
+          kind: "single_frame_retinal_inversion",
+          retinalInversion: {
+            durationFrames: 2,
+            durationMs: 66,
+            blendMode: "difference",
+            editorialFunction: "subliminal_visual_punch",
+            triggerCondition: "audio_transient_phase_shift",
+          },
+        },
+      ],
+    };
+
+    expect(orch.backgrounds[0].kind).toBe("single_frame_retinal_inversion");
+    expect(orch.backgrounds[0].retinalInversion.durationFrames).toBe(2);
+    expect(orch.backgrounds[0].retinalInversion.blendMode).toBe("difference");
+  });
+});
+

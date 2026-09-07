@@ -61,9 +61,9 @@ class MiniRunHookLinguaTests(unittest.TestCase):
         plan_money = hooks.plan_hook_treatment(0, "Make millions in profit scale wealth")
         self.assertEqual(plan_money["hookType"], "hook_metallic_chrome_reflection")
 
-        # Family D: Glitch/Tech
+        # Family D: Glitch/Tech — routes to CRT matrix decode (RGB split hook removed)
         plan_glitch = hooks.plan_hook_treatment(0, "The AI code software glitch error")
-        self.assertEqual(plan_glitch["hookType"], "hook_rgb_chromatic_split_glitch")
+        self.assertEqual(plan_glitch["hookType"], "hook_crt_scanline_matrix_decode")
 
         # Family B: Flash/Alert
         plan_flash = hooks.plan_hook_treatment(0, "Stop right now warning alert")

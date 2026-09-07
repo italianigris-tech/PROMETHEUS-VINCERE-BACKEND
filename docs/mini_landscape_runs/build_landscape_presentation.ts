@@ -69,13 +69,15 @@ const repoRoot = path.resolve(studioDir, "..", "..");
  * builder still emits renderable role phrases so the studio always has content.
  * A production manifest with `section.text` populated always wins over these.
  */
+import { LANDSCAPE_KINETIC_WHITELIST } from "./landscape_chunker.js";
+
 const ROLE_FALLBACK_TEXT: Record<string, string> = {
-  hook: "This is where the hook lands.",
-  setup: "Meet the host behind the system.",
-  explain: "Here is how the pattern works.",
-  demonstrate: "Watch the workflow play out.",
-  payoff: "This is the number that matters.",
-  outro: "Do this one thing today.",
+  hook: "THIS IS THE CRITICAL METRIC THAT DEFINES SUCCESS",
+  setup: "MEET THE FOUNDER BEHIND THE ENTIRE OPERATING SYSTEM",
+  explain: "HERE IS PRECISELY HOW THE SYSTEM ARCHITECTURE OPERATES",
+  demonstrate: "WATCH THE COMPLETE WORKFLOW EXECUTE STEP BY STEP",
+  payoff: "THIS IS THE EXPONENTIAL NUMBER THAT TRULY MATTERS",
+  outro: "EXECUTE THIS ONE HIGH IMPACT DISCIPLINE STARTING TODAY",
 };
 
 interface StudioChunk {
@@ -89,6 +91,16 @@ interface StudioChunk {
   metricValue?: number;
   metricPrefix?: string;
   metricSuffix?: string;
+  wordCount?: number;
+  isQuote?: boolean;
+  animationPreset?: string;
+  words?: Array<{
+    text: string;
+    charCount: number;
+    wordIndex: number;
+    startSec: number;
+    endSec: number;
+  }>;
 }
 
 function formatTimestamp(sec: number): string {
@@ -117,6 +129,17 @@ function deriveChunks(manifest: LandscapeTreatmentManifest): StudioChunk[] {
     (a, b) => a.startSec - b.startSec,
   );
 
+  const nonQuotePresets = [
+    "dual_kinetic_phrase_convergence",
+    "rise_and_deblur_compression",
+    "apple_pro_display_hero_revealer",
+    "pixel_blur_mask",
+    "gaussian_blur_reveal_sweep",
+    "compound_word_glitch_blur_reveal",
+    "masked_dual_axis_text_reveal",
+    "dynamic_3d_letter_flicker",
+  ];
+
   return sections.map((section: LandscapeSection, idx: number): StudioChunk => {
     const move = findMoveForSection(manifest.editMoves, section.sectionId);
     const startSec = move ? move.startSec : section.startSec;
@@ -132,6 +155,35 @@ function deriveChunks(manifest: LandscapeTreatmentManifest): StudioChunk[] {
       ? MOVE_EMPHASIS[move.moveId] || "key_point"
       : "context";
 
+    const rawWords = text.split(/\s+/).filter((w) => w.length > 0);
+    const wordCount = rawWords.length;
+    const isQuote = wordCount > 8;
+
+    const cue = manifest.typographyPlan?.cues?.find(
+      (c) => c.sectionId === section.sectionId || (move && c.moveId === move.moveId)
+    );
+
+    const animationPreset = isQuote
+      ? "quote_kinetic_treatment"
+      : (cue?.animationPreset && cue.animationPreset !== "quote_kinetic_treatment"
+          ? cue.animationPreset
+          : nonQuotePresets[idx % nonQuotePresets.length]);
+
+    const chunkDuration = Math.max(0.1, endSec - startSec);
+    const wordDuration = wordCount > 0 ? chunkDuration / wordCount : 0.3;
+
+    const words = rawWords.map((wText, wIdx) => {
+      const wStart = startSec + wIdx * wordDuration;
+      const wEnd = wStart + wordDuration;
+      return {
+        text: wText,
+        charCount: wText.length,
+        wordIndex: wIdx,
+        startSec: Math.round(wStart * 100) / 100,
+        endSec: Math.round(wEnd * 100) / 100,
+      };
+    });
+
     const chunk: StudioChunk = {
       chunkIndex: idx + 1,
       timestamp:
@@ -139,6 +191,10 @@ function deriveChunks(manifest: LandscapeTreatmentManifest): StudioChunk[] {
       startSec: Math.round(startSec * 100) / 100,
       endSec: Math.round(endSec * 100) / 100,
       text,
+      wordCount,
+      isQuote,
+      animationPreset,
+      words,
       emphasis,
       preferredProfile: null,
     };

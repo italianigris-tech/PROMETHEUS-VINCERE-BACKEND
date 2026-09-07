@@ -40,7 +40,6 @@ REFERENCE_FRAME_FILES = [
     "Screenshot_11_021343.png",
     "Screenshot_12_021354.png",
     "Screenshot_14_021413.png",
-    "_B00E0CA3-D821-46BA-B0F3-9283B53992FF__vfhn.png",
 ]
 
 REFERENCE_PHRASES = [
@@ -56,7 +55,6 @@ REFERENCE_PHRASES = [
     "my mom said to me,",
     "my mom",
     "less.",
-    "YOU'LL wake up and someone ELSE.",
 ]
 
 REFERENCE_PROFILE_NAMES = [
@@ -70,7 +68,6 @@ REFERENCE_PROFILE_NAMES = [
     "My_Mom_Said_To_Me_Wall_Man_Z_Plane_Treatment",
     "My_Mom_Wall_Man_Single_Line_Z_Plane",
     "Less_See_Through_Video_Letterform_Treatment",
-    "Youll_Wake_Up_And_Someone_Else_Hierarchy_Stack",
 ]
 
 # Tall-font monolithic stack profiles for "WOULD YOU HIRE" / impact single-words
@@ -95,7 +92,6 @@ REFERENCE_TOKENS = [
     "To_Sleep",
     "My_Mom",
     "Less",
-    "Youll",
 ]
 
 

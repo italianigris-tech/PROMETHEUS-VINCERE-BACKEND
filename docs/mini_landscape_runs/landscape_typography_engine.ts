@@ -61,6 +61,7 @@ export interface LandscapeTypographyCue {
   fontFamily: string;
   accentFont: string;
   animationPreset: string;
+  isQuote: boolean;
   gradient: string;
   glow: string;
   color: string;
@@ -146,56 +147,120 @@ export const LANDSCAPE_DISPLAY_FONTS = [
   "Berylium",
 ];
 
-// Generative Motion Presets for 16:9 Landscape
+// Generative Motion Presets for 16:9 Landscape (Strict Whitelist: Master Kinetics + User HTML suites)
 export const LANDSCAPE_KINETIC_PRESETS = [
-  "focus_hunting_bokeh_shimmer",
   "apple_pro_display_hero_revealer",
+  "pixel_blur_mask",
   "gaussian_blur_reveal_sweep",
-  "dynamic_staggered_character_cascade",
-  "cinematic_viewport_mask_sweep",
-  "spring_blur_physics_engine",
-  "subpixel_glow_mask",
-  "obsidian_heavy_grotesque",
-];
+  "compound_word_glitch_blur_reveal",
+  "masked_dual_axis_text_reveal",
+  "dynamic_3d_letter_flicker",
+  "dual_kinetic_phrase_convergence",
+  "rise_and_deblur_compression",
+  "quote_kinetic_treatment",
+] as const;
+
+export type LandscapeKineticPreset = (typeof LANDSCAPE_KINETIC_PRESETS)[number];
 
 /**
  * Dynamically derives high-impact spoken or thematic text for a section/move.
- * Extracts from actual transcript or section text when present; otherwise derives
- * context-sensitive semantic keywords from section role and move type.
+ * Optimized for 16:9 Landscape:
+ * - 5-word, 7-word, and 8-word complete phrase structures
+ * - Chunks > 8 words flagged for Quote kinetic treatment
  */
 function resolveDynamicCopy(
   move: EditMove,
   section?: LandscapeSection,
   index = 0
-): { text: string; heroWord: string } {
-  // 1. If section carries real transcript text, extract the key punchline or core phrase
+): { text: string; heroWord: string; isQuote: boolean } {
+  // 1. If section carries real transcript text, extract a 5 to 8 word phrase window
   if (section?.text && section.text.trim().length > 0) {
     const rawWords = section.text.trim().split(/\s+/);
-    if (rawWords.length <= 4) {
-      return { text: section.text.trim(), heroWord: rawWords[rawWords.length - 1] };
+    if (rawWords.length > 8 && (section.text.includes('"') || section.text.includes('“'))) {
+      // Long intact quotation
+      return {
+        text: section.text.trim(),
+        heroWord: rawWords[rawWords.length - 1],
+        isQuote: true,
+      };
     }
-    // Take punchy 2-3 word window around the key concept
-    const windowStart = Math.min(rawWords.length - 3, (index * 2) % Math.max(1, rawWords.length - 2));
-    const slice = rawWords.slice(windowStart, windowStart + 3);
-    return { text: slice.join(" "), heroWord: slice[slice.length - 1] };
+    if (rawWords.length <= 8) {
+      return {
+        text: section.text.trim(),
+        heroWord: rawWords[rawWords.length - 1],
+        isQuote: rawWords.length > 8,
+      };
+    }
+    // Take 5-8 word window around key concept (default 7 words)
+    const windowSize = Math.min(8, Math.max(5, (index % 2 === 0 ? 7 : 5)));
+    const windowStart = Math.min(
+      Math.max(0, rawWords.length - windowSize),
+      (index * 3) % Math.max(1, rawWords.length - windowSize + 1)
+    );
+    const slice = rawWords.slice(windowStart, windowStart + windowSize);
+    return {
+      text: slice.join(" "),
+      heroWord: slice[slice.length - 1],
+      isQuote: false,
+    };
   }
 
-  // 2. Dynamic contextual phrases based on move and role
+  // 2. Dynamic contextual phrases strictly in the 5 to 8 word sweet spot
   const moveRoleMap: Record<string, string[]> = {
-    emphasize_keyword: ["KEY INSIGHT", "CRITICAL METRIC", "THE CORE SYSTEM", "FOCUS HERE"],
-    return_to_authority: ["AUTHORITY PRINCIPLE", "THE BLUEPRINT", "EXPERT BREAKDOWN", "DIRECT ANALYSIS"],
-    explain_workflow: ["STEP BY STEP", "HOW IT OPERATES", "THE ARCHITECTURE", "STREAMLINED PROCESS"],
-    value_contrast: ["BEFORE & AFTER", "EXPONENTIAL RETURN", "THE RESULT GAP", "UNPARALLELED VALUE"],
-    cta_pressure: ["ACT NOW", "TRANSFORM TODAY", "UNLOCK ACCESS", "EXECUTE IMMEDIATELY"],
-    thesis_punctuation: ["THE TURNING POINT", "UNPRECEDENTED SHIFT", "DEFINITIVE PROOF", "EVERYTHING CHANGES"],
-    proof_insert: ["VERIFIED DATA", "REAL EVIDENCE", "PROVEN RESULTS", "DOCUMENTED SUCCESS"],
-    focus_handoff: ["ATTENTION SHIFT", "PRIMARY FOCUS", "THE NEXT LEVEL", "KEY PRIORITY"],
+    emphasize_keyword: [
+      "THE CRITICAL METRIC THAT DEFINES SUCCESS",
+      "THIS SINGLE NUMBER DRIVES THE SYSTEM",
+      "WHAT MOST OPERATORS SYSTEMATICALLY OVERLOOK IN PRACTICE",
+    ],
+    return_to_authority: [
+      "THE BLUEPRINT THAT BUILT THIS OPERATION",
+      "EXPERT BREAKDOWN OF THE PRIMARY ENGINE",
+      "RETURNING DIRECTLY TO CORE FIRST PRINCIPLES",
+    ],
+    explain_workflow: [
+      "HOW THE ARCHITECTURE EXECUTES STEP BY STEP",
+      "STREAMLINED PIPELINE OPERATING AT RECORD VELOCITY",
+      "THE PRECISE SEQUENCE THAT DELIVERS RESULTS",
+    ],
+    value_contrast: [
+      "EXPONENTIAL RETURN REPLACING HEAVY MANUAL OVERHEAD",
+      "THE DISPROPORTIONATE ADVANTAGE OF MODERN AUTOMATION",
+      "BEFORE AND AFTER STRATEGIC WORKFLOW TRANSFORMATION",
+    ],
+    cta_pressure: [
+      "EXECUTE IMMEDIATELY BEFORE THIS WINDOW CLOSES",
+      "UNLOCK ACCESS AND TRANSFORM YOUR ARCHITECTURE TODAY",
+      "DO NOT WAIT FOR CONDITIONS TO CHANGE",
+    ],
+    thesis_punctuation: [
+      "THE DEFINITIVE TURNING POINT IN THIS FIELD",
+      "UNPRECEDENTED RESULTS PROVING THE ORIGINAL THESIS",
+      "EVERY SINGLE METRIC SHIFTS FROM THIS MOMENT",
+    ],
+    proof_insert: [
+      "VERIFIED DATA BACKED BY DOCUMENTED CASE STUDIES",
+      "EMPIRICAL EVIDENCE CONFIRMED ACROSS LIVE PRODUCTION WORKLOADS",
+      "PROVEN METRICS AUDITED UNDER STRICT PROTOCOLS",
+    ],
+    focus_handoff: [
+      "ATTENTION SHIFTS TO THE NEXT KEY COMPONENT",
+      "LOCKING IMMEDIATE FOCUS ON PRIMARY OPERATIONAL LEVERS",
+      "TRANSITIONING SYSTEM CONTROL TO AUTOMATED PIPELINES",
+    ],
   };
 
-  const pool = moveRoleMap[move.moveId] || ["CRITICAL FOCUS", "KEY ELEMENT", "CORE PRINCIPLE"];
+  const pool = moveRoleMap[move.moveId] || [
+    "THE CRITICAL METRIC THAT DEFINES SUCCESS",
+    "THE BLUEPRINT THAT BUILT THIS OPERATION",
+    "HOW THE ARCHITECTURE EXECUTES STEP BY STEP",
+  ];
   const text = pool[index % pool.length];
   const words = text.split(" ");
-  return { text, heroWord: words[words.length - 1] };
+  return {
+    text,
+    heroWord: words[words.length - 1],
+    isQuote: words.length > 8,
+  };
 }
 
 /**
@@ -222,7 +287,7 @@ export function generateLandscapeTypographyPlan(
     if (!move) continue;
 
     const section = sectionMap.get(move.sectionId);
-    const { text, heroWord } = resolveDynamicCopy(move, section, i);
+    const { text, heroWord, isQuote } = resolveDynamicCopy(move, section, i);
 
     // High-tier screenshot profile preference
     const highTierProfiles = corpus.filter((p) =>
@@ -246,7 +311,9 @@ export function generateLandscapeTypographyPlan(
       ? tallFonts[i % tallFonts.length]
       : LANDSCAPE_DISPLAY_FONTS[i % LANDSCAPE_DISPLAY_FONTS.length];
     const accentFont = LANDSCAPE_DISPLAY_FONTS[(i + 3) % LANDSCAPE_DISPLAY_FONTS.length];
-    const animationPreset = LANDSCAPE_KINETIC_PRESETS[i % LANDSCAPE_KINETIC_PRESETS.length];
+    const animationPreset = isQuote
+      ? "quote_kinetic_treatment"
+      : LANDSCAPE_KINETIC_PRESETS[i % (LANDSCAPE_KINETIC_PRESETS.length - 1)];
 
     const glow = behindSubject
       ? "0 0 24px rgba(255, 51, 75, 0.45)"
@@ -263,6 +330,7 @@ export function generateLandscapeTypographyPlan(
       endSec: move.endSec,
       text,
       heroWord,
+      isQuote,
       fontProfileId: profile.id,
       fontProfileName: profile.profileName,
       fontFamily: primaryFont,

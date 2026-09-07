@@ -2113,6 +2113,280 @@
     }
 
 
+    /* ────────────────────────────────────────────────────────────
+       STRICT 16:9 LANDSCAPE KINETIC TYPOGRAPHY WHITELIST SUITE
+       (Master Kinetics + User HTML suites + Quote Treatment)
+       ──────────────────────────────────────────────────────────── */
+
+    /* 1. Rise and Deblur Character Compression (User HTML #1) */
+    @property --spread {
+      syntax: '<length>';
+      inherits: true;
+      initial-value: 22px;
+    }
+    .word-container-rise-deblur {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: #ffffff;
+      will-change: transform, filter, opacity;
+      animation: riseAndDeblur 1.1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      overflow: visible !important;
+    }
+    .word-container-rise-deblur .char {
+      display: inline-block;
+      white-space: pre;
+      will-change: transform;
+      transform: translate3d(calc(var(--char-offset) * var(--spread)), 0, 0);
+      animation: compressChars 2.0s cubic-bezier(0.12, 1, 0.22, 1) forwards;
+    }
+    @keyframes riseAndDeblur {
+      0% { opacity: 0; transform: translate3d(0, 48px, 0); filter: blur(16px); }
+      100% { opacity: 1; transform: translate3d(0, 0, 0); filter: blur(0px); }
+    }
+    @keyframes compressChars {
+      0% { --spread: 22px; }
+      100% { --spread: -1.5px; }
+    }
+
+    /* 2. Dual Kinetic Phrase Convergence (User HTML #2) */
+    .phrase-row-convergence {
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      align-items: center;
+      white-space: nowrap;
+      font-weight: 800;
+      text-transform: uppercase;
+      line-height: 1;
+      color: #ffffff;
+      overflow: visible !important;
+    }
+    .phrase-row-convergence .word-slot {
+      display: inline-flex;
+      align-items: center;
+      margin: 0 0.22em;
+      will-change: transform;
+      transform: translate3d(var(--macro-start-x), 0, 0);
+      animation: macroWordSqueeze 2.2s cubic-bezier(0.1, 0.95, 0.2, 1) forwards;
+      animation-delay: var(--word-delay);
+    }
+    .phrase-row-convergence .word-core {
+      display: inline-flex;
+      align-items: center;
+      opacity: 0;
+      will-change: transform, filter, opacity;
+      animation: fastRiseAndDeblur 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation-delay: var(--word-delay);
+    }
+    .phrase-row-convergence .char {
+      display: inline-block;
+      white-space: pre;
+      will-change: transform;
+      transform: translate3d(var(--start-x), 0, 0);
+      animation: microCharSqueeze 1.4s cubic-bezier(0.12, 1, 0.22, 1) forwards;
+      animation-delay: var(--word-delay);
+    }
+    @keyframes fastRiseAndDeblur {
+      0% { opacity: 0; transform: translate3d(0, 36px, 0); filter: blur(14px); }
+      100% { opacity: 1; transform: translate3d(0, 0, 0); filter: blur(0px); }
+    }
+    @keyframes microCharSqueeze {
+      0% { transform: translate3d(var(--start-x), 0, 0); }
+      100% { transform: translate3d(var(--end-x), 0, 0); }
+    }
+    @keyframes macroWordSqueeze {
+      0% { transform: translate3d(var(--macro-start-x), 0, 0); }
+      100% { transform: translate3d(var(--macro-end-x), 0, 0); }
+    }
+
+    /* 3. Apple Pro Display Hero Revealer */
+    .apple-hero-wrap {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      overflow: visible !important;
+    }
+    .apple-hero-word {
+      display: inline-block;
+      opacity: 0;
+      will-change: transform, opacity, filter, letter-spacing;
+      animation: appleHeroAnim 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      letter-spacing: -0.02em;
+    }
+    @keyframes appleHeroAnim {
+      0% { opacity: 0; transform: translateY(36px) scale(0.94); filter: blur(20px); letter-spacing: -0.05em; }
+      60% { opacity: 1; transform: translateY(-2px) scale(1.01); filter: blur(0px); letter-spacing: -0.02em; }
+      100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0px); letter-spacing: -0.02em; }
+    }
+
+    /* 4. Sub-Pixel Blur-Up Mask */
+    .pixel-blur-mask-wrap {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      overflow: visible !important;
+    }
+    .pixel-blur-mask-char {
+      display: inline-block;
+      opacity: 0;
+      will-change: transform, filter, opacity;
+      animation: subpixelBlurMaskAnim 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes subpixelBlurMaskAnim {
+      0% { filter: blur(26px); opacity: 0; transform: scale(0.90) translateY(12px); }
+      60% { filter: blur(2px); opacity: 0.95; }
+      100% { filter: blur(0px); opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    /* 5. Gaussian Blur Reveal Sweep */
+    .gaussian-sweep-wrap {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      overflow: visible !important;
+    }
+    .gaussian-sweep-word {
+      display: inline-block;
+      opacity: 0;
+      will-change: transform, filter, opacity;
+      animation: gaussianSweepAnim 1.1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes gaussianSweepAnim {
+      0% { opacity: 0.1; filter: blur(20px); transform: translateY(16px); }
+      50% { opacity: 0.8; filter: blur(4px); }
+      100% { opacity: 1; filter: blur(0px); transform: translateY(0); }
+    }
+
+    /* 6. Compound Word Glitch & Blur Reveal */
+    .cwg-stage-inline {
+      display: inline-flex;
+      align-items: baseline;
+      overflow: visible !important;
+    }
+    .cwg-part-glitch {
+      display: inline-block;
+      position: relative;
+      will-change: opacity, transform, text-shadow;
+      animation: cwg-subtle-glitch 0.85s steps(1, end) forwards;
+    }
+    .cwg-blur-char {
+      display: inline-block;
+      opacity: 0;
+      will-change: transform, opacity, filter;
+      animation: cwg-quad-blur 1.1s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+    }
+    @keyframes cwg-subtle-glitch {
+      0% { opacity: 0; transform: translateX(-2px); text-shadow: 2px 0 rgba(255, 51, 75, 0.4); }
+      15% { opacity: 0.9; transform: translateX(1px); text-shadow: -1px 0 rgba(0, 240, 255, 0.6); }
+      28% { opacity: 0.2; transform: translateX(0); text-shadow: none; }
+      42% { opacity: 1; transform: translateX(-1px); text-shadow: 1.5px 0 rgba(255, 51, 75, 0.5); }
+      58% { opacity: 0.4; transform: translateX(0.5px); }
+      72% { opacity: 0.95; transform: translateX(-0.5px); }
+      85% { opacity: 0.7; }
+      100% { opacity: 1; transform: translateX(0); text-shadow: none; }
+    }
+    @keyframes cwg-quad-blur {
+      0% { opacity: 0; transform: translateY(24px) scale(0.95); filter: blur(16px); }
+      50% { opacity: 0.7; filter: blur(4px); }
+      100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0px); }
+    }
+
+    /* 7. Masked Dual-Axis Text Reveal */
+    .mda-stage-inline {
+      display: inline-flex;
+      align-items: center;
+      overflow: visible !important;
+    }
+    .mda-letter-mask {
+      overflow: hidden;
+      display: inline-block;
+      padding-right: 0.04em;
+      margin-right: -0.01em;
+      vertical-align: baseline;
+    }
+    .mda-letter-char {
+      display: inline-block;
+      opacity: 0;
+      will-change: transform, opacity, filter;
+      animation: mda-dual-axis-quad 1.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+    }
+    @keyframes mda-dual-axis-quad {
+      0% { opacity: 0; transform: translate(50px, 110%) scale(0.92); filter: blur(20px); }
+      45% { opacity: 0.7; filter: blur(6px); }
+      100% { opacity: 1; transform: translate(0, 0) scale(1); filter: blur(0px); }
+    }
+
+    /* 8. Dynamic 3D Letter Flicker */
+    .flk-text-inline {
+      display: inline-flex;
+      align-items: baseline;
+      overflow: visible !important;
+    }
+    .flk-letter {
+      display: inline-block;
+    }
+    .flk-flicker-active {
+      animation: flk-hard-flicker 0.6s steps(1, end) forwards;
+    }
+    @keyframes flk-hard-flicker {
+      0% { opacity: 0; } 12% { opacity: 1; } 24% { opacity: 0; } 38% { opacity: 1; }
+      50% { opacity: 0; } 65% { opacity: 1; } 78% { opacity: 0; } 88% { opacity: 1; }
+      95% { opacity: 0; } 100% { opacity: 1; }
+    }
+
+    /* 9. Quote Kinetic Treatment (> 8 words) */
+    .landscape-quote-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      max-width: 82%;
+      margin: 0 auto;
+      text-align: center;
+      overflow: visible !important;
+      position: relative;
+    }
+    .landscape-quote-mark {
+      font-family: "Playfair Display", "Bodoni Moda", serif;
+      font-size: clamp(2.5rem, 5vw, 4.5rem);
+      line-height: 0.8;
+      color: var(--accent-yellow, #FACC15);
+      opacity: 0;
+      animation: quoteMarkEntrance 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      margin-bottom: 0.1em;
+      user-select: none;
+    }
+    .landscape-quote-body {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: baseline;
+      row-gap: 0.2em;
+      column-gap: 0.28em;
+      font-style: italic !important;
+      font-weight: 600 !important;
+      letter-spacing: -0.01em;
+      line-height: 1.25;
+      font-size: clamp(1.6rem, 3.2vw, 2.8rem);
+    }
+    .landscape-quote-word {
+      display: inline-block;
+      opacity: 0;
+      will-change: transform, filter, opacity;
+      animation: quoteWordFadeRise 0.75s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes quoteMarkEntrance {
+      0% { opacity: 0; transform: translateY(-16px) scale(0.8); filter: blur(8px); }
+      100% { opacity: 0.9; transform: translateY(0) scale(1); filter: blur(0); }
+    }
+    @keyframes quoteWordFadeRise {
+      0% { opacity: 0; transform: translateY(20px); filter: blur(12px); }
+      100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+    }
+
     .delayed-pill-card-container {
       position: relative;
       display: inline-flex;
@@ -6266,190 +6540,276 @@
             }
             requestAnimationFrame(tick);
 
-          // A. Hand-Drawn Sketched Pencil Circle Loop Accent
-          } else if (layer.sketchCircle) {
-            const circleWrap = document.createElement('div');
-            circleWrap.className = 'sketch-circle-loop-wrap';
+          // 1. QUOTE KINETIC TREATMENT (> 8 words or explicit quote)
+          } else if (chunk.isQuote || layer.fxPreset === 'quote_kinetic_treatment' || (layer.text.split(' ').filter(w => w.length > 0).length > 8)) {
+            const quoteContainer = document.createElement('div');
+            quoteContainer.className = 'landscape-quote-container';
 
-            const svgNS = 'http://www.w3.org/2000/svg';
-            const svg = document.createElementNS(svgNS, 'svg');
-            svg.setAttribute('class', 'sketch-circle-loop-svg');
-            svg.setAttribute('viewBox', '0 0 240 70');
-            svg.setAttribute('preserveAspectRatio', 'none');
+            const quoteMark = document.createElement('div');
+            quoteMark.className = 'landscape-quote-mark';
+            quoteMark.innerText = '“';
+            quoteContainer.appendChild(quoteMark);
 
-            const path = document.createElementNS(svgNS, 'path');
-            path.setAttribute('class', 'sketch-circle-path');
-            path.setAttribute('d', 'M 20,35 C 15,12 85,6 150,7 C 215,8 235,18 230,36 C 225,54 175,64 110,63 C 45,62 12,52 16,33 C 20,14 90,8 155,9 C 220,10 236,22 228,38 C 220,52 170,62 105,61');
-            path.setAttribute('vector-effect', 'non-scaling-stroke');
-            svg.appendChild(path);
-            circleWrap.appendChild(svg);
+            const quoteBody = document.createElement('div');
+            quoteBody.className = 'landscape-quote-body';
 
-            const textInner = document.createElement('div');
-            textInner.className = 'sketch-circle-text';
             const words = layer.text.split(' ').filter(w => w.length > 0);
-            words.forEach((w, wIdx) => {
-              const span = document.createElement('span');
-              span.className = 'word-item word-span';
-              span.innerText = w;
-              span.style.animationDelay = (wIdx * 0.07) + 's';
-              textInner.appendChild(span);
-            });
-            circleWrap.appendChild(textInner);
-            layerDiv.appendChild(circleWrap);
-
-          // 1. Delayed Animated Highlight Card Sweep
-          } else if (layer.delayedPillCard) {
-            const cardWrap = document.createElement('div');
-            cardWrap.className = 'delayed-pill-card-container';
-            const cardBg = document.createElement('div');
-            let bgClass = 'card-yellow';
-            let textColor = '#111111';
-            if (layer.delayedPillCard === '#FF1744') { bgClass = 'card-red-pressure'; textColor = '#FFFFFF'; }
-            else if (layer.delayedPillCard === '#00F0FF') { bgClass = 'card-cyan'; textColor = '#070913'; }
-            else if (layer.delayedPillCard === '#C084FC') { bgClass = 'card-lavender'; textColor = '#070913'; }
-            cardBg.className = 'delayed-pill-card-bg ' + bgClass;
-            
-            const cardText = document.createElement('span');
-            cardText.className = 'delayed-pill-card-text';
-            cardText.innerText = layer.text;
-            cardText.style.color = textColor;
-            cardWrap.appendChild(cardBg);
-            cardWrap.appendChild(cardText);
-            layerDiv.appendChild(cardWrap);
-
-          // 2. Hexta Terminal Typewriter + Caret
-          } else if (layer.fxPreset === 'typewriter_mono_caret') {
-            renderCharSpansByWord(layerDiv, layer.text, 'typewriter-char', 0.045);
-            const caret = document.createElement('span');
-            caret.className = 'typewriter-caret';
-            caret.innerText = '|';
-            layerDiv.appendChild(caret);
-
-          // 3. Cinematic Viewport Mask Sweep
-          } else if (layer.fxPreset === 'viewport_mask_sweep') {
-            const sweepWrap = document.createElement('div');
-            sweepWrap.className = 'viewport-mask-sweep-wrap';
-            const sweepText = document.createElement('div');
-            sweepText.className = 'viewport-mask-sweep-text';
-            sweepText.innerText = layer.text;
-            const sweepBar = document.createElement('div');
-            sweepBar.className = 'viewport-mask-sweep-bar';
-            sweepWrap.appendChild(sweepText);
-            sweepWrap.appendChild(sweepBar);
-            layerDiv.appendChild(sweepWrap);
-
-          // 4. Motion Primitive Skeletal Glyphs Slot
-          } else if (layer.fxPreset === 'staggered_glyph_slot') {
-            const slotWrap = document.createElement('div');
-            slotWrap.className = 'glyph-slot-wrap';
-            renderCharSpansByWord(slotWrap, layer.text, 'glyph-slot-char', 0.045);
-            layerDiv.appendChild(slotWrap);
-
-          // 5. Glow Search Input & Parsing Caret
-          } else if (layer.fxPreset === 'glow_search_input_caret') {
-            const capsule = document.createElement('div');
-            capsule.className = 'search-capsule-wrap';
-            const icon = document.createElement('span');
-            icon.className = 'search-capsule-icon';
-            icon.innerText = '🔍';
-            capsule.appendChild(icon);
-
-            const textWrap = document.createElement('span');
-            textWrap.style.whiteSpace = 'nowrap';
-            renderCharSpansByWord(textWrap, layer.text, 'typewriter-char', 0.04);
-            capsule.appendChild(textWrap);
-
-            const caret = document.createElement('span');
-            caret.className = 'typewriter-caret';
-            caret.innerText = '|';
-            capsule.appendChild(caret);
-            layerDiv.appendChild(capsule);
-
-          // 6. Dynamic Staggered Craft Cascade
-          } else if (layer.fxPreset === 'spring_character_cascade') {
-            renderCharSpansByWord(layerDiv, layer.text, 'spring-cascade-char', 0.035);
-
-          // 7. Cyber Matrix Glitch
-          } else if (layer.fxPreset === 'acid_lime_letter_glitch') {
-            renderCharSpansByWord(layerDiv, layer.text, 'lime-glitch-char lime-accent', 0.04);
-
-          // 8. Skyhigh Liquid Chrome Wave (Cotton.js sinusoidal wave distortion)
-          } else if (layer.fxPreset === 'skyhigh_liquid_chrome_wave') {
-            const waveWrap = document.createElement('div');
-            waveWrap.className = 'skyhigh-wave-wrap';
-            renderCharSpansByWord(waveWrap, layer.text, 'skyhigh-wave-char', 0.055);
-            layerDiv.appendChild(waveWrap);
-
-          // 9. Overlapping 3D Letter Tilt (CANVA Layered Stagger)
-          } else if (layer.fxPreset === 'staggered_letter_overlap_tilt') {
-            const overlapWrap = document.createElement('div');
-            overlapWrap.className = 'overlap-tilt-wrap';
-            const words = layer.text.split(' ').filter(w => w.length > 0);
-            let charIndex = 0;
             words.forEach((w, wIdx) => {
               const wordSpan = document.createElement('span');
-              wordSpan.className = 'word-span';
-              Array.from(w).forEach((ch) => {
-                const span = document.createElement('span');
-                span.className = 'overlap-tilt-char';
-                span.innerText = ch;
-                span.style.zIndex = String(20 + charIndex);
-                span.style.animationDelay = (charIndex * 0.06) + 's';
-                wordSpan.appendChild(span);
-                charIndex++;
+              wordSpan.className = 'landscape-quote-word';
+              wordSpan.setAttribute('data-caption-renderer', 'true');
+              wordSpan.innerText = w;
+              wordSpan.style.animationDelay = (wIdx * 0.08) + 's';
+              quoteBody.appendChild(wordSpan);
+            });
+
+            quoteContainer.appendChild(quoteBody);
+            layerDiv.appendChild(quoteContainer);
+
+          // 2. DUAL KINETIC PHRASE CONVERGENCE (User HTML #2: Macro word squeeze + fast rise/deblur + micro char squeeze)
+          } else if (layer.fxPreset === 'dual_kinetic_phrase_convergence') {
+            const phraseRow = document.createElement('div');
+            phraseRow.className = 'phrase-row-convergence';
+
+            const rawWords = layer.text.split(' ').filter(w => w.length > 0);
+            const totalWords = rawWords.length;
+            const centerWordIndex = (totalWords - 1) / 2;
+            const STAGGER_INTERVAL = 0.12;
+
+            rawWords.forEach((wordText, wordIdx) => {
+              const wordSlot = document.createElement('span');
+              wordSlot.className = 'word-slot';
+
+              const wordOffset = wordIdx - centerWordIndex;
+              const macroStartX = (wordOffset * 1.80).toFixed(3) + 'em';
+              const macroEndX = (wordOffset * -0.06).toFixed(3) + 'em';
+              const wordDelay = (wordIdx * STAGGER_INTERVAL).toFixed(3) + 's';
+
+              wordSlot.style.setProperty('--macro-start-x', macroStartX);
+              wordSlot.style.setProperty('--macro-end-x', macroEndX);
+              wordSlot.style.setProperty('--word-delay', wordDelay);
+
+              const wordCore = document.createElement('span');
+              wordCore.className = 'word-core';
+              wordCore.style.animationDelay = wordDelay;
+
+              const totalChars = wordText.length;
+              const centerCharIndex = (totalChars - 1) / 2;
+
+              Array.from(wordText).forEach((char, charIdx) => {
+                const charSpan = document.createElement('span');
+                charSpan.className = 'char';
+                charSpan.textContent = char;
+                charSpan.setAttribute('data-caption-renderer', 'true');
+
+                const charOffset = charIdx - centerCharIndex;
+                const startX = (charOffset * 0.14).toFixed(3) + 'em';
+                const endX = (charOffset * -0.025).toFixed(3) + 'em';
+
+                charSpan.style.setProperty('--start-x', startX);
+                charSpan.style.setProperty('--end-x', endX);
+                charSpan.style.animationDelay = wordDelay;
+
+                wordCore.appendChild(charSpan);
               });
-              overlapWrap.appendChild(wordSpan);
+
+              wordSlot.appendChild(wordCore);
+              phraseRow.appendChild(wordSlot);
+            });
+
+            layerDiv.appendChild(phraseRow);
+
+          // 3. RISE AND DEBLUR CHARACTER COMPRESSION (User HTML #1: Inward squeeze via @property --spread)
+          } else if (layer.fxPreset === 'rise_and_deblur_compression') {
+            const wordContainer = document.createElement('div');
+            wordContainer.className = 'word-container-rise-deblur';
+
+            const trimmedText = layer.text.trim();
+            const totalChars = trimmedText.length;
+            const centerIndex = (totalChars - 1) / 2;
+
+            Array.from(trimmedText).forEach((char, index) => {
+              const span = document.createElement('span');
+              span.className = 'char';
+              span.textContent = char;
+              span.setAttribute('data-caption-renderer', 'true');
+              span.style.setProperty('--char-offset', (index - centerIndex).toFixed(2));
+              wordContainer.appendChild(span);
+            });
+
+            layerDiv.appendChild(wordContainer);
+
+          // 4. APPLE PRO DISPLAY HERO REVEALER (TYPO #01: Blur 26px -> 0px + translateY 36px)
+          } else if (layer.fxPreset === 'apple_pro_display_hero_revealer') {
+            const appleWrap = document.createElement('div');
+            appleWrap.className = 'apple-hero-wrap';
+            const words = layer.text.split(' ').filter(w => w.length > 0);
+            words.forEach((w, wIdx) => {
+              const wordSpan = document.createElement('span');
+              wordSpan.className = 'apple-hero-word';
+              wordSpan.setAttribute('data-caption-renderer', 'true');
+              wordSpan.innerText = w;
+              wordSpan.style.animationDelay = (wIdx * 0.12) + 's';
+              appleWrap.appendChild(wordSpan);
               if (wIdx < words.length - 1) {
                 const sp = document.createElement('span');
                 sp.className = 'word-spacer';
                 sp.innerHTML = '&nbsp;';
-                overlapWrap.appendChild(sp);
+                appleWrap.appendChild(sp);
               }
             });
-            layerDiv.appendChild(overlapWrap);
+            layerDiv.appendChild(appleWrap);
 
-          // 10. 3D Caustic Glassmorphic Letterforms (Glass A Refraction)
-          } else if (layer.fxPreset === 'glassmorphic_caustic_refract') {
-            const glassWrap = document.createElement('div');
-            glassWrap.className = 'glassmorphic-wrap';
-            renderCharSpansByWord(glassWrap, layer.text, 'glassmorphic-char', 0.05);
-            layerDiv.appendChild(glassWrap);
+          // 5. SUB-PIXEL BLUR-UP MASK (TYPO #04: Pixel Blur of Mask)
+          } else if (layer.fxPreset === 'pixel_blur_mask' || layer.fxPreset === 'subpixel_blur_mask') {
+            const blurWrap = document.createElement('div');
+            blurWrap.className = 'pixel-blur-mask-wrap';
+            renderCharSpansByWord(blurWrap, layer.text, 'pixel-blur-mask-char', 0.045);
+            layerDiv.appendChild(blurWrap);
 
-          // 11. Vibe Chromatic Luminescence Pulse (Anamorphic beam smearing)
-          } else if (layer.fxPreset === 'vibe_chromatic_luminescence_pulse') {
-            const vibeWrap = document.createElement('div');
-            vibeWrap.className = 'vibe-luminescence-wrap';
-            renderCharSpansByWord(vibeWrap, layer.text, 'vibe-luminescence-char', 0.06);
-            layerDiv.appendChild(vibeWrap);
+          // 6. TEXT EFFECT GAUSSIAN BLUR REVEAL SWEEP (TYPO #06: Gaussian sweep)
+          } else if (layer.fxPreset === 'gaussian_blur_reveal_sweep') {
+            const sweepWrap = document.createElement('div');
+            sweepWrap.className = 'gaussian-sweep-wrap';
+            const words = layer.text.split(' ').filter(w => w.length > 0);
+            words.forEach((w, wIdx) => {
+              const wordSpan = document.createElement('span');
+              wordSpan.className = 'gaussian-sweep-word';
+              wordSpan.setAttribute('data-caption-renderer', 'true');
+              wordSpan.innerText = w;
+              wordSpan.style.animationDelay = (wIdx * 0.14) + 's';
+              sweepWrap.appendChild(wordSpan);
+              if (wIdx < words.length - 1) {
+                const sp = document.createElement('span');
+                sp.className = 'word-spacer';
+                sp.innerHTML = '&nbsp;';
+                sweepWrap.appendChild(sp);
+              }
+            });
+            layerDiv.appendChild(sweepWrap);
 
-          // 12. Skywall Monolithic Steel Hydraulic Rise
-          } else if (layer.fxPreset === 'skywall_monolithic_steel_rise') {
-            const steelWrap = document.createElement('div');
-            steelWrap.className = 'skywall-steel-wrap';
-            renderCharSpansByWord(steelWrap, layer.text, 'skywall-steel-char', 0.04);
-            layerDiv.appendChild(steelWrap);
+          // 7. COMPOUND WORD GLITCH & BLUR REVEAL (TYPO #45)
+          } else if (layer.fxPreset === 'compound_word_glitch_blur_reveal') {
+            const cwgStage = document.createElement('div');
+            cwgStage.className = 'cwg-stage-inline';
+            const words = layer.text.split(' ').filter(w => w.length > 0);
+            const mid = Math.max(1, Math.floor(words.length / 2));
+            const part1 = words.slice(0, mid).join(' ');
+            const part2 = words.slice(mid).join(' ');
 
-          // TALL-FONT MONOLITH (Zone A / Z:10): clean whole-phrase seal. Tall depth text
-          // receives NO decorative kinetic treatment — it is a single clean monolithic element
-          // rendered as one block (no per-char chrome/glass/glitch/overlap, no word stagger).
-          } else if (layer.fxPreset === 'monolith_clean_seal') {
+            const glitchPart = document.createElement('span');
+            glitchPart.className = 'cwg-part-glitch';
+            glitchPart.innerText = part1 + (part2 ? ' ' : '');
+            cwgStage.appendChild(glitchPart);
+
+            if (part2) {
+              const blurWrapper = document.createElement('span');
+              blurWrapper.style.display = 'inline-flex';
+              renderCharSpansByWord(blurWrapper, part2, 'cwg-blur-char', 0.05);
+              cwgStage.appendChild(blurWrapper);
+            }
+            layerDiv.appendChild(cwgStage);
+
+          // 8. MASKED DUAL-AXIS TEXT REVEAL (TYPO #44)
+          } else if (layer.fxPreset === 'masked_dual_axis_text_reveal') {
+            const mdaStage = document.createElement('div');
+            mdaStage.className = 'mda-stage-inline';
+            const words = layer.text.split(' ').filter(w => w.length > 0);
+            let globalCharIdx = 0;
+            words.forEach((w, wIdx) => {
+              const wordMask = document.createElement('span');
+              wordMask.className = 'mda-letter-mask';
+              Array.from(w).forEach((ch) => {
+                const charSpan = document.createElement('span');
+                charSpan.className = 'mda-letter-char';
+                charSpan.setAttribute('data-caption-renderer', 'true');
+                charSpan.innerText = ch;
+                charSpan.style.animationDelay = (globalCharIdx * 0.06) + 's';
+                wordMask.appendChild(charSpan);
+                globalCharIdx++;
+              });
+              mdaStage.appendChild(wordMask);
+              if (wIdx < words.length - 1) {
+                const sp = document.createElement('span');
+                sp.className = 'word-spacer';
+                sp.innerHTML = '&nbsp;';
+                mdaStage.appendChild(sp);
+              }
+            });
+            layerDiv.appendChild(mdaStage);
+
+          // 9. DYNAMIC 3D LETTER FLICKER ANIMATION (TYPO #46)
+          } else if (layer.fxPreset === 'dynamic_3d_letter_flicker') {
+            const flkStage = document.createElement('div');
+            flkStage.className = 'flk-text-inline';
+            const chars = Array.from(layer.text);
+            chars.forEach((ch, chIdx) => {
+              const letterSpan = document.createElement('span');
+              letterSpan.className = 'flk-letter flk-flicker-active';
+              letterSpan.setAttribute('data-caption-renderer', 'true');
+              letterSpan.innerText = ch;
+              letterSpan.style.animationDelay = ((chIdx % 4) * 0.07) + 's';
+              flkStage.appendChild(letterSpan);
+            });
+            layerDiv.appendChild(flkStage);
+
+          // 10. TALL-FONT MONOLITH (Behind Subject Zone A / Z:10)
+          } else if (layer.fxPreset === 'monolith_clean_seal' || layer.behindSubject) {
             const monolithText = document.createElement('span');
             monolithText.className = 'monolith-seal-text';
             monolithText.setAttribute('data-caption-renderer', 'true');
             monolithText.innerText = layer.text;
             layerDiv.appendChild(monolithText);
 
-          // 13. Standard Kinetic Word Animation
+          // 11. DEFAULT 16:9 LANDSCAPE FALLBACK (Strict word-by-word & letter convergence)
           } else {
-            const words = layer.text.split(' ').filter(w => w.length > 0);
-            words.forEach((w, wIdx) => {
-              const span = document.createElement('span');
-              span.className = 'word-item word-span';
-              span.setAttribute('data-caption-renderer', 'true');
-              span.innerText = w;
-              span.style.animationDelay = (wIdx * 0.07) + 's';
-              layerDiv.appendChild(span);
+            const phraseRow = document.createElement('div');
+            phraseRow.className = 'phrase-row-convergence';
+            const rawWords = layer.text.split(' ').filter(w => w.length > 0);
+            const totalWords = rawWords.length;
+            const centerWordIndex = (totalWords - 1) / 2;
+            const STAGGER_INTERVAL = 0.10;
+
+            rawWords.forEach((wordText, wordIdx) => {
+              const wordSlot = document.createElement('span');
+              wordSlot.className = 'word-slot';
+              const wordOffset = wordIdx - centerWordIndex;
+              const macroStartX = (wordOffset * 1.50).toFixed(3) + 'em';
+              const macroEndX = (wordOffset * -0.05).toFixed(3) + 'em';
+              const wordDelay = (wordIdx * STAGGER_INTERVAL).toFixed(3) + 's';
+
+              wordSlot.style.setProperty('--macro-start-x', macroStartX);
+              wordSlot.style.setProperty('--macro-end-x', macroEndX);
+              wordSlot.style.setProperty('--word-delay', wordDelay);
+
+              const wordCore = document.createElement('span');
+              wordCore.className = 'word-core';
+              wordCore.style.animationDelay = wordDelay;
+
+              const totalChars = wordText.length;
+              const centerCharIndex = (totalChars - 1) / 2;
+
+              Array.from(wordText).forEach((char, charIdx) => {
+                const charSpan = document.createElement('span');
+                charSpan.className = 'char';
+                charSpan.textContent = char;
+                charSpan.setAttribute('data-caption-renderer', 'true');
+
+                const charOffset = charIdx - centerCharIndex;
+                const startX = (charOffset * 0.12).toFixed(3) + 'em';
+                const endX = (charOffset * -0.02).toFixed(3) + 'em';
+
+                charSpan.style.setProperty('--start-x', startX);
+                charSpan.style.setProperty('--end-x', endX);
+                charSpan.style.animationDelay = wordDelay;
+
+                wordCore.appendChild(charSpan);
+              });
+
+              wordSlot.appendChild(wordCore);
+              phraseRow.appendChild(wordSlot);
             });
+            layerDiv.appendChild(phraseRow);
           }
 
           lineRow.appendChild(layerDiv);

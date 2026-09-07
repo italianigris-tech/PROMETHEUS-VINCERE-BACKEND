@@ -81,6 +81,7 @@ Local policy distillation: `policies/joseph_landscape_governance_policy.md`.
 
 ```bash
 # From repo root
+npm run landscape:studio   # Starts isolated landscape server on http://localhost:8085
 npx tsx docs/mini_landscape_runs/call_parser.ts --probe <video-or-prompt>
 npx tsx docs/mini_landscape_runs/silence_cutter.ts --input <src.mp4> --out docs/mini_landscape_runs/out/
 npx tsx docs/mini_landscape_runs/landscape_treatment_pipeline.ts --input <src.mp4> [--render] [--out <dir>]
@@ -91,6 +92,7 @@ npx tsx docs/mini_landscape_runs/tests/test_joseph_grammar_invariants.ts
 npx tsx docs/mini_landscape_runs/tests/test_silence_cutter_plan.ts
 npx tsx docs/mini_landscape_runs/tests/test_causal_chain.ts
 npx tsx docs/mini_landscape_runs/tests/test_longform_capacity.ts
+npx tsx docs/mini_landscape_runs/tests/test_direct_image_upload.ts
 ```
 
 ### Stage 9 — build_landscape_presentation.ts

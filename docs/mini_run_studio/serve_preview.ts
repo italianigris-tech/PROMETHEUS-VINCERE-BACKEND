@@ -3,6 +3,7 @@ import * as http from "node:http";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { execSync } from "node:child_process";
+import * as os from "node:os";
 
 const studioDir = __dirname;
 const repoRoot = path.resolve(studioDir, "../..");
@@ -815,6 +816,10 @@ function formatTimeHelper(timestamp: number): string {
 }
 
 function renderDropzonePageHtml(studioDir: string): string {
+  const customPasteHtml = path.join(studioDir, "paste.html");
+  if (fs.existsSync(customPasteHtml)) {
+    return fs.readFileSync(customPasteHtml, "utf8");
+  }
   const uploadDir = path.join(studioDir, "uploaded_screenshots");
   let items: Array<{ name: string; size: number; mtimeMs: number; url: string }> = [];
   if (fs.existsSync(uploadDir)) {
@@ -2499,6 +2504,17 @@ function createServerInstance(port: number) {
       return;
     }
 
+    // Health Check Endpoint
+    if ((req.method === "GET" || req.method === "HEAD") && (req.url === "/health" || req.url === "/api/health" || req.url?.startsWith("/health?") || req.url?.startsWith("/api/health?"))) {
+      res.writeHead(200, {
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "no-cache, no-store, must-revalidate"
+      });
+      if (req.method === "HEAD") { res.end(); return; }
+      res.end(JSON.stringify({ ok: true, status: "healthy", service: "prometheus-preview-studio", port, timestamp: Date.now() }));
+      return;
+    }
+
     // Reverse Proxy for Kanban UI & WebSocket Hub
     if (req.url && (
       req.url.startsWith("/kanban") ||
@@ -2699,86 +2715,12 @@ function createServerInstance(port: number) {
       }
     }
 
-    // Landscape 16:9 Typography Treatment Presentation Studio (/landscape)
-    // The landscape studio lives in its own sibling folder (docs/mini_landscape_runs),
-    // NOT this short-form studio dir. Serve its authoritative template (kept current by
-    // the Stage-8 builder's disk font-corpus refresh) and fall back to the newest built
-    // presentation in out/ if the template is ever missing.
+    // Landscape 16:9 studio is decoupled into its own isolated runner (docs/mini_landscape_runs/serve_landscape.ts)
     if ((req.method === "GET" || req.method === "HEAD") && 
-        (req.url === "/landscape" || req.url?.startsWith("/landscape?") || req.url?.startsWith("/landscape_treatment_presentation.html"))) {
-      const landscapeStudioDir = path.join(repoRoot, "docs", "mini_landscape_runs");
-      const landscapeTemplatePath = path.join(landscapeStudioDir, "landscape_treatment_presentation.html");
-      let landscapeHtmlPath = landscapeTemplatePath;
-      // For the /landscape route, prefer the newest BUILT run (a real authored
-      // presentation) over the raw demo template. The raw template is only served
-      // when explicitly requested via /landscape_treatment_presentation.html.
-      if (!req.url?.startsWith("/landscape_treatment_presentation.html")) {
-        const landscapeOutDir = path.join(landscapeStudioDir, "out");
-        const built = fs.existsSync(landscapeOutDir)
-          ? fs.readdirSync(landscapeOutDir)
-              .filter((f) => /^landscape_presentation_.*\.html$/i.test(f))
-              .map((f) => path.join(landscapeOutDir, f))
-              .sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs)
-          : [];
-        if (built.length) landscapeHtmlPath = built[0];
-      }
-      if (!fs.existsSync(landscapeHtmlPath)) {
-        const landscapeOutDir = path.join(landscapeStudioDir, "out");
-        const built = fs.existsSync(landscapeOutDir)
-          ? fs.readdirSync(landscapeOutDir)
-              .filter((f) => /^landscape_presentation_.*\.html$/i.test(f))
-              .sort()
-              .map((f) => path.join(landscapeOutDir, f))
-          : [];
-        landscapeHtmlPath = built[built.length - 1] || "";
-      }
-      if (landscapeHtmlPath && fs.existsSync(landscapeHtmlPath)) {
-        const stat = fs.statSync(landscapeHtmlPath);
-        res.writeHead(200, {
-          "Content-Type": "text/html; charset=utf-8",
-          "Content-Length": stat.size,
-          "Cache-Control": "no-cache"
-        });
-        if (req.method === "HEAD") { res.end(); return; }
-        fs.createReadStream(landscapeHtmlPath).pipe(res);
-        return;
-      }
-    }
-
-    // Landscape run by id: /landscape_p/<runId> → built studio HTML
-    if ((req.method === "GET" || req.method === "HEAD")) {
-      const lscapeRun = (req.url || "").match(/^\/landscape_p\/([A-Za-z0-9_-]+)\/?$/);
-      if (lscapeRun) {
-        const runId = decodeURIComponent(lscapeRun[1]);
-        const p = path.join(repoRoot, "docs", "mini_landscape_runs", "out", "landscape_presentation_" + runId + ".html");
-        if (fs.existsSync(p) && fs.statSync(p).isFile()) {
-          const stat = fs.statSync(p);
-          res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Content-Length": stat.size, "Cache-Control": "no-cache" });
-          if (req.method === "HEAD") { res.end(); return; }
-          fs.createReadStream(p).pipe(res);
-          return;
-        }
-        res.writeHead(404, { "Content-Type": "text/plain" }); res.end("Not Found"); return;
-      }
-    }
-
-    // Landscape media (cut MP4 base background): /landscape_media/<name>
-    if ((req.method === "GET" || req.method === "HEAD")) {
-      const lscapeMedia = (req.url || "").match(/^\/landscape_media\/([^/]+)$/);
-      if (lscapeMedia) {
-        let name = decodeURIComponent(lscapeMedia[1]);
-        name = path.basename(name);
-        const fullPath = path.join(repoRoot, "docs", "mini_landscape_runs", "out", name);
-        if (fs.existsSync(fullPath) && fs.statSync(fullPath).isFile()) {
-          const ext = path.extname(fullPath).toLowerCase();
-          const stat = fs.statSync(fullPath);
-          res.writeHead(200, { "Content-Type": MIME_TYPES[ext] || "video/mp4", "Content-Length": stat.size, "Cache-Control": "public, max-age=3600" });
-          if (req.method === "HEAD") { res.end(); return; }
-          fs.createReadStream(fullPath).pipe(res);
-          return;
-        }
-        res.writeHead(404, { "Content-Type": "text/plain" }); res.end("Not Found"); return;
-      }
+        (req.url === "/landscape" || req.url?.startsWith("/landscape?") || req.url?.startsWith("/landscape_treatment_presentation.html") || req.url?.startsWith("/landscape_p/") || req.url?.startsWith("/landscape_media/"))) {
+      res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end("Landscape Studio is decoupled and runs independently. Run: npx tsx docs/mini_landscape_runs/serve_landscape.ts");
+      return;
     }
 
 
@@ -2854,7 +2796,7 @@ function createServerInstance(port: number) {
 
     // Screenshot Dropzone & Reference Comparison Gallery (/paste, /upload)
     if ((req.method === "GET" || req.method === "HEAD") && 
-        (req.url === "/paste" || req.url === "/dropzone" || req.url === "/screenshots" || req.url === "/upload" || req.url === "/upload.html" || req.url?.startsWith("/paste?") || req.url?.startsWith("/upload?"))) {
+        (req.url === "/paste" || req.url === "/paste.html" || req.url === "/dropzone" || req.url === "/dropzone.html" || req.url === "/screenshots" || req.url === "/screenshots.html" || req.url === "/upload" || req.url === "/upload.html" || req.url?.startsWith("/paste?") || req.url?.startsWith("/paste.html?") || req.url?.startsWith("/upload?"))) {
       const dropzoneHtml = renderDropzonePageHtml(studioDir);
       res.writeHead(200, { 
         "Content-Type": "text/html; charset=utf-8",
@@ -3409,7 +3351,26 @@ function createServerInstance(port: number) {
   });
 
   s.listen(port, "0.0.0.0", () => {
-    console.log(`  🚀 Interactive Micro-Looping Studio on Port ${port}: http://16.192.95.115:${port}/`);
+    const interfaces = os.networkInterfaces();
+    const addresses: string[] = [];
+    for (const name of Object.keys(interfaces)) {
+      for (const iface of interfaces[name] || []) {
+        if (iface.family === "IPv4" && !iface.internal) {
+          addresses.push(iface.address);
+        }
+      }
+    }
+    console.log(`\n================================================================`);
+    console.log(`🚀 Prometheus Studio & Dropzone Live on Port ${port}:`);
+    console.log(`   👉 Localhost: http://localhost:${port}/paste`);
+    console.log(`   👉 Loopback:  http://127.0.0.1:${port}/paste`);
+    for (const addr of addresses) {
+      console.log(`   👉 Network:   http://${addr}:${port}/paste`);
+    }
+    console.log(`   📸 Screenshot Dropzone: http://localhost:${port}/paste`);
+    console.log(`   🎬 Typography Studio:   http://localhost:${port}/typo`);
+    console.log(`   ✨ ANIMA Studio:        http://localhost:${port}/anima`);
+    console.log(`================================================================\n`);
   });
   s.on("error", (e) => {
     console.warn(`[PORT_WARN] Port ${port} (${e.message})`);
@@ -3437,10 +3398,19 @@ function createServerInstance(port: number) {
   return s;
 }
 
-const serverPort = Number(process.env.PORT) || 8080;
-const server = createServerInstance(serverPort);
-process.on("SIGINT", () => { server.close(); process.exit(0); });
-process.on("SIGTERM", () => { server.close(); process.exit(0); });
+export { createServerInstance, renderDropzonePageHtml };
+
+const isDirectRun = Boolean(
+  process.argv[1] && 
+  (process.argv[1].endsWith("serve_preview.ts") || process.argv[1].endsWith("serve_preview.js") || process.argv[1].includes("serve_preview")) &&
+  !process.env.NO_AUTO_START
+);
+if (isDirectRun) {
+  const serverPort = Number(process.env.PORT) || 8080;
+  const server = createServerInstance(serverPort);
+  process.on("SIGINT", () => { server.close(); process.exit(0); });
+  process.on("SIGTERM", () => { server.close(); process.exit(0); });
+}
 
 // Keep event loop alive
 setInterval(() => {}, 60000);

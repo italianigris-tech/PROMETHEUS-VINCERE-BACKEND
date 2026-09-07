@@ -11,14 +11,18 @@ data = urllib.parse.urlencode({
 with urllib.request.urlopen(urllib.request.Request(token_url, data=data)) as resp:
     token = json.loads(resp.read().decode("utf-8"))["access_token"]
 
-# List resource groups
+# Query usages for francecentral
 sub_id = "e4207dc9-2851-4d58-aaae-6400e611cafe"
-url = f"https://management.azure.com/subscriptions/{sub_id}/resourcegroups?api-version=2021-04-01"
+url = f"https://management.azure.com/subscriptions/{sub_id}/providers/Microsoft.Compute/locations/francecentral/usages?api-version=2021-07-01"
 req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
-
 try:
     with urllib.request.urlopen(req) as resp:
         data = json.loads(resp.read().decode("utf-8"))
-        print("EXISTING RESOURCE GROUPS:", json.dumps(data, indent=2), flush=True)
+        print("=== QUOTAS IN FRANCECENTRAL ===")
+        for item in data.get("value", []):
+            limit = item.get("limit", 0)
+            name = item.get("name", {}).get("value", "")
+            if limit > 0:
+                print(f"  {name}: {item.get('currentValue', 0)} / {limit}")
 except urllib.error.HTTPError as e:
-    print("LIST RG ERROR:", e.read().decode("utf-8"), flush=True)
+    print("Usage error:", e.read().decode("utf-8"), flush=True)

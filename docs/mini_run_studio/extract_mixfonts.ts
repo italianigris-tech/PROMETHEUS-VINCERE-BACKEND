@@ -26,8 +26,9 @@ const API_KEYS: string[] = [
 const BASE_URL = "https://api.mixfont.com/v1/lens";
 // Raw new screenshots are served from the uploads folder; the curated
 // "font pairing and placement" crops are served under /font_pairs/.
-const UPLOAD_HOST = "http://16.192.95.115:8080/uploaded_screenshots";
-const PAIRS_HOST = "http://16.192.95.115:8080/font_pairs";
+const STUDIO_BASE = process.env.STUDIO_HOST || "http://localhost:8080";
+const UPLOAD_HOST = `${STUDIO_BASE}/uploaded_screenshots`;
+const PAIRS_HOST = `${STUDIO_BASE}/font_pairs`;
 const studioDir = path.dirname(fileURLToPath(import.meta.url));
 const fontsDir = path.join(studioDir, "fonts");
 

@@ -219,6 +219,21 @@ class TestBehindSubjectVariety(unittest.TestCase):
             self.assertTrue(stitched.exists())
             self.assertGreater(stitched.stat().st_size, 0)
 
+            # Validate that alpha transparency is preserved in blank gaps
+            import cv2
+            import numpy as np
+            check_frame = tmppath / "check_gap.png"
+            subprocess.run([
+                "ffmpeg", "-y", "-ss", "0.5", "-vcodec", "libvpx-vp9",
+                "-i", str(stitched), "-frames:v", "1", "-pix_fmt", "rgba",
+                str(check_frame)
+            ], check=True, capture_output=True)
+            img = cv2.imread(str(check_frame), cv2.IMREAD_UNCHANGED)
+            self.assertIsNotNone(img)
+            self.assertEqual(img.shape[2], 4)
+            # Gap region (0-1s) must be 100% transparent (alpha == 0)
+            self.assertEqual(int(np.max(img[:, :, 3])), 0)
+
     def test_song_selection_diversity_across_seeds(self):
         from mini_run_pipeline.song_program import plan_song_program
         catalog = {
