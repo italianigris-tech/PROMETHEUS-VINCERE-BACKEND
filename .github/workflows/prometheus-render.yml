@@ -40,6 +40,14 @@ jobs:
       - name: Install ffmpeg
         run: sudo apt-get install -y ffmpeg --quiet
 
+      - name: Write payload to file
+        run: |
+          cat > /tmp/pipeline_payload.json << 'PAYLOAD_EOF'
+          ${{ inputs.payload }}
+          PAYLOAD_EOF
+          echo "Payload file written:"
+          cat /tmp/pipeline_payload.json
+
       - name: Run orchestration plan
         id: plan
         env:
@@ -50,11 +58,11 @@ jobs:
           R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
           R2_UPLOAD_BUCKET: ${{ secrets.R2_UPLOAD_BUCKET }}
           R2_PROCESSED_BUCKET: ${{ secrets.R2_PROCESSED_BUCKET }}
-          PIPELINE_PAYLOAD: ${{ inputs.payload }}
           PARALLEL_SLICES: "20"
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           PYTHONUTF8: "1"
+          PAYLOAD_FILE: "/tmp/pipeline_payload.json"
         run: python .github/scripts/gha_orchestrate.py
 
   render_slice:

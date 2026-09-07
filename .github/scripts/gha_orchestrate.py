@@ -1,8 +1,8 @@
-﻿"""
+"""
 gha_orchestrate.py - Stage 1: transcription + typography planning + R2 upload.
 """
 from __future__ import annotations
-import hashlib, json, os, subprocess, sys, time, tempfile
+import json, os, re, subprocess, sys, time, tempfile
 from pathlib import Path
 
 import boto3
@@ -28,10 +28,41 @@ def gha_output(key, value):
                 f.write(f"{key}<<{delim}\n{value}\n{delim}\n")
             else:
                 f.write(f"{key}={value}\n")
-    print(f"[gha_output] {key}={value[:80]}", flush=True)
+    print(f"[gha_output] {key}={value[:120]}", flush=True)
+
+def parse_payload(raw: str) -> dict:
+    """Parse JSON payload — tolerates GitHub Actions stripping quotes from keys."""
+    raw = raw.strip()
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        pass
+    # Fix unquoted keys: {key: val} -> {"key": val}
+    fixed = re.sub(r'(?<!["\w])([a-zA-Z_]\w*)(?=\s*:)', r'"\1"', raw)
+    # Fix single-quoted string values
+    fixed = re.sub(r":\s*'([^']*)'", r': "\1"', fixed)
+    # Fix Python True/False/None -> JSON true/false/null
+    fixed = fixed.replace(": True", ": true").replace(": False", ": false").replace(": None", ": null")
+    try:
+        return json.loads(fixed)
+    except json.JSONDecodeError as e:
+        print(f"[orchestrate] JSON parse failed even after fix: {e}")
+        print(f"[orchestrate] Raw payload: {raw[:300]}")
+        # Return a minimal default payload for testing
+        return {}
 
 def main():
-    payload = json.loads(os.environ.get("PIPELINE_PAYLOAD", "{}"))
+    # Prefer file-based payload (written via heredoc, avoids shell quoting issues)
+    payload_file = os.environ.get("PAYLOAD_FILE", "")
+    if payload_file and Path(payload_file).exists():
+        raw = Path(payload_file).read_text(encoding="utf-8").strip()
+        print(f"[orchestrate] Reading payload from file: {payload_file}", flush=True)
+    else:
+        raw = os.environ.get("PIPELINE_PAYLOAD", "{}")
+        print(f"[orchestrate] Reading payload from env var", flush=True)
+    payload = parse_payload(raw)
+    print(f"[orchestrate] Parsed payload keys: {list(payload.keys())}", flush=True)
+
     job_id  = payload.get("jobId") or f"gha_hakt_{int(time.time())}"
     print(f"[orchestrate] job_id={job_id}", flush=True)
 
@@ -59,11 +90,11 @@ def main():
     if local_vid.exists() and local_vid.stat().st_size > 100:
         source_r2_key = f"gha-renders/{job_id}/source.mp4"
         s3.upload_file(str(local_vid), PROCESSED_BUCKET, source_r2_key)
-        print(f"[orchestrate] Source → R2:{source_r2_key}", flush=True)
+        print(f"[orchestrate] Source -> R2:{source_r2_key}", flush=True)
 
     # Transcription
     chunks = []
-    aai_key = os.environ.get("ASSEMBLYAI_API_KEY", "")
+    aai_key  = os.environ.get("ASSEMBLYAI_API_KEY", "")
     selected = payload.get("selectedWindow", {})
     start_ms = int(selected.get("sourceStartMs", 0))
     end_ms   = int(selected.get("sourceEndMs", 30000))
@@ -88,7 +119,7 @@ def main():
         chunks = [{"text":"...","startMs":start_ms,"endMs":end_ms}]
 
     # Build props
-    design = payload.get("design", {})
+    design      = payload.get("design", {})
     duration_ms = end_ms - start_ms
     props = {
         "jobId": job_id, "durationMs": duration_ms, "chunks": chunks,
@@ -101,12 +132,12 @@ def main():
     props_path.write_text(json.dumps(props, indent=2))
     props_r2_key = f"gha-renders/{job_id}/props.json"
     s3.upload_file(str(props_path), PROCESSED_BUCKET, props_r2_key)
-    print(f"[orchestrate] Props → R2:{props_r2_key}", flush=True)
+    print(f"[orchestrate] Props -> R2:{props_r2_key}", flush=True)
 
     # Build slice matrix
-    fps = 30
+    fps          = 30
     total_frames = max(1, int(round((duration_ms / 1000.0) * fps)))
-    fps_per = max(1, (total_frames + PARALLEL_SLICES - 1) // PARALLEL_SLICES)
+    fps_per      = max(1, (total_frames + PARALLEL_SLICES - 1) // PARALLEL_SLICES)
     matrix = []
     for i in range(PARALLEL_SLICES):
         sf = i * fps_per
@@ -125,7 +156,7 @@ def main():
     gha_output("source_r2_key", source_r2_key)
     gha_output("receipt_partial", receipt_partial)
     gha_output("total_slices", str(len(matrix)))
-    print(f"[orchestrate] Done: {len(matrix)} slices", flush=True)
+    print(f"[orchestrate] Done: {len(matrix)} slices over {total_frames} frames", flush=True)
 
 if __name__ == "__main__":
     main()
