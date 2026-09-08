@@ -168,11 +168,22 @@ UNSAFE_PIXEL_FONTS = {"vt323", "press start 2p", "special elite", "silkscreen"}
 UNSAFE_DISTORTED_FONTS: Dict[str, str] = {
     "silver hairline": "Bodoni Moda",
     "brushelva": "Great Vibes",
-    "amerika": "Bodoni Moda",
-    "amerika alternates": "Bodoni Moda",
+    # "amerika" / "amerika alternates" REMOVED from this list: the genuine TTFs are
+    # tracked (fonts/library/amerika*/...ttf) and registered below, so the real
+    # font renders instead of a legacy Bodoni Moda substitute.
     "kraton": "Bodoni Moda",
     "kraton free font": "Bodoni Moda",
     "kraton modern ligature font free": "Bodoni Moda",
+}
+
+# Script/calligraphic families whose looped tails hang far below the baseline
+# without containing descender letters — negative-margin overlaps into these
+# lines read as broken font adjustment, so they get collision clearance too.
+SCRIPT_FONT_CLEARANCE_FONTS = {
+    "pinyon script", "great vibes", "alex brush", "dancing script",
+    "sacramento", "allura", "brushelva", "champignon", "exmouth",
+    "bromello", "brotherhood script", "bucklane script", "formale script",
+    "senzabella",
 }
 
 
@@ -186,6 +197,8 @@ FONT_FAMILY_REGISTRY: Dict[str, str] = {
     # --- family + style variants -> base loaded family ----------------------
     "playfair display italic": "Playfair Display",
     "playfair display": "Playfair Display",
+    "amerika alternates": "Amerika Alternates",
+    "amerika": "Amerika",
     "cormorant garamond italic": "Cormorant Garamond",
     "cormorant garamond": "Cormorant Garamond",
     "montserrat extrabold": "Montserrat",
@@ -968,7 +981,6 @@ def upgrade_font_candidate(font_name: str, is_hero: bool, role: str = "body", rn
 # High-tier, vetted editorial kinetic preset repertoire
 KINETIC_HERO_PRESETS = [
     "focus_hunting_bokeh_shimmer",
-    "gaussian_blur_reveal_sweep",
     "spring_blur_physics_engine",
     "kinetic_slot_character_reel",
     "apple_keynote_headline_punch",
@@ -1007,7 +1019,6 @@ SINGLE_WORD_HERO_PRESETS = [
     "focus_hunting_bokeh_shimmer",
     "kinetic_slot_character_reel",
     "spring_blur_physics_engine",
-    "gaussian_blur_reveal_sweep",
     "obsidian_heavy_grotesque",
     "blue_lantern_magnetic",
     "chiseled_prism_metallic",
@@ -1353,6 +1364,12 @@ def resolve_layer_gradient_and_glow(
             # Physical volumetric illumination derived from text color
             gradient = build_volumetric_luminance_gradient(text_fill_color, role="hero" if is_hero else "companion")
             has_gradient = True
+        elif is_hero:
+            # Heroes never render as flat CSS fill, even over bright footage:
+            # the specular/volumetric treatment is what makes them read as
+            # designed type rather than a plain subtitle.
+            gradient = build_volumetric_luminance_gradient(text_fill_color, role="hero")
+            has_gradient = True
         else:
             gradient = "none"
             has_gradient = False
@@ -1455,7 +1472,6 @@ ANIMA_RUNTIME_TREATMENTS: List[Dict[str, Any]] = [
     {"id": "dynamic_staggered_character_cascade", "styles": {"kinetic", "cinematic"}, "energy": 0.70},
     {"id": "apple_keynote_headline_punch", "styles": {"kinetic", "editorial"}, "energy": 0.75},
     {"id": "subpixel_glow_mask", "styles": {"cinematic", "editorial"}, "energy": 0.35},
-    {"id": "gaussian_blur_reveal_sweep", "styles": {"cinematic", "editorial"}, "energy": 0.40},
     {"id": "cinematic_viewport_mask_sweep", "styles": {"cinematic", "editorial"}, "energy": 0.35},
     {"id": "cyber_matrix_text_scramble", "styles": {"kinetic", "editorial"}, "energy": 0.80},
     {"id": "kinetic_slot_character_reel", "styles": {"kinetic", "editorial"}, "energy": 0.78},
@@ -1655,22 +1671,22 @@ def _resolve_font_json_treatment(
     avoid = set(policy.get("avoidPresets", []))
 
     if any(k in classification or k in mood for k in ("3d", "metallic", "chrome", "extruded")):
-        candidates = ["gold_gradient_scale_blur", "refraction_shimmer_mask", "apple_pro_display_hero_revealer", "gaussian_blur_reveal_sweep", "dramatic_scale_entry"]
+        candidates = ["gold_gradient_scale_blur", "refraction_shimmer_mask", "apple_pro_display_hero_revealer", "dramatic_scale_entry"]
     elif any(k in classification or k in mood for k in ("script", "calligraphic", "cursive", "brush", "handwriting")):
-        candidates = ["apple_pro_display_hero_revealer", "gaussian_blur_reveal_sweep", "kinetic_glow_sweep", "stagger_blur_word_reveal", "kinetic_dynamic_slant"]
+        candidates = ["apple_pro_display_hero_revealer", "kinetic_glow_sweep", "stagger_blur_word_reveal", "kinetic_dynamic_slant"]
     elif any(k in classification or k in mood for k in ("compressed", "ultra-compressed", "tall", "heavy sans", "grotesque")):
-        candidates = ["apple_pro_display_hero_revealer", "gaussian_blur_reveal_sweep", "obsidian_heavy_grotesque", "refraction_shimmer_mask", "gold_gradient_scale_blur", "canva_tall_glyph_stack"]
+        candidates = ["apple_pro_display_hero_revealer", "obsidian_heavy_grotesque", "refraction_shimmer_mask", "gold_gradient_scale_blur", "canva_tall_glyph_stack"]
     elif any(k in classification or k in mood for k in ("didone", "modern serif", "classic editorial", "refined")):
-        candidates = ["apple_pro_display_hero_revealer", "gaussian_blur_reveal_sweep", "quote_glow_reveal", "stagger_blur_word_reveal", "cinematic_viewport_mask_sweep"]
+        candidates = ["apple_pro_display_hero_revealer", "quote_glow_reveal", "stagger_blur_word_reveal", "cinematic_viewport_mask_sweep"]
     elif any(k in classification or k in mood for k in ("swiss", "poster", "display", "headline")):
-        candidates = ["apple_pro_display_hero_revealer", "gaussian_blur_reveal_sweep", "apple_keynote_headline_punch", "stagger_blur_word_reveal"]
+        candidates = ["apple_pro_display_hero_revealer", "apple_keynote_headline_punch", "stagger_blur_word_reveal"]
     elif any(k in classification or k in mood for k in ("matrix", "cyber", "terminal", "code")):
-        candidates = ["typewriter_ghost_cursor", "apple_pro_display_hero_revealer", "gaussian_blur_reveal_sweep"]
+        candidates = ["typewriter_ghost_cursor", "apple_pro_display_hero_revealer"]
     else:
         if is_hero:
-            candidates = ["apple_pro_display_hero_revealer", "gaussian_blur_reveal_sweep", "gold_gradient_scale_blur", "refraction_shimmer_mask", "apple_keynote_headline_punch", "blue_lantern_magnetic"]
+            candidates = ["apple_pro_display_hero_revealer", "gold_gradient_scale_blur", "refraction_shimmer_mask", "apple_keynote_headline_punch", "blue_lantern_magnetic"]
         else:
-            candidates = ["apple_pro_display_hero_revealer", "gaussian_blur_reveal_sweep", "stagger_blur_word_reveal", "subpixel_glow_mask"]
+            candidates = ["apple_pro_display_hero_revealer", "stagger_blur_word_reveal", "subpixel_glow_mask"]
 
     eligible = [c for c in candidates if c not in avoid]
     return rng.choice(eligible) if eligible else "apple_pro_display_hero_revealer"
@@ -1893,7 +1909,7 @@ def _select_primary_treatment(
     # The pop family (countups, scale punches, flickers) gets a mild damping
     # so the mix reads as fluid motion with occasional pops, not the reverse.
     FLUID_FAMILY = {
-        "blue_lantern_magnetic", "gaussian_blur_reveal_sweep", "stagger_blur_word_reveal",
+        "blue_lantern_magnetic", "stagger_blur_word_reveal",
         "spring_blur_physics_engine", "subpixel_glow_mask", "apple_gaussian_chrome",
         "cinematic_distance_convergence", "quote_glow_reveal", "apple_pro_display_hero_revealer",
         "zora_mask_reveal", "gold_gradient_scale_blur", "refraction_shimmer_mask",
@@ -2793,13 +2809,19 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
             else:
                 margin_top_px = 0
 
-            # Descender collision avoidance policy:
-            # If the preceding line contains characters with descenders ('g', 'j', 'p', 'q', 'y'),
-            # aggressive negative margins crash into the hanging tails. Clamp to safe clearance.
+                        # Descender / script-swash collision avoidance policy:
+            # If the preceding line contains descenders ('g','j','p','q','y','Q') OR the
+            # preceding/hero line uses a script font (looped tails hang far below the
+            # baseline without containing descender letters) OR the preceding line is a
+            # larger hero glyph, aggressive negative margins crash into those hanging
+            # tails. Clamp to safe clearance.
             if margin_top_px < 0 and layer_idx > 0 and len(rendered_layers) > 0:
-                prev_text = str(rendered_layers[-1].get("rawText", ""))
+                prev_layer = rendered_layers[-1]
+                prev_text = str(prev_layer.get("rawText", ""))
                 has_descenders = any(ch in prev_text for ch in "gjpqyQ")
-                if has_descenders:
+                prev_is_script = str(prev_layer.get("fontFamily", "")).lower() in SCRIPT_FONT_CLEARANCE_FONTS
+                prev_is_larger = float(prev_layer.get("fontSizePx", 0)) > font_size_px * 1.15
+                if has_descenders or prev_is_script or prev_is_larger:
                     margin_top_px = max(-4, margin_top_px // 3)
 
             is_overlapping = margin_top_px < 0
