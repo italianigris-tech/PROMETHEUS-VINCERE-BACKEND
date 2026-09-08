@@ -43,6 +43,9 @@ jobs:
       - name: Install Python deps
         run: pip install --quiet assemblyai boto3 "mediapipe==0.10.21" opencv-python-headless numpy requests
 
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg --quiet
+
       - name: Decode payload
         run: |
           echo "${{ inputs.payload_b64 }}" | base64 -d > /tmp/pipeline_payload.json
@@ -185,6 +188,9 @@ jobs:
 
       - name: Install Python deps
         run: pip install --quiet boto3 requests
+
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg --quiet
 
       - name: Download all slices + stitch
         env:
