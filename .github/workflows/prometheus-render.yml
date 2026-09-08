@@ -62,7 +62,7 @@ jobs:
           R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
           R2_UPLOAD_BUCKET: ${{ secrets.R2_UPLOAD_BUCKET }}
           R2_PROCESSED_BUCKET: ${{ secrets.R2_PROCESSED_BUCKET }}
-          PARALLEL_SLICES: "10"
+          PARALLEL_SLICES: "18"
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           PYTHONUTF8: "1"
