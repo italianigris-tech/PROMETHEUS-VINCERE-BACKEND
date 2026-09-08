@@ -1,4 +1,4 @@
-﻿# ==============================================================================
+# ==============================================================================
 # Prometheus Core: Render Runner Container
 # Pre-bakes Python 3.11 (MediaPipe, OpenCV, Boto3, AssemblyAI), Node.js 20 LTS,
 # FFmpeg, Mesa OpenGL Swangle runtime, Remotion CLI 4.0.428, and headless Chromium.
@@ -21,10 +21,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     gnupg \
     git \
+    git-lfs \
     wget \
     build-essential \
     software-properties-common \
     pkg-config \
+    && git lfs install --system \
     && rm -rf /var/lib/apt/lists/*
 
 # 2. Python 3.11 + pip via deadsnakes PPA
