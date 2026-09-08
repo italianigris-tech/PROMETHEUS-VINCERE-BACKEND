@@ -318,10 +318,12 @@ def analyze_cranial_negative_space(
         }
 
     # Priority 4: Sensible Below-Head Placement (Dynamic Clearance Avoiding Speaker's Head)
+    # Deck ceiling 0.72: multi-line lockups are vertically centered on yPercent, so a
+    # 0.82 anchor lets tall blocks run off the bottom viewport edge.
     if face_bottom_y is not None:
-        below_head_y = round(max(0.44, min(0.82, face_bottom_y + 0.08)), 4)
+        below_head_y = round(max(0.44, min(0.72, face_bottom_y + 0.08)), 4)
     elif subject_box and "y" in subject_box:
-        below_head_y = round(max(0.44, min(0.82, float(subject_box["y"]) + 0.35)), 4)
+        below_head_y = round(max(0.44, min(0.72, float(subject_box["y"]) + 0.35)), 4)
     else:
         below_head_y = 0.60
 
@@ -577,7 +579,7 @@ def plan_subject_safe_placements(
                     safe_id = "cranial_crown_headroom"
                 else:
                     chosen_x = "50%"
-                    chosen_y_float = 0.82
+                    chosen_y_float = 0.72
                     chosen_zone = "foreground_lower_deck"
                     chosen_align = (font_json or {}).get("textAlign", "center")
                     safe_id = "foreground_below_head_dynamic"
@@ -588,7 +590,7 @@ def plan_subject_safe_placements(
                 chosen_align = (font_json or {}).get("textAlign", "center")
                 safe_id = "foreground_below_head_dynamic"
 
-                bounded_ideal_y = max(0.44, min(0.82, ideal_y))
+                bounded_ideal_y = max(0.44, min(0.72, ideal_y))
 
                 # Inter-chunk hysteresis smoothing:
                 # Hold previous Y if it still satisfies the chin clearance invariant for this chunk

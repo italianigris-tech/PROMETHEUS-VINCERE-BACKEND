@@ -219,14 +219,14 @@ export const resolveTypographyPaintStyle = (layer: TypographyPaintInput): React.
     if ((layer as any).knockoutVariant || (layer as any).boundaryStroke) {
       const variant = (layer as any).knockoutVariant || "difference_exclusion";
       if (variant === "frosted_glass_stencil") {
+        // Frosted backdropFilter REMOVED: a blur+contrast backdrop on a text span
+        // renders as a visible frosted rectangle ("invisible box") around the words.
         return {
           color: "#FFFFFF",
           backgroundImage: undefined,
           WebkitBackgroundClip: undefined,
           WebkitTextFillColor: "#FFFFFF",
           WebkitTextStroke: "0.95px rgba(255, 255, 255, 0.80)",
-          backdropFilter: "blur(14px) contrast(140%) brightness(1.18) saturate(160%)",
-          WebkitBackdropFilter: "blur(14px) contrast(140%) brightness(1.18) saturate(160%)",
           textShadow: "-0.8px 0px 1.2px rgba(255, 0, 75, 0.70), 0.8px 0px 1.2px rgba(0, 225, 255, 0.70), 0 0 12px rgba(255, 255, 255, 0.45)",
           mixBlendMode: "difference",
         };
@@ -4457,7 +4457,24 @@ const MultiLayerTypographyCard: React.FC<{
     : 1.0;
 
   const leftPosition = chunk.placement?.xPercent || "50%";
-  const topPosition = chunk.placement?.yPercent || (behindSubject ? "24%" : "54%");
+  const topPositionRaw = chunk.placement?.yPercent || (behindSubject ? "24%" : "54%");
+
+  // Bottom safe-line guard: the placement yPercent vertically centers the
+  // lockup, so tall multi-line blocks anchored low run off the viewport edge.
+  // Estimate the block height from its layers and clamp the anchor upward so
+  // the bottom edge never crosses the 90% viewport line.
+  const estimatedBlockHeight = layers.reduce((acc, l) => {
+    const fs = Number(l.fontSizePx) || 120;
+    const lh = Number(l.lineHeight) || 1.0;
+    const mt = Math.abs(Number((l as any).marginTopPx) || 0);
+    return acc + fs * lh + mt;
+  }, 0);
+  const CANVAS_H = 1920;
+  const bottomSafePx = CANVAS_H * 0.90;
+  const blockHalfHeight = estimatedBlockHeight / 2;
+  const maxTopPercent = ((bottomSafePx - blockHalfHeight) / CANVAS_H) * 100;
+  const rawTopPercent = parseFloat(topPositionRaw) || 54;
+  const topPosition = `${Math.max(20, Math.min(rawTopPercent, maxTopPercent))}%`;
   const textAlign = (chunk.placement as any)?.textAlign || "center";
   const alignItems = textAlign === "left" ? "flex-start" : (textAlign === "right" ? "flex-end" : "center");
   const maxWidthPercent = Number((chunk.placement as any)?.maxWidthPercent);

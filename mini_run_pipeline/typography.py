@@ -991,15 +991,10 @@ KINETIC_HERO_PRESETS = [
     "gold_gradient_scale_blur",
     "refraction_shimmer_mask",
     "stagger_blur_word_reveal",
-    "keyword_highlight_sweep",
+    "typewriter_cursor",
     "cyan_swoosh_underline",
     "circle_orbit_reveal",
-    "typewriter_cursor",
-    "neon_wrong_choice_pill",
     "chromatic_aberration_wipe",
-    "gold_selection_box_reveal",
-    "glass_pill_three_words",
-    "cta_glass_dual_color_pill",
     "blue_blur_underline_reveal",
     "dramatic_scale_entry",
     "word_by_word_3d_flip",
@@ -1008,12 +1003,9 @@ KINETIC_HERO_PRESETS = [
 SINGLE_WORD_HERO_PRESETS = [
     "gold_gradient_scale_blur",
     "refraction_shimmer_mask",
-    "keyword_highlight_sweep",
     "cyan_swoosh_underline",
     "circle_orbit_reveal",
-    "neon_wrong_choice_pill",
     "chromatic_aberration_wipe",
-    "gold_selection_box_reveal",
     "blue_blur_underline_reveal",
     "dramatic_scale_entry",
     "focus_hunting_bokeh_shimmer",
@@ -3047,7 +3039,7 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
         rng,
         creativity=policy.get("creativity", "balanced"),
     )
-    knockout_variants = ("difference_exclusion", "frosted_glass_stencil", "luma_inversion", "negative_space_cutout")
+    knockout_variants = ("difference_exclusion", "luma_inversion", "negative_space_cutout")
     for position in difference_chunk_indices:
         chunk = manifest_chunks[position]
         variant = knockout_variants[position % len(knockout_variants)]
