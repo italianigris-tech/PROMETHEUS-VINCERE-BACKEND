@@ -1,4 +1,4 @@
-﻿name: Prometheus Cloud Render Pipeline
+name: Prometheus Cloud Render Pipeline
 
 on:
   workflow_dispatch:
@@ -82,17 +82,30 @@ jobs:
 
       - name: Attach prebuilt dependencies and textures
         run: |
+          # ── Step 1: root workspace install + shared-types build ──────────────
+          # Always run so workspace symlinks are created and shared-types is compiled.
+          if [ -d "/opt/prebuilt/store/root-node_modules" ]; then
+            cp -an /opt/prebuilt/store/root-node_modules/. node_modules/ 2>/dev/null || true
+          fi
+          npm install --legacy-peer-deps --prefer-offline --no-audit --no-fund
+          npm --workspace @prometheus/shared-types run build
+
+          # ── Step 2: remotion-app node_modules ────────────────────────────────
           if [ ! -d "remotion-app/node_modules" ] && [ -d "/opt/prebuilt/store/remotion-app-node_modules" ]; then
             cp -an /opt/prebuilt/store/remotion-app-node_modules/. remotion-app/node_modules/
-          elif [ ! -d "remotion-app/node_modules" ]; then
+          fi
+          if [ ! -d "remotion-app/node_modules" ]; then
             cd remotion-app && npm ci --legacy-peer-deps --prefer-offline --no-audit --no-fund && cd ..
           fi
-          if [ ! -d "node_modules/@prometheus/shared-types/dist" ] && [ -d "/opt/prebuilt/store/root-node_modules" ]; then
-            cp -an /opt/prebuilt/store/root-node_modules/. node_modules/
-          elif [ ! -d "node_modules/@prometheus/shared-types/dist" ]; then
-            npm install --legacy-peer-deps --no-audit --no-fund
-            npm --workspace @prometheus/shared-types run build
+
+          # ── Step 3: wire @prometheus/shared-types into remotion-app ──────────
+          mkdir -p remotion-app/node_modules/@prometheus
+          if [ ! -e "remotion-app/node_modules/@prometheus/shared-types" ]; then
+            ln -s "$(pwd)/packages/shared-types" remotion-app/node_modules/@prometheus/shared-types || \
+            cp -a packages/shared-types remotion-app/node_modules/@prometheus/shared-types
           fi
+
+          # ── Step 4: textures + Chromium cache ────────────────────────────────
           mkdir -p remotion-app/public/textures
           cp -rn mini_run_pipeline/textures/* remotion-app/public/textures/ 2>/dev/null || true
           mkdir -p ~/.cache/remotion
