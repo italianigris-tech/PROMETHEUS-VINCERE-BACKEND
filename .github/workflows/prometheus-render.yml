@@ -1,4 +1,4 @@
-name: Prometheus Render
+﻿name: Prometheus Cloud Render Pipeline
 
 on:
   workflow_dispatch:
@@ -11,10 +11,18 @@ on:
 concurrency:
   group: prometheus-render-${{ github.run_id }}
 
+env:
+  RENDER_IMAGE: ghcr.io/${{ github.repository_owner }}/prometheus-render:latest
+
 jobs:
   orchestrate:
     name: "Orchestrate pipeline"
     runs-on: ubuntu-22.04
+    container:
+      image: ghcr.io/${{ github.repository_owner }}/prometheus-render:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     outputs:
       job_id: ${{ steps.plan.outputs.job_id }}
       slice_matrix: ${{ steps.plan.outputs.slice_matrix }}
@@ -30,23 +38,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           lfs: true
-
-      - name: Set up Node.js 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: "pip"
-
-      - name: Install Python deps
-        run: pip install --quiet assemblyai boto3 mediapipe==0.10.21 opencv-python-headless numpy requests
-
-      - name: Install ffmpeg
-        run: sudo apt-get install -y ffmpeg --quiet
 
       - name: Decode payload
         run: |
@@ -75,6 +66,11 @@ jobs:
     name: "Slice ${{ matrix.slice_index }}"
     needs: orchestrate
     runs-on: ubuntu-22.04
+    container:
+      image: ghcr.io/${{ github.repository_owner }}/prometheus-render:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     strategy:
       matrix:
         include: ${{ fromJson(needs.orchestrate.outputs.slice_matrix) }}
@@ -84,50 +80,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Node.js 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install ffmpeg and OpenGL libraries
-        run: sudo apt-get install -y --quiet ffmpeg libgl1-mesa-dri libgl1-mesa-glx libegl1 libgles2 fonts-liberation
-
-      - name: Cache npm and Remotion browser
-        uses: actions/cache@v4
-        id: remotion-cache
-        with:
-          path: |
-            node_modules
-            remotion-app/node_modules
-            ~/.cache/remotion
-          key: remotion-cache-${{ runner.os }}-${{ hashFiles('remotion-app/package.json') }}
-          restore-keys: |
-            remotion-cache-${{ runner.os }}-
-
-      - name: Build shared types
+      - name: Attach prebuilt dependencies and textures
         run: |
-          if [ ! -d "node_modules/@prometheus/shared-types/dist" ]; then
+          if [ ! -d "remotion-app/node_modules" ] && [ -d "/opt/prebuilt/store/remotion-app-node_modules" ]; then
+            cp -an /opt/prebuilt/store/remotion-app-node_modules/. remotion-app/node_modules/
+          elif [ ! -d "remotion-app/node_modules" ]; then
+            cd remotion-app && npm ci --legacy-peer-deps --prefer-offline --no-audit --no-fund && cd ..
+          fi
+          if [ ! -d "node_modules/@prometheus/shared-types/dist" ] && [ -d "/opt/prebuilt/store/root-node_modules" ]; then
+            cp -an /opt/prebuilt/store/root-node_modules/. node_modules/
+          elif [ ! -d "node_modules/@prometheus/shared-types/dist" ]; then
             npm install --legacy-peer-deps --no-audit --no-fund
             npm --workspace @prometheus/shared-types run build
           fi
-
-      - name: Install Remotion deps and browser
-        working-directory: remotion-app
-        run: |
-          if [ ! -d "node_modules/remotion" ]; then
-            npm ci --legacy-peer-deps --prefer-offline --no-audit --no-fund
+          mkdir -p remotion-app/public/textures
+          cp -rn mini_run_pipeline/textures/* remotion-app/public/textures/ 2>/dev/null || true
+          mkdir -p ~/.cache/remotion
+          if [ -d "/opt/remotion/browser" ]; then
+            cp -rn /opt/remotion/browser/* ~/.cache/remotion/ 2>/dev/null || true
           fi
-          npx remotion browser ensure
-          mkdir -p public/textures
-          cp -rn ../mini_run_pipeline/textures/* public/textures/ 2>/dev/null || true
-
-      - name: Install boto3 for R2
-        run: pip install --quiet boto3
 
       - name: Download source video + props from R2
         env:
@@ -184,22 +155,15 @@ jobs:
     name: "Stitch & finalise"
     needs: [orchestrate, render_slice]
     runs-on: ubuntu-22.04
+    container:
+      image: ghcr.io/${{ github.repository_owner }}/prometheus-render:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: "pip"
-
-      - name: Install Python deps
-        run: pip install --quiet boto3 requests
-
-      - name: Install ffmpeg
-        run: sudo apt-get install -y ffmpeg --quiet
 
       - name: Download all slices + stitch
         env:

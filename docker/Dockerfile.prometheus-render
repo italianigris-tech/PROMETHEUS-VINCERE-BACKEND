@@ -1,0 +1,118 @@
+﻿# ==============================================================================
+# Prometheus Core: Render Runner Container
+# Pre-bakes Python 3.11 (MediaPipe, OpenCV, Boto3, AssemblyAI), Node.js 20 LTS,
+# FFmpeg, Mesa OpenGL Swangle runtime, Remotion CLI 4.0.428, and headless Chromium.
+# Eliminates 2-3 minutes of apt/pip/npm setup per matrix slice runner.
+# ==============================================================================
+
+FROM ubuntu:22.04
+
+# Prevent interactive prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive \
+    TZ=Etc/UTC \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    NODE_VERSION=20 \
+    REMOTION_BROWSER_CACHE_DIR=/opt/remotion/browser
+
+# 1. System utilities, build tools, certificates
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    gnupg \
+    git \
+    wget \
+    build-essential \
+    software-properties-common \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
+# 2. Python 3.11 + pip via deadsnakes PPA
+RUN add-apt-repository ppa:deadsnakes/ppa -y && \
+    apt-get update && apt-get install -y --no-install-recommends \
+    python3.11 \
+    python3.11-venv \
+    python3.11-dev \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Link python and python3 to python3.11
+RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3.11 \
+    && update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1 \
+    && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1
+
+# 3. Node.js 20 LTS via official NodeSource repository
+RUN mkdir -p /etc/apt/keyrings \
+    && curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg \
+    && echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main" > /etc/apt/sources.list.d/nodesource.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
+# 4. FFmpeg, Mesa OpenGL drivers, fonts & headless Chromium dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    libgl1-mesa-dri \
+    libgl1-mesa-glx \
+    libegl1 \
+    libgles2 \
+    libgl1 \
+    mesa-va-drivers \
+    mesa-vulkan-drivers \
+    fonts-liberation \
+    fontconfig \
+    fonts-noto-color-emoji \
+    libnss3 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libcups2 \
+    libdrm2 \
+    libxkbcommon0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxrandr2 \
+    libgbm1 \
+    libpango-1.0-0 \
+    libcairo2 \
+    libasound2 \
+    && fc-cache -f -v \
+    && rm -rf /var/lib/apt/lists/*
+
+# 5. Python AI & pipeline packages
+RUN python3.11 -m pip install --upgrade pip setuptools wheel && \
+    python3.11 -m pip install \
+    assemblyai \
+    boto3 \
+    "mediapipe==0.10.21" \
+    opencv-python-headless \
+    numpy \
+    requests
+
+# 6. Pre-install Remotion CLI & pre-bake headless Chromium browser
+RUN mkdir -p /opt/remotion/browser /root/.cache/remotion /etc/skel/.cache/remotion \
+    && npm install -g remotion@4.0.428 @remotion/cli@4.0.428 --legacy-peer-deps \
+    && npx remotion browser ensure \
+    && cp -rn /root/.cache/remotion/* /opt/remotion/browser/ 2>/dev/null || true \
+    && cp -rn /root/.cache/remotion/* /etc/skel/.cache/remotion/ 2>/dev/null || true
+
+# 7. Pre-cache node modules & shared types for instant workspace bootstrap
+WORKDIR /opt/prebuilt
+COPY package.json package-lock.json ./
+COPY packages/ ./packages/
+RUN npm install --legacy-peer-deps --no-audit --no-fund \
+    && npm --workspace @prometheus/shared-types run build || true
+
+COPY remotion-app/package.json ./remotion-app/
+WORKDIR /opt/prebuilt/remotion-app
+RUN npm install --legacy-peer-deps --prefer-offline --no-audit --no-fund \
+    && npx remotion browser ensure || true
+
+# Snapshot prebuilt dependencies for zero-latency attachment
+RUN mkdir -p /opt/prebuilt/store \
+    && cp -a /opt/prebuilt/node_modules /opt/prebuilt/store/root-node_modules \
+    && cp -a /opt/prebuilt/remotion-app/node_modules /opt/prebuilt/store/remotion-app-node_modules \
+    && chmod -R 777 /opt/remotion /opt/prebuilt /root/.cache /etc/skel/.cache || true
+
+WORKDIR /workspace
+ENV HOME=/root
