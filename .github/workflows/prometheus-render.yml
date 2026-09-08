@@ -18,11 +18,6 @@ jobs:
   orchestrate:
     name: "Orchestrate pipeline"
     runs-on: ubuntu-22.04
-    container:
-      image: ghcr.io/${{ github.repository_owner }}/prometheus-render:latest
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
     outputs:
       job_id: ${{ steps.plan.outputs.job_id }}
       slice_matrix: ${{ steps.plan.outputs.slice_matrix }}
@@ -38,6 +33,15 @@ jobs:
         uses: actions/checkout@v4
         with:
           lfs: true
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install Python deps
+        run: pip install --quiet assemblyai boto3 "mediapipe==0.10.21" opencv-python-headless numpy requests
 
       - name: Decode payload
         run: |
@@ -55,7 +59,7 @@ jobs:
           R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
           R2_UPLOAD_BUCKET: ${{ secrets.R2_UPLOAD_BUCKET }}
           R2_PROCESSED_BUCKET: ${{ secrets.R2_PROCESSED_BUCKET }}
-          PARALLEL_SLICES: "20"
+          PARALLEL_SLICES: "10"
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           PYTHONUTF8: "1"
@@ -144,7 +148,7 @@ jobs:
             /tmp/slices/slice_${SLICE_INDEX}.mp4 \
             --props /tmp/props_${JOB_ID}.json \
             --frames=${START_FRAME}-${END_FRAME} \
-            --concurrency=2 \
+            --concurrency=3 \
             --gl=swangle \
             --disable-web-security \
             --pixel-format=yuv420p \
@@ -168,15 +172,19 @@ jobs:
     name: "Stitch & finalise"
     needs: [orchestrate, render_slice]
     runs-on: ubuntu-22.04
-    container:
-      image: ghcr.io/${{ github.repository_owner }}/prometheus-render:latest
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install Python deps
+        run: pip install --quiet boto3 requests
 
       - name: Download all slices + stitch
         env:
