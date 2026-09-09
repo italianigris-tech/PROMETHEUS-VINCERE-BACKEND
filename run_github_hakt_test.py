@@ -60,6 +60,19 @@ def run():
     payload_b64 = base64.b64encode(payload_json.encode("utf-8")).decode("ascii")
     t_start = time.monotonic()
 
+    # Get existing latest run ID to detect the new run reliably
+    prev_run_id = None
+    init_res = subprocess.run([
+        "gh", "run", "list", "--repo", REPO,
+        "--workflow", WORKFLOW,
+        "--limit", "1",
+        "--json", "databaseId",
+    ], capture_output=True, text=True)
+    if init_res.returncode == 0:
+        init_runs = json.loads(init_res.stdout)
+        if init_runs:
+            prev_run_id = init_runs[0]["databaseId"]
+
     # Trigger the workflow
     trigger_cmd = [
         "gh", "workflow", "run", WORKFLOW,
@@ -71,26 +84,26 @@ def run():
     if res.returncode != 0:
         print(f"[trigger] ERROR: {res.stderr}", flush=True)
         sys.exit(1)
-    print(f"[trigger] Dispatched! Waiting for run to appear...", flush=True)
+    print(f"[trigger] Dispatched! Waiting for new run to appear...", flush=True)
 
-    # Wait for the run to appear in the API (usually 3-5s)
-    time.sleep(6)
-
-    # Get the latest run ID
+    # Poll for the new run ID
     run_id = None
-    for attempt in range(10):
+    for attempt in range(25):
+        time.sleep(3)
         list_res = subprocess.run([
             "gh", "run", "list", "--repo", REPO,
             "--workflow", WORKFLOW,
-            "--limit", "1",
+            "--limit", "5",
             "--json", "databaseId,status,conclusion,createdAt",
         ], capture_output=True, text=True)
         if list_res.returncode == 0:
             runs = json.loads(list_res.stdout)
-            if runs:
-                run_id = runs[0]["databaseId"]
+            for r in runs:
+                if r["databaseId"] != prev_run_id:
+                    run_id = r["databaseId"]
+                    break
+            if run_id:
                 break
-        time.sleep(3)
 
     if not run_id:
         print("[trigger] ERROR: could not find workflow run ID", flush=True)
