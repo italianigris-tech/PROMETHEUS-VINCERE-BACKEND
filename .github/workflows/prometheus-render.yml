@@ -44,7 +44,13 @@ jobs:
         run: pip install --quiet assemblyai boto3 "mediapipe==0.10.21" opencv-python-headless numpy requests
 
       - name: Install ffmpeg
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg --quiet
+        run: |
+          if ! command -v ffmpeg &> /dev/null; then
+            sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/*chrome*.list
+            sudo apt-get update -o Acquire::Retries=3 || true
+            sudo apt-get install -y ffmpeg --quiet
+          fi
+          ffmpeg -version
 
       - name: Decode payload
         run: |
@@ -190,7 +196,13 @@ jobs:
         run: pip install --quiet boto3 requests
 
       - name: Install ffmpeg
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg --quiet
+        run: |
+          if ! command -v ffmpeg &> /dev/null; then
+            sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/*chrome*.list
+            sudo apt-get update -o Acquire::Retries=3 || true
+            sudo apt-get install -y ffmpeg --quiet
+          fi
+          ffmpeg -version
 
       - name: Download all slices + stitch
         env:
