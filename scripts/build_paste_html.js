@@ -91,7 +91,7 @@ const fontProfiles = loadFontProfiles();
 // Authoritative mapping from uploaded screenshots to their canonical Font JSON profiles
 const UPLOAD_TO_PROFILE_MAP = {
   "Screenshot_01_090425.png": "image (43)",
-  "Screenshot_02_090446.png": "tall image (1)",
+  "Screenshot_02_090446.png": "Image Landscape 1",
   "Screenshot_03_090452.png": "image (44)",
   "Screenshot_04_090459.png": "image (45)",
   "Screenshot_05_090516.png": "image (46)",
