@@ -28,12 +28,20 @@ from . import pipeline
 from . import viral_selector
 from . import longform_pipeline
 from . import resolution
-from . import whitecheckered_engine
-from . import semantic_director
-from . import cinematic_asset_compositor
-from . import veo_orchestrator
-from . import editorial_stage
-from .editorial_stage import run_editorial_animation_pipeline
+try:
+    from . import whitecheckered_engine
+    from . import semantic_director
+    from . import cinematic_asset_compositor
+    from . import veo_orchestrator
+    from . import editorial_stage
+    from .editorial_stage import run_editorial_animation_pipeline
+except ImportError:
+    whitecheckered_engine = None
+    semantic_director = None
+    cinematic_asset_compositor = None
+    veo_orchestrator = None
+    editorial_stage = None
+    run_editorial_animation_pipeline = None
 
 __all__ = [
     'ids',
@@ -55,3 +63,4 @@ __all__ = [
     'editorial_stage',
     'run_editorial_animation_pipeline',
 ]
+
