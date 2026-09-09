@@ -5,8 +5,30 @@ Triggers prometheus-render.yml via GitHub Actions API, polls for completion,
 downloads the receipt + master MP4, extracts keyframes.
 """
 from __future__ import annotations
-import base64, json, os, subprocess, sys, time
+import argparse, base64, json, os, random, subprocess, sys, time
 from pathlib import Path
+
+# Curated rotation sets for high-end aesthetic diversity across runs
+CURATED_MOTIFS = [
+    "champagne_gold",
+    "electric_cyan",
+    "emerald_luxury",
+    "obsidian_crimson",
+    "crimson_editorial",
+    "sunset_amber",
+    "royal_amethyst",
+    "pure_editorial_mono",
+]
+
+CURATED_LOOKS = [
+    "kodak_2383_print",
+    "fuji_3513_print",
+    "teal_and_orange_blockbuster",
+    "golden_hour_warmth",
+    "moody_dramatic_cinema",
+    "sci_netone_balanced",
+    "vintage_film_emulation",
+]
 
 # Use gh CLI to trigger + poll — no extra deps needed
 REPO       = "italianigris-tech/PROMETHEUS-VINCERE-BACKEND"
@@ -16,47 +38,57 @@ OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 JOB_ID = f"gha_hakt_30s_pbd_{int(time.time())}"
 
-PAYLOAD = {
-    "jobId": JOB_ID,
-    "source": {"path": "remotion-app/public/source/MALE-BLACK-TALKING-HEAD-PODCAST.mp4"},
-    "selectedWindow": {"sourceStartMs": 0, "sourceEndMs": 30000},
-    "maxClipMs": 30000,
-    "silencePolicy": "preserve",
-    "parallelSlices": 18,
-    "metadata": {"pipeline": "minirun", "jobName": "pbd_30s_hakt_gha"},
-    "design": {
-        "aspectRatio": "9:16",
-        "typographySystem": "hakt",
-        "haktMode": "apple_spatial_push",
-        "springPhysics": {"damping": 24, "stiffness": 180, "mass": 1.1},
-        "specularSheen": True,
-        "specularAngle": -35,
-        "halationBloom": True,
-        "halationSpread": 1.6,
-        "backdropCanvas": "paper",
-        "canvasTexture": "paper",
-        "textureOpacity": 0.18,
-        "grainIntensity": 0.08,
-        "additiveBlend": True,
-        "motionStyle": "cinematic",
-        "creativity": "expressive",
-        "pacing": "adaptive",
-        "typographyBias": "mixed",
-        "visualIntensity": 0.95,
-        "motif": "royal_amethyst",
-        "subjectLayering": "auto",
-        "pipPolicy": "disabled",
-    },
-    "audio": {"songPolicy": "auto", "sfxEnabled": True, "cueBus": True},
-}
+def build_payload(args=None) -> dict:
+    selected_motif = (args.motif if args and args.motif else random.choice(CURATED_MOTIFS))
+    selected_look = (args.look if args and args.look else random.choice(CURATED_LOOKS))
+    
+    return {
+        "jobId": JOB_ID,
+        "source": {"path": "remotion-app/public/source/MALE-BLACK-TALKING-HEAD-PODCAST.mp4"},
+        "selectedWindow": {"sourceStartMs": 0, "sourceEndMs": 30000},
+        "maxClipMs": 30000,
+        "silencePolicy": "preserve",
+        "parallelSlices": 18,
+        "metadata": {
+            "pipeline": "minirun",
+            "jobName": "pbd_30s_hakt_gha",
+            "lookId": selected_look,
+        },
+        "design": {
+            "aspectRatio": "9:16",
+            "typographySystem": "hakt",
+            "lookId": selected_look,
+            "lookPolicy": "dynamic",
+            "springPhysics": {"damping": 24, "stiffness": 180, "mass": 1.1},
+            "specularSheen": True,
+            "specularAngle": -35,
+            "halationBloom": True,
+            "halationSpread": 1.6,
+            "backdropCanvas": "paper",
+            "canvasTexture": "paper",
+            "textureOpacity": 0.18,
+            "grainIntensity": 0.08,
+            "additiveBlend": True,
+            "motionStyle": "cinematic",
+            "creativity": "expressive",
+            "pacing": "adaptive",
+            "typographyBias": "mixed",
+            "visualIntensity": 0.95,
+            "motif": selected_motif,
+            "subjectLayering": "auto",
+            "pipPolicy": "disabled",
+        },
+        "audio": {"songPolicy": "auto", "sfxEnabled": True, "cueBus": True},
+    }
 
-
-def run():
+def run(custom_args=None):
+    payload = build_payload(custom_args)
     print("=" * 70)
-    print(f"LAUNCHING 30s HAKT TEST VIA GITHUB ACTIONS: {JOB_ID}")
+    print(f"LAUNCHING 30s HAKT TEST VIA GITHUB ACTIONS: {payload['jobId']}")
+    print(f"Palette Motif: {payload['design']['motif']} | 3D LUT Look: {payload['design']['lookId']}")
     print("=" * 70)
 
-    payload_json = json.dumps(PAYLOAD)
+    payload_json = json.dumps(payload)
     payload_b64 = base64.b64encode(payload_json.encode("utf-8")).decode("ascii")
     t_start = time.monotonic()
 
@@ -198,4 +230,9 @@ def run():
 
 
 if __name__ == "__main__":
-    run()
+    parser = argparse.ArgumentParser(description="Trigger 30s HAKT Cloud Render with dynamic or custom styling")
+    parser.add_argument("--motif", default=None, choices=CURATED_MOTIFS, help="Brand motif palette")
+    parser.add_argument("--look", default=None, choices=CURATED_LOOKS, help="Cinematic 3D LUT look")
+    parser.add_argument("--mood", default=None, help="Mood descriptor")
+    args = parser.parse_args()
+    run(args)

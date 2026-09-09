@@ -1386,11 +1386,12 @@ const KineticLayerRenderer: React.FC<{
 
   // Canva Tall Glyph Stack: Colossal, towering vertical display typography
   if (fx === "canva_tall_glyph_stack") {
-    const entranceP = interpolate(frame, [0, 5], [0, 1], {
+    const entranceP = interpolate(frame, [0, 16], [0, 1], {
       extrapolateLeft: "clamp",
       extrapolateRight: "clamp",
-      easing: Easing.out(Easing.back(1.2)),
+      easing: Easing.bezier(0.16, 1.0, 0.3, 1.0),
     });
+    const blur = interpolate(entranceP, [0, 0.7, 1], [32, 2, 0]);
     const effectiveSize = isBehindSubject ? behindSubjectFontSize : layer.fontSizePx;
     const effScaleY = isBehindSubject ? behindSubjectScaleY : 1.15;
     const effScaleX = isBehindSubject ? behindSubjectScaleX : 1.0;
@@ -1400,6 +1401,7 @@ const KineticLayerRenderer: React.FC<{
           ...baseTextStyle,
           fontSize: `${effectiveSize}px`,
           transform: `scaleY(${effScaleY}) scaleX(${effScaleX * autoFitScale}) scale(${interpolate(entranceP, [0, 1], [0.94, 1.0])})`,
+          filter: composeFilter(blur),
           letterSpacing: isBehindSubject ? behindMetrics.letterSpacing : (layer.letterSpacingEm ? `${layer.letterSpacingEm}em` : "-0.01em"),
           lineHeight: 0.85,
           flexDirection: "row",
@@ -1948,7 +1950,7 @@ const KineticLayerRenderer: React.FC<{
 
   // Dedicated B: Metallic Chrome Counter & Countup Hero
   if (fx === "metallic_chrome_countup_hero" || fx === "metallic_chrome_counter" || fx === "apple_gaussian_chrome") {
-    const sweepPercent = interpolate(frame, [0, 16], [-50, 150], {
+    const sweepPercent = interpolate(frame, [0, 24], [-50, 150], {
       extrapolateLeft: "clamp",
       extrapolateRight: "clamp",
       easing: Easing.inOut(Easing.cubic),
@@ -1958,11 +1960,14 @@ const KineticLayerRenderer: React.FC<{
         {words.map((word, wIdx) => {
           const wordStart = wordEntranceFrames[wIdx] ?? 0;
           const localFrame = Math.max(0, frame - wordStart);
-          const p = interpolate(localFrame, [0, 8], [0, 1], {
-            extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.out(Easing.back(1.3)),
+          const p = interpolate(localFrame, [0, 16], [0, 1], {
+            extrapolateLeft: "clamp",
+            extrapolateRight: "clamp",
+            easing: Easing.bezier(0.16, 1.0, 0.3, 1.0),
           });
-          const scale = interpolate(p, [0, 0.7, 1], [0.85, 1.06, 1.0]);
-          const translateY = interpolate(p, [0, 1], [16, 0]);
+          const scale = interpolate(p, [0, 0.65, 1], [0.92, 1.03, 1.0]);
+          const translateY = interpolate(p, [0, 1], [20, 0]);
+          const blur = interpolate(p, [0, 0.7, 1], [24, 2, 0]);
           return (
             <span
               key={`chrome-word-${wIdx}`}
@@ -1978,7 +1983,7 @@ const KineticLayerRenderer: React.FC<{
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
                 WebkitTextStroke: "1.2px rgba(255, 255, 255, 0.8)",
-                filter: `drop-shadow(0 4px 18px rgba(0, 0, 0, 0.95)) drop-shadow(0 0 16px ${layer.glow || "rgba(255, 69, 58, 0.6)"})`,
+                filter: composeFilter(blur, `drop-shadow(0 4px 18px rgba(0, 0, 0, 0.95)) drop-shadow(0 0 16px ${layer.glow || "rgba(255, 69, 58, 0.6)"})`),
               }}
             >
               {word}
@@ -2292,11 +2297,14 @@ const KineticLayerRenderer: React.FC<{
           const nextStart = wordEntranceFrames[wIdx + 1] ?? (totalFrames + 10);
           const localFrame = Math.max(0, frame - wordStart);
           const isActive = frame >= wordStart && frame < nextStart;
-          const p = interpolate(localFrame, [0, 9], [0, 1], {
-            extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.out(Easing.back(1.5)),
+          const p = interpolate(localFrame, [0, 16], [0, 1], {
+            extrapolateLeft: "clamp",
+            extrapolateRight: "clamp",
+            easing: Easing.bezier(0.16, 1.0, 0.3, 1.0),
           });
-          const scale = interpolate(p, [0, 0.7, 1], [0.80, 1.05, isActive ? 1.06 : 1.0]);
+          const scale = interpolate(p, [0, 0.65, 1], [0.92, isActive ? 1.04 : 1.02, 1.0]);
           const translateY = interpolate(p, [0, 1], [24, 0]);
+          const blur = interpolate(p, [0, 0.7, 1], [24, 2, 0]);
           const shimmer = 0.5 + Math.sin(localFrame * 0.35 + wIdx) * 0.5;
           return (
             <span
@@ -2307,6 +2315,7 @@ const KineticLayerRenderer: React.FC<{
                 margin: "0 0.15em",
                 opacity: p,
                 transform: `translateY(${translateY}px) scale(${scale})`,
+                filter: composeFilter(blur),
                 ...wordPaintStyle,
                 textShadow: kineticTextShadow(`0 0 16px rgba(255, 215, 0, ${shimmer * 0.8}), 0 4px 18px rgba(0,0,0,0.95)`),
               }}
@@ -3715,8 +3724,19 @@ const HierarchicalAsymmetricLockupComposition: React.FC<{
         ? formatHeroEditorialText(w.text)
         : formatModEditorialText(w.text);
 
-      // Specular sheen linear gradient (4-stop silver/platinum sheen)
-      const heroGradient = "linear-gradient(180deg, #FFFFFF 0%, #FAFAFA 28%, #E0E0E0 68%, #BEBEBE 100%)";
+      // Dynamic hero styling: adapt to chunk palette, layer color, or custom gradient
+      const chunkPalette = (chunk as any).palette;
+      const heroGradient = heroLayer?.gradient && heroLayer.gradient !== "none" && !isDarkGradient(heroLayer.gradient)
+        ? heroLayer.gradient
+        : (heroLayer?.color && heroLayer.color !== "#FFFFFF" && !isDarkColor(heroLayer.color))
+        ? `linear-gradient(180deg, #FFFFFF 0%, ${heroLayer.color} 55%, ${heroLayer.color} 100%)`
+        : (chunkPalette?.accent && chunkPalette.accent !== "#FFFFFF" && !isDarkColor(chunkPalette.accent))
+        ? `linear-gradient(180deg, #FFFFFF 0%, ${chunkPalette.secondary || "#FAFAFA"} 45%, ${chunkPalette.accent} 100%)`
+        : "linear-gradient(180deg, #FFFFFF 0%, #FAFAFA 28%, #E0E0E0 68%, #BEBEBE 100%)";
+
+      const isHeroItalic = heroLayer?.fontStyle === "italic" || (
+        heroLayer?.fontStyle !== "normal" && !/anton|bebas|outfit|montserrat|inter|six caps|teko|oswald|amerika/i.test(effectiveHeroFont)
+      );
 
       if (isHero) {
         if (animMode === "spatial_push_spring") {
@@ -3725,28 +3745,33 @@ const HierarchicalAsymmetricLockupComposition: React.FC<{
             ? contentStartFrame + Math.round(((nextW.start_ms - chunkStartMs) / 1000) * fps)
             : Infinity;
 
-          // Damped spring physics: k ≈ 340, m ≈ 0.9, zeta ≈ 0.75
-          const springCfg = { damping: 26, mass: 0.9, stiffness: 340 };
-          const entryP = spring({ frame: elapsed, fps, config: springCfg });
+          // Fluid cinematic GSAP curve (power4.out) over 18 frames
+          const animFrames = 18;
+          const entryP = interpolate(elapsed, [0, animFrames], [0, 1], {
+            extrapolateLeft: "clamp",
+            extrapolateRight: "clamp",
+            easing: Easing.bezier(0.16, 1.0, 0.3, 1.0),
+          });
 
-          // Velocity front-loading (70% in first 3 frames) & 4% inertial overshoot:
-          const entryY = interpolate(entryP, [0, 1], [36, 0]);
+          const entryY = interpolate(entryP, [0, 1], [32, 0]);
           const isPunch = idx === wordList.length - 1 || displayText.length > 4;
-          const entryScale = interpolate(entryP, [0, 0.65, 1], [0.95, isPunch ? 1.06 : 1.04, isPunch ? 1.03 : 1.0]);
-          const entryBlurY = interpolate(entryP, [0, 1], [28, 0]);
-          const entryBlurX = interpolate(entryP, [0, 1], [1.2, 0]);
+          const entryScale = interpolate(entryP, [0, 0.65, 1], [0.94, isPunch ? 1.04 : 1.02, 1.0]);
+          const entryBlurY = interpolate(entryP, [0, 0.7, 1], [36, 2.5, 0]);
 
           // Shared Momentum Handoff: Incoming text acts as physical piston pushing outgoing text
           const isPushedOut = nextStartF < Infinity && frame >= nextStartF;
           const exitElapsed = isPushedOut ? frame - nextStartF : -1;
-          const exitP = isPushedOut ? spring({ frame: exitElapsed, fps, config: springCfg }) : 0;
-          const exitY = isPushedOut ? interpolate(exitP, [0, 1], [0, -36]) : 0;
-          const exitScale = isPushedOut ? interpolate(exitP, [0, 1], [isPunch ? 1.03 : 1.0, 0.96]) : 1.0;
+          const exitP = isPushedOut ? interpolate(exitElapsed, [0, 14], [0, 1], {
+            extrapolateLeft: "clamp",
+            extrapolateRight: "clamp",
+            easing: Easing.bezier(0.16, 1.0, 0.3, 1.0),
+          }) : 0;
+          const exitY = isPushedOut ? interpolate(exitP, [0, 1], [0, -32]) : 0;
+          const exitScale = isPushedOut ? interpolate(exitP, [0, 1], [1.0, 0.96]) : 1.0;
           const exitOpacity = isPushedOut ? interpolate(exitP, [0, 0.65, 1], [1.0, 0.35, 0.0]) : 1.0;
           const exitBlurY = isPushedOut ? interpolate(exitP, [0, 1], [0, 24]) : 0;
-          const exitBlurX = isPushedOut ? interpolate(exitP, [0, 1], [0, 1.0]) : 0;
 
-          if (isPushedOut && exitElapsed > 9) {
+          if (isPushedOut && exitElapsed > 14) {
             return null;
           }
 
@@ -3754,11 +3779,10 @@ const HierarchicalAsymmetricLockupComposition: React.FC<{
           const scale = isPushedOut ? exitScale : entryScale;
           const wordOpacity = isPushedOut ? exitOpacity : flicker.opacity;
           const blurY = isPushedOut ? exitBlurY : entryBlurY;
-          const blurX = isPushedOut ? exitBlurX : entryBlurX;
-          const hasBlur = blurY > 0.2;
 
+          // Direct Skia/Chromium native CSS Gaussian blur filter
           const filterStyle = [
-            hasBlur ? `url(#${filterId})` : "",
+            blurY > 0.1 ? `blur(${blurY.toFixed(1)}px)` : "",
             flicker.brightness !== 1.0 && !isPushedOut ? `brightness(${flicker.brightness})` : "",
           ].filter(Boolean).join(" ") || undefined;
 
@@ -3768,31 +3792,20 @@ const HierarchicalAsymmetricLockupComposition: React.FC<{
               style={{
                 display: "inline-block",
                 marginRight: "0.24em",
+                paddingRight: isHeroItalic ? "0.24em" : "0.06em",
                 transform: `translateY(${translateY.toFixed(2)}px) scale(${scale.toFixed(3)})`,
                 transformOrigin: "center baseline",
                 filter: filterStyle,
                 opacity: wordOpacity,
               }}
             >
-              {hasBlur && (
-                <svg
-                  style={{ position: "absolute", width: 0, height: 0, pointerEvents: "none", opacity: 0 }}
-                  aria-hidden="true"
-                >
-                  <defs>
-                    <filter id={filterId} x="-20%" y="-100%" width="140%" height="300%">
-                      <feGaussianBlur stdDeviation={`${blurX.toFixed(2)} ${blurY.toFixed(2)}`} />
-                    </filter>
-                  </defs>
-                </svg>
-              )}
               <span
                 style={{
                   display: "inline-block",
                   whiteSpace: "nowrap",
                   fontSize: `${heroSize}px`,
                   fontWeight: 700,
-                  fontStyle: "italic",
+                  fontStyle: isHeroItalic ? "italic" : "normal",
                   letterSpacing: "-0.035em",
                   lineHeight: 0.88,
                   backgroundImage: isDifference ? "none" : heroGradient,
@@ -3813,8 +3826,8 @@ const HierarchicalAsymmetricLockupComposition: React.FC<{
         } else if (animMode === "blue_lantern_magnetic") {
           const easeRise: [number, number, number, number] = [0.16, 1.0, 0.3, 1.0];
           const easeSqueeze: [number, number, number, number] = [0.12, 1.0, 0.22, 1.0];
-          const riseFrames = Math.max(1, Math.round(fps * 0.38));
-          const squeezeFrames = Math.max(1, Math.round(fps * 0.45));
+          const riseFrames = Math.max(1, Math.round(fps * 0.48));
+          const squeezeFrames = Math.max(1, Math.round(fps * 0.55));
 
           const riseP = interpolate(elapsed, [0, riseFrames], [0, 1], {
             extrapolateLeft: "clamp",
@@ -3822,9 +3835,7 @@ const HierarchicalAsymmetricLockupComposition: React.FC<{
             easing: Easing.bezier(...easeRise),
           });
           const translateY = interpolate(riseP, [0, 1], [36, 0]);
-          const blurY = interpolate(riseP, [0, 1], [32, 0]);
-          const blurX = interpolate(riseP, [0, 1], [1.5, 0]);
-          const hasBlur = blurY > 0.2;
+          const blurY = interpolate(riseP, [0, 0.7, 1], [36, 3, 0]);
 
           const squeezeT = Easing.bezier(...easeSqueeze)(
             interpolate(elapsed, [0, squeezeFrames], [0, 1], {
@@ -3853,7 +3864,7 @@ const HierarchicalAsymmetricLockupComposition: React.FC<{
           });
 
           const filterStyle = [
-            hasBlur ? `url(#${filterId})` : "",
+            blurY > 0.1 ? `blur(${blurY.toFixed(1)}px)` : "",
             flicker.brightness !== 1.0 ? `brightness(${flicker.brightness})` : "",
           ].filter(Boolean).join(" ") || undefined;
 
@@ -3863,30 +3874,19 @@ const HierarchicalAsymmetricLockupComposition: React.FC<{
               style={{
                 display: "inline-block",
                 marginRight: "0.24em",
+                paddingRight: isHeroItalic ? "0.24em" : "0.06em",
                 transform: `translateY(${translateY.toFixed(2)}px)`,
                 filter: filterStyle,
                 opacity: flicker.opacity,
               }}
             >
-              {hasBlur && (
-                <svg
-                  style={{ position: "absolute", width: 0, height: 0, pointerEvents: "none", opacity: 0 }}
-                  aria-hidden="true"
-                >
-                  <defs>
-                    <filter id={filterId} x="-20%" y="-100%" width="140%" height="300%">
-                      <feGaussianBlur stdDeviation={`${blurX.toFixed(2)} ${blurY.toFixed(2)}`} />
-                    </filter>
-                  </defs>
-                </svg>
-              )}
               <span
                 style={{
                   display: "inline-block",
                   whiteSpace: "nowrap",
                   fontSize: `${heroSize}px`,
                   fontWeight: 700,
-                  fontStyle: "italic",
+                  fontStyle: isHeroItalic ? "italic" : "normal",
                   letterSpacing: "-0.035em",
                   lineHeight: 0.88,
                   backgroundImage: isDifference ? "none" : heroGradient,
@@ -3905,19 +3905,17 @@ const HierarchicalAsymmetricLockupComposition: React.FC<{
             </span>
           );
         } else if (animMode === "cinematic_slide_up") {
-          const riseFrames = Math.max(1, Math.round(fps * 0.38));
+          const riseFrames = Math.max(1, Math.round(fps * 0.48));
           const riseP = interpolate(elapsed, [0, riseFrames], [0, 1], {
             extrapolateLeft: "clamp",
             extrapolateRight: "clamp",
             easing: Easing.bezier(0.16, 1.0, 0.3, 1.0),
           });
           const translateY = interpolate(riseP, [0, 1], [36, 0]);
-          const blurY = interpolate(riseP, [0, 1], [32, 0]);
-          const blurX = interpolate(riseP, [0, 1], [1.5, 0]);
-          const hasBlur = blurY > 0.2;
+          const blurY = interpolate(riseP, [0, 0.7, 1], [36, 3, 0]);
 
           const filterStyle = [
-            hasBlur ? `url(#${filterId})` : "",
+            blurY > 0.1 ? `blur(${blurY.toFixed(1)}px)` : "",
             flicker.brightness !== 1.0 ? `brightness(${flicker.brightness})` : "",
           ].filter(Boolean).join(" ") || undefined;
 
@@ -3927,30 +3925,19 @@ const HierarchicalAsymmetricLockupComposition: React.FC<{
               style={{
                 display: "inline-block",
                 marginRight: "0.24em",
+                paddingRight: isHeroItalic ? "0.24em" : "0.06em",
                 transform: `translateY(${translateY.toFixed(2)}px)`,
                 filter: filterStyle,
                 opacity: flicker.opacity,
               }}
             >
-              {hasBlur && (
-                <svg
-                  style={{ position: "absolute", width: 0, height: 0, pointerEvents: "none", opacity: 0 }}
-                  aria-hidden="true"
-                >
-                  <defs>
-                    <filter id={filterId} x="-20%" y="-100%" width="140%" height="300%">
-                      <feGaussianBlur stdDeviation={`${blurX.toFixed(2)} ${blurY.toFixed(2)}`} />
-                    </filter>
-                  </defs>
-                </svg>
-              )}
               <span
                 style={{
                   display: "inline-block",
                   whiteSpace: "nowrap",
                   fontSize: `${heroSize}px`,
                   fontWeight: 700,
-                  fontStyle: "italic",
+                  fontStyle: isHeroItalic ? "italic" : "normal",
                   letterSpacing: "-0.035em",
                   lineHeight: 0.88,
                   backgroundImage: isDifference ? "none" : heroGradient,
@@ -3969,21 +3956,29 @@ const HierarchicalAsymmetricLockupComposition: React.FC<{
             </span>
           );
         } else if (animMode === "docking_modifier") {
-          // Hero Anchor is stationary
-          const settleFrames = Math.max(1, Math.round(fps * 0.12));
-          const settleP = interpolate(elapsed, [0, settleFrames], [0.97, 1.0], {
+          // Hero Anchor is stationary with subtle settling float and soft deblur
+          const settleFrames = Math.max(1, Math.round(fps * 0.35));
+          const settleP = interpolate(elapsed, [0, settleFrames], [0, 1], {
             extrapolateLeft: "clamp",
             extrapolateRight: "clamp",
+            easing: Easing.bezier(0.16, 1.0, 0.3, 1.0),
           });
+          const scale = interpolate(settleP, [0, 1], [0.96, 1.0]);
+          const blurY = interpolate(settleP, [0, 0.7, 1], [24, 2, 0]);
+          const filterStyle = [
+            blurY > 0.1 ? `blur(${blurY.toFixed(1)}px)` : "",
+            flicker.brightness !== 1.0 ? `brightness(${flicker.brightness})` : "",
+          ].filter(Boolean).join(" ") || undefined;
           return (
             <span
               key={`haw-h-${idx}`}
               style={{
                 display: "inline-block",
                 marginRight: "0.24em",
-                transform: `scale(${settleP})`,
+                paddingRight: isHeroItalic ? "0.24em" : "0.06em",
+                transform: `scale(${scale})`,
                 opacity: flicker.opacity,
-                filter: flicker.brightness !== 1.0 ? `brightness(${flicker.brightness})` : undefined,
+                filter: filterStyle,
               }}
             >
               <span
@@ -3992,7 +3987,7 @@ const HierarchicalAsymmetricLockupComposition: React.FC<{
                   whiteSpace: "nowrap",
                   fontSize: `${heroSize}px`,
                   fontWeight: 700,
-                  fontStyle: "italic",
+                  fontStyle: isHeroItalic ? "italic" : "normal",
                   letterSpacing: "-0.035em",
                   lineHeight: 0.88,
                   backgroundImage: isDifference ? "none" : heroGradient,
@@ -4011,19 +4006,30 @@ const HierarchicalAsymmetricLockupComposition: React.FC<{
             </span>
           );
         } else {
-          // Kinetic Impact Snap: crisp 2.5 frames subtle punch
-          const snapProgress = Math.min(1, elapsed / 2.5);
-          const scale = 0.96 + 0.04 * snapProgress;
+          // Fluid Kinetic Impact: smooth 16-frame deceleration with Gaussian deblur
+          const impactFrames = Math.max(1, Math.round(fps * 0.45));
+          const impactP = interpolate(elapsed, [0, impactFrames], [0, 1], {
+            extrapolateLeft: "clamp",
+            extrapolateRight: "clamp",
+            easing: Easing.bezier(0.16, 1.0, 0.3, 1.0),
+          });
+          const scale = interpolate(impactP, [0, 0.6, 1], [0.92, 1.04, 1.0]);
+          const blurY = interpolate(impactP, [0, 0.7, 1], [28, 2.5, 0]);
+          const filterStyle = [
+            blurY > 0.1 ? `blur(${blurY.toFixed(1)}px)` : "",
+            flicker.brightness !== 1.0 ? `brightness(${flicker.brightness})` : "",
+          ].filter(Boolean).join(" ") || undefined;
           return (
             <span
               key={`haw-h-${idx}`}
               style={{
                 display: "inline-block",
                 marginRight: "0.24em",
+                paddingRight: isHeroItalic ? "0.24em" : "0.06em",
                 transform: `scale(${scale})`,
                 transformOrigin: "center baseline",
                 opacity: flicker.opacity,
-                filter: flicker.brightness !== 1.0 ? `brightness(${flicker.brightness})` : undefined,
+                filter: filterStyle,
               }}
             >
               <span
@@ -4032,7 +4038,7 @@ const HierarchicalAsymmetricLockupComposition: React.FC<{
                   whiteSpace: "nowrap",
                   fontSize: `${heroSize}px`,
                   fontWeight: 700,
-                  fontStyle: "italic",
+                  fontStyle: isHeroItalic ? "italic" : "normal",
                   letterSpacing: "-0.035em",
                   lineHeight: 0.88,
                   backgroundImage: isDifference ? "none" : heroGradient,
@@ -4060,34 +4066,40 @@ const HierarchicalAsymmetricLockupComposition: React.FC<{
           ? contentStartFrame + Math.round(((nextW.start_ms - chunkStartMs) / 1000) * fps)
           : Infinity;
 
-        const springCfg = { damping: 26, mass: 0.9, stiffness: 340 };
-        const entryP = spring({ frame: elapsed, fps, config: springCfg });
+        const animFrames = 18;
+        const entryP = interpolate(elapsed, [0, animFrames], [0, 1], {
+          extrapolateLeft: "clamp",
+          extrapolateRight: "clamp",
+          easing: Easing.bezier(0.16, 1.0, 0.3, 1.0),
+        });
 
         const entryY = interpolate(entryP, [0, 1], isTopTucked ? [-28, 0] : [28, 0]);
-        const entryScale = interpolate(entryP, [0, 0.65, 1], [0.95, 1.03, 1.0]);
-        const entryBlurY = interpolate(entryP, [0, 1], [24, 0]);
-        const entryBlurX = interpolate(entryP, [0, 1], [1.0, 0]);
+        const entryScale = interpolate(entryP, [0, 0.65, 1], [0.95, 1.02, 1.0]);
+        const entryBlurY = interpolate(entryP, [0, 0.7, 1], [28, 2, 0]);
 
         const isPushedOut = nextStartF < Infinity && frame >= nextStartF;
         const exitElapsed = isPushedOut ? frame - nextStartF : -1;
-        const exitP = isPushedOut ? spring({ frame: exitElapsed, fps, config: springCfg }) : 0;
+        const exitP = isPushedOut ? interpolate(exitElapsed, [0, 14], [0, 1], {
+          extrapolateLeft: "clamp",
+          extrapolateRight: "clamp",
+          easing: Easing.bezier(0.16, 1.0, 0.3, 1.0),
+        }) : 0;
         const exitY = isPushedOut ? interpolate(exitP, [0, 1], [0, isTopTucked ? 28 : -28]) : 0;
         const exitScale = isPushedOut ? interpolate(exitP, [0, 1], [1.0, 0.96]) : 1.0;
         const exitOpacity = isPushedOut ? interpolate(exitP, [0, 0.65, 1], [1.0, 0.35, 0.0]) : 1.0;
+        const exitBlurY = isPushedOut ? interpolate(exitP, [0, 1], [0, 20]) : 0;
 
-        if (isPushedOut && exitElapsed > 9) {
+        if (isPushedOut && exitElapsed > 14) {
           return null;
         }
 
         const translateY = entryY + exitY;
         const scale = isPushedOut ? exitScale : entryScale;
         const wordOpacity = isPushedOut ? exitOpacity : flicker.opacity;
-        const blurY = isPushedOut ? interpolate(exitP, [0, 1], [0, 20]) : entryBlurY;
-        const blurX = isPushedOut ? interpolate(exitP, [0, 1], [0, 0.8]) : entryBlurX;
-        const hasBlur = blurY > 0.2;
+        const blurY = isPushedOut ? exitBlurY : entryBlurY;
 
         const filterStyle = [
-          hasBlur ? `url(#${filterId})` : "",
+          blurY > 0.1 ? `blur(${blurY.toFixed(1)}px)` : "",
           flicker.brightness !== 1.0 && !isPushedOut ? `brightness(${flicker.brightness})` : "",
         ].filter(Boolean).join(" ") || undefined;
 
@@ -4097,24 +4109,13 @@ const HierarchicalAsymmetricLockupComposition: React.FC<{
             style={{
               display: "inline-block",
               marginRight: "0.22em",
+              paddingRight: "0.15em",
               transform: `translateY(${translateY.toFixed(2)}px) scale(${scale.toFixed(3)})`,
               transformOrigin: "center baseline",
               filter: filterStyle,
               opacity: wordOpacity,
             }}
           >
-            {hasBlur && (
-              <svg
-                style={{ position: "absolute", width: 0, height: 0, pointerEvents: "none", opacity: 0 }}
-                aria-hidden="true"
-              >
-                <defs>
-                  <filter id={filterId} x="-20%" y="-100%" width="140%" height="300%">
-                    <feGaussianBlur stdDeviation={`${blurX.toFixed(2)} ${blurY.toFixed(2)}`} />
-                  </filter>
-                </defs>
-              </svg>
-            )}
             <span
               style={{
                 display: "inline-block",
@@ -4137,19 +4138,17 @@ const HierarchicalAsymmetricLockupComposition: React.FC<{
           </span>
         );
       } else if (animMode === "docking_modifier") {
-        const dockFrames = Math.max(1, Math.round(fps * 0.38));
+        const dockFrames = Math.max(1, Math.round(fps * 0.45));
         const dockP = interpolate(elapsed, [0, dockFrames], [0, 1], {
           easing: Easing.bezier(0.16, 1.0, 0.3, 1.0),
           extrapolateLeft: "clamp",
           extrapolateRight: "clamp",
         });
         const translateY = interpolate(dockP, [0, 1], isTopTucked ? [-28, 0] : [28, 0]);
-        const blurY = interpolate(dockP, [0, 1], [24, 0]);
-        const blurX = interpolate(dockP, [0, 1], [1.2, 0]);
-        const hasBlur = blurY > 0.2;
+        const blurY = interpolate(dockP, [0, 0.7, 1], [24, 2, 0]);
 
         const filterStyle = [
-          hasBlur ? `url(#${filterId})` : "",
+          blurY > 0.1 ? `blur(${blurY.toFixed(1)}px)` : "",
           flicker.brightness !== 1.0 ? `brightness(${flicker.brightness})` : "",
         ].filter(Boolean).join(" ") || undefined;
 
@@ -4159,23 +4158,12 @@ const HierarchicalAsymmetricLockupComposition: React.FC<{
             style={{
               display: "inline-block",
               marginRight: "0.22em",
+              paddingRight: "0.15em",
               transform: `translateY(${translateY.toFixed(2)}px)`,
               filter: filterStyle,
               opacity: flicker.opacity,
             }}
           >
-            {hasBlur && (
-              <svg
-                style={{ position: "absolute", width: 0, height: 0, pointerEvents: "none", opacity: 0 }}
-                aria-hidden="true"
-              >
-                <defs>
-                  <filter id={filterId} x="-20%" y="-100%" width="140%" height="300%">
-                    <feGaussianBlur stdDeviation={`${blurX.toFixed(2)} ${blurY.toFixed(2)}`} />
-                  </filter>
-                </defs>
-              </svg>
-            )}
             <span
               style={{
                 display: "inline-block",
@@ -4198,18 +4186,29 @@ const HierarchicalAsymmetricLockupComposition: React.FC<{
           </span>
         );
       } else if (animMode === "kinetic_impact_snap") {
-        const snapProgress = Math.min(1, elapsed / 2.5);
-        const scale = 0.96 + 0.04 * snapProgress;
+        const snapFrames = Math.max(1, Math.round(fps * 0.40));
+        const snapProgress = interpolate(elapsed, [0, snapFrames], [0, 1], {
+          easing: Easing.bezier(0.16, 1.0, 0.3, 1.0),
+          extrapolateLeft: "clamp",
+          extrapolateRight: "clamp",
+        });
+        const scale = interpolate(snapProgress, [0, 0.6, 1], [0.93, 1.03, 1.0]);
+        const blurY = interpolate(snapProgress, [0, 0.7, 1], [22, 2, 0]);
+        const filterStyle = [
+          blurY > 0.1 ? `blur(${blurY.toFixed(1)}px)` : "",
+          flicker.brightness !== 1.0 ? `brightness(${flicker.brightness})` : "",
+        ].filter(Boolean).join(" ") || undefined;
         return (
           <span
             key={`haw-m-${idx}`}
             style={{
               display: "inline-block",
               marginRight: "0.22em",
+              paddingRight: "0.15em",
               transform: `scale(${scale})`,
               transformOrigin: "center baseline",
               opacity: flicker.opacity,
-              filter: flicker.brightness !== 1.0 ? `brightness(${flicker.brightness})` : undefined,
+              filter: filterStyle,
             }}
           >
             <span
@@ -4234,20 +4233,18 @@ const HierarchicalAsymmetricLockupComposition: React.FC<{
           </span>
         );
       } else {
-        // Smooth slide up for cinematic and blue lantern modes (90° vertical directional blur + 36px rise)
-        const slideFrames = Math.max(1, Math.round(fps * 0.38));
+        // Smooth slide up for cinematic and blue lantern modes
+        const slideFrames = Math.max(1, Math.round(fps * 0.45));
         const slideP = interpolate(elapsed, [0, slideFrames], [0, 1], {
           easing: Easing.bezier(0.16, 1.0, 0.3, 1.0),
           extrapolateLeft: "clamp",
           extrapolateRight: "clamp",
         });
-        const translateY = interpolate(slideP, [0, 1], [36, 0]);
-        const blurY = interpolate(slideP, [0, 1], [24, 0]);
-        const blurX = interpolate(slideP, [0, 1], [1.2, 0]);
-        const hasBlur = blurY > 0.2;
+        const translateY = interpolate(slideP, [0, 1], [32, 0]);
+        const blurY = interpolate(slideP, [0, 0.7, 1], [24, 2, 0]);
 
         const filterStyle = [
-          hasBlur ? `url(#${filterId})` : "",
+          blurY > 0.1 ? `blur(${blurY.toFixed(1)}px)` : "",
           flicker.brightness !== 1.0 ? `brightness(${flicker.brightness})` : "",
         ].filter(Boolean).join(" ") || undefined;
 
@@ -4257,23 +4254,12 @@ const HierarchicalAsymmetricLockupComposition: React.FC<{
             style={{
               display: "inline-block",
               marginRight: "0.22em",
+              paddingRight: "0.15em",
               transform: `translateY(${translateY.toFixed(2)}px)`,
               filter: filterStyle,
               opacity: flicker.opacity,
             }}
           >
-            {hasBlur && (
-              <svg
-                style={{ position: "absolute", width: 0, height: 0, pointerEvents: "none", opacity: 0 }}
-                aria-hidden="true"
-              >
-                <defs>
-                  <filter id={filterId} x="-20%" y="-100%" width="140%" height="300%">
-                    <feGaussianBlur stdDeviation={`${blurX.toFixed(2)} ${blurY.toFixed(2)}`} />
-                  </filter>
-                </defs>
-              </svg>
-            )}
             <span
               style={{
                 display: "inline-block",

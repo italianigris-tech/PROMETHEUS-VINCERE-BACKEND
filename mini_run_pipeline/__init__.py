@@ -28,6 +28,12 @@ from . import pipeline
 from . import viral_selector
 from . import longform_pipeline
 from . import resolution
+from . import whitecheckered_engine
+from . import semantic_director
+from . import cinematic_asset_compositor
+from . import veo_orchestrator
+from . import editorial_stage
+from .editorial_stage import run_editorial_animation_pipeline
 
 __all__ = [
     'ids',
@@ -42,4 +48,10 @@ __all__ = [
     'viral_selector',
     'longform_pipeline',
     'resolution',
+    'whitecheckered_engine',
+    'semantic_director',
+    'cinematic_asset_compositor',
+    'veo_orchestrator',
+    'editorial_stage',
+    'run_editorial_animation_pipeline',
 ]

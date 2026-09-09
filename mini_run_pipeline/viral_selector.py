@@ -179,42 +179,43 @@ def _call_llm_groq(prompt: str) -> str:
 
 
 def _call_llm_google(prompt: str) -> str:
-    """Fallback: call Google AI Studio (Gemini) via OpenAI-compatible endpoint."""
+    """Call Google AI Studio (Gemini) generateContent endpoint."""
     import urllib.request
 
-    api_key = os.getenv("GOOGLE_AI_STUDIO_API_KEY", "")
+    api_key = os.getenv("GOOGLE_AI_STUDIO_API_KEY", "") or os.getenv("GEMINI_API_KEY", "")
     if not api_key:
         raise RuntimeError("GOOGLE_AI_STUDIO_API_KEY not set.")
 
     body = json.dumps(
         {
-            "model": GOOGLE_AI_MODEL,
-            "temperature": 0.2,
-            "max_tokens": 2048,
-            "messages": [
+            "contents": [
                 {
-                    "role": "system",
-                    "content": (
-                        "You are an elite short-form video editor specialising in viral clips."
-                    ),
-                },
-                {"role": "user", "content": prompt},
+                    "parts": [
+                        {"text": prompt}
+                    ]
+                }
             ],
+            "generationConfig": {
+                "temperature": 0.2,
+                "maxOutputTokens": 2048,
+            }
         }
     ).encode("utf-8")
 
+    model = os.getenv("GOOGLE_AI_MODEL", "gemini-2.5-flash")
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
     request = urllib.request.Request(
-        f"{GOOGLE_AI_STUDIO_BASE_URL}/chat/completions",
+        url,
         data=body,
         headers={
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {api_key}",
+            "x-goog-api-key": api_key,
         },
         method="POST",
     )
     with urllib.request.urlopen(request, timeout=90) as resp:
         data = json.loads(resp.read().decode("utf-8"))
-    return data["choices"][0]["message"]["content"]
+    return data["candidates"][0]["content"]["parts"][0]["text"]
 
 
 def _call_llm(prompt: str) -> str:
