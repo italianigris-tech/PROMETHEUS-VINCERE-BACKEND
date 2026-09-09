@@ -1149,11 +1149,16 @@ const KineticLayerRenderer: React.FC<{
     ? Math.max(0.55, maxAllowedWidthPx / estimatedWidthPx)
     : 1.0;
 
+  const effectiveFontSizePx = Math.max(
+    isBehindSubject ? behindSubjectFontSize : (layer.fontSizePx || 48),
+    36,
+  );
+
   const baseTextStyle: React.CSSProperties = {
     fontFamily: `"${effectiveFontFamily}", "${layer.accentFont || "sans-serif"}", sans-serif`,
     fontWeight: isBehindSubject ? 900 : layer.fontWeight,
     fontStyle: layer.fontStyle as any,
-    fontSize: isBehindSubject ? `${behindSubjectFontSize}px` : `${layer.fontSizePx}px`,
+    fontSize: `${effectiveFontSizePx}px`,
     textTransform: resolvedTextTransform as any,
     letterSpacing: currentLetterSpacing,
     lineHeight: isBehindSubject ? 0.85 : layer.lineHeight,
@@ -1171,12 +1176,15 @@ const KineticLayerRenderer: React.FC<{
     maxWidth: isBehindSubject ? "880px" : "840px",
     borderBottom: layer.doubleUnderline ? `3px double ${textColor}` : "none",
     paddingBottom: layer.doubleUnderline ? "6px" : "0px",
+    paddingRight: "0.25em",
+    boxSizing: "content-box",
     display: "inline-flex",
     flexWrap: isBehindSubject ? "nowrap" : "wrap",
     justifyContent: "center",
     alignItems: "center",
     textAlign: "center",
     overflow: "visible",
+    fontVariantLigatures: "none",
     color: textColor,
     WebkitTextFillColor: hasGrad ? undefined : textColor,
     transform: isBehindSubject
@@ -2505,18 +2513,25 @@ const KineticLayerRenderer: React.FC<{
                 whiteSpace: "nowrap",
                 margin: "0 0.15em",
                 opacity: p,
-                transform: `scale(${interpolate(p, [0, 1], [0.90, isActive ? 1.06 : 1.0])})`,
+                transform: `scale(${interpolate(p, [0, 1], [0.92, isActive ? 1.05 : 1.0])})`,
                 backgroundColor: isActive
-                  ? (isVercel ? "rgba(255, 255, 255, 0.25)" : "rgba(216, 180, 254, 0.55)")
-                  : (isVercel ? "rgba(255, 255, 255, 0.15)" : "rgba(216, 180, 254, 0.38)"),
-                border: isVercel ? "1px solid rgba(255, 255, 255, 0.3)" : "1px solid rgba(216, 180, 254, 0.6)",
-                borderRadius: "6px",
+                  ? (isVercel ? "rgba(255, 255, 255, 0.20)" : "rgba(168, 85, 247, 0.25)")
+                  : "transparent",
+                border: isActive
+                  ? (isVercel ? "1px solid rgba(255, 255, 255, 0.35)" : "1px solid rgba(192, 132, 252, 0.35)")
+                  : "1px solid transparent",
+                borderRadius: "8px",
                 padding: "2px 8px",
-                boxShadow: isVercel ? "0 4px 12px rgba(0,0,0,0.5)" : "0 0 16px rgba(216, 180, 254, 0.4)",
+                boxShadow: isActive
+                  ? (isVercel ? "0 4px 16px rgba(255, 255, 255, 0.25)" : "0 0 20px rgba(168, 85, 247, 0.50)")
+                  : "none",
                 ...wordPaintStyle,
                 WebkitBackgroundClip: undefined,
                 WebkitTextFillColor: undefined,
-                color: "#FFFFFF",
+                color: isActive ? "#FFFFFF" : "rgba(255, 255, 255, 0.88)",
+                textShadow: isActive
+                  ? (isVercel ? "0 0 14px rgba(255, 255, 255, 0.7)" : "0 0 18px rgba(192, 132, 252, 0.85), 0 2px 8px rgba(0, 0, 0, 0.9)")
+                  : kineticTextShadow("0 2px 10px rgba(0, 0, 0, 0.85)"),
               }}
             >
               {word}

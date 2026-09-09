@@ -127,6 +127,7 @@ export const MaulProfileTypographyGroup: React.FC<{
         transform: `scale(${profileTransform.uniformScale})`,
         transformOrigin: "left top",
         textAlign: realization.horizontalAlignment,
+        overflow: "visible",
       }}>
         {realization.layers.map((layer) => {
           const resolvedLayerColor = record.profileColorResolution?.layers.find(
@@ -137,6 +138,11 @@ export const MaulProfileTypographyGroup: React.FC<{
             tokenIds: layer.tokenIds,
             tokenTextById,
           });
+          // Ensure support clauses never fall below optical legibility threshold (minimum 36px effective size on 1080x1920 canvas)
+          const minEffectivePx = 36;
+          const uniformScale = profileTransform.uniformScale > 0 ? profileTransform.uniformScale : 1;
+          const clampedFontSizePx = Math.max(layer.fontSizePx, Math.round(minEffectivePx / uniformScale));
+
           const renderToken = (piece: Extract<ProfileTextPiece, {kind: "token"}>) => {
             const visible = !visibleTokenIds || visibleTokenIds.has(piece.tokenId);
             const resolvedMotion = resolveMaulFrameMotionForToken({
@@ -179,6 +185,8 @@ export const MaulProfileTypographyGroup: React.FC<{
                       ...tokenStyle,
                       isolation: "isolate",
                       visibility: visible ? "visible" : "hidden",
+                      fontVariantLigatures: "none",
+                      overflow: "visible",
                     }}
                 >
                     {isLetterMotion
@@ -195,10 +203,14 @@ export const MaulProfileTypographyGroup: React.FC<{
                           <span
                             key={`${piece.tokenId}_letter_${letterIndex}`}
                             data-maul-letter-index={letterIndex}
-                            style={maulFrameMotionStyle(
-                              letterTransform,
-                              layer.letterSpacingEm,
-                            )}
+                            style={{
+                              ...maulFrameMotionStyle(
+                                letterTransform,
+                                layer.letterSpacingEm,
+                              ),
+                              fontVariantLigatures: "none",
+                              fontFeatureSettings: '"liga" 0, "clig" 0, "dlig" 0, "hlig" 0, "calt" 0',
+                            }}
                           >
                             {character}
                           </span>
@@ -211,7 +223,11 @@ export const MaulProfileTypographyGroup: React.FC<{
                     {...(visible
                       ? {"data-maul-depth-token": piece.tokenId}
                       : {"data-maul-depth-hidden-token": piece.tokenId})}
-                    style={{visibility: visible ? "visible" : "hidden"}}
+                    style={{
+                      visibility: visible ? "visible" : "hidden",
+                      fontVariantLigatures: "none",
+                      overflow: "visible",
+                    }}
                   >
                     {renderedText}
                   </span>
@@ -232,13 +248,16 @@ export const MaulProfileTypographyGroup: React.FC<{
                 marginTop: layer.marginTopPx,
                 color: resolvedLayerColor,
                 fontFamily: layer.selectedAsset.cssFamily,
-                fontSize: layer.fontSizePx,
+                fontSize: clampedFontSizePx,
                 fontWeight: layer.selectedAsset.weight,
                 fontStyle: layer.selectedAsset.style,
                 lineHeight: layer.lineHeight,
                 letterSpacing: `${layer.letterSpacingEm}em`,
                 textShadow: `${layer.shadow.xOffset}px ${layer.shadow.yOffset}px ${layer.shadow.blurRadius}px ${layer.shadow.color}`,
                 whiteSpace: "nowrap",
+                paddingRight: "0.25em",
+                boxSizing: "content-box",
+                overflow: "visible",
               }}
             >
               {pieces

@@ -6,7 +6,7 @@
            url("/fonts/SenzaBella-Thin.otf") format("opentype");
       font-weight: 100 300;
       font-style: normal;
-      font-display: swap;
+      font-display: block;
     }
     @font-face {
       font-family: "Senza Bella";
@@ -14,7 +14,7 @@
            url("/fonts/SenzaBella-Light.otf") format("opentype");
       font-weight: 300;
       font-style: normal;
-      font-display: swap;
+      font-display: block;
     }
     @font-face {
       font-family: "Senza Bella";
@@ -22,7 +22,7 @@
            url("/fonts/SenzaBella-Regular.otf") format("opentype");
       font-weight: 400 500;
       font-style: normal;
-      font-display: swap;
+      font-display: block;
     }
     @font-face {
       font-family: "Senza Bella";
@@ -30,7 +30,7 @@
            url("/fonts/SenzaBella-Bold.otf") format("opentype");
       font-weight: 700;
       font-style: normal;
-      font-display: swap;
+      font-display: block;
     }
     @font-face {
       font-family: "Senza Bella";
@@ -38,7 +38,7 @@
            url("/fonts/SenzaBella-ExtraBold.otf") format("opentype");
       font-weight: 800;
       font-style: normal;
-      font-display: swap;
+      font-display: block;
     }
     @font-face {
       font-family: "Senza Bella";
@@ -46,5 +46,5 @@
            url("/fonts/SenzaBella-Black.otf") format("opentype");
       font-weight: 900;
       font-style: normal;
-      font-display: swap;
+      font-display: block;
     }
