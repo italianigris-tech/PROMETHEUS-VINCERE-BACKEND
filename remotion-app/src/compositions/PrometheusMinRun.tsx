@@ -113,6 +113,13 @@ const isDarkColor = (colorStr?: string): boolean => {
   return false;
 };
 
+const isDarkGradient = (gradStr?: string): boolean => {
+  if (!gradStr || gradStr === "none") return false;
+  const matches = gradStr.match(/#[0-9a-fA-F]{3,6}|rgba?\([^)]+\)/g);
+  if (!matches || matches.length === 0) return false;
+  return matches.every((m) => isDarkColor(m));
+};
+
 export const parseColorToRgb = (colorVal?: string): [number, number, number] | null => {
   if (!colorVal) return null;
   const raw = colorVal.trim().toLowerCase();
