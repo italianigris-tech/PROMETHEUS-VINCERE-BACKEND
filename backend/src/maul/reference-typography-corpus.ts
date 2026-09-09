@@ -32,10 +32,10 @@ const observation = ({
 };
 
 export const REFERENCE_TYPOGRAPHY_CORPUS: readonly ReferenceTypographyObservation[] = [
-  observation({filename: "{4D20411A-A33A-4209-AF30-53A75A9C0567}.png", sha256: "adf80faee20ead5bdc95fc47b541adaf59ba851d48f36603fbaef8b2c2e319f6", grammarId: "script_over_foundation"}),
-  observation({filename: "{6CE9DF4B-E337-4CE3-B063-F519C4517AA7}.png", sha256: "1ad9639384d15e9658806c0480a197eb1899dbfa177dcff18c3cd4840bbcf4b7", grammarId: "quiet_luxury"}),
-  observation({filename: "{88F98EFB-8E34-4668-A956-CCA8025246ED}.png", sha256: "df802752cf92714f282ffa050e46f0877569d6e146015b188245de56551b5dd0", grammarId: "inline_italic_hinge"}),
-  observation({filename: "{ECBC3CBC-C64B-471F-B92A-BCF6325034A1}.png", sha256: "a8152470c710d9faf43f83257abef6dfc8a16f9c8937dcdfbef7f98e40465a70", grammarId: "annotated_keyword", annotation: "circle"}),
+  observation({filename: "image (66).png", sha256: "adf80faee20ead5bdc95fc47b541adaf59ba851d48f36603fbaef8b2c2e319f6", grammarId: "script_over_foundation"}),
+  observation({filename: "image (67).png", sha256: "1ad9639384d15e9658806c0480a197eb1899dbfa177dcff18c3cd4840bbcf4b7", grammarId: "quiet_luxury"}),
+  observation({filename: "image (68).png", sha256: "df802752cf92714f282ffa050e46f0877569d6e146015b188245de56551b5dd0", grammarId: "inline_italic_hinge"}),
+  observation({filename: "image (69).png", sha256: "a8152470c710d9faf43f83257abef6dfc8a16f9c8937dcdfbef7f98e40465a70", grammarId: "annotated_keyword", annotation: "circle"}),
   observation({filename: "image (1).png", sha256: "0f8ec610b46c534d24f141cf76c975cdd969efa9f4be386530bfd54597e52753", grammarId: "stacked_support_hero"}),
   observation({filename: "image (10).png", sha256: "81c8b8c6faad4d96a06caf89e20e86686e7b1978b7b11fa8eb91eaf9da039e97", grammarId: "stacked_support_hero"}),
   observation({filename: "image (11).png", sha256: "571b43ef5586264e994af7828182a9624b29926c8776780cf9a6f2e7a92f116e", grammarId: "stacked_support_hero"}),

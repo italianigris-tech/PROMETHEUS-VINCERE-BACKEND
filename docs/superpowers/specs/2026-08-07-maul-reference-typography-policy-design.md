@@ -22,10 +22,10 @@ The supplied folder contains 44 PNG references. The observations below are visua
 
 | Ref | File | Extracted grammar |
 |---:|---|---|
-| 01 | `{4D20411A-A33A-4209-AF30-53A75A9C0567}.png` | Script headline over a quiet serif foundation; tight two-line stack. |
-| 02 | `{6CE9DF4B-E337-4CE3-B063-F519C4517AA7}.png` | Centered serif headline with small support line and generous whitespace. |
-| 03 | `{88F98EFB-8E34-4668-A956-CCA8025246ED}.png` | Heavy sans foundation with italic color hinge touching the baseline. |
-| 04 | `{ECBC3CBC-C64B-471F-B92A-BCF6325034A1}.png` | Large display word, small support phrase, circle annotation, and soft green hierarchy. |
+| 01 | `image (66).png` | Script headline over a quiet serif foundation; tight two-line stack. |
+| 02 | `image (67).png` | Centered serif headline with small support line and generous whitespace. |
+| 03 | `image (68).png` | Heavy sans foundation with italic color hinge touching the baseline. |
+| 04 | `image (69).png` | Large display word, small support phrase, circle annotation, and soft green hierarchy. |
 | 05 | `image (1).png` | Small italic setup above oversized serif hero; baseline overlap. |
 | 06 | `image (10).png` | Small preposition over large serif noun; vertical scale contrast. |
 | 07 | `image (11).png` | Oversized serif lead with small lower-case support and punctuation as a graphic stop. |

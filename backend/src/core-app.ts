@@ -27,6 +27,7 @@ import {
   createHttpSourceAnalysisDispatcher,
   type SourceAnalysisDispatcher,
 } from "./source-analysis-dispatch.js";
+import { registerGatewayRoutes } from "./gateway/fastify-routes.js";
 
 export type CoreTextChunkPlanner = {
   plan: (request: ShortsTextChunkingRequest) => Promise<unknown>;
@@ -282,6 +283,8 @@ export const createCoreApp = async (
       return {error: "Media output not found."};
     }
   });
+
+  await registerGatewayRoutes(app);
 
   return {app, env};
 };
