@@ -1366,8 +1366,6 @@ const KineticLayerRenderer: React.FC<{
           letterSpacing: "-0.025em",
           whiteSpace: "nowrap",
           display: "inline-block",
-          backdropFilter: "blur(12px) contrast(125%) brightness(1.08)",
-          WebkitBackdropFilter: "blur(12px) contrast(125%) brightness(1.08)",
         }}
       >
         {layer.text}
@@ -3583,8 +3581,22 @@ const HierarchicalAsymmetricLockupComposition: React.FC<{
   const rawModFont = modifierLayer?.fontFamily || "Apple Garamond";
   const effectiveModFont = `"${rawModFont}", "Apple Garamond", "Inter", "Montserrat", sans-serif`;
 
-  const heroSize = Math.max(96, Math.min(148, heroLayer?.fontSizePx ?? 120));
-  const modifierSize = Math.max(26, Math.round(heroSize * 0.30));
+  // Micro-stopword / connector safeguard ("of how to", "and how to", etc.)
+  // When all words are <= 3 characters, avoid disproportionate 3:1 caricature scaling.
+  const allChunkWords = [
+    ...(heroLayer?.words?.map((w) => w.text) || (heroLayer?.text ? heroLayer.text.split(" ") : [])),
+    ...(modifierLayer?.words?.map((w) => w.text) || (modifierLayer?.text ? modifierLayer.text.split(" ") : [])),
+  ].filter(Boolean);
+  const cleanTokens = allChunkWords.map((w) => w.replace(/[^a-zA-Z]/g, "")).filter(Boolean);
+  const isMicroStopwords = cleanTokens.length > 0 && cleanTokens.every((w) => w.length <= 3);
+
+  const baseHeroTarget = heroLayer?.fontSizePx ?? 120;
+  const heroSize = isMicroStopwords
+    ? Math.max(44, Math.min(54, Math.round(baseHeroTarget * 0.42)))
+    : Math.max(96, Math.min(148, baseHeroTarget));
+  const modifierSize = isMicroStopwords
+    ? Math.max(38, Math.round(heroSize * 0.88))
+    : Math.max(26, Math.round(heroSize * 0.30));
 
   const lockupOption = (chunk as any).lockupOption || (chunk as any).treatmentOption;
 
@@ -4324,14 +4336,9 @@ const HierarchicalAsymmetricLockupComposition: React.FC<{
           flexDirection: "column",
           alignItems: "flex-start",
           justifyContent: "center",
-          maxWidth: "920px",
-          padding: isDifference ? "0.28em 0.45em" : "0.2em 0.35em",
+          padding: 0,
           pointerEvents: "none",
           mixBlendMode: isDifference ? "difference" : undefined,
-          backgroundColor: isDifference ? "rgba(255, 255, 255, 0.04)" : undefined,
-          borderRadius: isDifference ? "8px" : undefined,
-          backdropFilter: isDifference ? "blur(12px) contrast(125%) brightness(1.08)" : undefined,
-          WebkitBackdropFilter: isDifference ? "blur(12px) contrast(125%) brightness(1.08)" : undefined,
         }}
       >
         {isTopTucked && modifierBlock}

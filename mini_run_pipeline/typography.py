@@ -7,6 +7,7 @@ faithful gradient & glow realization, and mid-section stage placement.
 from __future__ import annotations
 
 import os
+import re
 import json
 import glob
 import random
@@ -2324,31 +2325,68 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
         else:
             pool = [p for p in profiles if not _is_behind_subject_candidate_profile(p)] or profiles
 
+        # Micro-stopword / connector phrase detection ("of how to", "and how to", etc.)
+        clean_tokens = [re.sub(r'[^a-zA-Z]', '', w).lower() for w in words]
+        clean_tokens = [w for w in clean_tokens if w]
+        avg_word_len = sum(len(w) for w in clean_tokens) / max(1, len(clean_tokens))
+        is_micro_stopword = (
+            len(clean_tokens) >= 2 and (
+                avg_word_len <= 3.2 or all(len(w) <= 3 for w in clean_tokens)
+            )
+        )
+
+        # PRIMUS INTER PARES: Strict Word Count Matching
+        # A chunk of N words MUST strictly select a Font JSON profile designed for N words.
         if is_single_word:
-            # Match 1-word profiles, prioritizing exact single-word sample_text profiles (like image 51 "less.")
-            single_word_pool = [p for p in pool if p.get("total_words", 1) == 1 and len(p.get("typography_layers", [])) == 1]
-            # Fallback: any profile with exactly 1 layer (can render any single word cleanly)
+            single_word_pool = [
+                p for p in pool
+                if p.get("total_words", len(p.get("typography_layers", []))) == 1
+                and len(p.get("typography_layers", [])) == 1
+            ]
             one_layer_pool = [p for p in pool if len(p.get("typography_layers", [])) == 1]
             matching_profiles = single_word_pool or one_layer_pool or pool
         else:
-            # Dialogue Legibility Invariant: For multi-word speech cues (3+ words),
-            # restrict to profiles with at most 2 layers (hero + modifier) to prevent
-            # conversational speech from being chopped into vertical single-word column stacks.
-            dialogue_base = [p for p in pool if len(p.get("typography_layers", [])) <= 2] if word_count >= 3 else pool
-            candidate_pool = dialogue_base if dialogue_base else pool
+            # 1. Exact N-word matching pool (Strict Invariant)
+            exact_word_pool = [
+                p for p in pool
+                if p.get("total_words", len(p.get("typography_layers", []))) == word_count
+            ]
 
-            # Tier 1: Exact ±1 word count match — the preferred, word-count-faithful pool.
-            tier1 = [
-                p for p in candidate_pool
-                if abs(p.get("total_words", len(p.get("typography_layers", []))) - word_count) <= 1
-            ]
-            # Tier 2: ±3 word count tolerance — still respects the rough scale of the chunk.
-            tier2 = [
-                p for p in candidate_pool
-                if abs(p.get("total_words", len(p.get("typography_layers", []))) - word_count) <= 3
-            ]
-            # Tier 3: Full pool fallback.
-            matching_profiles = tier1 or tier2 or candidate_pool
+            # For multi-word speech cues (3+ words), restrict to profiles with at most 2 layers
+            # so conversational speech is not chopped into vertical single-word column stacks.
+            if word_count >= 3 and exact_word_pool:
+                dialogue_exact = [p for p in exact_word_pool if len(p.get("typography_layers", [])) <= 2]
+                if dialogue_exact:
+                    exact_word_pool = dialogue_exact
+
+            # Micro-stopword safeguard: exclude oversized display hero drop caps (e.g. image 11)
+            # for tiny connectors like "of how to", preferring balanced modern sans/serif.
+            if is_micro_stopword and exact_word_pool:
+                balanced_exact = [
+                    p for p in exact_word_pool
+                    if not any(
+                        "drop cap" in str(l.get("font_classification", "")).lower()
+                        or "didone" in str(l.get("font_classification", "")).lower()
+                        or l.get("font_style", {}).get("size_px_base", 100) > 160
+                        for l in p.get("typography_layers", [])
+                    )
+                ]
+                if balanced_exact:
+                    exact_word_pool = balanced_exact
+
+            if exact_word_pool:
+                matching_profiles = exact_word_pool
+            else:
+                # Graceful fallback ONLY if ZERO profiles exist in corpus for exact word count
+                tier1 = [
+                    p for p in pool
+                    if abs(p.get("total_words", len(p.get("typography_layers", []))) - word_count) == 1
+                ]
+                tier2 = [
+                    p for p in pool
+                    if abs(p.get("total_words", len(p.get("typography_layers", []))) - word_count) <= 2
+                ]
+                matching_profiles = tier1 or tier2 or pool
 
         if not matching_profiles:
             matching_profiles = pool
@@ -2438,12 +2476,14 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
             w0_clean = "".join(ch for ch in words[0].lower() if ch.isalnum())
             last_clean = "".join(ch for ch in words[-1].lower() if ch.isalnum())
 
+            mod_scale = 0.88 if is_micro_stopword else 0.30
+
             if w0_clean in modifier_stopwords and word_count >= 3:
                 split_idx = 1
                 while split_idx < word_count - 1 and "".join(ch for ch in words[split_idx].lower() if ch.isalnum()) in modifier_stopwords:
                     split_idx += 1
                 allocations = [
-                    {"layer": {"role": "modifier", "font_style": {"weight": 600, "relative_scale": 0.30}}, "words": words[:split_idx], "is_hero": False},
+                    {"layer": {"role": "modifier", "font_style": {"weight": 600, "relative_scale": mod_scale}}, "words": words[:split_idx], "is_hero": False},
                     {"layer": {"role": "hero", "font_style": {"weight": 900, "relative_scale": 1.0}}, "words": words[split_idx:], "is_hero": True},
                 ]
                 resolved_lockup_opt = "top_tucked"
@@ -2451,12 +2491,12 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                 split_idx = 2 if (word_count >= 4 and words[0][0].isupper() and words[1][0].isupper()) else 1
                 allocations = [
                     {"layer": {"role": "hero", "font_style": {"weight": 900, "relative_scale": 1.0}}, "words": words[:split_idx], "is_hero": True},
-                    {"layer": {"role": "modifier", "font_style": {"weight": 600, "relative_scale": 0.30}}, "words": words[split_idx:], "is_hero": False},
+                    {"layer": {"role": "modifier", "font_style": {"weight": 600, "relative_scale": mod_scale}}, "words": words[split_idx:], "is_hero": False},
                 ]
                 resolved_lockup_opt = "bottom_tucked"
             else:
                 allocations = [
-                    {"layer": {"role": "modifier", "font_style": {"weight": 600, "relative_scale": 0.30}}, "words": [words[0]], "is_hero": False},
+                    {"layer": {"role": "modifier", "font_style": {"weight": 600, "relative_scale": mod_scale}}, "words": [words[0]], "is_hero": False},
                     {"layer": {"role": "hero", "font_style": {"weight": 900, "relative_scale": 1.0}}, "words": words[1:], "is_hero": True},
                 ]
                 resolved_lockup_opt = "top_tucked"

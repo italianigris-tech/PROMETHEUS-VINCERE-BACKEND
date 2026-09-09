@@ -2140,8 +2140,6 @@ export const HierarchicalAsymmetricLockup: React.FC<ArchetypeProps> = ({
           filter: isDifference
             ? undefined
             : "drop-shadow(0 0 24px rgba(255, 255, 255, 0.45)) drop-shadow(0 0 45px rgba(255, 255, 255, 0.18)) drop-shadow(0 4px 18px rgba(0, 0, 0, 0.95)) drop-shadow(0 2px 6px rgba(0, 0, 0, 0.90))",
-          backdropFilter: isDifference ? "blur(12px) contrast(125%)" : undefined,
-          WebkitBackdropFilter: isDifference ? "blur(12px) contrast(125%)" : undefined,
           pointerEvents: "none",
         }}
       >
@@ -2219,10 +2217,8 @@ export const HierarchicalAsymmetricLockup: React.FC<ArchetypeProps> = ({
         alignItems: "flex-start", // Lockup Option A & B tight asymmetric left-aligned anchor
         justifyContent: "center",
         maxWidth: "920px",
-        padding: "0.2em 0.35em",
+        padding: 0,
         pointerEvents: "none",
-        backdropFilter: isDifference ? "blur(12px) contrast(125%)" : undefined,
-        WebkitBackdropFilter: isDifference ? "blur(12px) contrast(125%)" : undefined,
       }}
     >
       {!isBottomTucked && modifierBlock}
@@ -2276,8 +2272,6 @@ export const SpatialPushSpringTypography: React.FC<ArchetypeProps> = ({
         fontFamily: effectiveFont,
         fontStyle: (fontStyle as any) || "italic",
         pointerEvents: "none",
-        backdropFilter: isDifference ? "blur(12px) contrast(125%)" : undefined,
-        WebkitBackdropFilter: isDifference ? "blur(12px) contrast(125%)" : undefined,
       }}
     >
       {allWords.map((word, idx) => {
@@ -2418,11 +2412,9 @@ export const DifferenceKnockoutTypography: React.FC<ArchetypeProps> = ({
         alignItems: "baseline",
         justifyContent: "center",
         maxWidth: "960px",
-        padding: "0.15em 0.3em",
+        padding: 0,
         fontFamily: effectiveFont,
         fontStyle: (fontStyle as any) || "italic",
-        backdropFilter: "blur(12px) contrast(125%)",
-        WebkitBackdropFilter: "blur(12px) contrast(125%)",
         pointerEvents: "none",
       }}
     >
@@ -2523,8 +2515,6 @@ export const ChiseledPrismMetallic: React.FC<ArchetypeProps> = ({
         fontFamily: effectiveFont,
         fontStyle: (fontStyle as any) || "normal",
         pointerEvents: "none",
-        backdropFilter: isDifference ? "blur(12px) contrast(125%)" : undefined,
-        WebkitBackdropFilter: isDifference ? "blur(12px) contrast(125%)" : undefined,
       }}
     >
       {allWords.map((word, idx) => {
@@ -2631,8 +2621,6 @@ export const VJKineticTypography: React.FC<ArchetypeProps> = ({
         fontFamily: effectiveFont,
         fontStyle: (fontStyle as any) || "normal",
         pointerEvents: "none",
-        backdropFilter: isDifference ? "blur(12px) contrast(125%)" : undefined,
-        WebkitBackdropFilter: isDifference ? "blur(12px) contrast(125%)" : undefined,
       }}
     >
       {allWords.map((word, idx) => {
