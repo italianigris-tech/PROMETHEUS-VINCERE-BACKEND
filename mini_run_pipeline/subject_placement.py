@@ -255,10 +255,10 @@ def analyze_cranial_negative_space(
         return {
             "dominantZone": "flank_right_column",
             "zoneId": "flank_right_editorial_pillar",
-            "xPercent": f"{round(col_x * 100, 1)}%",
-            "yPercent": f"{round(center_y * 100, 1)}%",
+            "xPercent": f"{int(round(col_x * 100)) if round(col_x * 100, 1).is_integer() else round(col_x * 100, 1)}%",
+            "yPercent": f"{int(round(center_y * 100)) if round(center_y * 100, 1).is_integer() else round(center_y * 100, 1)}%",
             "anchor": "center",
-            "textAlign": "center",
+            "textAlign": "right",
             "maxWidthPercent": "30%",
             "fontTreatment": "editorial_column_stack",
             "headroomRatio": round(top_headroom, 3),
@@ -276,10 +276,10 @@ def analyze_cranial_negative_space(
         return {
             "dominantZone": "flank_left_column",
             "zoneId": "flank_left_editorial_pillar",
-            "xPercent": f"{round(col_x * 100, 1)}%",
-            "yPercent": f"{round(center_y * 100, 1)}%",
+            "xPercent": f"{int(round(col_x * 100)) if round(col_x * 100, 1).is_integer() else round(col_x * 100, 1)}%",
+            "yPercent": f"{int(round(center_y * 100)) if round(center_y * 100, 1).is_integer() else round(center_y * 100, 1)}%",
             "anchor": "center",
-            "textAlign": "center",
+            "textAlign": "left",
             "maxWidthPercent": "30%",
             "fontTreatment": "editorial_column_stack",
             "headroomRatio": round(top_headroom, 3),
@@ -305,7 +305,7 @@ def analyze_cranial_negative_space(
         return {
             "dominantZone": "cranial_crown",
             "zoneId": "behind_subject_above_head",
-            "xPercent": f"{round(text_x * 100, 1)}%",
+            "xPercent": f"{int(round(text_x * 100)) if round(text_x * 100, 1).is_integer() else round(text_x * 100, 1)}%",
             "yPercent": f"{round(center_y * 100, 2)}%",
             "anchor": "center",
             "textAlign": "center",
@@ -318,20 +318,17 @@ def analyze_cranial_negative_space(
         }
 
     # Priority 4: Sensible Below-Head Placement (Dynamic Clearance Avoiding Speaker's Head)
-    # Deck ceiling 0.72: multi-line lockups are vertically centered on yPercent, so a
-    # 0.82 anchor lets tall blocks run off the bottom viewport edge.
+    # Default lower third is anchored at 68% Y
     if face_bottom_y is not None:
         below_head_y = round(max(0.44, min(0.72, face_bottom_y + 0.08)), 4)
-    elif subject_box and "y" in subject_box:
-        below_head_y = round(max(0.44, min(0.72, float(subject_box["y"]) + 0.35)), 4)
     else:
-        below_head_y = 0.60
+        below_head_y = 0.68
 
     return {
         "dominantZone": "foreground_lower_deck",
         "zoneId": "foreground_lower_third",
         "xPercent": "50%",
-        "yPercent": f"{round(below_head_y * 100, 1)}%",
+        "yPercent": f"{int(round(below_head_y * 100)) if round(below_head_y * 100, 1).is_integer() else round(below_head_y * 100, 1)}%",
         "anchor": "center",
         "textAlign": "center",
         "fontTreatment": "kinetic_anchor_deck",
@@ -551,7 +548,7 @@ def plan_subject_safe_placements(
                 ideal_y = face_bottom + target_clearance
                 min_safe_y = face_bottom + min_safe_clearance
             else:
-                ideal_y = 0.60
+                ideal_y = 0.68
                 min_safe_y = 0.54
 
             # 1. Lateral Flank: If speaker is framed off-center, place in open column

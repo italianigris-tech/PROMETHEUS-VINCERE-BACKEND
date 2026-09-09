@@ -6,8 +6,11 @@ const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");
 const studioDir = path.join(repoRoot, "docs", "mini_run_studio");
 const uploadDir = path.join(studioDir, "uploaded_screenshots");
+const cranialDir = path.join(repoRoot, "Yuan Prometheus Screenshots", "cranial font placement");
 const refDir = path.join(repoRoot, "Yuan Prometheus Screenshots", "font pairing and placement");
 const videoDir = path.join(studioDir, "uploaded_videos");
+const fontJsonDir = path.join(repoRoot, "Yuan Prometheus Screenshots", "font JSON");
+const cranialJsonDir = path.join(repoRoot, "Yuan Prometheus Screenshots", "cranial font JSON");
 
 function getFiles(dir, filterFn) {
   if (!fs.existsSync(dir)) return [];
@@ -18,41 +21,159 @@ function getFiles(dir, filterFn) {
   }).sort((a, b) => b.mtimeMs - a.mtimeMs);
 }
 
+// ---------------------------------------------------------------------------
+// Load and Index All Font JSON Profiles
+// ---------------------------------------------------------------------------
+function loadFontProfiles() {
+  const map = {};
+  const loadFrom = (dir, isCranial) => {
+    if (!fs.existsSync(dir)) return;
+    for (const file of fs.readdirSync(dir)) {
+      if (!file.endsWith(".json")) continue;
+      try {
+        const fullPath = path.join(dir, file);
+        const data = JSON.parse(fs.readFileSync(fullPath, "utf8"));
+        const stem = file.replace(/\.json$/, "");
+        const layers = data.typography_layers || [];
+        const firstLayer = layers[0] || {};
+        const heroLayer = layers.find(l => l.role === "hero_keyword") || layers[layers.length - 1] || firstLayer;
+        
+        const profile = {
+          id: stem,
+          filename: file,
+          profile_name: data.profile_name || stem,
+          version: data.version || "1.0.0",
+          is_cranial: isCranial || Boolean(data.cranial_spec || stem.includes("cranial")),
+          paired_image: data.metadata?.paired_image || (stem + ".png"),
+          overall_mood: data.metadata?.overall_mood || data.metadata?.treatment_notes || "",
+          total_words: data.metadata?.total_word_count || layers.length || 0,
+          total_chars: data.metadata?.total_character_count || 0,
+          dominant_zone: data.cranial_spec?.dominant_zone || data.layout_rules?.vertical_position || "standard",
+          primary_font: firstLayer.font_family || "Modern Sans",
+          primary_weight: firstLayer.font_style?.weight || 700,
+          accent_font: (heroLayer.font_family && heroLayer.font_family !== firstLayer.font_family ? heroLayer.font_family : (heroLayer.accent_font || "")) || "",
+          accent_weight: heroLayer.font_style?.weight || 900,
+          layer_count: layers.length,
+          layers: layers.map(l => ({
+            name: l.layer_name || l.role || "layer",
+            role: l.role || "text",
+            text: l.raw_text || l.sample_text || "",
+            font: l.font_family || "Inter",
+            weight: l.font_style?.weight || 400,
+            style: l.font_style?.style || "normal",
+            casing: l.font_style?.casing || "normal",
+            color: l.font_style?.color || "#FFFFFF",
+            size_px: l.font_style?.size_px_base || 48,
+            behindSubject: Boolean(l.effects?.behindSubject || (l.effects?.depthZPx && l.effects.depthZPx > 0)),
+            effectsDesc: Object.keys(l.effects || {}).join(", ")
+          })),
+          raw_data: data
+        };
+
+        map[stem] = profile;
+        map[file] = profile;
+        if (profile.paired_image) {
+          map[profile.paired_image] = profile;
+        }
+      } catch (err) {
+        console.warn(`Could not parse ${file}:`, err.message);
+      }
+    }
+  };
+
+  loadFrom(fontJsonDir, false);
+  loadFrom(cranialJsonDir, true);
+  return map;
+}
+
+const fontProfiles = loadFontProfiles();
+
+// Authoritative mapping from uploaded screenshots to their canonical Font JSON profiles
+const UPLOAD_TO_PROFILE_MAP = {
+  "Screenshot_01_090425.png": "image (43)",
+  "Screenshot_02_090446.png": "tall image (1)",
+  "Screenshot_03_090452.png": "image (44)",
+  "Screenshot_04_090459.png": "image (45)",
+  "Screenshot_05_090516.png": "image (46)",
+  "Screenshot_06_173946.png": "image (47)",
+  "Screenshot_07_174002.png": "image (48)",
+  "Screenshot_08_174018.png": "image (47)",
+  "Screenshot_10_021337.png": "image (41)",
+  "Screenshot_14_021413.png": "image (51)",
+  "Screenshot_14_131730.png": "image (52)",
+  "Screenshot_15_131737.png": "image (53)",
+  "Screenshot_16_131742.png": "image (54)",
+  "Screenshot_17_131749.png": "image (55)",
+  "Screenshot_18_131801.png": "image (56)",
+  "Screenshot_21_131943.png": "image (57)",
+  "Screenshot_22_091915.png": "image (70)",
+  "_B00E0CA3-D821-46BA-B0F3-9283B53992FF__vfhn.png": "image (71)"
+};
+
 const uploadedFiles = getFiles(uploadDir, f => /\.(png|jpe?g|webp|gif|svg)$/i.test(f) && !f.startsWith("test_"));
+const cranialFiles = getFiles(cranialDir, f => /\.(png|jpe?g|webp|gif|svg)$/i.test(f));
 const refFiles = getFiles(refDir, f => /\.(png|jpe?g|webp|gif|svg)$/i.test(f));
 const videoFiles = getFiles(videoDir, f => /\.(mp4|webm|mov|m4v|mkv|avi)$/i.test(f));
 
 function generateHtml(isRoot) {
   const uploadPathPrefix = isRoot ? "docs/mini_run_studio/uploaded_screenshots/" : "uploaded_screenshots/";
+  const cranialPathPrefix = isRoot ? "Yuan Prometheus Screenshots/cranial font placement/" : "../../Yuan Prometheus Screenshots/cranial font placement/";
   const refPathPrefix = isRoot ? "Yuan Prometheus Screenshots/font pairing and placement/" : "../../Yuan Prometheus Screenshots/font pairing and placement/";
   const videoPathPrefix = isRoot ? "docs/mini_run_studio/uploaded_videos/" : "uploaded_videos/";
 
-  const uploadedData = uploadedFiles.map(f => ({
-    name: f.name,
-    size: f.size,
-    mtimeMs: f.mtimeMs,
-    localUrl: `${uploadPathPrefix}${f.name}`,
-    serverUrl: `/uploaded_screenshots/${f.name}`,
-    category: "uploaded"
-  }));
+  const uploadedData = uploadedFiles.map(f => {
+    const profKey = UPLOAD_TO_PROFILE_MAP[f.name];
+    const prof = profKey ? fontProfiles[profKey] : (fontProfiles[f.name] || null);
+    return {
+      name: f.name,
+      size: f.size,
+      mtimeMs: f.mtimeMs,
+      localUrl: uploadPathPrefix + f.name,
+      serverUrl: "/uploaded_screenshots/" + f.name,
+      category: "uploaded",
+      fontProfile: prof
+    };
+  });
 
-  const refData = refFiles.map(f => ({
-    name: f.name,
-    size: f.size,
-    mtimeMs: f.mtimeMs,
-    localUrl: `${refPathPrefix}${f.name}`,
-    serverUrl: `/font_pairs/${encodeURIComponent(f.name)}`,
-    category: "reference"
-  }));
+  const cranialData = cranialFiles.map(f => {
+    const stem = f.name.replace(/\.[^.]+$/, "");
+    const prof = fontProfiles[f.name] || fontProfiles[stem] || null;
+    return {
+      name: f.name,
+      size: f.size,
+      mtimeMs: f.mtimeMs,
+      localUrl: cranialPathPrefix + f.name,
+      serverUrl: "/cranial_pairs/" + encodeURIComponent(f.name),
+      category: "cranial",
+      fontProfile: prof
+    };
+  });
+
+  const refData = refFiles.map(f => {
+    const stem = f.name.replace(/\.[^.]+$/, "");
+    const prof = fontProfiles[f.name] || fontProfiles[stem] || null;
+    const isCran = f.name.toLowerCase().startsWith("cranial");
+    return {
+      name: f.name,
+      size: f.size,
+      mtimeMs: f.mtimeMs,
+      localUrl: refPathPrefix + f.name,
+      serverUrl: "/font_pairs/" + encodeURIComponent(f.name),
+      category: isCran ? "cranial" : "reference",
+      fontProfile: prof
+    };
+  });
 
   const videoData = videoFiles.map(f => ({
     name: f.name,
     size: f.size,
     mtimeMs: f.mtimeMs,
-    localUrl: `${videoPathPrefix}${f.name}`,
-    serverUrl: `/uploaded_videos/${f.name}`,
+    localUrl: videoPathPrefix + f.name,
+    serverUrl: "/uploaded_videos/" + f.name,
     category: "video"
   }));
+
+  const totalAssets = uploadedData.length + cranialData.length + refData.length + videoData.length;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -70,6 +191,7 @@ function generateHtml(isRoot) {
       --accent-purple: #8B5CF6;
       --accent-green: #10B981;
       --accent-yellow: #F59E0B;
+      --accent-gold: #FBBF24;
       --accent-red: #EF4444;
       --panel-border: rgba(255, 255, 255, 0.1); 
       --panel-border-glow: rgba(0, 240, 255, 0.4);
@@ -85,7 +207,7 @@ function generateHtml(isRoot) {
       flex-direction: column;
       align-items: center;
     }
-    .container { width: 100%; max-width: 1380px; }
+    .container { width: 100%; max-width: 1420px; }
     .header { text-align: center; margin-bottom: 20px; }
     .header h1 { 
       font-size: clamp(22px, 4vw, 32px); 
@@ -97,6 +219,66 @@ function generateHtml(isRoot) {
       letter-spacing: -0.5px;
     }
     .header p { color: #8E9BAE; font-size: 14px; }
+
+    /* NAVIGATION LINKS BAR */
+    .nav-links {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+    .nav-links a {
+      color: #A0AEC0;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--panel-border);
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .nav-links a:hover { color: #FFF; background: rgba(255,255,255,0.12); border-color: var(--accent-cyan); }
+    .nav-links a.active { color: var(--accent-cyan); border-color: var(--accent-cyan); background: rgba(0, 240, 255, 0.1); }
+
+    /* TOAST CONTAINER */
+    #toastContainer {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 99999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+    }
+    .toast {
+      pointer-events: auto;
+      min-width: 280px;
+      max-width: 440px;
+      padding: 12px 18px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+      animation: slideInRight 0.3s ease-out;
+      backdrop-filter: blur(8px);
+    }
+    @keyframes slideInRight {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    .toast-success { background: rgba(16, 185, 129, 0.95); color: #FFF; border: 1px solid #34D399; }
+    .toast-uploading { background: rgba(0, 240, 255, 0.95); color: #070913; border: 1px solid #FFF; font-weight: 700; }
+    .toast-error { background: rgba(239, 68, 68, 0.95); color: #FFF; border: 1px solid #F87171; }
+    .toast-info { background: rgba(139, 92, 246, 0.95); color: #FFF; border: 1px solid #A78BFA; }
 
     /* CONNECTION STATUS BAR */
     .connection-bar {
@@ -148,96 +330,57 @@ function generateHtml(isRoot) {
       font-size: 12px;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.2s;
     }
     .btn-conn:hover { background: rgba(255, 255, 255, 0.15); border-color: var(--accent-cyan); }
-    
-    .btn-link-folder {
-      background: rgba(139, 92, 246, 0.15);
-      border: 1px solid rgba(139, 92, 246, 0.4);
-      color: #C084FC;
-      padding: 5px 12px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .btn-link-folder:hover {
-      background: rgba(139, 92, 246, 0.3);
-      border-color: var(--accent-purple);
-      color: #FFF;
-    }
-
     .btn-sync-offline {
-      background: linear-gradient(135deg, #10B981, #059669);
-      border: none;
-      color: #FFF;
+      background: rgba(245, 158, 11, 0.2);
+      border: 1px solid rgba(245, 158, 11, 0.5);
+      color: #FBBF24;
       padding: 5px 12px;
       border-radius: 6px;
       font-size: 12px;
       font-weight: 700;
       cursor: pointer;
       display: none;
-      animation: pulseSync 2s infinite;
     }
-    @keyframes pulseSync {
-      0%, 100% { transform: scale(1); box-shadow: 0 0 0 rgba(16, 185, 129, 0); }
-      50% { transform: scale(1.03); box-shadow: 0 0 14px rgba(16, 185, 129, 0.6); }
-    }
-
-    .nav-links { display: flex; justify-content: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
-    .nav-links a { 
-      color: #8E9BAE; 
-      text-decoration: none; 
-      padding: 7px 16px; 
-      background: rgba(255,255,255,0.05); 
-      border: 1px solid var(--panel-border);
-      border-radius: 9px; 
-      font-size: 12.5px; 
-      font-weight: 600;
+    .btn-sync-offline:hover { background: rgba(245, 158, 11, 0.35); }
+    .btn-link-folder {
+      background: rgba(0, 240, 255, 0.12);
+      border: 1px solid rgba(0, 240, 255, 0.4);
+      color: var(--accent-cyan);
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
       transition: all 0.2s;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
     }
-    .nav-links a:hover { color: #FFF; background: rgba(255,255,255,0.12); border-color: var(--accent-cyan); }
-    .nav-links a.active { color: var(--accent-cyan); border-color: var(--accent-cyan); background: rgba(0, 240, 255, 0.1); }
-    
-    #toastContainer {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      z-index: 99999;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      pointer-events: none;
-    }
-    .toast {
-      pointer-events: auto;
-      min-width: 280px;
-      max-width: 440px;
-      padding: 12px 18px;
-      border-radius: 10px;
-      font-size: 13px;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.8);
-      animation: slideInRight 0.3s ease-out;
-      backdrop-filter: blur(8px);
-    }
-    @keyframes slideInRight {
-      from { transform: translateX(100%); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
-    }
-    .toast-success { background: rgba(16, 185, 129, 0.95); color: #FFF; border: 1px solid #34D399; }
-    .toast-uploading { background: rgba(0, 240, 255, 0.95); color: #070913; border: 1px solid #FFF; font-weight: 700; }
-    .toast-error { background: rgba(239, 68, 68, 0.95); color: #FFF; border: 1px solid #F87171; }
-    .toast-info { background: rgba(139, 92, 246, 0.95); color: #FFF; border: 1px solid #A78BFA; }
+    .btn-link-folder:hover { background: rgba(0, 240, 255, 0.25); border-color: var(--accent-cyan); }
 
+    /* INGEST DESTINATIONS INFO */
+    .destination-info {
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      gap: 12px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px dashed var(--panel-border);
+      border-radius: 10px;
+      padding: 8px 16px;
+      margin-bottom: 16px;
+      font-size: 11.5px;
+      color: #94A3B8;
+      flex-wrap: wrap;
+    }
+    .destination-info code {
+      color: var(--accent-cyan);
+      background: rgba(0, 240, 255, 0.08);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+
+    /* DROPZONE */
     .dropzone { 
       border: 2px dashed var(--accent-cyan); 
       border-radius: 18px; 
@@ -258,144 +401,87 @@ function generateHtml(isRoot) {
     .dropzone.dragover { 
       background: rgba(0, 240, 255, 0.18); 
       border-color: #FFF; 
-      transform: scale(1.01); 
-      box-shadow: 0 0 30px rgba(0, 240, 255, 0.6);
+      transform: scale(1.01);
+      box-shadow: 0 0 35px rgba(0, 240, 255, 0.6);
     }
-    .dropzone-icon {
-      font-size: 44px;
-      margin-bottom: 12px;
-      display: inline-block;
-      animation: floatIcon 3s ease-in-out infinite;
-    }
-    @keyframes floatIcon {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-6px); }
-    }
-    .dropzone h3 { font-size: 20px; color: #FFF; margin-bottom: 6px; font-weight: 800; }
-    .dropzone p { color: #8E9BAE; font-size: 13.5px; margin-bottom: 18px; max-width: 640px; margin-left: auto; margin-right: auto; }
-
-    .dropzone-buttons {
-      display: flex;
-      justify-content: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
+    .dropzone-icon { font-size: 46px; margin-bottom: 10px; }
+    .dropzone h3 { font-size: 18px; font-weight: 800; margin-bottom: 6px; }
+    .dropzone p { color: #8E9BAE; font-size: 13.5px; margin-bottom: 16px; }
+    .dropzone-buttons { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
     .btn-action-primary {
-      background: linear-gradient(135deg, var(--accent-cyan), #38BDF8);
-      border: none;
+      background: linear-gradient(135deg, var(--accent-cyan), #0099FF);
       color: #070913;
-      padding: 10px 22px;
-      border-radius: 9px;
+      border: none;
+      padding: 9px 20px;
+      border-radius: 8px;
       font-size: 13.5px;
-      font-weight: 700;
+      font-weight: 800;
       cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      transition: all 0.2s;
-      box-shadow: 0 4px 14px rgba(0, 240, 255, 0.3);
+      box-shadow: 0 4px 14px rgba(0, 240, 255, 0.35);
+      transition: transform 0.15s, box-shadow 0.15s;
     }
-    .btn-action-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(0, 240, 255, 0.5);
-      background: #FFF;
-    }
+    .btn-action-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0, 240, 255, 0.5); }
     .btn-action-secondary {
       background: rgba(255, 255, 255, 0.08);
       border: 1px solid var(--panel-border);
       color: #FFF;
-      padding: 10px 18px;
-      border-radius: 9px;
-      font-size: 13.5px;
-      font-weight: 600;
+      padding: 9px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
       cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      transition: all 0.2s;
+      transition: background 0.15s;
     }
-    .btn-action-secondary:hover {
-      background: rgba(255, 255, 255, 0.15);
-      border-color: rgba(255, 255, 255, 0.3);
-    }
-    .btn-video-upload {
-      border-color: rgba(139, 92, 246, 0.4);
-      background: rgba(139, 92, 246, 0.1);
-    }
-    .btn-video-upload:hover {
-      border-color: var(--accent-purple);
-      background: rgba(139, 92, 246, 0.25);
-    }
+    .btn-action-secondary:hover { background: rgba(255, 255, 255, 0.15); border-color: var(--accent-cyan); }
+    .btn-video-upload { border-color: var(--accent-purple); color: #C084FC; background: rgba(139, 92, 246, 0.12); }
+    .btn-video-upload:hover { background: rgba(139, 92, 246, 0.25); border-color: #C084FC; color: #FFF; }
 
     .url-input-wrap {
-      margin-top: 16px;
+      margin-top: 14px;
       display: none;
-      background: rgba(0, 0, 0, 0.4);
-      border: 1px solid var(--panel-border);
-      padding: 12px;
-      border-radius: 10px;
-      max-width: 600px;
+      justify-content: center;
+      gap: 8px;
+      max-width: 580px;
       margin-left: auto;
       margin-right: auto;
-      gap: 8px;
     }
     .url-input-wrap.open { display: flex; }
     .url-input-wrap input {
       flex: 1;
-      background: rgba(255,255,255,0.06);
+      background: rgba(0,0,0,0.5);
       border: 1px solid var(--panel-border);
-      border-radius: 6px;
-      padding: 8px 12px;
+      border-radius: 8px;
+      padding: 8px 14px;
       color: #FFF;
-      font-size: 12.5px;
+      font-size: 13px;
       outline: none;
     }
     .url-input-wrap input:focus { border-color: var(--accent-cyan); }
     .url-input-wrap button {
       background: var(--accent-cyan);
-      color: #070913;
+      color: #000;
       border: none;
-      font-weight: 700;
       padding: 8px 16px;
-      border-radius: 6px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 13px;
       cursor: pointer;
-    }
-
-    /* INGEST DESTINATION INFO */
-    .destination-info {
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid var(--panel-border);
-      border-radius: 10px;
-      padding: 10px 16px;
-      margin-bottom: 20px;
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-      gap: 12px;
-      font-size: 12px;
-      color: #8E9BAE;
-      flex-wrap: wrap;
-    }
-    .destination-info code {
-      color: var(--accent-cyan);
-      background: rgba(0, 240, 255, 0.08);
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-family: monospace;
     }
 
     /* TABS BAR */
     .tabs-bar {
       display: flex;
       gap: 10px;
-      margin-bottom: 18px;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--panel-border);
+      padding-bottom: 12px;
       flex-wrap: wrap;
     }
     .tab-btn {
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(255, 255, 255, 0.04);
       border: 1px solid var(--panel-border);
-      color: #94A3B8;
-      padding: 10px 20px;
+      color: #8E9BAE;
+      padding: 9px 18px;
       border-radius: 10px;
       font-size: 13.5px;
       font-weight: 700;
@@ -405,97 +491,75 @@ function generateHtml(isRoot) {
       align-items: center;
       gap: 8px;
     }
-    .tab-btn:hover { color: #FFF; background: rgba(255, 255, 255, 0.1); }
+    .tab-btn:hover { color: #FFF; background: rgba(255, 255, 255, 0.09); border-color: var(--accent-cyan); }
     .tab-btn.active {
-      background: rgba(0, 240, 255, 0.12);
+      color: #FFF;
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.18), rgba(192, 132, 252, 0.18));
       border-color: var(--accent-cyan);
-      color: var(--accent-cyan);
-      box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
+      box-shadow: 0 0 16px rgba(0, 240, 255, 0.25);
     }
     .tab-count {
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.12);
       padding: 2px 7px;
       border-radius: 12px;
       font-size: 11px;
-      font-family: monospace;
-    }
-    .tab-btn.active .tab-count {
-      background: var(--accent-cyan);
-      color: #070913;
       font-weight: 800;
+      color: #FFF;
     }
 
+    /* GALLERY CONTROLS */
     .gallery-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 18px;
+      margin-bottom: 16px;
       flex-wrap: wrap;
-      gap: 12px;
-      background: var(--card-bg);
-      border: 1px solid var(--panel-border);
-      padding: 12px 20px;
-      border-radius: 14px;
+      gap: 10px;
     }
-    .gallery-title-group { display: flex; align-items: center; gap: 12px; }
-    .gallery-title-group h2 { font-size: 16px; color: #FFF; font-weight: 800; }
+    .gallery-title-group { display: flex; align-items: center; gap: 10px; }
+    .gallery-title-group h2 { font-size: 18px; font-weight: 800; }
     .gallery-badge {
-      background: rgba(0, 240, 255, 0.15);
+      background: rgba(0, 240, 255, 0.12);
+      border: 1px solid rgba(0, 240, 255, 0.35);
       color: var(--accent-cyan);
-      border: 1px solid rgba(0, 240, 255, 0.3);
-      padding: 2px 10px;
-      border-radius: 20px;
+      padding: 2px 8px;
+      border-radius: 6px;
       font-size: 11.5px;
       font-weight: 700;
-      font-family: monospace;
     }
-
-    .gallery-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .gallery-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
     .search-box {
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(255, 255, 255, 0.06);
       border: 1px solid var(--panel-border);
-      color: #FFF;
-      padding: 7px 12px;
       border-radius: 8px;
-      font-size: 12px;
+      padding: 6px 14px;
+      color: #FFF;
+      font-size: 13px;
       outline: none;
-      width: 180px;
-      transition: all 0.2s;
+      width: 260px;
     }
-    .search-box:focus { border-color: var(--accent-cyan); width: 240px; }
-    
+    .search-box:focus { border-color: var(--accent-cyan); }
     .btn-tool {
-      background: rgba(255,255,255,0.06);
+      background: rgba(255, 255, 255, 0.06);
       border: 1px solid var(--panel-border);
       color: #FFF;
-      padding: 7px 14px;
+      padding: 6px 14px;
       border-radius: 8px;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.2s;
-    }
-    .btn-tool:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.25); }
-    .btn-danger {
-      background: rgba(239, 68, 68, 0.15) !important;
-      border: 1px solid rgba(239, 68, 68, 0.4) !important;
-      color: #FCA5A5 !important;
+      font-size: 12.5px;
       font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s;
     }
-    .btn-danger:hover {
-      background: rgba(239, 68, 68, 0.35) !important;
-      border-color: #EF4444 !important;
-      color: #FFF !important;
-      box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
-    }
+    .btn-tool:hover { background: rgba(255, 255, 255, 0.12); border-color: var(--accent-cyan); }
+    .btn-danger { color: #F87171; border-color: rgba(239, 68, 68, 0.3); }
+    .btn-danger:hover { background: rgba(239, 68, 68, 0.2); border-color: #EF4444; }
 
+    /* GALLERY GRID */
     .gallery { 
       display: grid; 
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); 
-      gap: 20px; 
+      grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); 
+      gap: 16px; 
+      width: 100%;
     }
     .item-card { 
       background: var(--card-bg); 
@@ -579,14 +643,16 @@ function generateHtml(isRoot) {
       backdrop-filter: blur(4px);
       text-transform: uppercase;
       letter-spacing: 0.5px;
+      z-index: 2;
     }
     .tag-uploaded { border-color: var(--accent-cyan); color: var(--accent-cyan); background: rgba(0, 240, 255, 0.15); }
+    .tag-cranial { border-color: var(--accent-gold); color: #FBBF24; background: rgba(245, 158, 11, 0.18); font-weight: 800; }
     .tag-reference { border-color: var(--accent-purple); color: #C084FC; background: rgba(192, 132, 252, 0.15); }
     .tag-persisted { border-color: var(--accent-green); color: #34D399; background: rgba(16, 185, 129, 0.15); }
 
-    .item-details { display: flex; flex-direction: column; gap: 4px; }
+    .item-details { display: flex; flex-direction: column; gap: 6px; }
     .item-name { 
-      font-size: 13.5px; 
+      font-size: 13px; 
       font-weight: 700; 
       color: #FFF; 
       white-space: nowrap; 
@@ -601,95 +667,264 @@ function generateHtml(isRoot) {
       font-size: 11.5px; 
       font-family: monospace;
     }
-    .item-btn-bar { display: flex; gap: 8px; margin-top: 4px; }
+
+    /* FONT JSON SPEC DISPLAY ON CARDS */
+    .item-font-spec {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 7px 10px;
+    }
+    .font-spec-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .font-chip {
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .primary-chip { background: rgba(0, 240, 255, 0.12); color: var(--accent-cyan); border: 1px solid rgba(0, 240, 255, 0.3); }
+    .accent-chip { background: rgba(192, 132, 252, 0.12); color: #C084FC; border: 1px solid rgba(192, 132, 252, 0.3); }
+    .layers-chip { background: rgba(255, 255, 255, 0.08); color: #E2E8F0; border: 1px solid rgba(255, 255, 255, 0.15); }
+    .cranial-chip { background: rgba(245, 158, 11, 0.18); color: #FBBF24; border: 1px solid rgba(245, 158, 11, 0.4); font-weight: 800; }
+    .font-spec-mood {
+      font-size: 11px;
+      color: #94A3B8;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-style: italic;
+    }
+
+    .item-btn-bar { display: flex; gap: 6px; margin-top: 4px; }
     .btn-item {
       flex: 1;
-      background: rgba(255,255,255,0.05);
+      background: rgba(255, 255, 255, 0.06);
       border: 1px solid var(--panel-border);
-      color: #D1D5DB;
-      padding: 6px 0;
-      border-radius: 7px;
+      color: #FFF;
+      padding: 6px 8px;
+      border-radius: 6px;
       font-size: 11.5px;
-      font-weight: 600;
+      font-weight: 700;
       cursor: pointer;
+      transition: all 0.15s;
       text-align: center;
-      transition: all 0.2s;
     }
-    .btn-item:hover { color: #FFF; background: rgba(255,255,255,0.12); border-color: var(--accent-cyan); }
+    .btn-item:hover { background: rgba(255, 255, 255, 0.14); border-color: var(--accent-cyan); }
+    .btn-item-json {
+      background: rgba(139, 92, 246, 0.15);
+      border-color: rgba(139, 92, 246, 0.4);
+      color: #C084FC;
+    }
+    .btn-item-json:hover {
+      background: rgba(139, 92, 246, 0.3);
+      border-color: #C084FC;
+      color: #FFF;
+    }
     .btn-item-del {
-      flex: 0 0 34px;
+      flex: 0 0 32px;
       color: #F87171;
+      border-color: rgba(239, 68, 68, 0.3);
     }
-    .btn-item-del:hover { background: rgba(239, 68, 68, 0.2); border-color: #EF4444; color: #FFF; }
+    .btn-item-del:hover { background: rgba(239, 68, 68, 0.25); border-color: #EF4444; }
 
-    /* LIGHTBOX MODAL */
-    #lightboxModal, #videoLightboxModal {
+    /* LIGHTBOX MODALS */
+    #lightboxModal, #videoLightboxModal, #fontJsonModal {
       position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.92);
-      z-index: 100000;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.88);
+      backdrop-filter: blur(10px);
+      z-index: 9999;
       display: none;
       align-items: center;
       justify-content: center;
       padding: 24px;
-      backdrop-filter: blur(10px);
     }
-    #lightboxModal.open, #videoLightboxModal.open { display: flex; }
+    #lightboxModal.open, #videoLightboxModal.open, #fontJsonModal.open { display: flex; }
     .lightbox-content {
       position: relative;
-      max-width: 92vw;
-      max-height: 92vh;
+      max-width: 90vw;
+      max-height: 90vh;
+      background: #0E1326;
+      border: 1px solid var(--panel-border);
+      border-radius: 16px;
+      overflow: hidden;
       display: flex;
       flex-direction: column;
-      gap: 14px;
-      align-items: center;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.9);
     }
     .lightbox-img-wrap, .lightbox-video-wrap {
-      max-width: 90vw;
-      max-height: 80vh;
-      border-radius: 12px;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #05070e;
       overflow: hidden;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9);
-      border: 1px solid var(--panel-border);
-      background-color: #0c101c;
-      background-image: 
-        linear-gradient(45deg, rgba(255,255,255,0.04) 25%, transparent 25%), 
-        linear-gradient(-45deg, rgba(255,255,255,0.04) 25%, transparent 25%), 
-        linear-gradient(45deg, transparent 75%, rgba(255,255,255,0.04) 75%), 
-        linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.04) 75%);
-      background-size: 20px 20px;
+      min-height: 200px;
     }
-    .lightbox-img-wrap img { max-width: 100%; max-height: 80vh; display: block; object-fit: contain; }
-    .lightbox-video-wrap video { max-width: 100%; max-height: 80vh; display: block; }
+    .lightbox-img-wrap img {
+      max-width: 100%;
+      max-height: 75vh;
+      object-fit: contain;
+    }
+    .lightbox-video-wrap video {
+      max-width: 100%;
+      max-height: 75vh;
+    }
     .lightbox-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      width: 100%;
-      background: var(--card-bg);
-      border: 1px solid var(--panel-border);
-      padding: 10px 18px;
-      border-radius: 10px;
+      padding: 12px 18px;
+      background: #090C1A;
+      border-top: 1px solid var(--panel-border);
       font-size: 13px;
       font-family: monospace;
     }
     .lightbox-close {
       position: absolute;
-      top: -38px;
-      right: 0;
-      background: rgba(255,255,255,0.1);
-      border: 1px solid rgba(255,255,255,0.2);
+      top: 12px;
+      right: 12px;
+      background: rgba(0,0,0,0.65);
+      border: 1px solid rgba(255,255,255,0.25);
       color: #FFF;
       width: 32px;
       height: 32px;
       border-radius: 50%;
-      font-size: 18px;
       cursor: pointer;
+      font-size: 14px;
+      font-weight: 700;
+      z-index: 10;
       display: flex;
       align-items: center;
       justify-content: center;
+      transition: background 0.15s;
     }
     .lightbox-close:hover { background: #EF4444; border-color: #EF4444; }
+
+    /* FONT JSON MODAL SPECIFICS */
+    .font-json-content {
+      width: 860px;
+      max-width: 95vw;
+      max-height: 88vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .font-modal-header {
+      padding: 18px 22px;
+      background: #090C1A;
+      border-bottom: 1px solid var(--panel-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+    }
+    .font-modal-header h2 { font-size: 17px; font-weight: 800; color: #FFF; }
+    .modal-subnav {
+      display: flex;
+      gap: 6px;
+      padding: 10px 22px;
+      background: rgba(255, 255, 255, 0.02);
+      border-bottom: 1px solid var(--panel-border);
+    }
+    .modal-subnav-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      color: #8E9BAE;
+      font-size: 12.5px;
+      font-weight: 700;
+      padding: 5px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .modal-subnav-btn:hover { color: #FFF; background: rgba(255, 255, 255, 0.06); }
+    .modal-subnav-btn.active {
+      color: var(--accent-cyan);
+      background: rgba(0, 240, 255, 0.1);
+      border-color: rgba(0, 240, 255, 0.3);
+    }
+    .font-modal-body {
+      padding: 18px 22px;
+      overflow-y: auto;
+      flex: 1;
+      background: #070913;
+    }
+    .layers-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+    }
+    .layers-table th, .layers-table td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    }
+    .layers-table th {
+      color: #8E9BAE;
+      font-weight: 700;
+      font-size: 11.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .layer-sample-text {
+      font-size: 14px;
+      font-weight: 800;
+      color: #FFF;
+      max-width: 220px;
+    }
+    .font-family-badge {
+      background: rgba(0, 240, 255, 0.1);
+      color: var(--accent-cyan);
+      border: 1px solid rgba(0, 240, 255, 0.25);
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-weight: 700;
+    }
+    .color-swatch {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      border: 1px solid #FFF;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    .tag-depth-behind {
+      background: rgba(245, 158, 11, 0.15);
+      color: #FBBF24;
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10.5px;
+      font-weight: 800;
+    }
+    .tag-depth-fore {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34D399;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10.5px;
+      font-weight: 800;
+    }
+    pre code {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 12px;
+      line-height: 1.5;
+      color: #38BDF8;
+    }
   </style>
 </head>
 <body>
@@ -727,8 +962,9 @@ function generateHtml(isRoot) {
     <!-- INGEST DESTINATIONS INFO -->
     <div class="destination-info">
       <div>📁 Screenshots Target: <code>docs/mini_run_studio/uploaded_screenshots/</code></div>
-      <div>🌄 Landscape Mirror: <code>docs/mini_landscape_runs/uploaded_assets/</code></div>
+      <div>👑 Head Section: <code>Yuan Prometheus Screenshots/cranial font placement/</code></div>
       <div>🎨 Reference Bank: <code>Yuan Prometheus Screenshots/font pairing and placement/</code></div>
+      <div>🔤 Font JSON Spec: <code>Yuan Prometheus Screenshots/font JSON/</code></div>
     </div>
 
     <!-- DROPZONE -->
@@ -766,6 +1002,9 @@ function generateHtml(isRoot) {
       <button class="tab-btn active" id="tabUploaded" onclick="switchTab('uploaded')" type="button">
         📸 Uploaded Screenshots <span class="tab-count" id="countUploaded">${uploadedData.length}</span>
       </button>
+      <button class="tab-btn" id="tabCranial" onclick="switchTab('cranial')" type="button">
+        👑 Cranial Head Section <span class="tab-count" id="countCranial">${cranialData.length}</span>
+      </button>
       <button class="tab-btn" id="tabRef" onclick="switchTab('reference')" type="button">
         🎨 Curated Reference Bank <span class="tab-count" id="countRef">${refData.length}</span>
       </button>
@@ -773,7 +1012,7 @@ function generateHtml(isRoot) {
         🎭 Principal Speaker Videos <span class="tab-count" id="countVideos">${videoData.length}</span>
       </button>
       <button class="tab-btn" id="tabAll" onclick="switchTab('all')" type="button">
-        🌟 All Assets <span class="tab-count" id="countAll">${uploadedData.length + refData.length + videoData.length}</span>
+        🌟 All Assets <span class="tab-count" id="countAll">${totalAssets}</span>
       </button>
     </div>
 
@@ -785,7 +1024,7 @@ function generateHtml(isRoot) {
         <span id="gallerySizeReadout" style="color: #8E9BAE; font-size: 11.5px; font-family: monospace;"></span>
       </div>
       <div class="gallery-actions">
-        <input type="text" class="search-box" id="searchBox" placeholder="🔍 Search assets..." />
+        <input type="text" class="search-box" id="searchBox" placeholder="🔍 Search by file, font, layer text..." />
         <button class="btn-tool" id="btnRefresh" type="button" title="Refresh Gallery">🔄 Refresh</button>
         <button class="btn-tool btn-danger" id="btnDeleteAll" type="button" title="Delete Ingested Images">🗑️ Clear Ingested</button>
       </div>
@@ -828,19 +1067,50 @@ function generateHtml(isRoot) {
     </div>
   </div>
 
+  <!-- FONT JSON INSPECTOR MODAL -->
+  <div id="fontJsonModal">
+    <div class="lightbox-content font-json-content">
+      <button class="lightbox-close" id="fontJsonClose" title="Close (Esc)">✕</button>
+      <div class="font-modal-header">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span style="font-size: 26px;">🔤</span>
+          <div>
+            <h2 id="fontModalTitle">Profile Name</h2>
+            <p id="fontModalSubtitle" style="color: #8E9BAE; font-size: 11.5px; font-family: monospace;"></p>
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn-tool" id="btnCopyFontJson" type="button">📋 Copy JSON</button>
+          <a class="btn-tool" id="btnDownloadFontJson" download href="" style="text-decoration:none;">⬇️ Download JSON</a>
+        </div>
+      </div>
+      <div class="modal-subnav">
+        <button class="modal-subnav-btn active" id="btnSubnavLayers" type="button" onclick="showFontModalTab('layers')">Visual Layers</button>
+        <button class="modal-subnav-btn" id="btnSubnavRaw" type="button" onclick="showFontModalTab('raw')">Raw JSON Source</button>
+      </div>
+      <div id="fontModalLayersView" class="font-modal-body"></div>
+      <div id="fontModalRawView" class="font-modal-body" style="display: none;">
+        <pre><code id="fontModalCodeBlock"></code></pre>
+      </div>
+    </div>
+  </div>
+
   <script>
-    // PRE-BAKED INITIAL ASSETS (Guaranteed to show even offline on file://)
+    // PRE-BAKED INITIAL ASSETS
     const BAKED_UPLOADED = ${JSON.stringify(uploadedData, null, 2)};
+    const BAKED_CRANIAL = ${JSON.stringify(cranialData, null, 2)};
     const BAKED_REFERENCES = ${JSON.stringify(refData, null, 2)};
     const BAKED_VIDEOS = ${JSON.stringify(videoData, null, 2)};
 
     let currentTab = 'uploaded';
     let allScreenshots = [...BAKED_UPLOADED];
+    let allCranial = [...BAKED_CRANIAL];
     let allReferences = [...BAKED_REFERENCES];
     let allVideos = [...BAKED_VIDEOS];
     let offlineQueue = [];
     let isBackendLive = false;
     let localDirHandle = null;
+    let activeFontProfile = null;
 
     const DB_NAME = 'PrometheusStudioDB';
     const STORE_NAME = 'pasted_assets';
@@ -857,6 +1127,15 @@ function generateHtml(isRoot) {
     const backendUrlInput = document.getElementById('backendUrlInput');
     const btnSyncOffline = document.getElementById('btnSyncOffline');
     const btnLinkFolder = document.getElementById('btnLinkFolder');
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
 
     /* INDEXED DB ENGINE (Persistent Storage without Server) */
     function openDB() {
@@ -954,7 +1233,7 @@ function generateHtml(isRoot) {
 
     function getBackendBase() {
       if (isHttpProtocol()) return window.location.origin;
-      return backendUrlInput.value.trim().replace(/\\/+$/, '') || 'http://localhost:8080';
+      return backendUrlInput.value.trim().replace(/\/+$/, '') || 'http://localhost:8080';
     }
 
     if (isHttpProtocol()) {
@@ -1005,11 +1284,12 @@ function generateHtml(isRoot) {
 
     function switchTab(tab) {
       currentTab = tab;
-      ['tabUploaded', 'tabRef', 'tabVideos', 'tabAll'].forEach(id => {
+      ['tabUploaded', 'tabCranial', 'tabRef', 'tabVideos', 'tabAll'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.remove('active');
       });
       if (tab === 'uploaded') document.getElementById('tabUploaded').classList.add('active');
+      if (tab === 'cranial') document.getElementById('tabCranial').classList.add('active');
       if (tab === 'reference') document.getElementById('tabRef').classList.add('active');
       if (tab === 'video') document.getElementById('tabVideos').classList.add('active');
       if (tab === 'all') document.getElementById('tabAll').classList.add('active');
@@ -1041,7 +1321,7 @@ function generateHtml(isRoot) {
       isBackendLive = false;
       if (!localDirHandle) {
         statusPill.className = 'status-pill status-offline';
-        statusText.innerText = '🟡 Standalone Local Mode (' + (allScreenshots.length + allReferences.length) + ' assets loaded)';
+        statusText.innerText = '🟡 Standalone Local Mode (' + (allScreenshots.length + allCranial.length + allReferences.length) + ' assets loaded)';
       }
       btnSyncOffline.style.display = 'none';
       return false;
@@ -1081,7 +1361,6 @@ function generateHtml(isRoot) {
       // Load persistent items from IndexedDB
       const persisted = await loadFromDB();
       if (persisted && persisted.length > 0) {
-        // Merge into offlineQueue without duplicates
         const existingNames = new Set(offlineQueue.map(x => x.name));
         persisted.forEach(p => {
           if (!existingNames.has(p.name)) {
@@ -1096,12 +1375,14 @@ function generateHtml(isRoot) {
 
     function updateTabCounts() {
       const uCount = allScreenshots.length + offlineQueue.length;
+      const cCount = allCranial.length;
       const rCount = allReferences.length;
       const vCount = allVideos.length;
       document.getElementById('countUploaded').innerText = uCount;
+      document.getElementById('countCranial').innerText = cCount;
       document.getElementById('countRef').innerText = rCount;
       document.getElementById('countVideos').innerText = vCount;
-      document.getElementById('countAll').innerText = uCount + rCount + vCount;
+      document.getElementById('countAll').innerText = uCount + cCount + rCount + vCount;
     }
 
     function renderGallery() {
@@ -1109,17 +1390,31 @@ function generateHtml(isRoot) {
       let pool = [];
 
       if (currentTab === 'uploaded') pool = [...offlineQueue, ...allScreenshots];
+      else if (currentTab === 'cranial') pool = [...allCranial];
       else if (currentTab === 'reference') pool = [...allReferences];
       else if (currentTab === 'video') pool = [...allVideos];
-      else pool = [...offlineQueue, ...allScreenshots, ...allReferences, ...allVideos];
+      else pool = [...offlineQueue, ...allScreenshots, ...allCranial, ...allReferences, ...allVideos];
 
-      const filtered = pool.filter(item => item.name.toLowerCase().includes(q));
+      const filtered = pool.filter(item => {
+        if (!q) return true;
+        if (item.name.toLowerCase().includes(q)) return true;
+        if (item.fontProfile) {
+          const p = item.fontProfile;
+          if (p.profile_name && p.profile_name.toLowerCase().includes(q)) return true;
+          if (p.primary_font && p.primary_font.toLowerCase().includes(q)) return true;
+          if (p.accent_font && p.accent_font.toLowerCase().includes(q)) return true;
+          if (p.overall_mood && p.overall_mood.toLowerCase().includes(q)) return true;
+          if (p.layers && p.layers.some(l => (l.text && l.text.toLowerCase().includes(q)) || (l.font && l.font.toLowerCase().includes(q)))) return true;
+        }
+        return false;
+      });
       
       const badge = document.getElementById('galleryBadge');
       const sizeReadout = document.getElementById('gallerySizeReadout');
       const titleEl = document.getElementById('gallerySectionTitle');
 
       if (currentTab === 'uploaded') titleEl.innerText = 'Uploaded Screenshots';
+      else if (currentTab === 'cranial') titleEl.innerText = '👑 Cranial Head Section (Crown & Headroom)';
       else if (currentTab === 'reference') titleEl.innerText = 'Curated Reference Bank';
       else if (currentTab === 'video') titleEl.innerText = 'Principal Speaker Videos';
       else titleEl.innerText = 'All Assets';
@@ -1161,8 +1456,16 @@ function generateHtml(isRoot) {
         }
 
         const tag = document.createElement('span');
-        tag.className = 'item-category-tag ' + (item.isPersisted ? 'tag-persisted' : (item.category === 'reference' ? 'tag-reference' : 'tag-uploaded'));
-        tag.innerText = item.isPersisted ? 'SAVED (DB)' : (item.isOffline ? 'OFFLINE' : (item.category === 'reference' ? 'REF' : 'UPLOAD'));
+        let tagClass = 'tag-uploaded';
+        let tagText = 'UPLOAD';
+        if (item.isPersisted) { tagClass = 'tag-persisted'; tagText = 'SAVED (DB)'; }
+        else if (item.isOffline) { tagClass = 'tag-offline'; tagText = 'OFFLINE'; }
+        else if (item.category === 'cranial') { tagClass = 'tag-cranial'; tagText = '👑 CRANIAL'; }
+        else if (item.category === 'reference') { tagClass = 'tag-reference'; tagText = 'REF'; }
+        else if (item.category === 'video') { tagClass = 'tag-reference'; tagText = 'VIDEO'; }
+
+        tag.className = 'item-category-tag ' + tagClass;
+        tag.innerText = tagText;
         card.appendChild(tag);
 
         const details = document.createElement('div');
@@ -1181,6 +1484,31 @@ function generateHtml(isRoot) {
 
         details.appendChild(nameEl);
         details.appendChild(metaEl);
+
+        // FONT JSON SPEC DISPLAY
+        if (item.fontProfile) {
+          const p = item.fontProfile;
+          const specDiv = document.createElement('div');
+          specDiv.className = 'item-font-spec';
+          
+          let chipsHtml = '<div class="font-spec-row">';
+          chipsHtml += '<span class="font-chip primary-chip" title="Primary Font">🔤 ' + escapeHtml(p.primary_font) + ' ' + (p.primary_weight || '') + '</span>';
+          if (p.accent_font) {
+            chipsHtml += '<span class="font-chip accent-chip" title="Accent Font">✨ ' + escapeHtml(p.accent_font) + '</span>';
+          }
+          chipsHtml += '<span class="font-chip layers-chip" title="Layer Count">' + p.layer_count + 'L</span>';
+          if (p.is_cranial) {
+            chipsHtml += '<span class="font-chip cranial-chip" title="Cranial Crown / Headroom">👑 Head</span>';
+          }
+          chipsHtml += '</div>';
+
+          if (p.overall_mood) {
+            chipsHtml += '<div class="font-spec-mood" title="' + escapeHtml(p.overall_mood) + '">' + escapeHtml(p.overall_mood) + '</div>';
+          }
+
+          specDiv.innerHTML = chipsHtml;
+          details.appendChild(specDiv);
+        }
 
         const btnBar = document.createElement('div');
         btnBar.className = 'item-btn-bar';
@@ -1204,6 +1532,23 @@ function generateHtml(isRoot) {
           else openLightbox(itemSrc, item.name);
         };
 
+        btnBar.appendChild(copyBtn);
+        btnBar.appendChild(viewBtn);
+
+        // INSPECT FONT JSON BUTTON
+        if (item.fontProfile) {
+          const jsonBtn = document.createElement('button');
+          jsonBtn.className = 'btn-item btn-item-json';
+          jsonBtn.type = 'button';
+          jsonBtn.innerHTML = '{ } JSON';
+          jsonBtn.title = 'Inspect Font JSON Profile';
+          jsonBtn.onclick = (e) => {
+            e.stopPropagation();
+            openFontJsonModal(item);
+          };
+          btnBar.appendChild(jsonBtn);
+        }
+
         const delBtn = document.createElement('button');
         delBtn.className = 'btn-item btn-item-del';
         delBtn.type = 'button';
@@ -1215,9 +1560,7 @@ function generateHtml(isRoot) {
           else deleteSingleImage(item.name, item.isOffline || item.isPersisted);
         };
 
-        btnBar.appendChild(copyBtn);
-        btnBar.appendChild(viewBtn);
-        if (item.category !== 'reference') {
+        if (item.category !== 'reference' && item.category !== 'cranial') {
           btnBar.appendChild(delBtn);
         }
 
@@ -1229,6 +1572,84 @@ function generateHtml(isRoot) {
       });
     }
 
+    function openFontJsonModal(item) {
+      const p = item.fontProfile;
+      if (!p) return;
+      activeFontProfile = p;
+
+      document.getElementById('fontModalTitle').innerText = p.profile_name || p.id;
+      document.getElementById('fontModalSubtitle').innerText = p.filename + ' • Zone: ' + p.dominant_zone + ' • ' + p.layer_count + ' Layers • ' + p.total_words + ' Words • ' + (p.casing_strategy || 'mixed');
+
+      // Render Visual Layers
+      const layersView = document.getElementById('fontModalLayersView');
+      let layersHtml = '<table class="layers-table">' +
+        '<thead>' +
+          '<tr>' +
+            '<th>Layer / Role</th>' +
+            '<th>Sample Text</th>' +
+            '<th>Font Family</th>' +
+            '<th>Weight</th>' +
+            '<th>Color</th>' +
+            '<th>Depth / Occlusion</th>' +
+          '</tr>' +
+        '</thead>' +
+        '<tbody>';
+
+      (p.layers || []).forEach(l => {
+        layersHtml += '<tr>' +
+          '<td><strong>' + escapeHtml(l.name) + '</strong><br><small style="color:#8E9BAE">' + escapeHtml(l.role) + '</small></td>' +
+          '<td class="layer-sample-text">' + escapeHtml(l.text) + '</td>' +
+          '<td><span class="font-family-badge">' + escapeHtml(l.font) + '</span></td>' +
+          '<td>' + l.weight + '</td>' +
+          '<td><span class="color-swatch" style="background:' + l.color + ';"></span> <small>' + l.color + '</small></td>' +
+          '<td>' + (l.behindSubject ? '<span class="tag-depth-behind">BEHIND HEAD</span>' : '<span class="tag-depth-fore">FOREGROUND</span>') + '</td>' +
+        '</tr>';
+      });
+      layersHtml += '</tbody></table>';
+      layersView.innerHTML = layersHtml;
+
+      // Render Raw JSON
+      const codeBlock = document.getElementById('fontModalCodeBlock');
+      codeBlock.textContent = JSON.stringify(p.raw_data, null, 2);
+
+      // Setup Download Link
+      const dlBtn = document.getElementById('btnDownloadFontJson');
+      const blob = new Blob([JSON.stringify(p.raw_data, null, 2)], { type: 'application/json' });
+      dlBtn.href = URL.createObjectURL(blob);
+      dlBtn.download = p.filename || (p.id + '.json');
+
+      showFontModalTab('layers');
+      document.getElementById('fontJsonModal').classList.add('open');
+    }
+
+    function showFontModalTab(tab) {
+      const btnLayers = document.getElementById('btnSubnavLayers');
+      const btnRaw = document.getElementById('btnSubnavRaw');
+      const viewLayers = document.getElementById('fontModalLayersView');
+      const viewRaw = document.getElementById('fontModalRawView');
+
+      if (tab === 'layers') {
+        btnLayers.classList.add('active');
+        btnRaw.classList.remove('active');
+        viewLayers.style.display = 'block';
+        viewRaw.style.display = 'none';
+      } else {
+        btnRaw.classList.add('active');
+        btnLayers.classList.remove('active');
+        viewRaw.style.display = 'block';
+        viewLayers.style.display = 'none';
+      }
+    }
+
+    document.getElementById('btnCopyFontJson').addEventListener('click', () => {
+      if (!activeFontProfile) return;
+      copyToClipboard(JSON.stringify(activeFontProfile.raw_data, null, 2), 'Copied Font JSON specification!');
+    });
+
+    document.getElementById('fontJsonClose').addEventListener('click', () => {
+      document.getElementById('fontJsonModal').classList.remove('open');
+    });
+
     async function uploadPayload(dataOrBlob, filenameHint) {
       let previewThumb = '';
       if (dataOrBlob instanceof Blob) {
@@ -1238,125 +1659,139 @@ function generateHtml(isRoot) {
         } catch {}
       }
       
-      const targetName = filenameHint || ('Screenshot_' + Date.now() + '.png');
-      const toast = showToast((previewThumb || '⏳ ') + '<span>Ingesting screenshot...</span>', 'uploading', 30000);
-      const base = getBackendBase();
+      const toast = showToast(previewThumb + 'Ingesting image to docs/mini_run_studio/uploaded_screenshots...', 'uploading', 15000);
 
-      // 1. Check if direct folder handle is mounted (No server needed)
-      if (localDirHandle && (dataOrBlob instanceof Blob)) {
-        const saved = await saveDirectToDisk(dataOrBlob, targetName);
-        if (saved) {
-          toast.remove();
-          showToast('✓ Saved real file to hard drive: ' + targetName, 'success', 3500);
-          await loadGallery();
-          return;
-        }
+      const targetName = filenameHint || ('Screenshot_' + Date.now() + '.png');
+      const fallbackLocalUrl = '${uploadPathPrefix}' + targetName;
+      const fallbackServerUrl = '/uploaded_screenshots/' + targetName;
+
+      let directSuccess = false;
+      if (dataOrBlob instanceof Blob && localDirHandle) {
+        directSuccess = await saveDirectToDisk(dataOrBlob, targetName);
       }
 
-      // 2. Try live HTTP server
-      try {
-        if (isBackendLive) {
+      if (directSuccess) {
+        toast.remove();
+        showToast('✓ Saved directly to disk: <code>' + targetName + '</code>', 'success');
+        const newItem = {
+          name: targetName,
+          size: dataOrBlob.size,
+          mtimeMs: Date.now(),
+          localUrl: fallbackLocalUrl,
+          serverUrl: fallbackServerUrl,
+          category: 'uploaded'
+        };
+        allScreenshots.unshift(newItem);
+        updateTabCounts();
+        renderGallery();
+        return;
+      }
+
+      if (isBackendLive) {
+        try {
           let res;
-          if (typeof dataOrBlob === 'string') {
-            res = await fetch(base + '/api/upload-paste', {
+          if (dataOrBlob instanceof Blob) {
+            const formData = new FormData();
+            formData.append('image', dataOrBlob, targetName);
+            res = await fetch(getBackendBase() + '/api/upload_screenshot', {
+              method: 'POST',
+              body: formData
+            });
+          } else {
+            res = await fetch(getBackendBase() + '/api/upload_screenshot', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ image: dataOrBlob, filename: targetName })
             });
-          } else {
-            let url = base + '/api/upload-paste?filename=' + encodeURIComponent(targetName);
-            res = await fetch(url, {
-              method: 'POST',
-              headers: { 'Content-Type': dataOrBlob.type || 'application/octet-stream' },
-              body: dataOrBlob
-            });
           }
 
-          const data = await res.json();
           toast.remove();
-
-          if (data.status === 'success') {
-            showToast('✓ Saved to disk: ' + data.filename + ' (' + formatBytes(data.bytes) + ')', 'success', 3500);
+          if (res.ok) {
+            const data = await res.json();
+            showToast('✓ Ingested to disk: <code>' + (data.filename || targetName) + '</code>', 'success');
             await loadGallery();
-            return;
+          } else {
+            throw new Error('Server returned ' + res.status);
           }
+          return;
+        } catch (err) {
+          console.warn('Live server upload failed, falling back to persistent DB:', err);
         }
-      } catch (err) {
-        console.warn('Live upload failed, saving to IndexedDB:', err);
       }
 
-      // 3. Fallback: Save to browser IndexedDB persistent storage
       toast.remove();
       let dataUrl = '';
-      let size = 0;
-
+      let itemSize = 0;
       if (dataOrBlob instanceof Blob) {
-        size = dataOrBlob.size;
-        dataUrl = await new Promise(r => {
+        itemSize = dataOrBlob.size;
+        dataUrl = await new Promise((res) => {
           const reader = new FileReader();
-          reader.onload = () => r(reader.result);
+          reader.onload = (ev) => res(ev.target.result);
           reader.readAsDataURL(dataOrBlob);
         });
-      } else if (typeof dataOrBlob === 'string') {
+      } else {
         dataUrl = dataOrBlob;
-        size = Math.round(dataOrBlob.length * 0.75);
       }
 
-      const itemRecord = {
+      const offlineItem = {
         name: targetName,
-        dataUrl,
-        size,
+        size: itemSize,
         mtimeMs: Date.now(),
+        dataUrl: dataUrl,
+        localUrl: fallbackLocalUrl,
+        serverUrl: fallbackServerUrl,
         isOffline: true,
         isPersisted: true,
         category: 'uploaded'
       };
 
-      await saveToDB(itemRecord);
-      offlineQueue.unshift(itemRecord);
-
-      showToast('💾 Saved to persistent browser storage: ' + targetName, 'info', 4000);
+      await saveToDB(offlineItem);
+      offlineQueue.unshift(offlineItem);
       updateTabCounts();
       renderGallery();
-      btnSyncOffline.style.display = 'inline-block';
-      btnSyncOffline.innerText = '⚡ Sync ' + offlineQueue.length + ' Offline Items';
+
+      showToast('⚡ Ingested & Persisted in Local DB (Will sync to disk when backend is started)', 'info', 5000);
     }
 
     async function syncOfflineQueue() {
       if (offlineQueue.length === 0) return;
-      const toast = showToast('⏳ Syncing ' + offlineQueue.length + ' offline screenshots...', 'uploading', 30000);
-      const items = [...offlineQueue];
-      let syncedCount = 0;
+      showToast('⚡ Syncing ' + offlineQueue.length + ' assets to server disk...', 'uploading', 10000);
 
-      for (const item of items) {
+      const toSync = [...offlineQueue];
+      for (const item of toSync) {
         try {
-          const payload = item.dataUrl;
-          await uploadPayload(payload, item.name);
-          await deleteFromDB(item.name);
-          offlineQueue = offlineQueue.filter(x => x.name !== item.name);
-          syncedCount++;
-        } catch {}
+          const res = await fetch(getBackendBase() + '/api/upload_screenshot', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: item.dataUrl, filename: item.name })
+          });
+          if (res.ok) {
+            await deleteFromDB(item.name);
+            offlineQueue = offlineQueue.filter(x => x.name !== item.name);
+          }
+        } catch (e) {
+          console.warn('Failed to sync item:', item.name, e);
+        }
       }
 
-      toast.remove();
-      showToast('✓ Successfully synced ' + syncedCount + ' items to backend disk!', 'success', 4000);
-      await loadGallery();
+      updateTabCounts();
+      renderGallery();
+      showToast('✓ Synced offline items to backend disk storage!', 'success');
     }
 
-    async function uploadVideoPayload(file, filenameHint) {
-      const base = getBackendBase();
-      const toast = showToast('⏳ Uploading matted video: ' + filenameHint + '...', 'uploading', 60000);
+    async function uploadVideoPayload(dataOrBlob, filenameHint) {
+      const toast = showToast('Uploading matted video asset...', 'uploading', 25000);
       try {
-        const url = base + '/api/upload-video?filename=' + encodeURIComponent(filenameHint);
-        const res = await fetch(url, {
+        const formData = new FormData();
+        formData.append('video', dataOrBlob, filenameHint);
+        const res = await fetch(getBackendBase() + '/api/upload_video', {
           method: 'POST',
-          headers: { 'Content-Type': file.type || 'video/mp4' },
-          body: file
+          body: formData
         });
-        const data = await res.json();
         toast.remove();
-        if (data.status === 'success') {
-          showToast('✓ Matted video saved: ' + data.filename, 'success', 3500);
+        if (res.ok) {
+          const data = await res.json();
+          showToast('✓ Video ingested: <code>' + (data.filename || filenameHint) + '</code>', 'success');
           await loadGallery();
         } else {
           showToast('❌ Video upload failed: ' + (data.error || 'Error'), 'error', 6000);
@@ -1373,7 +1808,7 @@ function generateHtml(isRoot) {
         const file = fileList[i];
         if (file.type && file.type.startsWith('image/')) {
           await uploadPayload(file, file.name);
-        } else if (!file.type || file.type.startsWith('video/') || /\\.(mp4|webm|mov|m4v|mkv|avi)$/i.test(file.name || '')) {
+        } else if (!file.type || file.type.startsWith('video/') || /\.(mp4|webm|mov|m4v|mkv|avi)$/i.test(file.name || '')) {
           await uploadVideoPayload(file, file.name || ('MattedVideo_' + Date.now() + '.mp4'));
         }
       }
@@ -1454,6 +1889,7 @@ function generateHtml(isRoot) {
       if (e.key === 'Escape') {
         document.getElementById('lightboxModal').classList.remove('open');
         document.getElementById('videoLightboxModal').classList.remove('open');
+        document.getElementById('fontJsonModal').classList.remove('open');
       }
     });
 
@@ -1468,84 +1904,101 @@ function generateHtml(isRoot) {
       }
       const base = getBackendBase();
       try {
-        const res = await fetch(base + '/api/delete_screenshot', {
+        const res = await fetch(base + '/api/delete_uploaded_screenshot', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ filename: name })
         });
         if (res.ok) {
-          showToast('✓ Deleted: ' + name, 'success');
+          showToast('Deleted item: ' + name, 'info');
           await loadGallery();
+        } else {
+          showToast('Could not delete ' + name, 'error');
         }
       } catch (err) {
-        showToast('❌ Delete failed: ' + err.message, 'error');
+        showToast('Delete error: ' + err.message, 'error');
       }
     }
 
     async function deleteVideoAsset(name) {
       const base = getBackendBase();
       try {
-        const res = await fetch(base + '/api/delete_video', {
+        const res = await fetch(base + '/api/delete_uploaded_video', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ filename: name })
         });
         if (res.ok) {
-          showToast('✓ Deleted video: ' + name, 'success');
+          showToast('Deleted video: ' + name, 'info');
           await loadGallery();
+        } else {
+          showToast('Could not delete ' + name, 'error');
         }
       } catch (err) {
-        showToast('❌ Delete failed: ' + err.message, 'error');
+        showToast('Delete error: ' + err.message, 'error');
       }
     }
 
-    // UI EVENT LISTENERS
-    document.getElementById('btnPasteClipboard').addEventListener('click', async () => {
+    document.getElementById('btnDeleteAll').addEventListener('click', async () => {
+      if (!confirm('Are you sure you want to delete all ingested screenshots?')) return;
+      if (offlineQueue.length > 0) {
+        for (const item of offlineQueue) {
+          await deleteFromDB(item.name);
+        }
+        offlineQueue = [];
+      }
+      const base = getBackendBase();
       try {
-        if (navigator.clipboard && navigator.clipboard.read) {
-          const items = await navigator.clipboard.read();
-          for (const item of items) {
-            for (const type of item.types) {
-              if (type.startsWith('image/')) {
-                const blob = await item.getType(type);
-                await uploadPayload(blob, 'Clipboard_' + Date.now() + '.png');
-                return;
-              }
-            }
-          }
+        const res = await fetch(base + '/api/clear_uploaded_screenshots', { method: 'POST' });
+        if (res.ok) {
+          showToast('Ingested screenshots cleared!', 'success');
         }
       } catch {}
-      showToast('👉 Press Ctrl+V (or ⌘V) on your keyboard to paste.', 'info', 4000);
+      await loadGallery();
     });
 
-    document.getElementById('btnBrowseFiles').addEventListener('click', (e) => {
-      e.stopPropagation();
-      filePicker.click();
+    // UI BUTTON EVENT LISTENERS
+    document.getElementById('btnPasteClipboard').addEventListener('click', async () => {
+      try {
+        const clipItems = await navigator.clipboard.read();
+        let handled = false;
+        for (const item of clipItems) {
+          const imageType = item.types.find(t => t.startsWith('image/'));
+          if (imageType) {
+            const blob = await item.getType(imageType);
+            await uploadPayload(blob, 'Clipboard_' + Date.now() + '.png');
+            handled = true;
+            break;
+          }
+        }
+        if (!handled) {
+          const text = await navigator.clipboard.readText();
+          if (text && (text.startsWith('http://') || text.startsWith('https://') || text.startsWith('data:image/'))) {
+            await uploadPayload(text.trim(), 'Pasted_URL_' + Date.now() + '.png');
+          } else {
+            showToast('No image or image URL found in system clipboard.', 'info');
+          }
+        }
+      } catch (err) {
+        showToast('Press Ctrl+V (or ⌘V) on your keyboard to paste.', 'info', 4000);
+      }
     });
+
+    document.getElementById('btnBrowseFiles').addEventListener('click', () => filePicker.click());
     filePicker.addEventListener('change', (e) => handleFiles(e.target.files));
 
-    document.getElementById('btnUploadVideo').addEventListener('click', (e) => {
-      e.stopPropagation();
-      videoFilePicker.click();
-    });
+    document.getElementById('btnUploadVideo').addEventListener('click', () => videoFilePicker.click());
     videoFilePicker.addEventListener('change', (e) => handleFiles(e.target.files));
 
-    dropzone.addEventListener('click', (e) => {
-      if (e.target.closest('button') || e.target.closest('input')) return;
-      filePicker.click();
-    });
-
-    document.getElementById('btnToggleUrl').addEventListener('click', (e) => {
-      e.stopPropagation();
+    document.getElementById('btnToggleUrl').addEventListener('click', () => {
       urlInputWrap.classList.toggle('open');
       if (urlInputWrap.classList.contains('open')) manualInput.focus();
     });
 
-    document.getElementById('btnSubmitManual').addEventListener('click', async (e) => {
-      e.stopPropagation();
+    document.getElementById('btnSubmitManual').addEventListener('click', () => {
       const val = manualInput.value.trim();
       if (!val) return;
-      await uploadPayload(val, 'Manual_Import_' + Date.now() + '.png');
+      uploadPayload(val, 'Manual_' + Date.now() + '.png');
       manualInput.value = '';
       urlInputWrap.classList.remove('open');
     });
@@ -1583,4 +2036,4 @@ function generateHtml(isRoot) {
 
 fs.writeFileSync(path.join(repoRoot, "paste.html"), generateHtml(true), "utf8");
 fs.writeFileSync(path.join(studioDir, "paste.html"), generateHtml(false), "utf8");
-console.log(`Generated paste.html (root) and docs/mini_run_studio/paste.html with IndexedDB persistence & File System API support!`);
+console.log("Successfully generated paste.html (root) and docs/mini_run_studio/paste.html with Font JSON Support & Cranial Head Section!");

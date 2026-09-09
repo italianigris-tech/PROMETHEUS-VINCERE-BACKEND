@@ -37,8 +37,6 @@ REFERENCE_FRAME_FILES = [
     "Screenshot_07_174002.png",
     "Screenshot_08_174018.png",
     "Screenshot_10_021337.png",
-    "Screenshot_11_021343.png",
-    "Screenshot_12_021354.png",
     "Screenshot_14_021413.png",
 ]
 
@@ -52,8 +50,6 @@ REFERENCE_PHRASES = [
     "most creators and video editors",
     "spending hours on each video",
     "to sleep tonight.",
-    "my mom said to me,",
-    "my mom",
     "less.",
 ]
 
@@ -65,8 +61,6 @@ REFERENCE_PROFILE_NAMES = [
     "Spending_Hours_On_Each_Video_Script_Editorial",
     "Most_Creators_And_Video_Editors_Mixed_Script_Sans",
     "To_Sleep_Tonight_Two_Tone_Overlap_Treatment",
-    "My_Mom_Said_To_Me_Wall_Man_Z_Plane_Treatment",
-    "My_Mom_Wall_Man_Single_Line_Z_Plane",
     "Less_See_Through_Video_Letterform_Treatment",
 ]
 
@@ -90,7 +84,6 @@ REFERENCE_TOKENS = [
     "Spending_Hours",
     "Most_Creators",
     "To_Sleep",
-    "My_Mom",
     "Less",
 ]
 

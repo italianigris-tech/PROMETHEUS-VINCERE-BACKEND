@@ -1,0 +1,132 @@
+{
+  "filename": "image (71).json",
+  "profile_id": "image (71)",
+  "profile_name": "Youll_Wake_Up_Someone_Else_Mega_Impact_Stack",
+  "version": "1.0.0",
+  "cranial_spec": {
+    "alignment": "center",
+    "dominant_zone": "cranial_crown",
+    "head_framing": {
+      "x": 0.48,
+      "y": 0.25,
+      "width": 0.25,
+      "height": 0.35,
+      "headroom_ratio": 0.25
+    },
+    "text_relationship": "flank_and_chest_wrap_with_occlusion",
+    "suitable_word_counts": [
+      4,
+      5,
+      6,
+      7
+    ],
+    "character_count_range": [
+      15,
+      40
+    ]
+  },
+  "metadata": {
+    "target_aspect_ratio": "9:16",
+    "overall_mood": "Brutalist high-contrast impact stack with live subject occlusion",
+    "casing_strategy": "mixed",
+    "total_word_count": 6,
+    "total_character_count": 32,
+    "treatment_system": "subject_occlusion_stack",
+    "treatment_notes": "Multi-line massive brutalist stack. YOU'LL upper left satellite, wake up massive grotesque behind subject, and someone mid-deck, ELSE. bottom heavy hero anchor.",
+    "paired_image": "image (71).png",
+    "mixed_fonts_verified": true,
+    "mixfont_extracted_at": "2026-09-08T18:00:00Z"
+  },
+  "layout_rules": {
+    "horizontal_alignment": "center",
+    "vertical_position": "center",
+    "upper_cranial_y_percent": 15.0,
+    "behind_subject_depth": true
+  },
+  "typography_layers": [
+    {
+      "layer_name": "satellite_youll",
+      "role": "satellite_prefix",
+      "raw_text": "YOU'LL",
+      "font_classification": "Heavy Condensed Display Sans",
+      "font_family": "Montserrat",
+      "font_style": {
+        "weight": 900,
+        "style": "normal",
+        "casing": "uppercase",
+        "color": "#FFFFFF",
+        "size_px_base": 56,
+        "letter_spacing_em": -0.02,
+        "line_height": 1.0
+      },
+      "effects": {
+        "shadow": "0 4px 16px rgba(0,0,0,0.8)",
+        "behindSubject": false,
+        "depthZPx": 0
+      }
+    },
+    {
+      "layer_name": "hero_wake_up",
+      "role": "hero_keyword",
+      "raw_text": "wake up",
+      "font_classification": "Ultra Heavy Grotesque",
+      "font_family": "Syne",
+      "font_style": {
+        "weight": 900,
+        "style": "normal",
+        "casing": "lowercase",
+        "color": "#FFFFFF",
+        "size_px_base": 120,
+        "letter_spacing_em": -0.04,
+        "line_height": 0.88
+      },
+      "effects": {
+        "shadow": "0 8px 32px rgba(0,0,0,0.9)",
+        "behindSubject": true,
+        "depthZPx": 150
+      }
+    },
+    {
+      "layer_name": "mid_deck_connector",
+      "role": "secondary_clause",
+      "raw_text": "and someone",
+      "font_classification": "Modern Bold Sans",
+      "font_family": "Outfit",
+      "font_style": {
+        "weight": 700,
+        "style": "normal",
+        "casing": "lowercase",
+        "color": "#FFFFFF",
+        "size_px_base": 48,
+        "letter_spacing_em": 0.0,
+        "line_height": 1.0
+      },
+      "effects": {
+        "shadow": "0 2px 12px rgba(0,0,0,0.7)",
+        "behindSubject": false,
+        "depthZPx": 0
+      }
+    },
+    {
+      "layer_name": "bottom_hero_else",
+      "role": "hero_keyword",
+      "raw_text": "ELSE.",
+      "font_classification": "Heavy Industrial Block Sans",
+      "font_family": "Montserrat",
+      "font_style": {
+        "weight": 900,
+        "style": "normal",
+        "casing": "uppercase",
+        "color": "#FFFFFF",
+        "size_px_base": 130,
+        "letter_spacing_em": -0.02,
+        "line_height": 0.85
+      },
+      "effects": {
+        "shadow": "0 6px 28px rgba(0,0,0,0.9)",
+        "behindSubject": false,
+        "depthZPx": 50
+      }
+    }
+  ]
+}

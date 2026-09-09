@@ -1,0 +1,91 @@
+{
+  "filename": "image (70).json",
+  "profile_id": "image (70)",
+  "profile_name": "Real_Estate_Cranial_Crown_Subject_Occlusion",
+  "version": "1.0.0",
+  "cranial_spec": {
+    "alignment": "center",
+    "dominant_zone": "cranial_crown",
+    "head_framing": {
+      "x": 0.5,
+      "y": 0.45,
+      "width": 0.28,
+      "height": 0.35,
+      "headroom_ratio": 0.38
+    },
+    "text_relationship": "crown_above_hair_and_occluded_lower_estate",
+    "suitable_word_counts": [
+      1,
+      2,
+      3
+    ],
+    "character_count_range": [
+      4,
+      16
+    ]
+  },
+  "metadata": {
+    "target_aspect_ratio": "9:16",
+    "overall_mood": "High-end luxury editorial, clean modern cranial crown with subtle subject hair occlusion",
+    "casing_strategy": "mixed",
+    "total_word_count": 2,
+    "total_character_count": 10,
+    "treatment_system": "cranial_occlusion",
+    "treatment_notes": "Two-tier cranial stack. 'Real' floats as an upper crisp white sans title, while 'estate' renders in massive heavy grotesque behind the speaker hairline.",
+    "paired_image": "image (70).png",
+    "mixed_fonts_verified": true,
+    "mixfont_extracted_at": "2026-09-08T18:00:00Z"
+  },
+  "layout_rules": {
+    "horizontal_alignment": "center",
+    "vertical_position": "above_head_cranial_stack",
+    "upper_cranial_y_percent": 22.0,
+    "behind_subject_depth": true
+  },
+  "typography_layers": [
+    {
+      "layer_name": "upper_real_callout",
+      "role": "satellite_prefix",
+      "raw_text": "Real",
+      "font_classification": "Geometric Modern Round Sans",
+      "font_family": "Outfit",
+      "accent_font": "Plus Jakarta Sans",
+      "font_style": {
+        "weight": 600,
+        "style": "normal",
+        "casing": "capitalize",
+        "color": "#FFFFFF",
+        "size_px_base": 64,
+        "letter_spacing_em": -0.01,
+        "line_height": 1.0
+      },
+      "effects": {
+        "shadow": "0 2px 14px rgba(0,0,0,0.6)",
+        "behindSubject": false,
+        "depthZPx": 0
+      }
+    },
+    {
+      "layer_name": "cranial_estate_deck",
+      "role": "hero_keyword",
+      "raw_text": "estate",
+      "font_classification": "Heavy Grotesque Punch Sans",
+      "font_family": "Montserrat",
+      "accent_font": "Syne",
+      "font_style": {
+        "weight": 900,
+        "style": "normal",
+        "casing": "lowercase",
+        "color": "#E5E7EB",
+        "size_px_base": 110,
+        "letter_spacing_em": -0.03,
+        "line_height": 0.95
+      },
+      "effects": {
+        "shadow": "0 6px 30px rgba(0,0,0,0.85)",
+        "behindSubject": true,
+        "depthZPx": 120
+      }
+    }
+  ]
+}

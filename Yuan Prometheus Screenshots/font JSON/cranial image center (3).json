@@ -1,0 +1,90 @@
+{
+  "filename": "cranial image center (3).json",
+  "profile_id": "cranial image center (3)",
+  "profile_name": "Bilateral_Sunset_Numeral_Span",
+  "version": "1.0.0",
+  "cranial_spec": {
+    "alignment": "center",
+    "dominant_zone": "cranial_crown",
+    "head_framing": {
+      "x": 0.392,
+      "y": 0.395,
+      "width": 0.171,
+      "height": 0.498,
+      "headroom_ratio": 0.395
+    },
+    "text_relationship": "flank_anchored_numeral_and_sunset_word_span",
+    "suitable_word_counts": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "character_count_range": [
+      6,
+      20
+    ]
+  },
+  "metadata": {
+    "target_aspect_ratio": "9:16",
+    "overall_mood": "Warm Sunset Radiant Luxury, Chromatic Numeral Anchor",
+    "casing_strategy": "mixed",
+    "total_word_count": 3,
+    "total_character_count": 11,
+    "paired_image": "cranial image center (3).png"
+  },
+  "layout_rules": {
+    "horizontal_alignment": "center",
+    "vertical_position": "behind_subject_cranial_span",
+    "upper_cranial_y_percent": 36.0,
+    "behind_subject_depth": true
+  },
+  "typography_layers": [
+    {
+      "layer_name": "top_left_numeral_anchor",
+      "role": "numerical_anchor",
+      "raw_text": "10",
+      "font_classification": "Kinetic High-Impact Italic Sans",
+      "font_family": "Montserrat",
+      "accent_font": "Anton",
+      "font_style": {
+        "weight": 900,
+        "style": "italic",
+        "casing": "normal",
+        "color": "#FFFFFF",
+        "size_px_base": 72,
+        "letter_spacing_em": -0.03,
+        "line_height": 0.9
+      },
+      "effects": {
+        "shadow": "0 4px 14px rgba(0,0,0,0.85)",
+        "behindSubject": true,
+        "depthZPx": 120
+      }
+    },
+    {
+      "layer_name": "bilateral_sunset_words",
+      "role": "primary_focus_word",
+      "raw_text": "year old",
+      "font_classification": "Heavy Wide Modern Grotesque",
+      "font_family": "Montserrat",
+      "accent_font": "Syne",
+      "font_style": {
+        "weight": 800,
+        "style": "normal",
+        "casing": "lowercase",
+        "color": "#F97316",
+        "size_px_base": 140,
+        "letter_spacing_em": -0.03,
+        "line_height": 0.88
+      },
+      "effects": {
+        "gradient": "linear-gradient(135deg, #831843 0%, #BE185D 35%, #F97316 75%, #7C3AED 100%)",
+        "hasGradient": true,
+        "shadow": "0 6px 28px rgba(0,0,0,0.92)",
+        "behindSubject": true,
+        "depthZPx": 130
+      }
+    }
+  ]
+}

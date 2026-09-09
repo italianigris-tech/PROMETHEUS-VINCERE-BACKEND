@@ -1,4 +1,4 @@
-﻿"""Unified Typography Catalog — mini_run_pipeline authoritative registry.
+"""Unified Typography Catalog — mini_run_pipeline authoritative registry.
 
 Aggregates every portrait (9:16) font JSON profile and its paired placement
 image into a single hydrated registry. The editorial system (typography.py /
@@ -322,8 +322,18 @@ def build_catalog(include_landscape: bool = False) -> PortraitCatalog:
     # Cranial profiles are always portrait-only
     cranial_profiles = _load_cranial_profiles(cr_json, cr_pairs)
 
-    # The active portrait pool: standard portrait + cranial
-    portrait_profiles = portrait_standard + cranial_profiles
+    # Deduplicate by ID (giving precedence to dedicated cranial profiles)
+    seen_ids = set()
+    portrait_profiles = []
+    # Add dedicated cranial profiles first so their cranial_spec is preserved
+    for p in cranial_profiles:
+        seen_ids.add(p.id)
+        portrait_profiles.append(p)
+    # Then append non-duplicate standard profiles
+    for p in portrait_standard:
+        if p.id not in seen_ids:
+            seen_ids.add(p.id)
+            portrait_profiles.append(p)
 
     return PortraitCatalog(
         portrait_profiles=portrait_profiles,

@@ -1,0 +1,89 @@
+{
+  "filename": "cranial image center (2).json",
+  "profile_id": "cranial image center (2)",
+  "profile_name": "Bilateral_Split_Word_Occlusion_And_Prefix",
+  "version": "1.0.0",
+  "cranial_spec": {
+    "alignment": "center",
+    "dominant_zone": "cranial_crown",
+    "head_framing": {
+      "x": 0.418,
+      "y": 0.389,
+      "width": 0.168,
+      "height": 0.499,
+      "headroom_ratio": 0.389
+    },
+    "text_relationship": "bilateral_head_spanning_word_split",
+    "suitable_word_counts": [
+      1,
+      2,
+      3
+    ],
+    "character_count_range": [
+      4,
+      15
+    ]
+  },
+  "metadata": {
+    "target_aspect_ratio": "9:16",
+    "overall_mood": "High-Impact Kinetic Metallic Chrome, Head-Spanning Split Typography",
+    "casing_strategy": "mixed",
+    "total_word_count": 3,
+    "total_character_count": 11,
+    "paired_image": "cranial image center (2).png"
+  },
+  "layout_rules": {
+    "horizontal_alignment": "center",
+    "vertical_position": "behind_subject_cranial_span",
+    "upper_cranial_y_percent": 35.0,
+    "behind_subject_depth": true
+  },
+  "typography_layers": [
+    {
+      "layer_name": "left_flank_italic_prefix",
+      "role": "context_prefix",
+      "raw_text": "so I",
+      "font_classification": "Editorial Italic Serif/Sans",
+      "font_family": "Playfair Display",
+      "accent_font": "Instrument Sans",
+      "font_style": {
+        "weight": 400,
+        "style": "italic",
+        "casing": "normal",
+        "color": "#FFFFFF",
+        "size_px_base": 48,
+        "letter_spacing_em": 0.02,
+        "line_height": 1.0
+      },
+      "effects": {
+        "shadow": "0 2px 8px rgba(0,0,0,0.8)",
+        "behindSubject": true,
+        "depthZPx": 110
+      }
+    },
+    {
+      "layer_name": "bilateral_split_hero_word",
+      "role": "primary_focus_word",
+      "raw_text": "built",
+      "font_classification": "Heavy Italic Kinetic Grotesque",
+      "font_family": "Montserrat",
+      "accent_font": "Syne",
+      "font_style": {
+        "weight": 900,
+        "style": "italic",
+        "casing": "lowercase",
+        "color": "#CBD5E1",
+        "size_px_base": 180,
+        "letter_spacing_em": -0.04,
+        "line_height": 0.85
+      },
+      "effects": {
+        "gradient": "linear-gradient(135deg, #CBD5E1 0%, #FFFFFF 35%, #94A3B8 70%, #475569 100%)",
+        "hasGradient": true,
+        "shadow": "0 8px 32px rgba(0,0,0,0.95)",
+        "behindSubject": true,
+        "depthZPx": 140
+      }
+    }
+  ]
+}
