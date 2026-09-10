@@ -382,7 +382,9 @@ def build_background_catalog(texture_dir: Path = TEXTURE_DIR) -> List[Dict[str, 
     return catalog
 
 
-CONCRETE_ASSET_DIR = Path(__file__).resolve().parent.parent / "prometheus CONCRETE assets"
+_PRIMARY_CONCRETE_DIR = Path(__file__).resolve().parent.parent / "prometheus CONCRETE assets"
+_FALLBACK_CONCRETE_DIR = Path(__file__).resolve().parent.parent / "remotion-app" / "public" / "showcase-assets" / "imports" / "prometheus-concrete"
+CONCRETE_ASSET_DIR = _PRIMARY_CONCRETE_DIR if _PRIMARY_CONCRETE_DIR.exists() else _FALLBACK_CONCRETE_DIR
 STUDIO_ASSET_DIR = Path(__file__).resolve().parent.parent / "docs" / "mini_run_studio" / "assets"
 
 

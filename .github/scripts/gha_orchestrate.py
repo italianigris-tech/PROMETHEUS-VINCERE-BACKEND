@@ -138,6 +138,11 @@ def main():
         print(f"[orchestrate] Matched in remotion-app/public/source: {matched}", flush=True)
         shutil.copyfile(matched, local_vid)
         found_source = True
+    elif src_str and (REPO_ROOT / "remotion-app/public/dev-fixtures" / Path(src_str).name).exists():
+        matched = REPO_ROOT / "remotion-app/public/dev-fixtures" / Path(src_str).name
+        print(f"[orchestrate] Matched in remotion-app/public/dev-fixtures: {matched}", flush=True)
+        shutil.copyfile(matched, local_vid)
+        found_source = True
     elif src_str:
         key = src_str.lstrip("/")
         try:
@@ -149,10 +154,12 @@ def main():
 
     if not found_source:
         for candidate in [
+            REPO_ROOT / "remotion-app/public/source/test-video.mp4",
+            REPO_ROOT / "remotion-app/public/dev-fixtures/test-video.mp4",
             REPO_ROOT / "remotion-app/public/source/MALE-BLACK-TALKING-HEAD-PODCAST.mp4",
             REPO_ROOT / "remotion-app/public/source/test_video.mp4",
         ]:
-            if candidate.exists():
+            if candidate.exists() and candidate.stat().st_size > 1000:
                 print(f"[orchestrate] Using fallback repo video: {candidate}", flush=True)
                 shutil.copyfile(candidate, local_vid)
                 found_source = True

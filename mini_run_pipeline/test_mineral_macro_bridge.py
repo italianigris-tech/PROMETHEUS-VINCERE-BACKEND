@@ -186,6 +186,18 @@ class TestMineralMacroBridge(unittest.TestCase):
             img_file = Path(sec["requisite_image"]["file_path"])
             self.assertTrue(img_file.exists(), f"Image file does not exist: {img_file}")
 
+    def test_08_mineral_visual_fidelity_audit_integration(self):
+        """Verify mineral visual fidelity audit method on the engine."""
+        bedrock_img = MACRO_ASSETS_DIR / "mineral_bedrock_column_macro.jpg"
+        self.assertTrue(bedrock_img.exists())
+
+        # Audit using engine integration
+        report = self.engine.audit_mineral_visual_fidelity("MINERAL_BEDROCK", bedrock_img)
+        self.assertIsNotNone(report)
+        self.assertEqual(report.concept_id, "MINERAL_BEDROCK")
+        self.assertIsInstance(report.overall_score, float)
+        self.assertIn("materialDetected", report.mineral_tactile_fidelity)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -92,6 +92,7 @@ RUN python3.11 -m pip install --upgrade pip setuptools wheel && \
     "mediapipe==0.10.21" \
     opencv-python-headless \
     numpy \
+    pillow \
     requests
 
 # 6. Pre-install Remotion CLI & pre-bake headless Chromium browser

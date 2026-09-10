@@ -217,6 +217,10 @@ class LocalCatalogImageTool(EnablingImageTool):
             "I002": "i002_research_dossier_macro.jpg",
             "I003": "i003_systematic_gears_macro.jpg",
             "I004": "i004_experiment_testtube_macro.jpg",
+            "SR001": "i001_cast_iron_gear_macro.jpg",
+            "RMT002": "i002_research_dossier_macro.jpg",
+            "SEF003": "i003_systematic_gears_macro.jpg",
+            "HEA004": "i004_experiment_testtube_macro.jpg",
             "MINERAL_BEDROCK": "mineral_bedrock_column_macro.jpg",
         }
         target_name = filename_mapping.get(concept_id, f"{concept_id.lower()}_macro.jpg")
@@ -472,6 +476,67 @@ class MineralMacroBridgeEngine:
         # Write to destination manifest
         MANIFEST_OUTPUT_PATH.write_text(json.dumps(compiled_manifest, indent=2), encoding="utf-8")
         return compiled_manifest
+
+    def audit_mineral_visual_fidelity(
+        self,
+        concept_id: str,
+        frame_path: Union[str, Path],
+        font_contract: Optional[Any] = None,
+        gemini_critic: Optional[Any] = None,
+    ) -> Any:
+        """Inspect and self-correct mineral visual output using the GEMINI CRITIC.
+        
+        Strictly confined to the Mineral Section — checks material authenticity against
+        the declared mineral taxonomy and validates read-only font contracts.
+        """
+        from mini_run_pipeline.gemini_critic import (
+            GeminiCritic,
+            ObservedMineralFrame,
+            DeclaredMineralContract,
+            DeclaredFontContract,
+        )
+        engine = gemini_critic or GeminiCritic()
+        frame = ObservedMineralFrame.from_file(frame_path)
+
+        mineral_key_map = {
+            "SR001": "weathered_cast_iron",
+            "I001": "weathered_cast_iron",
+            "RMT002": "parchment_oak_slate",
+            "I002": "parchment_oak_slate",
+            "SEF003": "oiled_steel_brass",
+            "I003": "oiled_steel_brass",
+            "HEA004": "borosilicate_luminescent",
+            "I004": "borosilicate_luminescent",
+            "MINERAL_BEDROCK": "marble_bedrock_foundation",
+        }
+        entity_key = mineral_key_map.get(concept_id, "marble_bedrock_foundation")
+        entity = MINERAL_TAXONOMY.get(entity_key, MINERAL_TAXONOMY["weathered_cast_iron"])
+
+        declared_contract = DeclaredMineralContract(
+            concept_id=concept_id,
+            material_name=entity.material_name,
+            mineral_domain=entity.mineral_domain,
+            tactile_surface_properties=entity.tactile_surface_properties,
+            physical_weight_kg_m3=entity.physical_weight_kg_m3,
+            acoustic_resonance=entity.acoustic_resonance,
+            symbolic_grounding=entity.symbolic_grounding,
+        )
+
+        declared_font = font_contract or DeclaredFontContract(
+            headline_font_family="Bebas Neue",
+            headline_weight=900,
+            accent_font_family="Cinzel Decorative",
+            accent_weight=700,
+            spatial_zone="Zone A: Scalp Contact (y: 9.8% - 18.5%, Z:10)",
+            min_contrast_ratio=4.5,
+            max_horizontal_occupancy_percent=82.0,
+        )
+
+        return engine.evaluate_frame(
+            frame=frame,
+            declared_mineral=declared_contract,
+            declared_font=declared_font,
+        )
 
 
 # ---------------------------------------------------------------------------

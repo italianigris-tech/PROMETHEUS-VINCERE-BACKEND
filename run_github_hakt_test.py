@@ -41,10 +41,11 @@ JOB_ID = f"gha_hakt_30s_pbd_{int(time.time())}"
 def build_payload(args=None) -> dict:
     selected_motif = (args.motif if args and args.motif else random.choice(CURATED_MOTIFS))
     selected_look = (args.look if args and args.look else random.choice(CURATED_LOOKS))
+    selected_source = (args.source if args and getattr(args, "source", None) else "remotion-app/public/source/test-video.mp4")
     
     return {
         "jobId": JOB_ID,
-        "source": {"path": "remotion-app/public/source/MALE-BLACK-TALKING-HEAD-PODCAST.mp4"},
+        "source": {"path": selected_source},
         "selectedWindow": {"sourceStartMs": 0, "sourceEndMs": 30000},
         "maxClipMs": 30000,
         "silencePolicy": "preserve",
@@ -233,6 +234,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Trigger 30s HAKT Cloud Render with dynamic or custom styling")
     parser.add_argument("--motif", default=None, choices=CURATED_MOTIFS, help="Brand motif palette")
     parser.add_argument("--look", default=None, choices=CURATED_LOOKS, help="Cinematic 3D LUT look")
+    parser.add_argument("--source", default="remotion-app/public/source/test-video.mp4", help="Path to source video")
     parser.add_argument("--mood", default=None, help="Mood descriptor")
     args = parser.parse_args()
     run(args)

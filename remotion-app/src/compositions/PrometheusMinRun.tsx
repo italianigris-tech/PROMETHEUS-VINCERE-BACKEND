@@ -1127,12 +1127,20 @@ const KineticLayerRenderer: React.FC<{
     : `${layer.letterSpacingEm || 0}em`;
 
   const isScript = Boolean(layer.fontFamily && /script|brush|vibes|pinyon|alex|brotherhood|bromello|exmouth|champignon|bucklane|formale|cavas/i.test(layer.fontFamily));
+  const isOrnateLigatureDisplay = Boolean(layer.fontFamily && /foglihten|petitecaps/i.test(layer.fontFamily));
   // Script short-word safeguard: if word length <= 3 (e.g. "Do.", "is", "to"), Spencerian script flourishes are illegible.
   // Fall back to clean modern serif / geometric sans.
   const isTooShortForScript = isScript && words.length === 1 && words[0].replace(/[^a-zA-Z]/g, "").length <= 3;
+  // Ornate display safeguard: Ornate ligature fonts (such as Foglihten-068 where 'P' has a loop that reads as 'Q')
+  // must NEVER be applied to secondary/subordinate/companion layers, nor when uppercase is used.
+  // When inappropriate, fall back to high-readability serif/sans.
+  const isDisallowedOrnate = isOrnateLigatureDisplay && (!layer.isHero || layer.casing === "uppercase");
+
   const effectiveFontFamily = isTooShortForScript
     ? (layer.isHero ? "Playfair Display" : "Outfit")
-    : layer.fontFamily;
+    : isDisallowedOrnate
+      ? (layer.isHero ? "Cinzel" : "Outfit")
+      : layer.fontFamily;
   const effectiveIsScript = isScript && !isTooShortForScript;
 
   const resolvedTextTransform = effectiveIsScript
@@ -4630,54 +4638,7 @@ const MultiLayerTypographyCard: React.FC<{
           });
         })();
 
-        const isBehindOrTall = Boolean(
-          behindSubject ||
-          isFlankZone ||
-          layers.some((l) => (l as any).isTallProfile || (l.fontFamily && /teko|six caps|asgard|anton|bebas|saira|oswald/i.test(l.fontFamily)))
-        );
-
-        if (!isBehindOrTall) {
-          return renderedContent;
-        }
-
-        return (
-          <div style={{ position: "relative", width: "100%", display: "flex", flexDirection: "column", alignItems }}>
-            {/* Primary in-focus sharp layer with gentle bottom fade */}
-            <div
-              style={{
-                position: "relative",
-                width: "100%",
-                display: "flex",
-                flexDirection: "column",
-                alignItems,
-                WebkitMaskImage: "linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 50%, rgba(0,0,0,0.55) 80%, rgba(0,0,0,0.2) 100%)",
-                maskImage: "linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 50%, rgba(0,0,0,0.55) 80%, rgba(0,0,0,0.2) 100%)",
-              }}
-            >
-              {renderedContent}
-            </div>
-            {/* Ambient vertical linear gradient depth blur (fading in smoothly toward bottom) */}
-            <div
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                width: "100%",
-                height: "100%",
-                display: "flex",
-                flexDirection: "column",
-                alignItems,
-                filter: "blur(6px)",
-                opacity: 0.80,
-                WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, transparent 35%, rgba(0,0,0,0.5) 65%, black 100%)",
-                maskImage: "linear-gradient(to bottom, transparent 0%, transparent 35%, rgba(0,0,0,0.5) 65%, black 100%)",
-                pointerEvents: "none",
-              }}
-            >
-              {renderedContent}
-            </div>
-          </div>
-        );
+        return renderedContent;
       })()}
     </div>
   );

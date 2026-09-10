@@ -321,7 +321,7 @@ def handle_matte(payload: dict[str, Any]) -> dict[str, Any]:
     input_url = str(source["inputUrl"])
     declared_sha = str(source.get("sha256", "")).lower()
 
-    if input_url.startswith("/") or input_url.startswith("file://"):
+    if input_url.startswith("/") or input_url.startswith("file://") or Path(input_url).is_absolute():
         local_source = Path(input_url.removeprefix("file://"))
         if not local_source.exists():
             raise FileNotFoundError(f"source does not exist: {local_source}")
@@ -579,6 +579,72 @@ class GatewayHandler(BaseHTTPRequestHandler):
             except Exception as error:  # noqa: BLE001 - gateway boundary
                 self._send_error_json(500, str(error))
                 return
+
+        if path in ("/api/pipeline/music/catalog", "/api/pipeline/songs"):
+            try:
+                import math
+                from mini_run_pipeline import song_program
+                parsed_url = urllib.parse.urlparse(self.path)
+                query = urllib.parse.parse_qs(parsed_url.query)
+                page = int(query.get("page", ["1"])[0]) if "page" in query else None
+                page_size = int(query.get("pageSize", ["50"])[0]) if "pageSize" in query else None
+                category = query.get("category", [None])[0]
+                mood = query.get("mood", [None])[0]
+                intensity = query.get("intensity", [None])[0]
+                search = query.get("search", [None])[0]
+                prompt = query.get("prompt", [None])[0]
+
+                cat = song_program.load_song_catalog()
+                all_songs = song_program.list_selectable_songs(catalog=cat)
+                categories = sorted({str(s.get("category")) for s in all_songs if s.get("category")})
+                moods = sorted({str(m) for s in all_songs for m in (s.get("moodTags") or []) if m})
+
+                filtered_songs = song_program.list_selectable_songs(
+                    catalog=cat,
+                    category=category,
+                    mood=mood,
+                    intensity=intensity,
+                    search=search,
+                    prompt=prompt,
+                    page=page,
+                    page_size=page_size,
+                )
+                p_size = page_size or len(all_songs) or 1
+                total_pages = math.ceil(len(all_songs) / p_size)
+                self._send_json(200, {
+                    "ok": True,
+                    "total": len(all_songs),
+                    "count": len(filtered_songs),
+                    "page": page or 1,
+                    "pageSize": page_size or len(all_songs),
+                    "totalPages": total_pages,
+                    "categories": categories,
+                    "moods": moods,
+                    "songs": filtered_songs,
+                })
+                return
+            except Exception as error:  # noqa: BLE001 - gateway boundary
+                self._send_error_json(500, str(error))
+                return
+
+        if path == "/api/pipeline/music/recommend":
+            try:
+                from mini_run_pipeline import song_program
+                parsed_url = urllib.parse.urlparse(self.path)
+                query = urllib.parse.parse_qs(parsed_url.query)
+                prompt = query.get("prompt", [""])[0]
+                intent = song_program.extract_audio_intent_from_prompt(prompt)
+                recommended = song_program.list_selectable_songs(prompt=prompt, page=1, page_size=10)
+                self._send_json(200, {
+                    "ok": True,
+                    "audioIntent": intent,
+                    "recommendedSongs": recommended,
+                })
+                return
+            except Exception as error:  # noqa: BLE001 - gateway boundary
+                self._send_error_json(500, str(error))
+                return
+
         self._forward_to_studio("GET", self.path)
 
     def do_HEAD(self) -> None:

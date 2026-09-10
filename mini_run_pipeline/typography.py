@@ -1463,6 +1463,7 @@ ANIMA_RUNTIME_TREATMENTS: List[Dict[str, Any]] = [
     {"id": "dynamic_staggered_character_cascade", "styles": {"kinetic", "cinematic"}, "energy": 0.70},
     {"id": "apple_keynote_headline_punch", "styles": {"kinetic", "editorial"}, "energy": 0.75},
     {"id": "subpixel_glow_mask", "styles": {"cinematic", "editorial"}, "energy": 0.35},
+    {"id": "gaussian_blur_reveal_sweep", "styles": {"cinematic", "editorial"}, "energy": 0.45},
     {"id": "cinematic_viewport_mask_sweep", "styles": {"cinematic", "editorial"}, "energy": 0.35},
     {"id": "cyber_matrix_text_scramble", "styles": {"kinetic", "editorial"}, "energy": 0.80},
     {"id": "kinetic_slot_character_reel", "styles": {"kinetic", "editorial"}, "energy": 0.78},
@@ -1611,13 +1612,12 @@ def resolve_typography_policy(design_override: Optional[Dict[str, Any]] = None) 
         str(preset) for preset in design.get("avoidPresets", [])
         if isinstance(preset, str) and preset in {item["id"] for item in ANIMA_RUNTIME_TREATMENTS}
     })
-    if "typographySystem" in design:
-        resolved["typographySystem"] = str(design.get("typographySystem", "")).lower()
-    resolved["specialOps"] = bool(
-        design.get("specialOps", False)
-        or design.get("specialOpsMode", False)
-        or str(design.get("typographySystem", "")).lower() in ("special_ops", "special_ops_tier")
-    )
+    if any(k in design for k in ("specialOps", "specialOpsMode")) or str(design.get("typographySystem", "")).lower() in ("special_ops", "special_ops_tier"):
+        resolved["specialOps"] = bool(
+            design.get("specialOps", False)
+            or design.get("specialOpsMode", False)
+            or str(design.get("typographySystem", "")).lower() in ("special_ops", "special_ops_tier")
+        )
     return resolved
 
 
@@ -2374,10 +2374,11 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                 if balanced_exact:
                     exact_word_pool = balanced_exact
 
-            if exact_word_pool:
+            if len(exact_word_pool) >= 4:
                 matching_profiles = exact_word_pool
             else:
-                # Graceful fallback ONLY if ZERO profiles exist in corpus for exact word count
+                # When exact pool is too small to provide run-to-run or sequence diversity,
+                # expand with compatible multi-layer profiles within +/- 1 or 2 words.
                 tier1 = [
                     p for p in pool
                     if abs(p.get("total_words", len(p.get("typography_layers", []))) - word_count) == 1
@@ -2386,7 +2387,14 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                     p for p in pool
                     if abs(p.get("total_words", len(p.get("typography_layers", []))) - word_count) <= 2
                 ]
-                matching_profiles = tier1 or tier2 or pool
+                combined = exact_word_pool + tier1 + tier2
+                seen_ids = set()
+                deduped = []
+                for p in combined:
+                    if p["id"] not in seen_ids:
+                        seen_ids.add(p["id"])
+                        deduped.append(p)
+                matching_profiles = deduped or pool
 
         if not matching_profiles:
             matching_profiles = pool

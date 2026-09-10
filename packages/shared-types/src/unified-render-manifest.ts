@@ -1,5 +1,6 @@
 import {z} from "zod";
 import {isAbsoluteMediaFilePath, isBrowserSafeMediaUrl} from "./asset-resolver.js";
+import {TypographyProfileV2Schema} from "./typography-profile.js";
 
 export const WordSchema = z.object({
   text: z.string(),
@@ -35,6 +36,7 @@ export const JosephTypographySchema = z.object({
   }),
   fallbackFamily: z.string().trim().min(1),
   fontId: z.string().trim().min(1),
+  profile: TypographyProfileV2Schema.optional(),
 });
 
 export const JosephTypographyStylebookIdSchema = z.enum([

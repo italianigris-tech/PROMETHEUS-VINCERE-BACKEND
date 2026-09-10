@@ -321,7 +321,7 @@ CINEMATIC_LOOKS: List[Dict[str, Any]] = [
         "name": "Kodak 2383 Print Stock",
         "description": "Authentic Kodak Vision Color Print Film 2383 emulation: deep rich blacks, warm amber highlight roll-off, subtractive saturation where reds stay dense and deep cyans live in the shadows.",
         "mood": "filmic, analog, rich, warm, vintage cinema, timeless",
-        "keywords": ["kodak", "2383", "vision", "print", "film print", "print stock", "celluloid", "subtractive", "amber", "rich blacks", "analog", "35mm"],
+        "keywords": ["kodak", "2383", "vision", "print", "film print", "print stock", "celluloid", "subtractive", "amber", "rich blacks", "analog", "35mm", "cinematic", "cinema", "movie", "film"],
         "policies": {
             "intensityRange": [0.0, 1.5],
             "recommendedIntensity": 1.0,
@@ -423,6 +423,16 @@ def select_look(
     """
     design = design or {}
     metadata = metadata or {}
+    optical_override = (
+        design.get("opticalFinishing") if "opticalFinishing" in design
+        else metadata.get("opticalFinishing")
+    )
+    custom_lut = (
+        design.get("lutPath")
+        or design.get("customLut")
+        or metadata.get("lutPath")
+        or metadata.get("customLut")
+    )
     explicit_id = (design.get("lookId") or design.get("look")
                    or metadata.get("lookId") or metadata.get("look"))
     if isinstance(explicit_id, str):
@@ -434,39 +444,67 @@ def select_look(
                     break
         if look is not None:
             intensity = float(design.get("lookIntensity", 1.0))
-            return _build_manifest(look, intensity, "explicit")
+            return _build_manifest(look, intensity, "explicit", optical_override=optical_override, lut_path=custom_lut)
     metadata_mood = metadata.get("mood", "")
     if isinstance(metadata_mood, str) and metadata_mood:
         look = match_look_by_keywords(metadata_mood)
         if look is not None:
             intensity = float(design.get("lookIntensity", 1.0))
-            return _build_manifest(look, intensity, "metadata_mood")
+            return _build_manifest(look, intensity, "metadata_mood", optical_override=optical_override, lut_path=custom_lut)
     prompt_text = prompt or design.get("prompt") or metadata.get("prompt") or ""
     if prompt_text:
         look = match_look_by_keywords(prompt_text)
         if look is not None:
             intensity = float(design.get("lookIntensity", 1.0))
-            return _build_manifest(look, intensity, "prompt_keywords")
+            return _build_manifest(look, intensity, "prompt_keywords", optical_override=optical_override, lut_path=custom_lut)
     mood = design.get("mood", "")
     if isinstance(mood, str) and mood:
         look = match_look_by_keywords(mood)
         if look is not None:
             intensity = float(design.get("lookIntensity", 1.0))
-            return _build_manifest(look, intensity, "mood_keywords")
+            return _build_manifest(look, intensity, "mood_keywords", optical_override=optical_override, lut_path=custom_lut)
     fallback = get_look("sci_netone_balanced") or CINEMATIC_LOOKS[0]
     intensity = float(design.get("lookIntensity", 1.0))
-    return _build_manifest(fallback, intensity, "fallback_default")
+    return _build_manifest(fallback, intensity, "fallback_default", optical_override=optical_override, lut_path=custom_lut)
 
-def _build_manifest(look: Dict[str, Any], intensity: float, resolution: str) -> Dict[str, Any]:
-    return {
+def _build_manifest(
+    look: Dict[str, Any],
+    intensity: float,
+    resolution: str,
+    optical_override: Optional[Dict[str, Any] | bool] = None,
+    lut_path: Optional[str | Path] = None,
+) -> Dict[str, Any]:
+    # Production-tuned default optical finishing:
+    # Soft shoulder roll-off prevents harsh digital clipping;
+    # subtractive saturation maintains rich color density in highlights;
+    # subtle analog emulsion grain (t) creates organic texture;
+    # vignette directs viewer focus.
+    default_optical = {
+        "shoulderRollOff": True,
+        "subtractiveSaturation": True,
+        "filmGrain": True,
+        "vignette": True,
+    }
+    if optical_override is False:
+        optical_finishing: Dict[str, Any] = {}
+    elif isinstance(optical_override, dict):
+        optical_finishing = {**default_optical, **optical_override}
+    else:
+        optical_finishing = dict(default_optical)
+
+    manifest: Dict[str, Any] = {
         "lookId": look["id"],
         "lookName": look["name"],
         "description": look["description"],
         "intensity": max(0.0, min(1.5, intensity)),
-        "params": look.get("params", {}),
+        "params": dict(look.get("params", {})),
         "policies": look.get("policies", {}),
+        "opticalFinishing": optical_finishing,
         "resolution": resolution,
     }
+    if lut_path:
+        manifest["lutPath"] = str(lut_path)
+    return manifest
 
 def discover_luts(lut_dir: Optional[Path] = None) -> List[Dict[str, Any]]:
     """Scan *lut_dir* for colour LUT files (.cube, .3dl, .hald, .png)."""
@@ -590,7 +628,18 @@ def _ffmpeg_escape(value: str) -> str:
     return result
 
 def _resolve_lut_for_look(look_manifest: Dict[str, Any]) -> Optional[Path]:
-    """Check if a .cube LUT exists that matches the look ID."""
+    """Check if a .cube LUT exists that matches the look ID or custom path."""
+    # 1. Custom or dynamically inferred LUT path (from VideoColorGrading, ComfyUI-Darkroom, etc.)
+    custom_path = (
+        look_manifest.get("lutPath")
+        or look_manifest.get("customLut")
+        or (look_manifest.get("params") or {}).get("lutPath")
+    )
+    if custom_path:
+        p = Path(custom_path).resolve()
+        if p.is_file():
+            return p
+
     look_id = look_manifest.get("lookId", "")
     if not look_id:
         return None

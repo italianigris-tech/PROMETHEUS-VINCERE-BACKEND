@@ -16,6 +16,8 @@ APP_NAME = "prometheus-mini-run-studio"
 APP_ROOT = PurePosixPath("/opt/prometheus")
 STUDIO_ROOT = APP_ROOT / "docs/mini_run_studio"
 ARTIFACT_ROOT = PurePosixPath("/data")
+BUNDLE_ROOT = PurePosixPath("/opt/prometheus/remotion-bundle")
+BUNDLE_PUBLIC_SOURCE_ROOT = BUNDLE_ROOT / "public" / "source"
 PORT = 8080
 NODE_STUDIO_PORT = 8081
 
@@ -97,6 +99,7 @@ studio_image = (
     .run_commands(
         f"cd {APP_ROOT} && npm install --legacy-peer-deps",
         f"cd {APP_ROOT}/remotion-app && npm install --legacy-peer-deps",
+        f"cd {APP_ROOT}/remotion-app && npx remotion browser ensure",
         f"cd {APP_ROOT}/remotion-app && npx remotion bundle src/index.ts /opt/prometheus/remotion-bundle",
     )
     .workdir(str(APP_ROOT))
@@ -309,7 +312,7 @@ def render_remotion_slice(slice_spec: dict) -> dict:
 
     output_slice_path.parent.mkdir(parents=True, exist_ok=True)
     remotion_app_dir = Path("/opt/prometheus/remotion-app")
-    public_source_dir = remotion_app_dir / "public" / "source"
+    public_source_dir = Path(BUNDLE_PUBLIC_SOURCE_ROOT)
     public_source_dir.mkdir(parents=True, exist_ok=True)
 
     # Ensure source video & matte are present in remotion-app/public/source directory
@@ -360,7 +363,7 @@ def render_remotion_slice(slice_spec: dict) -> dict:
     props_path = tmp_build / f"props_{job_id}_slice_{slice_index}.json"
     props_path.write_text(json.dumps(props, indent=2))
 
-    entry_target = "src/index.ts"
+    entry_target = str(BUNDLE_ROOT)
 
     cmd = [
         "npx", "remotion", "render",

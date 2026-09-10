@@ -586,3 +586,33 @@ export {
   type TextOverlay,
   type Transition,
 } from "./unified-render-manifest.js";
+
+export {
+  TypographyAnchorSchema,
+  TypographyStaggerOffsetSchema,
+  TypographyGradientStopSchema,
+  TypographyFillStyleSchema,
+  TypographyStrokeSchema,
+  TypographyDropShadowSchema,
+  TypographyGlowSchema,
+  TypographyBevelSchema,
+  TypographyMaterialitySchema,
+  TypographyAnnotationSchema,
+  TypographyFrameTreatmentSchema,
+  TypographyProfileLayerSchema,
+  TypographyProfileV2Schema,
+  type TypographyAnchor,
+  type TypographyStaggerOffset,
+  type TypographyGradientStop,
+  type TypographyFillStyle,
+  type TypographyStroke,
+  type TypographyDropShadow,
+  type TypographyGlow,
+  type TypographyBevel,
+  type TypographyMateriality,
+  type TypographyAnnotation,
+  type TypographyFrameTreatment,
+  type TypographyProfileLayer,
+  type TypographyProfileV2,
+} from "./typography-profile.js";
+

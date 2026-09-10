@@ -133,6 +133,36 @@ class CausalColorGradingTests(unittest.TestCase):
         # Post-Remotion grading of muted_output must NOT occur
         self.assertNotIn("ffmpeg\", \"-y\", \"-loglevel\", \"error\",\n            \"-i\", str(muted_output),\n            \"-vf\", grade_filter", render_source)
 
+    def test_default_optical_finishing_enabled_on_all_looks(self):
+        """Verify that default look resolution carries optical finishing for true filmic quality."""
+        plan = looks.select_look()
+        self.assertIn("opticalFinishing", plan)
+        self.assertTrue(plan["opticalFinishing"].get("shoulderRollOff"))
+        self.assertTrue(plan["opticalFinishing"].get("subtractiveSaturation"))
+        self.assertTrue(plan["opticalFinishing"].get("filmGrain"))
+
+        filter_str = looks.build_grade_filter(plan)
+        self.assertIn("curves=all=", filter_str)
+        self.assertIn("colorbalance=", filter_str)
+        self.assertIn("noise=alls=", filter_str)
+
+    def test_custom_reference_lut_routing(self):
+        """Verify that a custom or dynamic reference LUT (e.g. from VideoColorGrading) routes cleanly."""
+        shipped_kodak = looks.LUT_DIR / "kodak_2383_print.cube"
+        plan = looks.select_look(design={"lookId": "custom_ai_transfer", "lutPath": str(shipped_kodak)})
+        filter_str = looks.build_grade_filter(plan)
+        self.assertIn("lut3d=", filter_str)
+        self.assertIn("kodak_2383_print.cube", filter_str)
+
+    def test_optical_finishing_explicit_disable(self):
+        """Verify that a caller can cleanly disable optical finishing when pure base LUT is desired."""
+        plan = looks.select_look(design={"lookId": "kodak_2383_print", "opticalFinishing": False})
+        self.assertEqual(plan["opticalFinishing"], {})
+        filter_str = looks.build_grade_filter(plan)
+        self.assertNotIn("curves=all=", filter_str)
+        self.assertNotIn("colorbalance=", filter_str)
+        self.assertNotIn("noise=alls=", filter_str)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
