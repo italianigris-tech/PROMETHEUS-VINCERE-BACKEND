@@ -1049,6 +1049,55 @@ def plan_backgrounds(
                 ),
             })
 
+    # 2c. Semantic B-Roll Cutaway Candidates (Pexels Video Engine & Decision Formula)
+    if policy != "transitions_only":
+        try:
+            from mini_run_pipeline.broll_engine import BrollSuitabilityEngine
+            last_broll_sec = -100.0
+            start_broll_idx = 1 if (selected and selected[0].get("chunkIndex") == 0) else 0
+
+            for index in range(start_broll_idx, min(len(chunks), len(scenes))):
+                chunk = chunks[index]
+                scene = scenes[index]
+                subject_layering = chunk.get("subjectLayering") or {}
+                if bool(subject_layering.get("behindSubject")):
+                    continue
+
+                c_text = str(chunk.get("text", "")).strip()
+                c_start_sec = float(chunk.get("start_ms", 0)) / 1000.0
+                c_end_sec = float(chunk.get("end_ms", c_start_sec + 2.5)) / 1000.0
+                c_dur_sec = max(0.1, c_end_sec - c_start_sec)
+                time_since_broll = max(0.0, c_start_sec - last_broll_sec)
+                time_since_break = max(0.0, c_start_sec - (last_end_ms / 1000.0 if last_end_ms > 0 else 0.0))
+
+                broll_eval = BrollSuitabilityEngine.evaluate_chunk(
+                    chunk_index=index,
+                    text=c_text,
+                    duration_sec=c_dur_sec,
+                    time_since_last_broll_sec=time_since_broll,
+                    time_since_last_visual_break_sec=time_since_break,
+                    beat_type=scene.get("role") or scene.get("beatType"),
+                )
+
+                if broll_eval.is_eligible and (is_directed or broll_eval.composite_score >= 0.62):
+                    score_scaled = int(broll_eval.composite_score * 120)
+                    candidates.append({
+                        "index": index,
+                        "chunk": chunk,
+                        "scene": scene,
+                        "score": score_scaled,
+                        "trigger": "broll_cutaway",
+                        "candidate": "broll_cutaway",
+                        "kind": "broll_cutaway",
+                        "code": "bg_broll_cutaway",
+                        "texture": None,
+                        "broll_eval": broll_eval,
+                        "gate": "broll_semantic_suitability",
+                        "reason": broll_eval.rationale,
+                    })
+        except Exception as exc:
+            print(f"[backgrounds] B-roll candidate evaluation skipped: {exc}", flush=True)
+
     # Cool-fingered restraint: If unprompted auto mode and no candidate has high score, emit 0
     if not is_directed and policy == "auto" and not candidates:
         return []
@@ -1092,7 +1141,7 @@ def plan_backgrounds(
             "chunkIndex": idx - 1,
             "trigger": trigger,
             "candidate": item["candidate"],
-            "reason": item.get("reason", f"Placed {texture.get('family', 'paper')} backdrop."),
+            "reason": item.get("reason", f"Placed {(texture.get('family', 'paper') if texture else 'broll')} backdrop."),
         }
         if item.get("causedByTransitionId"):
             bg_cause["causedByTransitionId"] = item["causedByTransitionId"]
@@ -1320,6 +1369,71 @@ def plan_backgrounds(
                 },
                 "revealFromBelow": True,
             }
+        elif kind == "broll_cutaway":
+            try:
+                from mini_run_pipeline.broll_engine import (
+                    PexelsVideoClient,
+                    extract_broll_search_queries,
+                    prescribe_after_effects_treatment,
+                )
+                from dataclasses import asdict
+                broll_eval = item.get("broll_eval")
+                c_text = str(chunk.get("text", "")).strip()
+                primary_q, fallback_q = extract_broll_search_queries(c_text, beat_name=scene.get("role"))
+                client = PexelsVideoClient()
+                asset = client.materialize_asset(primary_q, download_local=True)
+                if not asset and fallback_q != primary_q:
+                    asset = client.materialize_asset(fallback_q, download_local=True)
+
+                if not asset:
+                    h_id = hashlib.md5(c_text.encode()).hexdigest()[:8]
+                    asset_data = {
+                        "assetId": f"broll_{h_id}",
+                        "source": "mock",
+                        "query": primary_q,
+                        "videoUrl": "",
+                        "videoFile": "",
+                        "durationSec": round(total_duration / 1000.0, 2),
+                        "width": 1080,
+                        "height": 1920,
+                        "aspectRatio": "9:16",
+                    }
+                else:
+                    asset_data = {
+                        "assetId": asset.asset_id,
+                        "source": asset.source,
+                        "query": asset.query,
+                        "videoUrl": asset.video_url,
+                        "videoFile": asset.local_file,
+                        "durationSec": asset.duration_sec,
+                        "width": asset.width,
+                        "height": asset.height,
+                        "aspectRatio": asset.aspect_ratio,
+                        "photographer": asset.photographer,
+                        "photographerUrl": asset.photographer_url,
+                    }
+
+                treatment_obj = prescribe_after_effects_treatment(
+                    treatment_type=design.get("brollTreatment"),
+                    beat_type=scene.get("role"),
+                    evaluation=broll_eval,
+                    seed=seed,
+                )
+                background["broll"] = {
+                    **asset_data,
+                    "treatment": asdict(treatment_obj),
+                    "evaluation": asdict(broll_eval) if broll_eval else {},
+                }
+                if treatment_obj.treatment_name == "retinal_flash_cut":
+                    background["transition"]["kind"] = "hard_cut"
+                elif treatment_obj.treatment_name == "evidentiary_dossier_card":
+                    background["transition"]["kind"] = "zoom_punch"
+                elif treatment_obj.treatment_name == "track_matte_unfurl":
+                    background["transition"]["kind"] = "directional_slide_right"
+                elif treatment_obj.treatment_name == "hinged_3d_swing":
+                    background["transition"]["kind"] = "whip_pan_transition"
+            except Exception as exc:
+                print(f"[backgrounds] B-roll asset materialization skipped: {exc}", flush=True)
 
         if texture:
             cover = texture.get("portraitCover") or {}

@@ -1786,6 +1786,7 @@ def schedule_caption_timing(chunks: List[Dict[str, Any]]) -> List[Dict[str, Any]
         max_allowed_end = max(natural_end_ms, next_start_ms - 80) if index + 1 < len(scheduled) else natural_end_ms + 600
         desired_hold = max(natural_end_ms, last_word_start + 750, natural_end_ms + 500, content_start_ms + intrinsic_ms)
         display_end_ms = max(content_start_ms + 1, min(desired_hold, max_allowed_end))
+        chunk["acceleratedExit"] = bool(desired_hold > max_allowed_end)
         layers = [dict(layer) for layer in chunk.get("layers", [])]
         requested_lead_ms = max((int(layer.get("entryLeadMs", 0)) for layer in layers), default=0)
         display_start_ms = max(previous_end_ms, content_start_ms - requested_lead_ms)
@@ -2382,6 +2383,7 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
         or design_input.get("motionPreset")
         or design_input.get("treatment")
         or design_input.get("treatmentSystem")
+        or design_input.get("textTreatment")
     )
     prompt_wants_lockup = any(k in str(design_input.get("prompt", "")).lower() for k in ("luxury", "documentary", "hierarchical", "asymmetric", "lockup", "micro-macro", "micro_macro"))
     wants_lockup_overall = (
@@ -2591,6 +2593,7 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
             or design_input.get("motionPreset")
             or design_input.get("treatment")
             or design_input.get("treatmentSystem")
+            or design_input.get("textTreatment")
         )
         is_special_ops_system = bool(
             policy.get("specialOps")
@@ -2762,6 +2765,10 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                 )
                 if other_has_substantive:
                     is_hero_layer = False
+                    for other_alloc in allocations:
+                        if other_alloc is not alloc and any(_is_substantive(w) for w in other_alloc.get("words", [])):
+                            other_alloc["is_hero"] = True
+                            break
             casing = f_style.get("casing", prof.get("metadata", {}).get("casing_strategy", "mixed"))
 
             # Authoritative Font Candidate from Font JSON with safe bitmap fallback
@@ -3025,7 +3032,13 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
             else:
                 margin_top_px = 0
 
-                        # Descender / script-swash collision avoidance policy:
+            # Content-blind overlap grammar: identify trailing conversational tags
+            # ("right", "true", "yeah", "too") to assign negative vertical overlap tucks
+            clean_tag = raw_layer_text.strip().strip(".,!?:;\"'").lower()
+            if margin_top_px == 0 and layer_idx > 0 and clean_tag in {"right", "true", "yeah", "too", "ok", "okay", "yes", "sure"}:
+                margin_top_px = -round(font_size_px * 0.28)
+
+            # Descender / script-swash collision avoidance policy:
             # If the preceding line contains descenders ('g','j','p','q','y','Q') OR the
             # preceding/hero line uses a script font (looped tails hang far below the
             # baseline without containing descender letters) OR the preceding line is a
@@ -3071,6 +3084,33 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                         margin_left_px = 0
                 elif pid == "image (58)":
                     align_self = "flex-start"
+
+            inline_swaps = list(v2_layer.get("inlineTokenSwaps", []))
+            if not inline_swaps and (
+                layer_fx == "vercel_kinetic_highlight_box"
+                or (hero_fx_preset == "vercel_kinetic_highlight_box" and is_hero_layer)
+                or (layer_spec.get("effects") or {}).get("highlightBox")
+            ):
+                layer_words_list = [w.strip() for w in raw_layer_text.split() if w.strip()]
+                if layer_words_list:
+                    stopwords = {
+                        "the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for", "of",
+                        "with", "by", "is", "was", "are", "were", "be", "this", "that", "it",
+                    }
+                    focus_idx = 0
+                    best_len = -1
+                    for w_i, w in enumerate(layer_words_list):
+                        clean_w = w.lower().strip(".,!?:;\"'")
+                        if clean_w not in stopwords and len(clean_w) > best_len:
+                            best_len = len(clean_w)
+                            focus_idx = w_i
+
+                    inline_swaps.append({
+                        "wordIndex": focus_idx,
+                        "pattern": layer_words_list[focus_idx],
+                        "highlightBox": True,
+                        "scaleMultiplier": 1.06,
+                    })
 
             rendered_layers.append({
                 "layerIndex": layer_idx,
@@ -3160,7 +3200,7 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                     "skewYDeg": 0.0,
                     "stretchRatio": 1.0,
                 },
-                "inlineTokenSwaps": v2_layer.get("inlineTokenSwaps", []),
+                "inlineTokenSwaps": inline_swaps,
             })
 
         # Resolve inter-layer stacking hierarchy, overlay depth shadows, and underlapping vertical linear gradients

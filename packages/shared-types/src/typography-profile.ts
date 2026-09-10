@@ -197,6 +197,8 @@ export const TypographyInlineTokenSwapSchema = z.object({
   casing: z.enum(["uppercase", "lowercase", "title", "capitalize", "none"]).optional(),
   fill: TypographyFillStyleSchema.optional(),
   highlightBox: z.boolean().default(false),
+  scaleMultiplier: z.number().min(0.1).max(5).default(1.0).optional(),
+  yOffsetPx: z.number().optional(),
 });
 
 export const TypographyFontCandidateSchema = z.object({

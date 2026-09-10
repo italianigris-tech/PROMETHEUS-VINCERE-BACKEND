@@ -425,6 +425,7 @@ export type CaptionChunk = {
   outputEndMs?: number;
   displayStartMs?: number;
   displayEndMs?: number;
+  acceleratedExit?: boolean;
   fontProfile?: string;
   profileFilename?: string;
   pairedImage?: string;
@@ -2631,13 +2632,16 @@ const KineticLayerRenderer: React.FC<{
     return (
       <div style={baseTextStyle}>
         {words.map((word, wIdx) => {
+          const swap = layer.inlineTokenSwaps?.find((s) => s.wordIndex === wIdx);
           const wordStart = wordEntranceFrames[wIdx] ?? 0;
           const nextStart = wordEntranceFrames[wIdx + 1] ?? (totalFrames + 10);
           const localFrame = Math.max(0, frame - wordStart);
-          const isActive = frame >= wordStart && frame < nextStart;
+          const isActive = swap ? true : (frame >= wordStart && frame < nextStart);
           const p = interpolate(localFrame, [0, 7], [0, 1], {
             extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.out(Easing.cubic),
           });
+          const targetScale = (swap as any)?.scaleMultiplier ?? (isActive ? 1.05 : 1.0);
+          const isHighlightTarget = Boolean(swap?.highlightBox || isActive);
           return (
             <span
               key={`highlight-${wIdx}`}
@@ -2646,28 +2650,28 @@ const KineticLayerRenderer: React.FC<{
                 whiteSpace: "nowrap",
                 margin: "0 0.15em",
                 opacity: p,
-                transform: `scale(${interpolate(p, [0, 1], [0.92, isActive ? 1.05 : 1.0])})`,
-                backgroundColor: isActive
+                transform: `scale(${interpolate(p, [0, 1], [0.92, isHighlightTarget ? targetScale : 1.0])})`,
+                backgroundColor: isHighlightTarget
                   ? (isVercel ? "rgba(255, 255, 255, 0.20)" : "rgba(168, 85, 247, 0.25)")
                   : "transparent",
-                border: isActive
+                border: isHighlightTarget
                   ? (isVercel ? "1px solid rgba(255, 255, 255, 0.35)" : "1px solid rgba(192, 132, 252, 0.35)")
                   : "1px solid transparent",
                 borderRadius: "8px",
                 padding: "2px 8px",
-                boxShadow: isActive
+                boxShadow: isHighlightTarget
                   ? (isVercel ? "0 4px 16px rgba(255, 255, 255, 0.25)" : "0 0 20px rgba(168, 85, 247, 0.50)")
                   : "none",
                 ...wordPaintStyle,
                 WebkitBackgroundClip: undefined,
                 WebkitTextFillColor: undefined,
-                color: isActive ? "#FFFFFF" : "rgba(255, 255, 255, 0.88)",
-                textShadow: isActive
+                color: isHighlightTarget ? "#FFFFFF" : "rgba(255, 255, 255, 0.88)",
+                textShadow: isHighlightTarget
                   ? (isVercel ? "0 0 14px rgba(255, 255, 255, 0.7)" : "0 0 18px rgba(192, 132, 252, 0.85), 0 2px 8px rgba(0, 0, 0, 0.9)")
                   : kineticTextShadow("0 2px 10px rgba(0, 0, 0, 0.85)"),
               }}
             >
-              {word}
+              {(swap as any)?.token || swap?.pattern || word}
             </span>
           );
         })}
@@ -4728,14 +4732,18 @@ const MultiLayerTypographyCard: React.FC<{
     easing: Easing.bezier(0.16, 1.0, 0.3, 1.0),
   });
 
-  const exitFrames = 3;
-  const exitBlur = 0;
-  const exitScale = 1.0;
+  const isAcceleratedExit = Boolean(chunk.acceleratedExit);
+  const exitFrames = isAcceleratedExit ? 5 : 3;
 
-  const chunkExit = interpolate(frame, [Math.max(0, totalFrames - exitFrames), totalFrames], [1, 0], {
+  const exitProgress = interpolate(frame, [Math.max(0, totalFrames - exitFrames), totalFrames], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
+    easing: isAcceleratedExit ? Easing.bezier(0.4, 0, 1, 1) : undefined,
   });
+
+  const chunkExit = 1 - exitProgress;
+  const exitBlur = isAcceleratedExit ? exitProgress * 4 : 0;
+  const exitScale = isAcceleratedExit ? interpolate(exitProgress, [0, 1], [1.0, 0.96]) : 1.0;
 
   // Full-card hook & cinematic impact transforms
   const hookFx = chunk.fxPreset || "";
@@ -5356,12 +5364,91 @@ const BackgroundCanvasStage: React.FC<{
     );
   }
 
-  // 2b. B-Roll Cutaway Treatment (high-impact contextual cutaways)
+  // 2b. B-Roll Cutaway Treatment (Top-Notch Adobe After Effects-Grade Cinematic Suite)
   if (kind === "broll_cutaway") {
-    const brollScale = interpolate(entryP, [0, 1], [1.05, 1.0], {
+    const brollData = activeBg.broll || {};
+    const treatment = brollData.treatment || {};
+    const treatmentName = treatment.treatment_name || "cinematic_fullbleed";
+    const brollSrc = brollData.videoFile || brollData.videoUrl;
+
+    // Ken Burns Continuous Camera Drift
+    const kbStart = treatment.ken_burns?.scale_start ?? 1.0;
+    const kbEnd = treatment.ken_burns?.scale_end ?? 1.06;
+    const kbScale = interpolate(nowMs, [entryStart, exitEnd], [kbStart, kbEnd], {
       extrapolateLeft: "clamp",
       extrapolateRight: "clamp",
     });
+
+    // Retinal Flash Transient (1-2 frame micro-inversion on cut boundary)
+    const framesSinceEntry = Math.floor(((nowMs - entryStart) / 1000) * fps);
+    const isRetinalFlash =
+      (treatment.transient?.retinal_flash || treatmentName === "retinal_flash_cut") &&
+      framesSinceEntry >= 0 &&
+      framesSinceEntry <= 2;
+
+    // Optical Rack-Focus Dive
+    const isRackFocus = treatment.optical?.defocus_dive || treatmentName === "rack_focus_spotlight";
+    const diveBlur = isRackFocus
+      ? interpolate(entryP, [0, 1], [36, 0], { easing: Easing.out(Easing.cubic) })
+      : 0;
+    const diveScale = isRackFocus
+      ? interpolate(entryP, [0, 1], [1.14, 1.0], { easing: Easing.out(Easing.cubic) })
+      : 1.0;
+
+    // 2.5D Slap-Drop with Contact Bounce (Evidentiary Dossier Card)
+    const isDossier = treatmentName === "evidentiary_dossier_card" || treatment.framing?.style === "polaroid_card";
+    const slapScale = isDossier
+      ? interpolate(entryP, [0, 0.65, 0.85, 1.0], [0.85, 1.025, 0.985, 1.0], {
+          extrapolateLeft: "clamp",
+          extrapolateRight: "clamp",
+        })
+      : 1.0;
+    const slapY = isDossier
+      ? interpolate(entryP, [0, 0.65, 1.0], [-70, 6, 0], {
+          extrapolateLeft: "clamp",
+          extrapolateRight: "clamp",
+        })
+      : 0;
+    const slapRot = isDossier
+      ? interpolate(entryP, [0, 0.75, 1.0], [-2.0, 0.4, 0], {
+          extrapolateLeft: "clamp",
+          extrapolateRight: "clamp",
+        })
+      : 0;
+
+    // Track-Matte Asymmetric Unfurl Wipe
+    const isUnfurl = treatmentName === "track_matte_unfurl" || treatment.framing?.style === "unfurl_crop";
+    const unfurlW = isUnfurl
+      ? interpolate(entryP, [0, 0.55], [48, 0], {
+          extrapolateLeft: "clamp",
+          extrapolateRight: "clamp",
+          easing: Easing.out(Easing.cubic),
+        })
+      : 0;
+    const unfurlH = isUnfurl
+      ? interpolate(entryP, [0.3, 1.0], [40, 0], {
+          extrapolateLeft: "clamp",
+          extrapolateRight: "clamp",
+          easing: Easing.out(Easing.cubic),
+        })
+      : 0;
+    const unfurlClip = isUnfurl ? `inset(${unfurlH}% ${unfurlW}% ${unfurlH}% ${unfurlW}% round 16px)` : clipPathExtra;
+
+    // 3D Off-Axis Hinged Swing
+    const is3DSwing = treatmentName === "hinged_3d_swing";
+    const swingDeg = is3DSwing
+      ? interpolate(entryP, [0, 1], [65, 0], {
+          extrapolateLeft: "clamp",
+          extrapolateRight: "clamp",
+          easing: Easing.out(Easing.cubic),
+        })
+      : 0;
+
+    const baseFilter = [
+      diveBlur > 0 ? `blur(${diveBlur.toFixed(1)}px)` : "",
+      isRetinalFlash ? "invert(1) brightness(1.4)" : "",
+    ].filter(Boolean).join(" ") || undefined;
+
     return (
       <AbsoluteFill
         style={{
@@ -5369,17 +5456,158 @@ const BackgroundCanvasStage: React.FC<{
           pointerEvents: "none",
           overflow: "hidden",
           opacity: baseOpacity,
-          clipPath: clipPathExtra,
-          transform: `scale(${scale * brollScale})${transformExtra}`,
-          transformOrigin: "center center",
-          background: "radial-gradient(circle at center, rgba(20, 24, 36, 0.85) 0%, rgba(8, 10, 16, 0.96) 100%)",
+          clipPath: unfurlClip,
+          transform: is3DSwing
+            ? `perspective(1200px) rotateY(${swingDeg}deg) scale(${scale * kbScale})${transformExtra}`
+            : `scale(${scale * kbScale * diveScale * slapScale}) translateY(${slapY}px) rotate(${slapRot}deg)${transformExtra}`,
+          transformOrigin: is3DSwing ? "left center" : "center center",
+          filter: baseFilter,
         }}
       >
+        {/* Background Defocus Spotlight Isolation */}
+        {isRackFocus && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              backdropFilter: "blur(28px) brightness(0.68)",
+              zIndex: 1,
+            }}
+          />
+        )}
+
+        {/* Video Canvas Layer */}
+        {isDossier ? (
+          // 2.5D Evidentiary Dossier Card Container
+          <div
+            style={{
+              position: "absolute",
+              top: "14%",
+              left: "7%",
+              width: "86%",
+              height: "72%",
+              borderRadius: 20,
+              backgroundColor: "#0A0D14",
+              border: "2px solid rgba(255, 255, 255, 0.28)",
+              boxShadow: "0 4px 16px rgba(0, 0, 0, 0.85), 0 36px 72px rgba(0, 0, 0, 0.78)",
+              overflow: "hidden",
+              zIndex: 2,
+            }}
+          >
+            {brollSrc ? (
+              <OffthreadVideo
+                src={resolveSourceUri(brollSrc)}
+                muted
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  background: "radial-gradient(circle at center, #1E293B 0%, #090D16 100%)",
+                }}
+              />
+            )}
+            {/* Archival Badge & Reticle Overlay */}
+            <div
+              style={{
+                position: "absolute",
+                top: 14,
+                left: 16,
+                padding: "4px 10px",
+                borderRadius: 6,
+                background: "rgba(0, 0, 0, 0.75)",
+                border: "1px solid rgba(56, 189, 248, 0.6)",
+                color: "#38BDF8",
+                fontSize: 11,
+                fontWeight: 800,
+                letterSpacing: 1.2,
+                fontFamily: "monospace",
+              }}
+            >
+              ARCHIVE • B-ROLL PROOF
+            </div>
+            <div
+              style={{
+                position: "absolute",
+                bottom: 14,
+                right: 16,
+                color: "rgba(255, 255, 255, 0.65)",
+                fontSize: 10,
+                fontFamily: "monospace",
+              }}
+            >
+              {brollData.photographer ? `REC // ${String(brollData.photographer).toUpperCase()}` : "PRM-REC // 9:16"}
+            </div>
+          </div>
+        ) : (
+          // Full-Bleed / Unfurl / 3D Video Stream
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              zIndex: 2,
+            }}
+          >
+            {brollSrc ? (
+              <OffthreadVideo
+                src={resolveSourceUri(brollSrc)}
+                muted
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  background: "radial-gradient(circle at center, rgba(30, 41, 59, 0.9) 0%, rgba(10, 14, 24, 0.98) 100%)",
+                }}
+              />
+            )}
+            {/* Cinematic Vignette Shadow */}
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                boxShadow: "inset 0 0 140px rgba(0, 0, 0, 0.85)",
+                pointerEvents: "none",
+              }}
+            />
+            {/* Razor Edge Stroke on Unfurl */}
+            {isUnfurl && (
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  border: "2px solid rgba(56, 189, 248, 0.85)",
+                  borderRadius: 16,
+                  pointerEvents: "none",
+                }}
+              />
+            )}
+          </div>
+        )}
+
+        {/* 35mm Subtle Organic Film Grain Overlay */}
         <div
           style={{
             position: "absolute",
             inset: 0,
-            boxShadow: "inset 0 0 120px rgba(0, 0, 0, 0.85)",
+            backgroundImage: "radial-gradient(rgba(255,255,255,0.06) 1px, transparent 0)",
+            backgroundSize: "4px 4px",
+            opacity: 0.25,
+            mixBlendMode: "overlay",
+            pointerEvents: "none",
+            zIndex: 4,
           }}
         />
       </AbsoluteFill>

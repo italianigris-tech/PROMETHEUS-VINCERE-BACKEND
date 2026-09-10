@@ -765,6 +765,30 @@ def plan_mini_run_orchestration(
         governance = govern_backgrounds(backgrounds, scenes)
         if governance:
             print(f"[orchestration] background governance warnings: {governance}", flush=True)
+
+        # Synchronize cinematic audio cues for B-roll cutaway entrances
+        for b_idx, bg in enumerate(backgrounds):
+            if bg.get("kind") == "broll_cutaway":
+                entry_ms = bg.get("entry", {}).get("startMs", 0)
+                broll_meta = bg.get("broll", {})
+                treatment_name = (broll_meta.get("treatment") or {}).get("treatment_name", "cinematic_fullbleed")
+                if treatment_name == "evidentiary_dossier_card":
+                    cue_name = "sub_impact_reverb"
+                elif treatment_name == "retinal_flash_cut":
+                    cue_name = "impact_deep"
+                elif treatment_name == "track_matte_unfurl":
+                    cue_name = "whoosh_fast"
+                else:
+                    cue_name = "whoosh_slow"
+
+                sfx.append({
+                    "id": f"sfx-broll-cutaway-{b_idx}",
+                    "cue": cue_name,
+                    "variant": 1,
+                    "triggerMs": entry_ms,
+                    "gainDb": -10.0,
+                    "causedByBackgroundId": bg.get("id"),
+                })
     except Exception as exc:  # never let a backdrop decision break the render
         print(f"[orchestration] background planning skipped: {exc}", flush=True)
         backgrounds = []

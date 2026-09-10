@@ -641,5 +641,46 @@ describe("Architectural Background Systems (5 Pillars)", () => {
     expect(chunk.frameTreatment.backgroundMaterial).toBe("paper");
     expect(chunk.subjectZone.cranialPlacementBand).toBe("cranial_halo");
   });
+
+  describe("Calibrated Typography Refinements", () => {
+    test("CaptionChunk schema supports acceleratedExit flag", () => {
+      const chunk: CaptionChunk = {
+        text: "Speed exit",
+        startMs: 0,
+        endMs: 800,
+        acceleratedExit: true,
+      };
+      expect(chunk.acceleratedExit).toBe(true);
+    });
+
+    test("inlineTokenSwaps supports scaleMultiplier and highlightBox in TypographyLayer", () => {
+      const layer: TypographyLayer = {
+        layerIndex: 0,
+        layerName: "hero",
+        role: "primary_focus_word",
+        rawText: "Absolute precision",
+        text: "Absolute precision",
+        fontFamily: "Inter",
+        fontWeight: 800,
+        fontStyle: "normal",
+        fontSizePx: 110,
+        color: "#FFFFFF",
+        casing: "uppercase",
+        letterSpacingEm: 0.01,
+        lineHeight: 1.05,
+        isHero: true,
+        inlineTokenSwaps: [
+          {
+            wordIndex: 1,
+            pattern: "precision",
+            highlightBox: true as any,
+            scaleMultiplier: 1.06,
+          },
+        ],
+      };
+      expect(layer.inlineTokenSwaps?.[0].scaleMultiplier).toBe(1.06);
+      expect(layer.inlineTokenSwaps?.[0].highlightBox).toBe(true);
+    });
+  });
 });
 

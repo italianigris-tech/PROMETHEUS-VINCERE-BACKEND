@@ -58,6 +58,12 @@ jobs:
           echo "Payload decoded:"
           cat /tmp/pipeline_payload.json
 
+      - name: Validate V2 typography catalog presence
+        env:
+          PYTHONPATH: "."
+        run: |
+          python -c "import mini_run_pipeline.typography as t; n=len(t.load_typography_profiles_v2_catalog()['profiles']); print(f'V2 CATALOG PROFILES: {n}'); assert n > 0, 'V2 catalog missing from checkout — deploy is incomplete'"
+
       - name: Run orchestration plan
         id: plan
         env:

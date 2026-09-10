@@ -451,6 +451,7 @@ def main():
 
     # 14. Subject Matting (Optional VP9 WebM for behind-subject text)
     matte_r2_key = ""
+    matte_error = None
     behind_chunks = [c for c in chunks if c.get("subjectLayering", {}).get("behindSubject")]
     if behind_chunks and (design.get("subjectLayering") != "disabled"):
         try:
@@ -469,7 +470,10 @@ def main():
                 matte_r2_key = f"gha-renders/{job_id}/matte.webm"
                 s3.upload_file(str(matte_out), PROCESSED_BUCKET, matte_r2_key)
                 print(f"[orchestrate] Uploaded transparent matte -> R2:{matte_r2_key}", flush=True)
+            else:
+                matte_error = "Matte file was empty or missing after generation"
         except Exception as m_err:
+            matte_error = str(m_err)
             print(f"[orchestrate] Matting notice (graceful degrade): {m_err}", flush=True)
 
     # 15. Upload Graded Source Video to R2
@@ -522,6 +526,23 @@ def main():
             "scale": scale_factor,
         })
 
+    # Deployment fingerprint stamp
+    git_sha = os.environ.get("GITHUB_SHA")
+    if not git_sha:
+        try:
+            import subprocess
+            git_sha = subprocess.check_output(["git", "rev-parse", "HEAD"], stderr=subprocess.DEVNULL).decode("utf-8").strip()
+        except Exception:
+            git_sha = "unknown"
+
+    try:
+        from mini_run_pipeline.typography import load_typography_profiles_v2_catalog, ANIMA_RUNTIME_TREATMENTS
+        v2_profile_count = len(load_typography_profiles_v2_catalog().get("profiles", []))
+        runtime_treatment_count = len(ANIMA_RUNTIME_TREATMENTS)
+    except Exception:
+        v2_profile_count = 0
+        runtime_treatment_count = 0
+
     receipt_partial = json.dumps({
         "jobId": job_id,
         "chunkCount": len(chunks),
@@ -531,6 +552,20 @@ def main():
         "resolution": resolution_plan,
         "lookPlan": look_plan,
         "songProgram": materialized_song_program,
+        "matte": {
+            "status": "completed" if matte_r2_key else ("failed_fallback_foreground" if matte_error else "not_available"),
+            "r2Key": matte_r2_key or None,
+            "behindSubjectChunkCount": len(behind_chunks),
+            "error": str(matte_error) if matte_error else None,
+        },
+        "deploymentFingerprint": {
+            "gitSha": git_sha,
+            "v2ProfileCount": v2_profile_count,
+            "runtimeTreatmentCatalogCount": runtime_treatment_count,
+        },
+        "gitSha": git_sha,
+        "v2ProfileCount": v2_profile_count,
+        "runtimeTreatmentCatalogCount": runtime_treatment_count,
         "orchestratedAt": time.time(),
         "stageTimingsMs": {
             "orchestrate": round((time.monotonic() - started_at) * 1000),
