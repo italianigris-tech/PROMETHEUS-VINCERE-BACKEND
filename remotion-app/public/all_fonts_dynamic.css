@@ -886,54 +886,53 @@
 
 
 /* --- user-supplied reference-accurate script fonts (v3 spec corrections) --- */
-/* NOTE: All fonts below are in UNSAFE_DISTORTED_FONTS and remapped at runtime.  */
-/* @font-face declarations point to tracked Cinzel fallback to pass webpack.     */
+/* NOTE: Fallback declarations point to tracked AppleGaramond-Italic to prevent CinzelDecorative glyph corruption. */
 
 @font-face {
   font-family: "Exmouth";
-  src: url("./fonts/studio/CinzelDecorative-Bold.ttf") format("truetype");
+  src: url("./fonts/studio/AppleGaramond-Italic.ttf") format("truetype");
   font-display: block;
 }
 
 @font-face {
   font-family: "Champignon";
-  src: url("./fonts/studio/CinzelDecorative-Bold.ttf") format("truetype");
+  src: url("./fonts/studio/AppleGaramond-Italic.ttf") format("truetype");
   font-display: block;
 }
 
 @font-face {
   font-family: "Champignon Alt Swash";
-  src: url("./fonts/studio/CinzelDecorative-Bold.ttf") format("truetype");
+  src: url("./fonts/studio/AppleGaramond-Italic.ttf") format("truetype");
   font-display: block;
 }
 
 @font-face {
   font-family: "Brotherhood Script";
-  src: url("./fonts/studio/CinzelDecorative-Bold.ttf") format("truetype");
+  src: url("./fonts/studio/AppleGaramond-Italic.ttf") format("truetype");
   font-display: block;
 }
 
 @font-face {
   font-family: "Bromello";
-  src: url("./fonts/studio/CinzelDecorative-Bold.ttf") format("truetype");
+  src: url("./fonts/studio/AppleGaramond-Italic.ttf") format("truetype");
   font-display: block;
 }
 
 @font-face {
   font-family: "Bucklane Script";
-  src: url("./fonts/studio/CinzelDecorative-Bold.ttf") format("truetype");
+  src: url("./fonts/studio/AppleGaramond-Italic.ttf") format("truetype");
   font-display: block;
 }
 
 @font-face {
   font-family: "Formale Script";
-  src: url("./fonts/studio/CinzelDecorative-Bold.ttf") format("truetype");
+  src: url("./fonts/studio/AppleGaramond-Italic.ttf") format("truetype");
   font-display: block;
 }
 
 @font-face {
   font-family: "Cavas";
-  src: url("./fonts/studio/CinzelDecorative-Bold.ttf") format("truetype");
+  src: url("./fonts/studio/AppleGaramond-Italic.ttf") format("truetype");
   font-display: block;
 }
 
@@ -941,28 +940,28 @@
 
 @font-face {
   font-family: "Asgard Fit";
-  src: url("./fonts/studio/CinzelDecorative-Bold.ttf") format("truetype");
+  src: url("./fonts/studio/Antonio-Variable.ttf") format("truetype");
   font-weight: 300;
   font-display: block;
 }
 
 @font-face {
   font-family: "Asgard Fit";
-  src: url("./fonts/studio/CinzelDecorative-Bold.ttf") format("truetype");
+  src: url("./fonts/studio/Antonio-Variable.ttf") format("truetype");
   font-weight: 400;
   font-display: block;
 }
 
 @font-face {
   font-family: "Asgard Fit";
-  src: url("./fonts/studio/CinzelDecorative-Bold.ttf") format("truetype");
+  src: url("./fonts/studio/Antonio-Variable.ttf") format("truetype");
   font-weight: 700;
   font-display: block;
 }
 
 @font-face {
   font-family: "Asgard Fit";
-  src: url("./fonts/studio/CinzelDecorative-Bold.ttf") format("truetype");
+  src: url("./fonts/studio/Antonio-Variable.ttf") format("truetype");
   font-weight: 900;
   font-display: block;
 }

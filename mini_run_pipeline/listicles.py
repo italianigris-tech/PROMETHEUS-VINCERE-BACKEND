@@ -49,11 +49,11 @@ TEASER_PATTERNS = [
 
 STEP_ITEM_PATTERNS = [
     re.compile(
-        r"^(?:number\s+)?(\d+|first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|1st|2nd|3rd|4th|5th|step\s+\d+|rule\s+\d+|tip\s+\d+)\b",
+        r"^(?:number\s+)?(\d+(?:,\d+)*(?:\.\d+)?|first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|1st|2nd|3rd|4th|5th|step\s+\d+|rule\s+\d+|tip\s+\d+)\b",
         re.IGNORECASE,
     ),
     re.compile(
-        r"\b(?:number|step|rule|tip|point|lesson)\s+(\d+|one|two|three|four|five|six|seven|eight|nine|ten)\b",
+        r"\b(?:number|step|rule|tip|point|lesson)\s+(\d+(?:,\d+)*(?:\.\d+)?|one|two|three|four|five|six|seven|eight|nine|ten)\b",
         re.IGNORECASE,
     ),
 ]
@@ -199,8 +199,9 @@ def detect_and_plan_listicles(
             match = pattern.search(raw_text)
             if match:
                 matched_str = match.group(1).lower().replace("step", "").replace("rule", "").replace("tip", "").strip()
-                candidate = int(matched_str) if matched_str.isdigit() else WORD_TO_DIGIT.get(matched_str)
-                if candidate is None:
+                clean_digits = matched_str.replace(",", "").replace(".", "")
+                candidate = int(clean_digits) if clean_digits.isdigit() else WORD_TO_DIGIT.get(matched_str)
+                if candidate is None or candidate < 1 or candidate > 12:
                     continue
                 is_bare_ordinal = (
                     matched_str in WORD_TO_DIGIT
@@ -210,12 +211,15 @@ def detect_and_plan_listicles(
                 )
                 if is_bare_ordinal:
                     continue
+                # If first word is a number greater than 12 (e.g. "12,000" or "500"), it is an empirical quantity, not a listicle step
+                if first_word_clean.isdigit() and int(first_word_clean) > 12:
+                    continue
                 # Suppress bare leading numbers when followed by temporal/metric units (e.g. "12 months")
                 if (
-                    matched_str.isdigit()
+                    clean_digits.isdigit()
                     and not has_explicit_enumerator
                     and active_sequence is None
-                    and matched_str == first_word_clean
+                    and (clean_digits == first_word_clean or matched_str == first_word_clean)
                     and second_word_clean in TEMPORAL_METRIC_UNITS
                 ):
                     continue

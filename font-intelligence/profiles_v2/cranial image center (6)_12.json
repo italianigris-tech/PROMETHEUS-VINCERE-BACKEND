@@ -1,0 +1,253 @@
+{
+  "version": "typography-profile-v2",
+  "profileId": "cranial image center (6)_12",
+  "name": "Asymmetric_Prefix_Teal_Gradient_Crown",
+  "category": "cranial",
+  "aspectCompatible": [
+    "9:16"
+  ],
+  "subjectZone": {
+    "headroomRatio": 0.483,
+    "cranialPlacementBand": "cranial_halo",
+    "safeMarginPercent": 6.0,
+    "faceAvoidanceBand": {
+      "topPercent": 48.3,
+      "bottomPercent": 73.9
+    }
+  },
+  "frameTreatment": {
+    "backgroundMaterial": "paper",
+    "materialOpacity": 0.18,
+    "grain": {
+      "opacity": 0.06
+    },
+    "vignette": {
+      "intensity": 0.12,
+      "color": "#000000"
+    }
+  },
+  "layers": [
+    {
+      "role": "subordinate",
+      "fontFamily": "Plus Jakarta Sans",
+      "fontWeight": 500,
+      "fontStyle": "normal",
+      "casing": "lowercase",
+      "fontSizePx": 52,
+      "relativeScale": 1.0,
+      "letterSpacingEm": -0.01,
+      "lineHeightMultiplier": 1.0,
+      "anchor": {
+        "horizontal": "center",
+        "vertical": "center",
+        "offsetXPercent": 0.0,
+        "offsetYPercent": 0.0,
+        "placementZone": "chest_deck",
+        "relativeTo": "canvas"
+      },
+      "stagger": {
+        "dxPercent": 0.0,
+        "dyPercent": 0.0,
+        "rotationDeg": 0.0,
+        "scaleMultiplier": 1.0,
+        "scaleX": 1.0,
+        "scaleY": 1.0,
+        "arcWarpDeg": 0.0,
+        "skewXDeg": 0.0,
+        "skewYDeg": 0.0,
+        "stretchRatio": 1.0
+      },
+      "fill": {
+        "type": "solid",
+        "color": "#FFFFFF"
+      },
+      "materiality": {
+        "opacity": 1.0,
+        "blendMode": "normal",
+        "bevel": {
+          "enabled": true,
+          "depthPx": 2.5,
+          "softnessPx": 1.0,
+          "angleDeg": 135.0,
+          "highlightColor": "rgba(255, 255, 255, 0.75)",
+          "shadowColor": "rgba(0, 0, 0, 0.75)"
+        }
+      },
+      "occlusion": {
+        "mode": "partial_head_clip",
+        "depthPlane": 45,
+        "clipBoundary": "head",
+        "partialOverlapPercent": 30
+      },
+      "inlineTokenSwaps": [],
+      "candidates": [
+        {
+          "candidateFamily": "Plus Jakarta Sans",
+          "verified": true,
+          "classification": "serif",
+          "visualWeightConfidence": 0.95,
+          "goudyCorrectionApplied": false
+        }
+      ],
+      "zIndex": 10,
+      "behindSubject": true
+    },
+    {
+      "role": "hero",
+      "fontFamily": "Montserrat",
+      "fontWeight": 900,
+      "fontStyle": "normal",
+      "casing": "uppercase",
+      "fontSizePx": 160,
+      "relativeScale": 1.0,
+      "letterSpacingEm": -0.03,
+      "lineHeightMultiplier": 0.88,
+      "anchor": {
+        "horizontal": "center",
+        "vertical": "center",
+        "offsetXPercent": 0.0,
+        "offsetYPercent": 0.0,
+        "placementZone": "chest_deck",
+        "relativeTo": "canvas"
+      },
+      "stagger": {
+        "dxPercent": 0.0,
+        "dyPercent": 0.0,
+        "rotationDeg": 0.0,
+        "scaleMultiplier": 1.0,
+        "scaleX": 1.0,
+        "scaleY": 1.0,
+        "arcWarpDeg": 0.0,
+        "skewXDeg": 0.0,
+        "skewYDeg": 0.0,
+        "stretchRatio": 1.0
+      },
+      "fill": {
+        "type": "linear_gradient",
+        "angleDeg": 135.0,
+        "stops": [
+          {
+            "color": "#0D9488",
+            "offset": 0.0
+          },
+          {
+            "color": "#14B8A6",
+            "offset": 0.5
+          },
+          {
+            "color": "#042F2E",
+            "offset": 1.0
+          }
+        ]
+      },
+      "materiality": {
+        "opacity": 1.0,
+        "blendMode": "normal",
+        "glow": {
+          "enabled": true,
+          "blurPx": 22.0,
+          "color": "rgba(13,148,136,0.5)",
+          "intensity": 1.0,
+          "inner": false
+        },
+        "bevel": {
+          "enabled": true,
+          "depthPx": 2.5,
+          "softnessPx": 1.0,
+          "angleDeg": 135.0,
+          "highlightColor": "rgba(255, 255, 255, 0.75)",
+          "shadowColor": "rgba(0, 0, 0, 0.75)"
+        }
+      },
+      "occlusion": {
+        "mode": "partial_head_clip",
+        "depthPlane": 45,
+        "clipBoundary": "head",
+        "partialOverlapPercent": 30
+      },
+      "inlineTokenSwaps": [],
+      "candidates": [
+        {
+          "candidateFamily": "Montserrat",
+          "verified": true,
+          "classification": "serif",
+          "visualWeightConfidence": 0.95,
+          "goudyCorrectionApplied": false
+        }
+      ],
+      "zIndex": 15,
+      "behindSubject": true
+    },
+    {
+      "role": "subordinate",
+      "fontFamily": "Montserrat",
+      "fontWeight": 700,
+      "fontStyle": "normal",
+      "casing": "lowercase",
+      "fontSizePx": 48,
+      "relativeScale": 1.0,
+      "letterSpacingEm": 0.02,
+      "lineHeightMultiplier": 1.0,
+      "anchor": {
+        "horizontal": "center",
+        "vertical": "center",
+        "offsetXPercent": 0.0,
+        "offsetYPercent": 0.0,
+        "placementZone": "chest_deck",
+        "relativeTo": "canvas"
+      },
+      "stagger": {
+        "dxPercent": 0.0,
+        "dyPercent": 0.0,
+        "rotationDeg": 0.0,
+        "scaleMultiplier": 1.0,
+        "scaleX": 1.0,
+        "scaleY": 1.0,
+        "arcWarpDeg": 0.0,
+        "skewXDeg": 0.0,
+        "skewYDeg": 0.0,
+        "stretchRatio": 1.0
+      },
+      "fill": {
+        "type": "solid",
+        "color": "#FB923C"
+      },
+      "materiality": {
+        "opacity": 1.0,
+        "blendMode": "normal",
+        "bevel": {
+          "enabled": true,
+          "depthPx": 2.5,
+          "softnessPx": 1.0,
+          "angleDeg": 135.0,
+          "highlightColor": "rgba(255, 255, 255, 0.75)",
+          "shadowColor": "rgba(0, 0, 0, 0.75)"
+        }
+      },
+      "occlusion": {
+        "mode": "none",
+        "depthPlane": 0,
+        "clipBoundary": "silhouette",
+        "partialOverlapPercent": 0
+      },
+      "inlineTokenSwaps": [],
+      "candidates": [
+        {
+          "candidateFamily": "Montserrat",
+          "verified": true,
+          "classification": "serif",
+          "visualWeightConfidence": 0.95,
+          "goudyCorrectionApplied": false
+        }
+      ],
+      "zIndex": 20,
+      "behindSubject": false
+    }
+  ],
+  "annotations": [],
+  "metadata": {
+    "migratedFrom": "cranial image center (6).json",
+    "overallMood": "Organic Modern Luxe, Emerald Teal Deep Gradient with Peach Torso Accent",
+    "migrationVersion": "v2.1"
+  }
+}

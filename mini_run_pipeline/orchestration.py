@@ -492,6 +492,11 @@ def plan_mini_run_orchestration(
         # Rock-solid stable cinematic camera: lock stably to center 50.0% X (zero lateral jumps/jitter)
         target_focal_x = 50.0
 
+        # Propagate editorial beat roles when upstream classification provides
+        # them; the opening chunk is canonically the "intro" beat. The B-roll
+        # engine keys rhetorical scoring and treatment mapping off this field.
+        scene_role = chunk.get("role") or chunk.get("beatType") or ("intro" if index == 0 else None)
+
         scenes.append({
             "id": scene_id,
             "startMs": start_ms,
@@ -502,6 +507,7 @@ def plan_mini_run_orchestration(
             "focalPoint": {"xPercent": 50.0, "yPercent": 42.0},
             "dominantZone": dom_zone,
             "overscanScale": 1.15,
+            **({"role": scene_role} if scene_role else {}),
             "cause": {
                 "gate": "chunk_visual_treatment",
                 "chunkIds": [str(chunk.get("chunkIndex", index))],

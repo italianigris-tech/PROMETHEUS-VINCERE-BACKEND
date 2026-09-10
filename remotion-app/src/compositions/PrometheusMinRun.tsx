@@ -360,7 +360,7 @@ export const resolveTypographyPaintStyle = (layer: TypographyPaintInput): React.
     filter: hasGradient
       ? (shadowSuppressed
         ? (glowActive
-          ? `drop-shadow(0 0 26px ${layer.glow}) drop-shadow(0 0 12px ${layer.glow})`
+          ? `drop-shadow(0 0 20px ${layer.glow}) drop-shadow(0 0 10px ${layer.glow})`
           : undefined)
         : (layer.specularChamfer
           ? buildPhysicalLightingFilter({
@@ -376,8 +376,10 @@ export const resolveTypographyPaintStyle = (layer: TypographyPaintInput): React.
       : (layer.shadow === "none"
         ? "none"
         : (layer.shadow || (layer.behindSubject
-          ? "0 4px 30px rgba(0, 0, 0, 0.98), 0 2px 10px rgba(0, 0, 0, 0.92), 0 0 4px rgba(0, 0, 0, 1.0)"
-          : "0 4px 20px rgba(0, 0, 0, 0.95), 0 2px 8px rgba(0, 0, 0, 0.90), 0 0 3px rgba(0, 0, 0, 0.95)"))),
+          ? "0 4px 24px rgba(0, 0, 0, 0.95), 0 2px 8px rgba(0, 0, 0, 0.85)"
+          : (layer.isHero
+            ? "0 4px 16px rgba(0, 0, 0, 0.90), 0 2px 6px rgba(0, 0, 0, 0.85)"
+            : "0 2px 8px rgba(0, 0, 0, 0.80)")))),
     mixBlendMode: undefined,
   };
 };
@@ -1294,6 +1296,7 @@ const KineticLayerRenderer: React.FC<{
     textAlign: "center",
     overflow: "visible",
     fontVariantLigatures: "none",
+    fontFeatureSettings: '"liga" 0, "dlig" 0, "calt" 0, "hlig" 0',
     color: textColor,
     WebkitTextFillColor: hasGrad ? undefined : textColor,
     transform: isBehindSubject
@@ -4461,6 +4464,8 @@ const HierarchicalAsymmetricLockupComposition: React.FC<{
           marginBottom: isTopTucked ? "0.15em" : 0,
           marginTop: isTopTucked ? 0 : "0.18em",
           paddingLeft: "0.08em",
+          fontVariantLigatures: "none",
+          fontFeatureSettings: '"liga" 0, "dlig" 0, "calt" 0, "hlig" 0',
         }}
       >
         {modWords.map((w, idx) => renderWord(w, idx, false, modWords))}
@@ -4480,6 +4485,8 @@ const HierarchicalAsymmetricLockupComposition: React.FC<{
           fontWeight: 700,
           letterSpacing: "-0.035em",
           lineHeight: 0.88,
+          fontVariantLigatures: "none",
+          fontFeatureSettings: '"liga" 0, "dlig" 0, "calt" 0, "hlig" 0',
           filter: isDifference
             ? "drop-shadow(0 0 1px rgba(0, 0, 0, 0.85))"
             : "drop-shadow(0 0 24px rgba(255, 255, 255, 0.45)) drop-shadow(0 0 45px rgba(255, 255, 255, 0.18)) drop-shadow(0 6px 24px rgba(0, 0, 0, 0.95)) drop-shadow(0 2px 6px rgba(0, 0, 0, 0.90))",

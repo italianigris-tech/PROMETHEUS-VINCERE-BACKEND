@@ -1,0 +1,147 @@
+{
+  "version": "typography-profile-v2",
+  "profileId": "image_(36)",
+  "name": "Pretty_Doesnt_Convert_Tall_Sans_Script",
+  "category": "editorial",
+  "aspectCompatible": [
+    "9:16"
+  ],
+  "subjectZone": {
+    "headroomRatio": 0.15,
+    "cranialPlacementBand": "chest_deck",
+    "safeMarginPercent": 6.0
+  },
+  "frameTreatment": {
+    "backgroundMaterial": "paper",
+    "materialOpacity": 0.18,
+    "grain": {
+      "opacity": 0.06
+    },
+    "vignette": {
+      "intensity": 0.12,
+      "color": "#000000"
+    }
+  },
+  "layers": [
+    {
+      "role": "subordinate",
+      "fontFamily": "Outfit",
+      "fontWeight": 900,
+      "fontStyle": "normal",
+      "casing": "uppercase",
+      "fontSizePx": 56,
+      "relativeScale": 1.0,
+      "letterSpacingEm": 0.02,
+      "lineHeightMultiplier": 0.95,
+      "anchor": {
+        "horizontal": "center",
+        "vertical": "center",
+        "offsetXPercent": 0.0,
+        "offsetYPercent": 0.0,
+        "placementZone": "chest_deck",
+        "relativeTo": "canvas"
+      },
+      "stagger": {
+        "dxPercent": 0.0,
+        "dyPercent": 0.0,
+        "rotationDeg": 0.0,
+        "scaleMultiplier": 1.0,
+        "scaleX": 1.0,
+        "scaleY": 1.0,
+        "arcWarpDeg": 0.0,
+        "skewXDeg": 0.0,
+        "skewYDeg": 0.0,
+        "stretchRatio": 1.0
+      },
+      "fill": {
+        "type": "solid",
+        "color": "#111111"
+      },
+      "materiality": {
+        "opacity": 1.0,
+        "blendMode": "normal"
+      },
+      "occlusion": {
+        "mode": "none",
+        "depthPlane": 0,
+        "clipBoundary": "silhouette",
+        "partialOverlapPercent": 0
+      },
+      "inlineTokenSwaps": [],
+      "candidates": [
+        {
+          "candidateFamily": "Outfit",
+          "verified": true,
+          "classification": "serif",
+          "visualWeightConfidence": 0.95,
+          "goudyCorrectionApplied": false
+        }
+      ],
+      "zIndex": 10,
+      "behindSubject": false
+    },
+    {
+      "role": "hero",
+      "fontFamily": "Exmouth",
+      "fontWeight": 600,
+      "fontStyle": "italic",
+      "casing": "lowercase",
+      "fontSizePx": 42,
+      "relativeScale": 1.0,
+      "letterSpacingEm": 0.02,
+      "lineHeightMultiplier": 1.0,
+      "anchor": {
+        "horizontal": "center",
+        "vertical": "center",
+        "offsetXPercent": 0.0,
+        "offsetYPercent": 0.0,
+        "placementZone": "chest_deck",
+        "relativeTo": "canvas"
+      },
+      "stagger": {
+        "dxPercent": 0.0,
+        "dyPercent": 0.0,
+        "rotationDeg": 0.0,
+        "scaleMultiplier": 1.0,
+        "scaleX": 1.0,
+        "scaleY": 1.0,
+        "arcWarpDeg": 0.0,
+        "skewXDeg": 0.0,
+        "skewYDeg": 0.0,
+        "stretchRatio": 1.0
+      },
+      "fill": {
+        "type": "solid",
+        "color": "#111111"
+      },
+      "materiality": {
+        "opacity": 1.0,
+        "blendMode": "normal"
+      },
+      "occlusion": {
+        "mode": "none",
+        "depthPlane": 0,
+        "clipBoundary": "silhouette",
+        "partialOverlapPercent": 0
+      },
+      "inlineTokenSwaps": [],
+      "candidates": [
+        {
+          "candidateFamily": "Exmouth",
+          "verified": true,
+          "classification": "script",
+          "visualWeightConfidence": 0.95,
+          "goudyCorrectionApplied": false
+        }
+      ],
+      "zIndex": 15,
+      "behindSubject": false
+    }
+  ],
+  "annotations": [],
+  "metadata": {
+    "migratedFrom": "image (36).json",
+    "overallMood": "Direct Response Copywriting, Ultra-Tall Compressed Sans with Calligraphic Subtitle",
+    "migrationVersion": "v2.1"
+  }
+}

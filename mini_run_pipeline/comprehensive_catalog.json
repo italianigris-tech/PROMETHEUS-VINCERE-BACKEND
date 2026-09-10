@@ -1,13 +1,669 @@
 {
   "artifactType": "comprehensive_music_catalog",
-  "version": "v3-269-capacity",
-  "totalTracks": 269,
+  "version": "v4-283-capacity",
+  "totalTracks": 283,
   "bucket": "prometheus-music",
   "entries": [
     {
+      "id": "emotional/limerence",
+      "title": "Limerence",
+      "artist": "Yves Tumor",
+      "category": "emotional",
+      "archetype": "emotional",
+      "genreTags": [
+        "ambient",
+        "shoegaze",
+        "emotional",
+        "nostalgic",
+        "lo-fi",
+        "tape-hiss",
+        "haunting"
+      ],
+      "moodTags": [
+        "emotional",
+        "bittersweet",
+        "yearning",
+        "poetic",
+        "transcendent",
+        "hypnotic"
+      ],
+      "useCaseTags": [
+        "speech-friendly",
+        "emotional",
+        "cinematic-ending",
+        "poignant-truth",
+        "deep-vlog"
+      ],
+      "avoidWhen": [
+        "fast-paced-hype",
+        "action"
+      ],
+      "intensity": "soft",
+      "durationSec": 329.4,
+      "dropOnsetSec": 7.0,
+      "dropReason": "energy_surge_7.0s",
+      "audioObjectKey": "music-originals/emotional/Yves Tumor - Limerence.mp3",
+      "bucket": "prometheus-music",
+      "localPath": "C:\\Users\\HomePC\\Downloads\\PROMETHEUS-VINCERE-BACKEND\\PROMETHEUS_SONGS\\Yves Tumor - Limerence.mp3",
+      "renderAllowed": true,
+      "commercialAllowed": true,
+      "licenseVerified": true,
+      "licenseType": "creator_curated_reference",
+      "approvalSource": "creator_reference_ontology_2026"
+    },
+    {
+      "id": "emotional/weargue",
+      "title": "WEArgue",
+      "artist": "Prometheus Moody",
+      "category": "emotional",
+      "archetype": "emotional",
+      "genreTags": [
+        "alt-r&b",
+        "moody",
+        "emotional",
+        "tension",
+        "conflict",
+        "atmospheric"
+      ],
+      "moodTags": [
+        "emotional",
+        "turbulent",
+        "strained",
+        "passionate",
+        "conflicted",
+        "heavy"
+      ],
+      "useCaseTags": [
+        "speech-friendly",
+        "emotional",
+        "relationship",
+        "conflict",
+        "drama",
+        "tension"
+      ],
+      "avoidWhen": [
+        "cheerful",
+        "corporate-promo"
+      ],
+      "intensity": "medium",
+      "durationSec": 341.79,
+      "dropOnsetSec": 17.0,
+      "dropReason": "energy_surge_17.0s",
+      "audioObjectKey": "music-originals/emotional/WEArgue.mp3",
+      "bucket": "prometheus-music",
+      "localPath": "C:\\Users\\HomePC\\Downloads\\PROMETHEUS-VINCERE-BACKEND\\PROMETHEUS_SONGS\\WEArgue.mp3",
+      "renderAllowed": true,
+      "commercialAllowed": true,
+      "licenseVerified": true,
+      "licenseType": "creator_curated_reference",
+      "approvalSource": "creator_reference_ontology_2026"
+    },
+    {
+      "id": "emotional/apathy",
+      "title": "Apathy",
+      "artist": "Prometheus Ambient",
+      "category": "emotional",
+      "archetype": "emotional",
+      "genreTags": [
+        "ambient",
+        "drone",
+        "emotional",
+        "minimal",
+        "deep",
+        "melancholy"
+      ],
+      "moodTags": [
+        "emotional",
+        "vulnerable",
+        "isolated",
+        "introspective",
+        "hollow",
+        "quiet"
+      ],
+      "useCaseTags": [
+        "speech-friendly",
+        "emotional",
+        "confession",
+        "failure",
+        "heartbreak"
+      ],
+      "avoidWhen": [
+        "hype",
+        "celebration",
+        "party"
+      ],
+      "intensity": "soft",
+      "durationSec": 117.07,
+      "dropOnsetSec": 10.0,
+      "dropReason": "energy_surge_10.0s",
+      "audioObjectKey": "music-originals/emotional/Apathy.mp3",
+      "bucket": "prometheus-music",
+      "localPath": "C:\\Users\\HomePC\\Downloads\\PROMETHEUS-VINCERE-BACKEND\\PROMETHEUS_SONGS\\Apathy.mp3",
+      "renderAllowed": true,
+      "commercialAllowed": true,
+      "licenseVerified": true,
+      "licenseType": "creator_curated_reference",
+      "approvalSource": "creator_reference_ontology_2026"
+    },
+    {
+      "id": "educational/atm",
+      "title": "ATM",
+      "artist": "Don Toliver",
+      "category": "educational",
+      "archetype": "educational",
+      "genreTags": [
+        "trap",
+        "hip-hop",
+        "groove",
+        "educational",
+        "bounce",
+        "metro"
+      ],
+      "moodTags": [
+        "educational",
+        "stylish",
+        "confident",
+        "head-nodding",
+        "driving"
+      ],
+      "useCaseTags": [
+        "speech-friendly",
+        "educational",
+        "money",
+        "finance",
+        "strategy",
+        "breakdown"
+      ],
+      "avoidWhen": [
+        "melancholy",
+        "classical"
+      ],
+      "intensity": "hard",
+      "durationSec": 192.7,
+      "dropOnsetSec": 11.5,
+      "dropReason": "energy_surge_11.5s",
+      "audioObjectKey": "music-originals/educational/Don Toliver - ATM.mp3",
+      "bucket": "prometheus-music",
+      "localPath": "C:\\Users\\HomePC\\Downloads\\PROMETHEUS-VINCERE-BACKEND\\PROMETHEUS_SONGS\\Don Toliver - ATM.mp3",
+      "renderAllowed": true,
+      "commercialAllowed": true,
+      "licenseVerified": true,
+      "licenseType": "creator_curated_reference",
+      "approvalSource": "creator_reference_ontology_2026"
+    },
+    {
+      "id": "educational/daisies",
+      "title": "Daisies",
+      "artist": "Justin Bieber",
+      "category": "educational",
+      "archetype": "educational",
+      "genreTags": [
+        "pop",
+        "r&b",
+        "groove",
+        "educational",
+        "crisp",
+        "smooth"
+      ],
+      "moodTags": [
+        "educational",
+        "approachable",
+        "modern",
+        "focus",
+        "clear",
+        "dynamic"
+      ],
+      "useCaseTags": [
+        "speech-friendly",
+        "educational",
+        "listicle",
+        "tips",
+        "how-to"
+      ],
+      "avoidWhen": [
+        "dark-horror",
+        "tragedy"
+      ],
+      "intensity": "medium",
+      "durationSec": 176.44,
+      "dropOnsetSec": 8.0,
+      "dropReason": "energy_surge_8.0s",
+      "audioObjectKey": "music-originals/educational/Justin Bieber - Daisies.mp3",
+      "bucket": "prometheus-music",
+      "localPath": "C:\\Users\\HomePC\\Downloads\\PROMETHEUS-VINCERE-BACKEND\\PROMETHEUS_SONGS\\Justin Bieber - Daisies.mp3",
+      "renderAllowed": true,
+      "commercialAllowed": true,
+      "licenseVerified": true,
+      "licenseType": "creator_curated_reference",
+      "approvalSource": "creator_reference_ontology_2026"
+    },
+    {
+      "id": "educational/earfquake",
+      "title": "EARFQUAKE",
+      "artist": "Tyler, The Creator",
+      "category": "educational",
+      "archetype": "educational",
+      "genreTags": [
+        "hip-hop",
+        "synth",
+        "bounce",
+        "educational",
+        "rhythmic",
+        "head-nodding"
+      ],
+      "moodTags": [
+        "educational",
+        "engaging",
+        "catchy",
+        "focused",
+        "rhythmic",
+        "vibrant"
+      ],
+      "useCaseTags": [
+        "speech-friendly",
+        "educational",
+        "explainer",
+        "breakdown",
+        "tutorial"
+      ],
+      "avoidWhen": [
+        "solemn",
+        "sad",
+        "ambient-sleep"
+      ],
+      "intensity": "hard",
+      "durationSec": 190.07,
+      "dropOnsetSec": 22.5,
+      "dropReason": "energy_surge_22.5s",
+      "audioObjectKey": "music-originals/educational/Tyler, The Creator - EARFQUAKE.mp3",
+      "bucket": "prometheus-music",
+      "localPath": "C:\\Users\\HomePC\\Downloads\\PROMETHEUS-VINCERE-BACKEND\\PROMETHEUS_SONGS\\Tyler, The Creator - EARFQUAKE.mp3",
+      "renderAllowed": true,
+      "commercialAllowed": true,
+      "licenseVerified": true,
+      "licenseType": "creator_curated_reference",
+      "approvalSource": "creator_reference_ontology_2026"
+    },
+    {
+      "id": "storytelling/every-living-breathing-moment",
+      "title": "Every Living Breathing Moment",
+      "artist": "Prometheus Cinematic",
+      "category": "storytelling",
+      "archetype": "storytelling",
+      "genreTags": [
+        "cinematic",
+        "orchestral",
+        "storytelling",
+        "journey",
+        "epic-journey"
+      ],
+      "moodTags": [
+        "storytelling",
+        "profound",
+        "soaring",
+        "building",
+        "narrative-arc"
+      ],
+      "useCaseTags": [
+        "speech-friendly",
+        "documentary",
+        "storytelling",
+        "case-study",
+        "transformation"
+      ],
+      "avoidWhen": [
+        "comedy",
+        "casual-tiktok"
+      ],
+      "intensity": "medium",
+      "durationSec": 106.25,
+      "dropOnsetSec": 4.0,
+      "dropReason": "energy_surge_4.0s",
+      "audioObjectKey": "music-originals/storytelling/Every Living Breathing Moment.mp3",
+      "bucket": "prometheus-music",
+      "localPath": "C:\\Users\\HomePC\\Downloads\\PROMETHEUS-VINCERE-BACKEND\\PROMETHEUS_SONGS\\Every Living Breathing Moment.mp3",
+      "renderAllowed": true,
+      "commercialAllowed": true,
+      "licenseVerified": true,
+      "licenseType": "creator_curated_reference",
+      "approvalSource": "creator_reference_ontology_2026"
+    },
+    {
+      "id": "storytelling/as-time-flies",
+      "title": "As Time Flies",
+      "artist": "Ty's Music",
+      "category": "storytelling",
+      "archetype": "storytelling",
+      "genreTags": [
+        "cinematic",
+        "piano",
+        "storytelling",
+        "temporal",
+        "nostalgia",
+        "memories"
+      ],
+      "moodTags": [
+        "storytelling",
+        "poignant",
+        "nostalgic",
+        "reflective",
+        "reflective-narrative"
+      ],
+      "useCaseTags": [
+        "speech-friendly",
+        "underscore",
+        "storytelling",
+        "life-lesson",
+        "timeline"
+      ],
+      "avoidWhen": [
+        "hype",
+        "high-energy-dance"
+      ],
+      "intensity": "soft",
+      "durationSec": 61.8,
+      "dropOnsetSec": 6.0,
+      "dropReason": "energy_surge_6.0s",
+      "audioObjectKey": "music-originals/storytelling/Ty's Music - As Time Flies.mp3",
+      "bucket": "prometheus-music",
+      "localPath": "C:\\Users\\HomePC\\Downloads\\PROMETHEUS-VINCERE-BACKEND\\PROMETHEUS_SONGS\\Ty's Music - As Time Flies.mp3",
+      "renderAllowed": true,
+      "commercialAllowed": true,
+      "licenseVerified": true,
+      "licenseType": "creator_curated_reference",
+      "approvalSource": "creator_reference_ontology_2026"
+    },
+    {
+      "id": "storytelling/leanin-slowed",
+      "title": "Leanin (Slowed)",
+      "artist": "Prometheus Slowed",
+      "category": "storytelling",
+      "archetype": "storytelling",
+      "genreTags": [
+        "trap",
+        "slowed",
+        "storytelling",
+        "reverb",
+        "journey",
+        "struggle"
+      ],
+      "moodTags": [
+        "storytelling",
+        "narrative",
+        "introspective",
+        "reflective",
+        "hypnotic",
+        "gritty"
+      ],
+      "useCaseTags": [
+        "speech-friendly",
+        "journey",
+        "vlog",
+        "progression",
+        "grind"
+      ],
+      "avoidWhen": [
+        "bright-corporate",
+        "infomercial"
+      ],
+      "intensity": "medium",
+      "durationSec": 144.09,
+      "dropOnsetSec": 13.5,
+      "dropReason": "energy_surge_13.5s",
+      "audioObjectKey": "music-originals/storytelling/Leanin (Slowed).mp3",
+      "bucket": "prometheus-music",
+      "localPath": "C:\\Users\\HomePC\\Downloads\\PROMETHEUS-VINCERE-BACKEND\\PROMETHEUS_SONGS\\Leanin (Slowed).mp3",
+      "renderAllowed": true,
+      "commercialAllowed": true,
+      "licenseVerified": true,
+      "licenseType": "creator_curated_reference",
+      "approvalSource": "creator_reference_ontology_2026"
+    },
+    {
+      "id": "authority/feeling-blue",
+      "title": "Feeling Blue",
+      "artist": "Caleb Arredondo",
+      "category": "authority",
+      "archetype": "authority",
+      "genreTags": [
+        "cinematic",
+        "authority",
+        "piano",
+        "deep",
+        "moody",
+        "power",
+        "conviction"
+      ],
+      "moodTags": [
+        "authority",
+        "weighty",
+        "determined",
+        "uncompromising",
+        "dramatic"
+      ],
+      "useCaseTags": [
+        "speech-friendly",
+        "high-stakes",
+        "business",
+        "lesson",
+        "hard-truth"
+      ],
+      "avoidWhen": [
+        "lighthearted",
+        "silly",
+        "dance"
+      ],
+      "intensity": "medium",
+      "durationSec": 106.97,
+      "dropOnsetSec": 70.5,
+      "dropReason": "peak_energy_70.5s",
+      "audioObjectKey": "music-originals/authority/Caleb Arredondo - Feeling Blue.mp3",
+      "bucket": "prometheus-music",
+      "localPath": "C:\\Users\\HomePC\\Downloads\\PROMETHEUS-VINCERE-BACKEND\\PROMETHEUS_SONGS\\Caleb Arredondo - Feeling Blue.mp3",
+      "renderAllowed": true,
+      "commercialAllowed": true,
+      "licenseVerified": true,
+      "licenseType": "creator_curated_reference",
+      "approvalSource": "creator_reference_ontology_2026"
+    },
+    {
+      "id": "authority/a-good-man-with-a-broken-heart",
+      "title": "A Good Man with a Broken Heart",
+      "artist": "lovibe",
+      "category": "authority",
+      "archetype": "authority",
+      "genreTags": [
+        "cinematic",
+        "authority",
+        "slowed",
+        "deep-bass",
+        "executive",
+        "reverb"
+      ],
+      "moodTags": [
+        "authority",
+        "commanding",
+        "serious",
+        "stoic",
+        "heavy",
+        "sober",
+        "resolute"
+      ],
+      "useCaseTags": [
+        "speech-friendly",
+        "hook",
+        "high-stakes",
+        "authority",
+        "wisdom",
+        "mentor"
+      ],
+      "avoidWhen": [
+        "cheerful",
+        "party",
+        "comedy"
+      ],
+      "intensity": "medium",
+      "durationSec": 118.8,
+      "dropOnsetSec": 9.0,
+      "dropReason": "energy_surge_9.0s",
+      "audioObjectKey": "music-originals/authority/lovibe - A Good Man with a Broken Heart.mp3",
+      "bucket": "prometheus-music",
+      "localPath": "C:\\Users\\HomePC\\Downloads\\PROMETHEUS-VINCERE-BACKEND\\PROMETHEUS_SONGS\\lovibe - A Good Man with a Broken Heart.mp3",
+      "renderAllowed": true,
+      "commercialAllowed": true,
+      "licenseVerified": true,
+      "licenseType": "creator_curated_reference",
+      "approvalSource": "creator_reference_ontology_2026"
+    },
+    {
+      "id": "positive/fine-line-instrumental",
+      "title": "Fine Line (Instrumental)",
+      "artist": "Kapa Boy",
+      "category": "positive",
+      "archetype": "positive",
+      "genreTags": [
+        "acoustic",
+        "indie",
+        "pop",
+        "instrumental",
+        "positive",
+        "warmth",
+        "piano"
+      ],
+      "moodTags": [
+        "warm",
+        "positive",
+        "comforting",
+        "gentle",
+        "uplifting",
+        "heartfelt"
+      ],
+      "useCaseTags": [
+        "speech-friendly",
+        "underscore",
+        "talking-head",
+        "motivational",
+        "resolution"
+      ],
+      "avoidWhen": [
+        "horror",
+        "jump-scare",
+        "gritty-trap"
+      ],
+      "intensity": "medium",
+      "durationSec": 113.88,
+      "dropOnsetSec": 15.5,
+      "dropReason": "energy_surge_15.5s",
+      "audioObjectKey": "music-originals/positive/Kapa Boy - Fine Line (Instrumental).mp3",
+      "bucket": "prometheus-music",
+      "localPath": "C:\\Users\\HomePC\\Downloads\\PROMETHEUS-VINCERE-BACKEND\\PROMETHEUS_SONGS\\Kapa Boy - Fine Line (Instrumental).mp3",
+      "renderAllowed": true,
+      "commercialAllowed": true,
+      "licenseVerified": true,
+      "licenseType": "creator_curated_reference",
+      "approvalSource": "creator_reference_ontology_2026"
+    },
+    {
+      "id": "positive/ethereal",
+      "title": "Ethereal",
+      "artist": "Txmy",
+      "category": "positive",
+      "archetype": "positive",
+      "genreTags": [
+        "ambient",
+        "electronic",
+        "ethereal",
+        "positive",
+        "uplift",
+        "glitch",
+        "future"
+      ],
+      "moodTags": [
+        "ethereal",
+        "inspiring",
+        "transcendent",
+        "hopeful",
+        "lush",
+        "expansive"
+      ],
+      "useCaseTags": [
+        "speech-friendly",
+        "underscore",
+        "focus",
+        "b-roll",
+        "aesthetic"
+      ],
+      "avoidWhen": [
+        "aggressive",
+        "rage",
+        "hard-phonk"
+      ],
+      "intensity": "soft",
+      "durationSec": 168.0,
+      "dropOnsetSec": 58.0,
+      "dropReason": "peak_energy_58.0s",
+      "audioObjectKey": "music-originals/positive/Txmy - Ethereal.mp3",
+      "bucket": "prometheus-music",
+      "localPath": "C:\\Users\\HomePC\\Downloads\\PROMETHEUS-VINCERE-BACKEND\\PROMETHEUS_SONGS\\Txmy - Ethereal.mp3",
+      "renderAllowed": true,
+      "commercialAllowed": true,
+      "licenseVerified": true,
+      "licenseType": "creator_curated_reference",
+      "approvalSource": "creator_reference_ontology_2026"
+    },
+    {
+      "id": "positive/first-place",
+      "title": "FIRST PLACE",
+      "artist": "Justin Bieber",
+      "category": "positive",
+      "archetype": "positive",
+      "genreTags": [
+        "pop",
+        "r&b",
+        "positive",
+        "swag",
+        "uplift",
+        "victory",
+        "breakthrough"
+      ],
+      "moodTags": [
+        "positive",
+        "confident",
+        "triumphant",
+        "bright",
+        "winning",
+        "celebratory"
+      ],
+      "useCaseTags": [
+        "speech-friendly",
+        "hook",
+        "high-tempo",
+        "climax",
+        "payoff"
+      ],
+      "avoidWhen": [
+        "depressing",
+        "funeral",
+        "dark",
+        "tragedy"
+      ],
+      "intensity": "medium",
+      "durationSec": 200.09,
+      "dropOnsetSec": 8.5,
+      "dropReason": "energy_surge_8.5s",
+      "audioObjectKey": "music-originals/positive/Justin Bieber - FIRST PLACE.mp3",
+      "bucket": "prometheus-music",
+      "localPath": "C:\\Users\\HomePC\\Downloads\\PROMETHEUS-VINCERE-BACKEND\\PROMETHEUS_SONGS\\Justin Bieber - FIRST PLACE.mp3",
+      "renderAllowed": true,
+      "commercialAllowed": true,
+      "licenseVerified": true,
+      "licenseType": "creator_curated_reference",
+      "approvalSource": "creator_reference_ontology_2026"
+    },
+    {
       "id": "cinematic-trailer-epic/amelie-adventures-relaxing-piano-by-james-malikey",
       "title": "Relaxing Piano (by James Malikey)",
-      "artist": "Amélie Adventures",
+      "artist": "Am\u00e9lie Adventures",
       "category": "cinematic-trailer-epic",
       "genreTags": [
         "epic",
@@ -31,7 +687,7 @@
       "durationSec": 60.0,
       "audioObjectKey": "music-originals/cinematic-trailer-epic/amelie-adventures-relaxing-piano-by-james-malikey.mp3",
       "bucket": "prometheus-music",
-      "localPath": "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\YOUTUBE MUSIC DOWNLOADER -THRAGG\\downloads\\Cinematic Trailer - Epic\\Amélie Adventures - Relaxing Piano (by James Malikey).mp3",
+      "localPath": "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\YOUTUBE MUSIC DOWNLOADER -THRAGG\\downloads\\Cinematic Trailer - Epic\\Am\u00e9lie Adventures - Relaxing Piano (by James Malikey).mp3",
       "renderAllowed": true,
       "commercialAllowed": true,
       "licenseVerified": true,
@@ -359,7 +1015,7 @@
       "durationSec": 60.0,
       "audioObjectKey": "music-originals/classical-orchestral-prestige/tchaikovsky-piano-concerto-no-1-in-b-flat-minor-op-23-th-55-1-allegro-non-troppo-e-molto.mp3",
       "bucket": "prometheus-music",
-      "localPath": "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\YOUTUBE MUSIC DOWNLOADER -THRAGG\\downloads\\Classical - Orchestral Prestige\\Tchaikovsky： Piano Concerto No. 1 in B-Flat Minor, Op. 23, TH 55： 1. Allegro non troppo e molto....mp3",
+      "localPath": "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\YOUTUBE MUSIC DOWNLOADER -THRAGG\\downloads\\Classical - Orchestral Prestige\\Tchaikovsky\uff1a Piano Concerto No. 1 in B-Flat Minor, Op. 23, TH 55\uff1a 1. Allegro non troppo e molto....mp3",
       "renderAllowed": true,
       "commercialAllowed": true,
       "licenseVerified": true,
@@ -400,7 +1056,7 @@
     {
       "id": "classical/amelie-adventures-relaxing-piano-by-james-malikey",
       "title": "Relaxing Piano (by James Malikey)",
-      "artist": "Amélie Adventures",
+      "artist": "Am\u00e9lie Adventures",
       "category": "classical",
       "genreTags": [
         "piano",
@@ -421,7 +1077,7 @@
       "durationSec": 60.0,
       "audioObjectKey": "music-originals/classical/amelie-adventures-relaxing-piano-by-james-malikey.mp3",
       "bucket": "prometheus-music",
-      "localPath": "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\YOUTUBE MUSIC DOWNLOADER -THRAGG\\downloads\\Classical\\Amélie Adventures - Relaxing Piano (by James Malikey).mp3",
+      "localPath": "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\YOUTUBE MUSIC DOWNLOADER -THRAGG\\downloads\\Classical\\Am\u00e9lie Adventures - Relaxing Piano (by James Malikey).mp3",
       "renderAllowed": true,
       "commercialAllowed": true,
       "licenseVerified": true,
@@ -450,7 +1106,7 @@
       "durationSec": 60.0,
       "audioObjectKey": "music-originals/classical/antonio-vivaldi-the-four-seasons-winter.mp3",
       "bucket": "prometheus-music",
-      "localPath": "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\YOUTUBE MUSIC DOWNLOADER -THRAGG\\downloads\\Classical\\Antonio Vivaldi - The Four Seasons ＂Winter＂.mp3",
+      "localPath": "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\YOUTUBE MUSIC DOWNLOADER -THRAGG\\downloads\\Classical\\Antonio Vivaldi - The Four Seasons \uff02Winter\uff02.mp3",
       "renderAllowed": true,
       "commercialAllowed": true,
       "licenseVerified": true,
@@ -459,7 +1115,7 @@
     },
     {
       "id": "classical/chopin-nocturne-no-20-in-c-sharp-minor-op-posthume-1830-francois-chaplin",
-      "title": "Nocturne No. 20 in C Sharp Minor, Op. Posthume 1830 - François Chaplin",
+      "title": "Nocturne No. 20 in C Sharp Minor, Op. Posthume 1830 - Fran\u00e7ois Chaplin",
       "artist": "CHOPIN",
       "category": "classical",
       "genreTags": [
@@ -479,7 +1135,7 @@
       "durationSec": 60.0,
       "audioObjectKey": "music-originals/classical/chopin-nocturne-no-20-in-c-sharp-minor-op-posthume-1830-francois-chaplin.mp3",
       "bucket": "prometheus-music",
-      "localPath": "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\YOUTUBE MUSIC DOWNLOADER -THRAGG\\downloads\\Classical\\CHOPIN - Nocturne No. 20 in C Sharp Minor, Op. Posthume 1830 - François Chaplin.mp3",
+      "localPath": "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\YOUTUBE MUSIC DOWNLOADER -THRAGG\\downloads\\Classical\\CHOPIN - Nocturne No. 20 in C Sharp Minor, Op. Posthume 1830 - Fran\u00e7ois Chaplin.mp3",
       "renderAllowed": true,
       "commercialAllowed": true,
       "licenseVerified": true,
@@ -578,7 +1234,7 @@
     },
     {
       "id": "classical/time-from-inception-hans-zimmer-jacob-s-piano",
-      "title": "Time (from \"Inception\") ⧹⧹ Hans Zimmer ⧹⧹ Jacob's Piano",
+      "title": "Time (from \"Inception\") \u29f9\u29f9 Hans Zimmer \u29f9\u29f9 Jacob's Piano",
       "artist": "Prometheus Music",
       "category": "classical",
       "genreTags": [
@@ -599,7 +1255,7 @@
       "durationSec": 60.0,
       "audioObjectKey": "music-originals/classical/time-from-inception-hans-zimmer-jacob-s-piano.mp3",
       "bucket": "prometheus-music",
-      "localPath": "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\YOUTUBE MUSIC DOWNLOADER -THRAGG\\downloads\\Classical\\Time (from ＂Inception＂) ⧹⧹ Hans Zimmer ⧹⧹ Jacob's Piano.mp3",
+      "localPath": "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\YOUTUBE MUSIC DOWNLOADER -THRAGG\\downloads\\Classical\\Time (from \uff02Inception\uff02) \u29f9\u29f9 Hans Zimmer \u29f9\u29f9 Jacob's Piano.mp3",
       "renderAllowed": true,
       "commercialAllowed": true,
       "licenseVerified": true,
@@ -637,7 +1293,7 @@
     },
     {
       "id": "classical/yo-yo-ma-bach-cello-suite-no-1-in-g-major-prelude-official-video",
-      "title": "Bach:  Cello Suite No. 1 in G Major, Prélude (Official Video)",
+      "title": "Bach:  Cello Suite No. 1 in G Major, Pr\u00e9lude (Official Video)",
       "artist": "Yo-Yo Ma",
       "category": "classical",
       "genreTags": [
@@ -657,7 +1313,7 @@
       "durationSec": 60.0,
       "audioObjectKey": "music-originals/classical/yo-yo-ma-bach-cello-suite-no-1-in-g-major-prelude-official-video.mp3",
       "bucket": "prometheus-music",
-      "localPath": "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\YOUTUBE MUSIC DOWNLOADER -THRAGG\\downloads\\Classical\\Yo-Yo Ma - Bach： Cello Suite No. 1 in G Major, Prélude (Official Video).mp3",
+      "localPath": "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\YOUTUBE MUSIC DOWNLOADER -THRAGG\\downloads\\Classical\\Yo-Yo Ma - Bach\uff1a Cello Suite No. 1 in G Major, Pr\u00e9lude (Official Video).mp3",
       "renderAllowed": true,
       "commercialAllowed": true,
       "licenseVerified": true,
@@ -2108,7 +2764,7 @@
       "durationSec": 60.0,
       "audioObjectKey": "music-originals/other/joe-hisaishi-merry-go-round-of-life-from-howl-s-moving-castle.mp3",
       "bucket": "prometheus-music",
-      "localPath": "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\YOUTUBE MUSIC DOWNLOADER -THRAGG\\downloads\\Other\\Joe Hisaishi - Merry-Go-Round of Life (from Howl’s Moving Castle).mp3",
+      "localPath": "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\YOUTUBE MUSIC DOWNLOADER -THRAGG\\downloads\\Other\\Joe Hisaishi - Merry-Go-Round of Life (from Howl\u2019s Moving Castle).mp3",
       "renderAllowed": true,
       "commercialAllowed": true,
       "licenseVerified": true,
@@ -2216,7 +2872,7 @@
       "durationSec": 60.0,
       "audioObjectKey": "music-originals/other/la-traviata-drinking-song.mp3",
       "bucket": "prometheus-music",
-      "localPath": "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\YOUTUBE MUSIC DOWNLOADER -THRAGG\\downloads\\Other\\La Traviata： Drinking Song.mp3",
+      "localPath": "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\YOUTUBE MUSIC DOWNLOADER -THRAGG\\downloads\\Other\\La Traviata\uff1a Drinking Song.mp3",
       "renderAllowed": true,
       "commercialAllowed": true,
       "licenseVerified": true,
@@ -2226,7 +2882,7 @@
     {
       "id": "other/lanne-blaze-u-winter-the-four-seasons-techno-mix",
       "title": "Winter (The Four Seasons)(Techno Mix)",
-      "artist": "LANNÉ & Blaze U",
+      "artist": "LANNE\u0301 & Blaze U",
       "category": "other",
       "genreTags": [
         "tech"
@@ -2245,7 +2901,7 @@
       "durationSec": 60.0,
       "audioObjectKey": "music-originals/other/lanne-blaze-u-winter-the-four-seasons-techno-mix.mp3",
       "bucket": "prometheus-music",
-      "localPath": "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\YOUTUBE MUSIC DOWNLOADER -THRAGG\\downloads\\Other\\LANNÉ & Blaze U - Winter (The Four Seasons)(Techno Mix).mp3",
+      "localPath": "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\YOUTUBE MUSIC DOWNLOADER -THRAGG\\downloads\\Other\\LANNE\u0301 & Blaze U - Winter (The Four Seasons)(Techno Mix).mp3",
       "renderAllowed": true,
       "commercialAllowed": true,
       "licenseVerified": true,
@@ -2407,7 +3063,7 @@
       "durationSec": 60.0,
       "audioObjectKey": "music-originals/other/ludovico-einaudi-einaudi-fly-official-visualiser.mp3",
       "bucket": "prometheus-music",
-      "localPath": "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\YOUTUBE MUSIC DOWNLOADER -THRAGG\\downloads\\Other\\Ludovico Einaudi - Einaudi： Fly (Official Visualiser).mp3",
+      "localPath": "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\YOUTUBE MUSIC DOWNLOADER -THRAGG\\downloads\\Other\\Ludovico Einaudi - Einaudi\uff1a Fly (Official Visualiser).mp3",
       "renderAllowed": true,
       "commercialAllowed": true,
       "licenseVerified": true,
@@ -3109,7 +3765,7 @@
       "durationSec": 60.0,
       "audioObjectKey": "music-originals/other/sarasate-carmen-fantasy-op-25-i-moderato.mp3",
       "bucket": "prometheus-music",
-      "localPath": "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\YOUTUBE MUSIC DOWNLOADER -THRAGG\\downloads\\Other\\Sarasate： Carmen Fantasy, Op. 25： I. Moderato.mp3",
+      "localPath": "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\YOUTUBE MUSIC DOWNLOADER -THRAGG\\downloads\\Other\\Sarasate\uff1a Carmen Fantasy, Op. 25\uff1a I. Moderato.mp3",
       "renderAllowed": true,
       "commercialAllowed": true,
       "licenseVerified": true,
@@ -3523,7 +4179,7 @@
     },
     {
       "id": "other/telemann-suite-in-a-minor-for-recorder-strings-continuo-twv-55-a2-rejouissance",
-      "title": "Telemann:  Suite in A minor, for Recorder, Strings & Continuo, TWV 55: a2:  Réjouissance",
+      "title": "Telemann:  Suite in A minor, for Recorder, Strings & Continuo, TWV 55: a2:  R\u00e9jouissance",
       "artist": "Prometheus Music",
       "category": "other",
       "genreTags": [],
@@ -3541,7 +4197,7 @@
       "durationSec": 60.0,
       "audioObjectKey": "music-originals/other/telemann-suite-in-a-minor-for-recorder-strings-continuo-twv-55-a2-rejouissance.mp3",
       "bucket": "prometheus-music",
-      "localPath": "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\YOUTUBE MUSIC DOWNLOADER -THRAGG\\downloads\\Other\\Telemann： Suite in A minor, for Recorder, Strings & Continuo, TWV 55：a2： Réjouissance.mp3",
+      "localPath": "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\YOUTUBE MUSIC DOWNLOADER -THRAGG\\downloads\\Other\\Telemann\uff1a Suite in A minor, for Recorder, Strings & Continuo, TWV 55\uff1aa2\uff1a R\u00e9jouissance.mp3",
       "renderAllowed": true,
       "commercialAllowed": true,
       "licenseVerified": true,
@@ -4349,9 +5005,9 @@
       "avoidWhen": [],
       "intensity": "soft",
       "durationSec": 208.6,
-      "audioObjectKey": "music-originals/classical/Passacaglia - Handel⧸ Halvorsen (Relaxing Piano Music).mp3",
+      "audioObjectKey": "music-originals/classical/Passacaglia - Handel\u29f8 Halvorsen (Relaxing Piano Music).mp3",
       "bucket": "prometheus-music",
-      "localPath": "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\YOUTUBE MUSIC DOWNLOADER -THRAGG\\downloads\\Classical\\Passacaglia - Handel⧸ Halvorsen (Relaxing Piano Music).mp3",
+      "localPath": "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\YOUTUBE MUSIC DOWNLOADER -THRAGG\\downloads\\Classical\\Passacaglia - Handel\u29f8 Halvorsen (Relaxing Piano Music).mp3",
       "renderAllowed": true,
       "commercialAllowed": true,
       "licenseVerified": true,
@@ -4378,9 +5034,9 @@
       "avoidWhen": [],
       "intensity": "hard",
       "durationSec": 211.0,
-      "audioObjectKey": "music-originals/classical/Vivaldi： The Four Seasons, Summer, Violin Concerto in G Minor, Op. 8⧸2, RV 315： III. Presto.mp3",
+      "audioObjectKey": "music-originals/classical/Vivaldi\uff1a The Four Seasons, Summer, Violin Concerto in G Minor, Op. 8\u29f82, RV 315\uff1a III. Presto.mp3",
       "bucket": "prometheus-music",
-      "localPath": "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\YOUTUBE MUSIC DOWNLOADER -THRAGG\\downloads\\Classical\\Vivaldi： The Four Seasons, Summer, Violin Concerto in G Minor, Op. 8⧸2, RV 315： III. Presto.mp3",
+      "localPath": "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\YOUTUBE MUSIC DOWNLOADER -THRAGG\\downloads\\Classical\\Vivaldi\uff1a The Four Seasons, Summer, Violin Concerto in G Minor, Op. 8\u29f82, RV 315\uff1a III. Presto.mp3",
       "renderAllowed": true,
       "commercialAllowed": true,
       "licenseVerified": true,
@@ -4441,9 +5097,9 @@
       "avoidWhen": [],
       "intensity": "hard",
       "durationSec": 199.7,
-      "audioObjectKey": "music-originals/classical---orchestral-prestige/Vivaldi： The Four Seasons, Summer, Violin Concerto in G Minor, Op. 8⧸2, RV 315： III. Presto.mp3",
+      "audioObjectKey": "music-originals/classical---orchestral-prestige/Vivaldi\uff1a The Four Seasons, Summer, Violin Concerto in G Minor, Op. 8\u29f82, RV 315\uff1a III. Presto.mp3",
       "bucket": "prometheus-music",
-      "localPath": "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\YOUTUBE MUSIC DOWNLOADER -THRAGG\\downloads\\Classical - Orchestral Prestige\\Vivaldi： The Four Seasons, Summer, Violin Concerto in G Minor, Op. 8⧸2, RV 315： III. Presto.mp3",
+      "localPath": "C:\\Users\\HomePC\\Downloads\\HELP, VIDEO MATTING\\YOUTUBE MUSIC DOWNLOADER -THRAGG\\downloads\\Classical - Orchestral Prestige\\Vivaldi\uff1a The Four Seasons, Summer, Violin Concerto in G Minor, Op. 8\u29f82, RV 315\uff1a III. Presto.mp3",
       "renderAllowed": true,
       "commercialAllowed": true,
       "licenseVerified": true,

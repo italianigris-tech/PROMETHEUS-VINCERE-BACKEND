@@ -1,0 +1,90 @@
+{
+  "version": "typography-profile-v2",
+  "profileId": "tall_image_(3)",
+  "name": "Terrance_Extreme_Hairline_Tall",
+  "category": "brutalist",
+  "aspectCompatible": [
+    "9:16"
+  ],
+  "subjectZone": {
+    "headroomRatio": 0.15,
+    "cranialPlacementBand": "chest_deck",
+    "safeMarginPercent": 6.0
+  },
+  "frameTreatment": {
+    "backgroundMaterial": "none",
+    "materialOpacity": 0.18,
+    "grain": {
+      "opacity": 0.06
+    },
+    "vignette": {
+      "intensity": 0.12,
+      "color": "#000000"
+    }
+  },
+  "layers": [
+    {
+      "role": "hero",
+      "fontFamily": "Outfit",
+      "fontWeight": 400,
+      "fontStyle": "normal",
+      "casing": "uppercase",
+      "fontSizePx": 76,
+      "relativeScale": 1.0,
+      "letterSpacingEm": 0.04,
+      "lineHeightMultiplier": 0.9,
+      "anchor": {
+        "horizontal": "center",
+        "vertical": "center",
+        "offsetXPercent": 0.0,
+        "offsetYPercent": 0.0,
+        "placementZone": "chest_deck",
+        "relativeTo": "canvas"
+      },
+      "stagger": {
+        "dxPercent": 0.0,
+        "dyPercent": 0.0,
+        "rotationDeg": 0.0,
+        "scaleMultiplier": 1.0,
+        "scaleX": 1.0,
+        "scaleY": 1.0,
+        "arcWarpDeg": 0.0,
+        "skewXDeg": 0.0,
+        "skewYDeg": 0.0,
+        "stretchRatio": 1.0
+      },
+      "fill": {
+        "type": "solid",
+        "color": "#FF3B00"
+      },
+      "materiality": {
+        "opacity": 1.0,
+        "blendMode": "normal"
+      },
+      "occlusion": {
+        "mode": "none",
+        "depthPlane": 0,
+        "clipBoundary": "silhouette",
+        "partialOverlapPercent": 0
+      },
+      "inlineTokenSwaps": [],
+      "candidates": [
+        {
+          "candidateFamily": "Outfit",
+          "verified": true,
+          "classification": "serif",
+          "visualWeightConfidence": 0.95,
+          "goudyCorrectionApplied": false
+        }
+      ],
+      "zIndex": 10,
+      "behindSubject": false
+    }
+  ],
+  "annotations": [],
+  "metadata": {
+    "migratedFrom": "tall image (3).json",
+    "overallMood": "Extreme Aspect Ratio Ultra-Tall Hairline Condensed, Brutalist Linear",
+    "migrationVersion": "v2.1"
+  }
+}

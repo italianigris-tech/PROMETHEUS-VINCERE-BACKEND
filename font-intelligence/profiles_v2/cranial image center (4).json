@@ -1,0 +1,246 @@
+{
+  "version": "typography-profile-v2",
+  "profileId": "cranial image center (4)",
+  "name": "Editorial_Serif_Overarch_And_Mega_Headline",
+  "category": "cranial",
+  "aspectCompatible": [
+    "9:16"
+  ],
+  "subjectZone": {
+    "headroomRatio": 0.397,
+    "cranialPlacementBand": "cranial_halo",
+    "safeMarginPercent": 6.0,
+    "faceAvoidanceBand": {
+      "topPercent": 39.7,
+      "bottomPercent": 72.8
+    }
+  },
+  "frameTreatment": {
+    "backgroundMaterial": "paper",
+    "materialOpacity": 0.18,
+    "grain": {
+      "opacity": 0.06
+    },
+    "vignette": {
+      "intensity": 0.12,
+      "color": "#000000"
+    }
+  },
+  "layers": [
+    {
+      "role": "subordinate",
+      "fontFamily": "Playfair Display",
+      "fontWeight": 600,
+      "fontStyle": "italic",
+      "casing": "title",
+      "fontSizePx": 74,
+      "relativeScale": 1.0,
+      "letterSpacingEm": -0.02,
+      "lineHeightMultiplier": 1.0,
+      "anchor": {
+        "horizontal": "center",
+        "vertical": "center",
+        "offsetXPercent": 0.0,
+        "offsetYPercent": 0.0,
+        "placementZone": "chest_deck",
+        "relativeTo": "canvas"
+      },
+      "stagger": {
+        "dxPercent": 0.0,
+        "dyPercent": 0.0,
+        "rotationDeg": 0.0,
+        "scaleMultiplier": 1.0,
+        "scaleX": 1.0,
+        "scaleY": 1.0,
+        "arcWarpDeg": 0.0,
+        "skewXDeg": 0.0,
+        "skewYDeg": 0.0,
+        "stretchRatio": 1.0
+      },
+      "fill": {
+        "type": "solid",
+        "color": "#FFFFFF"
+      },
+      "materiality": {
+        "opacity": 1.0,
+        "blendMode": "normal",
+        "glow": {
+          "enabled": true,
+          "blurPx": 16.0,
+          "color": "rgba(255,255,255,0.4)",
+          "intensity": 1.0,
+          "inner": false
+        },
+        "bevel": {
+          "enabled": true,
+          "depthPx": 2.5,
+          "softnessPx": 1.0,
+          "angleDeg": 135.0,
+          "highlightColor": "rgba(255, 255, 255, 0.75)",
+          "shadowColor": "rgba(0, 0, 0, 0.75)"
+        }
+      },
+      "occlusion": {
+        "mode": "partial_head_clip",
+        "depthPlane": 45,
+        "clipBoundary": "head",
+        "partialOverlapPercent": 30
+      },
+      "inlineTokenSwaps": [],
+      "candidates": [
+        {
+          "candidateFamily": "Playfair Display",
+          "verified": true,
+          "classification": "serif",
+          "visualWeightConfidence": 0.95,
+          "goudyCorrectionApplied": false
+        }
+      ],
+      "zIndex": 10,
+      "behindSubject": true
+    },
+    {
+      "role": "hero",
+      "fontFamily": "Anton",
+      "fontWeight": 900,
+      "fontStyle": "normal",
+      "casing": "uppercase",
+      "fontSizePx": 210,
+      "relativeScale": 1.0,
+      "letterSpacingEm": -0.04,
+      "lineHeightMultiplier": 0.82,
+      "anchor": {
+        "horizontal": "center",
+        "vertical": "center",
+        "offsetXPercent": 0.0,
+        "offsetYPercent": 0.0,
+        "placementZone": "chest_deck",
+        "relativeTo": "canvas"
+      },
+      "stagger": {
+        "dxPercent": 0.0,
+        "dyPercent": 0.0,
+        "rotationDeg": 0.0,
+        "scaleMultiplier": 1.0,
+        "scaleX": 1.0,
+        "scaleY": 1.0,
+        "arcWarpDeg": 0.0,
+        "skewXDeg": 0.0,
+        "skewYDeg": 0.0,
+        "stretchRatio": 1.0
+      },
+      "fill": {
+        "type": "solid",
+        "color": "#FFFFFF"
+      },
+      "materiality": {
+        "opacity": 1.0,
+        "blendMode": "normal",
+        "glow": {
+          "enabled": true,
+          "blurPx": 30.0,
+          "color": "rgba(255,255,255,0.6)",
+          "intensity": 1.0,
+          "inner": false
+        },
+        "bevel": {
+          "enabled": true,
+          "depthPx": 2.5,
+          "softnessPx": 1.0,
+          "angleDeg": 135.0,
+          "highlightColor": "rgba(255, 255, 255, 0.75)",
+          "shadowColor": "rgba(0, 0, 0, 0.75)"
+        }
+      },
+      "occlusion": {
+        "mode": "partial_head_clip",
+        "depthPlane": 45,
+        "clipBoundary": "head",
+        "partialOverlapPercent": 30
+      },
+      "inlineTokenSwaps": [],
+      "candidates": [
+        {
+          "candidateFamily": "Anton",
+          "verified": true,
+          "classification": "serif",
+          "visualWeightConfidence": 0.95,
+          "goudyCorrectionApplied": false
+        }
+      ],
+      "zIndex": 15,
+      "behindSubject": true
+    },
+    {
+      "role": "subordinate",
+      "fontFamily": "JetBrains Mono",
+      "fontWeight": 700,
+      "fontStyle": "normal",
+      "casing": "uppercase",
+      "fontSizePx": 44,
+      "relativeScale": 1.0,
+      "letterSpacingEm": 0.08,
+      "lineHeightMultiplier": 1.0,
+      "anchor": {
+        "horizontal": "center",
+        "vertical": "center",
+        "offsetXPercent": 0.0,
+        "offsetYPercent": 0.0,
+        "placementZone": "chest_deck",
+        "relativeTo": "canvas"
+      },
+      "stagger": {
+        "dxPercent": 0.0,
+        "dyPercent": 0.0,
+        "rotationDeg": 0.0,
+        "scaleMultiplier": 1.0,
+        "scaleX": 1.0,
+        "scaleY": 1.0,
+        "arcWarpDeg": 0.0,
+        "skewXDeg": 0.0,
+        "skewYDeg": 0.0,
+        "stretchRatio": 1.0
+      },
+      "fill": {
+        "type": "solid",
+        "color": "#FFFFFF"
+      },
+      "materiality": {
+        "opacity": 1.0,
+        "blendMode": "normal",
+        "bevel": {
+          "enabled": true,
+          "depthPx": 2.5,
+          "softnessPx": 1.0,
+          "angleDeg": 135.0,
+          "highlightColor": "rgba(255, 255, 255, 0.75)",
+          "shadowColor": "rgba(0, 0, 0, 0.75)"
+        }
+      },
+      "occlusion": {
+        "mode": "partial_head_clip",
+        "depthPlane": 45,
+        "clipBoundary": "head",
+        "partialOverlapPercent": 30
+      },
+      "inlineTokenSwaps": [],
+      "candidates": [
+        {
+          "candidateFamily": "JetBrains Mono",
+          "verified": true,
+          "classification": "serif",
+          "visualWeightConfidence": 0.95,
+          "goudyCorrectionApplied": false
+        }
+      ],
+      "zIndex": 20,
+      "behindSubject": true
+    }
+  ],
+  "annotations": [],
+  "metadata": {
+    "migratedFrom": "cranial image center (4).json",
+    "overallMood": "Authoritative Documentary, Editorial Serif with Mega Condensed Sans",
+    "migrationVersion": "v2.1"
+  }
+}

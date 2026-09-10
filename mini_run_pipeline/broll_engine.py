@@ -44,11 +44,9 @@ from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 # API Key Resolution
 # ---------------------------------------------------------------------------
 
-DEFAULT_PEXELS_KEY = "KeDOtT7SANrtUSN8nLddlG00EoAHir7FIENMnoJiHp4KAZ9BJkwIUFuM"
-
 
 def resolve_pexels_api_key() -> str:
-    """Retrieve Pexels API key from environment, .env file, or fallback."""
+    """Retrieve Pexels API key from environment or .env file (never hardcoded)."""
     key = os.getenv("PEXELS_API_KEY")
     if key and key.strip():
         return key.strip()
@@ -69,7 +67,7 @@ def resolve_pexels_api_key() -> str:
         except Exception:
             pass
 
-    return DEFAULT_PEXELS_KEY
+    return ""
 
 
 # ---------------------------------------------------------------------------
@@ -754,6 +752,43 @@ def prescribe_after_effects_treatment(
 
 
 # ---------------------------------------------------------------------------
+# Chunk Timing Schema Resolution
+# ---------------------------------------------------------------------------
+
+def resolve_chunk_timing_ms(
+    chunk: Dict[str, Any],
+    default_duration_ms: float = 2500.0,
+) -> Tuple[int, int]:
+    """Resolve chunk start/end across timing schemas.
+
+    Production chunks (chunks.py) carry camelCase ``startMs``/``endMs`` (mirrored
+    to ``outputStartMs``/``outputEndMs``). Snake_case ``start_ms``/``end_ms`` exist
+    only on word tokens and on legacy test fixtures. Returns (start_ms, end_ms)
+    with a guaranteed positive duration.
+    """
+    start_ms = chunk.get("startMs")
+    if start_ms is None:
+        start_ms = chunk.get("outputStartMs")
+    if start_ms is None:
+        start_ms = chunk.get("displayStartMs")
+    if start_ms is None:
+        start_ms = chunk.get("start_ms")
+    start_ms = int(start_ms or 0)
+
+    end_ms = chunk.get("endMs")
+    if end_ms is None:
+        end_ms = chunk.get("outputEndMs")
+    if end_ms is None:
+        end_ms = chunk.get("end_ms")
+    if end_ms is None:
+        end_ms = start_ms + default_duration_ms
+    end_ms = int(end_ms)
+    if end_ms <= start_ms:
+        end_ms = start_ms + max(1, int(default_duration_ms))
+    return start_ms, end_ms
+
+
+# ---------------------------------------------------------------------------
 # Master B-Roll Plan Generator for Mini-Runs
 # ---------------------------------------------------------------------------
 
@@ -785,14 +820,15 @@ def plan_broll_cutaways_for_mini_run(
     evaluations: List[Tuple[int, BrollSuitabilityEvaluation, Dict[str, Any], Dict[str, Any]]] = []
 
     for idx, chunk in enumerate(chunks):
-        c_start_sec = float(chunk.get("start_ms", 0)) / 1000.0
-        c_end_sec = float(chunk.get("end_ms", c_start_sec + 2.0)) / 1000.0
+        c_start_ms, c_end_ms = resolve_chunk_timing_ms(chunk, default_duration_ms=2000.0)
+        c_start_sec = c_start_ms / 1000.0
+        c_end_sec = c_end_ms / 1000.0
         c_dur_sec = max(0.1, c_end_sec - c_start_sec)
         c_text = str(chunk.get("text", "")).strip()
 
         # Find corresponding scene
         matched_scene = next(
-            (s for s in scenes if int(s.get("startMs", 0)) <= int(c_start_sec * 1000) <= int(s.get("endMs", 30000))),
+            (s for s in scenes if int(s.get("startMs", 0)) <= c_start_ms <= int(s.get("endMs", 30000))),
             scenes[0] if scenes else {"id": f"scene-{idx}"},
         )
 
@@ -817,25 +853,24 @@ def plan_broll_cutaways_for_mini_run(
 
     # Select top candidates obeying cooldown and max_brolls budget
     selected_indices: Set[int] = set()
+    selected_intervals: List[Tuple[int, int]] = []
+    cooldown_gap_ms = int(BrollSuitabilityEngine.COOLDOWN_GAP_SEC * 1000)
     for idx, eval_res, chunk, scene in eligible:
         if len(selected_indices) >= max_brolls:
             break
 
-        c_start = int(chunk.get("start_ms", 0))
-        c_end = int(chunk.get("end_ms", c_start + 3000))
+        c_start, c_end = resolve_chunk_timing_ms(chunk, default_duration_ms=3000.0)
 
-        # Check gap against already selected
-        too_close = False
-        for s_idx in selected_indices:
-            s_chunk = chunks[s_idx]
-            s_start = int(s_chunk.get("start_ms", 0))
-            s_end = int(s_chunk.get("end_ms", s_start + 3000))
-            if abs(c_start - s_end) < 4500 or abs(s_start - c_end) < 4500:
-                too_close = True
-                break
+        # Two-sided interval collision: candidates earlier in the timeline than a
+        # previously selected placement must not be skipped by a signed-gap check.
+        too_close = any(
+            (c_start < s_end + cooldown_gap_ms) and (s_start < c_end + cooldown_gap_ms)
+            for s_start, s_end in selected_intervals
+        )
 
         if not too_close:
             selected_indices.add(idx)
+            selected_intervals.append((c_start, c_end))
 
     # Second pass: Materialize assets and construct directives
     for idx, eval_res, chunk, scene in evaluations:
@@ -874,8 +909,9 @@ def plan_broll_cutaways_for_mini_run(
             seed=seed,
         )
 
-        c_start_ms = int(chunk.get("start_ms", 0))
-        c_end_ms = min(duration_ms, int(chunk.get("end_ms", c_start_ms + 3000)))
+        c_start_ms, c_end_ms = resolve_chunk_timing_ms(chunk, default_duration_ms=3000.0)
+        c_start_ms = min(c_start_ms, max(0, duration_ms - 1))
+        c_end_ms = min(c_end_ms, duration_ms)
 
         # Assign high-tier SFX cue matching the entrance
         sfx_cue = "whoosh_cinematic"

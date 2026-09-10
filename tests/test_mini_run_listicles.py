@@ -144,5 +144,24 @@ class TestListicleIntelligenceEngine(unittest.TestCase):
         self.assertEqual(result["listicleCount"], 0)
         self.assertEqual(len(result["plans"]), 0)
 
+    def test_comma_formatted_large_numbers_not_listicle(self):
+        """Comma-formatted large numbers (e.g. '12,000 PHYSICAL PRODUCTS') must never mint a listicle step badge."""
+        chunks = [
+            {
+                "chunkIndex": 1,
+                "text": "12,000 PHYSICAL PRODUCTS",
+                "startMs": 0,
+                "endMs": 1500,
+                "words": [
+                    {"word": "12,000", "startMs": 0, "endMs": 600},
+                    {"word": "PHYSICAL", "startMs": 610, "endMs": 1100},
+                    {"word": "PRODUCTS", "startMs": 1110, "endMs": 1500},
+                ],
+            }
+        ]
+        result = detect_and_plan_listicles(chunks)
+        self.assertEqual(result["listicleCount"], 0)
+        self.assertEqual(len(result["plans"]), 0)
+
 if __name__ == "__main__":
     unittest.main()

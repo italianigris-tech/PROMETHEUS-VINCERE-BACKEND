@@ -580,8 +580,15 @@ def parse_background_preferences(
         r"\b(with|use|add|enable|show|put|expressive)\b[\w\s,]{0,25}\b(backgrounds?|backdrops?|textures?|canvas)\b",
         prompt_lower
     ))
+    prompt_requests_broll = bool(re.search(r"\b(b[\s_-]?roll|broll|cutaways?|b-?roll\s+footage)\b", prompt_lower))
     user_prompt_requested = bool(
-        (prompt_has_enable or prompt_has_always or prompt_has_intro_only or prompt_has_trans_only)
+        (
+            prompt_has_enable
+            or prompt_has_always
+            or prompt_has_intro_only
+            or prompt_has_trans_only
+            or prompt_requests_broll
+        )
         and not prompt_has_disable
     )
 
@@ -836,7 +843,9 @@ def plan_backgrounds(
     exit_ms = int(design.get("backgroundExitMs", 300))
 
     catalog = texture_catalog if texture_catalog is not None else build_background_catalog(texture_dir)
-    if not catalog and prefs.get("preferredKind") not in ("editorial_glass", "gradient_atmosphere", "defocus_depth"):
+    if not catalog and prefs.get("preferredKind") not in (
+        "editorial_glass", "gradient_atmosphere", "defocus_depth", "broll_cutaway"
+    ):
         return []
 
     selected: List[Dict[str, Any]] = []
@@ -1019,7 +1028,14 @@ def plan_backgrounds(
                 continue
 
             rule = next((r for r in REFERENCE_PATTERNS if r["trigger"] == trigger), None)
-            candidate_kind = prefs.get("preferredKind") or (rule.get("default_kind") if rule else "texture_canvas")
+            # A prompt asking for B-roll must NOT transmute semantic texture
+            # references into pseudo B-roll cutaways (that path carries no
+            # suitability evaluation). B-roll candidates come exclusively from
+            # the suitability engine gate below.
+            preferred_kind = prefs.get("preferredKind")
+            if preferred_kind == "broll_cutaway":
+                preferred_kind = None
+            candidate_kind = preferred_kind or (rule.get("default_kind") if rule else "texture_canvas")
 
             score = int(score + scene.get("salience", 0.0) * 6.0)
             texture = _pick_texture_for_trigger(
@@ -1052,9 +1068,16 @@ def plan_backgrounds(
     # 2c. Semantic B-Roll Cutaway Candidates (Pexels Video Engine & Decision Formula)
     if policy != "transitions_only":
         try:
-            from mini_run_pipeline.broll_engine import BrollSuitabilityEngine
-            last_broll_sec = -100.0
+            from mini_run_pipeline.broll_engine import (
+                BrollSuitabilityEngine,
+                resolve_chunk_timing_ms,
+            )
             start_broll_idx = 1 if (selected and selected[0].get("chunkIndex") == 0) else 0
+            # B-roll score calibration: with real (non-flatlined) fatigue inputs the
+            # composite reaches 1.0; 140 puts a strong concrete cutaway (>= 0.68)
+            # above the 95-point semantic-reference restraint floor.
+            broll_score_scale = 140
+            auto_broll_floor = max(0.62, 95.0 / broll_score_scale)
 
             for index in range(start_broll_idx, min(len(chunks), len(scenes))):
                 chunk = chunks[index]
@@ -1064,10 +1087,13 @@ def plan_backgrounds(
                     continue
 
                 c_text = str(chunk.get("text", "")).strip()
-                c_start_sec = float(chunk.get("start_ms", 0)) / 1000.0
-                c_end_sec = float(chunk.get("end_ms", c_start_sec + 2.5)) / 1000.0
-                c_dur_sec = max(0.1, c_end_sec - c_start_sec)
-                time_since_broll = max(0.0, c_start_sec - last_broll_sec)
+                c_start_ms, c_end_ms = resolve_chunk_timing_ms(chunk, default_duration_ms=2500.0)
+                c_start_sec = c_start_ms / 1000.0
+                c_dur_sec = max(0.1, (c_end_ms - c_start_ms) / 1000.0)
+                # No B-roll has been *placed* yet at evaluation time, so the
+                # cooldown term cannot fire here; the 4.5s cooldown doctrine is
+                # enforced at selection time via interval spacing.
+                time_since_broll = c_start_sec + 100.0
                 time_since_break = max(0.0, c_start_sec - (last_end_ms / 1000.0 if last_end_ms > 0 else 0.0))
 
                 broll_eval = BrollSuitabilityEngine.evaluate_chunk(
@@ -1079,8 +1105,8 @@ def plan_backgrounds(
                     beat_type=scene.get("role") or scene.get("beatType"),
                 )
 
-                if broll_eval.is_eligible and (is_directed or broll_eval.composite_score >= 0.62):
-                    score_scaled = int(broll_eval.composite_score * 120)
+                if broll_eval.is_eligible and (is_directed or broll_eval.composite_score >= auto_broll_floor):
+                    score_scaled = int(broll_eval.composite_score * broll_score_scale)
                     candidates.append({
                         "index": index,
                         "chunk": chunk,
@@ -1105,6 +1131,17 @@ def plan_backgrounds(
     # Sort candidates by score descending, then earlier index
     candidates.sort(key=lambda item: (-item["score"], item["index"]))
 
+    # B-roll cutaways honor the engine's 4.5s cooldown doctrine; every other kind
+    # honors the generic quiet gap. Spacing is a two-sided interval collision so a
+    # candidate earlier in the timeline than an already-selected backdrop is not
+    # silently discarded by a signed gap check.
+    try:
+        from mini_run_pipeline.broll_engine import BrollSuitabilityEngine as _BrollEngine
+        broll_cooldown_ms = int(_BrollEngine.COOLDOWN_GAP_SEC * 1000)
+    except Exception:
+        broll_cooldown_ms = 4500
+    selected_intervals: List[Tuple[int, int]] = []
+
     # Greedy allocation honoring budget and quiet spacing window
     for item in candidates:
         if len(selected) >= max_backgrounds:
@@ -1112,9 +1149,14 @@ def plan_backgrounds(
         scene = item["scene"]
         start_ms = int(scene["startMs"])
         end_ms = min(int(scene["endMs"]), duration_ms)
-        if selected and start_ms - last_end_ms < min_gap_ms:
-            continue
         if start_ms + entry_ms >= end_ms:
+            continue
+        spacing_gap_ms = broll_cooldown_ms if item.get("kind") == "broll_cutaway" else min_gap_ms
+        too_close = any(
+            (start_ms < s_end + spacing_gap_ms) and (s_start < end_ms + spacing_gap_ms)
+            for s_start, s_end in selected_intervals
+        )
+        if too_close:
             continue
         # Avoid duplicate scene placements
         if any(s.get("sceneId") == scene["id"] for s in selected):
@@ -1453,6 +1495,7 @@ def plan_backgrounds(
                 background["texture"]["brandTint"] = prefs["brandTint"]
 
         selected.append(background)
+        selected_intervals.append((start_ms, end_ms))
         last_end_ms = end_ms
 
     # Re-index IDs sequentially so they are clean and contiguous

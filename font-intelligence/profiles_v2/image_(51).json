@@ -1,0 +1,90 @@
+{
+  "version": "typography-profile-v2",
+  "profileId": "image_(51)",
+  "name": "Less_See_Through_Video_Letterform_Treatment",
+  "category": "minimal",
+  "aspectCompatible": [
+    "9:16"
+  ],
+  "subjectZone": {
+    "headroomRatio": 0.15,
+    "cranialPlacementBand": "chest_deck",
+    "safeMarginPercent": 6.0
+  },
+  "frameTreatment": {
+    "backgroundMaterial": "none",
+    "materialOpacity": 0.18,
+    "grain": {
+      "opacity": 0.06
+    },
+    "vignette": {
+      "intensity": 0.12,
+      "color": "#000000"
+    }
+  },
+  "layers": [
+    {
+      "role": "subordinate",
+      "fontFamily": "Montserrat",
+      "fontWeight": 700,
+      "fontStyle": "normal",
+      "casing": "lowercase",
+      "fontSizePx": 160,
+      "relativeScale": 1.0,
+      "letterSpacingEm": -0.02,
+      "lineHeightMultiplier": 1.0,
+      "anchor": {
+        "horizontal": "center",
+        "vertical": "center",
+        "offsetXPercent": 0.0,
+        "offsetYPercent": 0.0,
+        "placementZone": "chest_deck",
+        "relativeTo": "canvas"
+      },
+      "stagger": {
+        "dxPercent": 0.0,
+        "dyPercent": 0.0,
+        "rotationDeg": 0.0,
+        "scaleMultiplier": 1.0,
+        "scaleX": 1.0,
+        "scaleY": 1.0,
+        "arcWarpDeg": 0.0,
+        "skewXDeg": 0.0,
+        "skewYDeg": 0.0,
+        "stretchRatio": 1.0
+      },
+      "fill": {
+        "type": "solid",
+        "color": "rgba(232, 196, 160, 0.72)"
+      },
+      "materiality": {
+        "opacity": 1.0,
+        "blendMode": "normal"
+      },
+      "occlusion": {
+        "mode": "none",
+        "depthPlane": 0,
+        "clipBoundary": "silhouette",
+        "partialOverlapPercent": 0
+      },
+      "inlineTokenSwaps": [],
+      "candidates": [
+        {
+          "candidateFamily": "Montserrat",
+          "verified": true,
+          "classification": "serif",
+          "visualWeightConfidence": 0.95,
+          "goudyCorrectionApplied": true
+        }
+      ],
+      "zIndex": 10,
+      "behindSubject": false
+    }
+  ],
+  "annotations": [],
+  "metadata": {
+    "migratedFrom": "image (51).json",
+    "overallMood": "Ultra-minimal editorial. Large semi-transparent lowercase letterform laid over live video. Beauty is in the see-through \u2014 subject bleeds through letterform fill.",
+    "migrationVersion": "v2.1"
+  }
+}

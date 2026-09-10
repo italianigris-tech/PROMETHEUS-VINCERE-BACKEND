@@ -630,6 +630,15 @@ def smart_partition_chunk_words(
                 ]
 
     # If profile has 3+ layers
+    if num_layers >= 3 and token_count <= 3:
+        # Conversational dialogue clamp: speech cues <= 3 words must never be chopped into 3-line column stacks.
+        # Restrict to the top 2 layers (hero + companion) of the profile.
+        l_hero = profile_layers[0]
+        l_comp = profile_layers[1] if len(profile_layers) > 1 else profile_layers[0]
+        if float(l_comp.get("font_style", {}).get("relative_scale", 1.0)) > float(l_hero.get("font_style", {}).get("relative_scale", 1.0)):
+            l_hero, l_comp = l_comp, l_hero
+        return smart_partition_chunk_words(words, [l_hero, l_comp])
+
     if num_layers == 3 and token_count >= 3:
         if token_count == 3:
             hero_word_idx = _find_best_hero_index(words)
@@ -996,16 +1005,26 @@ def is_serif_font(font_name: str) -> bool:
     return any(k in f for k in ("bodoni", "playfair", "garamond", "cinzel", "foglihten", "goudy", "berylium", "abril", "erotique", "serif", "didone", "aesthetic"))
 
 
+SCRIPT_FONT_KEYWORDS = (
+    "script", "vibes", "brush", "pinyon", "dancing", "candle", "freebooter",
+    "darling", "flourish", "cursive", "exmouth", "champignon", "brotherhood",
+    "bromello", "bucklane", "formale", "cavas", "alex", "sacramento", "allura",
+    "brushelva", "handwriting", "calligraphic", "calligraphy", "kraton"
+)
+
+
 def is_script_font(font_name: str) -> bool:
     f = (font_name or "").lower().strip()
-    return any(k in f for k in ("script", "vibes", "brush", "pinyon", "dancing", "candle", "freebooter", "darling", "flourish", "cursive"))
+    return any(k in f for k in SCRIPT_FONT_KEYWORDS)
 
 
 def upgrade_font_candidate(font_name: str, is_hero: bool, role: str = "body", rng: Optional[random.Random] = None, hero_font: str = "") -> str:
     """Upgrade truly generic/empty fallback fonts while strictly respecting font JSON parents.
 
     Guarantees strict font policies:
-    - If font_name is a valid font from the profile, it is strictly preserved.
+    - If font_name is a valid font from the profile, it is strictly preserved on hero layers.
+    - SCRIPT & DECORATIVE BAN ON SECONDARY TIERS: Script and decorative calligraphic fonts
+      are strictly banned on all secondary/companion tiers (not is_hero) regardless of word length.
     - If a companion font clashes with the hero (e.g. Serif + Serif or Script + Script),
       re-anchors the companion to a clean supportive Sans (Montserrat/Outfit/DM Sans)
       so the hero word remains the clean, uncluttered visual focus.
@@ -1018,6 +1037,11 @@ def upgrade_font_candidate(font_name: str, is_hero: bool, role: str = "body", rn
         if is_hero:
             return _rng.choice(HERO_UPGRADE_FONTS)
         else:
+            return _rng.choice(COMPANION_UPGRADE_FONTS)
+
+    # Companion-tier script & decorative font ban:
+    if not is_hero:
+        if is_script_font(font_name) or f_clean in UNSAFE_DISTORTED_FONTS:
             return _rng.choice(COMPANION_UPGRADE_FONTS)
 
     # Anti-clash policy: if this is a companion layer, ensure it never clashes with the hero font
@@ -1554,7 +1578,8 @@ ANIMA_RUNTIME_TREATMENTS: List[Dict[str, Any]] = [
     {"id": "prism_chisel_hard_bevel", "styles": {"editorial", "kinetic", "special_ops"}, "energy": 0.65},
     {"id": "vj_kinetic_typography", "styles": {"kinetic", "special_ops"}, "energy": 0.85},
     {"id": "vjkt", "styles": {"kinetic", "special_ops"}, "energy": 0.85},
-    {"id": "air_frontal_optical_bloom", "styles": {"editorial", "cinematic", "special_ops"}, "energy": 0.40},
+    {"id": "air_frontal_optical_bloom", "styles": {"editorial", "cinematic", "special_ops", "frontal"}, "energy": 0.40},
+    {"id": "in_the_air_diffusion_bloom", "styles": {"editorial", "cinematic", "special_ops", "frontal"}, "energy": 0.40},
     {"id": "see_through_glass_letterform", "styles": {"editorial", "cinematic", "special_ops"}, "energy": 0.40},
 
     # Architectural Freeze: 5 Tall-Font Workhorses (Preserves 9:16 manifests)
@@ -1563,6 +1588,28 @@ ANIMA_RUNTIME_TREATMENTS: List[Dict[str, Any]] = [
     {"id": "cinematic_distance_convergence", "styles": {"cinematic", "editorial"}, "energy": 0.45},
     {"id": "top_down_staggered_character_drop", "styles": {"kinetic", "cinematic"}, "energy": 0.74},
     {"id": "canva_tall_glyph_stack", "styles": {"cinematic", "editorial"}, "energy": 0.40},
+
+    # Hook Lingua Treatments (synchronized with mini_run_pipeline.hooks.HOOK_TREATMENTS)
+    {"id": "hook_bokeh_defocus_bloom", "styles": {"hook", "cinematic", "optical"}, "energy": 0.50},
+    {"id": "hook_gaussian_lens_reveal", "styles": {"hook", "cinematic", "optical"}, "energy": 0.50},
+    {"id": "hook_directional_whip_blur", "styles": {"hook", "cinematic", "optical"}, "energy": 0.50},
+    {"id": "hook_radial_zoom_blur", "styles": {"hook", "cinematic", "optical"}, "energy": 0.50},
+    {"id": "hook_sharp_white_flash_cut", "styles": {"hook", "cinematic", "light"}, "energy": 0.55},
+    {"id": "hook_anamorphic_flare_burst", "styles": {"hook", "cinematic", "light"}, "energy": 0.55},
+    {"id": "hook_vintage_film_burn_strobe", "styles": {"hook", "cinematic", "light"}, "energy": 0.55},
+    {"id": "hook_luma_strobe_pulse", "styles": {"hook", "cinematic", "light"}, "energy": 0.55},
+    {"id": "hook_cinematic_dolly_zoom", "styles": {"hook", "cinematic", "camera"}, "energy": 0.50},
+    {"id": "hook_crash_zoom_snap", "styles": {"hook", "cinematic", "camera"}, "energy": 0.60},
+    {"id": "hook_isometric_3d_slam", "styles": {"hook", "cinematic", "camera"}, "energy": 0.60},
+    {"id": "hook_vertical_kinetic_pedestal", "styles": {"hook", "cinematic", "camera"}, "energy": 0.50},
+    {"id": "hook_smooth_zoom_in", "styles": {"hook", "cinematic", "camera"}, "energy": 0.45},
+    {"id": "hook_full_zoom_up", "styles": {"hook", "cinematic", "camera"}, "energy": 0.50},
+    {"id": "hook_crt_scanline_matrix_decode", "styles": {"hook", "cinematic", "distortion"}, "energy": 0.60},
+    {"id": "hook_vhs_tape_tracking_tear", "styles": {"hook", "cinematic", "distortion"}, "energy": 0.60},
+    {"id": "hook_metallic_chrome_reflection", "styles": {"hook", "cinematic", "shader"}, "energy": 0.55},
+    {"id": "hook_liquid_ink_metaball_reveal", "styles": {"hook", "cinematic", "shader"}, "energy": 0.55},
+    {"id": "hook_zora_aperture_mask_bloom", "styles": {"hook", "cinematic", "shader"}, "energy": 0.50},
+    {"id": "hook_motion_blur_word", "styles": {"hook", "cinematic", "shader"}, "energy": 0.50},
 ]
 
 SINGLE_WORD_HERO_PRESETS: set[str] = {
@@ -1577,6 +1624,8 @@ SINGLE_WORD_HERO_PRESETS: set[str] = {
     "refraction_shimmer_mask",
     "chiseled_prism_metallic",
     "prism_chisel_hard_bevel",
+    "air_frontal_optical_bloom",
+    "in_the_air_diffusion_bloom",
 }
 
 ANIMA_OVERLAY_TREATMENTS = [
@@ -1669,7 +1718,10 @@ def _resolve_font_json_treatment(
     if any(k in classification or k in mood for k in ("3d", "metallic", "chrome", "extruded")):
         candidates = ["refraction_shimmer_mask", "apple_gaussian_chrome", "metallic_chrome_counter"]
     elif any(k in classification or k in mood for k in ("script", "calligraphic", "cursive", "brush", "handwriting")):
-        candidates = ["stagger_blur_word_reveal", "quote_glow_reveal", "real_estate_luxury_curve"]
+        if is_hero:
+            candidates = ["stagger_blur_word_reveal", "quote_glow_reveal", "real_estate_luxury_curve"]
+        else:
+            candidates = ["stagger_blur_word_reveal", "cinematic_slide_up", "docking_modifier", "multi_word_slide_up_stagger"]
     elif any(k in classification or k in mood for k in ("compressed", "ultra-compressed", "tall", "heavy sans", "grotesque")):
         candidates = ["kinetic_slot_character_reel", "canva_tall_glyph_stack", "top_down_staggered_character_drop", "refraction_shimmer_mask"]
     elif any(k in classification or k in mood for k in ("didone", "modern serif", "classic editorial", "refined")):
@@ -2128,7 +2180,11 @@ def _select_primary_treatment(
         else:
             # Multi-word line mandate: penalize single-word monolithic presets, heavily favor word-by-word staggered reveals
             if item["id"] in SINGLE_WORD_HERO_PRESETS:
-                word_fit_boost = 0.05
+                # Counter Carve-Out (Fix 4): Exempt counter presets from the 0.05 penalty on number chunks so the 8.0x boost takes effect
+                if signal.get("hasNumber", 0.0) > 0 and item["id"] in ("metallic_chrome_counter", "metallic_chrome_countup_hero"):
+                    word_fit_boost = 1.0
+                else:
+                    word_fit_boost = 0.05
             elif item["id"] in (
                 "cinematic_apple_word_bounce", "stagger_blur_word_reveal",
                 "dynamic_staggered_character_cascade", "apple_keynote_headline_punch",
@@ -2420,14 +2476,14 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
             if wants_lockup_overall:
                 # Hierarchical lockups qualify with 1 to 4 words when anchor has high salience
                 is_punchy = 1 <= word_count <= 4
-                is_substantive = c_clean.lower() not in STOPWORDS and len(c_clean) >= 3
+                is_substantive = any(_is_substantive(w) for w in c_words) and len(c_clean) >= 3
             else:
-                # Strictly prefer single punchy anchor keywords (1 word) or strong 2-word pairs
-                is_punchy = 1 <= word_count <= 2
-                is_substantive = c_clean.lower() not in STOPWORDS and len(c_clean) >= 3 and not c_text.endswith(",")
+                # Punchy anchor keywords: 1 to 3 words
+                is_punchy = 1 <= word_count <= 3
+                is_substantive = any(_is_substantive(w) for w in c_words) and len(c_clean) >= 3
 
             if is_punchy and is_substantive and duration_ms >= 400:
-                base_score = c_signal["salience"] + (3.5 if word_count == 1 else (2.2 if wants_lockup_overall else 1.8))
+                base_score = c_signal["salience"] + (3.5 if word_count == 1 else (2.6 if word_count == 2 else 2.0))
                 if any(ch.isdigit() for ch in c_text):
                     base_score += 1.2
                 # Add mild stochastic variation for true run-to-run diversity
@@ -2436,7 +2492,7 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
 
         candidate_scores.sort(key=lambda item: item[2], reverse=True)
 
-        if policy["subjectLayering"] == "required" and not candidate_scores and chunks:
+        if policy["subjectLayering"] in ("required", "auto") and not candidate_scores and chunks:
             shortest_idx = min(range(len(chunks)), key=lambda i: len(str(chunks[i].get("text", "")).split()))
             behind_subject_indices.add(shortest_idx)
         else:
@@ -2448,9 +2504,9 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                 if c_root in used_behind_roots:
                     continue
                 c_start = chunks[c_idx].get("startMs", 0)
-                # Cooldown of at least 3 chunks and at least 2800ms between behind-subject occurrences
+                # Cooldown: at least 2 chunks and at least 1800ms between behind-subject occurrences
                 has_cooldown = all(
-                    abs(c_idx - existing_idx) >= 3 and abs(c_start - chunks[existing_idx].get("startMs", 0)) >= 2800
+                    abs(c_idx - existing_idx) >= 2 and abs(c_start - chunks[existing_idx].get("startMs", 0)) >= 1800
                     for existing_idx in behind_subject_indices
                 )
                 if has_cooldown:
@@ -2458,9 +2514,13 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                         behind_subject_indices.add(c_idx)
                         used_behind_roots.add(c_root)
                     elif policy["subjectLayering"] == "auto":
-                        if score >= 1.0 or (rng.random() < 0.70 and score >= 0.7):
+                        if score >= 0.7:
                             behind_subject_indices.add(c_idx)
                             used_behind_roots.add(c_root)
+
+            # Auto mode fallback: if candidates exist but cooldown/threshold chose none, admit top candidate
+            if policy["subjectLayering"] == "auto" and not behind_subject_indices and candidate_scores:
+                behind_subject_indices.add(candidate_scores[0][0])
 
     # Listicle Intelligence & Numerical Planning
     listicle_planning = listicles.detect_and_plan_listicles(chunks, design_input)
@@ -2570,6 +2630,13 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                         seen_ids.add(p["id"])
                         deduped.append(p)
                 matching_profiles = deduped or pool
+
+        # Conversational dialogue preference: multi-word phrases (word_count >= 2)
+        # prefer <= 2 layers so speech is never chopped into 3-line vertical stacks
+        if not is_single_word and word_count >= 2:
+            compact_dialogue_profiles = [p for p in matching_profiles if len(p.get("typography_layers", [])) <= 2]
+            if compact_dialogue_profiles:
+                matching_profiles = compact_dialogue_profiles
 
         if not matching_profiles:
             matching_profiles = pool
@@ -2788,11 +2855,13 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
             accent_font = upgrade_font_candidate(accent_font, False, role="companion", rng=rng, hero_font=chunk_hero_font)
 
             clean_len = max(1, len(raw_layer_text))
-            # Policy: Script / calligraphic fonts are strictly prohibited on short words (<= 4 characters, e.g. 'Do.', 'need', 'is', 'to', 'of', 'a')
-            # or any functional stopwords / auxiliary verbs ('have', 'are', 'was', 'were', 'been', etc.)
-            is_script_candidate = any(s in primary_font.lower() for s in ("script", "exmouth", "brotherhood", "bromello", "bucklane", "alex", "pinyon", "champignon", "dancing", "sacramento", "cavas", "formale"))
+            # Policy: Script / calligraphic fonts are strictly prohibited on:
+            # 1. Any secondary/companion tier (not is_hero_layer) regardless of length
+            # 2. Short words on hero (<= 4 characters, e.g. 'Do.', 'need', 'is', 'to', 'of', 'a')
+            # 3. Any functional stopwords / auxiliary verbs ('have', 'are', 'was', 'were', 'been', etc.)
+            is_script_candidate = is_script_font(primary_font) or any(s in primary_font.lower() for s in SCRIPT_FONT_KEYWORDS)
             is_all_stopwords = all(w.lower().strip(".,!?:;\"'") in STOPWORDS for w in layer_words)
-            if is_script_candidate and (clean_len <= 4 or is_all_stopwords):
+            if is_script_candidate and (not is_hero_layer or clean_len <= 4 or is_all_stopwords):
                 primary_font = "Playfair Display" if is_hero_layer else "Outfit"
                 accent_font = "Bodoni Moda" if is_hero_layer else "Inter"
 
@@ -2822,9 +2891,9 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                     layer_overlay = None
             # Average char aspect width ratio based on font type and letterform geometry
             is_ultra_tall = any(k in primary_font.lower() for k in ("anton", "bebas", "six caps", "teko", "saira", "senzabella", "oswald", "antenna"))
-            is_script_font = any(k in primary_font.lower() or k in str(f_style.get("style", "")).lower() for k in ("script", "pinyon", "dancing", "italic", "great vibes", "alex"))
+            is_script_aspect_font = any(k in primary_font.lower() or k in str(f_style.get("style", "")).lower() for k in ("script", "pinyon", "dancing", "italic", "great vibes", "alex"))
             is_wide_serif = any(k in primary_font.lower() for k in ("bodoni", "playfair", "cinzel", "prata", "cormorant", "didot", "caslon"))
-            base_aspect = 0.40 if is_ultra_tall else (0.50 if is_script_font else (0.64 if is_wide_serif else 0.56))
+            base_aspect = 0.40 if is_ultra_tall else (0.50 if is_script_aspect_font else (0.64 if is_wide_serif else 0.56))
             is_upper = str(casing).lower() == "uppercase" or str(f_style.get("casing", "")).lower() == "uppercase" or raw_layer_text.isupper()
             char_aspect = base_aspect * (1.35 if is_upper else 1.0)
             # Safe text margin: 820px on 1080 portrait gives rock-solid 130px margins on left and right

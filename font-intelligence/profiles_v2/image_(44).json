@@ -1,0 +1,163 @@
+{
+  "version": "typography-profile-v2",
+  "profileId": "image_(44)",
+  "name": "This_Is_Hitesh_Editorial_Script_Serif_Stack",
+  "category": "streetwear",
+  "aspectCompatible": [
+    "9:16"
+  ],
+  "subjectZone": {
+    "headroomRatio": 0.15,
+    "cranialPlacementBand": "chest_deck",
+    "safeMarginPercent": 6.0
+  },
+  "frameTreatment": {
+    "backgroundMaterial": "none",
+    "materialOpacity": 0.18,
+    "grain": {
+      "opacity": 0.06
+    },
+    "vignette": {
+      "intensity": 0.12,
+      "color": "#000000"
+    }
+  },
+  "layers": [
+    {
+      "role": "subordinate",
+      "fontFamily": "Exmouth",
+      "fontWeight": 400,
+      "fontStyle": "italic",
+      "casing": "none",
+      "fontSizePx": 38,
+      "relativeScale": 1.0,
+      "letterSpacingEm": 0.01,
+      "lineHeightMultiplier": 1.2,
+      "anchor": {
+        "horizontal": "center",
+        "vertical": "center",
+        "offsetXPercent": 0.0,
+        "offsetYPercent": 0.0,
+        "placementZone": "chest_deck",
+        "relativeTo": "canvas"
+      },
+      "stagger": {
+        "dxPercent": 0.0,
+        "dyPercent": 0.0,
+        "rotationDeg": 0.0,
+        "scaleMultiplier": 1.0,
+        "scaleX": 1.0,
+        "scaleY": 1.0,
+        "arcWarpDeg": 0.0,
+        "skewXDeg": 0.0,
+        "skewYDeg": 0.0,
+        "stretchRatio": 1.0
+      },
+      "fill": {
+        "type": "solid",
+        "color": "#2D2D2D"
+      },
+      "materiality": {
+        "opacity": 1.0,
+        "blendMode": "normal",
+        "bevel": {
+          "enabled": true,
+          "depthPx": 2.5,
+          "softnessPx": 1.0,
+          "angleDeg": 135.0,
+          "highlightColor": "rgba(255, 255, 255, 0.75)",
+          "shadowColor": "rgba(0, 0, 0, 0.75)"
+        }
+      },
+      "occlusion": {
+        "mode": "none",
+        "depthPlane": 0,
+        "clipBoundary": "silhouette",
+        "partialOverlapPercent": 0
+      },
+      "inlineTokenSwaps": [],
+      "candidates": [
+        {
+          "candidateFamily": "Exmouth",
+          "verified": true,
+          "classification": "script",
+          "visualWeightConfidence": 0.95,
+          "goudyCorrectionApplied": false
+        }
+      ],
+      "zIndex": 10,
+      "behindSubject": false
+    },
+    {
+      "role": "subordinate",
+      "fontFamily": "Outfit",
+      "fontWeight": 800,
+      "fontStyle": "normal",
+      "casing": "title",
+      "fontSizePx": 72,
+      "relativeScale": 1.0,
+      "letterSpacingEm": -0.01,
+      "lineHeightMultiplier": 1.0,
+      "anchor": {
+        "horizontal": "center",
+        "vertical": "center",
+        "offsetXPercent": 0.0,
+        "offsetYPercent": 0.0,
+        "placementZone": "chest_deck",
+        "relativeTo": "canvas"
+      },
+      "stagger": {
+        "dxPercent": 0.0,
+        "dyPercent": 0.0,
+        "rotationDeg": 0.0,
+        "scaleMultiplier": 1.0,
+        "scaleX": 1.0,
+        "scaleY": 1.0,
+        "arcWarpDeg": 0.0,
+        "skewXDeg": 0.0,
+        "skewYDeg": 0.0,
+        "stretchRatio": 1.0
+      },
+      "fill": {
+        "type": "solid",
+        "color": "#1B3A8A"
+      },
+      "materiality": {
+        "opacity": 1.0,
+        "blendMode": "normal",
+        "bevel": {
+          "enabled": true,
+          "depthPx": 2.5,
+          "softnessPx": 1.0,
+          "angleDeg": 135.0,
+          "highlightColor": "rgba(255, 255, 255, 0.75)",
+          "shadowColor": "rgba(0, 0, 0, 0.75)"
+        }
+      },
+      "occlusion": {
+        "mode": "none",
+        "depthPlane": 0,
+        "clipBoundary": "silhouette",
+        "partialOverlapPercent": 0
+      },
+      "inlineTokenSwaps": [],
+      "candidates": [
+        {
+          "candidateFamily": "Outfit",
+          "verified": true,
+          "classification": "serif",
+          "visualWeightConfidence": 0.95,
+          "goudyCorrectionApplied": false
+        }
+      ],
+      "zIndex": 15,
+      "behindSubject": false
+    }
+  ],
+  "annotations": [],
+  "metadata": {
+    "migratedFrom": "image (44).json",
+    "overallMood": "Editorial personal brand introduction. Script italic companion + bold blue serif hero. Two-tier hierarchy on cream/beige background.",
+    "migrationVersion": "v2.1"
+  }
+}

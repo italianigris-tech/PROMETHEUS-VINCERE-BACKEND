@@ -1,0 +1,185 @@
+{
+  "version": "typography-profile-v2",
+  "profileId": "cranial image center (3)",
+  "name": "Bilateral_Sunset_Numeral_Span",
+  "category": "cranial",
+  "aspectCompatible": [
+    "9:16"
+  ],
+  "subjectZone": {
+    "headroomRatio": 0.395,
+    "cranialPlacementBand": "cranial_halo",
+    "safeMarginPercent": 6.0,
+    "faceAvoidanceBand": {
+      "topPercent": 39.5,
+      "bottomPercent": 89.3
+    }
+  },
+  "frameTreatment": {
+    "backgroundMaterial": "paper",
+    "materialOpacity": 0.18,
+    "grain": {
+      "opacity": 0.06
+    },
+    "vignette": {
+      "intensity": 0.12,
+      "color": "#000000"
+    }
+  },
+  "layers": [
+    {
+      "role": "subordinate",
+      "fontFamily": "Montserrat",
+      "fontWeight": 900,
+      "fontStyle": "italic",
+      "casing": "none",
+      "fontSizePx": 72,
+      "relativeScale": 1.0,
+      "letterSpacingEm": -0.03,
+      "lineHeightMultiplier": 0.9,
+      "anchor": {
+        "horizontal": "center",
+        "vertical": "center",
+        "offsetXPercent": 0.0,
+        "offsetYPercent": 0.0,
+        "placementZone": "chest_deck",
+        "relativeTo": "canvas"
+      },
+      "stagger": {
+        "dxPercent": 0.0,
+        "dyPercent": 0.0,
+        "rotationDeg": 0.0,
+        "scaleMultiplier": 1.0,
+        "scaleX": 1.0,
+        "scaleY": 1.0,
+        "arcWarpDeg": 0.0,
+        "skewXDeg": 0.0,
+        "skewYDeg": 0.0,
+        "stretchRatio": 1.0
+      },
+      "fill": {
+        "type": "solid",
+        "color": "#FFFFFF"
+      },
+      "materiality": {
+        "opacity": 1.0,
+        "blendMode": "normal",
+        "bevel": {
+          "enabled": true,
+          "depthPx": 2.5,
+          "softnessPx": 1.0,
+          "angleDeg": 135.0,
+          "highlightColor": "rgba(255, 255, 255, 0.75)",
+          "shadowColor": "rgba(0, 0, 0, 0.75)"
+        }
+      },
+      "occlusion": {
+        "mode": "partial_head_clip",
+        "depthPlane": 45,
+        "clipBoundary": "head",
+        "partialOverlapPercent": 30
+      },
+      "inlineTokenSwaps": [],
+      "candidates": [
+        {
+          "candidateFamily": "Montserrat",
+          "verified": true,
+          "classification": "serif",
+          "visualWeightConfidence": 0.95,
+          "goudyCorrectionApplied": false
+        }
+      ],
+      "zIndex": 10,
+      "behindSubject": true
+    },
+    {
+      "role": "hero",
+      "fontFamily": "Montserrat",
+      "fontWeight": 800,
+      "fontStyle": "normal",
+      "casing": "lowercase",
+      "fontSizePx": 140,
+      "relativeScale": 1.0,
+      "letterSpacingEm": -0.03,
+      "lineHeightMultiplier": 0.88,
+      "anchor": {
+        "horizontal": "center",
+        "vertical": "center",
+        "offsetXPercent": 0.0,
+        "offsetYPercent": 0.0,
+        "placementZone": "chest_deck",
+        "relativeTo": "canvas"
+      },
+      "stagger": {
+        "dxPercent": 0.0,
+        "dyPercent": 0.0,
+        "rotationDeg": 0.0,
+        "scaleMultiplier": 1.0,
+        "scaleX": 1.0,
+        "scaleY": 1.0,
+        "arcWarpDeg": 0.0,
+        "skewXDeg": 0.0,
+        "skewYDeg": 0.0,
+        "stretchRatio": 1.0
+      },
+      "fill": {
+        "type": "linear_gradient",
+        "angleDeg": 135.0,
+        "stops": [
+          {
+            "color": "#831843",
+            "offset": 0.0
+          },
+          {
+            "color": "#BE185D",
+            "offset": 0.35
+          },
+          {
+            "color": "#F97316",
+            "offset": 0.75
+          },
+          {
+            "color": "#7C3AED",
+            "offset": 1.0
+          }
+        ]
+      },
+      "materiality": {
+        "opacity": 1.0,
+        "blendMode": "normal",
+        "bevel": {
+          "enabled": true,
+          "depthPx": 2.5,
+          "softnessPx": 1.0,
+          "angleDeg": 135.0,
+          "highlightColor": "rgba(255, 255, 255, 0.75)",
+          "shadowColor": "rgba(0, 0, 0, 0.75)"
+        }
+      },
+      "occlusion": {
+        "mode": "partial_head_clip",
+        "depthPlane": 45,
+        "clipBoundary": "head",
+        "partialOverlapPercent": 30
+      },
+      "inlineTokenSwaps": [],
+      "candidates": [
+        {
+          "candidateFamily": "Montserrat",
+          "verified": true,
+          "classification": "grotesque",
+          "visualWeightConfidence": 0.95,
+          "goudyCorrectionApplied": false
+        }
+      ],
+      "zIndex": 15,
+      "behindSubject": true
+    }
+  ],
+  "annotations": [],
+  "metadata": {
+    "migratedFrom": "cranial image center (3).json",
+    "overallMood": "Warm Sunset Radiant Luxury, Chromatic Numeral Anchor",
+    "migrationVersion": "v2.1"
+  }
+}

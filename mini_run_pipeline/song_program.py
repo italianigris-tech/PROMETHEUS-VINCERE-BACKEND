@@ -213,6 +213,317 @@ BUILTIN_SANCTIONED_TRACKS: List[Dict[str, Any]] = [
         "licenseType": "sanctioned_private_music_originals",
         "approvalSource": "builtin_sanctioned_inventory",
     },
+    # ---------------------------------------------------------------------------
+    # Creator Reference Archetype Tracks (Ingested from creator reference ontology)
+    # ---------------------------------------------------------------------------
+    {
+        "id": "positive/first-place",
+        "title": "FIRST PLACE",
+        "artist": "Justin Bieber",
+        "category": "positive",
+        "archetype": "positive",
+        "genreTags": ["pop", "r&b", "positive", "triumphant", "uplifting", "bright", "winning"],
+        "moodTags": ["positive", "victorious", "celebratory", "optimistic", "energetic"],
+        "useCaseTags": ["speech-friendly", "positive-reveal", "winning", "success-story", "lifestyle"],
+        "avoidWhen": ["grief", "horror", "dark-ambient"],
+        "intensity": "medium",
+        "durationSec": 200.09,
+        "dropOnsetSec": 8.5,
+        "dropReason": "energy_surge_8.5s",
+        "audioObjectKey": "music-originals/positive/Justin Bieber - FIRST PLACE.mp3",
+        "relativeSrc": "audio/music/Justin Bieber - FIRST PLACE.mp3",
+        "renderAllowed": True,
+        "commercialAllowed": True,
+        "licenseVerified": True,
+        "licenseType": "creator_curated_reference",
+        "approvalSource": "creator_reference_ontology_2026",
+    },
+    {
+        "id": "positive/ethereal",
+        "title": "Ethereal",
+        "artist": "Txmy",
+        "category": "positive",
+        "archetype": "positive",
+        "genreTags": ["electronic", "ambient", "positive", "dreamy", "synth", "uplifting", "ethereal"],
+        "moodTags": ["positive", "peaceful", "transcendent", "glowing", "bright"],
+        "useCaseTags": ["speech-friendly", "cinematic-reveal", "uplifting", "lifestyle", "travel"],
+        "avoidWhen": ["heavy-metal", "action-drill", "horror"],
+        "intensity": "soft",
+        "durationSec": 168.0,
+        "dropOnsetSec": 58.0,
+        "dropReason": "energy_peak_58.0s",
+        "audioObjectKey": "music-originals/positive/Txmy - Ethereal.mp3",
+        "relativeSrc": "audio/music/Txmy - Ethereal.mp3",
+        "renderAllowed": True,
+        "commercialAllowed": True,
+        "licenseVerified": True,
+        "licenseType": "creator_curated_reference",
+        "approvalSource": "creator_reference_ontology_2026",
+    },
+    {
+        "id": "positive/fine-line-instrumental",
+        "title": "Fine Line (Instrumental)",
+        "artist": "Kapa Boy",
+        "category": "positive",
+        "archetype": "positive",
+        "genreTags": ["pop", "acoustic", "positive", "bright", "celebratory", "warm", "hopeful"],
+        "moodTags": ["positive", "uplifting", "warm", "triumphant", "hopeful"],
+        "useCaseTags": ["speech-friendly", "story-resolution", "positive-reveal", "lifestyle"],
+        "avoidWhen": ["dark", "gloom", "monotone"],
+        "intensity": "medium",
+        "durationSec": 113.88,
+        "dropOnsetSec": 15.5,
+        "dropReason": "energy_surge_15.5s",
+        "audioObjectKey": "music-originals/positive/Kapa Boy - Fine Line (Instrumental).mp3",
+        "relativeSrc": "audio/music/Kapa Boy - Fine Line (Instrumental).mp3",
+        "renderAllowed": True,
+        "commercialAllowed": True,
+        "licenseVerified": True,
+        "licenseType": "creator_curated_reference",
+        "approvalSource": "creator_reference_ontology_2026",
+    },
+    {
+        "id": "authority/a-good-man-with-a-broken-heart",
+        "title": "A Good Man with a Broken Heart",
+        "artist": "lovibe",
+        "category": "authority",
+        "archetype": "authority",
+        "genreTags": ["cinematic", "instrumental", "authority", "heavyweight", "deep", "solemn"],
+        "moodTags": ["authority", "commanding", "stoic", "reflective", "weighty"],
+        "useCaseTags": ["speech-friendly", "executive-call", "hard-truth", "authority-speech"],
+        "avoidWhen": ["comedy", "dance-party", "vlog-fun"],
+        "intensity": "medium",
+        "durationSec": 118.8,
+        "dropOnsetSec": 9.0,
+        "dropReason": "energy_surge_9.0s",
+        "audioObjectKey": "music-originals/authority/lovibe - A Good Man with a Broken Heart.mp3",
+        "relativeSrc": "audio/music/lovibe - A Good Man with a Broken Heart.mp3",
+        "renderAllowed": True,
+        "commercialAllowed": True,
+        "licenseVerified": True,
+        "licenseType": "creator_curated_reference",
+        "approvalSource": "creator_reference_ontology_2026",
+    },
+    {
+        "id": "authority/feeling-blue",
+        "title": "Feeling Blue",
+        "artist": "Caleb Arredondo",
+        "category": "authority",
+        "archetype": "authority",
+        "genreTags": ["hip-hop", "instrumental", "authority", "stoic", "business", "dramatic"],
+        "moodTags": ["authority", "commanding", "composed", "deliberate", "intense"],
+        "useCaseTags": ["speech-friendly", "business-truth", "executive-monologue", "discipline"],
+        "avoidWhen": ["silly", "party", "whimsical"],
+        "intensity": "medium",
+        "durationSec": 106.97,
+        "dropOnsetSec": 70.5,
+        "dropReason": "energy_peak_70.5s",
+        "audioObjectKey": "music-originals/authority/Caleb Arredondo - Feeling Blue.mp3",
+        "relativeSrc": "audio/music/Caleb Arredondo - Feeling Blue.mp3",
+        "renderAllowed": True,
+        "commercialAllowed": True,
+        "licenseVerified": True,
+        "licenseType": "creator_curated_reference",
+        "approvalSource": "creator_reference_ontology_2026",
+    },
+    {
+        "id": "storytelling/leanin-slowed",
+        "title": "Leanin (Slowed)",
+        "artist": "Prometheus Slowed",
+        "category": "storytelling",
+        "archetype": "storytelling",
+        "genreTags": ["slowed", "reverb", "storytelling", "nostalgic", "atmospheric", "lo-fi"],
+        "moodTags": ["storytelling", "contemplative", "reflective", "mellow", "moody"],
+        "useCaseTags": ["speech-friendly", "personal-story", "journey", "struggle-to-triumph"],
+        "avoidWhen": ["fast-hype", "comedy", "commercial-sell"],
+        "intensity": "soft",
+        "durationSec": 144.09,
+        "dropOnsetSec": 13.5,
+        "dropReason": "energy_surge_13.5s",
+        "audioObjectKey": "music-originals/storytelling/Leanin (Slowed).mp3",
+        "relativeSrc": "audio/music/Leanin (Slowed).mp3",
+        "renderAllowed": True,
+        "commercialAllowed": True,
+        "licenseVerified": True,
+        "licenseType": "creator_curated_reference",
+        "approvalSource": "creator_reference_ontology_2026",
+    },
+    {
+        "id": "storytelling/as-time-flies",
+        "title": "As Time Flies",
+        "artist": "Ty's Music",
+        "category": "storytelling",
+        "archetype": "storytelling",
+        "genreTags": ["piano", "ambient", "storytelling", "time", "temporal", "journey"],
+        "moodTags": ["storytelling", "nostalgic", "poignant", "reflective", "deliberate"],
+        "useCaseTags": ["speech-friendly", "timeline-narrative", "reflection", "documentary"],
+        "avoidWhen": ["club", "rave", "fast-dance"],
+        "intensity": "soft",
+        "durationSec": 61.8,
+        "dropOnsetSec": 6.0,
+        "dropReason": "energy_surge_6.0s",
+        "audioObjectKey": "music-originals/storytelling/Ty's Music - As Time Flies.mp3",
+        "relativeSrc": "audio/music/Ty's Music - As Time Flies.mp3",
+        "renderAllowed": True,
+        "commercialAllowed": True,
+        "licenseVerified": True,
+        "licenseType": "creator_curated_reference",
+        "approvalSource": "creator_reference_ontology_2026",
+    },
+    {
+        "id": "storytelling/every-living-breathing-moment",
+        "title": "Every Living Breathing Moment",
+        "artist": "Prometheus Cinematic",
+        "category": "storytelling",
+        "archetype": "storytelling",
+        "genreTags": ["cinematic", "orchestral", "storytelling", "emotional", "epic-journey"],
+        "moodTags": ["storytelling", "awe", "inspiring", "grand", "contemplative"],
+        "useCaseTags": ["speech-friendly", "life-lesson", "deep-story", "documentary-climax"],
+        "avoidWhen": ["frivolous", "meme", "dance"],
+        "intensity": "medium",
+        "durationSec": 106.25,
+        "dropOnsetSec": 4.0,
+        "dropReason": "energy_surge_4.0s",
+        "audioObjectKey": "music-originals/storytelling/Every Living Breathing Moment.mp3",
+        "relativeSrc": "audio/music/Every Living Breathing Moment.mp3",
+        "renderAllowed": True,
+        "commercialAllowed": True,
+        "licenseVerified": True,
+        "licenseType": "creator_curated_reference",
+        "approvalSource": "creator_reference_ontology_2026",
+    },
+    {
+        "id": "educational/earfquake",
+        "title": "EARFQUAKE",
+        "artist": "Tyler, The Creator",
+        "category": "educational",
+        "archetype": "educational",
+        "genreTags": ["hip-hop", "synth-funk", "educational", "rhythmic", "bounce", "catchy"],
+        "moodTags": ["educational", "head-nodding", "engaging", "energetic", "groove"],
+        "useCaseTags": ["speech-friendly", "educational-hook", "explainer", "tactical-breakdown"],
+        "avoidWhen": ["somber", "grief", "ambient-meditation"],
+        "intensity": "medium",
+        "durationSec": 190.07,
+        "dropOnsetSec": 22.5,
+        "dropReason": "energy_surge_22.5s",
+        "audioObjectKey": "music-originals/educational/Tyler, The Creator - EARFQUAKE.mp3",
+        "relativeSrc": "audio/music/Tyler, The Creator - EARFQUAKE.mp3",
+        "renderAllowed": True,
+        "commercialAllowed": True,
+        "licenseVerified": True,
+        "licenseType": "creator_curated_reference",
+        "approvalSource": "creator_reference_ontology_2026",
+    },
+    {
+        "id": "educational/daisies",
+        "title": "Daisies",
+        "artist": "Justin Bieber",
+        "category": "educational",
+        "archetype": "educational",
+        "genreTags": ["r&b", "pop", "educational", "bounce", "rhythmic", "modern-groove"],
+        "moodTags": ["educational", "fresh", "bouncy", "confident", "curious"],
+        "useCaseTags": ["speech-friendly", "tutorial", "framework-explainer", "step-by-step"],
+        "avoidWhen": ["funeral", "horror", "gothic"],
+        "intensity": "medium",
+        "durationSec": 176.44,
+        "dropOnsetSec": 8.0,
+        "dropReason": "energy_surge_8.0s",
+        "audioObjectKey": "music-originals/educational/Justin Bieber - Daisies.mp3",
+        "relativeSrc": "audio/music/Justin Bieber - Daisies.mp3",
+        "renderAllowed": True,
+        "commercialAllowed": True,
+        "licenseVerified": True,
+        "licenseType": "creator_curated_reference",
+        "approvalSource": "creator_reference_ontology_2026",
+    },
+    {
+        "id": "educational/atm",
+        "title": "ATM",
+        "artist": "Don Toliver",
+        "category": "educational",
+        "archetype": "educational",
+        "genreTags": ["trap", "melodic", "educational", "bounce", "rhythmic-flow", "punchy"],
+        "moodTags": ["educational", "focused", "driving", "sharp", "stylish"],
+        "useCaseTags": ["speech-friendly", "quick-tips", "high-retention-hook", "tactical-framework"],
+        "avoidWhen": ["sad-ballad", "meditation", "sleep"],
+        "intensity": "medium",
+        "durationSec": 192.7,
+        "dropOnsetSec": 11.5,
+        "dropReason": "energy_surge_11.5s",
+        "audioObjectKey": "music-originals/educational/Don Toliver - ATM.mp3",
+        "relativeSrc": "audio/music/Don Toliver - ATM.mp3",
+        "renderAllowed": True,
+        "commercialAllowed": True,
+        "licenseVerified": True,
+        "licenseType": "creator_curated_reference",
+        "approvalSource": "creator_reference_ontology_2026",
+    },
+    {
+        "id": "emotional/apathy",
+        "title": "Apathy",
+        "artist": "Prometheus Ambient",
+        "category": "emotional",
+        "archetype": "emotional",
+        "genreTags": ["ambient", "dark-lofi", "emotional", "vulnerable", "melancholy", "raw"],
+        "moodTags": ["emotional", "bittersweet", "lonely", "somber", "introspective"],
+        "useCaseTags": ["speech-friendly", "vulnerable-truth", "sad-confession", "deep-reflection"],
+        "avoidWhen": ["hype", "party", "fitness-workout"],
+        "intensity": "soft",
+        "durationSec": 117.07,
+        "dropOnsetSec": 10.0,
+        "dropReason": "energy_surge_10.0s",
+        "audioObjectKey": "music-originals/emotional/Apathy.mp3",
+        "relativeSrc": "audio/music/Apathy.mp3",
+        "renderAllowed": True,
+        "commercialAllowed": True,
+        "licenseVerified": True,
+        "licenseType": "creator_curated_reference",
+        "approvalSource": "creator_reference_ontology_2026",
+    },
+    {
+        "id": "emotional/weargue",
+        "title": "WEArgue",
+        "artist": "Prometheus Moody",
+        "category": "emotional",
+        "archetype": "emotional",
+        "genreTags": ["lo-fi", "dramatic", "emotional", "tension", "bittersweet", "longing"],
+        "moodTags": ["emotional", "conflict", "poignant", "dramatic", "haunting"],
+        "useCaseTags": ["speech-friendly", "dramatic-conflict", "relationship-story", "raw-truth"],
+        "avoidWhen": ["celebration", "corporate-keynote", "comedy"],
+        "intensity": "medium",
+        "durationSec": 341.79,
+        "dropOnsetSec": 17.0,
+        "dropReason": "energy_surge_17.0s",
+        "audioObjectKey": "music-originals/emotional/WEArgue.mp3",
+        "relativeSrc": "audio/music/WEArgue.mp3",
+        "renderAllowed": True,
+        "commercialAllowed": True,
+        "licenseVerified": True,
+        "licenseType": "creator_curated_reference",
+        "approvalSource": "creator_reference_ontology_2026",
+    },
+    {
+        "id": "emotional/limerence",
+        "title": "Limerence",
+        "artist": "Yves Tumor",
+        "category": "emotional",
+        "archetype": "emotional",
+        "genreTags": ["ambient", "shoegaze", "emotional", "nostalgic", "lo-fi", "tape-hiss", "haunting"],
+        "moodTags": ["emotional", "bittersweet", "yearning", "poetic", "transcendent", "hypnotic"],
+        "useCaseTags": ["speech-friendly", "emotional", "cinematic-ending", "poignant-truth", "deep-vlog"],
+        "avoidWhen": ["fast-paced-hype", "action"],
+        "intensity": "soft",
+        "durationSec": 329.4,
+        "dropOnsetSec": 7.0,
+        "dropReason": "energy_surge_7.0s",
+        "audioObjectKey": "music-originals/emotional/Yves Tumor - Limerence.mp3",
+        "relativeSrc": "audio/music/Yves Tumor - Limerence.mp3",
+        "renderAllowed": True,
+        "commercialAllowed": True,
+        "licenseVerified": True,
+        "licenseType": "creator_curated_reference",
+        "approvalSource": "creator_reference_ontology_2026",
+    },
 ]
 
 
@@ -387,6 +698,9 @@ def _discover_local_song_catalog(root_dir: Optional[Path] = None) -> Dict[str, A
         source: str = "",
         existing_tags: Optional[List[str]] = None,
         forced_intensity: Optional[str] = None,
+        archetype: Optional[str] = None,
+        drop_onset_sec: Optional[float] = None,
+        drop_reason: Optional[str] = None,
     ) -> None:
         base_id = track_id.lower().strip()
         clean_id = base_id
@@ -418,12 +732,15 @@ def _discover_local_song_catalog(root_dir: Optional[Path] = None) -> Dict[str, A
             "title": _clean_text_punctuation(title),
             "artist": artist or "Prometheus Music",
             "category": category,
+            "archetype": archetype or category,
             "genreTags": tags,
             "moodTags": mood_tags or [intensity],
             "useCaseTags": use_case_tags,
             "avoidWhen": [],
             "intensity": intensity,
             "durationSec": float(duration) if duration else 60.0,
+            "dropOnsetSec": float(drop_onset_sec) if drop_onset_sec is not None else None,
+            "dropReason": drop_reason,
             "audioObjectKey": r2_key or f"music-originals/{category}/{filename}",
             "bucket": "prometheus-music",
             "localPath": str(resolved_local.resolve()) if resolved_local else None,
@@ -486,22 +803,131 @@ def _discover_local_song_catalog(root_dir: Optional[Path] = None) -> Dict[str, A
                     )
 
     # 3. PROMETHEUS_SONGS
+    creator_ref_map = {
+        "first place": {
+            "id": "positive/first-place", "title": "FIRST PLACE", "artist": "Justin Bieber",
+            "category": "positive", "archetype": "positive", "intensity": "medium",
+            "dropOnsetSec": 8.5, "dropReason": "energy_surge_8.5s", "duration": 200.09,
+            "genreTags": ["pop", "r&b", "positive", "triumphant", "uplifting", "bright", "winning"],
+        },
+        "ethereal": {
+            "id": "positive/ethereal", "title": "Ethereal", "artist": "Txmy",
+            "category": "positive", "archetype": "positive", "intensity": "soft",
+            "dropOnsetSec": 58.0, "dropReason": "energy_peak_58.0s", "duration": 168.0,
+            "genreTags": ["electronic", "ambient", "positive", "dreamy", "synth", "uplifting", "ethereal"],
+        },
+        "fine line": {
+            "id": "positive/fine-line-instrumental", "title": "Fine Line (Instrumental)", "artist": "Kapa Boy",
+            "category": "positive", "archetype": "positive", "intensity": "medium",
+            "dropOnsetSec": 15.5, "dropReason": "energy_surge_15.5s", "duration": 113.88,
+            "genreTags": ["pop", "acoustic", "positive", "bright", "celebratory", "warm", "hopeful"],
+        },
+        "good man with a broken heart": {
+            "id": "authority/a-good-man-with-a-broken-heart", "title": "A Good Man with a Broken Heart", "artist": "lovibe",
+            "category": "authority", "archetype": "authority", "intensity": "medium",
+            "dropOnsetSec": 9.0, "dropReason": "energy_surge_9.0s", "duration": 118.8,
+            "genreTags": ["cinematic", "instrumental", "authority", "heavyweight", "deep", "solemn"],
+        },
+        "feeling blue": {
+            "id": "authority/feeling-blue", "title": "Feeling Blue", "artist": "Caleb Arredondo",
+            "category": "authority", "archetype": "authority", "intensity": "medium",
+            "dropOnsetSec": 70.5, "dropReason": "energy_peak_70.5s", "duration": 106.97,
+            "genreTags": ["hip-hop", "instrumental", "authority", "stoic", "business", "dramatic"],
+        },
+        "leanin": {
+            "id": "storytelling/leanin-slowed", "title": "Leanin (Slowed)", "artist": "Prometheus Slowed",
+            "category": "storytelling", "archetype": "storytelling", "intensity": "soft",
+            "dropOnsetSec": 13.5, "dropReason": "energy_surge_13.5s", "duration": 144.09,
+            "genreTags": ["slowed", "reverb", "storytelling", "nostalgic", "atmospheric", "lo-fi"],
+        },
+        "time flies": {
+            "id": "storytelling/as-time-flies", "title": "As Time Flies", "artist": "Ty's Music",
+            "category": "storytelling", "archetype": "storytelling", "intensity": "soft",
+            "dropOnsetSec": 6.0, "dropReason": "energy_surge_6.0s", "duration": 61.8,
+            "genreTags": ["piano", "ambient", "storytelling", "time", "temporal", "journey"],
+        },
+        "every living breathing moment": {
+            "id": "storytelling/every-living-breathing-moment", "title": "Every Living Breathing Moment", "artist": "Prometheus Cinematic",
+            "category": "storytelling", "archetype": "storytelling", "intensity": "medium",
+            "dropOnsetSec": 4.0, "dropReason": "energy_surge_4.0s", "duration": 106.25,
+            "genreTags": ["cinematic", "orchestral", "storytelling", "emotional", "epic-journey"],
+        },
+        "earfquake": {
+            "id": "educational/earfquake", "title": "EARFQUAKE", "artist": "Tyler, The Creator",
+            "category": "educational", "archetype": "educational", "intensity": "medium",
+            "dropOnsetSec": 22.5, "dropReason": "energy_surge_22.5s", "duration": 190.07,
+            "genreTags": ["hip-hop", "synth-funk", "educational", "rhythmic", "bounce", "catchy"],
+        },
+        "daisies": {
+            "id": "educational/daisies", "title": "Daisies", "artist": "Justin Bieber",
+            "category": "educational", "archetype": "educational", "intensity": "medium",
+            "dropOnsetSec": 8.0, "dropReason": "energy_surge_8.0s", "duration": 176.44,
+            "genreTags": ["r&b", "pop", "educational", "bounce", "rhythmic", "modern-groove"],
+        },
+        "atm": {
+            "id": "educational/atm", "title": "ATM", "artist": "Don Toliver",
+            "category": "educational", "archetype": "educational", "intensity": "medium",
+            "dropOnsetSec": 11.5, "dropReason": "energy_surge_11.5s", "duration": 192.7,
+            "genreTags": ["trap", "melodic", "educational", "bounce", "rhythmic-flow", "punchy"],
+        },
+        "apathy": {
+            "id": "emotional/apathy", "title": "Apathy", "artist": "Prometheus Ambient",
+            "category": "emotional", "archetype": "emotional", "intensity": "soft",
+            "dropOnsetSec": 10.0, "dropReason": "energy_surge_10.0s", "duration": 117.07,
+            "genreTags": ["ambient", "dark-lofi", "emotional", "vulnerable", "melancholy", "raw"],
+        },
+        "weargue": {
+            "id": "emotional/weargue", "title": "WEArgue", "artist": "Prometheus Moody",
+            "category": "emotional", "archetype": "emotional", "intensity": "medium",
+            "dropOnsetSec": 17.0, "dropReason": "energy_surge_17.0s", "duration": 341.79,
+            "genreTags": ["lo-fi", "dramatic", "emotional", "tension", "bittersweet", "longing"],
+        },
+        "limerence": {
+            "id": "emotional/limerence", "title": "Limerence", "artist": "Yves Tumor",
+            "category": "emotional", "archetype": "emotional", "intensity": "soft",
+            "dropOnsetSec": 7.0, "dropReason": "energy_surge_7.0s", "duration": 329.4,
+            "genreTags": ["ambient", "shoegaze", "emotional", "nostalgic", "lo-fi", "tape-hiss", "haunting"],
+        },
+    }
+
     p_songs = root / "PROMETHEUS_SONGS"
     if p_songs.is_dir():
         for f in sorted(p_songs.glob("*.*")):
             if f.is_file() and f.suffix.lower() in {".mp3", ".wav", ".m4a"}:
-                artist, title = _parse_artist_and_title(f.stem.removeprefix("APLMate.com - "))
-                tid = f"prometheus-song-{_slugify_name(f.stem)}"
-                approx_dur = round(f.stat().st_size / (192 * 1024 / 8), 1)
-                register_entry(
-                    track_id=tid,
-                    title=title,
-                    artist=artist or "Prometheus Urban",
-                    category="trap",
-                    duration=max(15.0, min(600.0, approx_dur)),
-                    filepath=f,
-                    source="prometheus_songs",
-                )
+                stem_lower = f.stem.lower()
+                matched_ref = None
+                for k, v in creator_ref_map.items():
+                    if k in stem_lower:
+                        matched_ref = v
+                        break
+                if matched_ref:
+                    register_entry(
+                        track_id=matched_ref["id"],
+                        title=matched_ref["title"],
+                        artist=matched_ref["artist"],
+                        category=matched_ref["category"],
+                        archetype=matched_ref["archetype"],
+                        duration=matched_ref["duration"],
+                        drop_onset_sec=matched_ref["dropOnsetSec"],
+                        drop_reason=matched_ref["dropReason"],
+                        existing_tags=matched_ref["genreTags"],
+                        forced_intensity=matched_ref["intensity"],
+                        filepath=f,
+                        source="creator_reference_ontology_2026",
+                    )
+                else:
+                    artist, title = _parse_artist_and_title(f.stem.removeprefix("APLMate.com - "))
+                    tid = f"prometheus-song-{_slugify_name(f.stem)}"
+                    approx_dur = round(f.stat().st_size / (192 * 1024 / 8), 1)
+                    register_entry(
+                        track_id=tid,
+                        title=title,
+                        artist=artist or "Prometheus Urban",
+                        category="trap",
+                        duration=max(15.0, min(600.0, approx_dur)),
+                        filepath=f,
+                        source="prometheus_songs",
+                    )
 
     # 4. remotion-app/public/audio/music
     rem_dir = root / "remotion-app" / "public" / "audio" / "music"
@@ -732,6 +1158,7 @@ def iter_selectable_songs(
     catalog: Optional[Dict[str, Any]] = None,
     *,
     category: Optional[str] = None,
+    archetype: Optional[str] = None,
     mood: Optional[str] = None,
     intensity: Optional[str] = None,
     search: Optional[str] = None,
@@ -741,6 +1168,7 @@ def iter_selectable_songs(
     active_catalog = catalog or load_song_catalog(storage=storage)
     raw_entries = active_catalog.get("entries") if isinstance(active_catalog, dict) else active_catalog
     category_q = category.strip().lower() if category else None
+    archetype_q = archetype.strip().lower() if archetype else None
     mood_q = mood.strip().lower() if mood else None
     intensity_q = intensity.strip().lower() if intensity else None
     search_q = search.strip().lower() if search else None
@@ -749,6 +1177,8 @@ def iter_selectable_songs(
         if not _approved(track):
             continue
         if category_q and category_q not in str(track.get("category", "")).lower() and not any(category_q in str(tag).lower() for tag in (track.get("genreTags") or [])):
+            continue
+        if archetype_q and archetype_q != str(track.get("archetype", "")).lower() and archetype_q != str(track.get("category", "")).lower() and not any(archetype_q in str(tag).lower() for tag in (track.get("genreTags") or [])):
             continue
         if mood_q and not any(mood_q in str(tag).lower() for tag in (track.get("moodTags") or [])):
             continue
@@ -759,6 +1189,7 @@ def iter_selectable_songs(
                 str(track.get("title", "")),
                 str(track.get("artist", "")),
                 str(track.get("category", "")),
+                str(track.get("archetype", "")),
                 " ".join(str(t) for t in (track.get("genreTags") or [])),
                 " ".join(str(t) for t in (track.get("moodTags") or [])),
             ]).lower()
@@ -770,11 +1201,14 @@ def iter_selectable_songs(
             "title": track.get("title"),
             "artist": track.get("artist"),
             "category": track.get("category"),
+            "archetype": track.get("archetype") or track.get("category"),
             "genreTags": track.get("genreTags", []),
             "moodTags": track.get("moodTags", []),
             "useCaseTags": track.get("useCaseTags", []),
             "intensity": track.get("intensity", "medium"),
             "durationSec": track.get("durationSec"),
+            "dropOnsetSec": track.get("dropOnsetSec"),
+            "dropReason": track.get("dropReason"),
             "renderAllowed": track.get("renderAllowed", True),
             "commercialAllowed": track.get("commercialAllowed", True),
             "licenseVerified": track.get("licenseVerified", True),
@@ -788,6 +1222,7 @@ def list_selectable_songs(
     catalog: Optional[Dict[str, Any]] = None,
     *,
     category: Optional[str] = None,
+    archetype: Optional[str] = None,
     mood: Optional[str] = None,
     intensity: Optional[str] = None,
     search: Optional[str] = None,
@@ -800,6 +1235,7 @@ def list_selectable_songs(
     generator = iter_selectable_songs(
         catalog=catalog,
         category=category,
+        archetype=archetype,
         mood=mood,
         intensity=intensity,
         search=search,
@@ -1471,6 +1907,18 @@ def resolve_individual_selection(
         if matching_intensity:
             return matching_intensity[0], f"Individual selected song intensity: '{intensity_req}' ({matching_intensity[0].get('title')})."
 
+    # 7b. Creator Archetype preference (positive, authority, storytelling, educational, emotional)
+    arch_req = str(design_copy.get("songArchetype") or design_copy.get("archetype") or "").strip().lower()
+    if arch_req:
+        matching_arch = [
+            c for c in candidates
+            if arch_req == str(c.get("archetype", "")).lower()
+            or arch_req == str(c.get("category", "")).lower()
+            or arch_req in str(c.get("id", "")).lower()
+        ]
+        if matching_arch:
+            return matching_arch[0], f"Individual selected song archetype: '{arch_req}' ({matching_arch[0].get('title')})."
+
     # 8. Natural language user prompt direct title / artist request
     prompt_str = str(design_copy.get("prompt") or design_copy.get("userPrompt") or "").strip()
     if prompt_str:
@@ -1548,6 +1996,315 @@ LOOK_TO_MUSIC_AFFINITIES: Dict[str, Dict[str, Any]] = {
 }
 
 
+# ---------------------------------------------------------------------------
+# Creator Reference Emotional Archetype Ontology (5 Core Pillars)
+# Reference: image_657.png (Positive), image_658.png (Authority),
+#            image_659.png (Storytelling), image_660.png (Educational),
+#            image_661.png (Emotional)
+# ---------------------------------------------------------------------------
+
+CREATOR_EMOTIONAL_ARCHETYPES = ["positive", "authority", "storytelling", "educational", "emotional"]
+
+ARCHETYPE_LEXICON: Dict[str, set[str]] = {
+    "positive": {
+        "win", "winning", "winner", "success", "successful", "breakthrough", "triumph", "victory",
+        "celebrate", "celebrating", "celebration", "amazing", "awesome", "transform", "transformed",
+        "transformation", "energy", "smile", "joy", "happy", "happiness", "potential", "freedom",
+        "dream", "achieve", "achieved", "achievement", "elevate", "grow", "growth", "gain",
+        "blessed", "greatest", "opportunity", "unstoppable", "conquer", "first", "place", "champion",
+        "excited", "thrilled", "radiant", "inspire", "inspiring", "positive", "shine", "best", "proud",
+        "thrive", "victorious", "optimistic", "breakthroughs"
+    },
+    "authority": {
+        "discipline", "rules", "rule", "power", "powerful", "executive", "leadership", "leader",
+        "standard", "standards", "respect", "command", "brutal", "truth", "facts", "reality",
+        "dominate", "control", "focus", "business", "ceo", "empire", "money", "wealthy", "million",
+        "billion", "revenue", "profit", "invest", "investor", "scale", "boardroom", "stoic",
+        "unapologetic", "authority", "status", "demanded", "results", "operate", "vision", "strategy",
+        "contract", "market", "position", "mastery", "elite", "hierarchy", "boss", "financial"
+    },
+    "storytelling": {
+        "story", "stories", "remember", "remembered", "years", "ago", "started", "journey", "struggle",
+        "struggled", "struggles", "walked", "felt", "then", "suddenly", "moment", "moments", "memory",
+        "memories", "past", "chapter", "path", "road", "turned", "lesson", "lessons", "learned",
+        "never", "forgot", "life", "realized", "looking", "back", "came", "across", "experienced",
+        "throughout", "history", "origin", "began", "narrative", "childhood", "timeline", "climb",
+        "once", "upon", "decided", "turning", "point"
+    },
+    "educational": {
+        "step", "steps", "framework", "tips", "tip", "strategy", "strategies", "method", "methods",
+        "system", "systems", "teach", "learn", "learning", "guide", "explain", "reason", "why",
+        "because", "mistake", "mistakes", "avoid", "secret", "secrets", "breakdown", "analysis",
+        "hack", "hacks", "tactic", "tactics", "blueprint", "process", "rule", "thumb", "takeaway",
+        "education", "tutorial", "lesson", "concept", "structure", "principle", "principles", "here",
+        "how", "watch", "break", "down", "simple", "clarity", "understand", "formula", "technique",
+        "techniques"
+    },
+    "emotional": {
+        "pain", "hurt", "hurts", "cry", "crying", "cried", "lost", "loss", "heart", "broken",
+        "empty", "lonely", "loneliness", "dark", "darkness", "fear", "scared", "tears", "tear",
+        "goodbye", "regret", "miss", "missing", "soul", "deep", "inside", "sorrow", "vulnerable",
+        "depressed", "depression", "grief", "sadness", "bittersweet", "poignant", "ache", "brokenheart",
+        "brokenhearted", "longing", "yearning", "despair", "helpless", "tragic", "grieving", "hopeless",
+        "alone", "bleeding", "vulnerability"
+    },
+}
+
+
+def analyze_video_emotional_storyboard(
+    chunks: List[Dict[str, Any]],
+    duration_ms: int,
+    prompt: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Analyze the complete video narrative to generate an Act-by-Act emotional storyboard.
+    
+    Structure:
+      - Act 1: Hook / Premise (0% to ~25% or first 5-8s)
+      - Act 2: Escalation / Core Journey (25% to ~75%)
+      - Act 3: Climax / Payoff / Resolution (75% to 100%)
+      
+    Maps video pacing, emotional arc, narrative climax (climax_ms), and determines
+    the optimal song entry strategy (hook_drop vs climax_sync vs narrative_intro).
+    """
+    dur_ms = max(1000, int(duration_ms))
+    act1_cutoff = min(int(dur_ms * 0.25), 8000)
+    act2_cutoff = int(dur_ms * 0.75)
+
+    act1_chunks: List[Dict[str, Any]] = []
+    act2_chunks: List[Dict[str, Any]] = []
+    act3_chunks: List[Dict[str, Any]] = []
+
+    for c in chunks:
+        start = int(c.get("startMs", 0))
+        if start < act1_cutoff:
+            act1_chunks.append(c)
+        elif start < act2_cutoff:
+            act2_chunks.append(c)
+        else:
+            act3_chunks.append(c)
+
+    # Act WPS cadences
+    act1_wps = _calculate_speech_cadence(act1_chunks)
+    act2_wps = _calculate_speech_cadence(act2_chunks)
+    act3_wps = _calculate_speech_cadence(act3_chunks)
+
+    # Score archetypes per act
+    def score_act(act_chunks: List[Dict[str, Any]]) -> Dict[str, float]:
+        text = " ".join(str(c.get("text", "")).lower() for c in act_chunks)
+        tokens = set(TOKEN_RE.findall(text))
+        scores: Dict[str, float] = {a: 0.0 for a in CREATOR_EMOTIONAL_ARCHETYPES}
+        for arch, lex in ARCHETYPE_LEXICON.items():
+            matches = tokens & lex
+            scores[arch] = float(len(matches))
+        return scores
+
+    act1_scores = score_act(act1_chunks)
+    act2_scores = score_act(act2_chunks)
+    act3_scores = score_act(act3_chunks)
+
+    # Weighted cumulative scores
+    overall_scores: Dict[str, float] = {a: 0.0 for a in CREATOR_EMOTIONAL_ARCHETYPES}
+    for a in CREATOR_EMOTIONAL_ARCHETYPES:
+        overall_scores[a] = round(
+            act1_scores[a] * 0.30 + act2_scores[a] * 0.40 + act3_scores[a] * 0.30, 2
+        )
+
+    # Prompt intent modulation
+    if prompt:
+        p_lower = prompt.lower()
+        if any(k in p_lower for k in ["positive", "celebrat", "win", "optimist", "triumph", "uplift"]):
+            overall_scores["positive"] += 1.5
+        if any(k in p_lower for k in ["authority", "business", "executive", "stoic", "discipline", "deliberate", "call"]):
+            overall_scores["authority"] += 1.5
+        if any(k in p_lower for k in ["story", "narrative", "journey", "documentary", "struggle"]):
+            overall_scores["storytelling"] += 1.5
+        if any(k in p_lower for k in ["education", "tutorial", "how to", "explainer", "framework", "tips", "step"]):
+            overall_scores["educational"] += 1.5
+        if any(k in p_lower for k in ["emotional", "vulnerable", "sad", "poignant", "heart", "grief", "pain"]):
+            overall_scores["emotional"] += 1.5
+
+    # Determine dominant archetype
+    top_arch = max(overall_scores, key=overall_scores.get)
+    max_score = overall_scores[top_arch]
+    if max_score <= 0.0:
+        # Fallback to cadence-informed archetype
+        if act1_wps > 2.6:
+            top_arch = "educational"
+        else:
+            top_arch = "positive"
+        confidence = 0.50
+    else:
+        tot = sum(overall_scores.values()) or 1.0
+        confidence = min(0.98, max(0.55, max_score / tot))
+
+    def act_dominant(scores: Dict[str, float], fallback: str) -> str:
+        t = max(scores, key=scores.get)
+        return t if scores[t] > 0 else fallback
+
+    act1_arch = act_dominant(act1_scores, top_arch)
+    act2_arch = act_dominant(act2_scores, top_arch)
+    act3_arch = act_dominant(act3_scores, top_arch)
+
+    active_archetypes = list(dict.fromkeys([top_arch, act1_arch, act2_arch, act3_arch]))
+    emotional_shift = (act1_arch != act3_arch)
+    trajectory = f"{act1_arch}_to_{act3_arch}" if emotional_shift else f"steady_{top_arch}_flow"
+
+    # Climax detection (climax_ms)
+    climax_ms = int(dur_ms * 0.75)
+    late_chunks = [c for c in chunks if int(c.get("startMs", 0)) >= int(dur_ms * 0.60)]
+    if late_chunks:
+        # Check for exclamation marks or peak speech density
+        peak_chunk = None
+        for c in late_chunks:
+            txt = str(c.get("text", ""))
+            if "!" in txt or any(kw in txt.lower() for kw in ["finally", "won", "won!", "now", "result", "changed", "breakthrough"]):
+                peak_chunk = c
+                break
+        if not peak_chunk:
+            peak_chunk = max(late_chunks, key=lambda c: len(str(c.get("text", "")).split()))
+        climax_ms = int(peak_chunk.get("startMs", int(dur_ms * 0.75)))
+
+    # Entry preference
+    act1_text = " ".join(str(c.get("text", "")).lower() for c in act1_chunks)
+    has_hook_words = any(hw in act1_text for hw in ["stop", "look", "secret", "listen", "watch", "did you know", "here is", "never", "why"])
+
+    p_lower = (prompt or "").lower()
+    if any(k in p_lower for k in ["hook", "drop", "fast", "hype", "instant", "immediate"]):
+        entry_pref = "hook_drop"
+    elif act1_wps >= 2.4 or has_hook_words:
+        entry_pref = "hook_drop"
+    elif top_arch in {"educational", "positive"} and dur_ms <= 40000:
+        entry_pref = "hook_drop"
+    elif top_arch in {"storytelling", "emotional"} and climax_ms >= 10000:
+        entry_pref = "climax_sync"
+    elif act1_wps < 1.8:
+        entry_pref = "narrative_intro"
+    else:
+        entry_pref = "hook_drop" if dur_ms <= 35000 else "narrative_intro"
+
+    rec_intensity = "hard" if act1_wps > 2.8 else ("soft" if act1_wps < 2.0 else "medium")
+
+    return {
+        "dominant_archetype": top_arch,
+        "confidence": round(confidence, 3),
+        "archetype_scores": {k: round(v, 2) for k, v in overall_scores.items()},
+        "acts": [
+            {
+                "act": 1,
+                "name": "Hook",
+                "startMs": 0,
+                "endMs": act1_cutoff,
+                "cadenceWps": act1_wps,
+                "archetype": act1_arch,
+                "summary": f"Act 1 introduces the hook at {act1_wps} WPS in {act1_arch} archetype.",
+            },
+            {
+                "act": 2,
+                "name": "Escalation",
+                "startMs": act1_cutoff,
+                "endMs": act2_cutoff,
+                "cadenceWps": act2_wps,
+                "archetype": act2_arch,
+                "summary": f"Act 2 body unfolds at {act2_wps} WPS in {act2_arch} archetype.",
+            },
+            {
+                "act": 3,
+                "name": "Climax/Resolution",
+                "startMs": act2_cutoff,
+                "endMs": dur_ms,
+                "cadenceWps": act3_wps,
+                "archetype": act3_arch,
+                "summary": f"Act 3 climax/resolution delivers payoff at {act3_wps} WPS in {act3_arch} archetype.",
+            },
+        ],
+        "active_archetypes": active_archetypes,
+        "emotional_shift": emotional_shift,
+        "trajectory": trajectory,
+        "climax_ms": climax_ms,
+        "entry_preference": entry_pref,
+        "recommended_intensity": rec_intensity,
+    }
+
+
+def compute_intelligent_song_entry(
+    track: Dict[str, Any],
+    storyboard: Dict[str, Any],
+    duration_ms: int,
+    timeline_start_ms: int = 0,
+    timeline_end_ms: Optional[int] = None,
+    design: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Calculate intelligent cue points (sourceStartMs) to eliminate the slow intro / missing drop problem.
+    
+    Supported Strategies:
+      1. hook_drop: Cues the track directly at its energetic beat drop / hook onset (e.g. 22.5s for EARFQUAKE)
+                    so short-form clips never suffer 15-20s of empty intro air.
+      2. climax_sync: Synchronizes the song drop onset to align exactly with the video's narrative climax.
+      3. narrative_intro: Starts from 0.0s for gradual acoustic/ambient reflective build.
+      4. manual_override: Explicit user-specified cue point.
+      
+    Guarantees strict runway clamping against track duration so audio is never truncated.
+    """
+    track_dur_ms = max(1, int(float(track.get("durationSec") or 60.0) * 1000))
+    event_dur_ms = max(1, (timeline_end_ms or duration_ms) - timeline_start_ms)
+    design_copy = dict(design or {})
+
+    # 1. Manual override
+    if design_copy.get("songSourceStartMs") is not None:
+        source_start = max(0, int(design_copy["songSourceStartMs"]))
+        strategy = "manual_override"
+        reason = f"Manual cue offset provided by user design: {source_start}ms."
+    else:
+        # Pre-computed or detected drop onset
+        drop_sec = float(track.get("dropOnsetSec") or 0.0)
+        if drop_sec == 0.0 and track.get("localPath") and Path(str(track["localPath"])).is_file():
+            detected_ms, _ = detect_track_chorus_or_drop(str(track["localPath"]), timeline_duration_ms=event_dur_ms)
+            drop_sec = detected_ms / 1000.0
+        drop_ms = int(drop_sec * 1000)
+
+        strategy = storyboard.get("entry_preference", "hook_drop")
+
+        if strategy == "hook_drop":
+            if drop_ms > 0:
+                source_start = drop_ms
+                reason = f"Cued directly at energetic beat drop (t={drop_sec:.1f}s) to eliminate empty intro air and match hook pacing."
+            else:
+                source_start = 0
+                reason = "Track begins with immediate musical energy from 0.0s."
+        elif strategy == "climax_sync":
+            climax_ms = int(storyboard.get("climax_ms") or (duration_ms * 0.75))
+            time_until_climax = max(0, climax_ms - timeline_start_ms)
+            if drop_ms > 0 and time_until_climax > 0:
+                desired_start = drop_ms - time_until_climax
+                source_start = max(0, desired_start)
+                reason = f"Synchronized drop (t={drop_sec:.1f}s) to land at narrative climax (t={climax_ms / 1000:.1f}s)."
+            else:
+                source_start = 0
+                reason = "Starting from 0.0s for gradual narrative build leading into climax."
+        else:  # narrative_intro
+            source_start = 0
+            reason = "Starting from track intro (t=0.0s) to support slow reflective spoken narrative."
+
+    # Safety runway clamping: ensure source_start + event_dur_ms <= track_dur_ms
+    max_allowed_start = max(0, track_dur_ms - event_dur_ms)
+    if source_start > max_allowed_start:
+        source_start = max_allowed_start
+        reason += f" (Clamped to {source_start}ms to guarantee {event_dur_ms}ms runway without audio exhaustion)."
+
+    source_end = source_start + event_dur_ms
+    drop_ms = int(float(track.get("dropOnsetSec") or 0.0) * 1000)
+    delta = (source_start + (storyboard.get("climax_ms", 0) - timeline_start_ms) - drop_ms) if drop_ms > 0 else 0
+
+    return {
+        "strategy": strategy,
+        "sourceStartMs": source_start,
+        "sourceEndMs": source_end,
+        "dropOnsetSec": float(track.get("dropOnsetSec") or 0.0),
+        "reason": reason,
+        "dropSyncDeltaMs": delta,
+    }
+
+
 def _calculate_speech_cadence(chunks: List[Dict[str, Any]]) -> float:
     """Calculate average words-per-second (WPS) across speech chunks."""
     if not chunks:
@@ -1576,6 +2333,7 @@ def _score_system_autonomous(
     look_id: Optional[str] = None,
     words_per_sec: float = 2.5,
     audio_intent: Optional[Dict[str, Any]] = None,
+    storyboard: Optional[Dict[str, Any]] = None,
 ) -> Tuple[float, Dict[str, float], List[str]]:
     """Comprehensive autonomous scoring matrix evaluating:
 
@@ -1585,6 +2343,7 @@ def _score_system_autonomous(
     4. Speech-friendly / dialogue support bonus
     5. Contextual domain synergy & user prompt intent alignment
     6. Context clash avoidance penalty
+    7. Creator reference emotional storyboard archetype synergy & clash penalties
     """
     tags = _track_tokens(track)
     overlap = sorted(tags & transcript_tokens)
@@ -1685,7 +2444,33 @@ def _score_system_autonomous(
             domain_score -= clash_penalty
             evidence.append(f"Context clash penalty: Incompatible with '{', '.join(active_domains)}' context (penalty -{clash_penalty}).")
 
-    total_score = round(semantic_score + look_score + pacing_score + domain_score, 3)
+    # 5. Creator Reference Storyboard Emotional Archetype Alignment
+    storyboard_score = 0.0
+    if storyboard:
+        dom_arch = str(storyboard.get("dominant_archetype") or "").strip().lower()
+        track_arch = str(track.get("archetype") or track.get("category") or "").strip().lower()
+        act_archetypes = [str(a).strip().lower() for a in (storyboard.get("active_archetypes") or [])]
+
+        # Primary archetype synergy bonus (+0.85)
+        if track_arch == dom_arch:
+            storyboard_score += 0.85
+            evidence.append(f"Storyline archetype synergy: '{track_arch}' matches video dominant narrative ({dom_arch}).")
+        elif track_arch in act_archetypes:
+            storyboard_score += 0.40
+            evidence.append(f"Storyline archetype affinity: '{track_arch}' matches active act progression.")
+
+        # Archetype clash penalties
+        if dom_arch == "emotional" and track_intensity == "hard":
+            storyboard_score -= 0.60
+            evidence.append("Emotional clash: Aggressive hard track clashing with vulnerable emotional video narrative.")
+        elif dom_arch == "authority" and any(t in tags for t in {"party", "club", "frivolous"}):
+            storyboard_score -= 0.70
+            evidence.append("Authority clash: Party elements clash with commanding executive authority.")
+        elif dom_arch == "educational" and ("trailer" in cat_str or "epic" in cat_str):
+            storyboard_score -= 0.50
+            evidence.append("Educational clash: Overbearing trailer clashing with instructional explanation.")
+
+    total_score = round(semantic_score + look_score + pacing_score + domain_score + storyboard_score, 3)
     if not evidence:
         evidence.append("Eligible catalog track selected via autonomous fallback compatibility.")
 
@@ -1694,6 +2479,7 @@ def _score_system_autonomous(
         "lookSynergy": round(look_score, 3),
         "pacingAlignment": round(pacing_score, 3),
         "domainContext": round(domain_score, 3),
+        "storyboardArchetype": round(storyboard_score, 3),
     }
 
     return total_score, breakdown, evidence
@@ -1794,7 +2580,14 @@ def plan_song_program(
     # Ingest prompt and transcript to produce structured audio intent
     audio_intent = extract_audio_intent_from_prompt(resolved_prompt, transcript_tokens=transcript_tokens)
 
-    # Score all candidates autonomously with domain and prompt intent modulation
+    # Analyze video emotional storyboard across narrative acts
+    storyboard = analyze_video_emotional_storyboard(
+        chunks=chunks,
+        duration_ms=duration_ms,
+        prompt=resolved_prompt,
+    )
+
+    # Score all candidates autonomously with domain, prompt intent, and emotional storyboard modulation
     scored = []
     for track in approved:
         score, breakdown, evidence = _score_system_autonomous(
@@ -1803,6 +2596,7 @@ def plan_song_program(
             look_id=look_id,
             words_per_sec=speech_wps,
             audio_intent=audio_intent,
+            storyboard=storyboard,
         )
         scored.append({
             "track": track,
@@ -1877,9 +2671,22 @@ def plan_song_program(
 
         track = selected["track"]
         used.add(track["id"])
-        runway_ms = max(1, int(float(track.get("durationSec") or 0) * 1000))
+        track_dur_ms = max(1, int(float(track.get("durationSec") or 0) * 1000))
         timeline_start = 0 if not events else max(0, cursor_ms - crossfade_ms)
-        timeline_end = min(duration_ms, timeline_start + runway_ms)
+
+        entry_calc = compute_intelligent_song_entry(
+            track=track,
+            storyboard=storyboard,
+            duration_ms=duration_ms,
+            timeline_start_ms=timeline_start,
+            timeline_end_ms=min(duration_ms, timeline_start + track_dur_ms),
+            design=design,
+        )
+        source_start = entry_calc["sourceStartMs"]
+        available_runway_ms = max(1, track_dur_ms - source_start)
+        timeline_end = min(duration_ms, timeline_start + available_runway_ms)
+        source_end = source_start + (timeline_end - timeline_start)
+        entry_calc["sourceEndMs"] = source_end
 
         event = {
             "id": f"song-{len(events) + 1}",
@@ -1887,14 +2694,18 @@ def plan_song_program(
             "title": track.get("title"),
             "artist": track.get("artist"),
             "category": track.get("category"),
+            "archetype": track.get("archetype") or track.get("category"),
+            "genreTags": track.get("genreTags", []),
+            "moodTags": track.get("moodTags", []),
             "intensity": track.get("intensity", "medium"),
             "bucket": track.get("bucket"),
             "objectKey": track.get("audioObjectKey"),
             "localPath": track.get("localPath"),
             "timelineStartMs": timeline_start,
             "timelineEndMs": timeline_end,
-            "sourceStartMs": 0,
-            "sourceEndMs": timeline_end - timeline_start,
+            "sourceStartMs": source_start,
+            "sourceEndMs": source_end,
+            "intelligentEntry": entry_calc,
             "resolution": resolution_mode if len(events) == 0 else "system_handoff",
             "selectionScore": selected["score"],
             "scoreBreakdown": selected.get("scoreBreakdown", {}),
@@ -1946,6 +2757,7 @@ def plan_song_program(
             "domainScores": audio_intent.get("domainScores", {}),
         },
         "speechCadenceWps": speech_wps,
+        "storyboard": storyboard,
         "lookId": look_id or None,
         "dialogueDucking": ducking_config,
         "events": events,

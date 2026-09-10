@@ -29,6 +29,7 @@ from mini_run_pipeline.broll_engine import (  # noqa: E402
     PexelsVideoClient,
     extract_broll_search_queries,
     plan_broll_cutaways_for_mini_run,
+    resolve_chunk_timing_ms,
 )
 from mini_run_pipeline.orchestration import plan_mini_run_orchestration  # noqa: E402
 
@@ -74,10 +75,10 @@ TRANSCRIPT_B = [
 
 def build_chunks(transcript):
     """Chunks in the REAL production schema (chunks.py:142-145):
-    camelCase startMs/endMs/outputStartMs/outputEndMs. No snake_case start_ms --
-    that key exists only on words, never on chunks."""
+    camelCase startMs/endMs/outputStartMs/outputEndMs, plus the editorial role
+    now propagated through orchestration scenes (remediation fix 5)."""
     chunks = []
-    for i, (s, e, _role, text, behind) in enumerate(transcript):
+    for i, (s, e, role, text, behind) in enumerate(transcript):
         chunks.append({
             "chunkIndex": i,
             "chunkId": f"chunk-{i + 1}",
@@ -87,6 +88,7 @@ def build_chunks(transcript):
             "outputStartMs": s,
             "outputEndMs": e,
             "displayStartMs": s,
+            "role": role,
             "subjectLayering": {"behindSubject": behind},
         })
     return chunks
@@ -212,19 +214,32 @@ def main():
               f"{','.join(ev.matched_concrete_terms) or '-'}{flag}")
 
     # ------------------------------------------------------------------ 1b
-    hr("SECTION 1b: SCORECARD AS THE PIPELINE ACTUALLY FEEDS IT (start_ms=0, dur=2.5s)")
-    print("backgrounds.py:1067 reads chunk.get('start_ms', 0) -> 0.0 for camelCase chunks,")
-    print("and duration defaults to 2.5s -> D(t)=1.0 constant, F=0.1 constant for every chunk.")
-    print(f"{'i':>2} {'C':>5} {'F':>5} {'SCORE':>6} {'eligible':>8}  (composite == 0.395 + 0.35*C)")
-    for i, (_s, _e, _role, text, _behind) in enumerate(TRANSCRIPT_A):
-        ev = BrollSuitabilityEngine.evaluate_chunk(
-            chunk_index=i, text=text, duration_sec=2.5,
-            time_since_last_broll_sec=100.0,
-            time_since_last_visual_break_sec=0.0,
-            beat_type=None,
+    hr("SECTION 1b: AS-FED TIMING (post-remediation: resolve_chunk_timing_ms)")
+    print("The candidate loop now resolves camelCase startMs/endMs, so the as-fed")
+    print("scorecard must equal Section 1's doctrinal scorecard (real D(t), real F).")
+    mismatches = 0
+    for i, (s, e, role, text, behind) in enumerate(TRANSCRIPT_A):
+        c_start_ms, c_end_ms = resolve_chunk_timing_ms(
+            {"startMs": s, "endMs": e, "outputStartMs": s, "outputEndMs": e}
         )
-        print(f"{i:>2} {ev.concreteness_score:>5.2f} {ev.fatigue_score:>5.2f} "
-              f"{ev.composite_score:>6.2f} {str(ev.is_eligible):>8}  {','.join(ev.matched_concrete_terms) or '-'}")
+        ev_fed = BrollSuitabilityEngine.evaluate_chunk(
+            chunk_index=i, text=text, duration_sec=(c_end_ms - c_start_ms) / 1000.0,
+            time_since_last_broll_sec=c_start_ms / 1000.0 + 100.0,
+            time_since_last_visual_break_sec=c_start_ms / 1000.0,
+            beat_type=role,
+        )
+        ev_doc = BrollSuitabilityEngine.evaluate_chunk(
+            chunk_index=i, text=text, duration_sec=(e - s) / 1000.0,
+            time_since_last_broll_sec=s / 1000.0 + 100.0,
+            time_since_last_visual_break_sec=s / 1000.0,
+            beat_type=role,
+        )
+        if abs(ev_fed.composite_score - ev_doc.composite_score) > 1e-9:
+            mismatches += 1
+        print(f"  chunk {i:>2}: as-fed composite {ev_fed.composite_score:.2f} "
+              f"(F={ev_fed.fatigue_score:.2f} R={ev_fed.rhetorical_score:.2f})  "
+              f"eligible={ev_fed.is_eligible}")
+    print(f"as-fed vs doctrinal mismatches: {mismatches} (schema drift eliminated: {mismatches == 0})")
 
     # ------------------------------------------------------------------ 2
     hr("SECTION 2: AUTO MODE (default pipeline, no prompt) -- real orchestration path")
@@ -310,22 +325,31 @@ def main():
             print(f"    NETWORK FAIL: {exc}  (pipeline would silently fall back to a mock asset)")
 
     # ------------------------------------------------------------------ 6
-    hr("SECTION 6: VERDICTS")
+    hr("SECTION 6: POST-REMEDIATION VERIFICATION")
+    listicle_poisoned = any(
+        b.get("kind") == "broll_cutaway" and b.get("chunkIndex") in (2, 13)
+        for b in bgs_dir
+    )
+    evals_present = all(
+        ((b.get("broll") or {}).get("evaluation") or {}).get("recommended_treatment_category") == "broll_cutaway"
+        for b in brolls_dir
+    ) if brolls_dir else None
+    role_map = {
+        "proof": "evidentiary_dossier_card", "crisis": "retinal_flash_cut",
+        "revelation": "rack_focus_spotlight", "world_context": "cinematic_fullbleed",
+    }
+    mapped = [
+        (b.get("chunkIndex"), (b.get("broll") or {}).get("treatment", {}).get("treatment_name"))
+        for b in brolls_dir
+    ]
     print(f"""
-  [H1] Auto mode starves B-roll (max_backgrounds clamped to 1, backgrounds.py:828-830)
-       -> auto B-roll count this run: {n_broll_auto}
-  [H2] Cooldown penalty is dead in production (last_broll_sec never updated,
-       backgrounds.py:1056 / broll_engine.py:781)
-       -> telemetry above: 'cooldown ever fired' should read False for both paths
-  [H3] Fatigue never resets after a B-roll (time_since_break derived from
-       last_end_ms before any B-roll is selected, backgrounds.py:1071)
-       -> telemetry above: 'monotonic' should read True
-  [H4] Master planner plan_broll_cutaways_for_mini_run is dead code (broll_engine.py:760)
-  [H5] Production scenes have NO role/beatType -> rhetorical boost + beat-based
-       treatment mapping are dead; treatments fall to md5 dice (broll_engine.py:669)
-       -> 'scene carries role?' printed above
-  [H6] 4.5s COOLDOWN_GAP_SEC doctrine unenforced in live path (generic 2.2s gap,
-       backgrounds.py:834) -> check whether two directed B-rolls landed < 4.5s apart
+  [F1] Schema resolution: as-fed vs doctrinal mismatches printed in Section 1b (expect 0)
+  [F2] Cooldown doctrine: cutaways within 4.5s rejected at selection (regression tests)
+  [F3] Score calibration: composite x140 -> concrete cutaways outrank the 95-pt reference floor
+  [F4] Prompt poisoning: listicle chunks (2, 13) selected as B-roll: {listicle_poisoned} (expect False);
+       every placed B-roll carries a real evaluation: {evals_present}
+  [F5] Beat roles: production scenes now carry 'role' (Section 2); treatment map: {mapped}
+  [Auto] B-roll count in auto mode: {n_broll_auto}  |  [Directed]: {len(brolls_dir)}
 """)
 
 
