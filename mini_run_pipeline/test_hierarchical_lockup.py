@@ -69,6 +69,7 @@ class TestHierarchicalAsymmetricLockup(unittest.TestCase):
         design = {
             "treatment": "hierarchical_asymmetric_lockup",
             "aspectRatio": "9:16",
+            "seed": "lockup-contract-deterministic-seed",
         }
 
         manifest = typography.generate_font_manifest(chunks, design_override=design)
@@ -96,7 +97,7 @@ class TestHierarchicalAsymmetricLockup(unittest.TestCase):
         scale_ratio = hero_l1["fontSizePx"] / mod_l1["fontSizePx"]
         self.assertGreaterEqual(scale_ratio, 2.8)
         self.assertLessEqual(scale_ratio, 4.5)
-        self.assertEqual(mod_l1["letterSpacingEm"], -0.025)
+        self.assertEqual(mod_l1["letterSpacingEm"], 0.005)
         self.assertEqual(mod_l1["color"], "#F2F2F2")
 
         # Chunk 2: "up in the mountains" -> Option A (Top-tucked modifier)
@@ -195,7 +196,11 @@ class TestHierarchicalAsymmetricLockup(unittest.TestCase):
         ]
         manifest = typography.generate_font_manifest(
             chunks,
-            design_override={"treatment": "hierarchical_asymmetric_lockup", "aspectRatio": "9:16"},
+            design_override={
+                "treatment": "hierarchical_asymmetric_lockup",
+                "aspectRatio": "9:16",
+                "seed": "lockup-compact-leading-deterministic-seed",
+            },
         )
         c0 = manifest["chunks"][0]
         hero = next(l for l in c0["layers"] if l["isHero"])
@@ -203,7 +208,7 @@ class TestHierarchicalAsymmetricLockup(unittest.TestCase):
 
         self.assertEqual(hero["lineHeight"], 0.88)
         self.assertEqual(hero["letterSpacingEm"], -0.035)
-        self.assertEqual(modifier["letterSpacingEm"], -0.025)
+        self.assertEqual(modifier["letterSpacingEm"], 0.005)
         self.assertIn(hero["fontFamily"], ["Inter", "Montserrat", "Helvetica", "Neue Haas Grotesk", "Apple Garamond"])
 
     def test_backward_compatibility_other_treatments(self) -> None:

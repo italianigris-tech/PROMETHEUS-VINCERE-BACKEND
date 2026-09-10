@@ -29,6 +29,60 @@ CRANIAL_PLACEMENT_DIR = Path(__file__).resolve().parent.parent / "Yuan Prometheu
 OPT_FONT_DIR = Path("/opt/prometheus/Yuan Prometheus Screenshots/font JSON")
 OPT_PAIRS_DIR = Path("/opt/prometheus/Yuan Prometheus Screenshots/font pairing and placement")
 
+V2_CATALOG_FILE = Path(__file__).resolve().parent / "typography_profiles_v2_catalog.json"
+OPT_V2_CATALOG_FILE = Path("/opt/prometheus/mini_run_pipeline/typography_profiles_v2_catalog.json")
+
+_V2_CATALOG_CACHE: Optional[Dict[str, Any]] = None
+_V2_LOOKUP_CACHE: Optional[Dict[str, Dict[str, Any]]] = None
+
+
+def load_typography_profiles_v2_catalog() -> Dict[str, Any]:
+    """Load and cache the canonical TypographyProfileV2 catalog."""
+    global _V2_CATALOG_CACHE, _V2_LOOKUP_CACHE
+    if _V2_CATALOG_CACHE is not None:
+        return _V2_CATALOG_CACHE
+
+    candidates = [
+        V2_CATALOG_FILE,
+        Path(__file__).resolve().parent.parent / "mini_run_pipeline" / "typography_profiles_v2_catalog.json",
+        OPT_V2_CATALOG_FILE,
+    ]
+    catalog_data: Optional[Dict[str, Any]] = None
+    for c in candidates:
+        if c.exists():
+            try:
+                catalog_data = json.loads(c.read_text(encoding="utf-8"))
+                break
+            except Exception:
+                pass
+    if catalog_data is None:
+        catalog_data = {"version": "typography-profile-v2-catalog-1.0", "totalProfiles": 0, "profiles": []}
+
+    _V2_CATALOG_CACHE = catalog_data
+    _V2_LOOKUP_CACHE = {}
+    for p in catalog_data.get("profiles", []):
+        pid = p.get("profileId", "")
+        if pid:
+            _V2_LOOKUP_CACHE[pid] = p
+            _V2_LOOKUP_CACHE[pid.lower()] = p
+            _V2_LOOKUP_CACHE[pid.replace("_", " ").lower()] = p
+            _V2_LOOKUP_CACHE[pid.replace(" ", "_").lower()] = p
+    return _V2_CATALOG_CACHE
+
+
+def get_typography_profile_v2_by_id(profile_id: str) -> Optional[Dict[str, Any]]:
+    """Look up a TypographyProfileV2 by profile ID or filename stem."""
+    load_typography_profiles_v2_catalog()
+    if not profile_id or _V2_LOOKUP_CACHE is None:
+        return None
+    pid = str(profile_id).strip()
+    return (
+        _V2_LOOKUP_CACHE.get(pid)
+        or _V2_LOOKUP_CACHE.get(pid.lower())
+        or _V2_LOOKUP_CACHE.get(pid.replace("_", " ").lower())
+        or _V2_LOOKUP_CACHE.get(pid.replace(" ", "_").lower())
+    )
+
 
 def parse_color_to_rgba(color_value: Optional[str]) -> Optional[tuple]:
     """Parse a CSS color into (r, g, b, a) with a in [0,1].
@@ -1458,125 +1512,76 @@ def split_single_word_syllables(word: str) -> List[str]:
 
 
 ANIMA_RUNTIME_TREATMENTS: List[Dict[str, Any]] = [
-    # Full Anima Kinetic Motion Catalog (Hooks + Prestigious Typographic Engines)
-    {"id": "apple_pro_display_hero_revealer", "styles": {"cinematic", "editorial"}, "energy": 0.35},
-    {"id": "dynamic_staggered_character_cascade", "styles": {"kinetic", "cinematic"}, "energy": 0.70},
-    {"id": "apple_keynote_headline_punch", "styles": {"kinetic", "editorial"}, "energy": 0.75},
-    {"id": "subpixel_glow_mask", "styles": {"cinematic", "editorial"}, "energy": 0.35},
-    {"id": "gaussian_blur_reveal_sweep", "styles": {"cinematic", "editorial"}, "energy": 0.45},
-    {"id": "cinematic_viewport_mask_sweep", "styles": {"cinematic", "editorial"}, "energy": 0.35},
-    {"id": "cyber_matrix_text_scramble", "styles": {"kinetic", "editorial"}, "energy": 0.80},
-    {"id": "kinetic_slot_character_reel", "styles": {"kinetic", "editorial"}, "energy": 0.78},
-    {"id": "metallic_chrome_countup_hero", "styles": {"cinematic", "kinetic"}, "energy": 0.56},
-    {"id": "vector_stroke_sparkle", "styles": {"cinematic", "editorial"}, "energy": 0.45},
-    {"id": "dotted_grid_shimmer_wave", "styles": {"kinetic", "cinematic"}, "energy": 0.58},
-    {"id": "top_down_staggered_character_drop", "styles": {"kinetic", "cinematic"}, "energy": 0.74},
-    {"id": "dotted_grid_elastic_word_pull", "styles": {"kinetic", "editorial"}, "energy": 0.60},
-    {"id": "obsidian_heavy_grotesque", "styles": {"kinetic", "editorial"}, "energy": 0.82},
-    {"id": "canva_tall_glyph_stack", "styles": {"cinematic", "editorial"}, "energy": 0.40},
-    {"id": "hightech_chromatic_brands", "styles": {"kinetic", "cinematic"}, "energy": 0.76},
-    {"id": "kinetic_cyber_phrase_expansion", "styles": {"kinetic", "editorial"}, "energy": 0.69},
-    {"id": "kinetic_glow_sweep", "styles": {"kinetic", "cinematic"}, "energy": 0.55},
-    {"id": "kinetic_dynamic_slant", "styles": {"kinetic", "cinematic"}, "energy": 0.72},
-    {"id": "metallic_chrome_counter", "styles": {"cinematic", "kinetic"}, "energy": 0.50},
-    {"id": "apple_gaussian_chrome", "styles": {"cinematic", "editorial"}, "energy": 0.43},
-    {"id": "cinematic_distance_convergence", "styles": {"cinematic", "editorial"}, "energy": 0.45},
-    {"id": "subpixel_blowup_mask", "styles": {"cinematic", "editorial"}, "energy": 0.42},
-    {"id": "fluid_wave_text_effect", "styles": {"kinetic", "editorial"}, "energy": 0.65},
-    {"id": "dynamic_3letter_flicker", "styles": {"kinetic", "editorial"}, "energy": 0.75},
-    {"id": "see_through_glass_letterform", "styles": {"cinematic", "editorial"}, "energy": 0.40},
-    {"id": "gold_gradient_scale_blur", "styles": {"cinematic", "editorial"}, "energy": 0.40},
-    {"id": "refraction_shimmer_mask", "styles": {"cinematic", "kinetic"}, "energy": 0.55},
-    {"id": "stagger_blur_word_reveal", "styles": {"editorial", "cinematic"}, "energy": 0.35},
-    {"id": "zora_mask_reveal", "styles": {"cinematic", "editorial"}, "energy": 0.42},
-    {"id": "textrotate_kinetic_word_cycler", "styles": {"kinetic", "editorial"}, "energy": 0.66},
-    {"id": "typewriter_ghost_cursor", "styles": {"editorial", "kinetic"}, "energy": 0.44},
-    {"id": "liquid_gooey_ink_morph", "styles": {"kinetic", "cinematic"}, "energy": 0.64},
-    {"id": "electric_blue_emoji_line_revealer", "styles": {"kinetic", "editorial"}, "energy": 0.62},
-    {"id": "kinetic_word_fast_pulse", "styles": {"kinetic", "editorial"}, "energy": 0.84},
-    {"id": "kinetic_chromatic_typewriter", "styles": {"kinetic", "editorial"}, "energy": 0.63},
-    {"id": "cinematic_apple_word_bounce", "styles": {"cinematic", "kinetic"}, "energy": 0.61},
-    {"id": "quote_glow_reveal", "styles": {"editorial", "cinematic"}, "energy": 0.38},
-    {"id": "typewriter_cursor", "styles": {"editorial", "kinetic"}, "energy": 0.48},
-    {"id": "chromatic_aberration_wipe", "styles": {"kinetic", "cinematic"}, "energy": 0.75},
-    {"id": "dramatic_scale_entry", "styles": {"kinetic", "cinematic"}, "energy": 0.80},
-    {"id": "word_by_word_3d_flip", "styles": {"kinetic", "cinematic"}, "energy": 0.68},
+    # Preserved Core Lockup Engine & Archetypes
+    {"id": "spatial_push_spring", "styles": {"editorial", "cinematic", "kinetic", "luxury"}, "energy": 0.45},
     {"id": "blue_lantern_magnetic", "styles": {"editorial", "cinematic"}, "energy": 0.45, "applicationBias": 0.90},
-    {"id": "air_frontal_optical_bloom", "styles": {"editorial", "cinematic", "frontal"}, "energy": 0.42},
-    {"id": "in_the_air_diffusion_bloom", "styles": {"editorial", "cinematic", "frontal"}, "energy": 0.42},
+    {"id": "cinematic_slide_up", "styles": {"editorial", "cinematic"}, "energy": 0.45},
+    {"id": "docking_modifier", "styles": {"editorial", "cinematic"}, "energy": 0.45},
+    {"id": "kinetic_impact_snap", "styles": {"kinetic", "editorial"}, "energy": 0.65},
     {"id": "hierarchical_asymmetric_lockup", "styles": {"editorial", "cinematic", "kinetic", "luxury"}, "energy": 0.45},
     {"id": "documentary_lockup_captions", "styles": {"editorial", "cinematic", "kinetic", "luxury"}, "energy": 0.45},
     {"id": "micro_macro_kinetic_type", "styles": {"editorial", "cinematic", "kinetic", "luxury"}, "energy": 0.45},
-    {"id": "chiseled_prism_metallic", "styles": {"kinetic", "cinematic", "special_ops"}, "energy": 0.85},
-    {"id": "prism_chisel_hard_bevel", "styles": {"kinetic", "cinematic", "special_ops"}, "energy": 0.85},
-    {"id": "vj_kinetic_typography", "styles": {"kinetic", "special_ops"}, "energy": 0.90},
-    {"id": "vjkt", "styles": {"kinetic", "special_ops"}, "energy": 0.90},
-    # Patrik Key 10 Viral Caption Styles Suite
+
+    # Preserved High-Class Editorial & Material Phenotypes
+    {"id": "apple_keynote_headline_punch", "styles": {"kinetic", "editorial"}, "energy": 0.75},
+    {"id": "gaussian_blur_reveal_sweep", "styles": {"cinematic", "editorial"}, "energy": 0.45},
+    {"id": "cinematic_viewport_mask_sweep", "styles": {"cinematic", "editorial"}, "energy": 0.35},
+    {"id": "cyber_matrix_text_scramble", "styles": {"kinetic", "editorial"}, "energy": 0.80},
+    {"id": "dotted_grid_elastic_word_pull", "styles": {"kinetic", "editorial"}, "energy": 0.60},
+    {"id": "metallic_chrome_countup_hero", "styles": {"cinematic", "kinetic"}, "energy": 0.56},
+    {"id": "metallic_chrome_counter", "styles": {"cinematic", "kinetic"}, "energy": 0.50},
+    {"id": "apple_gaussian_chrome", "styles": {"cinematic", "editorial"}, "energy": 0.43},
+    {"id": "liquid_gooey_ink_morph", "styles": {"kinetic", "cinematic"}, "energy": 0.64},
+    {"id": "electric_blue_emoji_line_revealer", "styles": {"kinetic", "editorial"}, "energy": 0.62},
+    {"id": "kinetic_chromatic_typewriter", "styles": {"kinetic", "editorial"}, "energy": 0.63},
+    {"id": "cinematic_apple_word_bounce", "styles": {"cinematic", "kinetic"}, "energy": 0.61},
+    {"id": "vercel_kinetic_highlight_box", "styles": {"editorial", "special_ops"}, "energy": 0.50},
+    {"id": "horizontal_gradient_sweep_fade", "styles": {"cinematic", "editorial"}, "energy": 0.45},
+    {"id": "refraction_shimmer_mask", "styles": {"cinematic", "kinetic"}, "energy": 0.55},
+    {"id": "quote_glow_reveal", "styles": {"editorial", "cinematic"}, "energy": 0.38},
+    {"id": "stagger_blur_word_reveal", "styles": {"editorial", "cinematic"}, "energy": 0.35},
+    {"id": "typewriter_cursor", "styles": {"editorial", "kinetic"}, "energy": 0.48},
+    {"id": "typewriter_ghost_cursor", "styles": {"editorial", "kinetic"}, "energy": 0.44},
     {"id": "real_estate_luxury_curve", "styles": {"editorial", "luxury", "special_ops"}, "energy": 0.48},
     {"id": "real_estate_captions", "styles": {"editorial", "luxury", "special_ops"}, "energy": 0.48},
-    {"id": "viral_3d_compound_tilt", "styles": {"kinetic", "cinematic", "special_ops"}, "energy": 0.82},
-    {"id": "viral_3d_captions", "styles": {"kinetic", "cinematic", "special_ops"}, "energy": 0.82},
-    {"id": "split_mask_duotone_gradient", "styles": {"kinetic", "editorial", "special_ops"}, "energy": 0.70},
-    {"id": "gradient_text_split_mask", "styles": {"kinetic", "editorial", "special_ops"}, "energy": 0.70},
     {"id": "multi_word_slide_up_stagger", "styles": {"editorial", "cinematic", "special_ops"}, "energy": 0.55},
     {"id": "multiple_word_slide_up", "styles": {"editorial", "cinematic", "special_ops"}, "energy": 0.55},
-    {"id": "apple_variable_curve_pop", "styles": {"editorial", "kinetic", "special_ops"}, "energy": 0.60},
-    {"id": "apple_style_captions", "styles": {"editorial", "kinetic", "special_ops"}, "energy": 0.60},
-    {"id": "smooth_pop_opacity_sync", "styles": {"kinetic", "editorial", "special_ops"}, "energy": 0.65},
-    {"id": "pop_animated_captions", "styles": {"kinetic", "editorial", "special_ops"}, "energy": 0.65},
-    {"id": "animated_split_highlighter", "styles": {"kinetic", "editorial", "special_ops"}, "energy": 0.72},
-    {"id": "text_highlighter", "styles": {"kinetic", "editorial", "special_ops"}, "energy": 0.72},
-    {"id": "film_strip_specular_shine", "styles": {"cinematic", "special_ops"}, "energy": 0.58},
-    {"id": "shine_effect", "styles": {"cinematic", "special_ops"}, "energy": 0.58},
-    {"id": "strobe_flicker_ignition", "styles": {"kinetic", "special_ops"}, "energy": 0.88},
-    {"id": "flicker_effect", "styles": {"kinetic", "special_ops"}, "energy": 0.88},
-    {"id": "premium_circular_caption_stack", "styles": {"editorial", "cinematic", "luxury", "special_ops"}, "energy": 0.50},
-    {"id": "premium_caption_stack", "styles": {"editorial", "cinematic", "luxury", "special_ops"}, "energy": 0.50},
-    # -----------------------------------------------------------------------
-    # HOOKS (Chunk 0 Cinematic Intros)
-    # -----------------------------------------------------------------------
-    {"id": "hook_bokeh_defocus_bloom", "styles": {"cinematic", "hook"}, "energy": 0.50},
-    {"id": "hook_gaussian_lens_reveal", "styles": {"cinematic", "hook"}, "energy": 0.42},
-    {"id": "hook_directional_whip_blur", "styles": {"kinetic", "hook"}, "energy": 0.65},
-    {"id": "hook_radial_zoom_blur", "styles": {"kinetic", "hook"}, "energy": 0.70},
-    {"id": "hook_sharp_white_flash_cut", "styles": {"kinetic", "hook"}, "energy": 0.88},
-    {"id": "hook_anamorphic_flare_burst", "styles": {"cinematic", "hook"}, "energy": 0.60},
-    {"id": "hook_vintage_film_burn_strobe", "styles": {"cinematic", "hook"}, "energy": 0.52},
-    {"id": "hook_luma_strobe_pulse", "styles": {"kinetic", "hook"}, "energy": 0.75},
-    {"id": "hook_cinematic_dolly_zoom", "styles": {"cinematic", "hook"}, "energy": 0.55},
-    {"id": "hook_crash_zoom_snap", "styles": {"kinetic", "hook"}, "energy": 0.82},
-    {"id": "hook_isometric_3d_slam", "styles": {"kinetic", "hook"}, "energy": 0.78},
-    {"id": "hook_vertical_kinetic_pedestal", "styles": {"kinetic", "hook"}, "energy": 0.64},
-    {"id": "hook_smooth_zoom_in", "styles": {"cinematic", "hook"}, "energy": 0.48},
-    {"id": "hook_full_zoom_up", "styles": {"kinetic", "hook"}, "energy": 0.60},
-    {"id": "hook_crt_scanline_matrix_decode", "styles": {"kinetic", "hook"}, "energy": 0.76},
-    {"id": "hook_vhs_tape_tracking_tear", "styles": {"kinetic", "hook"}, "energy": 0.72},
-    {"id": "hook_metallic_chrome_reflection", "styles": {"cinematic", "hook"}, "energy": 0.58},
-    {"id": "hook_liquid_ink_metaball_reveal", "styles": {"cinematic", "hook"}, "energy": 0.54},
-    {"id": "hook_zora_aperture_mask_bloom", "styles": {"cinematic", "hook"}, "energy": 0.46},
-    {"id": "hook_motion_blur_word", "styles": {"kinetic", "hook"}, "energy": 0.52},
+    {"id": "cyber_acid_lime_glitch", "styles": {"kinetic", "editorial"}, "energy": 0.75},
+    {"id": "cursor_selection_reveal", "styles": {"editorial", "special_ops"}, "energy": 0.45},
+
+    # Special Ops Arsenal (Contract Presets)
+    {"id": "chiseled_prism_metallic", "styles": {"editorial", "kinetic", "special_ops"}, "energy": 0.65},
+    {"id": "prism_chisel_hard_bevel", "styles": {"editorial", "kinetic", "special_ops"}, "energy": 0.65},
+    {"id": "vj_kinetic_typography", "styles": {"kinetic", "special_ops"}, "energy": 0.85},
+    {"id": "vjkt", "styles": {"kinetic", "special_ops"}, "energy": 0.85},
+    {"id": "air_frontal_optical_bloom", "styles": {"editorial", "cinematic", "special_ops"}, "energy": 0.40},
+    {"id": "see_through_glass_letterform", "styles": {"editorial", "cinematic", "special_ops"}, "energy": 0.40},
+
+    # Architectural Freeze: 5 Tall-Font Workhorses (Preserves 9:16 manifests)
+    {"id": "kinetic_slot_character_reel", "styles": {"kinetic", "editorial"}, "energy": 0.78},
+    {"id": "dynamic_staggered_character_cascade", "styles": {"kinetic", "cinematic"}, "energy": 0.70},
+    {"id": "cinematic_distance_convergence", "styles": {"cinematic", "editorial"}, "energy": 0.45},
+    {"id": "top_down_staggered_character_drop", "styles": {"kinetic", "cinematic"}, "energy": 0.74},
+    {"id": "canva_tall_glyph_stack", "styles": {"cinematic", "editorial"}, "energy": 0.40},
 ]
 
 SINGLE_WORD_HERO_PRESETS: set[str] = {
-    "kinetic_glow_sweep",
     "apple_keynote_headline_punch",
-    "dynamic_3letter_flicker",
-    "top_down_staggered_character_drop",
-    "subpixel_blowup_mask",
     "metallic_chrome_countup_hero",
-    "obsidian_heavy_grotesque",
+    "metallic_chrome_counter",
     "apple_gaussian_chrome",
     "cinematic_distance_convergence",
     "blue_lantern_magnetic",
-    "air_frontal_optical_bloom",
-    "in_the_air_diffusion_bloom",
+    "spatial_push_spring",
+    "kinetic_impact_snap",
+    "refraction_shimmer_mask",
     "chiseled_prism_metallic",
     "prism_chisel_hard_bevel",
 }
 
 ANIMA_OVERLAY_TREATMENTS = [
     "cinematic_viewport_mask_sweep",
-    "subpixel_blowup_mask",
+    "refraction_shimmer_mask",
 ]
 
 TALL_FONT_RUNTIME_TREATMENTS = (
@@ -1662,25 +1667,25 @@ def _resolve_font_json_treatment(
     avoid = set(policy.get("avoidPresets", []))
 
     if any(k in classification or k in mood for k in ("3d", "metallic", "chrome", "extruded")):
-        candidates = ["gold_gradient_scale_blur", "refraction_shimmer_mask", "apple_pro_display_hero_revealer", "dramatic_scale_entry"]
+        candidates = ["refraction_shimmer_mask", "apple_gaussian_chrome", "metallic_chrome_counter"]
     elif any(k in classification or k in mood for k in ("script", "calligraphic", "cursive", "brush", "handwriting")):
-        candidates = ["apple_pro_display_hero_revealer", "kinetic_glow_sweep", "stagger_blur_word_reveal", "kinetic_dynamic_slant"]
+        candidates = ["stagger_blur_word_reveal", "quote_glow_reveal", "real_estate_luxury_curve"]
     elif any(k in classification or k in mood for k in ("compressed", "ultra-compressed", "tall", "heavy sans", "grotesque")):
-        candidates = ["apple_pro_display_hero_revealer", "obsidian_heavy_grotesque", "refraction_shimmer_mask", "gold_gradient_scale_blur", "canva_tall_glyph_stack"]
+        candidates = ["kinetic_slot_character_reel", "canva_tall_glyph_stack", "top_down_staggered_character_drop", "refraction_shimmer_mask"]
     elif any(k in classification or k in mood for k in ("didone", "modern serif", "classic editorial", "refined")):
-        candidates = ["apple_pro_display_hero_revealer", "quote_glow_reveal", "stagger_blur_word_reveal", "cinematic_viewport_mask_sweep"]
+        candidates = ["quote_glow_reveal", "stagger_blur_word_reveal", "cinematic_viewport_mask_sweep", "apple_gaussian_chrome"]
     elif any(k in classification or k in mood for k in ("swiss", "poster", "display", "headline")):
-        candidates = ["apple_pro_display_hero_revealer", "apple_keynote_headline_punch", "stagger_blur_word_reveal"]
+        candidates = ["apple_keynote_headline_punch", "stagger_blur_word_reveal", "multi_word_slide_up_stagger"]
     elif any(k in classification or k in mood for k in ("matrix", "cyber", "terminal", "code")):
-        candidates = ["typewriter_ghost_cursor", "apple_pro_display_hero_revealer"]
+        candidates = ["typewriter_cursor", "typewriter_ghost_cursor", "cyber_matrix_text_scramble", "kinetic_chromatic_typewriter"]
     else:
         if is_hero:
-            candidates = ["apple_pro_display_hero_revealer", "gold_gradient_scale_blur", "refraction_shimmer_mask", "apple_keynote_headline_punch", "blue_lantern_magnetic"]
+            candidates = ["apple_keynote_headline_punch", "blue_lantern_magnetic", "refraction_shimmer_mask", "spatial_push_spring"]
         else:
-            candidates = ["apple_pro_display_hero_revealer", "stagger_blur_word_reveal", "subpixel_glow_mask"]
+            candidates = ["stagger_blur_word_reveal", "cinematic_slide_up", "docking_modifier", "multi_word_slide_up_stagger"]
 
     eligible = [c for c in candidates if c not in avoid]
-    return rng.choice(eligible) if eligible else "apple_pro_display_hero_revealer"
+    return rng.choice(eligible) if eligible else "apple_keynote_headline_punch"
 
 
 def eligible_portrait_profile_ids() -> List[str]:
@@ -1717,6 +1722,48 @@ def _is_behind_subject_candidate_profile(profile: Dict[str, Any]) -> bool:
 
 
 
+INTRINSIC_ANIMATION_DURATIONS_MS: Dict[str, int] = {
+    "cyber_matrix_text_scramble": 1200,
+    "metallic_chrome_countup_hero": 1200,
+    "metallic_chrome_counter": 1000,
+    "refraction_shimmer_mask": 1100,
+    "kinetic_slot_character_reel": 1100,
+    "dynamic_staggered_character_cascade": 1000,
+    "top_down_staggered_character_drop": 950,
+    "cinematic_distance_convergence": 900,
+    "liquid_gooey_ink_morph": 1100,
+    "kinetic_chromatic_typewriter": 1000,
+    "typewriter_cursor": 900,
+    "typewriter_ghost_cursor": 900,
+    "apple_keynote_headline_punch": 850,
+    "apple_gaussian_chrome": 850,
+    "gaussian_blur_reveal_sweep": 850,
+    "cinematic_viewport_mask_sweep": 850,
+    "cinematic_apple_word_bounce": 800,
+    "chiseled_prism_metallic": 900,
+    "prism_chisel_hard_bevel": 900,
+    "vj_kinetic_typography": 850,
+    "vjkt": 850,
+    "air_frontal_optical_bloom": 850,
+    "see_through_glass_letterform": 800,
+    "hierarchical_asymmetric_lockup": 850,
+    "spatial_push_spring": 800,
+    "blue_lantern_magnetic": 800,
+    "kinetic_impact_snap": 750,
+    "stagger_blur_word_reveal": 800,
+    "multi_word_slide_up_stagger": 850,
+    "multiple_word_slide_up": 850,
+    "cyber_acid_lime_glitch": 900,
+    "cursor_selection_reveal": 800,
+    "vercel_kinetic_highlight_box": 800,
+    "horizontal_gradient_sweep_fade": 800,
+    "quote_glow_reveal": 750,
+    "canva_tall_glyph_stack": 850,
+    "electric_blue_emoji_line_revealer": 850,
+    "dotted_grid_elastic_word_pull": 800,
+}
+
+
 def schedule_caption_timing(chunks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Reserve each caption's lead-in only from unoccupied timeline space."""
     scheduled = [dict(chunk) for chunk in chunks]
@@ -1734,8 +1781,10 @@ def schedule_caption_timing(chunks: List[Dict[str, Any]]) -> List[Dict[str, Any]
             int(words_list[-1].get("start_ms", content_start_ms))
             if words_list else content_start_ms
         )
+        fx = chunk.get("fxPreset") or (chunk.get("layers", [{}])[0].get("fxPreset") if chunk.get("layers") else "")
+        intrinsic_ms = INTRINSIC_ANIMATION_DURATIONS_MS.get(fx, 750)
         max_allowed_end = max(natural_end_ms, next_start_ms - 80) if index + 1 < len(scheduled) else natural_end_ms + 600
-        desired_hold = max(natural_end_ms, last_word_start + 750, natural_end_ms + 500)
+        desired_hold = max(natural_end_ms, last_word_start + 750, natural_end_ms + 500, content_start_ms + intrinsic_ms)
         display_end_ms = max(content_start_ms + 1, min(desired_hold, max_allowed_end))
         layers = [dict(layer) for layer in chunk.get("layers", [])]
         requested_lead_ms = max((int(layer.get("entryLeadMs", 0)) for layer in layers), default=0)
@@ -1842,17 +1891,134 @@ def _profile_bias_score(
 
 
 
-def _chunk_signal(chunk: Dict[str, Any]) -> Dict[str, float]:
+class SemanticConceptLedger:
+    """Cross-chunk semantic concept and numeric anchor registry.
+
+    Enforces Order 1 and editorial restraint:
+    1. Distinguishes temporal/metric phrases ("12 months", "3 weeks", "5 days")
+       from true hero numeric milestones ("12,000", "$50,000", "100%").
+       Temporal phrases are logged as durations and never promoted to counter/punch heroes.
+    2. Prevents numeric double-rendering across chunks: once a numeric root or
+       concept (e.g. "12" or "12,000") is claimed as a hero metric, competing or
+       near-identical numeric expressions in proximate chunks cannot re-claim the
+       counter treatment, avoiding cognitive fatigue and repetitive animations.
+    """
+
+    TEMPORAL_UNITS: Set[str] = {
+        "month", "months", "year", "years", "day", "days", "week", "weeks",
+        "hour", "hours", "minute", "minutes", "second", "seconds",
+        "am", "pm",
+    }
+
+    def __init__(self, min_counter_gap_chunks: int = 4):
+        self.claimed_numbers: Dict[str, int] = {}  # normalized number root -> chunkIndex
+        self.claimed_concepts: Set[str] = set()
+        self.counter_claims: List[Dict[str, Any]] = []
+        self.min_counter_gap_chunks = min_counter_gap_chunks
+        self.last_counter_chunk_idx: int = -999
+
+    @classmethod
+    def is_temporal_phrase(cls, text: str) -> bool:
+        """Check if numbers in text are immediately followed by temporal units."""
+        tokens = [w.strip() for w in text.split() if w.strip()]
+        for i, token in enumerate(tokens):
+            clean_token = re.sub(r"[^\w]", "", token).lower()
+            if clean_token.isdigit():
+                if i + 1 < len(tokens):
+                    next_token = re.sub(r"[^\w]", "", tokens[i + 1]).lower()
+                    if next_token in cls.TEMPORAL_UNITS:
+                        return True
+        return False
+
+    @classmethod
+    def extract_metric_numbers(cls, text: str) -> List[str]:
+        """Extract standalone numeric metric values, filtering out temporal/duration phrases."""
+        tokens = [w.strip() for w in text.split() if w.strip()]
+        metrics = []
+        for i, token in enumerate(tokens):
+            clean_digits = re.sub(r"[^\d]", "", token)
+            if clean_digits:
+                is_temporal = False
+                if i + 1 < len(tokens):
+                    next_token = re.sub(r"[^\w]", "", tokens[i + 1]).lower()
+                    if next_token in cls.TEMPORAL_UNITS:
+                        is_temporal = True
+                if not is_temporal:
+                    metrics.append(clean_digits)
+        return metrics
+
+    def can_claim_counter(self, chunk_idx: int, text: str) -> bool:
+        """Evaluate whether a chunk may claim the hero metallic chrome counter."""
+        metric_numbers = self.extract_metric_numbers(text)
+        if not metric_numbers:
+            return False
+        if (chunk_idx - self.last_counter_chunk_idx) < self.min_counter_gap_chunks:
+            return False
+        for num in metric_numbers:
+            if num in self.claimed_numbers:
+                return False
+        return True
+
+    def claim_concept(self, chunk_idx: int, text: str, treatment: str) -> Optional[str]:
+        """Record the claimed concept and enforce the ledger lock."""
+        if treatment in ("metallic_chrome_counter", "metallic_chrome_countup_hero"):
+            metric_numbers = self.extract_metric_numbers(text)
+            if metric_numbers:
+                for num in metric_numbers:
+                    self.claimed_numbers[num] = chunk_idx
+                    self.claimed_concepts.add(f"num_{num}")
+                self.last_counter_chunk_idx = chunk_idx
+                self.counter_claims.append({
+                    "chunkIndex": chunk_idx,
+                    "numbers": metric_numbers,
+                    "treatment": treatment,
+                    "text": text,
+                })
+                return metric_numbers[0]
+        return None
+
+    def is_claimed_duplicate(self, text: str) -> bool:
+        """Check if any metric number in the text was previously claimed in the ledger."""
+        metric_numbers = self.extract_metric_numbers(text)
+        return any(num in self.claimed_numbers for num in metric_numbers)
+
+    def as_dict(self) -> Dict[str, Any]:
+        return {
+            "claimedNumbers": self.claimed_numbers,
+            "claimedConcepts": sorted(self.claimed_concepts),
+            "counterClaims": self.counter_claims,
+            "totalCountersClaimed": len(self.counter_claims),
+        }
+
+
+def _chunk_signal(
+    chunk: Dict[str, Any],
+    ledger: Optional[SemanticConceptLedger] = None,
+    chunk_idx: int = 0,
+) -> Dict[str, float]:
     words = [word for word in str(chunk.get("text", "")).split() if word]
     duration_ms = max(1, int(chunk.get("endMs", 0)) - int(chunk.get("startMs", 0)))
     content_density = sum(
         1 for word in words if word.lower().strip(".,!?:;\"'") not in STOPWORDS
     ) / max(1, len(words))
     punctuation_bonus = 0.18 if any(mark in str(chunk.get("text", "")) for mark in ("!", "?", ":", ";")) else 0.0
+
+    raw_text = str(chunk.get("text", ""))
+    if ledger is not None:
+        can_counter = ledger.can_claim_counter(chunk_idx, raw_text)
+        is_duplicate = ledger.is_claimed_duplicate(raw_text)
+    else:
+        metric_nums = SemanticConceptLedger.extract_metric_numbers(raw_text)
+        can_counter = bool(metric_nums and not SemanticConceptLedger.is_temporal_phrase(raw_text))
+        is_duplicate = False
+
+    has_number = 1.0 if can_counter else 0.0
     return {
         "wordCount": float(len(words)),
         "cadenceMs": duration_ms / max(1, len(words)),
         "salience": min(1.0, 0.18 + content_density * 0.62 + punctuation_bonus),
+        "hasNumber": has_number,
+        "isClaimedDuplicateNumber": 1.0 if is_duplicate else 0.0,
     }
 
 
@@ -1883,7 +2049,7 @@ def _select_primary_treatment(
         and item["id"] not in _HOOK_ONLY_PRESETS
     ]
     if not candidates:
-        candidates = [item for item in ANIMA_RUNTIME_TREATMENTS if item["id"] == "apple_pro_display_hero_revealer"]
+        candidates = [item for item in ANIMA_RUNTIME_TREATMENTS if item["id"] == "apple_keynote_headline_punch"]
     creativity = {"reserved": 0.65, "balanced": 1.1, "expressive": 1.65}[policy["creativity"]]
     desired_energy = {
         "slow": 0.32,
@@ -1900,26 +2066,25 @@ def _select_primary_treatment(
     # The pop family (countups, scale punches, flickers) gets a mild damping
     # so the mix reads as fluid motion with occasional pops, not the reverse.
     FLUID_FAMILY = {
-        "blue_lantern_magnetic", "stagger_blur_word_reveal",
-        "spring_blur_physics_engine", "subpixel_glow_mask", "apple_gaussian_chrome",
-        "cinematic_distance_convergence", "quote_glow_reveal", "apple_pro_display_hero_revealer",
-        "zora_mask_reveal", "gold_gradient_scale_blur", "refraction_shimmer_mask",
+        "blue_lantern_magnetic", "stagger_blur_word_reveal", "apple_gaussian_chrome",
+        "cinematic_distance_convergence", "quote_glow_reveal", "refraction_shimmer_mask",
         "kinetic_slot_character_reel", "dynamic_staggered_character_cascade",
         "top_down_staggered_character_drop", "cinematic_viewport_mask_sweep",
-        "focus_hunting_bokeh_shimmer", "see_through_glass_letterform",
         "hierarchical_asymmetric_lockup", "documentary_lockup_captions", "micro_macro_kinetic_type",
+        "cinematic_slide_up", "docking_modifier", "spatial_push_spring",
     }
     POP_FAMILY = {
-        "metallic_chrome_countup_hero", "metallic_chrome_counter", "dramatic_scale_entry",
-        "apple_keynote_headline_punch", "kinetic_word_fast_pulse", "dynamic_3letter_flicker",
-        "obsidian_heavy_grotesque", "word_by_word_3d_flip", "kinetic_chromatic_typewriter",
+        "metallic_chrome_countup_hero", "metallic_chrome_counter",
+        "apple_keynote_headline_punch", "kinetic_chromatic_typewriter", "kinetic_impact_snap",
     }
     SPECIAL_OPS_FAMILY = {
+        "real_estate_luxury_curve", "real_estate_captions",
+        "multi_word_slide_up_stagger", "multiple_word_slide_up",
+        "hierarchical_asymmetric_lockup", "documentary_lockup_captions", "micro_macro_kinetic_type",
+        "cursor_selection_reveal", "vercel_kinetic_highlight_box",
         "chiseled_prism_metallic", "prism_chisel_hard_bevel",
         "vj_kinetic_typography", "vjkt",
-        "air_frontal_optical_bloom", "in_the_air_diffusion_bloom",
-        "see_through_glass_letterform",
-        "hierarchical_asymmetric_lockup", "documentary_lockup_captions", "micro_macro_kinetic_type",
+        "air_frontal_optical_bloom", "see_through_glass_letterform",
     }
     fluid_boost = 2.4
     letter_boost = 1.5
@@ -1940,14 +2105,17 @@ def _select_primary_treatment(
         if item["id"] in POP_FAMILY:
             boost *= pop_damp
 
-        # Cognitive Fatigue Cap: high-salience treatments (VJKT strobe, etc.)
-        # enforce max 2 occurrences per sequence to prevent sensory fatigue.
-        if item["id"] in ("vj_kinetic_typography", "vjkt"):
-            vj_total = usage.get("vj_kinetic_typography", 0) + usage.get("vjkt", 0)
-            if vj_total >= 2:
-                return 0.0
-            if signal.get("cadenceMs", 400) > 310 and policy.get("pacing") != "fast":
-                return 0.05
+        # Semantic Number Routing (Order 1): Numbers/digits heavily route to metallic chrome counter
+        if signal.get("hasNumber", 0.0) > 0:
+            if item["id"] in ("metallic_chrome_counter", "metallic_chrome_countup_hero"):
+                boost *= 8.0
+            else:
+                boost *= 0.25
+        elif signal.get("isClaimedDuplicateNumber", 0.0) > 0:
+            # Residual number dedup (Order 1): If this chunk contains an already claimed numeric concept,
+            # damp POP treatments and aggressive counters so the number is not repeatedly punched.
+            if item["id"] in POP_FAMILY or item["id"] in ("metallic_chrome_counter", "metallic_chrome_countup_hero", "apple_keynote_headline_punch"):
+                boost *= 0.15
 
         # Special Ops Causal Hierarchy & Anti-Dilution:
         if policy.get("specialOps") and item["id"] in SPECIAL_OPS_FAMILY:
@@ -1961,9 +2129,10 @@ def _select_primary_treatment(
             if item["id"] in SINGLE_WORD_HERO_PRESETS:
                 word_fit_boost = 0.05
             elif item["id"] in (
-                "cinematic_apple_word_bounce", "stagger_blur_word_reveal", "spring_blur_physics_engine",
+                "cinematic_apple_word_bounce", "stagger_blur_word_reveal",
                 "dynamic_staggered_character_cascade", "apple_keynote_headline_punch",
-                "hierarchical_asymmetric_lockup", "documentary_lockup_captions", "micro_macro_kinetic_type"
+                "hierarchical_asymmetric_lockup", "documentary_lockup_captions", "micro_macro_kinetic_type",
+                "multi_word_slide_up_stagger"
             ):
                 word_fit_boost = 3.5
             else:
@@ -2034,9 +2203,12 @@ def _select_difference_chunk_indices(
         if idx - last_idx < 3:
             continue
 
-        # Do not override explicitly requested frontal treatments such as optical bloom
-        if c.get("frontalTreatment") == "air_frontal_optical_bloom" or any(
-            l.get("frontalTreatment") == "air_frontal_optical_bloom" for l in c.get("layers", [])
+        # Do not override hierarchical lockups or explicitly requested frontal treatments
+        if (
+            c.get("treatmentSystem") in ("hierarchical_asymmetric_lockup", "documentary_lockup_captions", "micro_macro_kinetic_type")
+            or c.get("fxPreset") in ("hierarchical_asymmetric_lockup", "documentary_lockup_captions", "micro_macro_kinetic_type")
+            or c.get("frontalTreatment") == "air_frontal_optical_bloom"
+            or any(l.get("frontalTreatment") == "air_frontal_optical_bloom" for l in c.get("layers", []))
         ):
             continue
 
@@ -2050,7 +2222,7 @@ def _select_difference_chunk_indices(
             or c.get("hasTransition")
             or c.get("causedByTransitionId")
             or c.get("backgroundKind") in ("broll_cutaway", "negative_space_stencil", "editorial_glass", "texture_canvas")
-            or c.get("treatmentSystem") in ("hierarchical_asymmetric_lockup", "see_through_glass_letterform")
+            or c.get("treatmentSystem") == "see_through_glass_letterform"
             or any(l.get("isHero") for l in c.get("layers", []))
         )
 
@@ -2292,6 +2464,7 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
     listicle_planning = listicles.detect_and_plan_listicles(chunks, design_input)
 
     manifest_chunks = []
+    concept_ledger = SemanticConceptLedger()
     recent_primary_fx: List[str] = []
     preset_usage_counts: Dict[str, int] = {item["id"]: 0 for item in ANIMA_RUNTIME_TREATMENTS}
     profile_usage_counts: Dict[str, int] = {}
@@ -2314,16 +2487,8 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
         word_count = len(words)
         chunk_word_objs = chunk.get("words", [])
         is_single_word = word_count == 1
-        signal = _chunk_signal(chunk)
+        signal = _chunk_signal(chunk, ledger=concept_ledger, chunk_idx=idx)
         behind_subject = (idx in behind_subject_indices)
-
-        # Strict Behind-Subject (Cranial / Tall Matte) vs Foreground separation:
-        # Background chunks strictly use Cranial Font or Tall Matte profiles.
-        # Foreground chunks strictly EXCLUDE Behind-Subject profiles.
-        if behind_subject:
-            pool = [p for p in profiles if _is_behind_subject_candidate_profile(p)] or profiles
-        else:
-            pool = [p for p in profiles if not _is_behind_subject_candidate_profile(p)] or profiles
 
         # Micro-stopword / connector phrase detection ("of how to", "and how to", etc.)
         clean_tokens = [re.sub(r'[^a-zA-Z]', '', w).lower() for w in words]
@@ -2334,6 +2499,14 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                 avg_word_len <= 3.2 or all(len(w) <= 3 for w in clean_tokens)
             )
         )
+
+        # Strict Behind-Subject (Cranial / Tall Matte) vs Foreground separation:
+        # Background chunks strictly use Cranial Font or Tall Matte profiles.
+        # Single-word foreground heroes (e.g. "sunshine") are permitted Tall Matte profiles for colossal scale.
+        if behind_subject or (is_single_word and not is_micro_stopword):
+            pool = [p for p in profiles if _is_behind_subject_candidate_profile(p)] or profiles
+        else:
+            pool = [p for p in profiles if not _is_behind_subject_candidate_profile(p)] or profiles
 
         # PRIMUS INTER PARES: Strict Word Count Matching
         # A chunk of N words MUST strictly select a Font JSON profile designed for N words.
@@ -2411,6 +2584,8 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
         if len(recent_profile_ids) > max_recent:
             recent_profile_ids.pop(0)
 
+        v2_prof = get_typography_profile_v2_by_id(prof.get("id"))
+
         explicit_fx = (
             design_input.get("fxPreset")
             or design_input.get("motionPreset")
@@ -2443,6 +2618,7 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                 is_single_word=is_single_word,
             )
         preset_usage_counts[hero_fx_preset] = preset_usage_counts.get(hero_fx_preset, 0) + 1
+        concept_ledger.claim_concept(idx, raw_text, hero_fx_preset)
         recent_primary_fx.append(hero_fx_preset)
         if len(recent_primary_fx) > 4:
             recent_primary_fx.pop(0)
@@ -2538,8 +2714,10 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                     break
 
         used_word_obj_ids = set()
+        v2_layers = v2_prof.get("layers", []) if v2_prof else []
         for layer_idx, alloc in enumerate(allocations):
             layer_spec = alloc.get("layer", {})
+            v2_layer = v2_layers[layer_idx] if layer_idx < len(v2_layers) else {}
             layer_words = alloc.get("words", [])
             w_count = len(layer_words)
 
@@ -2740,7 +2918,7 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                 else:
                     font_size_px = max(26, min(38, 34))  # 3:1 to 4:1 scale ratio
                     resolved_weight = 300
-                    letter_spacing = -0.025
+                    letter_spacing = 0.005  # Tracking floor: prevents script ligature collision & Arabic-like glyph distortion
                     casing = "lowercase"
                     layer_fx = "hierarchical_asymmetric_lockup"
                     layer_overlay = None
@@ -2832,7 +3010,7 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                 style_treatment["vjkt"] = True
 
             if is_lockup_treatment:
-                letter_spacing = -0.035 if is_hero_layer else -0.025
+                letter_spacing = -0.035 if is_hero_layer else 0.005
             else:
                 letter_spacing = float(f_style.get("letter_spacing_em", 0.01))
                 if is_single_word and is_hero_layer:
@@ -2956,6 +3134,33 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                 "zIndex": int(layer_spec.get("z_index")) if "z_index" in layer_spec else ((layer_idx + 1) * 2 if is_overlapping else layer_idx + 1),
                 "depthZPx": 140 if is_hero_layer else (-110 if behind_subject else (-30 if layer_idx > 0 else 0)),
                 "focusPriority": 1 if is_hero_layer else (3 if behind_subject else 2),
+                "fill": v2_layer.get("fill") or {"type": "solid", "color": style_treatment["textFillColor"]},
+                "stroke": v2_layer.get("stroke"),
+                "materiality": v2_layer.get("materiality") or {
+                    "opacity": 1.0,
+                    "blendMode": "normal",
+                    "dropShadow": {"offsetX": 0, "offsetY": 4, "blur": 18, "color": "rgba(0, 0, 0, 0.95)"} if not style_treatment.get("glow") else None,
+                    "glow": {"radiusPx": 12, "color": style_treatment.get("glow"), "intensity": 0.75} if style_treatment.get("glow") and style_treatment.get("glow") != "none" else None,
+                },
+                "occlusion": v2_layer.get("occlusion") or {
+                    "mode": "partial_head_clip" if behind_subject else "none",
+                    "depthPlane": 45 if behind_subject else 0,
+                    "clipBoundary": "silhouette",
+                    "partialOverlapPercent": 25 if behind_subject else 0,
+                },
+                "stagger": v2_layer.get("stagger") or {
+                    "dxPercent": 0.0,
+                    "dyPercent": 0.0,
+                    "rotationDeg": 0.0,
+                    "scaleMultiplier": 1.0,
+                    "scaleX": 1.0,
+                    "scaleY": 1.0,
+                    "arcWarpDeg": 0.0,
+                    "skewXDeg": 0.0,
+                    "skewYDeg": 0.0,
+                    "stretchRatio": 1.0,
+                },
+                "inlineTokenSwaps": v2_layer.get("inlineTokenSwaps", []),
             })
 
         # Resolve inter-layer stacking hierarchy, overlay depth shadows, and underlapping vertical linear gradients
@@ -3078,6 +3283,11 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
             ) if is_lockup_treatment else None,
             "chiseledPrism": any(l.get("chiseledPrism") for l in rendered_layers),
             "vjkt": any(l.get("vjkt") for l in rendered_layers),
+            "profile": v2_prof,
+            "profileV2": v2_prof,
+            "annotations": v2_prof.get("annotations", []) if v2_prof else [],
+            "subjectZone": v2_prof.get("subjectZone", {}) if v2_prof else {},
+            "frameTreatment": v2_prof.get("frameTreatment", {}) if v2_prof else {},
         })
 
     difference_chunk_indices = _select_difference_chunk_indices(
@@ -3157,6 +3367,9 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
             "see_through_glass_letterform",
             "hierarchical_asymmetric_lockup",
         ],
+        "semanticConceptLedger": concept_ledger.as_dict(),
         "chunks": manifest_chunks,
+        "profile": manifest_chunks[0].get("profile") if manifest_chunks else None,
+        "profileV2CatalogVersion": "typography-profile-v2-catalog-1.0",
     }
     return font_manifest

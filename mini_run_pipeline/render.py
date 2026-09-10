@@ -720,6 +720,7 @@ def render_final_video(
         "targetHeight": target_height,
         "scale": scale_factor,
         "resolutionPlan": resolution_plan,
+        "profile": chunks[0].get("profile") if chunks and chunks[0].get("profile") else None,
     }
 
     video_probe_width = target_width
@@ -796,11 +797,14 @@ def render_final_video(
                     if not local_matte_symlink.exists() or str(dest_matte_path) != str(local_matte_symlink):
                         shutil.copyfile(dest_matte_path, local_matte_symlink)
                     props["matteSrc"] = f"source/{rel_matte_filename}"
+                    props["matteStatus"] = "ready"
                     print(f"Successfully generated stitched Martin foreground: {dest_matte_path}")
                 else:
                     raise RuntimeError("Martin receipt did not expose a readable foreground asset.")
         except Exception as e:
             martin_error = e
+            props["matteStatus"] = "failed_fallback_foreground"
+            props["matteError"] = str(e)
             if not required_subject_layering:
                 print(f"Warning: Matte generation failed: {e}")
 
@@ -1072,9 +1076,10 @@ def render_final_video(
             "pipCount": len((orchestration or {}).get("pip") or []),
         },
         "matte": {
-            "status": "completed" if foreground_path else "not_available",
+            "status": "completed" if foreground_path else ("failed_fallback_foreground" if martin_error else "not_available"),
             "foregroundPath": str(foreground_path) if foreground_path else None,
             "behindSubjectChunkCount": behind_subject_chunk_count,
+            "error": str(martin_error) if martin_error else None,
         },
         "subjectObservation": {
             "status": "completed" if subject_observation else "not_required",

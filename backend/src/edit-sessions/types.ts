@@ -1,5 +1,6 @@
 import {z} from "zod";
 
+import {TypographyProfileV2Schema} from "@prometheus/shared-types";
 import {transcribedWordSchema} from "../schemas";
 
 export const editSessionStatusSchema = z.enum([
@@ -357,7 +358,8 @@ export const editSessionPreviewManifestSchema = z.object({
         weight: z.number().int().positive().optional(),
         style: z.string().optional()
       })).default([])
-    }).optional()
+    }).optional(),
+    profile: TypographyProfileV2Schema.optional()
   }).optional(),
   previewArtifactUrl: z.string().nullable().optional(),
   previewArtifactKind: z.enum(["html_composition", "video"]).nullable().optional(),

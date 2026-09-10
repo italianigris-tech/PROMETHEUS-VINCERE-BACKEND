@@ -112,5 +112,37 @@ class TestListicleIntelligenceEngine(unittest.TestCase):
         self.assertIsNotNone(manifest["chunks"][0].get("listicle"))
         self.assertEqual(manifest["chunks"][0]["listicle"]["totalCount"], 3)
 
+    def test_temporal_metric_digits_suppression(self):
+        """Leading digits followed by temporal/metric units (e.g. '12 months') must not trigger listicle step_item."""
+        chunks = [
+            {
+                "chunkIndex": 1,
+                "text": "12 MONTHS OF WORK",
+                "startMs": 0,
+                "endMs": 1500,
+                "words": [
+                    {"word": "12", "startMs": 0, "endMs": 300},
+                    {"word": "MONTHS", "startMs": 310, "endMs": 700},
+                    {"word": "OF", "startMs": 710, "endMs": 900},
+                    {"word": "WORK", "startMs": 910, "endMs": 1500},
+                ],
+            },
+            {
+                "chunkIndex": 2,
+                "text": "3 WEEKS LATER",
+                "startMs": 1600,
+                "endMs": 2800,
+                "words": [
+                    {"word": "3", "startMs": 1600, "endMs": 1900},
+                    {"word": "WEEKS", "startMs": 1910, "endMs": 2300},
+                    {"word": "LATER", "startMs": 2310, "endMs": 2800},
+                ],
+            },
+        ]
+
+        result = detect_and_plan_listicles(chunks)
+        self.assertEqual(result["listicleCount"], 0)
+        self.assertEqual(len(result["plans"]), 0)
+
 if __name__ == "__main__":
     unittest.main()

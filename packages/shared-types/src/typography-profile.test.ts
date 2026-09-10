@@ -338,4 +338,106 @@ describe("TypographyProfileV2Schema and JosephTypography integration", () => {
     expect(parsed.typography?.profile?.name).toBe("Champagne Gold Editorial V2");
     expect(parsed.typography?.profile?.layers[0].materiality?.glow?.enabled).toBe(true);
   });
+
+  it("validates advanced visual canon fields: occlusion, non-uniform stretch, subject zones, inline swaps, and background materials", () => {
+    const visualCanonProfile: TypographyProfileV2 = {
+      version: "typography-profile-v2",
+      profileId: "cranial_palmore_brutalist_v2",
+      name: "Cranial Palmore Brutalist V2",
+      category: "cranial",
+      aspectCompatible: ["9:16"],
+      subjectZone: {
+        headroomRatio: 0.18,
+        cranialPlacementBand: "cranial_halo",
+        faceAvoidanceBand: { topPercent: 12, bottomPercent: 45 },
+        safeMarginPercent: 6,
+      },
+      frameTreatment: {
+        backgroundMaterial: "paper",
+        materialOpacity: 0.22,
+        letterbox: { enabled: true, aspect: "2.39:1", color: "#0a0a0a" },
+        grain: { opacity: 0.08 },
+      },
+      layers: [
+        {
+          role: "hero",
+          fontFamily: "Anton",
+          fontWeight: 900,
+          fontStyle: "normal",
+          casing: "uppercase",
+          relativeScale: 1.2,
+          stagger: {
+            dxPercent: 0,
+            dyPercent: 0,
+            rotationDeg: -2,
+            scaleMultiplier: 1.0,
+            scaleX: 0.85,
+            scaleY: 1.45,
+            arcWarpDeg: 4,
+            skewXDeg: -3,
+            skewYDeg: 0,
+            stretchRatio: 1.3,
+          },
+          occlusion: {
+            mode: "partial_head_clip",
+            depthPlane: 45,
+            clipBoundary: "head",
+            partialOverlapPercent: 35,
+          },
+          candidates: [
+            {
+              candidateFamily: "Anton",
+              verified: true,
+              classification: "grotesque",
+              visualWeightConfidence: 0.98,
+              goudyCorrectionApplied: true,
+            },
+          ],
+          inlineTokenSwaps: [
+            {
+              wordIndex: 1,
+              fontFamily: "Pinyon Script",
+              fontStyle: "italic",
+              color: "#FFD700",
+              highlightBox: true,
+            },
+          ],
+          zIndex: 25,
+          behindSubject: false,
+        },
+      ],
+      annotations: [
+        {
+          type: "circle",
+          target: "word",
+          targetKeyword: "MOMENT",
+          color: "#FF3366",
+          xPercent: 50,
+          yPercent: 78,
+          widthPercent: 30,
+          heightPercent: 12,
+          jitterAmount: 0.25,
+          loopOpenPercent: 15,
+          leaderLine: {
+            startXPercent: 50,
+            startYPercent: 72,
+            endXPercent: 75,
+            endYPercent: 65,
+            dotRadiusPx: 5,
+            hasArrowHead: true,
+          },
+          animation: "draw",
+        },
+      ],
+    };
+
+    const parsed = TypographyProfileV2Schema.parse(visualCanonProfile);
+    expect(parsed.subjectZone?.cranialPlacementBand).toBe("cranial_halo");
+    expect(parsed.frameTreatment?.backgroundMaterial).toBe("paper");
+    expect(parsed.layers[0].stagger?.scaleY).toBe(1.45);
+    expect(parsed.layers[0].occlusion?.mode).toBe("partial_head_clip");
+    expect(parsed.layers[0].inlineTokenSwaps[0].fontFamily).toBe("Pinyon Script");
+    expect(parsed.layers[0].candidates?.[0].goudyCorrectionApplied).toBe(true);
+    expect(parsed.annotations[0].leaderLine?.hasArrowHead).toBe(true);
+  });
 });

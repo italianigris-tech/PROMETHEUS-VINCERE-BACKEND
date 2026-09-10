@@ -379,7 +379,8 @@ const buildPreviewManifestTypography = (
 
   return {
     primaryFont,
-    secondaryFont: secondaryFont ?? undefined
+    secondaryFont: secondaryFont ?? undefined,
+    profile: (typography.profile ?? undefined) as any
   };
 };
 
@@ -1771,7 +1772,8 @@ export class EditSessionManager {
     const previewManifestTypography = previewPrimaryFont
       ? {
           primaryFont: previewPrimaryFont,
-          secondaryFont: previewSecondaryFont
+          secondaryFont: previewSecondaryFont,
+          profile: undefined
         }
       : undefined;
     const previewCompositionFps = resolvePreviewCompositionFps(this.env);

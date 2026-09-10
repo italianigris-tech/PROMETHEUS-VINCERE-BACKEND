@@ -180,8 +180,21 @@ def detect_and_plan_listicles(
         # time I…" — are NOT enumeration and must never mint a phantom badge.
         EXPLICIT_ENUMERATORS = ("number", "step", "rule", "tip", "point", "lesson", "secret", "reason")
         DIGIT_TOKENS = {str(n) for n in range(1, 13)}
+        TEMPORAL_METRIC_UNITS = {
+            "month", "months", "year", "years", "day", "days", "week", "weeks",
+            "hour", "hours", "minute", "minutes", "second", "seconds",
+            "percent", "percentage", "dollar", "dollars", "cent", "cents",
+            "mile", "miles", "km", "kilometer", "kilometers", "meter", "meters",
+            "lb", "lbs", "pound", "pounds", "kg", "kilogram", "kilograms",
+            "am", "pm", "k", "m", "b", "x", "times",
+        }
         text_lower = raw_text.lower()
         has_explicit_enumerator = any(w in text_lower for w in EXPLICIT_ENUMERATORS)
+        first_word_clean = re.sub(r"[^\w]", "", words[0].get("word", "")).lower() if words else ""
+        second_word_clean = (
+            re.sub(r"[^\w]", "", words[1].get("word", "")).lower()
+            if len(words) > 1 else ""
+        )
         for pattern in STEP_ITEM_PATTERNS:
             match = pattern.search(raw_text)
             if match:
@@ -197,18 +210,30 @@ def detect_and_plan_listicles(
                 )
                 if is_bare_ordinal:
                     continue
+                # Suppress bare leading numbers when followed by temporal/metric units (e.g. "12 months")
+                if (
+                    matched_str.isdigit()
+                    and not has_explicit_enumerator
+                    and active_sequence is None
+                    and matched_str == first_word_clean
+                    and second_word_clean in TEMPORAL_METRIC_UNITS
+                ):
+                    continue
                 step_number = candidate
                 break
 
         # Standalone leading digit in words — also requires enumeration context
         # (explicit enumerator or an active teaser sequence) for word-form
         # ordinals; bare digits ("3 ...") still count as chunk openers.
+        # Suppress leading digits from triggering step_item when followed by
+        # temporal/metric units (e.g., "12 months", "3 days").
         if step_number is None and words:
-            first_word_clean = re.sub(r"[^\w]", "", words[0].get("word", "")).lower()
             if first_word_clean.isdigit() and 1 <= int(first_word_clean) <= 12:
-                step_number = int(first_word_clean)
+                if second_word_clean not in TEMPORAL_METRIC_UNITS:
+                    step_number = int(first_word_clean)
             elif first_word_clean in WORD_TO_DIGIT and (has_explicit_enumerator or active_sequence is not None):
-                step_number = WORD_TO_DIGIT[first_word_clean]
+                if second_word_clean not in TEMPORAL_METRIC_UNITS:
+                    step_number = WORD_TO_DIGIT[first_word_clean]
 
         if step_number is not None and 1 <= step_number <= 12:
             total_count = active_sequence["totalCount"] if active_sequence else max(step_number, 5)

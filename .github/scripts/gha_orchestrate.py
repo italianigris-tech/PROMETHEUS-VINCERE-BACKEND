@@ -497,6 +497,7 @@ def main():
         "resolutionPlan": resolution_plan,
         "lookPlan": look_plan,
         "songProgram": materialized_song_program,
+        "profile": font_manifest.get("profile") if font_manifest else None,
     }
     props_path = workdir / f"props_{job_id}.json"
     props_path.write_text(json.dumps(props, indent=2))

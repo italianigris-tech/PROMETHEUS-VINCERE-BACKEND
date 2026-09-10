@@ -42,6 +42,7 @@ describe("normalizeRuntimePreset", () => {
     expect(normalizeRuntimePreset("soft_pixel_blowup_mask")).toBe("soft_pixel_blowup_mask");
     expect(normalizeRuntimePreset("canva_tall_glyph_stack")).toBe("canva_tall_glyph_stack");
     expect(normalizeRuntimePreset("cinematic_distance_convergence")).toBe("cinematic_distance_convergence");
+    expect(normalizeRuntimePreset("cyber_acid_lime_glitch")).toBe("cyber_acid_lime_glitch");
   });
 
   test("falls back to the restrained reveal for unknown presets", () => {
@@ -499,6 +500,146 @@ describe("Architectural Background Systems (5 Pillars)", () => {
     expect(orch.backgrounds[0].kind).toBe("single_frame_retinal_inversion");
     expect(orch.backgrounds[0].retinalInversion.durationFrames).toBe(2);
     expect(orch.backgrounds[0].retinalInversion.blendMode).toBe("difference");
+  });
+
+  test("Typography V2 schema integration on CaptionChunk and TypographyLayer", () => {
+    const v2Layer = {
+      layerIndex: 0,
+      layerName: "hero",
+      role: "primary_focus_word",
+      rawText: "REVOLUTION",
+      text: "REVOLUTION",
+      fontFamily: "Outfit",
+      fontWeight: 900,
+      fontStyle: "normal",
+      fontSizePx: 140,
+      color: "#FFFFFF",
+      casing: "uppercase",
+      letterSpacingEm: -0.02,
+      lineHeight: 0.95,
+      isHero: true,
+      fill: {
+        type: "solid" as const,
+        color: "#FFFFFF",
+      },
+      stroke: {
+        enabled: true,
+        color: "rgba(0, 0, 0, 0.9)",
+        widthPx: 2.5,
+        style: "solid" as const,
+      },
+      materiality: {
+        opacity: 1.0,
+        bevel: {
+          enabled: true,
+          depthPx: 3,
+          softnessPx: 1,
+          angleDeg: 135,
+          specularAngleDeg: -45,
+          highlightColor: "rgba(255, 255, 255, 0.9)",
+          shadowColor: "rgba(0, 0, 0, 0.85)",
+        },
+        multiShadows: [
+          { offsetX: 0, offsetY: 2, blur: 4, color: "rgba(0,0,0,0.5)" },
+          { offsetX: 0, offsetY: 8, blur: 24, color: "rgba(0,0,0,0.85)" },
+        ],
+      },
+      stagger: {
+        dxPercent: 0,
+        dyPercent: 0,
+        rotationDeg: 0,
+        scaleMultiplier: 1.0,
+        scaleX: 1.15,
+        scaleY: 1.0,
+        arcWarpDeg: -2.5,
+        skewXDeg: -3.0,
+        skewYDeg: 0,
+        stretchRatio: 1.15,
+      },
+      occlusion: {
+        mode: "partial_head_clip" as const,
+        depthPlane: 45,
+        clipBoundary: "silhouette" as const,
+        partialOverlapPercent: 30,
+      },
+      inlineTokenSwaps: [
+        {
+          wordIndex: 0,
+          token: "REVOLUTION",
+          fontFamily: "Outfit",
+          fontWeight: 900,
+          highlightBox: {
+            enabled: true,
+            color: "#EF4444",
+            borderRadiusPx: 8,
+            paddingPx: 6,
+          },
+        },
+      ],
+    };
+
+    const chunk = {
+      chunkIndex: 1,
+      text: "REVOLUTION",
+      startMs: 0,
+      endMs: 1500,
+      layers: [v2Layer],
+      annotations: [
+        {
+          type: "pill" as const,
+          label: "VERIFIED",
+          color: "#10B981",
+          xPercent: 50,
+          yPercent: 18,
+          widthPercent: 20,
+          heightPercent: 6,
+        },
+        {
+          type: "circle" as const,
+          color: "#EF4444",
+          xPercent: 50,
+          yPercent: 50,
+          loopOpenPercent: 20,
+          jitterAmount: 0.08,
+        },
+        {
+          type: "leader_line" as const,
+          color: "#38BDF8",
+          xPercent: 50,
+          yPercent: 50,
+          leaderLine: {
+            startXPercent: 35,
+            startYPercent: 25,
+            endXPercent: 50,
+            endYPercent: 45,
+            dotRadiusPx: 4,
+            hasArrowHead: true,
+          },
+        },
+      ],
+      subjectZone: {
+        headroomRatio: 0.42,
+        cranialPlacementBand: "cranial_halo" as const,
+        safeMarginPercent: 6,
+      },
+      frameTreatment: {
+        backgroundMaterial: "paper" as const,
+        materialOpacity: 0.18,
+      },
+    };
+
+    expect(chunk.layers[0].stagger?.scaleX).toBe(1.15);
+    expect(chunk.layers[0].stagger?.arcWarpDeg).toBe(-2.5);
+    expect(chunk.layers[0].occlusion?.mode).toBe("partial_head_clip");
+    expect(chunk.layers[0].materiality?.bevel?.enabled).toBe(true);
+    expect(chunk.layers[0].stroke?.enabled).toBe(true);
+    expect(chunk.layers[0].inlineTokenSwaps?.[0].highlightBox?.enabled).toBe(true);
+    expect(chunk.annotations).toHaveLength(3);
+    expect(chunk.annotations[0].type).toBe("pill");
+    expect(chunk.annotations[1].type).toBe("circle");
+    expect(chunk.annotations[2].type).toBe("leader_line");
+    expect(chunk.frameTreatment.backgroundMaterial).toBe("paper");
+    expect(chunk.subjectZone.cranialPlacementBand).toBe("cranial_halo");
   });
 });
 

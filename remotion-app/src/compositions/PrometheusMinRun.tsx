@@ -13,6 +13,15 @@ import {
 } from "remotion";
 // All fonts are loaded via local CSS font-face definitions in all_fonts_dynamic.css and mixfonts.css
 import { renderAnimationArchetype, ALL_ARCHETYPE_FX_NAMES } from "./AnimationArchetypes";
+import type {
+  TypographyProfileV2,
+  TypographyOcclusion,
+  TypographyStaggerOffset,
+  TypographySubjectZone,
+  TypographyAnnotation,
+  TypographyInlineTokenSwap,
+  TypographyFrameTreatment,
+} from "@prometheus/shared-types";
 
 
 // ---------------------------------------------------------------------------
@@ -73,6 +82,40 @@ export type TypographyLayer = {
   contactShadow?: string;
   ambientShadow?: string;
   opticalBleed?: string;
+  fill?: {
+    type?: "solid" | "linear_gradient" | "radial_gradient";
+    color?: string;
+    stops?: Array<{ color: string; offsetPercent: number }>;
+    angleDeg?: number;
+  };
+  stroke?: {
+    enabled?: boolean;
+    color?: string;
+    widthPx?: number;
+    style?: "solid" | "dashed" | "dotted";
+    opacity?: number;
+  };
+  materiality?: {
+    opacity?: number;
+    blendMode?: string;
+    dropShadow?: { offsetX: number; offsetY: number; blur: number; color: string };
+    multiShadows?: Array<{ offsetX: number; offsetY: number; blur: number; spread?: number; color: string }>;
+    glow?: { radiusPx: number; color: string; intensity?: number };
+    bevel?: {
+      enabled?: boolean;
+      depthPx?: number;
+      softnessPx?: number;
+      angleDeg?: number;
+      highlightColor?: string;
+      shadowColor?: string;
+      specularAngleDeg?: number;
+      specularColor?: string;
+    };
+  };
+  occlusion?: TypographyOcclusion;
+  stagger?: TypographyStaggerOffset;
+  inlineTokenSwaps?: TypographyInlineTokenSwap[];
+  profileV2?: TypographyProfileV2;
 };
 
 type TypographyPaintInput = Pick<TypographyLayer, "color"> & Partial<Pick<
@@ -510,6 +553,11 @@ export type CaptionChunk = {
       blurred: boolean;
     }>;
   };
+  profile?: TypographyProfileV2;
+  profileV2?: TypographyProfileV2;
+  annotations?: TypographyAnnotation[];
+  subjectZone?: TypographySubjectZone;
+  frameTreatment?: TypographyFrameTreatment;
 };
 
 export type MiniRunScene = {
@@ -779,6 +827,7 @@ export type PrometheusMinRunProps = {
   orchestration?: MiniRunOrchestration;
   audioTrackSrc?: string;
   soundtrackSrc?: string;
+  profile?: TypographyProfileV2;
 };
 
 export const RUNTIME_TREATMENT_IDS = new Set([
@@ -853,6 +902,7 @@ export const RUNTIME_TREATMENT_IDS = new Set([
   "hook_directional_blur_sweep",
   "zora_mask_reveal",
   "blue_lantern_magnetic",
+  "cyber_acid_lime_glitch",
   ...ALL_ARCHETYPE_FX_NAMES,
 ]);
 
@@ -895,6 +945,7 @@ const EXTENDED_ANIMA_TREATMENTS = new Set([
   "hightech_chromatic_brands", "kinetic_cyber_phrase_expansion", "kinetic_glow_sweep",
   "kinetic_word_fast_pulse", "kinetic_dynamic_slant", "kinetic_chromatic_typewriter",
   "metallic_chrome_counter", "apple_gaussian_chrome", "cinematic_apple_word_bounce",
+  "cyber_acid_lime_glitch",
 ]);
 
 const REALIZED_RUNTIME_TREATMENTS = new Set([
@@ -1076,6 +1127,26 @@ const KineticLayerRenderer: React.FC<{
     glow: layer.glow || (layer.opticalBleed as string),
   });
 
+  // Materiality: 3D Bevel, Multi-Shadows, and Drop Shadows from V2
+  const bevel = layer.materiality?.bevel;
+  const bevelFilter = bevel?.enabled
+    ? `drop-shadow(-${bevel.depthPx ?? 2}px -${bevel.depthPx ?? 2}px 0px ${bevel.highlightColor || bevel.specularColor || "rgba(255,255,255,0.75)"}) drop-shadow(${bevel.depthPx ?? 2}px ${bevel.depthPx ?? 2}px ${(bevel.softnessPx ?? 1) + 1}px ${bevel.shadowColor || "rgba(0,0,0,0.85)"})`
+    : "";
+
+  const multiShadows = layer.materiality?.multiShadows;
+  const v2MultiShadowStr = (multiShadows && multiShadows.length > 0)
+    ? multiShadows.map((s) => `${s.offsetX}px ${s.offsetY}px ${s.blur}px ${s.color}`).join(", ")
+    : undefined;
+
+  const dropShadow = layer.materiality?.dropShadow;
+  const v2DropShadowStr = dropShadow
+    ? `${dropShadow.offsetX}px ${dropShadow.offsetY}px ${dropShadow.blur}px ${dropShadow.color}`
+    : undefined;
+
+  const customStroke = (layer.stroke?.enabled && layer.stroke.widthPx && layer.stroke.color)
+    ? `${layer.stroke.widthPx}px ${layer.stroke.color}`
+    : undefined;
+
   const wordPaintStyle: React.CSSProperties = isDiffMode
     ? resolveTypographyPaintStyle(layer)
     : isAirFrontal
@@ -1083,27 +1154,30 @@ const KineticLayerRenderer: React.FC<{
         backgroundImage: activeGradient,
         WebkitBackgroundClip: "text",
         WebkitTextFillColor: "transparent",
-        filter: "drop-shadow(0 0 10px rgba(255, 255, 255, 0.60)) drop-shadow(0 0 22px rgba(255, 250, 240, 0.35)) blur(0.35px)",
+        filter: `${bevelFilter ? `${bevelFilter} ` : ""}drop-shadow(0 0 10px rgba(255, 255, 255, 0.60)) drop-shadow(0 0 22px rgba(255, 250, 240, 0.35)) blur(0.35px)`,
       }
     : hasGrad
     ? {
         backgroundImage: activeGradient,
         WebkitBackgroundClip: "text",
         WebkitTextFillColor: "transparent",
-        filter: physicalFilter,
+        filter: `${bevelFilter ? `${bevelFilter} ` : ""}${physicalFilter || ""}`.trim() || undefined,
       }
     : {
         color: textColor,
         WebkitTextFillColor: textColor,
-        WebkitTextStroke: isBehindSubject
+        WebkitTextStroke: customStroke || (isBehindSubject
           ? "1.5px rgba(0, 0, 0, 0.9)"
-          : (layer.fontStyle === "italic" || (layer.fontFamily && /script|brush|vibes|pinyon|alex/i.test(layer.fontFamily)) ? undefined : "1.0px rgba(0, 0, 0, 0.75)"),
+          : (layer.fontStyle === "italic" || (layer.fontFamily && /script|brush|vibes|pinyon|alex/i.test(layer.fontFamily)) ? undefined : "1.0px rgba(0, 0, 0, 0.75)")),
+        filter: bevelFilter || undefined,
       };
 
   const kineticTextShadow = (value?: string): string | undefined => {
     if (isDiffMode) {
       return (wordPaintStyle.textShadow as string) || "-0.9px 0px 1.2px rgba(255, 0, 75, 0.75), 0.9px 0px 1.2px rgba(0, 225, 255, 0.75), 0 0 1px rgba(0, 0, 0, 0.85)";
     }
+    if (v2MultiShadowStr) return v2MultiShadowStr;
+    if (v2DropShadowStr) return v2DropShadowStr;
     if (hasGrad && !isAirFrontal) return undefined;
     if (isAirFrontal) {
       return "0 0 28px rgba(0, 0, 0, 0.45), 0 2px 14px rgba(0, 0, 0, 0.38), 0 0 6px rgba(0, 0, 0, 0.30)";
@@ -1149,8 +1223,8 @@ const KineticLayerRenderer: React.FC<{
 
   // Viewport-safe auto-fit clamp against canvas boundaries (1080x1920 portrait)
   const isFlank =
-    placement?.dominantZone === "flank_right_column" ||
-    placement?.dominantZone === "flank_left_column" ||
+    (placement as any)?.dominantZone === "flank_right_column" ||
+    (placement as any)?.dominantZone === "flank_left_column" ||
     Boolean(placement?.safeRegionId?.includes("flank"));
 
   const maxAllowedWidthPx = isFlank ? 340 : (isBehindSubject ? 860 : 830);
@@ -1169,6 +1243,25 @@ const KineticLayerRenderer: React.FC<{
     36,
   );
 
+  const stagger = layer.stagger;
+  const staggerScaleX = (stagger?.scaleX ?? 1.0) * (stagger?.stretchRatio ?? 1.0);
+  const staggerScaleY = stagger?.scaleY ?? 1.0;
+  const staggerSkewX = stagger?.skewXDeg ? `skewX(${stagger.skewXDeg}deg)` : "";
+  const staggerSkewY = stagger?.skewYDeg ? `skewY(${stagger.skewYDeg}deg)` : "";
+  const staggerRot = stagger?.rotationDeg ? `rotate(${stagger.rotationDeg}deg)` : "";
+  const staggerArc = stagger?.arcWarpDeg ? `rotate(${stagger.arcWarpDeg}deg)` : "";
+  const staggerTransforms = [
+    staggerScaleX !== 1.0 ? `scaleX(${staggerScaleX})` : "",
+    staggerScaleY !== 1.0 ? `scaleY(${staggerScaleY})` : "",
+    staggerSkewX,
+    staggerSkewY,
+    staggerRot,
+    staggerArc,
+  ].filter(Boolean).join(" ");
+
+  const isPartialHeadClip = layer.occlusion?.mode === "partial_head_clip";
+  const occlusionDepthZ = layer.occlusion?.depthPlane ? -Math.abs(layer.occlusion.depthPlane) : undefined;
+
   const baseTextStyle: React.CSSProperties = {
     fontFamily: `"${effectiveFontFamily}", "${layer.accentFont || "sans-serif"}", sans-serif`,
     fontWeight: isBehindSubject ? 900 : layer.fontWeight,
@@ -1181,13 +1274,13 @@ const KineticLayerRenderer: React.FC<{
     marginLeft: (layer as any).marginLeftPx !== undefined ? `${(layer as any).marginLeftPx}px` : undefined,
     alignSelf: ((layer as any).alignSelf as any) || "center",
     position: "relative",
-    zIndex: layer.zIndex !== undefined
+    zIndex: isPartialHeadClip ? 4 : (layer.zIndex !== undefined
       ? layer.zIndex
       : (layer.isOverlayAtop
         ? 10
         : (layer.isUnderlapping
           ? 2
-          : (layer.marginTopPx && layer.marginTopPx < 0 ? ((layer.layerIndex || 0) + 1) * 2 : (layer.layerIndex || 0) + 1))),
+          : (layer.marginTopPx && layer.marginTopPx < 0 ? ((layer.layerIndex || 0) + 1) * 2 : (layer.layerIndex || 0) + 1)))),
     maxWidth: isBehindSubject ? "880px" : "840px",
     borderBottom: layer.doubleUnderline ? `3px double ${textColor}` : "none",
     paddingBottom: layer.doubleUnderline ? "6px" : "0px",
@@ -1203,16 +1296,18 @@ const KineticLayerRenderer: React.FC<{
     color: textColor,
     WebkitTextFillColor: hasGrad ? undefined : textColor,
     transform: isBehindSubject
-      ? `scaleY(${behindSubjectScaleY}) scaleX(${behindSubjectScaleX * autoFitScale}) translateZ(${layer.depthZPx || -100}px)`
+      ? `scaleY(${behindSubjectScaleY * staggerScaleY}) scaleX(${behindSubjectScaleX * autoFitScale * staggerScaleX}) ${staggerSkewX} ${staggerSkewY} ${staggerRot} ${staggerArc} translateZ(${layer.depthZPx || occlusionDepthZ || -100}px)`
       : (autoFitScale < 1.0
-          ? `scale(${autoFitScale}) translate3d(0, 0px, ${layer.depthZPx || (layer.isHero ? 140 : 0)}px)`
-          : `translate3d(0, 0px, ${layer.depthZPx || (layer.isHero ? 140 : 0)}px)`),
+          ? `scale(${autoFitScale}) ${staggerTransforms} translate3d(${stagger?.dxPercent ? `${stagger.dxPercent}%` : "0px"}, ${stagger?.dyPercent ? `${stagger.dyPercent}%` : "0px"}, ${layer.depthZPx || occlusionDepthZ || (layer.isHero ? 140 : 0)}px)`
+          : `${staggerTransforms ? `${staggerTransforms} ` : ""}translate3d(${stagger?.dxPercent ? `${stagger.dxPercent}%` : "0px"}, ${stagger?.dyPercent ? `${stagger.dyPercent}%` : "0px"}, ${layer.depthZPx || occlusionDepthZ || (layer.isHero ? 140 : 0)}px)`),
     transformStyle: "preserve-3d",
     opacity: (!layer.isHero && !isBehindSubject) ? 0.92 : 1.0,
     mixBlendMode: isDiffMode ? undefined : (((layer as any).blendMode || undefined) as any),
-    clipPath: layer.treatmentOverlay === "cinematic_viewport_mask_sweep"
-      ? `polygon(0 0, ${overlayProgress * 100}% 0, ${overlayProgress * 100}% 100%, 0 100%)`
-      : undefined,
+    clipPath: isPartialHeadClip
+      ? "polygon(0 0, 100% 0, 100% 92%, 0 92%)"
+      : (layer.treatmentOverlay === "cinematic_viewport_mask_sweep"
+        ? `polygon(0 0, ${overlayProgress * 100}% 0, ${overlayProgress * 100}% 100%, 0 100%)`
+        : undefined),
   };
 
   // Transpiled Structured Animation & Text SVG Archetypes
@@ -2413,8 +2508,9 @@ const KineticLayerRenderer: React.FC<{
     );
   }
 
-  // Dedicated M: Kinetic Dynamic Slant
-  if (fx === "kinetic_dynamic_slant") {
+  // Dedicated M: Cyber Acid Lime Glitch with Matrix Chromatic Displacement
+  if (fx === "cyber_acid_lime_glitch" || fx === "kinetic_dynamic_slant") {
+    const limeColor = "#CCFF00";
     return (
       <div style={baseTextStyle}>
         {words.map((word, wIdx) => {
@@ -2422,21 +2518,34 @@ const KineticLayerRenderer: React.FC<{
           const nextStart = wordEntranceFrames[wIdx + 1] ?? (totalFrames + 10);
           const localFrame = Math.max(0, frame - wordStart);
           const isActive = frame >= wordStart && frame < nextStart;
-          const p = interpolate(localFrame, [0, 8], [0, 1], {
-            extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.out(Easing.back(1.4)),
+          const p = interpolate(localFrame, [0, 6], [0, 1], {
+            extrapolateLeft: "clamp",
+            extrapolateRight: "clamp",
+            easing: Easing.out(Easing.back(1.5)),
           });
-          const skewX = interpolate(p, [0, 1], [-18, 0]);
+          // High-cadence micro-glitch during entrance and periodic sync pulses
+          const isGlitching = (localFrame < 8 && localFrame % 2 === 1) || (isActive && (frame + wIdx * 3) % 17 === 0);
+          const jitterX = isGlitching ? Math.sin(localFrame * 4.2 + wIdx) * 6 : 0;
+          const jitterY = isGlitching ? Math.cos(localFrame * 3.1 + wIdx) * 2 : 0;
+          const skewX = isGlitching ? Math.sin(localFrame) * 12 : interpolate(p, [0, 1], [-14, 0]);
+          const rgbOffset = isGlitching ? 4 : interpolate(p, [0, 0.5, 1], [6, 2, 0]);
+
           return (
             <span
-              key={`slant-${wIdx}`}
+              key={`lime-glitch-${wIdx}`}
               style={{
                 display: "inline-block",
                 whiteSpace: "nowrap",
                 margin: "0 0.15em",
                 opacity: p,
-                transform: `skewX(${skewX}deg) scale(${interpolate(p, [0, 1], [0.90, isActive ? 1.05 : 1.0])})`,
+                color: isGlitching ? limeColor : undefined,
+                transform: `translate3d(${jitterX}px, ${jitterY}px, 0) skewX(${skewX}deg) scale(${interpolate(p, [0, 1], [0.90, isActive ? 1.05 : 1.0])})`,
                 ...wordPaintStyle,
-                textShadow: kineticTextShadow(),
+                textShadow: kineticTextShadow(
+                  rgbOffset > 0
+                    ? `-${rgbOffset}px 0px rgba(255, 0, 50, 0.85), ${rgbOffset}px 0px rgba(0, 240, 255, 0.85), 0 0 12px ${limeColor}`
+                    : `0 0 14px ${limeColor}, 0 4px 18px rgba(0,0,0,0.95)`
+                ),
               }}
             >
               {word}
@@ -3291,20 +3400,52 @@ const KineticLayerRenderer: React.FC<{
   // Universal Fallback Return
   return (
     <div style={baseTextStyle}>
-      {words.map((word, wIdx) => (
-        <span
-          key={`default-word-${wIdx}`}
-          style={{
-            display: "inline-block",
-            whiteSpace: "nowrap",
-            margin: "0 0.15em",
-            ...wordPaintStyle,
-            textShadow: kineticTextShadow(),
-          }}
-        >
-          {word}
-        </span>
-      ))}
+      {words.map((word, wIdx) => {
+        const swap = layer.inlineTokenSwaps?.find((s) => s.wordIndex === wIdx);
+        const tokenText = (swap as any)?.token || swap?.pattern || word;
+        const spanStyle: React.CSSProperties = {
+          display: "inline-block",
+          whiteSpace: "nowrap",
+          margin: "0 0.15em",
+          ...wordPaintStyle,
+          textShadow: kineticTextShadow(),
+        };
+
+        if (swap) {
+          if (swap.fontFamily) spanStyle.fontFamily = `"${swap.fontFamily}", sans-serif`;
+          if (swap.fontWeight) spanStyle.fontWeight = swap.fontWeight as any;
+          if (swap.fontStyle) spanStyle.fontStyle = swap.fontStyle as any;
+          if (swap.color) {
+            spanStyle.color = swap.color;
+            spanStyle.WebkitTextFillColor = swap.color;
+          }
+          const scaleMult = (swap as any).scaleMultiplier;
+          const yOff = (swap as any).yOffsetPx;
+          if (scaleMult || yOff) {
+            spanStyle.transform = `scale(${scaleMult ?? 1.0}) translateY(${yOff ?? 0}px)`;
+          }
+          const isHighlightBox = Boolean(swap.highlightBox);
+          if (isHighlightBox) {
+            const boxColor = (typeof swap.highlightBox === "object" && (swap.highlightBox as any)?.color) || swap.color || "#EF4444";
+            const boxRadius = (typeof swap.highlightBox === "object" && (swap.highlightBox as any)?.borderRadiusPx) ?? 6;
+            const boxPadding = (typeof swap.highlightBox === "object" && (swap.highlightBox as any)?.paddingPx) ?? 4;
+            spanStyle.backgroundColor = boxColor;
+            spanStyle.borderRadius = `${boxRadius}px`;
+            spanStyle.padding = `${boxPadding}px 8px`;
+            spanStyle.boxDecorationBreak = "clone";
+            spanStyle.WebkitBoxDecorationBreak = "clone";
+          }
+        }
+
+        return (
+          <span
+            key={`default-word-${wIdx}`}
+            style={spanStyle}
+          >
+            {tokenText}
+          </span>
+        );
+      })}
     </div>
   );
 
@@ -3760,7 +3901,7 @@ const HierarchicalAsymmetricLockupComposition: React.FC<{
             ? contentStartFrame + Math.round(((nextW.start_ms - chunkStartMs) / 1000) * fps)
             : Infinity;
 
-          // Fluid cinematic GSAP curve (power4.out) over 18 frames
+          // Fluid cinematic curve (power4.out) over 18 frames
           const animFrames = 18;
           const entryP = interpolate(elapsed, [0, animFrames], [0, 1], {
             extrapolateLeft: "clamp",
@@ -4380,6 +4521,153 @@ const HierarchicalAsymmetricLockupComposition: React.FC<{
   );
 };
 
+const TypographyAnnotationsOverlay: React.FC<{
+  annotations?: TypographyAnnotation[];
+  frame: number;
+  fps: number;
+}> = ({ annotations, frame, fps }) => {
+  if (!annotations || annotations.length === 0) return null;
+
+  return (
+    <div
+      style={{
+        position: "absolute",
+        inset: 0,
+        pointerEvents: "none",
+        zIndex: 25,
+        overflow: "visible",
+      }}
+    >
+      {annotations.map((ann, aIdx) => {
+        const entryProgress = interpolate(frame, [aIdx * 3, aIdx * 3 + 8], [0, 1], {
+          extrapolateLeft: "clamp",
+          extrapolateRight: "clamp",
+          easing: Easing.out(Easing.cubic),
+        });
+
+        const annColor = ann.color || "#FFD700";
+        const x = ann.xPercent ?? 50;
+        const y = ann.yPercent ?? 50;
+        const w = ann.widthPercent ?? 30;
+        const h = ann.heightPercent ?? 15;
+
+        const isBadgeOrBox =
+          ann.type === "badge" || ann.type === "highlight_box" || (ann as any).type === "pill";
+        if (isBadgeOrBox) {
+          const labelText = ann.targetKeyword || (ann as any).label || "KEY POINT";
+          return (
+            <div
+              key={`ann-pill-${aIdx}`}
+              style={{
+                position: "absolute",
+                left: `${x}%`,
+                top: `${y}%`,
+                transform: `translate(-50%, -50%) scale(${entryProgress})`,
+                opacity: entryProgress,
+                padding: "6px 16px",
+                borderRadius: "999px",
+                border: `1.5px solid ${annColor}`,
+                backgroundColor: "rgba(15, 23, 42, 0.85)",
+                backdropFilter: "blur(8px)",
+                color: annColor,
+                fontSize: "22px",
+                fontWeight: 700,
+                letterSpacing: "0.05em",
+                textTransform: "uppercase",
+                boxShadow: `0 4px 20px rgba(0, 0, 0, 0.6), 0 0 12px ${annColor}44`,
+                whiteSpace: "nowrap",
+              }}
+            >
+              {labelText}
+            </div>
+          );
+        }
+
+        if (ann.type === "circle") {
+          const loopOpen = ann.loopOpenPercent ?? 15;
+          const strokeDash = 280;
+          const dashOffset = interpolate(entryProgress, [0, 1], [strokeDash, strokeDash * (loopOpen / 100)]);
+          const jitter = (ann.jitterAmount ?? 0.05) * 6;
+
+          return (
+            <svg
+              key={`ann-circle-${aIdx}`}
+              style={{
+                position: "absolute",
+                left: `${x}%`,
+                top: `${y}%`,
+                width: `${w}%`,
+                height: `${h}%`,
+                transform: `translate(-50%, -50%) scale(${entryProgress})`,
+                opacity: entryProgress,
+                overflow: "visible",
+              }}
+              viewBox="0 0 100 60"
+            >
+              <ellipse
+                cx={50 + Math.sin(frame * 0.3) * jitter}
+                cy={30 + Math.cos(frame * 0.3) * jitter}
+                rx={45}
+                ry={25}
+                fill="none"
+                stroke={annColor}
+                strokeWidth={3}
+                strokeDasharray={strokeDash}
+                strokeDashoffset={dashOffset}
+                strokeLinecap="round"
+                filter={`drop-shadow(0 0 6px ${annColor})`}
+              />
+            </svg>
+          );
+        }
+
+        const isLeader =
+          Boolean(ann.leaderLine) || ann.type === "leader_dot" || (ann as any).type === "leader_line";
+        if (isLeader && ann.leaderLine) {
+          const ll = ann.leaderLine;
+          const lineLength = interpolate(entryProgress, [0, 1], [0, 1]);
+          const currentEndX = ll.startXPercent + (ll.endXPercent - ll.startXPercent) * lineLength;
+          const currentEndY = ll.startYPercent + (ll.endYPercent - ll.startYPercent) * lineLength;
+
+          return (
+            <svg
+              key={`ann-line-${aIdx}`}
+              style={{
+                position: "absolute",
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                overflow: "visible",
+              }}
+            >
+              <line
+                x1={`${ll.startXPercent}%`}
+                y1={`${ll.startYPercent}%`}
+                x2={`${currentEndX}%`}
+                y2={`${currentEndY}%`}
+                stroke={annColor}
+                strokeWidth={2.5}
+                strokeDasharray="4 2"
+                filter={`drop-shadow(0 0 4px ${annColor})`}
+              />
+              {ll.dotRadiusPx && (
+                <circle
+                  cx={`${ll.startXPercent}%`}
+                  cy={`${ll.startYPercent}%`}
+                  r={ll.dotRadiusPx}
+                  fill={annColor}
+                />
+              )}
+            </svg>
+          );
+        }
+
+        return null;
+      })}
+    </div>
+  );
+};
+
 const MultiLayerTypographyCard: React.FC<{
   chunk: CaptionChunk;
   contentStartFrame: number;
@@ -4640,6 +4928,12 @@ const MultiLayerTypographyCard: React.FC<{
 
         return renderedContent;
       })()}
+
+      <TypographyAnnotationsOverlay
+        annotations={chunk.annotations || chunk.profile?.annotations || chunk.profileV2?.annotations}
+        frame={frame}
+        fps={fps}
+      />
     </div>
   );
 };
@@ -5538,6 +5832,43 @@ const BackgroundCanvasStage: React.FC<{
 };
 
 // ---------------------------------------------------------------------------
+// FrameTreatmentStage — Renders background materials (paper, graph_grid, etc.)
+// ---------------------------------------------------------------------------
+const FrameTreatmentStage: React.FC<{
+  frameTreatment?: TypographyFrameTreatment;
+}> = ({ frameTreatment }) => {
+  if (!frameTreatment || !frameTreatment.backgroundMaterial) {
+    return null;
+  }
+  const mat = frameTreatment.backgroundMaterial;
+  const opacity = frameTreatment.materialOpacity ?? 0.15;
+
+  let bgPattern = "";
+  if (mat === "graph_grid") {
+    bgPattern = "linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px)";
+  } else if (mat === "paper" || mat === "dark_noise") {
+    bgPattern = "radial-gradient(circle at 50% 50%, rgba(255,255,255,0.08) 1px, transparent 1px)";
+  } else if (mat === "metallic") {
+    bgPattern = "linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 50%, rgba(0,0,0,0.2) 100%)";
+  }
+
+  if (!bgPattern) return null;
+
+  return (
+    <AbsoluteFill
+      style={{
+        zIndex: 6,
+        pointerEvents: "none",
+        opacity,
+        backgroundImage: bgPattern,
+        backgroundSize: mat === "graph_grid" ? "40px 40px" : "8px 8px",
+        mixBlendMode: "overlay",
+      }}
+    />
+  );
+};
+
+// ---------------------------------------------------------------------------
 // TransitionFXStage — Renders cinematic transition overlays across scenes
 // (film burns, white flash cuts, bokeh defocus blends, whip pan streaks)
 // ---------------------------------------------------------------------------
@@ -5946,6 +6277,7 @@ export const PrometheusMinRun: React.FC<PrometheusMinRunProps> = ({
   orchestration,
   audioTrackSrc,
   soundtrackSrc,
+  profile,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -5975,6 +6307,9 @@ export const PrometheusMinRun: React.FC<PrometheusMinRunProps> = ({
 
       {/* 1c. Texture Background Canvas Stage (Z: 5) */}
       <BackgroundCanvasStage orchestration={orchestration} frame={frame} fps={fps} />
+
+      {/* 1c2. Frame Treatment Material Stage (Z: 6) */}
+      <FrameTreatmentStage frameTreatment={profile?.frameTreatment || chunks?.[0]?.frameTreatment || chunks?.[0]?.profile?.frameTreatment} />
 
       {/* 1d. Transition Visual Effects Stage (Z: 8) — Film Burns, Flash Cuts, Whip Streaks */}
       <TransitionFXStage orchestration={orchestration} frame={frame} fps={fps} />
