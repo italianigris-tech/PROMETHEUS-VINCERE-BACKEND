@@ -1142,7 +1142,25 @@ const KineticLayerRenderer: React.FC<{
   contentStartFrame: number;
   hookPlan?: NonNullable<CaptionChunk["hookPlan"]>;
   placement?: CaptionChunk["placement"];
-}> = ({ layer, frame, chunkStartMs, chunkEndMs, fps, totalFrames, contentStartFrame, hookPlan, placement }) => {
+  tierExitFrame?: number;
+}> = ({ layer, frame, chunkStartMs, chunkEndMs, fps, totalFrames, contentStartFrame, hookPlan, placement, tierExitFrame }) => {
+  // Tier Exit Choreography: Companion tier animates OUT when hero layer lands
+  const isTierExiting = tierExitFrame !== undefined && frame >= tierExitFrame;
+  const tierExitElapsed = isTierExiting ? frame - tierExitFrame : 0;
+  if (isTierExiting && tierExitElapsed >= 10) {
+    return null;
+  }
+  const tierExitP = isTierExiting
+    ? interpolate(tierExitElapsed, [0, 10], [0, 1], {
+        extrapolateLeft: "clamp",
+        extrapolateRight: "clamp",
+        easing: Easing.bezier(0.16, 1.0, 0.3, 1.0),
+      })
+    : 0;
+  const tierExitOpacity = 1 - tierExitP;
+  const tierExitScale = interpolate(tierExitP, [0, 1], [1.0, 0.92]);
+  const tierExitY = interpolate(tierExitP, [0, 1], [0, -18]);
+  const tierExitBlur = tierExitP * 8;
   const fx = normalizeRuntimePreset(layer.fxPreset || (layer.isHero ? "focus_hunting_bokeh_shimmer" : "subpixel_glow_mask"));
   const words = layer.text.split(" ").filter((word) => word.length > 0);
   // Mention-sync: entrance lead stays within ~100ms before the word is spoken.
@@ -1422,10 +1440,11 @@ const KineticLayerRenderer: React.FC<{
     transform: isBehindSubject
       ? `scaleY(${behindSubjectScaleY * staggerScaleY}) scaleX(${behindSubjectScaleX * autoFitScale * staggerScaleX}) ${staggerSkewX} ${staggerSkewY} ${staggerRot} ${staggerArc} translateZ(${layer.depthZPx || occlusionDepthZ || -100}px)`
       : (autoFitScale < 1.0
-          ? `scale(${autoFitScale}) ${staggerTransforms} translate3d(${stagger?.dxPercent ? `${stagger.dxPercent}%` : "0px"}, ${stagger?.dyPercent ? `${stagger.dyPercent}%` : "0px"}, ${layer.depthZPx || occlusionDepthZ || (layer.isHero ? 140 : 0)}px)`
-          : `${staggerTransforms ? `${staggerTransforms} ` : ""}translate3d(${stagger?.dxPercent ? `${stagger.dxPercent}%` : "0px"}, ${stagger?.dyPercent ? `${stagger.dyPercent}%` : "0px"}, ${layer.depthZPx || occlusionDepthZ || (layer.isHero ? 140 : 0)}px)`),
+          ? `translateY(${tierExitY.toFixed(1)}px) scale(${autoFitScale * tierExitScale}) ${staggerTransforms} translate3d(${stagger?.dxPercent ? `${stagger.dxPercent}%` : "0px"}, ${stagger?.dyPercent ? `${stagger.dyPercent}%` : "0px"}, ${layer.depthZPx || occlusionDepthZ || (layer.isHero ? 140 : 0)}px)`
+          : `translateY(${tierExitY.toFixed(1)}px) scale(${tierExitScale.toFixed(3)}) ${staggerTransforms ? `${staggerTransforms} ` : ""}translate3d(${stagger?.dxPercent ? `${stagger.dxPercent}%` : "0px"}, ${stagger?.dyPercent ? `${stagger.dyPercent}%` : "0px"}, ${layer.depthZPx || occlusionDepthZ || (layer.isHero ? 140 : 0)}px)`),
     transformStyle: "preserve-3d",
-    opacity: (!layer.isHero && !isBehindSubject) ? 0.92 : 1.0,
+    opacity: (((!layer.isHero && !isBehindSubject) ? 0.92 : 1.0) * tierExitOpacity),
+    filter: tierExitBlur > 0.1 ? `blur(${tierExitBlur.toFixed(1)}px)` : undefined,
     mixBlendMode: isDiffMode ? undefined : (((layer as any).blendMode || undefined) as any),
     clipPath: isPartialHeadClip
       ? "polygon(0 0, 100% 0, 100% 92%, 0 92%)"
@@ -4373,25 +4392,19 @@ const HierarchicalAsymmetricLockupComposition: React.FC<{
       }
 
       // Modifier Word Rendering
+      // Tier Exit Choreography: If companion modifier enters before hero, modifier animates OUT when hero lands
+      const heroStartF = modStartsFirst && heroWords[0]?.start_ms !== undefined
+        ? contentStartFrame + Math.round(((heroWords[0].start_ms - chunkStartMs) / 1000) * fps)
+        : Infinity;
+
       if (animMode === "spatial_push_spring") {
         const nextW = wordList[idx + 1];
-        const nextStartF = nextW
+        const wordPushF = nextW
           ? contentStartFrame + Math.round(((nextW.start_ms - chunkStartMs) / 1000) * fps)
           : Infinity;
-
-        const animFrames = 18;
-        const entryP = interpolate(elapsed, [0, animFrames], [0, 1], {
-          extrapolateLeft: "clamp",
-          extrapolateRight: "clamp",
-          easing: Easing.bezier(0.16, 1.0, 0.3, 1.0),
-        });
-
-        const entryY = interpolate(entryP, [0, 1], isTopTucked ? [-28, 0] : [28, 0]);
-        const entryScale = interpolate(entryP, [0, 0.65, 1], [0.95, 1.02, 1.0]);
-        const entryBlurY = interpolate(entryP, [0, 0.7, 1], [28, 2, 0]);
-
-        const isPushedOut = nextStartF < Infinity && frame >= nextStartF;
-        const exitElapsed = isPushedOut ? frame - nextStartF : -1;
+        const triggerF = Math.min(wordPushF, heroStartF);
+        const isPushedOut = triggerF < Infinity && frame >= triggerF;
+        const exitElapsed = isPushedOut ? frame - triggerF : -1;
         const exitP = isPushedOut ? interpolate(exitElapsed, [0, 14], [0, 1], {
           extrapolateLeft: "clamp",
           extrapolateRight: "clamp",
@@ -5104,7 +5117,20 @@ const MultiLayerTypographyCard: React.FC<{
               );
             }
           }
+          // In 2-tier lockups, calculate companion tier exit frame when hero lands
+          const heroLayerItem = layers.find((l) => l.isHero || l.role === "primary_focus_word");
+          const companionLayerItem = layers.find((l) => l !== heroLayerItem);
+          let companionExitFrame: number | undefined = undefined;
+          if (heroLayerItem && companionLayerItem) {
+            const companionStartMs = companionLayerItem.words?.[0]?.start_ms ?? chunkStartMs;
+            const heroStartMs = heroLayerItem.words?.[0]?.start_ms ?? chunkStartMs;
+            if (companionStartMs < heroStartMs) {
+              companionExitFrame = contentStartFrame + Math.round(((heroStartMs - chunkStartMs) / 1000) * fps);
+            }
+          }
+
           return layers.map((layer, lIdx) => {
+            const isCompanion = layer === companionLayerItem;
             return (
               <KineticLayerRenderer
                 key={`layer-${lIdx}`}
@@ -5117,6 +5143,7 @@ const MultiLayerTypographyCard: React.FC<{
                 contentStartFrame={contentStartFrame}
                 hookPlan={chunk.hookPlan}
                 placement={chunk.placement}
+                tierExitFrame={isCompanion ? companionExitFrame : undefined}
               />
             );
           });
