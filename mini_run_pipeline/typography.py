@@ -3344,7 +3344,9 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                     style_treatment["fontFamily"] = "Apple Garamond"
                     style_treatment["shadow"] = "0 2px 10px rgba(0, 0, 0, 0.55)"
                 else:
-                    font_size_px = max(26, min(38, 34))  # 3:1 to 4:1 scale ratio
+                    hero_prev = next((l for l in rendered_layers if l.get("isHero")), None)
+                    hero_size_ref = float(hero_prev.get("fontSizePx", 120)) if hero_prev else max(96, min(140, 120))
+                    font_size_px = max(44, round(0.3 * hero_size_ref))
                     resolved_weight = 300
                     letter_spacing = 0.005  # Tracking floor: prevents script ligature collision & Arabic-like glyph distortion
                     casing = "lowercase"
