@@ -17,6 +17,8 @@ import {
   unsupportedRuntimeTreatments,
   resolveAutoFitScale,
   resolveNumericCountUpValue,
+  type CaptionChunk,
+  type TypographyLayer,
 } from "../PrometheusMinRun";
 
 describe("resolveWordEntranceFrames", () => {

@@ -4403,6 +4403,18 @@ const HierarchicalAsymmetricLockupComposition: React.FC<{
           ? contentStartFrame + Math.round(((nextW.start_ms - chunkStartMs) / 1000) * fps)
           : Infinity;
         const triggerF = Math.min(wordPushF, heroStartF);
+
+        const animFrames = 18;
+        const entryP = interpolate(elapsed, [0, animFrames], [0, 1], {
+          extrapolateLeft: "clamp",
+          extrapolateRight: "clamp",
+          easing: Easing.bezier(0.16, 1.0, 0.3, 1.0),
+        });
+
+        const entryY = interpolate(entryP, [0, 1], isTopTucked ? [-28, 0] : [28, 0]);
+        const entryScale = interpolate(entryP, [0, 0.65, 1], [0.95, 1.02, 1.0]);
+        const entryBlurY = interpolate(entryP, [0, 0.7, 1], [28, 2, 0]);
+
         const isPushedOut = triggerF < Infinity && frame >= triggerF;
         const exitElapsed = isPushedOut ? frame - triggerF : -1;
         const exitP = isPushedOut ? interpolate(exitElapsed, [0, 14], [0, 1], {
