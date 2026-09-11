@@ -591,13 +591,23 @@ def build_look_filter_string(
     # 5. Optical Finishing: Split-Toned Ambient Density (Subtractive Color Saturation)
     if optical.get("subtractiveSaturation", False) or optical.get("enableAll", False):
         if not any("colorbalance" in f for f in filters):
-            filters.append("colorbalance=rs=-0.08:gs=0.02:bs=0.06:rh=0.04:gh=0.01:bh=-0.04,eq=saturation=1.10")
+            sub_opt = optical.get("subtractiveSaturation") if isinstance(optical.get("subtractiveSaturation"), dict) else {}
+            cb_override = sub_opt.get("colorbalance") or params.get("optical_colorbalance")
+            sat_override = sub_opt.get("saturation") or params.get("optical_saturation")
+            if cb_override:
+                filters.append(f"colorbalance={cb_override},eq=saturation={sat_override or 1.03}")
+            elif look_manifest.get("lookId") == "teal_and_orange_blockbuster":
+                # Halved finishing stack for blockbuster look to prevent cyan mud in dark shadows and skin cooling
+                filters.append("colorbalance=rs=-0.02:gs=0.01:bs=0.02:rh=0.01:gh=0.01:bh=-0.01,eq=saturation=1.03")
+            else:
+                filters.append("colorbalance=rs=-0.08:gs=0.02:bs=0.06:rh=0.04:gh=0.01:bh=-0.04,eq=saturation=1.10")
 
     # 6. Analog Emulsion Film Grain (Luminance-weighted temporal grain)
     grain_enabled = optical.get("filmGrain", False) or optical.get("enableAll", False)
     noise = params.get("noise")
     if grain_enabled and not noise:
-        filters.append("noise=alls=10:allf=t")
+        noise_strength = 2 if look_manifest.get("lookId") == "teal_and_orange_blockbuster" else 10
+        filters.append(f"noise=alls={noise_strength}:allf=t")
     elif noise:
         _add_noise(filters, noise, intensity)
 

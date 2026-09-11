@@ -630,8 +630,8 @@ def smart_partition_chunk_words(
                 ]
 
     # If profile has 3+ layers
-    if num_layers >= 3 and token_count <= 3:
-        # Conversational dialogue clamp: speech cues <= 3 words must never be chopped into 3-line column stacks.
+    if num_layers >= 3 and token_count <= 5:
+        # Conversational dialogue clamp: speech cues <= 5 words must never be chopped into 3-line column stacks.
         # Restrict to the top 2 layers (hero + companion) of the profile.
         l_hero = profile_layers[0]
         l_comp = profile_layers[1] if len(profile_layers) > 1 else profile_layers[0]
@@ -1914,14 +1914,14 @@ def _profile_bias_score(
         ),
     ]).lower()
 
-    # Variety bonus across all curated artistic categories (cursive/script, display grotesque, elegant didone, neo-vintage)
+    # Balanced variety across curated artistic categories (didone/editorial, display grotesque, balanced typography)
     artistic_bonus = 1.0
-    if any(k in searchable for k in ("cursive", "script", "calligraphic", "flourish", "handwriting", "brush", "italic", "emma", "gabrielle")):
-        artistic_bonus = 1.75
-    elif any(k in searchable for k in ("didone", "editorial", "vogue", "serif", "bodoni", "playfair")):
-        artistic_bonus = 1.45
+    if any(k in searchable for k in ("didone", "editorial", "vogue", "serif", "bodoni", "playfair")):
+        artistic_bonus = 1.25
     elif any(k in searchable for k in ("grotesque", "display", "condensed", "tall", "poster")):
-        artistic_bonus = 1.35
+        artistic_bonus = 1.25
+    elif any(k in searchable for k in ("cursive", "script", "calligraphic", "flourish", "handwriting", "brush", "italic", "emma", "gabrielle")):
+        artistic_bonus = 1.0  # Normalized: no artificial inflation over workhorse editorial types
 
     # Multi-layer pairing bonus (profiles that combine 2 distinct stylistic weights/classifications)
     layer_types = set(str(l.get("font_classification", "")).lower() for l in layers)
@@ -2473,19 +2473,27 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
 
             duration_ms = c.get("endMs", 0) - c.get("startMs", 0)
             word_count = len(c_words)
-            if wants_lockup_overall:
-                # Hierarchical lockups qualify with 1 to 4 words when anchor has high salience
-                is_punchy = 1 <= word_count <= 4
-                is_substantive = any(_is_substantive(w) for w in c_words) and len(c_clean) >= 3
+            has_digits = any(ch.isdigit() for ch in c_text)
+
+            # Strict behind-subject cranial gating (Reverted 50df29a widening):
+            # 1. Multi-word phrases with digits are PERMANENTLY disqualified (must remain foreground captions)
+            # 2. Strict character bounds: single word <= 8 chars, or 2 words <= 10 chars total.
+            # 3. Phrases with 3 or more words are strictly disqualified from behind-subject placement.
+            if has_digits and word_count > 1:
+                is_punchy = False
+            elif word_count == 1:
+                is_punchy = (2 <= len(c_clean) <= 8)
+            elif word_count == 2:
+                is_punchy = (4 <= len(c_clean) <= 10)
             else:
-                # Punchy anchor keywords: 1 to 3 words
-                is_punchy = 1 <= word_count <= 3
-                is_substantive = any(_is_substantive(w) for w in c_words) and len(c_clean) >= 3
+                is_punchy = False
+
+            is_substantive = any(_is_substantive(w) for w in c_words) and len(c_clean) >= 2
 
             if is_punchy and is_substantive and duration_ms >= 400:
-                base_score = c_signal["salience"] + (3.5 if word_count == 1 else (2.6 if word_count == 2 else 2.0))
-                if any(ch.isdigit() for ch in c_text):
-                    base_score += 1.2
+                base_score = c_signal["salience"] + (3.5 if word_count == 1 else 2.2)
+                if has_digits and word_count == 1:
+                    base_score += 0.8
                 # Add mild stochastic variation for true run-to-run diversity
                 score = base_score + rng.uniform(-0.15, 0.15)
                 candidate_scores.append((c_idx, c_clean.lower(), score))
@@ -2493,8 +2501,16 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
         candidate_scores.sort(key=lambda item: item[2], reverse=True)
 
         if policy["subjectLayering"] in ("required", "auto") and not candidate_scores and chunks:
-            shortest_idx = min(range(len(chunks)), key=lambda i: len(str(chunks[i].get("text", "")).split()))
-            behind_subject_indices.add(shortest_idx)
+            # Only fallback if there is a chunk meeting strict cranial bounds
+            valid_fallback = [
+                i for i in range(len(chunks))
+                if len(str(chunks[i].get("text", "")).split()) <= 2
+                and len("".join(ch for ch in str(chunks[i].get("text", "")) if ch.isalnum())) <= 10
+                and not (any(ch.isdigit() for ch in str(chunks[i].get("text", ""))) and len(str(chunks[i].get("text", "")).split()) > 1)
+            ]
+            if valid_fallback:
+                shortest_idx = min(valid_fallback, key=lambda i: len("".join(ch for ch in str(chunks[i].get("text", "")) if ch.isalnum())))
+                behind_subject_indices.add(shortest_idx)
         else:
             used_behind_roots: set[str] = set()
             for c_idx, c_root, score in candidate_scores:

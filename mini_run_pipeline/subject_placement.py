@@ -581,28 +581,18 @@ def plan_subject_safe_placements(
                     chosen_align = (font_json or {}).get("textAlign", "center")
                     safe_id = "foreground_below_head_dynamic"
             else:
-                # Standard centered framing: dynamically placed safely below the chin
+                # Standard centered framing: dynamically staggered staging bands
+                # to prevent dialogue chunks from collapsing into a static, frozen 68% box.
+                c_idx = len(planned)
+                # Alternate between lower-third baseline (75%) and mid-chest deck (62%)
+                base_stagger = 0.75 if (c_idx % 2 == 1) else 0.62
+                chosen_y_float = max(min_safe_y, min(0.78, base_stagger))
+
                 chosen_x = "50%"
                 chosen_zone = "foreground_lower_deck"
                 chosen_align = (font_json or {}).get("textAlign", "center")
                 safe_id = "foreground_below_head_dynamic"
-
-                bounded_ideal_y = max(0.44, min(0.72, ideal_y))
-
-                # Inter-chunk hysteresis smoothing:
-                # Hold previous Y if it still satisfies the chin clearance invariant for this chunk
-                # AND is within a subtle deadband (<= 4.5% difference).
-                if prev_fg_y is not None and prev_zone == chosen_zone:
-                    is_safe_above_chin = (prev_fg_y >= min_safe_y)
-                    in_smoothing_deadband = (abs(prev_fg_y - bounded_ideal_y) <= 0.045)
-                    if is_safe_above_chin and in_smoothing_deadband:
-                        chosen_y_float = prev_fg_y
-                    else:
-                        chosen_y_float = bounded_ideal_y
-                        prev_fg_y = chosen_y_float
-                else:
-                    chosen_y_float = bounded_ideal_y
-                    prev_fg_y = chosen_y_float
+                prev_fg_y = chosen_y_float
 
             prev_zone = chosen_zone
             y_percent_str = f"{round(chosen_y_float * 100, 1)}%"
