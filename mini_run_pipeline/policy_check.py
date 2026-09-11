@@ -1,7 +1,8 @@
 """policy_check.py - Post-render conformance checker for Mini Runs pipeline.
 
-Validates safe-region bounds, line-count / tall-stack contract, single-contact shadow
-and hero-only glow budget. Emits policyReport into the final receipt.
+Validates safe-region bounds, line-count / tall-stack contract, single-contact shadow,
+hero-only glow budget, and look policy (teal intensity cap <= 0.70 & pixel A/B acceptance).
+Emits policyReport into the final receipt.
 """
 from __future__ import annotations
 
@@ -17,6 +18,7 @@ from mini_run_pipeline.typography import estimate_layer_width_px
 DEFAULT_INSPECTION_TIMESTAMPS: Tuple[float, ...] = (1.8, 4.6, 8.6, 15.0, 22.5, 28.0)
 MAX_SAFE_WIDTH_PX: float = 820.0
 MAX_HERO_GLOW_ALPHA: float = 0.35
+MAX_TEAL_LOOK_INTENSITY: float = 0.70
 VERTICAL_TALL_PRESETS = frozenset({
     "canva_tall_glyph_stack",
     "vertical_glyph_tower",
@@ -192,6 +194,117 @@ def validate_shadow_glow_budget(layers: Sequence[Dict[str, Any]]) -> Dict[str, A
     }
 
 
+def compute_pixel_ab_metrics(
+    frame_path_or_rgb: Any,
+    reference_frame_path_or_rgb: Optional[Any] = None,
+) -> Dict[str, Any]:
+    """Compute pixel-level color grading acceptance metrics: cyan index, skin hue preservation, and saturation."""
+    try:
+        import numpy as np
+        import cv2
+    except ImportError:
+        return {"status": "skipped", "reason": "numpy_or_cv2_unavailable"}
+
+    rgb: Optional[np.ndarray] = None
+    if isinstance(frame_path_or_rgb, (str, Path)):
+        p = Path(frame_path_or_rgb)
+        if not p.exists():
+            return {"status": "skipped", "reason": f"file_not_found: {p}"}
+        bgr = cv2.imread(str(p))
+        if bgr is None:
+            return {"status": "skipped", "reason": "failed_to_decode_image"}
+        rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
+    elif isinstance(frame_path_or_rgb, np.ndarray):
+        rgb = frame_path_or_rgb
+
+    if rgb is None or rgb.size == 0:
+        return {"status": "skipped", "reason": "empty_frame_data"}
+
+    # 1. Cyan index: average normalized excess of (G+B)/2 over R
+    r = rgb[:, :, 0].astype(float)
+    g = rgb[:, :, 1].astype(float)
+    b = rgb[:, :, 2].astype(float)
+    cyan_excess = np.maximum(0.0, ((g + b) / 2.0) - r) / 255.0
+    cyan_index = round(float(np.mean(cyan_excess)), 4)
+
+    # 2. Skin hue and saturation in HSV
+    hsv = cv2.cvtColor(rgb, cv2.COLOR_RGB2HSV)
+    skin_mask = (hsv[:, :, 0] >= 5) & (hsv[:, :, 0] <= 22) & (hsv[:, :, 1] >= 30) & (hsv[:, :, 2] >= 50)
+    skin_pixel_count = int(np.sum(skin_mask))
+    if skin_pixel_count > 50:
+        skin_hue_deg = round(float(np.mean(hsv[skin_mask, 0]) * 2.0), 2)
+    else:
+        skin_hue_deg = None
+
+    mean_saturation = round(float(np.mean(hsv[:, :, 1]) / 255.0), 4)
+
+    # 3. Reference comparison (if reference provided)
+    ref_metrics: Optional[Dict[str, Any]] = None
+    if reference_frame_path_or_rgb is not None:
+        ref_metrics = compute_pixel_ab_metrics(reference_frame_path_or_rgb, reference_frame_path_or_rgb=None)
+
+    violations: List[str] = []
+    if cyan_index > 0.35:
+        violations.append(f"Cyan index {cyan_index:.3f} exceeds maximum threshold 0.35")
+    if skin_hue_deg is not None and not (10.0 <= skin_hue_deg <= 45.0):
+        violations.append(f"Skin hue {skin_hue_deg:.1f}° outside natural skin range [10.0°, 45.0°]")
+
+    if ref_metrics and ref_metrics.get("status") == "passed":
+        ref_skin = ref_metrics.get("skinHueDeg")
+        if ref_skin is not None:
+            if skin_hue_deg is None:
+                violations.append(f"Skin tones completely eliminated by color grade ({skin_pixel_count} vs reference {ref_metrics.get('skinPixelCount')})")
+            else:
+                hue_drift = abs(skin_hue_deg - ref_skin)
+                if hue_drift > 18.0:
+                    violations.append(f"Skin hue drift {hue_drift:.1f}° vs reference exceeds threshold 18.0°")
+
+        ref_cyan = ref_metrics.get("cyanIndex", 0.0)
+        cyan_drift = abs(cyan_index - ref_cyan)
+        if cyan_drift > 0.25:
+            violations.append(f"Cyan index drift {cyan_drift:.3f} vs reference exceeds threshold 0.25")
+
+    return {
+        "status": "passed" if not violations else "failed",
+        "cyanIndex": cyan_index,
+        "skinHueDeg": skin_hue_deg,
+        "skinPixelCount": skin_pixel_count,
+        "saturation": mean_saturation,
+        "referenceComparison": ref_metrics,
+        "violations": violations,
+    }
+
+
+def validate_look_conformance(
+    look_plan: Optional[Dict[str, Any]],
+    frame_path: Optional[str | Path] = None,
+    reference_frame_path: Optional[str | Path] = None,
+) -> Dict[str, Any]:
+    """Validate look policy conformance: teal intensity <= 0.70 and pixel A/B acceptance."""
+    violations: List[str] = []
+    look_id = str(look_plan.get("lookId") or "") if look_plan else ""
+    intensity = float(look_plan.get("intensity", 1.0)) if look_plan else 1.0
+
+    if look_id in ("teal_and_orange_blockbuster", "teal_and_orange") and intensity > (MAX_TEAL_LOOK_INTENSITY + 0.005):
+        violations.append(
+            f"Teal & Orange look intensity {intensity:.2f} exceeds talking-head cap {MAX_TEAL_LOOK_INTENSITY:.2f}"
+        )
+
+    pixel_metrics: Dict[str, Any] = {"status": "skipped", "reason": "no_frame_provided"}
+    if frame_path:
+        pixel_metrics = compute_pixel_ab_metrics(frame_path, reference_frame_path_or_rgb=reference_frame_path)
+        if pixel_metrics.get("status") == "failed":
+            violations.extend(pixel_metrics.get("violations", []))
+
+    return {
+        "status": "passed" if not violations else "failed",
+        "lookId": look_id,
+        "intensity": intensity,
+        "pixelAbMetrics": pixel_metrics,
+        "violations": violations,
+    }
+
+
 def extract_conformance_frames(
     video_path: Optional[str | Path],
     timestamps_sec: Sequence[float] = DEFAULT_INSPECTION_TIMESTAMPS,
@@ -231,11 +344,12 @@ def extract_conformance_frames(
 def run_post_render_conformance_check(
     video_path: Optional[str | Path] = None,
     manifest_or_props: Optional[Any] = None,
+    reference_frame_path: Optional[str | Path] = None,
     timestamps_sec: Sequence[float] = DEFAULT_INSPECTION_TIMESTAMPS,
     extract_frames: bool = True,
     output_dir: Optional[Path] = None,
 ) -> Dict[str, Any]:
-    """Execute full post-render conformance check."""
+    """Execute full post-render conformance check: safe-bounds, line-count, shadow/glow budget, look conformance, and frame extraction."""
     t_start = time.monotonic()
     layers = extract_manifest_layers(manifest_or_props)
     safe_bounds = validate_safe_region_bounds(layers, max_safe_width=MAX_SAFE_WIDTH_PX)
@@ -248,18 +362,27 @@ def run_post_render_conformance_check(
     else:
         frame_result = {"status": "skipped", "reason": "extraction_not_requested" if not extract_frames else "no_video_path", "frames": []}
 
-    all_violations = safe_bounds["violations"] + line_wrap["violations"] + shadow_glow["violations"]
+    # Look policy and pixel A/B validation
+    look_plan = None
+    if isinstance(manifest_or_props, dict):
+        look_plan = manifest_or_props.get("lookPlan") or manifest_or_props.get("lookManifest") or manifest_or_props.get("look")
+
+    first_frame = (frame_result.get("frames") or [{}])[0].get("framePath") if frame_result.get("status") == "passed" else None
+    look_result = validate_look_conformance(look_plan, frame_path=first_frame, reference_frame_path=reference_frame_path)
+
+    all_violations = safe_bounds["violations"] + line_wrap["violations"] + shadow_glow["violations"] + look_result["violations"]
     return {
         "status": "passed" if not all_violations else "failed",
-        "totalChecks": 3,
-        "passedChecks": sum(1 for c in [safe_bounds, line_wrap, shadow_glow] if c["status"] == "passed"),
-        "failedChecks": sum(1 for c in [safe_bounds, line_wrap, shadow_glow] if c["status"] == "failed"),
+        "totalChecks": 4,
+        "passedChecks": sum(1 for c in [safe_bounds, line_wrap, shadow_glow, look_result] if c["status"] == "passed"),
+        "failedChecks": sum(1 for c in [safe_bounds, line_wrap, shadow_glow, look_result] if c["status"] == "failed"),
         "totalLayersChecked": len(layers),
         "violations": all_violations,
         "checks": {
             "safeRegionBounds": safe_bounds,
             "lineCount": line_wrap,
             "shadowBudget": shadow_glow,
+            "lookConformance": look_result,
             "frameExtraction": frame_result,
         },
         "durationMs": round((time.monotonic() - t_start) * 1000, 2),

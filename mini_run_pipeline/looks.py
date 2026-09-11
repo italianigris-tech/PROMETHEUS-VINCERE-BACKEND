@@ -463,7 +463,7 @@ def select_look(
         if look is not None:
             intensity = float(design.get("lookIntensity", 1.0))
             return _build_manifest(look, intensity, "mood_keywords", optical_override=optical_override, lut_path=custom_lut)
-    fallback = get_look("sci_netone_balanced") or CINEMATIC_LOOKS[0]
+    fallback = get_look("kodak_2383_print") or get_look("sci_netone_balanced") or CINEMATIC_LOOKS[0]
     intensity = float(design.get("lookIntensity", 1.0))
     return _build_manifest(fallback, intensity, "fallback_default", optical_override=optical_override, lut_path=custom_lut)
 
@@ -474,6 +474,10 @@ def _build_manifest(
     optical_override: Optional[Dict[str, Any] | bool] = None,
     lut_path: Optional[str | Path] = None,
 ) -> Dict[str, Any]:
+    # Production-tuned look intensity clamp:
+    # Teal and Orange Blockbuster is capped to <= 0.70 to preserve skin tones and prevent unnatural cyan cast
+    if look.get("id") in ("teal_and_orange_blockbuster", "teal_and_orange"):
+        intensity = min(intensity, 0.70)
     # Production-tuned default optical finishing:
     # Soft shoulder roll-off prevents harsh digital clipping;
     # subtractive saturation maintains rich color density in highlights;
