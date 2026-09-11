@@ -2671,17 +2671,23 @@ def _layout_rules_placement(prof: Dict[str, Any]) -> Dict[str, str]:
 
     if "left" in alignment:
         align = "left"
+        x_pct = "32%"
+        dom_zone = "flank_left_column"
     elif "right" in alignment:
         align = "right"
+        x_pct = "68%"
+        dom_zone = "flank_right_column"
     else:
         align = "center"
+        x_pct = "50%"
+        dom_zone = "foreground_lower_deck"
 
     return {
-        "xPercent": "50%",
+        "xPercent": x_pct,
         "yPercent": "54%",
         "anchor": align,
         "textAlign": align,
-        "dominantZone": "foreground_lower_deck",
+        "dominantZone": dom_zone,
         "maxWidthPercent": str(max_width),
         "layoutSource": "font_json_layout_rules",
     }

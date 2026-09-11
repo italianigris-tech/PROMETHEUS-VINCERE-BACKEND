@@ -488,6 +488,7 @@ def plan_subject_safe_placements(
     planned: List[Dict[str, Any]] = []
     prev_fg_y: Optional[float] = None
     prev_zone: Optional[str] = None
+    prev_x: Optional[str] = None
 
     for chunk in chunks:
         layering = chunk.get("subjectLayering") or {}
@@ -527,6 +528,9 @@ def plan_subject_safe_placements(
                 "policy": f"cranial_negative_space_{dom_zone}",
                 "cranialArc": None,
             })
+            prev_zone = dom_zone
+            prev_fg_y = None
+            prev_x = None
         else:
             # Foreground captions: NEVER OCCLUDE THE SPEAKER'S HEAD/FACE.
             stamped = chunk.get("placement") if isinstance(chunk.get("placement"), dict) else None
@@ -551,19 +555,58 @@ def plan_subject_safe_placements(
                 ideal_y = 0.68
                 min_safe_y = 0.54
 
-            # 1. Lateral Flank: If speaker is framed off-center, place in open column
-            if flank_left >= 0.38 and flank_left > flank_right + 0.10:
-                chosen_x = f"{round(max(0.20, flank_left * 0.48) * 100, 1)}%"
-                chosen_y_float = min(0.65, max(0.44, ideal_y))
+            c_idx = len(planned)
+            fj_zone = (font_json or {}).get("dominantZone", "")
+            fj_align = str((font_json or {}).get("textAlign", "")).lower()
+            fj_anchor = str((font_json or {}).get("anchor", "")).lower()
+
+            wants_left = (fj_zone == "flank_left_column" or "left" in fj_align or "left" in fj_anchor)
+            wants_right = (fj_zone == "flank_right_column" or "right" in fj_align or "right" in fj_anchor)
+
+            left_flank_eligible = flank_left >= 0.22
+            right_flank_eligible = flank_right >= 0.22
+
+            speaker_needs_left = (flank_left >= 0.38 and flank_left > flank_right + 0.10)
+            speaker_needs_right = (flank_right >= 0.38 and flank_right > flank_left + 0.10)
+
+            # Hysteresis: maintain flank column if lateral clearance remains clear
+            hysteresis_left = (prev_zone == "flank_left_column" and left_flank_eligible and not wants_right)
+            hysteresis_right = (prev_zone == "flank_right_column" and right_flank_eligible and not wants_left)
+
+            if (speaker_needs_left or (wants_left and left_flank_eligible) or hysteresis_left) and not (speaker_needs_right and not wants_left):
                 chosen_zone = "flank_left_column"
-                chosen_align = (font_json or {}).get("textAlign", "left")
                 safe_id = "flank_left_pillar"
-            elif flank_right >= 0.38 and flank_right > flank_left + 0.10:
-                chosen_x = f"{round(min(0.80, (1.0 - flank_right) + flank_right * 0.52) * 100, 1)}%"
-                chosen_y_float = min(0.65, max(0.44, ideal_y))
+                chosen_anchor = (font_json or {}).get("anchor") or "left"
+                chosen_align = (font_json or {}).get("textAlign") or "left"
+                chosen_x = (font_json or {}).get("xPercent") or (prev_x if (prev_zone == "flank_left_column" and prev_x) else f"{round(max(0.20, flank_left * 0.48) * 100, 1)}%")
+
+                # Inter-chunk hysteresis: clamp vertical stagger delta to <= 5% (e.g. ±0.03)
+                if prev_zone == "flank_left_column" and prev_fg_y is not None:
+                    delta = 0.03 if (c_idx % 2 == 1) else -0.03
+                    target_y = prev_fg_y + delta
+                    chosen_y_float = round(min(0.65, max(0.44, max(min_safe_y, target_y))), 3)
+                else:
+                    chosen_y_float = round(min(0.65, max(0.44, ideal_y)), 3)
+                prev_fg_y = chosen_y_float
+                prev_x = chosen_x
+
+            elif speaker_needs_right or (wants_right and right_flank_eligible) or hysteresis_right:
                 chosen_zone = "flank_right_column"
-                chosen_align = (font_json or {}).get("textAlign", "right")
                 safe_id = "flank_right_pillar"
+                chosen_anchor = (font_json or {}).get("anchor") or "right"
+                chosen_align = (font_json or {}).get("textAlign") or "right"
+                chosen_x = (font_json or {}).get("xPercent") or (prev_x if (prev_zone == "flank_right_column" and prev_x) else f"{round(min(0.80, (1.0 - flank_right) + flank_right * 0.52) * 100, 1)}%")
+
+                # Inter-chunk hysteresis: clamp vertical stagger delta to <= 5% (e.g. ±0.03)
+                if prev_zone == "flank_right_column" and prev_fg_y is not None:
+                    delta = 0.03 if (c_idx % 2 == 1) else -0.03
+                    target_y = prev_fg_y + delta
+                    chosen_y_float = round(min(0.65, max(0.44, max(min_safe_y, target_y))), 3)
+                else:
+                    chosen_y_float = round(min(0.65, max(0.44, ideal_y)), 3)
+                prev_fg_y = chosen_y_float
+                prev_x = chosen_x
+
             elif ideal_y > 0.83:
                 # Speaker's chin is extraordinarily low (extreme close-up filling lower frame).
                 # To avoid platform UI, check cranial headroom
@@ -572,27 +615,33 @@ def plan_subject_safe_placements(
                     chosen_x = "50%"
                     chosen_y_float = round(max(0.20, min(0.28, top_head - 0.04)), 3)
                     chosen_zone = "cranial_crown"
+                    chosen_anchor = "center"
                     chosen_align = (font_json or {}).get("textAlign", "center")
                     safe_id = "cranial_crown_headroom"
                 else:
                     chosen_x = "50%"
                     chosen_y_float = 0.72
                     chosen_zone = "foreground_lower_deck"
+                    chosen_anchor = "center"
                     chosen_align = (font_json or {}).get("textAlign", "center")
                     safe_id = "foreground_below_head_dynamic"
+                prev_fg_y = chosen_y_float
+                prev_x = chosen_x
+
             else:
                 # Standard centered framing: dynamically staggered staging bands
                 # to prevent dialogue chunks from collapsing into a static, frozen 68% box.
-                c_idx = len(planned)
                 # Alternate between lower-third baseline (75%) and mid-chest deck (62%)
                 base_stagger = 0.75 if (c_idx % 2 == 1) else 0.62
                 chosen_y_float = max(min_safe_y, min(0.78, base_stagger))
 
                 chosen_x = "50%"
+                chosen_anchor = "center"
                 chosen_zone = "foreground_lower_deck"
                 chosen_align = (font_json or {}).get("textAlign", "center")
                 safe_id = "foreground_below_head_dynamic"
                 prev_fg_y = chosen_y_float
+                prev_x = chosen_x
 
             prev_zone = chosen_zone
             y_percent_str = f"{round(chosen_y_float * 100, 1)}%"
@@ -602,7 +651,7 @@ def plan_subject_safe_placements(
             planned.append({
                 "xPercent": chosen_x,
                 "yPercent": y_percent_str,
-                "anchor": "center" if chosen_x == "50%" else (font_json or {}).get("anchor", "center"),
+                "anchor": chosen_anchor,
                 "textAlign": chosen_align,
                 "dominantZone": chosen_zone,
                 "maxWidthPercent": (font_json or {}).get("maxWidthPercent", "85"),
