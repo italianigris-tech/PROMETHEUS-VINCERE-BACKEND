@@ -35,17 +35,31 @@ def _ensure_model() -> Path:
     return cache_model
 
 
-def refine_alpha_matte(alpha: np.ndarray) -> np.ndarray:
-    """Refines float32 alpha matte [0.0, 1.0] using gamma push, morphological choke, and bilateral filter."""
-    # 1. Subtle gamma push: solidifies thin hair strands that were under-segmented
-    alpha_boosted = np.power(np.clip(alpha, 0.0, 1.0), 0.85)
+def refine_alpha_matte(alpha: np.ndarray, rim_compensation: bool = True) -> np.ndarray:
+    """Refines float32 alpha matte [0.0, 1.0] eliminating dirty rim spill and head shadow artifacts.
 
-    # 2. Morphological inner erode (choke the fringe by 1-2px)
+    Applies low-alpha fringe cutoff, smoothstep contrast steepening, morphological inner erode (2px),
+    and edge-preserving bilateral filtering to eliminate the dark rim artifact over behind-subject text.
+    """
+    clipped = np.clip(alpha, 0.0, 1.0).astype(np.float32)
+
+    # 1. Low-alpha fringe cutoff: eliminate background color spill that causes dark head shadows
+    outer_threshold = 0.12 if rim_compensation else 0.05
+    clipped = np.where(clipped < outer_threshold, 0.0, clipped)
+
+    # 2. Smoothstep contrast steepening to tighten the feathered transition band
+    t_min = outer_threshold
+    t_max = 0.88
+    norm = np.clip((clipped - t_min) / (t_max - t_min), 0.0, 1.0)
+    steepened = norm * norm * (3.0 - 2.0 * norm)
+
+    # 3. Morphological inner erode (choke the outer contaminated boundary by 2px)
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
-    choked = cv2.erode(alpha_boosted, kernel, iterations=1)
+    erode_iters = 2 if rim_compensation else 1
+    choked = cv2.erode(steepened, kernel, iterations=erode_iters)
 
-    # 3. Bilateral edge smooth (preserves edges, cleans noisy matte holes)
-    cleaned_alpha = cv2.bilateralFilter(choked, d=5, sigmaColor=0.1, sigmaSpace=3.0)
+    # 4. Bilateral edge smooth with tight sigma to prevent edge blur smear
+    cleaned_alpha = cv2.bilateralFilter(choked, d=5, sigmaColor=0.08, sigmaSpace=2.0)
 
     return np.clip(cleaned_alpha, 0.0, 1.0)
 
