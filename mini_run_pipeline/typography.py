@@ -2048,12 +2048,52 @@ def _is_tall_matte_profile(profile: Dict[str, Any]) -> bool:
     return False
 
 
-def is_descriptor_phrase(text: str) -> bool:
-    """Identify descriptive compound phrases, adjective+noun pairs, or coordinated pairs."""
+def is_prepositional_phrase(text: str) -> bool:
+    """Identify prepositional phrases (e.g. 'from home', 'from eBay.com', 'in my bedroom')."""
     t = text.lower().strip(".,!?:;\"'")
     words = [w.strip(".,!?:;\"'") for w in t.split() if w.strip(".,!?:;\"'")]
     if len(words) < 2:
         return False
+    PREPOSITIONS = {
+        "from", "in", "at", "on", "into", "through", "across", "under",
+        "over", "with", "without", "between", "behind", "about", "around",
+        "toward", "towards", "like", "by", "out",
+    }
+    return words[0] in PREPOSITIONS
+
+
+def is_wrapping_flank_chunk(chunk: Optional[Dict[str, Any]] = None, prof: Optional[Dict[str, Any]] = None, text: str = "") -> bool:
+    """Identify wrapping flank chunks (multi-word phrases placed in flank columns)."""
+    words = text.split() if text else []
+    if len(words) < 2:
+        return False
+    p = (chunk or {}).get("placement") or {}
+    zone = str(p.get("dominantZone") or (prof.get("layout_rules", {}).get("dominantZone") if prof else "")).lower()
+    safe_id = str(p.get("safeRegionId") or "").lower()
+    align = str(p.get("textAlign") or (prof.get("layout_rules", {}).get("horizontal_alignment") if prof else "")).lower()
+    return "flank" in zone or "flank" in safe_id or align in ("left", "right")
+
+
+def is_2_5d_overlap_candidate(text: str, chunk: Optional[Dict[str, Any]] = None, prof: Optional[Dict[str, Any]] = None) -> bool:
+    """Check if a phrase routes to the 2.5D lockup with gradient fade and grounding shadow:
+    1. Descriptor compound phrases ('sunshine and rainbows', '12,000 physical products')
+    2. Prepositional phrases ('from home', 'from eBay.com', 'from my laptop')
+    3. Wrapping flank column chunks
+    """
+    return is_descriptor_phrase(text) or is_prepositional_phrase(text) or is_wrapping_flank_chunk(chunk, prof, text)
+
+
+def is_descriptor_phrase(text: str) -> bool:
+    """Identify descriptive compound phrases, adjective+noun pairs, coordinated pairs,
+    or prepositional phrases ('from home', 'from eBay.com').
+    """
+    t = text.lower().strip(".,!?:;\"'")
+    words = [w.strip(".,!?:;\"'") for w in t.split() if w.strip(".,!?:;\"'")]
+    if len(words) < 2:
+        return False
+    # Prepositional phrases (e.g. 'from home', 'from eBay.com')
+    if is_prepositional_phrase(text):
+        return True
     # Coordinated pairs with 'and', '&', 'or', 'plus'
     if any(conj in words for conj in ("and", "&", "or", "plus")):
         return True
@@ -3064,9 +3104,13 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
         if not matching_profiles:
             matching_profiles = pool
 
-        # Overlap routing: descriptor phrases (adjective+noun: "sunshine and rainbows", "12,000 physical products")
-        # preferentially routed into the 2.5D archetype with gradient fade + grounding shadow
-        if not is_single_word and is_descriptor_phrase(raw_text):
+        # Overlap routing: descriptor phrases, prepositional phrases ("from home", "from eBay.com"),
+        # and wrapping flank chunks preferentially routed into the 2.5D archetype with gradient fade + grounding shadow
+        is_chunk_overlap_candidate = not is_single_word and (
+            is_descriptor_phrase(raw_text)
+            or is_wrapping_flank_chunk(chunk, prof, raw_text)
+        )
+        if is_chunk_overlap_candidate:
             overlap_profiles = [
                 p for p in pool
                 if p["id"] in ("image (150)", "image (151)", "image (152)", "image (124)", "image (7)", "image (97)")
@@ -3115,7 +3159,7 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                 rng, policy, signal, preset_usage_counts, recent_primary_fx,
                 is_single_word=is_single_word,
             )
-        elif wants_lockup or (not is_single_word and is_descriptor_phrase(raw_text)):
+        elif wants_lockup or is_chunk_overlap_candidate:
             hero_fx_preset = "hierarchical_asymmetric_lockup"
         elif is_special_ops_system and is_single_word and (preset_usage_counts.get("chiseled_prism_metallic", 0) < 2):
             hero_fx_preset = "chiseled_prism_metallic"
