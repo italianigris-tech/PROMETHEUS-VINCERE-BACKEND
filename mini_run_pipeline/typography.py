@@ -534,9 +534,14 @@ def _is_substantive(w: str) -> bool:
 
 
 def _find_best_hero_index(word_list: List[str]) -> int:
-    """Select the index of the primary content word (longest/most salient, avoiding short function words)."""
+    """Select the index of the primary content word (prioritizing numeric quantities, then longest/most salient, avoiding short function words)."""
     if not word_list:
         return 0
+    # Prioritize words containing digits (e.g. "12,000", "500", "10x")
+    num_indices = [i for i, w in enumerate(word_list) if any(ch.isdigit() for ch in _clean_token(w))]
+    if num_indices:
+        return num_indices[0]
+
     sub_indices = [i for i, w in enumerate(word_list) if _is_substantive(w)]
     candidates = sub_indices if sub_indices else list(range(len(word_list)))
     return max(candidates, key=lambda i: len(_clean_token(word_list[i])))
@@ -570,17 +575,31 @@ def smart_partition_chunk_words(
         if token_count == 2:
             w0_sub = _is_substantive(words[0])
             w1_sub = _is_substantive(words[1])
+            w0_num = any(ch.isdigit() for ch in _clean_token(words[0]))
+            w1_num = any(ch.isdigit() for ch in _clean_token(words[1]))
 
-            if w0_sub and not w1_sub:
-                return [
-                    {"layer": l0, "words": [words[0]], "is_hero": True},
-                    {"layer": l1, "words": [words[1]], "is_hero": False},
-                ]
-            elif w1_sub and not w0_sub:
-                return [
-                    {"layer": l0, "words": [words[0]], "is_hero": False},
-                    {"layer": l1, "words": [words[1]], "is_hero": True},
-                ]
+            if (w0_num and not w1_num) or (w0_sub and not w1_sub and not w1_num):
+                if l0_is_designed_hero:
+                    return [
+                        {"layer": l0, "words": [words[0]], "is_hero": True},
+                        {"layer": l1, "words": [words[1]], "is_hero": False},
+                    ]
+                else:
+                    return [
+                        {"layer": l1, "words": [words[0]], "is_hero": True},
+                        {"layer": l0, "words": [words[1]], "is_hero": False},
+                    ]
+            elif (w1_num and not w0_num) or (w1_sub and not w0_sub and not w0_num):
+                if l0_is_designed_hero:
+                    return [
+                        {"layer": l1, "words": [words[0]], "is_hero": False},
+                        {"layer": l0, "words": [words[1]], "is_hero": True},
+                    ]
+                else:
+                    return [
+                        {"layer": l0, "words": [words[0]], "is_hero": False},
+                        {"layer": l1, "words": [words[1]], "is_hero": True},
+                    ]
             else:
                 if l0_is_designed_hero:
                     return [
@@ -596,15 +615,27 @@ def smart_partition_chunk_words(
         elif token_count == 3:
             hero_idx = _find_best_hero_index(words)
             if hero_idx == 0:
-                return [
-                    {"layer": l0, "words": [words[0]], "is_hero": True},
-                    {"layer": l1, "words": words[1:], "is_hero": False},
-                ]
+                if l0_is_designed_hero:
+                    return [
+                        {"layer": l0, "words": [words[0]], "is_hero": True},
+                        {"layer": l1, "words": words[1:], "is_hero": False},
+                    ]
+                else:
+                    return [
+                        {"layer": l1, "words": [words[0]], "is_hero": True},
+                        {"layer": l0, "words": words[1:], "is_hero": False},
+                    ]
             elif hero_idx == 2:
-                return [
-                    {"layer": l0, "words": words[:2], "is_hero": False},
-                    {"layer": l1, "words": [words[2]], "is_hero": True},
-                ]
+                if l0_is_designed_hero:
+                    return [
+                        {"layer": l1, "words": words[:2], "is_hero": False},
+                        {"layer": l0, "words": [words[2]], "is_hero": True},
+                    ]
+                else:
+                    return [
+                        {"layer": l0, "words": words[:2], "is_hero": False},
+                        {"layer": l1, "words": [words[2]], "is_hero": True},
+                    ]
             else:
                 if l0_is_designed_hero:
                     return [
