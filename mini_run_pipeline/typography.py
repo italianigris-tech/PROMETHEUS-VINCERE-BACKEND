@@ -223,9 +223,8 @@ UNSAFE_PIXEL_FONTS = {"vt323", "press start 2p", "special elite", "silkscreen"}
 UNSAFE_DISTORTED_FONTS: Dict[str, str] = {
     "silver hairline": "Bodoni Moda",
     "brushelva": "Great Vibes",
-    # "amerika" / "amerika alternates" REMOVED from this list: the genuine TTFs are
-    # tracked (fonts/library/amerika*/...ttf) and registered below, so the real
-    # font renders instead of a legacy Bodoni Moda substitute.
+    "amerika alternates": "Playfair Display",
+    "amerika": "Playfair Display",
     "kraton": "Bodoni Moda",
     "kraton free font": "Bodoni Moda",
     "kraton modern ligature font free": "Bodoni Moda",
@@ -254,8 +253,8 @@ FONT_FAMILY_REGISTRY: Dict[str, str] = {
     # --- family + style variants -> base loaded family ----------------------
     "playfair display italic": "Playfair Display",
     "playfair display": "Playfair Display",
-    "amerika alternates": "Amerika",
-    "amerika": "Amerika",
+    "amerika alternates": "Playfair Display",
+    "amerika": "Playfair Display",
     "cormorant garamond italic": "Cormorant Garamond",
     "cormorant garamond": "Cormorant Garamond",
     "montserrat extrabold": "Montserrat",
@@ -1057,6 +1056,7 @@ SCRIPT_FONT_KEYWORDS = (
 # Decorative display, alternates, and trial faces strictly barred from companion/modifier tiers
 DECORATIVE_BARRED_COMPANION_FONTS = {
     "amerika alternates",
+    "amerika",
     "erotique alternate trial",
     "erotique",
     "quanton",
