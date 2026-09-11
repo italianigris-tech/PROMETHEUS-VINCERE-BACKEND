@@ -187,14 +187,47 @@ def detect_and_plan_listicles(
             "mile", "miles", "km", "kilometer", "kilometers", "meter", "meters",
             "lb", "lbs", "pound", "pounds", "kg", "kilogram", "kilograms",
             "am", "pm", "k", "m", "b", "x", "times",
+            "sec", "secs", "min", "mins", "hr", "hrs", "yr", "yrs", "decade", "decades",
         }
+        ASR_TEMPORAL_CONFUSIONS = {
+            "modes": "months",
+            "moths": "months",
+            "munch": "months",
+            "munts": "months",
+            "munths": "months",
+            "monts": "months",
+            "ours": "hours",
+            "daze": "days",
+            "weak": "week",
+            "weaks": "weeks",
+        }
+
+        def _is_unit(u: str) -> bool:
+            c = re.sub(r"[^\w]", "", u).lower() if u else ""
+            return c in TEMPORAL_METRIC_UNITS or c in ASR_TEMPORAL_CONFUSIONS
+
         text_lower = raw_text.lower()
         has_explicit_enumerator = any(w in text_lower for w in EXPLICIT_ENUMERATORS)
-        first_word_clean = re.sub(r"[^\w]", "", words[0].get("word", "")).lower() if words else ""
+
+        def _extract_word(w_obj: Any) -> str:
+            if isinstance(w_obj, dict):
+                return str(w_obj.get("text", w_obj.get("word", "")))
+            return str(w_obj) if w_obj is not None else ""
+
+        words_list = [_extract_word(w) for w in words if _extract_word(w)] if words else [w for w in raw_text.split() if w]
+        first_word_clean = re.sub(r"[^\w]", "", words_list[0]).lower() if words_list else ""
         second_word_clean = (
-            re.sub(r"[^\w]", "", words[1].get("word", "")).lower()
-            if len(words) > 1 else ""
+            re.sub(r"[^\w]", "", words_list[1]).lower()
+            if len(words_list) > 1 else ""
         )
+        if not second_word_clean and idx + 1 < len(chunks):
+            next_chunk = chunks[idx + 1]
+            next_words = next_chunk.get("words", [])
+            next_raw = str(next_chunk.get("text", ""))
+            next_words_list = [_extract_word(w) for w in next_words if _extract_word(w)] if next_words else [w for w in next_raw.split() if w]
+            if next_words_list:
+                second_word_clean = re.sub(r"[^\w]", "", next_words_list[0]).lower()
+
         for pattern in STEP_ITEM_PATTERNS:
             match = pattern.search(raw_text)
             if match:
@@ -220,7 +253,7 @@ def detect_and_plan_listicles(
                     and not has_explicit_enumerator
                     and active_sequence is None
                     and (clean_digits == first_word_clean or matched_str == first_word_clean)
-                    and second_word_clean in TEMPORAL_METRIC_UNITS
+                    and _is_unit(second_word_clean)
                 ):
                     continue
                 step_number = candidate
@@ -231,12 +264,12 @@ def detect_and_plan_listicles(
         # ordinals; bare digits ("3 ...") still count as chunk openers.
         # Suppress leading digits from triggering step_item when followed by
         # temporal/metric units (e.g., "12 months", "3 days").
-        if step_number is None and words:
+        if step_number is None and words_list:
             if first_word_clean.isdigit() and 1 <= int(first_word_clean) <= 12:
-                if second_word_clean not in TEMPORAL_METRIC_UNITS:
+                if not _is_unit(second_word_clean):
                     step_number = int(first_word_clean)
             elif first_word_clean in WORD_TO_DIGIT and (has_explicit_enumerator or active_sequence is not None):
-                if second_word_clean not in TEMPORAL_METRIC_UNITS:
+                if not _is_unit(second_word_clean):
                     step_number = WORD_TO_DIGIT[first_word_clean]
 
         if step_number is not None and 1 <= step_number <= 12:
