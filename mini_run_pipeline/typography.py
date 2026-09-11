@@ -3654,7 +3654,7 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                     prev_layer["zIndex"] = int(prev_spec.get("z_index", 10))
                     prev_layer["isOverlapping"] = True
                     prev_layer["isOverlayAtop"] = True
-                    prev_layer["shadow"] = "0 6px 20px rgba(0, 0, 0, 0.95), 0 2px 6px rgba(0, 0, 0, 0.90)"
+                    prev_layer["shadow"] = "0 4px 18px rgba(0, 0, 0, 0.65)"
                     curr_layer["zIndex"] = int(curr_spec.get("z_index", 2))
                     curr_layer["isUnderlapping"] = True
                     curr_layer["isOverlapping"] = False
@@ -3667,7 +3667,7 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                     # (e.g. image (150) 'over again', image (151) 'zoom-out effect', image (152) 'unreadable overlapping')
                     curr_layer["zIndex"] = int(curr_spec.get("z_index", (i + 1) * 2))
                     curr_layer["isOverlapping"] = True
-                    curr_layer["shadow"] = "0 6px 22px rgba(0, 0, 0, 0.95), 0 2px 8px rgba(0, 0, 0, 0.90)"
+                    curr_layer["shadow"] = "0 4px 18px rgba(0, 0, 0, 0.65)"
 
                     prev_layer["zIndex"] = int(prev_spec.get("z_index", i))
                     prev_layer["isUnderlapping"] = True
