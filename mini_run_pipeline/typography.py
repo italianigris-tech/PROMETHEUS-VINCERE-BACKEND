@@ -767,8 +767,8 @@ BRAND_PALETTES: Dict[str, Dict[str, str]] = {
     "champagne_gold": {
         "hero_color": "#F5E6C4",
         "companion_color": "#FFFFFF",
-        "glow": "0 0 16px rgba(245, 230, 196, 0.45)",
-        "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
+        "glow": "0 0 14px rgba(245, 230, 196, 0.35)",
+        "shadow": "0 2px 10px rgba(0, 0, 0, 0.55)",
         "accent_border": "#D4AF37",
         "zone": {
             "name": "champagne_gold",
@@ -782,8 +782,8 @@ BRAND_PALETTES: Dict[str, Dict[str, str]] = {
     "obsidian_crimson": {
         "hero_color": "#FF453A",
         "companion_color": "#FFFFFF",
-        "glow": "0 0 16px rgba(255, 69, 58, 0.45)",
-        "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
+        "glow": "0 0 14px rgba(255, 69, 58, 0.35)",
+        "shadow": "0 2px 10px rgba(0, 0, 0, 0.55)",
         "accent_border": "#FF3B30",
         "zone": {
             "name": "obsidian_crimson",
@@ -797,8 +797,8 @@ BRAND_PALETTES: Dict[str, Dict[str, str]] = {
     "crimson_editorial": {
         "hero_color": "#FF2A55",
         "companion_color": "#FFFFFF",
-        "glow": "0 0 20px rgba(255, 42, 85, 0.65), 0 0 35px rgba(255, 42, 85, 0.35)",
-        "shadow": "0 4px 22px rgba(0, 0, 0, 0.95), 0 2px 6px rgba(0, 0, 0, 0.90)",
+        "glow": "0 0 14px rgba(255, 42, 85, 0.35)",
+        "shadow": "0 2px 10px rgba(0, 0, 0, 0.55)",
         "accent_border": "#E11D48",
         "zone": {
             "name": "crimson_editorial",
@@ -812,8 +812,8 @@ BRAND_PALETTES: Dict[str, Dict[str, str]] = {
     "electric_cyan": {
         "hero_color": "#00F0FF",
         "companion_color": "#FFFFFF",
-        "glow": "0 0 16px rgba(0, 240, 255, 0.45)",
-        "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
+        "glow": "0 0 14px rgba(0, 240, 255, 0.35)",
+        "shadow": "0 2px 10px rgba(0, 0, 0, 0.55)",
         "accent_border": "#00D2FF",
         "zone": {
             "name": "electric_cyan",
@@ -827,8 +827,8 @@ BRAND_PALETTES: Dict[str, Dict[str, str]] = {
     "emerald_luxury": {
         "hero_color": "#34D399",
         "companion_color": "#FFFFFF",
-        "glow": "0 0 16px rgba(52, 211, 153, 0.45)",
-        "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
+        "glow": "0 0 14px rgba(52, 211, 153, 0.35)",
+        "shadow": "0 2px 10px rgba(0, 0, 0, 0.55)",
         "accent_border": "#10B981",
         "zone": {
             "name": "emerald_luxury",
@@ -842,8 +842,8 @@ BRAND_PALETTES: Dict[str, Dict[str, str]] = {
     "royal_amethyst": {
         "hero_color": "#C084FC",
         "companion_color": "#FFFFFF",
-        "glow": "0 0 16px rgba(192, 132, 252, 0.45)",
-        "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
+        "glow": "0 0 14px rgba(192, 132, 252, 0.35)",
+        "shadow": "0 2px 10px rgba(0, 0, 0, 0.55)",
         "accent_border": "#A78BFA",
         "zone": {
             "name": "royal_amethyst",
@@ -857,8 +857,8 @@ BRAND_PALETTES: Dict[str, Dict[str, str]] = {
     "sunset_amber": {
         "hero_color": "#FBBF24",
         "companion_color": "#FFFFFF",
-        "glow": "0 0 16px rgba(251, 191, 36, 0.45)",
-        "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
+        "glow": "0 0 14px rgba(251, 191, 36, 0.35)",
+        "shadow": "0 2px 10px rgba(0, 0, 0, 0.55)",
         "accent_border": "#F59E0B",
         "zone": {
             "name": "sunset_amber",
@@ -873,7 +873,7 @@ BRAND_PALETTES: Dict[str, Dict[str, str]] = {
         "hero_color": "#FFFFFF",
         "companion_color": "#F1F5F9",
         "glow": "0 0 14px rgba(255, 255, 255, 0.35)",
-        "shadow": "0 2px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
+        "shadow": "0 2px 10px rgba(0, 0, 0, 0.55)",
         "accent_border": "#FFFFFF",
         "zone": {
             "name": "pure_editorial_mono",
@@ -1384,6 +1384,33 @@ def build_volumetric_luminance_gradient(
     )
 
 
+def clamp_glow_alpha(glow_str: str, max_alpha: float = 0.35) -> str:
+    """Clamp the opacity of RGBA or 8-digit hex color stops in a glow string to max_alpha."""
+    if not glow_str or glow_str == "none":
+        return "none"
+
+    def _sub_rgba(m):
+        r, g, b = m.group(1), m.group(2), m.group(3)
+        try:
+            a = float(m.group(4))
+            a_clamped = min(a, max_alpha)
+            return f"rgba({r}, {g}, {b}, {a_clamped:.2f})"
+        except ValueError:
+            return m.group(0)
+
+    res = re.sub(r"rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*([\d\.]+)\s*\)", _sub_rgba, glow_str)
+
+    def _sub_hex8(m):
+        h = m.group(1)
+        r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+        a = int(h[6:8], 16) / 255.0
+        a_clamped = min(a, max_alpha)
+        return f"rgba({r}, {g}, {b}, {a_clamped:.2f})"
+
+    res = re.sub(r"#([0-9a-fA-F]{8})\b", _sub_hex8, res)
+    return res
+
+
 def resolve_layer_gradient_and_glow(
     profile_name: str,
     role: str,
@@ -1430,7 +1457,7 @@ def resolve_layer_gradient_and_glow(
             f"linear-gradient({angle}deg, {body}, #FFFFFF {max(0.0, pos * 100 - width):.0f}%, "
             f"{tail} {min(100.0, pos * 100 + width):.0f}%)"
         )
-        material_shadow = "0 6px 18px rgba(0, 0, 0, 0.35)"
+        material_shadow = "0 2px 10px rgba(0, 0, 0, 0.55)"
 
     lum = layer_effects.get("luminance_gradient")
     if isinstance(lum, dict):
@@ -1449,8 +1476,11 @@ def resolve_layer_gradient_and_glow(
             ))
         material_gradient = ", ".join(layers_bg)
         g = layer_effects.get("glow")
-        if isinstance(g, dict):
-            material_glow = f"0 0 {int(g.get('radius', 26))}px {g.get('color', 'rgba(205, 230, 255, 0.85)')}"
+        if isinstance(g, dict) and is_hero:
+            raw_mat_g = f"0 0 {int(g.get('radius', 26))}px {g.get('color', 'rgba(205, 230, 255, 0.35)')}"
+            material_glow = clamp_glow_alpha(raw_mat_g, 0.35)
+        else:
+            material_glow = "none"
         material_shadow = "none"
 
     if isinstance(layer_effects.get("matte_editorial"), dict) and \
@@ -1474,26 +1504,30 @@ def resolve_layer_gradient_and_glow(
         )
         palette_id = brand_palette.get("id", "custom")
 
-    # 2. Multi-tier shadow resolution (After Effects contact shadow + ambient falloff):
+    # 2. Manifest-level shadow and glow subtraction:
+    # Single contact shadow per layer; triple-shadow default removed.
+    # Glow: heroes-only (if is_hero), motif-derived, alpha <= 0.35; companions get "none".
     is_light_bg = background_luminance is not None and background_luminance > 0.55
     if is_light_bg:
-        shadow = "0 1px 4px rgba(0, 0, 0, 0.20), 0 1px 2px rgba(0, 0, 0, 0.12)"
+        shadow = "0 1px 4px rgba(0, 0, 0, 0.20)"
         glow = "none"
     else:
         ds = layer_effects.get("drop_shadow")
         if isinstance(ds, dict):
-            blur = ds.get("blur_radius", 8)
-            shadow = f"0 3px 6px rgba(0, 0, 0, 0.95), 0 1px 2px rgba(0, 0, 0, 0.90), 0 12px 30px rgba(0, 0, 0, 0.55), 0 2px {blur}px rgba(0, 0, 0, 0.40)"
+            blur = ds.get("blur_radius", 10)
+            shadow = f"0 2px {blur}px rgba(0, 0, 0, 0.55)"
         else:
-            shadow = "0 3px 6px rgba(0, 0, 0, 0.95), 0 1px 2px rgba(0, 0, 0, 0.90), 0 12px 30px rgba(0, 0, 0, 0.55), 0 4px 14px rgba(0, 0, 0, 0.40)"
+            shadow = "0 2px 10px rgba(0, 0, 0, 0.55)"
 
-        custom_glow = layer_effects.get("glow")
-        if isinstance(custom_glow, str):
-            glow = custom_glow
-        elif is_hero:
-            glow = brand_palette.get("glow") or f"0 0 16px {text_fill_color}66"
+        if not is_hero:
+            glow = "none"
         else:
-            glow = brand_palette.get("glow") or "0 0 10px rgba(255, 255, 255, 0.20)"
+            custom_glow = layer_effects.get("glow")
+            if isinstance(custom_glow, str):
+                glow = custom_glow
+            else:
+                glow = brand_palette.get("glow") or f"0 0 14px rgba(255, 255, 255, 0.30)"
+            glow = clamp_glow_alpha(glow, 0.35)
 
     # 4. Volumetric Shading & Gradient resolution (never flat 2D silhouettes):
     if material_gradient is not None:
@@ -1569,7 +1603,7 @@ def resolve_layer_gradient_and_glow(
     base_res = {
         "gradient": gradient,
         "verticalGradient": vertical_grad or gradient,
-        "glow": material_glow if material_glow is not None else glow,
+        "glow": "none" if not is_hero else (clamp_glow_alpha(material_glow, 0.35) if material_glow is not None else glow),
         "shadow": material_shadow if material_shadow is not None else shadow,
         "textFillColor": text_fill_color,
         "hasGradient": (has_gradient and gradient != "none") or bool(vertical_grad),
@@ -1577,9 +1611,9 @@ def resolve_layer_gradient_and_glow(
         "specularSheen": True,
         "specularAngle": -35,
         "volumetricShading": True,
-        "contactShadow": "0 3px 6px rgba(0, 0, 0, 0.95)",
-        "ambientShadow": "0 12px 30px rgba(0, 0, 0, 0.55)",
-        "opticalBleed": glow,
+        "contactShadow": material_shadow if material_shadow is not None else shadow,
+        "ambientShadow": "none",
+        "opticalBleed": glow if is_hero else "none",
     }
 
     chiseled = (
@@ -1595,7 +1629,7 @@ def resolve_layer_gradient_and_glow(
             "gradient": "linear-gradient(180deg, #FFFFFF 0%, #FAFBFD 35%, #EDECE9 70%, #DCD7CD 100%)",
             "verticalGradient": "linear-gradient(180deg, #FFFFFF 0%, #FAFBFD 35%, #EDECE9 70%, #DCD7CD 100%)",
             "hasGradient": True,
-            "glow": "drop-shadow(0 0 10px rgba(255, 255, 255, 0.60)) drop-shadow(0 0 22px rgba(255, 250, 240, 0.35))",
+            "glow": "none" if not is_hero else "drop-shadow(0 0 10px rgba(255, 255, 255, 0.35)) drop-shadow(0 0 22px rgba(255, 250, 240, 0.25))",
             "shadow": "0 0 28px rgba(0, 0, 0, 0.45), 0 2px 14px rgba(0, 0, 0, 0.38), 0 0 6px rgba(0, 0, 0, 0.30)",
             "opticalBloom": True,
             "edgeFeatherPx": 0.35,
@@ -3149,7 +3183,7 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                     style_treatment["hasGradient"] = True
                     style_treatment["fontStyle"] = "italic"
                     style_treatment["fontFamily"] = "Apple Garamond"
-                    style_treatment["shadow"] = "0 6px 24px rgba(0, 0, 0, 0.95), 0 2px 6px rgba(0, 0, 0, 0.90)"
+                    style_treatment["shadow"] = "0 2px 10px rgba(0, 0, 0, 0.55)"
                 else:
                     font_size_px = max(26, min(38, 34))  # 3:1 to 4:1 scale ratio
                     resolved_weight = 300
@@ -3162,7 +3196,8 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                     style_treatment["hasGradient"] = False
                     style_treatment["fontStyle"] = "italic"
                     style_treatment["fontFamily"] = "Apple Garamond"
-                    style_treatment["shadow"] = "0 2px 10px rgba(0, 0, 0, 0.95), 0 1px 3px rgba(0, 0, 0, 0.90)"
+                    style_treatment["shadow"] = "0 2px 10px rgba(0, 0, 0, 0.55)"
+                    style_treatment["glow"] = "none"
 
             if is_see_through and not is_lockup_treatment:
                 # Rectified glass letterform: the frame's opaque ink color is
@@ -3201,7 +3236,7 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                 style_treatment["gradient"] = "linear-gradient(180deg, #FFFFFF 0%, #FAFBFD 35%, #EDECE9 70%, #DCD7CD 100%)"
                 style_treatment["verticalGradient"] = "linear-gradient(180deg, #FFFFFF 0%, #FAFBFD 35%, #EDECE9 70%, #DCD7CD 100%)"
                 style_treatment["hasGradient"] = True
-                style_treatment["glow"] = "drop-shadow(0 0 10px rgba(255, 255, 255, 0.60)) drop-shadow(0 0 22px rgba(255, 250, 240, 0.35))"
+                style_treatment["glow"] = "drop-shadow(0 0 10px rgba(255, 255, 255, 0.35)) drop-shadow(0 0 22px rgba(255, 250, 240, 0.25))" if is_hero_layer else "none"
                 style_treatment["shadow"] = "0 0 28px rgba(0, 0, 0, 0.45), 0 2px 14px rgba(0, 0, 0, 0.38), 0 0 6px rgba(0, 0, 0, 0.30)"
                 style_treatment["opticalBloom"] = True
                 style_treatment["edgeFeatherPx"] = 0.35
@@ -3225,7 +3260,7 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                 style_treatment["verticalGradient"] = split_gradient
                 style_treatment["hasGradient"] = True
                 style_treatment["textFillColor"] = "#FFFFFF"
-                style_treatment["glow"] = "0 0 14px rgba(255, 255, 255, 0.40)"
+                style_treatment["glow"] = "0 0 14px rgba(255, 255, 255, 0.35)" if is_hero_layer else "none"
                 style_treatment["shadow"] = "0 1px 0 #CBD5E1, 0 -1px 0 #0F172A, 0 8px 24px rgba(0, 0, 0, 0.95), 0 2px 8px rgba(0, 0, 0, 0.90)"
                 style_treatment["boundaryStroke"] = "2.5px rgba(0, 0, 0, 0.95)"
                 style_treatment["chiseledPrism"] = True
@@ -3392,7 +3427,7 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                     "cadenceMs": round(signal["cadenceMs"]),
                 },
                 "gradient": style_treatment["gradient"],
-                "glow": style_treatment["glow"],
+                "glow": style_treatment["glow"] if is_hero_layer else "none",
                 "shadow": style_treatment["shadow"],
                 "textFillColor": style_treatment["textFillColor"],
                 "hasGradient": style_treatment["hasGradient"] or bool(layer_effects.get("vertical_gradient") or layer_effects.get("verticalGradient")),
@@ -3405,9 +3440,9 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                 "specularSheen": style_treatment.get("specularSheen", True),
                 "specularAngle": style_treatment.get("specularAngle", -35),
                 "volumetricShading": style_treatment.get("volumetricShading", True),
-                "contactShadow": style_treatment.get("contactShadow", "0 3px 6px rgba(0, 0, 0, 0.95)"),
-                "ambientShadow": style_treatment.get("ambientShadow", "0 12px 30px rgba(0, 0, 0, 0.55)"),
-                "opticalBleed": style_treatment.get("opticalBleed"),
+                "contactShadow": style_treatment.get("contactShadow", "0 2px 10px rgba(0, 0, 0, 0.55)"),
+                "ambientShadow": style_treatment.get("ambientShadow", "none"),
+                "opticalBleed": style_treatment.get("opticalBleed") if is_hero_layer else "none",
                 "doubleUnderline": bool(layer_effects.get("double_underline", False)),
                 "isOverlapping": is_overlapping,
                 "isUnderlapping": False,

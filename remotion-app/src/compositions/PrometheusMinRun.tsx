@@ -244,13 +244,16 @@ export const buildPhysicalLightingFilter = (options: {
     parts.push("drop-shadow(1.0px 1.4px 0.5px rgba(0, 0, 0, 0.78))");
   }
   const toDropShadow = (val?: string, fallback = ""): string => {
-    if (!val) return fallback ? `drop-shadow(${fallback})` : "";
+    if (!val || val === "none") return fallback ? `drop-shadow(${fallback})` : "";
     const t = val.trim();
+    if (t === "none") return "";
     if (t.startsWith("drop-shadow(")) return t;
     return `drop-shadow(${t})`;
   };
-  parts.push(toDropShadow(options.contactShadow, "0 3px 6px rgba(0, 0, 0, 0.95)"));
-  parts.push(toDropShadow(options.ambientShadow, "0 10px 26px rgba(0, 0, 0, 0.55)"));
+  parts.push(toDropShadow(options.contactShadow, "0 2px 10px rgba(0, 0, 0, 0.55)"));
+  if (options.ambientShadow && options.ambientShadow !== "none") {
+    parts.push(toDropShadow(options.ambientShadow));
+  }
   if (options.glow && options.glow !== "none") {
     const g = options.glow.trim();
     if (g.startsWith("drop-shadow(")) {
@@ -376,10 +379,10 @@ export const resolveTypographyPaintStyle = (layer: TypographyPaintInput): React.
       : (layer.shadow === "none"
         ? "none"
         : (layer.shadow || (layer.behindSubject
-          ? "0 4px 24px rgba(0, 0, 0, 0.95), 0 2px 8px rgba(0, 0, 0, 0.85)"
+          ? "0 2px 10px rgba(0, 0, 0, 0.55)"
           : (layer.isHero
-            ? "0 4px 16px rgba(0, 0, 0, 0.90), 0 2px 6px rgba(0, 0, 0, 0.85)"
-            : "0 2px 8px rgba(0, 0, 0, 0.80)")))),
+            ? "0 2px 10px rgba(0, 0, 0, 0.55)"
+            : "0 2px 10px rgba(0, 0, 0, 0.55)")))),
     mixBlendMode: undefined,
   };
 };
@@ -1282,9 +1285,12 @@ const KineticLayerRenderer: React.FC<{
     if (isAirFrontal) {
       return "0 0 28px rgba(0, 0, 0, 0.45), 0 2px 14px rgba(0, 0, 0, 0.38), 0 0 6px rgba(0, 0, 0, 0.30)";
     }
-    return layer.shadow || value || (isBehindSubject
-      ? "0 4px 30px rgba(0, 0, 0, 0.98), 0 2px 10px rgba(0, 0, 0, 0.92), 0 0 4px rgba(0, 0, 0, 1.0)"
-      : "0 4px 20px rgba(0, 0, 0, 0.95), 0 2px 8px rgba(0, 0, 0, 0.90), 0 0 3px rgba(0, 0, 0, 0.95)");
+    if (layer.shadow !== undefined) {
+      return layer.shadow === "none" ? undefined : layer.shadow;
+    }
+    return value || (isBehindSubject
+      ? "0 2px 10px rgba(0, 0, 0, 0.55)"
+      : "0 2px 10px rgba(0, 0, 0, 0.55)");
   };
 
   const composeFilter = (blurPx: number, extraFilter?: string): string | undefined => {
