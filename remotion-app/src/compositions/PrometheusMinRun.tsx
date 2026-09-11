@@ -1345,6 +1345,14 @@ const KineticLayerRenderer: React.FC<{
     isFlank,
   });
 
+  const fitScale = (s: number = 1.0): number => (autoFitScale < 1.0 ? s * autoFitScale : s);
+  const fitTransform = (extraTransform: string): string => {
+    if (autoFitScale < 1.0) {
+      return `scale(${autoFitScale}) ${extraTransform}`.trim();
+    }
+    return extraTransform;
+  };
+
   const effectiveFontSizePx = Math.max(
     isBehindSubject ? behindSubjectFontSize : (layer.fontSizePx || 48),
     36,
@@ -1723,7 +1731,7 @@ const KineticLayerRenderer: React.FC<{
     return (
       <div style={{
         ...baseTextStyle,
-        transform: `scale(${scale})`,
+        transform: `scale(${fitScale(scale)})`,
         filter: `blur(${blur}px)`,
         textShadow: kineticTextShadow(`0 0 32px rgba(${hookGlow}, ${interpolate(p, [0, 0.5, 1], [0.9, 0.45, 0.15])}), 0 0 60px rgba(${hookGlow}, ${interpolate(p, [0, 1], [0.6, 0.0])})`),
         opacity: interpolate(p, [0, 0.25, 1], [0, 0.85, 1]),
@@ -1747,7 +1755,7 @@ const KineticLayerRenderer: React.FC<{
       <div style={{
         ...baseTextStyle,
         filter: `blur(${blur}px) brightness(${brightness})`,
-        transform: `scale(${scale})`,
+        transform: `scale(${fitScale(scale)})`,
         opacity: interpolate(p, [0, 0.3, 1], [0, 0.85, 1]),
         textShadow: kineticTextShadow(`0 0 24px rgba(${hookGlow}, ${interpolate(p, [0, 0.6, 1], [0.7, 0.3, 0.1])})`),
       }}>
@@ -1769,7 +1777,7 @@ const KineticLayerRenderer: React.FC<{
     return (
       <div style={{
         ...baseTextStyle,
-        transform: `translateX(${tx}px) skewX(${skewX}deg)`,
+        transform: fitTransform(`translateX(${tx}px) skewX(${skewX}deg)`),
         filter: `blur(${blurX}px)`,
         opacity: interpolate(p, [0, 0.3, 1], [0, 0.9, 1]),
         textShadow: kineticTextShadow(`0 0 22px rgba(${hookGlow}, ${interpolate(p, [0, 0.5, 1], [0.6, 0.3, 0.1])})`),
@@ -1791,7 +1799,7 @@ const KineticLayerRenderer: React.FC<{
     return (
       <div style={{
         ...baseTextStyle,
-        transform: `scale(${scale})`,
+        transform: `scale(${fitScale(scale)})`,
         filter: `blur(${blur}px)`,
         opacity: interpolate(p, [0, 0.2, 1], [0, 0.85, 1]),
         textShadow: kineticTextShadow(`0 0 28px rgba(${hookGlow}, ${interpolate(p, [0, 0.5, 1], [0.75, 0.35, 0.1])})`),
@@ -1914,7 +1922,7 @@ const KineticLayerRenderer: React.FC<{
       ? interpolate(zoomProgress, [0, 1], [hookLensBlur.startBlurPx, hookLensBlur.endBlurPx], {extrapolateLeft: "clamp", extrapolateRight: "clamp"})
       : 0;
     return (
-      <div style={{...baseTextStyle, transform: `scale(${scale})`, filter: `blur(${blurPx}px)`, textShadow: kineticTextShadow(`0 0 20px rgba(${hookGlow}, ${interpolate(zoomProgress, [0, 0.4, 1], [0.6, 0.25, 0.12])})`)}}>
+      <div style={{...baseTextStyle, transform: `scale(${fitScale(scale)})`, filter: `blur(${blurPx}px)`, textShadow: kineticTextShadow(`0 0 20px rgba(${hookGlow}, ${interpolate(zoomProgress, [0, 0.4, 1], [0.6, 0.25, 0.12])})`)}}>
         {words.map((word, wIdx) => {
           const wp = interpolate(frame, [(wIdx * 2), (wIdx * 2) + 6], [0, 1], {extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.out(Easing.cubic)});
           return <span key={`hook-dolly-${wIdx}`} style={{display: "inline-block", whiteSpace: "nowrap", margin: "0 0.15em", opacity: wp, ...wordPaintStyle}}>{word}</span>;

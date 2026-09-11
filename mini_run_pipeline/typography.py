@@ -1151,6 +1151,125 @@ def upgrade_font_candidate(font_name: str, is_hero: bool, role: str = "body", rn
     return font_name
 
 
+# Authoritative per-font character width-to-height aspect ratio table
+FONT_CHAR_ASPECT_TABLE: Dict[str, float] = {
+    # Ultra-condensed
+    "six caps": 0.28,
+    "saira extra condensed": 0.34,
+    "saira": 0.38,
+    "teko": 0.36,
+    "league gothic": 0.38,
+    # Condensed grotesque / display
+    "anton": 0.40,
+    "bebas neue": 0.38,
+    "bebas": 0.38,
+    "oswald": 0.42,
+    "antenna": 0.42,
+    "senzabella": 0.44,
+    "echelon": 0.42,
+    # Wide display serifs
+    "bodoni moda": 0.64,
+    "playfair display": 0.65,
+    "cinzel": 0.66,
+    "abril fatface": 0.68,
+    "berylium": 0.58,
+    # Classic / editorial serifs
+    "apple garamond": 0.52,
+    "cormorant garamond": 0.52,
+    "goudy bookletter": 0.50,
+    "fraunces": 0.58,
+    # Clean modern sans
+    "montserrat": 0.56,
+    "outfit": 0.54,
+    "dm sans": 0.52,
+    "altone": 0.54,
+    "pathway extreme": 0.52,
+    "inter": 0.52,
+    "space mono": 0.60,
+    "amerika": 0.54,
+}
+
+
+def get_font_char_aspect(font_name: str, is_uppercase: bool = False) -> float:
+    """Return character width-to-height aspect ratio using the authoritative aspect table."""
+    f_clean = (font_name or "").lower().strip()
+    base_aspect = 0.54
+    for key, ratio in FONT_CHAR_ASPECT_TABLE.items():
+        if key in f_clean:
+            base_aspect = ratio
+            break
+    else:
+        if is_script_font(font_name):
+            base_aspect = 0.50
+        elif is_serif_font(font_name):
+            base_aspect = 0.62
+
+    return round(base_aspect * (1.32 if is_uppercase else 1.0), 3)
+
+
+def estimate_layer_width_px(text: str, font_name: str, font_size_px: float, is_uppercase: bool = False) -> float:
+    """Accurately estimate rendered width in pixels."""
+    if not text:
+        return 0.0
+    aspect = get_font_char_aspect(font_name, is_uppercase=is_uppercase)
+    return round(len(text) * font_size_px * aspect, 1)
+
+
+def preflight_and_fit_layer_widths(
+    layers_info: List[Dict[str, Any]],
+    max_safe_width: float = 820.0,
+) -> None:
+    """Chunk-level width preflight: largest-first shrink with legibility floors.
+
+    - Companion floor: 50px
+    - Hero floor: 80px (or script floor if script font)
+    - If a layer's estimated width exceeds max_safe_width, shrink largest layer first
+      until it fits or hits its legibility floor.
+    """
+    for layer in layers_info:
+        text = layer.get("rawText", "")
+        font = layer.get("primary_font") or layer.get("fontFamily", "")
+        is_upper = layer.get("is_upper", False) or layer.get("casing") == "uppercase" or text.isupper()
+        is_hero = layer.get("is_hero_layer", False) or layer.get("isHero", False)
+        is_script = layer.get("is_script", False) or is_script_font(font)
+        is_spencerian = layer.get("is_spencerian", False) or any(s in font.lower() for s in ("exmouth", "champignon", "brotherhood"))
+
+        if is_spencerian:
+            legibility_floor = 115
+        elif is_script:
+            legibility_floor = 80
+        elif is_hero:
+            legibility_floor = 80
+        else:
+            legibility_floor = 50
+
+        layer["legibility_floor"] = legibility_floor
+        aspect = get_font_char_aspect(font, is_uppercase=is_upper)
+        layer["char_aspect"] = aspect
+        current_size = layer.get("font_size_px") or layer.get("fontSizePx", 60)
+        layer["font_size_px"] = current_size
+        est_width = len(text) * current_size * aspect
+        layer["est_width"] = est_width
+
+    # Largest-first iterative shrink for any layer exceeding max_safe_width
+    while True:
+        overflowing = [
+            l for l in layers_info
+            if l.get("est_width", 0) > max_safe_width and l["font_size_px"] > l["legibility_floor"]
+        ]
+        if not overflowing:
+            break
+        # Sort descending by current font size (largest first)
+        overflowing.sort(key=lambda l: l["font_size_px"], reverse=True)
+        target = overflowing[0]
+        # Calculate size needed to fit
+        needed_size = int(max_safe_width / (max(1, len(target.get("rawText", ""))) * target["char_aspect"]))
+        target["font_size_px"] = max(target["legibility_floor"], min(target["font_size_px"] - 1, needed_size))
+        if "fontSizePx" in target:
+            target["fontSizePx"] = target["font_size_px"]
+        target["est_width"] = len(target.get("rawText", "")) * target["font_size_px"] * target["char_aspect"]
+
+
 # High-tier, vetted editorial kinetic preset repertoire
 KINETIC_HERO_PRESETS = [
     "focus_hunting_bokeh_shimmer",
@@ -3151,9 +3270,19 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                 layer_fx = _resolve_font_json_treatment(prof, layer_spec, is_hero=False, is_single_word=is_single_word, rng=rng, policy=policy, behind_subject=behind_subject)
                 layer_overlay = None
 
-            # Enforce max horizontal text width clamp so words NEVER overflow canvas boundaries
+            if is_spencerian:
+                legibility_floor = 115
+            elif is_script:
+                legibility_floor = 80
+            elif is_hero_layer:
+                legibility_floor = 80
+            else:
+                legibility_floor = 50
+
+            char_aspect = get_font_char_aspect(primary_font, is_uppercase=is_upper)
+            # Enforce max horizontal text width clamp with per-font aspect table and legibility floor
             max_size_for_width = int(max_safe_width / (clean_len * char_aspect))
-            font_size_px = max(script_floor if is_script else 50, min(target_font_size, max_size_for_width))
+            font_size_px = max(legibility_floor, min(target_font_size, max_size_for_width))
 
             raw_color = f_style.get("color")
             layer_effects = layer_spec.get("effects", {})
@@ -3478,6 +3607,10 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                 },
                 "inlineTokenSwaps": inline_swaps,
             })
+
+        # Chunk-level width preflight: largest-first shrink with legibility floors
+        # (companion floor 50px, hero floor 80px)
+        preflight_and_fit_layer_widths(rendered_layers, max_safe_width=max_safe_width)
 
         # Resolve inter-layer stacking hierarchy, overlay depth shadows, and underlapping vertical linear gradients
         num_rend = len(rendered_layers)
