@@ -254,7 +254,7 @@ FONT_FAMILY_REGISTRY: Dict[str, str] = {
     # --- family + style variants -> base loaded family ----------------------
     "playfair display italic": "Playfair Display",
     "playfair display": "Playfair Display",
-    "amerika alternates": "Amerika Alternates",
+    "amerika alternates": "Amerika",
     "amerika": "Amerika",
     "cormorant garamond italic": "Cormorant Garamond",
     "cormorant garamond": "Cormorant Garamond",
@@ -1054,6 +1054,59 @@ SCRIPT_FONT_KEYWORDS = (
 )
 
 
+# Decorative display, alternates, and trial faces strictly barred from companion/modifier tiers
+DECORATIVE_BARRED_COMPANION_FONTS = {
+    "amerika alternates",
+    "erotique alternate trial",
+    "erotique",
+    "quanton",
+    "quanton personal use only",
+    "blaak",
+    "blaak thin personal use",
+    "foundland",
+    "foundland italic personal use only",
+    "aulion demo",
+    "aulion",
+    "aesthico",
+    "aesthico (demo)",
+    "the glamoure",
+    "black delights",
+    "bellavoir serif",
+    "bellavoirserif",
+    "candlescript",
+    "candle script",
+    "candlescript demo version",
+    "freebooter script",
+    "freebooter",
+    "freebooter_script",
+    "grand cru",
+    "grandcru",
+    "zt otez",
+    "migra",
+    "elegist",
+    "vogue",
+    "antenna",
+    "abril fatface",
+}
+
+BARRED_COMPANION_KEYWORDS = (
+    "alternate", "alternates", "trial", "demo", "watermark", "personal use",
+    "erotique", "quanton", "blaak", "foundland", "aulion", "aesthico",
+    "the glamoure", "black delights", "bellavoir", "candlescript",
+    "freebooter", "grand cru", "grandcru", "zt otez", "migra", "elegist",
+    "vogue", "antenna", "abril fatface"
+)
+
+
+def is_barred_companion_font(font_name: str) -> bool:
+    f = (font_name or "").lower().strip()
+    if not f:
+        return False
+    if f in DECORATIVE_BARRED_COMPANION_FONTS:
+        return True
+    return any(k in f for k in BARRED_COMPANION_KEYWORDS)
+
+
 def is_script_font(font_name: str) -> bool:
     f = (font_name or "").lower().strip()
     return any(k in f for k in SCRIPT_FONT_KEYWORDS)
@@ -1082,7 +1135,7 @@ def upgrade_font_candidate(font_name: str, is_hero: bool, role: str = "body", rn
 
     # Companion-tier script & decorative font ban:
     if not is_hero:
-        if is_script_font(font_name) or f_clean in UNSAFE_DISTORTED_FONTS:
+        if is_script_font(font_name) or f_clean in UNSAFE_DISTORTED_FONTS or is_barred_companion_font(font_name):
             return _rng.choice(COMPANION_UPGRADE_FONTS)
 
     # Anti-clash policy: if this is a companion layer, ensure it never clashes with the hero font
@@ -2954,6 +3007,12 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
             primary_font = upgrade_font_candidate(primary_font, is_hero_layer, role=layer_spec.get("role", "body"), rng=rng, hero_font=chunk_hero_font)
             accent_font = upgrade_font_candidate(accent_font, False, role="companion", rng=rng, hero_font=chunk_hero_font)
 
+            if not is_hero_layer:
+                if is_barred_companion_font(primary_font) or is_script_font(primary_font):
+                    primary_font = rng.choice(COMPANION_UPGRADE_FONTS) if rng else "Montserrat"
+                if is_barred_companion_font(accent_font) or is_script_font(accent_font):
+                    accent_font = rng.choice(COMPANION_UPGRADE_FONTS) if rng else "Montserrat"
+
             clean_len = max(1, len(raw_layer_text))
             # Policy: Script / calligraphic fonts are strictly prohibited on:
             # 1. Any secondary/companion tier (not is_hero_layer) regardless of length
@@ -3286,6 +3345,13 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
             # Multi-word layers get horizontal alternatives.
             if layer_fx == "canva_tall_glyph_stack" and not (behind_subject or len(layer_words) <= 1):
                 layer_fx = "multi_word_slide_up_stagger" if not is_hero_layer else "dynamic_staggered_character_cascade"
+
+            # Strict Companion Font Contract: companion layers must never emit barred decorative or alternate fonts
+            if not is_hero_layer:
+                if is_barred_companion_font(primary_font):
+                    primary_font = rng.choice(COMPANION_UPGRADE_FONTS) if rng else "Montserrat"
+                if is_barred_companion_font(accent_font):
+                    accent_font = rng.choice(COMPANION_UPGRADE_FONTS) if rng else "Montserrat"
 
             rendered_layers.append({
                 "layerIndex": layer_idx,
