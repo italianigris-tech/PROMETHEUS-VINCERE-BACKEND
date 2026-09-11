@@ -1009,7 +1009,7 @@ export const resolveBehindSubjectTypographyMetrics = ({
     scaleY = isTallFont ? 1.45 : 1.18;
     letterSpacing = "0.04em";
   } else if (len <= 8) {
-    fontSize = availableHeightRatio >= 0.13 ? 140 : 120;
+    fontSize = availableHeightRatio >= 0.13 ? (isTallFont ? 150 : 140) : 120;
     scaleX = 1.0;
     scaleY = isTallFont ? 1.35 : 1.14;
     letterSpacing = "0.03em";
@@ -4963,7 +4963,8 @@ const MultiLayerTypographyCard: React.FC<{
   const blockHalfHeight = estimatedBlockHeight / 2;
   const maxTopPercent = ((bottomSafePx - blockHalfHeight) / CANVAS_H) * 100;
   const rawTopPercent = parseFloat(topPositionRaw) || 54;
-  const topPosition = `${Math.max(20, Math.min(rawTopPercent, maxTopPercent))}%`;
+  const minTopPercent = behindSubject ? 8 : 20;
+  const topPosition = `${Math.max(minTopPercent, Math.min(rawTopPercent, maxTopPercent))}%`;
   const textAlign = (chunk.placement as any)?.textAlign || "center";
   const alignItems = textAlign === "left" ? "flex-start" : (textAlign === "right" ? "flex-end" : "center");
   const maxWidthPercent = Number((chunk.placement as any)?.maxWidthPercent);

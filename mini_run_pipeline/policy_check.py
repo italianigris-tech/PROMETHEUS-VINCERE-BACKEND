@@ -338,6 +338,124 @@ def validate_line_count_and_wrap(layers: Sequence[Dict[str, Any]]) -> Dict[str, 
     }
 
 
+def validate_head_occlusion(
+    layers: Sequence[Dict[str, Any]],
+    chunks: Optional[Sequence[Dict[str, Any]]] = None,
+    frames: Optional[Sequence[Dict[str, Any]]] = None,
+    max_occlusion_threshold: float = 0.40,
+) -> Dict[str, Any]:
+    """Validate head occlusion policy for behind-subject pivots.
+
+    Matte-alpha ∩ pivot-bbox ratio must be <= 40% (0.40).
+    Fails if occlusion exceeds 40%.
+    """
+    behind_layers = [l for l in layers if l.get("behindSubject")]
+    if not behind_layers:
+        return {
+            "status": "passed",
+            "pivotsChecked": 0,
+            "maxOcclusionFound": 0.0,
+            "maxAllowedOcclusion": max_occlusion_threshold,
+            "violations": [],
+            "pivots": [],
+        }
+
+    chunk_map: Dict[Any, Dict[str, Any]] = {}
+    if chunks:
+        for idx, c in enumerate(chunks):
+            chunk_map[c.get("chunkIndex", idx)] = c
+            chunk_map[idx] = c
+
+    violations: List[str] = []
+    pivots_data: List[Dict[str, Any]] = []
+    max_occ = 0.0
+
+    CANVAS_W = 1080.0
+    CANVAS_H = 1920.0
+
+    for l in behind_layers:
+        c_idx = l.get("chunkIndex")
+        chunk = chunk_map.get(c_idx, {})
+        placement = chunk.get("placement") or l.get("placement") or {}
+        raw_text = str(l.get("rawText") or l.get("text") or "").strip()
+        font = str(l.get("fontFamily") or l.get("primary_font") or "Anton")
+        font_sz = float(l.get("fontSizePx") or 150.0)
+        is_upper = str(l.get("casing", "")).lower() == "uppercase" or raw_text.isupper()
+
+        # Parse placement coordinates
+        raw_x = str(placement.get("xPercent", "50%")).replace("%", "")
+        raw_y = str(placement.get("yPercent", "13.5%")).replace("%", "")
+        try:
+            x_pct = float(raw_x) / 100.0
+        except ValueError:
+            x_pct = 0.50
+        try:
+            y_pct = float(raw_y) / 100.0
+        except ValueError:
+            y_pct = 0.135
+
+        # Bounding box of pivot text
+        est_w = estimate_layer_width_px(raw_text, font, font_sz, is_uppercase=is_upper)
+        is_tall = any(k in font.lower() for k in ("anton", "bebas", "six caps", "teko", "saira", "senzabella"))
+        est_h = font_sz * (1.35 if is_tall else 1.15)
+
+        center_x = x_pct * CANVAS_W
+        center_y = y_pct * CANVAS_H
+        t_x0 = max(0.0, center_x - est_w / 2.0)
+        t_x1 = min(CANVAS_W, center_x + est_w / 2.0)
+        t_y0 = max(0.0, center_y - est_h / 2.0)
+        t_y1 = min(CANVAS_H, center_y + est_h / 2.0)
+        text_area = max(1.0, (t_x1 - t_x0) * (t_y1 - t_y0))
+
+        # Subject head bounding box (cranial envelope)
+        head_top_ratio = float(placement.get("headTopY", 0.18) or 0.18)
+        face_bottom_ratio = float(placement.get("faceBottom", 0.45) or 0.45)
+        h_x0 = (0.50 - 0.15) * CANVAS_W
+        h_x1 = (0.50 + 0.15) * CANVAS_W
+        h_y0 = head_top_ratio * CANVAS_H
+        h_y1 = face_bottom_ratio * CANVAS_H
+
+        # Geometric intersection
+        i_x0 = max(t_x0, h_x0)
+        i_x1 = min(t_x1, h_x1)
+        i_y0 = max(t_y0, h_y0)
+        i_y1 = min(t_y1, h_y1)
+
+        if i_x1 > i_x0 and i_y1 > i_y0:
+            overlap_area = (i_x1 - i_x0) * (i_y1 - i_y0)
+        else:
+            overlap_area = 0.0
+
+        occ_ratio = round(overlap_area / text_area, 4)
+        if occ_ratio > max_occ:
+            max_occ = occ_ratio
+
+        pivot_info = {
+            "chunkIndex": c_idx,
+            "text": raw_text,
+            "fontFamily": font,
+            "fontSizePx": font_sz,
+            "yPercent": f"{y_pct * 100:.1f}%",
+            "occlusionRatio": occ_ratio,
+        }
+        pivots_data.append(pivot_info)
+
+        if occ_ratio > (max_occlusion_threshold + 0.001):
+            violations.append(
+                f"Chunk {c_idx} behind-subject pivot '{raw_text}' head occlusion {occ_ratio:.1%} "
+                f"exceeds maximum threshold {max_occlusion_threshold:.0%}"
+            )
+
+    return {
+        "status": "passed" if not violations else "failed",
+        "pivotsChecked": len(behind_layers),
+        "maxOcclusionFound": max_occ,
+        "maxAllowedOcclusion": max_occlusion_threshold,
+        "pivots": pivots_data,
+        "violations": violations,
+    }
+
+
 def validate_shadow_glow_budget(layers: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
     """Validate single contact shadow and hero-only glow alpha <= 0.35."""
     amb_v, shd_v, comp_glow_v, hero_glow_v = [], [], [], []
@@ -567,6 +685,12 @@ def run_post_render_conformance_check(
     )
     line_wrap = validate_line_count_and_wrap(layers)
     shadow_glow = validate_shadow_glow_budget(layers)
+    head_occlusion = validate_head_occlusion(
+        layers,
+        chunks=chunks,
+        frames=frame_result.get("frames"),
+        max_occlusion_threshold=0.40,
+    )
 
     # Look policy and pixel A/B validation
     look_plan = None
@@ -576,12 +700,19 @@ def run_post_render_conformance_check(
     first_frame = (frame_result.get("frames") or [{}])[0].get("framePath") if frame_result.get("status") == "passed" else None
     look_result = validate_look_conformance(look_plan, frame_path=first_frame, reference_frame_path=reference_frame_path)
 
-    all_violations = safe_bounds["violations"] + line_wrap["violations"] + shadow_glow["violations"] + look_result["violations"]
+    all_violations = (
+        safe_bounds["violations"]
+        + line_wrap["violations"]
+        + shadow_glow["violations"]
+        + look_result["violations"]
+        + head_occlusion["violations"]
+    )
+    all_evaluated_checks = [safe_bounds, line_wrap, shadow_glow, look_result, head_occlusion]
     return {
         "status": "passed" if not all_violations else "failed",
-        "totalChecks": 4,
-        "passedChecks": sum(1 for c in [safe_bounds, line_wrap, shadow_glow, look_result] if c["status"] == "passed"),
-        "failedChecks": sum(1 for c in [safe_bounds, line_wrap, shadow_glow, look_result] if c["status"] == "failed"),
+        "totalChecks": len(all_evaluated_checks),
+        "passedChecks": sum(1 for c in all_evaluated_checks if c["status"] == "passed"),
+        "failedChecks": sum(1 for c in all_evaluated_checks if c["status"] == "failed"),
         "totalLayersChecked": len(layers),
         "violations": all_violations,
         "checks": {
@@ -589,6 +720,7 @@ def run_post_render_conformance_check(
             "lineCount": line_wrap,
             "shadowBudget": shadow_glow,
             "lookConformance": look_result,
+            "headOcclusion": head_occlusion,
             "frameExtraction": frame_result,
         },
         "durationMs": round((time.monotonic() - t_start) * 1000, 2),

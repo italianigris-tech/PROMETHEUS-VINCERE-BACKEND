@@ -206,13 +206,13 @@ def analyze_cranial_negative_space(
     """
     if not subject_box:
         # Default centered layout when no observation is available:
-        # Nestles text in cranial crown directly behind the principal speaker's head (24%), not in top rafters (10-11%)
+        # Nestles text in upper cranial crown (13.5%), avoiding deep skull occlusion (<= 40%)
         below_head_y = 0.54 if face_bottom_y is None else round(max(0.44, min(0.68, face_bottom_y + 0.11)), 3)
         return {
             "dominantZone": "cranial_crown",
             "zoneId": "behind_subject_above_head",
             "xPercent": "50%",
-            "yPercent": "24.0%",
+            "yPercent": "13.5%",
             "anchor": "center",
             "textAlign": "center",
             "fontTreatment": "tall_didone_arch",
