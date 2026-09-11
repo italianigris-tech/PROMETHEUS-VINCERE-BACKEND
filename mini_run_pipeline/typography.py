@@ -2036,6 +2036,27 @@ def _is_tall_matte_profile(profile: Dict[str, Any]) -> bool:
     return False
 
 
+def is_descriptor_phrase(text: str) -> bool:
+    """Identify descriptive compound phrases, adjective+noun pairs, or coordinated pairs."""
+    t = text.lower().strip(".,!?:;\"'")
+    words = [w.strip(".,!?:;\"'") for w in t.split() if w.strip(".,!?:;\"'")]
+    if len(words) < 2:
+        return False
+    # Coordinated pairs with 'and', '&', 'or', 'plus'
+    if any(conj in words for conj in ("and", "&", "or", "plus")):
+        return True
+    # Digits + words (e.g. '12,000 physical products')
+    if any(w.isdigit() or any(ch.isdigit() for ch in w) for w in words):
+        return True
+    DESCRIPTIVE_KEYWORDS = {
+        "physical", "digital", "special", "financial", "complete", "total", "direct",
+        "absolute", "pure", "real", "hard", "soft", "big", "giant", "little", "huge",
+        "entire", "every", "multiple", "various", "different", "similar", "great",
+        "awesome", "beautiful", "sunshine", "rainbows", "products", "results", "camera",
+    }
+    return any(w in DESCRIPTIVE_KEYWORDS for w in words)
+
+
 def _is_behind_subject_candidate_profile(profile: Dict[str, Any]) -> bool:
     """Checks if profile is qualified for behind-subject cranial / tall matte placement."""
     return _is_tall_matte_profile(profile) or _is_cranial_profile(profile)
@@ -2972,6 +2993,17 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
         if not matching_profiles:
             matching_profiles = pool
 
+        # Overlap routing: descriptor phrases (adjective+noun: "sunshine and rainbows", "12,000 physical products")
+        # preferentially routed into the 2.5D archetype with gradient fade + grounding shadow
+        if not is_single_word and is_descriptor_phrase(raw_text):
+            overlap_profiles = [
+                p for p in matching_profiles
+                if p["id"] in ("image (150)", "image (151)", "image (152)", "image (124)", "image (7)", "image (97)")
+                or any(float((l.get("layer") or {}).get("typography_style", {}).get("vertical_margin_top_px", 0)) < 0 for l in p.get("typography_layers", []))
+            ]
+            if overlap_profiles:
+                matching_profiles = overlap_profiles
+
         candidates_pool = [p for p in matching_profiles if p["id"] not in recent_profile_ids] or matching_profiles
         prof = _weighted_choice(rng, candidates_pool, [
             _profile_bias_score(profile, policy["typographyBias"], is_first_chunk=(idx == 0))
@@ -3459,8 +3491,9 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
             # Content-blind overlap grammar: identify trailing conversational tags
             # ("right", "true", "yeah", "too") to assign negative vertical overlap tucks
             clean_tag = raw_layer_text.strip().strip(".,!?:;\"'").lower()
-            if margin_top_px == 0 and layer_idx > 0 and clean_tag in {"right", "true", "yeah", "too", "ok", "okay", "yes", "sure"}:
-                margin_top_px = -round(font_size_px * 0.28)
+            is_desc = is_descriptor_phrase(raw_text)
+            if margin_top_px == 0 and layer_idx > 0 and (clean_tag in {"right", "true", "yeah", "too", "ok", "okay", "yes", "sure"} or is_desc):
+                margin_top_px = -round(font_size_px * 0.24)
 
             # Descender / script-swash collision avoidance policy:
             # If the preceding line contains descenders ('g','j','p','q','y','Q') OR the
@@ -3808,7 +3841,7 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                 "color": "#FFFFFF",
                 "gradient": "none",
                 "glow": "none",
-                "shadow": "none",
+                "shadow": layer.get("shadow") if layer.get("isOverlapping") else "none",
                 "textFillColor": "#FFFFFF",
                 "hasGradient": False,
                 "doubleUnderline": False,
