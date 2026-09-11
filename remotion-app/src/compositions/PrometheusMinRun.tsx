@@ -349,7 +349,7 @@ export const resolveTypographyPaintStyle = (layer: TypographyPaintInput): React.
       : undefined));
   const hasGradient = Boolean(effectiveGradient);
   const glowActive = Boolean(layer.glow) && layer.glow !== "none";
-  const glowFilter = glowActive ? ` drop-shadow(0 0 10px ${layer.glow})` : "";
+  const glowFilter = (glowActive && layer.isHero !== false) ? ` drop-shadow(0 0 10px ${layer.glow})` : "";
   const shadowSuppressed = layer.shadow === "none";
   const bloomOnly = shadowSuppressed && glowActive;
   return {
@@ -360,7 +360,7 @@ export const resolveTypographyPaintStyle = (layer: TypographyPaintInput): React.
     filter: hasGradient
       ? (shadowSuppressed
         ? (glowActive
-          ? `drop-shadow(0 0 20px ${layer.glow}) drop-shadow(0 0 10px ${layer.glow})`
+          ? `drop-shadow(0 0 16px ${layer.glow})`
           : undefined)
         : (layer.specularChamfer
           ? buildPhysicalLightingFilter({
@@ -2097,7 +2097,7 @@ const KineticLayerRenderer: React.FC<{
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
                 WebkitTextStroke: "1.2px rgba(255, 255, 255, 0.8)",
-                filter: composeFilter(blur, `drop-shadow(0 4px 18px rgba(0, 0, 0, 0.95)) drop-shadow(0 0 16px ${layer.glow || "rgba(255, 69, 58, 0.6)"})`),
+                filter: composeFilter(blur, (layer.isHero && layer.glow) ? `drop-shadow(0 0 14px ${layer.glow})` : undefined),
               }}
             >
               {word}
@@ -4489,7 +4489,7 @@ const HierarchicalAsymmetricLockupComposition: React.FC<{
           fontFeatureSettings: '"liga" 0, "dlig" 0, "calt" 0, "hlig" 0',
           filter: isDifference
             ? "drop-shadow(0 0 1px rgba(0, 0, 0, 0.85))"
-            : "drop-shadow(0 0 24px rgba(255, 255, 255, 0.45)) drop-shadow(0 0 45px rgba(255, 255, 255, 0.18)) drop-shadow(0 6px 24px rgba(0, 0, 0, 0.95)) drop-shadow(0 2px 6px rgba(0, 0, 0, 0.90))",
+            : "drop-shadow(0 4px 18px rgba(0, 0, 0, 0.85))",
         }}
       >
         {heroWords.map((w, idx) => renderWord(w, idx, true, heroWords))}

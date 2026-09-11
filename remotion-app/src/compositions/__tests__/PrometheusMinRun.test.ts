@@ -214,6 +214,20 @@ describe("resolveTypographyPaintStyle", () => {
     expect(style.filter).toContain("drop-shadow(0 0 16px rgba(168, 85, 247, 0.4))");
   });
 
+  test("shadow-stack subtraction: companion layers (isHero: false) suppress redundant glow filters", () => {
+    const companionStyle = resolveTypographyPaintStyle({
+      color: "#FFFFFF",
+      textFillColor: "#FFFFFF",
+      gradient: "linear-gradient(180deg, #FFFFFF 0%, #FAFBFD 100%)",
+      glow: "rgba(255, 69, 58, 0.6)",
+      shadow: "0 2px 8px rgba(0, 0, 0, 0.8)",
+      hasGradient: true,
+      isHero: false,
+    });
+    expect(companionStyle.filter).toBe("drop-shadow(0 4px 18px rgba(0, 0, 0, 0.95))");
+    expect(companionStyle.filter).not.toContain("drop-shadow(0 0 10px");
+  });
+
   test("removes the ancestor filter that would isolate difference blending", () => {
     expect(resolveTypographyContainerFilter([{blendMode: "difference"}])).toBeUndefined();
     expect(resolveTypographyContainerFilter([{blendMode: undefined}])).toBe("drop-shadow(0 4px 20px rgba(0, 0, 0, 0.85))");
