@@ -253,8 +253,8 @@ FONT_FAMILY_REGISTRY: Dict[str, str] = {
     # --- family + style variants -> base loaded family ----------------------
     "playfair display italic": "Playfair Display",
     "playfair display": "Playfair Display",
-    "amerika alternates": "Playfair Display",
-    "amerika": "Playfair Display",
+    "amerika alternates": "Amerika",
+    "amerika": "Amerika",
     "cormorant garamond italic": "Cormorant Garamond",
     "cormorant garamond": "Cormorant Garamond",
     "montserrat extrabold": "Montserrat",
@@ -3037,7 +3037,7 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
         # preferentially routed into the 2.5D archetype with gradient fade + grounding shadow
         if not is_single_word and is_descriptor_phrase(raw_text):
             overlap_profiles = [
-                p for p in matching_profiles
+                p for p in pool
                 if p["id"] in ("image (150)", "image (151)", "image (152)", "image (124)", "image (7)", "image (97)")
                 or any(float((l.get("layer") or {}).get("typography_style", {}).get("vertical_margin_top_px", 0)) < 0 for l in p.get("typography_layers", []))
             ]
@@ -3084,7 +3084,7 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                 rng, policy, signal, preset_usage_counts, recent_primary_fx,
                 is_single_word=is_single_word,
             )
-        elif wants_lockup:
+        elif wants_lockup or (not is_single_word and is_descriptor_phrase(raw_text)):
             hero_fx_preset = "hierarchical_asymmetric_lockup"
         elif is_special_ops_system and is_single_word and (preset_usage_counts.get("chiseled_prism_metallic", 0) < 2):
             hero_fx_preset = "chiseled_prism_metallic"
@@ -3481,8 +3481,12 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                 else:
                     hero_prev = next((l for l in rendered_layers if l.get("isHero")), None)
                     hero_size_ref = float(hero_prev.get("fontSizePx", 120)) if hero_prev else max(96, min(140, 120))
-                    font_size_px = max(44, round(0.3 * hero_size_ref))
-                    resolved_weight = 300
+                    if is_descriptor_phrase(raw_text):
+                        font_size_px = max(70, min(92, round(0.70 * hero_size_ref)))
+                        resolved_weight = 600
+                    else:
+                        font_size_px = max(44, round(0.3 * hero_size_ref))
+                        resolved_weight = 300
                     letter_spacing = 0.005  # Tracking floor: prevents script ligature collision & Arabic-like glyph distortion
                     casing = "lowercase"
                     layer_fx = "hierarchical_asymmetric_lockup"
@@ -3597,15 +3601,15 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
             is_desc = is_descriptor_phrase(raw_text)
             if layer_idx > 0 and (clean_tag in {"right", "true", "yeah", "too", "ok", "okay", "yes", "sure"} or is_desc):
                 if margin_top_px >= 0:
-                    margin_top_px = -round(font_size_px * 0.24)
+                    margin_top_px = -max(18, min(32, round(font_size_px * 0.28)))
 
             # Descender / script-swash collision avoidance policy:
             # If the preceding line contains descenders ('g','j','p','q','y','Q') OR the
             # preceding/hero line uses a script font (looped tails hang far below the
             # baseline without containing descender letters) OR the preceding line is a
             # larger hero glyph, aggressive negative margins crash into those hanging
-            # tails. Clamp to safe clearance.
-            if margin_top_px < 0 and layer_idx > 0 and len(rendered_layers) > 0:
+            # tails. Clamp to safe clearance (bypassed for descriptor noun-phrase lockups).
+            if margin_top_px < 0 and layer_idx > 0 and len(rendered_layers) > 0 and not is_desc:
                 prev_layer = rendered_layers[-1]
                 prev_text = str(prev_layer.get("rawText", ""))
                 has_descenders = any(ch in prev_text for ch in "gjpqyQ")
@@ -3810,9 +3814,13 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
         if is_lockup_treatment and len(rendered_layers) >= 2:
             hero_layer_item = next((l for l in rendered_layers if l.get("isHero")), rendered_layers[0])
             hero_sz = float(hero_layer_item.get("fontSizePx", 120))
+            is_chunk_desc = is_descriptor_phrase(raw_text)
             for l in rendered_layers:
                 if not l.get("isHero"):
-                    lockup_mod_floor = max(44.0, round(0.3 * hero_sz))
+                    if is_chunk_desc:
+                        lockup_mod_floor = max(70.0, min(92.0, round(0.70 * hero_sz)))
+                    else:
+                        lockup_mod_floor = max(44.0, round(0.3 * hero_sz))
                     if l.get("fontSizePx", 0) < lockup_mod_floor:
                         l["fontSizePx"] = lockup_mod_floor
 
