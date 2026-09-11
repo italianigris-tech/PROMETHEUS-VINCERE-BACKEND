@@ -271,6 +271,9 @@ receipt = {
         "cameraMoveCount": len(orchestration_obj.get("cameraMoves") or []),
     },
     "look": props.get("lookPlan") or partial.get("lookPlan") or {},
+    "asrWords": props.get("asrWords") or [],
+    "fontManifest": props.get("fontManifest") or {},
+    "chunks": props.get("chunks") or [],
     "completedAt": time.time(),
 }
 receipt_path = Path(f"/tmp/receipt_{JOB_ID}.json")

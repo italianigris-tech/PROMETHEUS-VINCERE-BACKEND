@@ -723,6 +723,8 @@ def execute_pipeline_job(
         "pipeline": decision["pipeline"],
         "mode": decision["mode"],
         "chunkCount": len(chunked),
+        "chunks": chunked,
+        "asrWords": words,
         "fontManifest": font_manifest,
         "motif": resolved_motif,
         "orchestrationManifest": orchestration_manifest,
