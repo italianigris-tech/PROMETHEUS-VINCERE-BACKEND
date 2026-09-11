@@ -587,27 +587,21 @@ def execute_pipeline_job(
             c_item["startMs"] = out_start
             m_chunk["startMs"] = out_start
 
-            raw_end = int(c_item.get("displayEndMs", c_item.get("endMs", c_item.get("outputEndMs", 0))))
-            next_start = effective_duration_ms
-            if c_idx + 1 < len(chunked):
-                nxt = chunked[c_idx + 1]
-                next_start = int(nxt.get("startMs", nxt.get("outputStartMs", effective_duration_ms)))
-
             words_list = c_item.get("words", [])
-            last_word_start = int(words_list[-1].get("start_ms", c_item.get("startMs", 0))) if words_list else int(c_item.get("startMs", 0))
-
-            is_behind = bool(
-                c_item.get("subjectLayering", {}).get("behindSubject")
-                or any(l.get("behindSubject") for l in c_item.get("layers", []))
-                or c_item.get("placement", {}).get("safeRegionId") == "upper_third"
+            last_word_end = max(
+                [int(w.get("end_ms", 0)) for w in words_list]
+                + [int(c_item.get("endMs", c_item.get("outputEndMs", out_start + 1)))]
             )
 
-            # Silence-bridging hold/lingering policy:
-            # Guarantee last word has at least 750ms from its onset to resolve blur/reveal,
-            # and allow lingering up to next chunk entry minus 80ms margin.
-            max_allowed = max(raw_end, next_start - 80)
-            desired_hold = max(raw_end, last_word_start + 750, raw_end + (550 if is_behind else 450))
-            extended_display_end = min(effective_duration_ms, min(desired_hold, max_allowed))
+            fx = c_item.get("fxPreset") or (c_item.get("layers", [{}])[0].get("fxPreset") if c_item.get("layers") else "")
+            intrinsic_ms = typography.INTRINSIC_ANIMATION_DURATIONS_MS.get(fx, 750)
+            elapsed = max(0, last_word_end - out_start)
+            hold_floor_ms = max(500, intrinsic_ms - elapsed)
+            inviolable_floor_end = min(effective_duration_ms, last_word_end + hold_floor_ms)
+
+            # Inviolable Hold Law: displayEndMs must be at least inviolable_floor_end
+            scheduled_end = int(m_chunk.get("displayEndMs", inviolable_floor_end))
+            extended_display_end = min(effective_duration_ms, max(inviolable_floor_end, scheduled_end))
 
             c_item["displayEndMs"] = extended_display_end
             m_chunk["displayEndMs"] = extended_display_end

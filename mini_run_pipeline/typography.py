@@ -2118,31 +2118,56 @@ INTRINSIC_ANIMATION_DURATIONS_MS: Dict[str, int] = {
 
 
 def schedule_caption_timing(chunks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Reserve each caption's lead-in only from unoccupied timeline space."""
+    """Reserve each caption's lead-in only from unoccupied timeline space,
+    and enforce the inviolable Hold Law:
+    displayEndMs >= lastWordEndMs + max(500, intrinsic_ms - elapsed)
+    """
     scheduled = [dict(chunk) for chunk in chunks]
     scheduled.sort(key=lambda item: int(item.get("startMs", item.get("outputStartMs", 0))))
     previous_end_ms = 0
     for index, chunk in enumerate(scheduled):
         content_start_ms = int(chunk.get("startMs", chunk.get("outputStartMs", 0)))
-        natural_end_ms = int(chunk.get("endMs", chunk.get("outputEndMs", content_start_ms + 1)))
+        words_list = chunk.get("words", [])
+        last_word_end_ms = max(
+            [int(w.get("end_ms", 0)) for w in words_list]
+            + [int(chunk.get("endMs", chunk.get("outputEndMs", content_start_ms + 1)))]
+        )
+        natural_end_ms = max(int(chunk.get("endMs", chunk.get("outputEndMs", content_start_ms + 1))), last_word_end_ms)
         next_start_ms = (
             int(scheduled[index + 1].get("startMs", scheduled[index + 1].get("outputStartMs", natural_end_ms)))
             if index + 1 < len(scheduled) else natural_end_ms
         )
-        words_list = chunk.get("words", [])
         last_word_start = (
             int(words_list[-1].get("start_ms", content_start_ms))
             if words_list else content_start_ms
         )
         fx = chunk.get("fxPreset") or (chunk.get("layers", [{}])[0].get("fxPreset") if chunk.get("layers") else "")
         intrinsic_ms = INTRINSIC_ANIMATION_DURATIONS_MS.get(fx, 750)
-        max_allowed_end = max(natural_end_ms, next_start_ms - 80) if index + 1 < len(scheduled) else natural_end_ms + 600
-        desired_hold = max(natural_end_ms, last_word_start + 750, natural_end_ms + 500, content_start_ms + intrinsic_ms)
-        display_end_ms = max(content_start_ms + 1, min(desired_hold, max_allowed_end))
-        chunk["acceleratedExit"] = bool(desired_hold > max_allowed_end)
+
+        # Inviolable Hold Law:
+        elapsed = max(0, last_word_end_ms - content_start_ms)
+        hold_floor_ms = max(500, intrinsic_ms - elapsed)
+        inviolable_floor_end_ms = last_word_end_ms + hold_floor_ms
+
+        desired_hold = max(
+            inviolable_floor_end_ms,
+            natural_end_ms + 500,
+            last_word_start + 750,
+            content_start_ms + intrinsic_ms,
+        )
+
+        # Soft boundary clamp eliminated when conflicting with floor;
+        # permit caption temporal overlap or compress the next chunk's lead rather than truncating this chunk's tail.
+        soft_limit = next_start_ms - 80 if index + 1 < len(scheduled) else desired_hold + 600
+        max_allowed_end = max(inviolable_floor_end_ms, soft_limit)
+        display_end_ms = max(inviolable_floor_end_ms, min(desired_hold, max_allowed_end))
+        chunk["acceleratedExit"] = bool(desired_hold > soft_limit if index + 1 < len(scheduled) else False)
+
         layers = [dict(layer) for layer in chunk.get("layers", [])]
         requested_lead_ms = max((int(layer.get("entryLeadMs", 0)) for layer in layers), default=0)
-        display_start_ms = max(previous_end_ms, content_start_ms - requested_lead_ms)
+
+        # Compress lead-in rather than delaying content_start_ms when overlapping:
+        display_start_ms = max(content_start_ms - requested_lead_ms, min(content_start_ms, previous_end_ms))
         available_lead_ms = max(0, content_start_ms - display_start_ms)
         for layer in layers:
             layer["effectiveEntryLeadMs"] = min(int(layer.get("entryLeadMs", 0)), available_lead_ms)
@@ -4008,6 +4033,8 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
     # renderer can lay the core word centered with satellites anchored to it.
     for chunk in manifest_chunks:
         chunk["pivotLayout"] = select_pivot_layout(chunk)
+
+    manifest_chunks = schedule_caption_timing(manifest_chunks)
 
     font_manifest = {
         "composition": "JosephLandscapeEdit" if is_landscape else "PrometheusMinRun",

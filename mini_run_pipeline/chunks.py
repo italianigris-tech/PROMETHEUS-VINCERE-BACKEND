@@ -139,9 +139,9 @@ def smart_chunk_words(
             sub_chunk["chunkIndex"] = chunk_index
             if timestamp_map:
                 output_start_ms = _map_to_output(timestamp_map, sub_chunk["startMs"])
-                output_end_ms = _map_to_output(
-                    timestamp_map, max(sub_chunk["endMs"] - 1, sub_chunk["startMs"])
-                )
+                probe_end_ms = max(sub_chunk["endMs"] - 1, sub_chunk["startMs"])
+                mapped_probe = _map_to_output(timestamp_map, probe_end_ms)
+                output_end_ms = (mapped_probe + 1) if mapped_probe is not None else None
                 if output_start_ms is None or output_end_ms is None:
                     continue
                 sub_chunk["sourceStartMs"] = sub_chunk["startMs"]
@@ -157,7 +157,9 @@ def smart_chunk_words(
                     w["sourceStartMs"] = int(w.get("start_ms", 0))
                     w["sourceEndMs"] = int(w.get("end_ms", 0))
                     w_out_s = _map_to_output(timestamp_map, w["sourceStartMs"])
-                    w_out_e = _map_to_output(timestamp_map, w["sourceEndMs"])
+                    w_probe = max(w["sourceEndMs"] - 1, w["sourceStartMs"])
+                    w_mapped_probe = _map_to_output(timestamp_map, w_probe)
+                    w_out_e = (w_mapped_probe + 1) if w_mapped_probe is not None else None
                     w["start_ms"] = (
                         w_out_s if w_out_s is not None
                         else max(0, w["sourceStartMs"] - sub_chunk["sourceStartMs"] + output_start_ms)
@@ -166,9 +168,20 @@ def smart_chunk_words(
                         w_out_e if w_out_e is not None
                         else max(w["start_ms"] + 1, w["sourceEndMs"] - sub_chunk["sourceStartMs"] + output_start_ms)
                     )
+
+                # Guarantee chunk endMs >= max(word.end_ms)
+                max_w_end = max((int(w.get("end_ms", 0)) for w in sub_chunk.get("words", [])), default=output_end_ms)
+                if max_w_end > sub_chunk["endMs"]:
+                    sub_chunk["endMs"] = max_w_end
+                    sub_chunk["outputEndMs"] = max_w_end
+                    sub_chunk["endSec"] = round(max_w_end / 1000.0, 3)
             else:
                 sub_chunk["outputStartMs"] = sub_chunk["startMs"]
+                max_w_end = max((int(w.get("end_ms", 0)) for w in sub_chunk.get("words", [])), default=sub_chunk["endMs"])
+                sub_chunk["endMs"] = max(sub_chunk["endMs"], max_w_end)
                 sub_chunk["outputEndMs"] = sub_chunk["endMs"]
+                sub_chunk["startSec"] = round(sub_chunk["startMs"] / 1000.0, 3)
+                sub_chunk["endSec"] = round(sub_chunk["endMs"] / 1000.0, 3)
             chunk_index += 1
             chunks.append(sub_chunk)
 
@@ -180,8 +193,11 @@ def smart_chunk_words(
     for i in range(len(chunks)):
         curr = chunks[i]
         curr_start = curr.get("startMs", curr.get("outputStartMs", 0))
-        curr_end = curr.get("endMs", curr.get("outputEndMs", 0))
         words_list = curr.get("words", [])
+        last_word_end = max((int(w.get("end_ms", 0)) for w in words_list), default=curr.get("endMs", 0))
+        curr_end = max(curr.get("endMs", curr.get("outputEndMs", 0)), last_word_end)
+        curr["endMs"] = curr_end
+        curr["outputEndMs"] = curr_end
         last_word_start = (
             words_list[-1].get("start_ms", curr_start)
             if words_list else curr_start
