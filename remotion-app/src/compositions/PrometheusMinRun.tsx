@@ -1057,6 +1057,71 @@ export const resolveAutoFitScale = ({
   return 1.0;
 };
 
+// ---------------------------------------------------------------------------
+// Numeric Count-Up Resolver (True numeric count-up with perceptibility floor)
+// ---------------------------------------------------------------------------
+export interface NumericCountUpParams {
+  text: string;
+  localFrame: number;
+  durationFrames?: number;
+  floorFrames?: number;
+}
+
+export const resolveNumericCountUpValue = ({
+  text,
+  localFrame,
+  durationFrames = 18,
+  floorFrames = 12,
+}: NumericCountUpParams): string => {
+  if (!text || !/\d/.test(text)) {
+    return text;
+  }
+
+  const match = text.match(/^([^\d]*)([\d,]+(?:\.\d+)?)([^\d]*)$/);
+  if (!match) {
+    return text;
+  }
+
+  const prefix = match[1];
+  const rawDigitsWithCommas = match[2];
+  const suffix = match[3];
+
+  const cleanDigits = rawDigitsWithCommas.replace(/,/g, "");
+  const hasDecimal = cleanDigits.includes(".");
+  const targetNum = hasDecimal ? parseFloat(cleanDigits) : parseInt(cleanDigits, 10);
+  if (isNaN(targetNum)) {
+    return text;
+  }
+
+  const effectiveDuration = Math.max(floorFrames, durationFrames);
+
+  if (localFrame <= 0) {
+    const zeroFormatted = hasDecimal ? (0).toFixed(cleanDigits.split(".")[1]?.length || 1) : "0";
+    return `${prefix}${zeroFormatted}${suffix}`;
+  }
+
+  if (localFrame >= effectiveDuration) {
+    return text;
+  }
+
+  // Cubic ease-out: 1 - (1 - p)^3 for rapid initial velocity + silky settle
+  const p = Math.min(1, Math.max(0, localFrame / effectiveDuration));
+  const easedProgress = 1 - Math.pow(1 - p, 3);
+
+  if (hasDecimal) {
+    const decimalPlaces = cleanDigits.split(".")[1]?.length || 1;
+    const currentVal = (easedProgress * targetNum).toFixed(decimalPlaces);
+    return `${prefix}${currentVal}${suffix}`;
+  }
+
+  const currentNum = Math.round(easedProgress * targetNum);
+  const formattedNum = rawDigitsWithCommas.includes(",")
+    ? currentNum.toLocaleString("en-US")
+    : String(currentNum);
+
+  return `${prefix}${formattedNum}${suffix}`;
+};
+
 const KineticLayerRenderer: React.FC<{
   layer: TypographyLayer;
   frame: number;
@@ -2099,6 +2164,7 @@ const KineticLayerRenderer: React.FC<{
 
   // Dedicated B: Metallic Chrome Counter & Countup Hero
   if (fx === "metallic_chrome_countup_hero" || fx === "metallic_chrome_counter" || fx === "apple_gaussian_chrome") {
+    const isCounter = fx === "metallic_chrome_countup_hero" || fx === "metallic_chrome_counter";
     const sweepPercent = interpolate(frame, [0, 24], [-50, 150], {
       extrapolateLeft: "clamp",
       extrapolateRight: "clamp",
@@ -2117,6 +2183,17 @@ const KineticLayerRenderer: React.FC<{
           const scale = interpolate(p, [0, 0.65, 1], [0.92, 1.03, 1.0]);
           const translateY = interpolate(p, [0, 1], [20, 0]);
           const blur = interpolate(p, [0, 0.7, 1], [24, 2, 0]);
+
+          const countDuration = Math.max(12, Math.min(Math.max(14, totalFrames - wordStart), Math.round(fps * 0.65)));
+          const displayWord = isCounter && /\d/.test(word)
+            ? resolveNumericCountUpValue({
+                text: word,
+                localFrame,
+                durationFrames: countDuration,
+                floorFrames: 12,
+              })
+            : word;
+
           return (
             <span
               key={`chrome-word-${wIdx}`}
@@ -2135,7 +2212,7 @@ const KineticLayerRenderer: React.FC<{
                 filter: composeFilter(blur, (layer.isHero && layer.glow) ? `drop-shadow(0 0 14px ${layer.glow})` : undefined),
               }}
             >
-              {word}
+              {displayWord}
             </span>
           );
         })}
@@ -3921,9 +3998,23 @@ const HierarchicalAsymmetricLockupComposition: React.FC<{
       const flicker = getFlicker(elapsed);
       const filterId = `hak-vblur-${isHero ? "h" : "m"}-${idx}-${chunk.chunkIndex ?? 0}`;
 
-      const displayText = isHero
+      const rawDisplayText = isHero
         ? formatHeroEditorialText(w.text)
         : formatModEditorialText(w.text);
+
+      const isCounterPreset = chunk.fxPreset === "metallic_chrome_counter" ||
+        chunk.fxPreset === "metallic_chrome_countup_hero" ||
+        heroLayer?.fxPreset === "metallic_chrome_counter" ||
+        heroLayer?.fxPreset === "metallic_chrome_countup_hero";
+
+      const displayText = (isCounterPreset && /\d/.test(w.text))
+        ? resolveNumericCountUpValue({
+            text: rawDisplayText,
+            localFrame: elapsed,
+            durationFrames: Math.max(12, Math.round(fps * 0.65)),
+            floorFrames: 12,
+          })
+        : rawDisplayText;
 
       // Dynamic hero styling: adapt to chunk palette, layer color, or custom gradient
       const chunkPalette = (chunk as any).palette;

@@ -16,6 +16,7 @@ import {
   buildPhysicalLightingFilter,
   unsupportedRuntimeTreatments,
   resolveAutoFitScale,
+  resolveNumericCountUpValue,
 } from "../PrometheusMinRun";
 
 describe("resolveWordEntranceFrames", () => {
@@ -745,6 +746,117 @@ describe("Architectural Background Systems (5 Pillars)", () => {
       });
       expect(overflowsFlank).toBeLessThan(1.0);
       expect(overflowsFlank).toBeCloseTo(340 / (18 * 60 * 0.54), 2);
+    });
+  });
+
+  describe("resolveNumericCountUpValue (Item 6)", () => {
+    test("counts from 0 to 12,000 with comma formatting and cubic ease-out", () => {
+      // At frame 0: starts at 0
+      const startVal = resolveNumericCountUpValue({
+        text: "12,000",
+        localFrame: 0,
+        durationFrames: 18,
+      });
+      expect(startVal).toBe("0");
+
+      // Mid-trajectory (frame 6): dynamic rolled number with commas
+      const midVal = resolveNumericCountUpValue({
+        text: "12,000",
+        localFrame: 6,
+        durationFrames: 18,
+      });
+      // Cubic ease-out at 1/3 progress is ~70.4% of 12000 => ~8,444
+      expect(midVal).toMatch(/^\d{1,2},\d{3}$/);
+      const parsedMid = parseInt(midVal.replace(/,/g, ""), 10);
+      expect(parsedMid).toBeGreaterThan(5000);
+      expect(parsedMid).toBeLessThan(12000);
+
+      // At completion (frame 18): exact target string "12,000"
+      const endVal = resolveNumericCountUpValue({
+        text: "12,000",
+        localFrame: 18,
+        durationFrames: 18,
+      });
+      expect(endVal).toBe("12,000");
+
+      // Past completion (frame 30): persists final formatted value
+      const pastVal = resolveNumericCountUpValue({
+        text: "12,000",
+        localFrame: 30,
+        durationFrames: 18,
+      });
+      expect(pastVal).toBe("12,000");
+    });
+
+    test("preserves currency symbols, prefixes, and suffixes during countup", () => {
+      expect(
+        resolveNumericCountUpValue({
+          text: "$12,000",
+          localFrame: 0,
+          durationFrames: 18,
+        })
+      ).toBe("$0");
+
+      expect(
+        resolveNumericCountUpValue({
+          text: "$12,000",
+          localFrame: 18,
+          durationFrames: 18,
+        })
+      ).toBe("$12,000");
+
+      expect(
+        resolveNumericCountUpValue({
+          text: "100%",
+          localFrame: 0,
+          durationFrames: 18,
+        })
+      ).toBe("0%");
+
+      expect(
+        resolveNumericCountUpValue({
+          text: "100%",
+          localFrame: 18,
+          durationFrames: 18,
+        })
+      ).toBe("100%");
+    });
+
+    test("enforces minimum perceptibility floor of 12 frames", () => {
+      // If durationFrames is requested as 4 (too fast to perceive),
+      // effective duration clamps to floorFrames (12)
+      const earlyVal = resolveNumericCountUpValue({
+        text: "12,000",
+        localFrame: 6,
+        durationFrames: 4,
+        floorFrames: 12,
+      });
+      // At frame 6 of 12 (halfway), it has not finished yet
+      expect(earlyVal).not.toBe("12,000");
+
+      const finishedVal = resolveNumericCountUpValue({
+        text: "12,000",
+        localFrame: 12,
+        durationFrames: 4,
+        floorFrames: 12,
+      });
+      expect(finishedVal).toBe("12,000");
+    });
+
+    test("leaves non-numeric words untouched", () => {
+      expect(
+        resolveNumericCountUpValue({
+          text: "months",
+          localFrame: 0,
+        })
+      ).toBe("months");
+
+      expect(
+        resolveNumericCountUpValue({
+          text: "than",
+          localFrame: 5,
+        })
+      ).toBe("than");
     });
   });
 });
