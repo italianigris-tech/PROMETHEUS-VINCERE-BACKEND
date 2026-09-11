@@ -11,8 +11,14 @@ from __future__ import annotations
 
 from typing import Any, List, Optional
 
-TARGET_CHUNK_WORDS = 2
-MAX_CHUNK_WORDS = 3
+TARGET_CHUNK_WORDS = 3
+MAX_CHUNK_WORDS = 5
+
+
+def _is_numeric(text: str) -> bool:
+    """Return True if text contains numeric digits."""
+    cleaned = str(text).strip().rstrip(".,!?:;—%").replace(",", "")
+    return any(c.isdigit() for c in cleaned)
 
 
 def chunk_transcript_words(
@@ -117,8 +123,9 @@ def smart_chunk_words(
         current = runs[-1]
         prev_word = normalized[i - 1] if i > 0 else None
         prev_is_terminal = prev_word and is_sentence_terminal(prev_word)
+        prev_is_numeric = prev_word and _is_numeric(prev_word.get("text", ""))
         
-        if current and (prev_is_terminal or is_hard_boundary(word) or is_span_boundary(word)):
+        if current and (prev_is_terminal or ((is_hard_boundary(word) or is_span_boundary(word)) and not prev_is_numeric)):
             runs.append([word])
         else:
             current.append(word)
@@ -226,12 +233,19 @@ def _greedy(
                 take = offset + 1
                 break
 
+        # Unit binding: never end chunk on a numeric token if more words follow in this run
+        if index + take < total and _is_numeric(str(words[index + take - 1].get("text", ""))):
+            if take < max_chunk_words:
+                take += 1
+            elif take > 2:
+                take -= 1
+
         selected = words[index : index + take]
         index += take
         
         # Merge 1-word dangling chunks with previous chunk ONLY if previous chunk did not end with a sentence terminal
         prev_has_terminal = chunks and str(chunks[-1]["words"][-1].get("text", "")).strip().endswith((".", "!", "?", "...", "—", ":"))
-        if len(selected) == 1 and chunks and not prev_has_terminal and len(chunks[-1]["words"]) < max_chunk_words:
+        if len(selected) == 1 and chunks and not prev_has_terminal:
             prev = chunks.pop()
             merged_words = prev["words"] + selected
             chunks.append(_chunk_from_words(merged_words, prev["chunkIndex"]))
