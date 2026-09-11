@@ -2401,6 +2401,21 @@ def _select_primary_treatment(
     ]
     if not candidates:
         candidates = [item for item in ANIMA_RUNTIME_TREATMENTS if item["id"] == "apple_keynote_headline_punch"]
+
+    # Numeric routing override: hasNumber + can_claim_counter hard-binds directly to counter family
+    if signal.get("hasNumber", 0.0) > 0:
+        counter_candidates = [
+            item for item in candidates
+            if item["id"] in ("metallic_chrome_counter", "metallic_chrome_countup_hero")
+        ]
+        if counter_candidates:
+            candidates = counter_candidates
+        else:
+            candidates = [
+                item for item in ANIMA_RUNTIME_TREATMENTS
+                if item["id"] in ("metallic_chrome_counter", "metallic_chrome_countup_hero")
+            ]
+
     creativity = {"reserved": 0.65, "balanced": 1.1, "expressive": 1.65}[policy["creativity"]]
     desired_energy = {
         "slow": 0.32,
@@ -2506,8 +2521,8 @@ def _select_primary_treatment(
     selected = _weighted_choice(rng, candidates, [_treatment_weight(item) for item in candidates])
     if selected.get("applicationBias") is not None and rng.random() > float(selected["applicationBias"]):
         remaining = [c for c in candidates if c["id"] != selected["id"]]
-        if remaining:
-            selected = _weighted_choice(rng, remaining, [_treatment_weight(item) for item in remaining])
+    if signal.get("hasNumber", 0.0) > 0 and selected["id"] not in ("metallic_chrome_counter", "metallic_chrome_countup_hero"):
+        return "metallic_chrome_counter"
     return selected["id"]
 
 
@@ -2992,6 +3007,11 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
 
         if explicit_fx and any(item["id"] == explicit_fx for item in ANIMA_RUNTIME_TREATMENTS):
             hero_fx_preset = explicit_fx
+        elif signal.get("hasNumber", 0.0) > 0:
+            hero_fx_preset = _select_primary_treatment(
+                rng, policy, signal, preset_usage_counts, recent_primary_fx,
+                is_single_word=is_single_word,
+            )
         elif wants_lockup:
             hero_fx_preset = "hierarchical_asymmetric_lockup"
         elif is_special_ops_system and is_single_word and (preset_usage_counts.get("chiseled_prism_metallic", 0) < 2):
