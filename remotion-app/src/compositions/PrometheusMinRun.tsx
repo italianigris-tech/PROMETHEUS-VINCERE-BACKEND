@@ -417,9 +417,16 @@ export const resolveWordEntranceFrames = ({
   contentStartFrame + Math.round(((word.start_ms - chunkStartMs) / 1000) * fps) - leadFrames,
 ));
 
-export const resolveChunkEntranceFrame = (contentStartFrame: number, totalFrames: number): number => (
-  Math.max(1, Math.min(contentStartFrame, totalFrames))
-);
+export const resolveChunkEntranceFrame = (
+  contentStartFrame: number,
+  totalFrames: number,
+  lastWordStartFrame?: number
+): number => {
+  if (lastWordStartFrame !== undefined && lastWordStartFrame > 0) {
+    return Math.max(1, Math.min(lastWordStartFrame, totalFrames));
+  }
+  return Math.max(1, Math.min(contentStartFrame, totalFrames));
+};
 
 export type CaptionChunk = {
   chunkIndex?: number;
@@ -4895,25 +4902,35 @@ const MultiLayerTypographyCard: React.FC<{
     )
   );
 
+  // Multi-word group completion anchoring: layer entrance completes at last word's start frame
+  const chunkWords = chunk.words || [];
+  const lastWordStartMs = chunkWords.length > 0
+    ? chunkWords[chunkWords.length - 1].start_ms
+    : chunkStartMs;
+  const lastWordRelativeMs = Math.max(0, lastWordStartMs - chunkStartMs);
+  const lastWordStartFrame = contentStartFrame + Math.round((lastWordRelativeMs / 1000) * fps);
+
   // Overall chunk entrance & exit kinetic ease
-  const chunkEntrance = interpolate(frame, [0, resolveChunkEntranceFrame(contentStartFrame, totalFrames)], [0, 1], {
+  const entranceFrame = resolveChunkEntranceFrame(contentStartFrame, totalFrames, lastWordStartFrame);
+  const chunkEntrance = interpolate(frame, [0, entranceFrame], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
     easing: Easing.bezier(0.16, 1.0, 0.3, 1.0),
   });
 
+  // Accelerated 5-frame scale/blur exit tween
   const isAcceleratedExit = Boolean(chunk.acceleratedExit);
-  const exitFrames = isAcceleratedExit ? 5 : 3;
+  const exitFrames = 5;
 
   const exitProgress = interpolate(frame, [Math.max(0, totalFrames - exitFrames), totalFrames], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
-    easing: isAcceleratedExit ? Easing.bezier(0.4, 0, 1, 1) : undefined,
+    easing: Easing.bezier(0.4, 0, 1, 1),
   });
 
   const chunkExit = 1 - exitProgress;
-  const exitBlur = isAcceleratedExit ? exitProgress * 4 : 0;
-  const exitScale = isAcceleratedExit ? interpolate(exitProgress, [0, 1], [1.0, 0.96]) : 1.0;
+  const exitBlur = exitProgress * 4;
+  const exitScale = interpolate(exitProgress, [0, 1], [1.0, 0.94]);
 
   // Full-card hook & cinematic impact transforms
   const hookFx = chunk.fxPreset || "";
@@ -6720,7 +6737,6 @@ export const PrometheusMinRun: React.FC<PrometheusMinRunProps> = ({
         fps={fps}
       >
         {(() => {
-          let runningEndFrame = 0;
           return chunks.map((chunk, idx) => {
             // Frame-accurate source time synchronization (prioritize startMs from source audio)
             const startMs = chunk.startMs ?? chunk.outputStartMs ?? 0;
@@ -6743,15 +6759,14 @@ export const PrometheusMinRun: React.FC<PrometheusMinRunProps> = ({
               )
             );
 
-            // Invariant: startFrame must NEVER precede previous chunk's endFrame (Zero Temporal Overlap)
-            const requestedStartFrame = Math.max(
+            // Allow caption sequence temporal overlap (Zero Stacking Lock):
+            // Each chunk enters at its scheduled displayStartMs or lead-in frame
+            const startFrame = Math.max(
               0,
               Math.round((displayStartMs / 1000) * fps),
               contentStartFrame - leadFrames
             );
-            const startFrame = Math.max(runningEndFrame, requestedStartFrame);
             const endFrame = Math.max(startFrame + 1, rawEndFrame);
-            runningEndFrame = endFrame;
 
             const relativeContentStartFrame = Math.max(0, contentStartFrame - startFrame);
             const durationFrames = Math.max(1, endFrame - startFrame);
