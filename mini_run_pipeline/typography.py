@@ -1234,7 +1234,19 @@ def preflight_and_fit_layer_widths(
         is_script = layer.get("is_script", False) or is_script_font(font)
         is_spencerian = layer.get("is_spencerian", False) or any(s in font.lower() for s in ("exmouth", "champignon", "brotherhood"))
 
-        if is_spencerian:
+        is_behind = layer.get("behindSubject", False)
+        if is_behind:
+            clean_c = "".join(ch for ch in text if ch.isalnum())
+            p_len = len(clean_c)
+            if p_len <= 4:
+                legibility_floor = 210
+            elif p_len <= 6:
+                legibility_floor = 175
+            elif p_len <= 8:
+                legibility_floor = 150
+            else:
+                legibility_floor = 120
+        elif is_spencerian:
             legibility_floor = 115
         elif is_script:
             legibility_floor = 80
@@ -1255,7 +1267,7 @@ def preflight_and_fit_layer_widths(
     while True:
         overflowing = [
             l for l in layers_info
-            if l.get("est_width", 0) > max_safe_width and l["font_size_px"] > l["legibility_floor"]
+            if l.get("est_width", 0) > (1000.0 if l.get("behindSubject") else max_safe_width) and l["font_size_px"] > l["legibility_floor"]
         ]
         if not overflowing:
             break
@@ -1263,7 +1275,8 @@ def preflight_and_fit_layer_widths(
         overflowing.sort(key=lambda l: l["font_size_px"], reverse=True)
         target = overflowing[0]
         # Calculate size needed to fit
-        needed_size = int(max_safe_width / (max(1, len(target.get("rawText", ""))) * target["char_aspect"]))
+        target_limit = 1000.0 if target.get("behindSubject") else max_safe_width
+        needed_size = int(target_limit / (max(1, len(target.get("rawText", ""))) * target["char_aspect"]))
         target["font_size_px"] = max(target["legibility_floor"], min(target["font_size_px"] - 1, needed_size))
         if "fontSizePx" in target:
             target["fontSizePx"] = target["font_size_px"]
@@ -1945,7 +1958,6 @@ TALL_MATTE_FONTS = [
     "League Gothic",
     "Antonio",
     "SenzaBella",
-    "Montserrat",
 ]
 
 
@@ -3284,14 +3296,20 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                         if other_alloc is not alloc and any(_is_substantive(w) for w in other_alloc.get("words", [])):
                             other_alloc["is_hero"] = True
                             break
-            casing = f_style.get("casing", prof.get("metadata", {}).get("casing_strategy", "mixed"))
+            is_layer_behind = behind_subject and (is_hero_layer or len(allocations) == 1) and len(raw_layer_text.split()) <= 2
+            casing = "uppercase" if is_layer_behind else f_style.get("casing", prof.get("metadata", {}).get("casing_strategy", "mixed"))
 
             # Authoritative Font Candidate from Font JSON with safe bitmap fallback
             raw_cands = layer_spec.get("matched_font_candidates", [])
             candidates = [resolve_safe_font_candidate(c) for c in raw_cands]
             candidates = [c for c in candidates if c]
 
-            if candidates:
+            if is_layer_behind:
+                # Behind-subject pivot font contract: strictly draw ONLY from TALL_MATTE_FONTS
+                cands_tall = [c for c in candidates if c in TALL_MATTE_FONTS]
+                primary_font = cands_tall[0] if cands_tall else (rng.choice(TALL_MATTE_FONTS) if rng else "Anton")
+                accent_font = primary_font
+            elif candidates:
                 primary_font = candidates[0]
                 accent_font = candidates[1] if len(candidates) > 1 else candidates[0]
             else:
@@ -3299,10 +3317,15 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                 accent_font = primary_font
 
             # Strictly respect font JSON parents; only upgrade unstyled fallbacks and enforce anti-clash policy
-            primary_font = upgrade_font_candidate(primary_font, is_hero_layer, role=layer_spec.get("role", "body"), rng=rng, hero_font=chunk_hero_font)
-            accent_font = upgrade_font_candidate(accent_font, False, role="companion", rng=rng, hero_font=chunk_hero_font)
+            if is_layer_behind:
+                if primary_font not in TALL_MATTE_FONTS:
+                    primary_font = rng.choice(TALL_MATTE_FONTS) if rng else "Anton"
+                accent_font = primary_font
+            else:
+                primary_font = upgrade_font_candidate(primary_font, is_hero_layer, role=layer_spec.get("role", "body"), rng=rng, hero_font=chunk_hero_font)
+                accent_font = upgrade_font_candidate(accent_font, False, role="companion", rng=rng, hero_font=chunk_hero_font)
 
-            if not is_hero_layer:
+            if not is_hero_layer and not is_layer_behind:
                 if is_barred_companion_font(primary_font) or is_script_font(primary_font):
                     primary_font = rng.choice(COMPANION_UPGRADE_FONTS) if rng else "Montserrat"
                 if is_barred_companion_font(accent_font) or is_script_font(accent_font):
@@ -3354,10 +3377,10 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
             max_safe_width = 1500 if is_landscape else 820
 
             if is_landscape:
-                if behind_subject:
+                if is_layer_behind:
                     target_font_size = max(130, min(180, int(base_size * 2.4 * max(0.9, relative_scale))))
                     resolved_weight = int(f_style.get("weight", 900))
-                    casing = f_style.get("casing", "uppercase")
+                    casing = "uppercase"
                     layer_fx = hero_fx_preset
                     layer_overlay = overlay_fx
                 elif is_hero_layer:
@@ -3370,20 +3393,20 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                     resolved_weight = int(f_style.get("weight", 600))
                     layer_fx = _resolve_font_json_treatment(prof, layer_spec, is_hero=False, is_single_word=is_single_word, rng=rng, policy=policy, behind_subject=behind_subject)
                     layer_overlay = None
-            elif behind_subject:
-                # Responsive behind-subject typography scale respecting character length
-                if clean_len <= 4:
+            elif is_layer_behind:
+                # Responsive behind-subject tall typography scale respecting character length
+                clean_chars = "".join(ch for ch in raw_layer_text if ch.isalnum())
+                p_len = len(clean_chars)
+                if p_len <= 4:
                     target_font_size = 210
-                elif clean_len <= 6:
+                elif p_len <= 6:
                     target_font_size = 175
-                elif clean_len <= 8:
-                    target_font_size = 140
-                elif clean_len <= 11:
-                    target_font_size = 110
+                elif p_len <= 8:
+                    target_font_size = 150
                 else:
-                    target_font_size = 85
-                resolved_weight = int(f_style.get("weight", 900))
-                casing = f_style.get("casing", "uppercase")
+                    target_font_size = 120
+                resolved_weight = 900
+                casing = "uppercase"
                 layer_fx = hero_fx_preset or "apple_pro_display_hero_revealer"
                 layer_overlay = overlay_fx
             elif is_hero_layer:
@@ -3669,8 +3692,24 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
             if layer_fx == "canva_tall_glyph_stack" and not (layer_behind_subject or len(layer_words) <= 1):
                 layer_fx = "multi_word_slide_up_stagger" if not is_hero_layer else "dynamic_staggered_character_cascade"
 
-            # Strict Companion Font Contract: companion layers must never emit barred decorative or alternate fonts
-            if not is_hero_layer:
+            # Strict Companion & Pivot Font Contract:
+            if layer_behind_subject:
+                if primary_font not in TALL_MATTE_FONTS:
+                    primary_font = rng.choice(TALL_MATTE_FONTS) if rng else "Anton"
+                accent_font = primary_font
+                casing = "uppercase"
+                resolved_weight = 900
+                clean_chars = "".join(ch for ch in raw_layer_text if ch.isalnum())
+                p_len = len(clean_chars)
+                if p_len <= 4:
+                    font_size_px = max(font_size_px, 210)
+                elif p_len <= 6:
+                    font_size_px = max(font_size_px, 175)
+                elif p_len <= 8:
+                    font_size_px = max(font_size_px, 150)
+                else:
+                    font_size_px = max(font_size_px, 120)
+            elif not is_hero_layer:
                 if is_barred_companion_font(primary_font):
                     primary_font = rng.choice(COMPANION_UPGRADE_FONTS) if rng else "Montserrat"
                 if is_barred_companion_font(accent_font):
@@ -3766,6 +3805,16 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                 },
                 "inlineTokenSwaps": inline_swaps,
             })
+
+        # Lockup modifier size floor reconciliation: ensure modifier layers scale with hero layer
+        if is_lockup_treatment and len(rendered_layers) >= 2:
+            hero_layer_item = next((l for l in rendered_layers if l.get("isHero")), rendered_layers[0])
+            hero_sz = float(hero_layer_item.get("fontSizePx", 120))
+            for l in rendered_layers:
+                if not l.get("isHero"):
+                    lockup_mod_floor = max(44.0, round(0.3 * hero_sz))
+                    if l.get("fontSizePx", 0) < lockup_mod_floor:
+                        l["fontSizePx"] = lockup_mod_floor
 
         # Chunk-level width preflight: largest-first shrink with legibility floors
         # (companion floor 50px, hero floor 80px)
