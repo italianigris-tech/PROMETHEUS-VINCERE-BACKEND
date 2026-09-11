@@ -3993,6 +3993,8 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                     "yPercent": "22%",
                     "anchor": "center",
                     "dominantZone": "cranial_crown",
+                    "headTopY": 0.22,
+                    "faceBottom": 0.48,
                 }
                 if (behind_subject and any(l.get("behindSubject") for l in rendered_layers))
                 # Font-JSON layout_rules honoring is mini-run (9:16) only —

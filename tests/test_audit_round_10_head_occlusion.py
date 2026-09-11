@@ -43,7 +43,7 @@ class TestRound10HeadOcclusion(unittest.TestCase):
         self.assertIn("exceeds maximum threshold 40%", res["violations"][0])
 
     def test_head_occlusion_passes_in_upper_cranial_space(self):
-        """A layer placed in upper cranial space (Y = 13.5%) must pass (occlusion <= 40%)."""
+        """A layer placed in natural cranial space (Y = 22.0%) must pass (occlusion <= 40%)."""
         good_layers = [
             {
                 "layerName": "safe_pivot",
@@ -59,8 +59,8 @@ class TestRound10HeadOcclusion(unittest.TestCase):
                 "chunkIndex": 0,
                 "placement": {
                     "xPercent": "50%",
-                    "yPercent": "13.5%",  # upper cranial crown
-                    "headTopY": 0.18,
+                    "yPercent": "22.0%",  # natural cranial crown
+                    "headTopY": 0.22,
                     "faceBottom": 0.45,
                 },
             }
@@ -71,11 +71,11 @@ class TestRound10HeadOcclusion(unittest.TestCase):
         self.assertEqual(len(res["violations"]), 0)
 
     def test_default_cranial_placement_shifts_to_upper_space(self):
-        """When subject_box is None, default cranial crown must be nestled in upper space (<= 16%), not 24%."""
+        """When subject_box is None, default cranial crown must be nestled in natural middle band (18%-28%), not ceiling (<15%)."""
         analysis = analyze_cranial_negative_space(subject_box=None, head_top_y=None)
         y_pct_str = analysis.get("yPercent", "100%")
         y_pct = float(y_pct_str.replace("%", ""))
-        self.assertLessEqual(y_pct, 16.0, f"Default cranial yPercent {y_pct}% exceeds 16% upper cranial band!")
+        self.assertTrue(18.0 <= y_pct <= 28.0, f"Default cranial yPercent {y_pct}% outside [18%, 28%] natural middle band!")
 
     def test_conformance_report_includes_head_occlusion_check(self):
         """run_post_render_conformance_check must report headOcclusion in checks."""

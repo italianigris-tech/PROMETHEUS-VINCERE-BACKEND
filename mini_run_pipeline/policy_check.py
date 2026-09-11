@@ -384,7 +384,7 @@ def validate_head_occlusion(
 
         # Parse placement coordinates
         raw_x = str(placement.get("xPercent", "50%")).replace("%", "")
-        raw_y = str(placement.get("yPercent", "13.5%")).replace("%", "")
+        raw_y = str(placement.get("yPercent", "22.0%")).replace("%", "")
         try:
             x_pct = float(raw_x) / 100.0
         except ValueError:
@@ -392,7 +392,7 @@ def validate_head_occlusion(
         try:
             y_pct = float(raw_y) / 100.0
         except ValueError:
-            y_pct = 0.135
+            y_pct = 0.22
 
         # Bounding box of pivot text
         est_w = estimate_layer_width_px(raw_text, font, font_sz, is_uppercase=is_upper)
@@ -408,8 +408,9 @@ def validate_head_occlusion(
         text_area = max(1.0, (t_x1 - t_x0) * (t_y1 - t_y0))
 
         # Subject head bounding box (cranial envelope)
-        head_top_ratio = float(placement.get("headTopY", 0.18) or 0.18)
-        face_bottom_ratio = float(placement.get("faceBottom", 0.45) or 0.45)
+        head_top_val = placement.get("headTopY")
+        head_top_ratio = float(head_top_val if head_top_val is not None else y_pct)
+        face_bottom_ratio = float(placement.get("faceBottom", 0.48) or 0.48)
         h_x0 = (0.50 - 0.15) * CANVAS_W
         h_x1 = (0.50 + 0.15) * CANVAS_W
         h_y0 = head_top_ratio * CANVAS_H
