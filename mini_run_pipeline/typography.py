@@ -229,6 +229,8 @@ UNSAFE_DISTORTED_FONTS: Dict[str, str] = {
     "kraton": "Bodoni Moda",
     "kraton free font": "Bodoni Moda",
     "kraton modern ligature font free": "Bodoni Moda",
+    "erotique alternate trial": "Playfair Display",
+    "erotique": "Playfair Display",
 }
 
 # Script/calligraphic families whose looped tails hang far below the baseline
@@ -306,8 +308,8 @@ FONT_FAMILY_REGISTRY: Dict[str, str] = {
     "blaak": "Blaak Thin PERSONAL USE",
     "foundland italic personal use only": "Foundland Italic PERSONAL USE ONLY",
     "monrovia-modernseriffont": "Monrovia-ModernSerifFont",
-    "erotique alternate trial": "Erotique Alternate Trial",
-    "erotique": "Erotique Alternate Trial",
+    "erotique alternate trial": "Playfair Display",
+    "erotique": "Playfair Display",
     # --- Custom Studio & Mixfont Families ------------------------------------
     "altone": "Altone",
     "altone trial": "Altone Trial",
@@ -420,8 +422,13 @@ REGISTRY_NEEDS_LOAD = {
 }
 
 
+def is_serif_font(font_name: str) -> bool:
+    f = (font_name or "").lower().strip()
+    return any(k in f for k in ("bodoni", "playfair", "garamond", "cinzel", "foglihten", "goudy", "berylium", "abril", "erotique", "serif", "didone", "aesthetic"))
+
+
 def resolve_safe_font_candidate(candidate: str) -> str:
-    """Clean corrupt/low-res bitmap fonts and distorted rune-like fonts that impair readability.
+    """Clean corrupt/low-res bitmap fonts, distorted fonts, and trial/watermark fonts.
 
     Uses the authoritative FONT_FAMILY_REGISTRY for exact naming so every
     emitted fontFamily matches an actually-loaded @font-face in the renderer.
@@ -433,6 +440,9 @@ def resolve_safe_font_candidate(candidate: str) -> str:
         return "Space Mono"
     if c_clean in UNSAFE_DISTORTED_FONTS:
         return UNSAFE_DISTORTED_FONTS[c_clean]
+    # Global trial / demo / watermark ban: never emit trial fonts with missing glyphs or watermarks
+    if any(t in c_clean for t in ("trial", "demo", "watermark")):
+        return "Playfair Display" if is_serif_font(c_clean) else "Montserrat"
     # Exact registry hit (normalized family+style -> loaded family).
     if c_clean in FONT_FAMILY_REGISTRY:
         return FONT_FAMILY_REGISTRY[c_clean]
