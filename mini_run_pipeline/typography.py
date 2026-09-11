@@ -1962,6 +1962,20 @@ class SemanticConceptLedger:
         "hour", "hours", "minute", "minutes", "second", "seconds",
         "am", "pm",
     }
+    TEMPORAL_PRE_MODIFIERS: Set[str] = {
+        "last", "past", "next", "over", "within", "every", "for", "in", "about"
+    }
+    ASR_TEMPORAL_CONFUSIONS: Dict[str, str] = {
+        "modes": "months",
+        "moths": "months",
+        "mounts": "months",
+        "mon": "month",
+        "mths": "months",
+        "mins": "minutes",
+        "sec": "seconds",
+        "secs": "seconds",
+        "yrs": "years",
+    }
 
     def __init__(self, min_counter_gap_chunks: int = 4):
         self.claimed_numbers: Dict[str, int] = {}  # normalized number root -> chunkIndex
@@ -1971,38 +1985,53 @@ class SemanticConceptLedger:
         self.last_counter_chunk_idx: int = -999
 
     @classmethod
-    def is_temporal_phrase(cls, text: str) -> bool:
-        """Check if numbers in text are immediately followed by temporal units."""
-        tokens = [w.strip() for w in text.split() if w.strip()]
-        for i, token in enumerate(tokens):
-            clean_token = re.sub(r"[^\w]", "", token).lower()
-            if clean_token.isdigit():
-                if i + 1 < len(tokens):
-                    next_token = re.sub(r"[^\w]", "", tokens[i + 1]).lower()
-                    if next_token in cls.TEMPORAL_UNITS:
-                        return True
+    def _is_unit_match(cls, clean_next: str, clean_prev: str, clean_after: str) -> bool:
+        if clean_next in cls.TEMPORAL_UNITS:
+            return True
+        if clean_next in cls.ASR_TEMPORAL_CONFUSIONS:
+            # Narrow quantity+unit guard: bond 'modes' to 'months' only when preceded by temporal modifiers,
+            # and not followed by 'of' (e.g. '6 modes of thinking' is NOT suppressed).
+            if clean_prev in cls.TEMPORAL_PRE_MODIFIERS and clean_after != "of":
+                return True
         return False
 
     @classmethod
-    def extract_metric_numbers(cls, text: str) -> List[str]:
+    def is_temporal_phrase(cls, text: str, next_chunk_text: Optional[str] = None) -> bool:
+        """Check if numbers in text are immediately followed by temporal units (with narrow ASR quantity+unit bonding)."""
+        full_text = f"{text} {next_chunk_text}".strip() if next_chunk_text else text
+        tokens = [w.strip() for w in full_text.split() if w.strip()]
+        for i, token in enumerate(tokens):
+            clean_token = re.sub(r"[^\w]", "", token).lower()
+            if clean_token.isdigit():
+                clean_prev = re.sub(r"[^\w]", "", tokens[i - 1]).lower() if i > 0 else ""
+                clean_next = re.sub(r"[^\w]", "", tokens[i + 1]).lower() if i + 1 < len(tokens) else ""
+                clean_after = re.sub(r"[^\w]", "", tokens[i + 2]).lower() if i + 2 < len(tokens) else ""
+                if cls._is_unit_match(clean_next, clean_prev, clean_after):
+                    return True
+        return False
+
+    @classmethod
+    def extract_metric_numbers(cls, text: str, next_chunk_text: Optional[str] = None) -> List[str]:
         """Extract standalone numeric metric values, filtering out temporal/duration phrases."""
-        tokens = [w.strip() for w in text.split() if w.strip()]
+        full_text = f"{text} {next_chunk_text}".strip() if next_chunk_text else text
+        tokens = [w.strip() for w in full_text.split() if w.strip()]
+        text_token_count = len([w for w in text.split() if w.strip()])
         metrics = []
         for i, token in enumerate(tokens):
+            if next_chunk_text and i >= text_token_count:
+                break
             clean_digits = re.sub(r"[^\d]", "", token)
             if clean_digits:
-                is_temporal = False
-                if i + 1 < len(tokens):
-                    next_token = re.sub(r"[^\w]", "", tokens[i + 1]).lower()
-                    if next_token in cls.TEMPORAL_UNITS:
-                        is_temporal = True
-                if not is_temporal:
+                clean_prev = re.sub(r"[^\w]", "", tokens[i - 1]).lower() if i > 0 else ""
+                clean_next = re.sub(r"[^\w]", "", tokens[i + 1]).lower() if i + 1 < len(tokens) else ""
+                clean_after = re.sub(r"[^\w]", "", tokens[i + 2]).lower() if i + 2 < len(tokens) else ""
+                if not cls._is_unit_match(clean_next, clean_prev, clean_after):
                     metrics.append(clean_digits)
         return metrics
 
-    def can_claim_counter(self, chunk_idx: int, text: str) -> bool:
+    def can_claim_counter(self, chunk_idx: int, text: str, next_chunk_text: Optional[str] = None) -> bool:
         """Evaluate whether a chunk may claim the hero metallic chrome counter."""
-        metric_numbers = self.extract_metric_numbers(text)
+        metric_numbers = self.extract_metric_numbers(text, next_chunk_text=next_chunk_text)
         if not metric_numbers:
             return False
         if (chunk_idx - self.last_counter_chunk_idx) < self.min_counter_gap_chunks:
@@ -2012,10 +2041,10 @@ class SemanticConceptLedger:
                 return False
         return True
 
-    def claim_concept(self, chunk_idx: int, text: str, treatment: str) -> Optional[str]:
+    def claim_concept(self, chunk_idx: int, text: str, treatment: str, next_chunk_text: Optional[str] = None) -> Optional[str]:
         """Record the claimed concept and enforce the ledger lock."""
         if treatment in ("metallic_chrome_counter", "metallic_chrome_countup_hero"):
-            metric_numbers = self.extract_metric_numbers(text)
+            metric_numbers = self.extract_metric_numbers(text, next_chunk_text=next_chunk_text)
             if metric_numbers:
                 for num in metric_numbers:
                     self.claimed_numbers[num] = chunk_idx
@@ -2030,9 +2059,9 @@ class SemanticConceptLedger:
                 return metric_numbers[0]
         return None
 
-    def is_claimed_duplicate(self, text: str) -> bool:
+    def is_claimed_duplicate(self, text: str, next_chunk_text: Optional[str] = None) -> bool:
         """Check if any metric number in the text was previously claimed in the ledger."""
-        metric_numbers = self.extract_metric_numbers(text)
+        metric_numbers = self.extract_metric_numbers(text, next_chunk_text=next_chunk_text)
         return any(num in self.claimed_numbers for num in metric_numbers)
 
     def as_dict(self) -> Dict[str, Any]:
@@ -2048,6 +2077,7 @@ def _chunk_signal(
     chunk: Dict[str, Any],
     ledger: Optional[SemanticConceptLedger] = None,
     chunk_idx: int = 0,
+    next_chunk_text: Optional[str] = None,
 ) -> Dict[str, float]:
     words = [word for word in str(chunk.get("text", "")).split() if word]
     duration_ms = max(1, int(chunk.get("endMs", 0)) - int(chunk.get("startMs", 0)))
@@ -2058,11 +2088,11 @@ def _chunk_signal(
 
     raw_text = str(chunk.get("text", ""))
     if ledger is not None:
-        can_counter = ledger.can_claim_counter(chunk_idx, raw_text)
-        is_duplicate = ledger.is_claimed_duplicate(raw_text)
+        can_counter = ledger.can_claim_counter(chunk_idx, raw_text, next_chunk_text=next_chunk_text)
+        is_duplicate = ledger.is_claimed_duplicate(raw_text, next_chunk_text=next_chunk_text)
     else:
-        metric_nums = SemanticConceptLedger.extract_metric_numbers(raw_text)
-        can_counter = bool(metric_nums and not SemanticConceptLedger.is_temporal_phrase(raw_text))
+        metric_nums = SemanticConceptLedger.extract_metric_numbers(raw_text, next_chunk_text=next_chunk_text)
+        can_counter = bool(metric_nums and not SemanticConceptLedger.is_temporal_phrase(raw_text, next_chunk_text=next_chunk_text))
         is_duplicate = False
 
     has_number = 1.0 if can_counter else 0.0
@@ -2469,7 +2499,8 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
             if not c_words:
                 continue
             c_clean = "".join(ch for ch in c_text if ch.isalnum())
-            c_signal = _chunk_signal(c)
+            next_c_text = str(chunks[c_idx + 1].get("text", "")).strip() if c_idx + 1 < len(chunks) else None
+            c_signal = _chunk_signal(c, next_chunk_text=next_c_text)
 
             duration_ms = c.get("endMs", 0) - c.get("startMs", 0)
             word_count = len(c_words)
@@ -2565,7 +2596,8 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
         word_count = len(words)
         chunk_word_objs = chunk.get("words", [])
         is_single_word = word_count == 1
-        signal = _chunk_signal(chunk, ledger=concept_ledger, chunk_idx=idx)
+        next_chunk_text = str(chunks[idx + 1].get("text", "")).strip() if idx + 1 < len(chunks) else None
+        signal = _chunk_signal(chunk, ledger=concept_ledger, chunk_idx=idx, next_chunk_text=next_chunk_text)
         behind_subject = (idx in behind_subject_indices)
 
         # Micro-stopword / connector phrase detection ("of how to", "and how to", etc.)
