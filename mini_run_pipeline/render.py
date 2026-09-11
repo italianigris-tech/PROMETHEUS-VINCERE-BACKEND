@@ -1056,6 +1056,13 @@ def render_final_video(
         input_height=int((timeline or {}).get("sourceHeight", 0)),
     )
 
+    # Step 5: Post-render Conformance Verification
+    from mini_run_pipeline import policy_check
+    policy_report = policy_check.run_post_render_conformance_check(
+        video_path=final_output,
+        manifest_or_props=design or {"chunks": chunks},
+    )
+
     total_ms = round((time.monotonic() - started_at) * 1000)
 
     return {
@@ -1067,6 +1074,7 @@ def render_final_video(
         "encoder": "libx264+remotion",
         "frameSlices": len(slice_specs) if parallel_render_success else 1,
         "resolution": resolution_receipt,
+        "policyReport": policy_report,
         "audioMix": audio_mix,
         "orchestration": {
             "status": "baked" if orchestration else "not_planned",

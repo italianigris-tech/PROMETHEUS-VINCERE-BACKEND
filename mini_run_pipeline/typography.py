@@ -1269,6 +1269,16 @@ def preflight_and_fit_layer_widths(
             target["fontSizePx"] = target["font_size_px"]
         target["est_width"] = len(target.get("rawText", "")) * target["font_size_px"] * target["char_aspect"]
 
+    for layer in layers_info:
+        est = layer.get("est_width", 0)
+        if est > max_safe_width:
+            auto_scale = round(max_safe_width / est, 4)
+            layer["autoFitScale"] = auto_scale
+            layer["fitScale"] = auto_scale
+        else:
+            layer["autoFitScale"] = 1.0
+            layer["fitScale"] = 1.0
+
 
 # High-tier, vetted editorial kinetic preset repertoire
 KINETIC_HERO_PRESETS = [

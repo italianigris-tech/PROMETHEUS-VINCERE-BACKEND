@@ -246,6 +246,18 @@ try:
 except Exception as res_err:
     print(f"[stitch] Resolution verification notice: {res_err}", flush=True)
 
+# 9b. Post-render Conformance Verification
+policy_report = {}
+try:
+    from mini_run_pipeline import policy_check
+    policy_report = policy_check.run_post_render_conformance_check(
+        video_path=master_path,
+        manifest_or_props=props.get("fontManifest") or props,
+    )
+    print(f"[stitch] Conformance check status: {policy_report.get('status')} ({len(policy_report.get('violations', []))} violations)", flush=True)
+except Exception as pol_err:
+    print(f"[stitch] Conformance check notice: {pol_err}", flush=True)
+
 # 10. Upload Master MP4 to R2
 master_key = f"gha-renders/{JOB_ID}/master.mp4"
 s3.upload_file(str(master_path), PROCESSED_BUCKET, master_key)
@@ -263,6 +275,7 @@ receipt = {
     "masterSizeBytes": master_path.stat().st_size,
     "slicesRendered": len(slice_paths),
     "resolution": resolution_receipt or resolution_plan,
+    "policyReport": policy_report,
     "audioMix": audio_mix_status,
     "orchestration": {
         "status": "baked" if orchestration_obj else "not_planned",
