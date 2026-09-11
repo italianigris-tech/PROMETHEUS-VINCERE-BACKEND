@@ -2785,6 +2785,7 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
 
     # Select behind-subject depth treatment moments with temporal distribution & variety
     behind_subject_indices = set()
+    behind_subject_pivots: Dict[int, str] = {}
     if policy["subjectLayering"] != "disabled":
         # Dynamic count based on video length
         if len(chunks) <= 8:
@@ -2810,45 +2811,67 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
             word_count = len(c_words)
             has_digits = any(ch.isdigit() for ch in c_text)
 
-            # Strict behind-subject cranial gating (Reverted 50df29a widening):
-            # 1. Multi-word phrases with digits are PERMANENTLY disqualified (must remain foreground captions)
-            # 2. Strict character bounds: single word <= 8 chars, or 2 words <= 10 chars total.
-            # 3. Phrases with 3 or more words are strictly disqualified from behind-subject placement.
-            if has_digits and word_count > 1:
-                is_punchy = False
-            elif word_count == 1:
+            # Behind-subject gating with pivot-word architecture:
+            # 1. Single word <= 8 chars: direct punchy cranial candidate
+            # 2. 2-word phrase <= 10 chars: direct 2-word candidate (unless digits)
+            # 3. Multi-word phrase (3-5 words): admitted via pivot-word architecture
+            #    if it contains a substantive pivot word (2 <= len <= 8 chars) that is not a digit/stopword.
+            #    The pivot word goes behind-subject while companions stay foreground.
+            pivot_word = None
+            if word_count == 1:
                 is_punchy = (2 <= len(c_clean) <= 8)
+                pivot_word = c_words[0]
             elif word_count == 2:
-                is_punchy = (4 <= len(c_clean) <= 10)
+                is_punchy = (4 <= len(c_clean) <= 10) and not has_digits
+                pivot_word = c_words[0] if len(c_words[0]) >= len(c_words[1]) else c_words[1]
             else:
-                is_punchy = False
+                # Multi-word chunk: identify best punchy substantive pivot word
+                substantive_pivots = [
+                    w for w in c_words
+                    if _is_substantive(w)
+                    and 2 <= len("".join(ch for ch in w if ch.isalnum())) <= 8
+                    and not any(ch.isdigit() for ch in w)
+                    and "'" not in w
+                ]
+                if substantive_pivots:
+                    pivot_word = max(substantive_pivots, key=lambda w: (len("".join(ch for ch in w if ch.isalnum())), c_words.index(w)))
+                    is_punchy = True
+                else:
+                    is_punchy = False
 
-            is_substantive = any(_is_substantive(w) for w in c_words) and len(c_clean) >= 2
+            is_substantive = bool(pivot_word) and any(_is_substantive(w) for w in c_words)
 
             if is_punchy and is_substantive and duration_ms >= 400:
-                base_score = c_signal["salience"] + (3.5 if word_count == 1 else 2.2)
+                base_score = c_signal["salience"] + (3.5 if word_count == 1 else (2.2 if word_count == 2 else 1.8))
                 if has_digits and word_count == 1:
                     base_score += 0.8
                 # Add mild stochastic variation for true run-to-run diversity
                 score = base_score + rng.uniform(-0.15, 0.15)
-                candidate_scores.append((c_idx, c_clean.lower(), score))
+                candidate_scores.append((c_idx, (pivot_word or c_clean).lower(), score, pivot_word or c_clean))
 
         candidate_scores.sort(key=lambda item: item[2], reverse=True)
 
         if policy["subjectLayering"] in ("required", "auto") and not candidate_scores and chunks:
-            # Only fallback if there is a chunk meeting strict cranial bounds
-            valid_fallback = [
-                i for i in range(len(chunks))
-                if len(str(chunks[i].get("text", "")).split()) <= 2
-                and len("".join(ch for ch in str(chunks[i].get("text", "")) if ch.isalnum())) <= 10
-                and not (any(ch.isdigit() for ch in str(chunks[i].get("text", ""))) and len(str(chunks[i].get("text", "")).split()) > 1)
-            ]
+            # Fallback admitting punchy pivot chunks
+            valid_fallback = []
+            for i in range(len(chunks)):
+                c_w_fb = str(chunks[i].get("text", "")).split()
+                pivs = [
+                    w for w in c_w_fb
+                    if _is_substantive(w)
+                    and 2 <= len("".join(ch for ch in w if ch.isalnum())) <= 8
+                    and not any(ch.isdigit() for ch in w)
+                    and "'" not in w
+                ]
+                if pivs:
+                    valid_fallback.append((i, pivs[-1]))
             if valid_fallback:
-                shortest_idx = min(valid_fallback, key=lambda i: len("".join(ch for ch in str(chunks[i].get("text", "")) if ch.isalnum())))
-                behind_subject_indices.add(shortest_idx)
+                fb_idx, fb_piv = valid_fallback[0]
+                behind_subject_indices.add(fb_idx)
+                behind_subject_pivots[fb_idx] = fb_piv
         else:
             used_behind_roots: set[str] = set()
-            for c_idx, c_root, score in candidate_scores:
+            for c_idx, c_root, score, c_piv in candidate_scores:
                 if len(behind_subject_indices) >= max_behind_count:
                     break
                 # Keyword deduplication: avoid repeating identical root words behind the subject
@@ -2863,15 +2886,19 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                 if has_cooldown:
                     if policy["subjectLayering"] == "required":
                         behind_subject_indices.add(c_idx)
+                        behind_subject_pivots[c_idx] = c_piv
                         used_behind_roots.add(c_root)
                     elif policy["subjectLayering"] == "auto":
                         if score >= 0.7:
                             behind_subject_indices.add(c_idx)
+                            behind_subject_pivots[c_idx] = c_piv
                             used_behind_roots.add(c_root)
 
             # Auto mode fallback: if candidates exist but cooldown/threshold chose none, admit top candidate
             if policy["subjectLayering"] == "auto" and not behind_subject_indices and candidate_scores:
-                behind_subject_indices.add(candidate_scores[0][0])
+                top_cand = candidate_scores[0]
+                behind_subject_indices.add(top_cand[0])
+                behind_subject_pivots[top_cand[0]] = top_cand[3]
 
     # Listicle Intelligence & Numerical Planning
     listicle_planning = listicles.detect_and_plan_listicles(chunks, design_input)
@@ -2915,9 +2942,10 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
         )
 
         # Strict Behind-Subject (Cranial / Tall Matte) vs Foreground separation:
-        # Background chunks strictly use Cranial Font or Tall Matte profiles.
+        # Single-word background chunks strictly use Cranial Font or Tall Matte profiles.
         # Single-word foreground heroes (e.g. "sunshine") are permitted Tall Matte profiles for colossal scale.
-        if behind_subject or (is_single_word and not is_micro_stopword):
+        # Multi-word behind-subject chunks use multi-layer profiles so the pivot word can go behind while companions stay foreground.
+        if (behind_subject and is_single_word) or (is_single_word and not is_micro_stopword):
             pool = [p for p in profiles if _is_behind_subject_candidate_profile(p)] or profiles
         else:
             pool = [p for p in profiles if not _is_behind_subject_candidate_profile(p)] or profiles
@@ -3089,7 +3117,59 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
 
         # If single word is paired with a 2-layer profile, split by stem/suffix
         target_layers = prof.get("typography_layers", [])
-        if is_lockup_treatment and word_count >= 2:
+        if behind_subject and word_count >= 2:
+            # Pivot-word architecture for behind-subject multi-word chunks:
+            # The substantive pivot word (<= 8 chars, no digits) forms the hero layer,
+            # while companion words form the foreground companion layer.
+            pivot_w = behind_subject_pivots.get(idx)
+            pivot_pos = -1
+            if pivot_w:
+                clean_p = "".join(ch for ch in pivot_w if ch.isalnum()).lower()
+                for w_i, w in enumerate(words):
+                    if "".join(ch for ch in w if ch.isalnum()).lower() == clean_p:
+                        pivot_pos = w_i
+                        break
+            if pivot_pos == -1:
+                valid_pivots = [
+                    w_i for w_i, w in enumerate(words)
+                    if _is_substantive(w)
+                    and 2 <= len("".join(ch for ch in w if ch.isalnum())) <= 8
+                    and not any(ch.isdigit() for ch in w)
+                    and "'" not in w
+                ]
+                pivot_pos = valid_pivots[-1] if valid_pivots else len(words) - 1
+
+            t_layers = target_layers if len(target_layers) >= 2 else [
+                {"role": "modifier", "font_style": {"weight": 600, "relative_scale": 0.45}},
+                {"role": "hero", "font_style": {"weight": 900, "relative_scale": 1.0}},
+            ]
+            l0 = t_layers[0]
+            l1 = t_layers[1]
+            scale0 = float(l0.get("font_style", {}).get("relative_scale", 1.0))
+            scale1 = float(l1.get("font_style", {}).get("relative_scale", 0.5))
+            hero_l = l0 if scale0 >= scale1 else l1
+            comp_l = l1 if scale0 >= scale1 else l0
+
+            if pivot_pos == 0:
+                allocations = [
+                    {"layer": hero_l, "words": [words[0]], "is_hero": True},
+                    {"layer": comp_l, "words": words[1:], "is_hero": False},
+                ]
+                resolved_lockup_opt = "bottom_tucked"
+            elif pivot_pos == len(words) - 1:
+                allocations = [
+                    {"layer": comp_l, "words": words[:-1], "is_hero": False},
+                    {"layer": hero_l, "words": [words[-1]], "is_hero": True},
+                ]
+                resolved_lockup_opt = "top_tucked"
+            else:
+                allocations = [
+                    {"layer": comp_l, "words": words[:pivot_pos], "is_hero": False},
+                    {"layer": hero_l, "words": [words[pivot_pos]], "is_hero": True},
+                    {"layer": comp_l, "words": words[pivot_pos + 1:], "is_hero": False},
+                ]
+                resolved_lockup_opt = "top_tucked"
+        elif is_lockup_treatment and word_count >= 2:
             modifier_stopwords = {
                 "the", "a", "an", "up", "in", "on", "at", "to", "for", "of", "with", "by", "from",
                 "was", "were", "is", "are", "been", "be", "only", "one", "didn't", "did", "not",
@@ -3492,8 +3572,9 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
             # ("right", "true", "yeah", "too") to assign negative vertical overlap tucks
             clean_tag = raw_layer_text.strip().strip(".,!?:;\"'").lower()
             is_desc = is_descriptor_phrase(raw_text)
-            if margin_top_px == 0 and layer_idx > 0 and (clean_tag in {"right", "true", "yeah", "too", "ok", "okay", "yes", "sure"} or is_desc):
-                margin_top_px = -round(font_size_px * 0.24)
+            if layer_idx > 0 and (clean_tag in {"right", "true", "yeah", "too", "ok", "okay", "yes", "sure"} or is_desc):
+                if margin_top_px >= 0:
+                    margin_top_px = -round(font_size_px * 0.24)
 
             # Descender / script-swash collision avoidance policy:
             # If the preceding line contains descenders ('g','j','p','q','y','Q') OR the
@@ -3569,10 +3650,23 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                         "scaleMultiplier": 1.06,
                     })
 
+            # Pivot-word layer behind-subject assignment:
+            # 1. If chunk is behind_subject:
+            #    - In single-layer chunks: that layer is behind subject only if <= 2 words.
+            #    - In multi-layer chunks: ONLY the hero/pivot layer with <= 2 words is behind subject.
+            #      Companion layers MUST stay foreground (behindSubject = False).
+            # 2. Strict cranial occlusion protection (Reverted 50df29a widening):
+            #    Any layer with > 2 words is strictly barred from behindSubject.
+            is_pivot_behind = behind_subject and (is_hero_layer or len(allocations) == 1)
+            if len(raw_layer_text.split()) > 2:
+                is_pivot_behind = False
+
+            layer_behind_subject = is_pivot_behind
+
             # Strict Tall-stack contract: canva_tall_glyph_stack (and vertical tower fx)
             # is strictly restricted to single-word layers and behind-subject only.
             # Multi-word layers get horizontal alternatives.
-            if layer_fx == "canva_tall_glyph_stack" and not (behind_subject or len(layer_words) <= 1):
+            if layer_fx == "canva_tall_glyph_stack" and not (layer_behind_subject or len(layer_words) <= 1):
                 layer_fx = "multi_word_slide_up_stagger" if not is_hero_layer else "dynamic_staggered_character_cascade"
 
             # Strict Companion Font Contract: companion layers must never emit barred decorative or alternate fonts
@@ -3604,7 +3698,7 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                 "isHero": is_hero_layer,
                 "fxPreset": layer_fx,
                 "entryLeadMs": _entry_lead_ms(policy, signal, is_hero_layer, layer_fx),
-                "behindSubject": behind_subject,
+                "behindSubject": layer_behind_subject,
                 "treatmentOverlay": layer_overlay,
                 "frontalTreatment": "air_frontal_optical_bloom" if wants_air_frontal else None,
                 "opticalBloom": style_treatment.get("opticalBloom", False),
@@ -3642,8 +3736,8 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                 "isUnderlapping": False,
                 "isOverlayAtop": False,
                 "zIndex": int(layer_spec.get("z_index")) if "z_index" in layer_spec else ((layer_idx + 1) * 2 if is_overlapping else layer_idx + 1),
-                "depthZPx": 140 if is_hero_layer else (-110 if behind_subject else (-30 if layer_idx > 0 else 0)),
-                "focusPriority": 1 if is_hero_layer else (3 if behind_subject else 2),
+                "depthZPx": -110 if layer_behind_subject else (140 if is_hero_layer else (-30 if layer_idx > 0 else 0)),
+                "focusPriority": 3 if layer_behind_subject else (1 if is_hero_layer else 2),
                 "fill": v2_layer.get("fill") or {"type": "solid", "color": style_treatment["textFillColor"]},
                 "stroke": v2_layer.get("stroke"),
                 "materiality": v2_layer.get("materiality") or {
@@ -3653,10 +3747,10 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                     "glow": {"radiusPx": 12, "color": style_treatment.get("glow"), "intensity": 0.75} if style_treatment.get("glow") and style_treatment.get("glow") != "none" else None,
                 },
                 "occlusion": v2_layer.get("occlusion") or {
-                    "mode": "partial_head_clip" if behind_subject else "none",
-                    "depthPlane": 45 if behind_subject else 0,
+                    "mode": "partial_head_clip" if layer_behind_subject else "none",
+                    "depthPlane": 45 if layer_behind_subject else 0,
                     "clipBoundary": "silhouette",
-                    "partialOverlapPercent": 25 if behind_subject else 0,
+                    "partialOverlapPercent": 25 if layer_behind_subject else 0,
                 },
                 "stagger": v2_layer.get("stagger") or {
                     "dxPercent": 0.0,
@@ -3757,7 +3851,7 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                 "salience": round(signal["salience"], 3),
             },
             "subjectLayering": {
-                "behindSubject": behind_subject,
+                "behindSubject": behind_subject and any(l.get("behindSubject") for l in rendered_layers),
                 "isTallProfile": _is_tall_matte_profile(prof),
                 "mode": policy["subjectLayering"],
             },
@@ -3768,7 +3862,7 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                     "anchor": "center",
                     "dominantZone": "cranial_crown",
                 }
-                if behind_subject
+                if (behind_subject and any(l.get("behindSubject") for l in rendered_layers))
                 # Font-JSON layout_rules honoring is mini-run (9:16) only —
                 # the landscape composition keeps its own placement regime.
                 else (_layout_rules_placement(prof) if not is_landscape else {
