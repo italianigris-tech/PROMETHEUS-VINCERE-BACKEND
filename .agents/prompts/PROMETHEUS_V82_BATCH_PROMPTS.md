@@ -4,6 +4,8 @@
 
 Work in vertical batches. Before starting a batch, update `PROMETHEUS_v8.2_BUILD.md` to mark the batch `IN_PROGRESS`. After finishing, update the gate evidence and status. Do not mark a batch complete without runnable verification.
 
+Completion reports follow claim → evidence: every "done" claim carries its artifact inline — verbatim test-runner output from the final tree, `git log -S` output for any behavior-history claim, receipt fields for pipeline claims. One batch = one commit = one test set; commits over 5 files / 500 changed lines require audit sign-off. Data files the batch's code reads must be committed with the batch, and their loaders must fail fast when missing (no silent fallback to defaults). `git status` must be clean and the branch pushed before the word "deployed" appears in any report. See `.agents/AGENTS.md` RULES 5-10 for the full rulebook.
+
 ## B1 - SFX Real Files And Seeded Selection
 
 Implement only the SFX slice.

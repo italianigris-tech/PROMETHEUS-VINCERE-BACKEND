@@ -34,3 +34,33 @@ When implementing the corrections for the Prometheus Core, Codex MUST:
 3. Run `test-joseph.ts` with the restored R3F composition.
 4. If R3F still fails in headless, diagnose the GL backend—do not alter the composition.
 5. Skip the SFX mixing test if real assets don't exist, or only verify the `filter_complex` string logic.
+
+## 🚨 RULE 5: CLAIM → EVIDENCE PAIRING (NO CONFABULATION)
+Every factual claim in a report, handoff, or completion summary MUST carry its verification artifact inline.
+- Code-history claims: paste the `git log -S "<snippet>" -- <file>` output. Never attribute behavior to "existing design" without this check — if the code was changed in this session, the report must say so explicitly.
+- Pipeline/render claims: quote the receipt fields (`deploymentFingerprint.gitSha`, `matte.status`, `lookPlan.gradeFilter`) verbatim. The receipt outranks memory.
+- Test claims: paste the runner summary line (e.g. `Ran 20 tests ... OK`) from the FINAL state of the tree.
+A claim without an artifact is treated as false and invalidates the whole report. (Incident: a gate widening was reported as pre-existing design; a LUT was claimed missing while the receipt showed `lut3d=file=...` applying it.)
+
+## 🚨 RULE 6: NO METRIC GAMING
+When a critique names a count (e.g. "0 behind-subject moments", "too many presets"), changing the count is NOT fixing the problem.
+- Before widening or reweighting any selector, reason about the worst case it now admits (e.g. an 880px three-word phrase rendered behind a ~300px skull) and write that reasoning into the commit message.
+- Validate the quality outcome (legibility, geometry, aesthetics) and include that validation in the report. (Incident: widening behind-subject eligibility moved the count 0 → 4 and manufactured a head-occlusion defect.)
+
+## 🚨 RULE 7: ONE FIX, ONE COMMIT, ONE TEST
+- A commit implements exactly one agreed fix and ships the test proving it.
+- Hard cap: 5 files / 500 changed lines per commit. Anything above the cap requires prior audit sign-off and must be split.
+- Commit messages state which critique item the fix addresses. (Incident: commit `50df29a` — 111 files, +19,557 lines, sold as "6 peer-reviewed fixes", unaudited, containing a regression.)
+
+## 🚨 RULE 8: NO SILENT DEGRADATION — DEPLOY WHAT THE CODE READS
+- Any data file referenced by committed code (catalogs, profile corpora, fonts, LUTs) is committed in the same change as the code that reads it.
+- A loader that can return empty/None when its file is missing MUST fail fast (assert/raise) or emit a loud warning that lands in the receipt. Silent fallback to defaults is prohibited. (Incident: `typography_profiles_v2_catalog.json` — 97 profiles locally, 0 on the runner, no error, the entire V2 esthetic silently flattened.)
+- The word "deployed" may only be used when `git status` is clean and `git log origin/main..HEAD` is empty.
+
+## 🚨 RULE 9: AUDIT GATE BEFORE RENDER
+- Implementation rounds pass an independent verification pass (separate agent or auditor review) before any cloud render is dispatched.
+- A render's receipt must show `deploymentFingerprint.gitSha` equal to the audited commit. Comparing videos rendered from different SHAs is invalid evidence.
+
+## 🚨 RULE 10: SCOPE WALL
+- Mini-run work (`mini_run_pipeline/`, `modal_mini_run.py`, `mini_run_gateway.py`, `remotion-app/src/compositions/PrometheusMinRun.tsx`) MUST NOT touch macro-section files (`mineral_macro_bridge.py`, `mineral_vision_critic.py`, `docs/mini_run_studio/assets/macro_sections/`) or landscape files (`docs/mini_landscape_runs/`, `*Landscape*`).
+- Cross-domain needs are raised as a separate approved task, never smuggled into a mini-run commit.
