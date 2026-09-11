@@ -206,13 +206,13 @@ def analyze_cranial_negative_space(
     """
     if not subject_box:
         # Default centered layout when no observation is available:
-        # Nestles text in upper cranial crown (13.5%), avoiding deep skull occlusion (<= 40%)
+        # Nestles text in cranial crown (20%), avoiding deep skull occlusion (<= 40%)
         below_head_y = 0.54 if face_bottom_y is None else round(max(0.44, min(0.68, face_bottom_y + 0.11)), 3)
         return {
             "dominantZone": "cranial_crown",
             "zoneId": "behind_subject_above_head",
             "xPercent": "50%",
-            "yPercent": "13.5%",
+            "yPercent": "20%",
             "anchor": "center",
             "textAlign": "center",
             "fontTreatment": "tall_didone_arch",
@@ -288,12 +288,12 @@ def analyze_cranial_negative_space(
             "faceBottom": round(face_bottom_y, 3) if face_bottom_y is not None else None,
         }
 
-    # Priority 3: Large Cranial Headroom (Crown Halo Arch / Editorial Masthead)
-    # Follows the Gestalt Occlusion Rule: headline text sits high enough in the headroom
-    # so letter ascenders and uppercase bodies are fully exposed above the hair (top 75%),
-    # with only the bottom baseline nestled behind the silhouette, NOT obscured by the skull.
-    if top_headroom >= 0.14:
-        center_y = round(max(0.07, min(0.16, actual_head_top - 0.07)), 4)
+    # Priority 3: Natural Cranial Composition Zone (Anti-Sequestering / 60-40 Rule)
+    # Never push behind-subject text into the ceiling (y < 15%) just to game 0% occlusion.
+    # Text stays nestled in the natural middle band (18% - 28%), permitting up to 40% head occlusion
+    # per the 60/40 rule where the subject's head partially layers over the lower 40% of the letters.
+    if top_headroom >= 0.10:
+        center_y = round(max(0.18, min(0.26, actual_head_top)), 4)
         head_mid_x = (head_left + head_right) / 2.0
         if head_mid_x < 0.44:
             text_x = round(min(0.60, head_mid_x + 0.12), 3)
@@ -525,6 +525,7 @@ def plan_subject_safe_placements(
                 "intersectsSubject": False,
                 "availableHeightRatio": cranial_analysis.get("headroomRatio", 0.15),
                 "headTopY": round(cranial_analysis.get("headroomRatio", 0.15), 4),
+                "faceBottom": cranial_analysis.get("faceBottom"),
                 "policy": f"cranial_negative_space_{dom_zone}",
                 "cranialArc": None,
             })

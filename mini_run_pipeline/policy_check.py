@@ -440,6 +440,16 @@ def validate_head_occlusion(
         }
         pivots_data.append(pivot_info)
 
+        # Anti-Sequestering Check:
+        # Banishment to the ceiling (y < 15%) merely to game 0% head occlusion is strictly prohibited.
+        # Pivots must reside in natural composition zones (y >= 15%, e.g. 18%-28%) permitting up to 40% occlusion.
+        is_above_head_anchor = str(placement.get("anchor", "")).lower() == "top_headroom"
+        if y_pct < 0.15 and not is_above_head_anchor:
+            violations.append(
+                f"Chunk {c_idx} behind-subject pivot '{raw_text}' sequestered to ceiling at y={y_pct * 100:.1f}% "
+                f"(must be placed in natural composition zone y >= 15% per 60/40 rule)"
+            )
+
         if occ_ratio > (max_occlusion_threshold + 0.001):
             violations.append(
                 f"Chunk {c_idx} behind-subject pivot '{raw_text}' head occlusion {occ_ratio:.1%} "

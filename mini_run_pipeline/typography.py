@@ -3946,7 +3946,7 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
             "placement": (
                 {
                     "xPercent": "50%",
-                    "yPercent": "13.5%",
+                    "yPercent": "22%",
                     "anchor": "center",
                     "dominantZone": "cranial_crown",
                 }
