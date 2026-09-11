@@ -1667,6 +1667,7 @@ SINGLE_WORD_HERO_PRESETS: set[str] = {
     "prism_chisel_hard_bevel",
     "air_frontal_optical_bloom",
     "in_the_air_diffusion_bloom",
+    "canva_tall_glyph_stack",
 }
 
 ANIMA_OVERLAY_TREATMENTS = [
@@ -1749,6 +1750,7 @@ def _resolve_font_json_treatment(
     is_single_word: bool,
     rng: random.Random,
     policy: Dict[str, Any],
+    behind_subject: bool = False,
 ) -> str:
     """Resolve runtime kinetic text treatment directly from the font JSON classification, mood, and role."""
     mood = str(prof.get("metadata", {}).get("overall_mood", "")).lower()
@@ -1764,7 +1766,12 @@ def _resolve_font_json_treatment(
         else:
             candidates = ["stagger_blur_word_reveal", "cinematic_slide_up", "docking_modifier", "multi_word_slide_up_stagger"]
     elif any(k in classification or k in mood for k in ("compressed", "ultra-compressed", "tall", "heavy sans", "grotesque")):
-        candidates = ["kinetic_slot_character_reel", "canva_tall_glyph_stack", "top_down_staggered_character_drop", "refraction_shimmer_mask"]
+        # Tall-stack contract: canva_tall_glyph_stack (and vertical tower fx) is restricted to single-word layers + behind-subject only.
+        # Multi-word layers get horizontal alternatives.
+        if is_single_word or behind_subject:
+            candidates = ["kinetic_slot_character_reel", "canva_tall_glyph_stack", "top_down_staggered_character_drop", "refraction_shimmer_mask"]
+        else:
+            candidates = ["multi_word_slide_up_stagger", "cinematic_slide_up", "docking_modifier", "stagger_blur_word_reveal"]
     elif any(k in classification or k in mood for k in ("didone", "modern serif", "classic editorial", "refined")):
         candidates = ["quote_glow_reveal", "stagger_blur_word_reveal", "cinematic_viewport_mask_sweep", "apple_gaussian_chrome"]
     elif any(k in classification or k in mood for k in ("swiss", "poster", "display", "headline")):
@@ -1776,6 +1783,10 @@ def _resolve_font_json_treatment(
             candidates = ["apple_keynote_headline_punch", "blue_lantern_magnetic", "refraction_shimmer_mask", "spatial_push_spring"]
         else:
             candidates = ["stagger_blur_word_reveal", "cinematic_slide_up", "docking_modifier", "multi_word_slide_up_stagger"]
+
+    # Final guard: tall-stack and vertical tower presets never admitted for multi-word layers unless behind-subject
+    if not (is_single_word or behind_subject):
+        candidates = [c for c in candidates if c != "canva_tall_glyph_stack"]
 
     eligible = [c for c in candidates if c not in avoid]
     return rng.choice(eligible) if eligible else "apple_keynote_headline_punch"
@@ -2976,7 +2987,7 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                 else:
                     font_size_px = max(55, min(75, int(base_size * 1.3 * max(0.7, relative_scale))))
                     resolved_weight = int(f_style.get("weight", 600))
-                    layer_fx = _resolve_font_json_treatment(prof, layer_spec, is_hero=False, is_single_word=is_single_word, rng=rng, policy=policy)
+                    layer_fx = _resolve_font_json_treatment(prof, layer_spec, is_hero=False, is_single_word=is_single_word, rng=rng, policy=policy, behind_subject=behind_subject)
                     layer_overlay = None
             # Average char aspect width ratio based on font type and letterform geometry
             is_ultra_tall = any(k in primary_font.lower() for k in ("anton", "bebas", "six caps", "teko", "saira", "senzabella", "oswald", "antenna"))
@@ -3003,7 +3014,7 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                 else:
                     target_font_size = max(55, min(75, int(base_size * 1.3 * max(0.7, relative_scale))))
                     resolved_weight = int(f_style.get("weight", 600))
-                    layer_fx = _resolve_font_json_treatment(prof, layer_spec, is_hero=False, is_single_word=is_single_word, rng=rng, policy=policy)
+                    layer_fx = _resolve_font_json_treatment(prof, layer_spec, is_hero=False, is_single_word=is_single_word, rng=rng, policy=policy, behind_subject=behind_subject)
                     layer_overlay = None
             elif behind_subject:
                 # Responsive behind-subject typography scale respecting character length
@@ -3044,7 +3055,7 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                 script_floor = 100 if is_spencerian else 80
                 target_font_size = max(script_floor if is_script else 56, min(110 if is_script else 78, int(base_size * 1.35 * max(0.6, relative_scale))))
                 resolved_weight = int(f_style.get("weight", 600))
-                layer_fx = _resolve_font_json_treatment(prof, layer_spec, is_hero=False, is_single_word=is_single_word, rng=rng, policy=policy)
+                layer_fx = _resolve_font_json_treatment(prof, layer_spec, is_hero=False, is_single_word=is_single_word, rng=rng, policy=policy, behind_subject=behind_subject)
                 layer_overlay = None
 
             # Enforce max horizontal text width clamp so words NEVER overflow canvas boundaries
@@ -3269,6 +3280,12 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                         "highlightBox": True,
                         "scaleMultiplier": 1.06,
                     })
+
+            # Strict Tall-stack contract: canva_tall_glyph_stack (and vertical tower fx)
+            # is strictly restricted to single-word layers and behind-subject only.
+            # Multi-word layers get horizontal alternatives.
+            if layer_fx == "canva_tall_glyph_stack" and not (behind_subject or len(layer_words) <= 1):
+                layer_fx = "multi_word_slide_up_stagger" if not is_hero_layer else "dynamic_staggered_character_cascade"
 
             rendered_layers.append({
                 "layerIndex": layer_idx,
