@@ -15,6 +15,7 @@ import {
   deriveVolumetricGradient,
   buildPhysicalLightingFilter,
   unsupportedRuntimeTreatments,
+  resolveAutoFitScale,
 } from "../PrometheusMinRun";
 
 describe("resolveWordEntranceFrames", () => {
@@ -694,6 +695,56 @@ describe("Architectural Background Systems (5 Pillars)", () => {
       };
       expect(layer.inlineTokenSwaps?.[0].scaleMultiplier).toBe(1.06);
       expect(layer.inlineTokenSwaps?.[0].highlightBox).toBe(true);
+    });
+  });
+
+  describe("resolveAutoFitScale and nowrap wrap guard (Item 5)", () => {
+    test("returns 1.0 when text easily fits within viewport boundaries", () => {
+      const scale = resolveAutoFitScale({
+        charLength: 8,
+        fontSizePx: 64,
+        isUppercase: false,
+      });
+      expect(scale).toBe(1.0);
+    });
+
+    test("scales down when phrase length exceeds max allowed width", () => {
+      // 25 characters at 90px uppercase = 25 * 90 * 0.74 = 1665px > 830px
+      const scale = resolveAutoFitScale({
+        charLength: 25,
+        fontSizePx: 90,
+        isUppercase: true,
+      });
+      expect(scale).toBeLessThan(1.0);
+      expect(scale).toBeCloseTo(830 / 1665, 2);
+    });
+
+    test("clamps autoFitScale to 0.35 floor even for exceptionally long text", () => {
+      const scale = resolveAutoFitScale({
+        charLength: 80,
+        fontSizePx: 120,
+        isUppercase: true,
+      });
+      expect(scale).toBe(0.35);
+    });
+
+    test("uses tighter 340px boundary for flank zone placement", () => {
+      // 10 chars at 60px lowercase = 10 * 60 * 0.54 = 324px <= 340px -> 1.0
+      const fitsFlank = resolveAutoFitScale({
+        charLength: 10,
+        fontSizePx: 60,
+        isFlank: true,
+      });
+      expect(fitsFlank).toBe(1.0);
+
+      // 18 chars at 60px lowercase = 18 * 60 * 0.54 = 583.2px > 340px -> scales down
+      const overflowsFlank = resolveAutoFitScale({
+        charLength: 18,
+        fontSizePx: 60,
+        isFlank: true,
+      });
+      expect(overflowsFlank).toBeLessThan(1.0);
+      expect(overflowsFlank).toBeCloseTo(340 / (18 * 60 * 0.54), 2);
     });
   });
 });

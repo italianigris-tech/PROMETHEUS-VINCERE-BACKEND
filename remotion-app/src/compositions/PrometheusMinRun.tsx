@@ -1025,6 +1025,38 @@ export const resolveBehindSubjectTypographyMetrics = ({
   return { fontSize, scaleX, scaleY, letterSpacing };
 };
 
+// ---------------------------------------------------------------------------
+// Auto-Fit Scale Calculator (Clamp viewport-safe scale down to 0.35 floor)
+// ---------------------------------------------------------------------------
+export interface AutoFitScaleParams {
+  charLength: number;
+  fontSizePx: number;
+  isUppercase?: boolean;
+  isScript?: boolean;
+  isBehindSubject?: boolean;
+  behindSubjectScaleX?: number;
+  isFlank?: boolean;
+}
+
+export const resolveAutoFitScale = ({
+  charLength,
+  fontSizePx,
+  isUppercase = false,
+  isScript = false,
+  isBehindSubject = false,
+  behindSubjectScaleX = 1.0,
+  isFlank = false,
+}: AutoFitScaleParams): number => {
+  const maxAllowedWidthPx = isFlank ? 340 : (isBehindSubject ? 860 : 830);
+  const charAspectEstimate = isUppercase ? 0.74 : 0.54;
+  const effectiveFontSize = isScript ? Math.max(80, fontSizePx) : fontSizePx;
+  const estimatedWidthPx = charLength * effectiveFontSize * charAspectEstimate * (isBehindSubject ? behindSubjectScaleX : 1.0);
+  if (estimatedWidthPx > maxAllowedWidthPx) {
+    return Math.max(0.35, maxAllowedWidthPx / estimatedWidthPx);
+  }
+  return 1.0;
+};
+
 const KineticLayerRenderer: React.FC<{
   layer: TypographyLayer;
   frame: number;
@@ -1230,16 +1262,17 @@ const KineticLayerRenderer: React.FC<{
     (placement as any)?.dominantZone === "flank_left_column" ||
     Boolean(placement?.safeRegionId?.includes("flank"));
 
-  const maxAllowedWidthPx = isFlank ? 340 : (isBehindSubject ? 860 : 830);
   const isUppercase = resolvedTextTransform === "uppercase" || layer.casing === "uppercase";
-  const charAspectEstimate = isUppercase ? 0.74 : 0.54;
   const rawSize = isBehindSubject ? behindSubjectFontSize : layer.fontSizePx;
-  // Minimum legibility size floor: script fonts must be at least 80px to remain decipherable
-  const effectiveFontSize = effectiveIsScript ? Math.max(80, rawSize) : rawSize;
-  const estimatedWidthPx = charLength * effectiveFontSize * charAspectEstimate * (isBehindSubject ? behindSubjectScaleX : 1.0);
-  const autoFitScale = estimatedWidthPx > maxAllowedWidthPx
-    ? Math.max(0.55, maxAllowedWidthPx / estimatedWidthPx)
-    : 1.0;
+  const autoFitScale = resolveAutoFitScale({
+    charLength,
+    fontSizePx: rawSize,
+    isUppercase,
+    isScript: effectiveIsScript,
+    isBehindSubject,
+    behindSubjectScaleX,
+    isFlank,
+  });
 
   const effectiveFontSizePx = Math.max(
     isBehindSubject ? behindSubjectFontSize : (layer.fontSizePx || 48),
@@ -1290,7 +1323,8 @@ const KineticLayerRenderer: React.FC<{
     paddingRight: "0.25em",
     boxSizing: "content-box",
     display: "inline-flex",
-    flexWrap: isBehindSubject ? "nowrap" : "wrap",
+    flexWrap: "nowrap",
+    whiteSpace: "nowrap",
     justifyContent: "center",
     alignItems: "center",
     textAlign: "center",
@@ -1555,7 +1589,8 @@ const KineticLayerRenderer: React.FC<{
         style={{
           ...baseTextStyle,
           display: "inline-flex",
-          flexWrap: "wrap",
+          flexWrap: "nowrap",
+          whiteSpace: "nowrap",
           justifyContent: "center",
           alignItems: "center",
         }}
@@ -2031,7 +2066,7 @@ const KineticLayerRenderer: React.FC<{
   if (fx === "hand_drawn_kinetic_underline" || fx === "vector_stroke_sparkle") {
     return (
       <div style={{...baseTextStyle, display: "inline-flex", flexDirection: "column", alignItems: "center"}}>
-        <div style={{display: "flex", flexDirection: "row", flexWrap: "wrap", justifyContent: "center"}}>
+        <div style={{display: "flex", flexDirection: "row", flexWrap: "nowrap", whiteSpace: "nowrap", justifyContent: "center"}}>
           {words.map((word, wIdx) => {
             const wordStart = wordEntranceFrames[wIdx] ?? 0;
             const localFrame = Math.max(0, frame - wordStart);
@@ -2780,7 +2815,8 @@ const KineticLayerRenderer: React.FC<{
           style={{
             ...baseTextStyle,
             display: "inline-flex",
-            flexWrap: isBehindSubject ? "nowrap" : "wrap",
+            flexWrap: "nowrap",
+            whiteSpace: "nowrap",
             justifyContent: "center",
             alignItems: "center",
           }}
@@ -2830,7 +2866,8 @@ const KineticLayerRenderer: React.FC<{
         style={{
           ...baseTextStyle,
           display: "inline-flex",
-          flexWrap: isBehindSubject ? "nowrap" : "wrap",
+          flexWrap: "nowrap",
+          whiteSpace: "nowrap",
           justifyContent: "center",
           alignItems: "center",
         }}
@@ -3144,7 +3181,8 @@ const KineticLayerRenderer: React.FC<{
           ...baseTextStyle,
           display: "flex",
           flexDirection: "row",
-          flexWrap: "wrap",
+          flexWrap: "nowrap",
+          whiteSpace: "nowrap",
           justifyContent: ((layer as any).alignSelf === "flex-start" || (layer as any).alignSelf === "left") ? "flex-start" : (((layer as any).alignSelf === "flex-end" || (layer as any).alignSelf === "right") ? "flex-end" : "center"),
           textShadow: kineticTextShadow("0 4px 18px rgba(0, 0, 0, 0.95), 0 2px 6px rgba(0, 0, 0, 0.90)"),
         }}
@@ -3681,7 +3719,7 @@ const PivotSatelliteComposition: React.FC<{
       pointerEvents: "none",
     };
     return (
-      <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "0.28em" }}>
+      <div style={{ display: "flex", flexWrap: "nowrap", whiteSpace: "nowrap", justifyContent: "center", gap: "0.28em" }}>
         {words.map((w, wi) => {
           const startF = contentStartFrame + Math.round(((w.start_ms - chunkStartMs) / 1000) * fps);
           const p = interpolate(frame, [startF, startF + 6], [0, 1], {
@@ -4451,7 +4489,8 @@ const HierarchicalAsymmetricLockupComposition: React.FC<{
       <div
         style={{
           display: "flex",
-          flexWrap: "wrap",
+          flexWrap: "nowrap",
+          whiteSpace: "nowrap",
           alignItems: "center",
           alignSelf: "flex-start",
           fontFamily: effectiveModFont,
@@ -4476,7 +4515,8 @@ const HierarchicalAsymmetricLockupComposition: React.FC<{
       <div
         style={{
           display: "flex",
-          flexWrap: "wrap",
+          flexWrap: "nowrap",
+          whiteSpace: "nowrap",
           alignItems: "baseline",
           alignSelf: "flex-start",
           fontFamily: effectiveHeroFont,
@@ -4496,6 +4536,22 @@ const HierarchicalAsymmetricLockupComposition: React.FC<{
       </div>
     );
 
+    const heroCharLen = heroWords.reduce((acc, w) => acc + (w.text?.length || 0), 0) + Math.max(0, heroWords.length - 1);
+    const modCharLen = modWords.reduce((acc, w) => acc + (w.text?.length || 0), 0) + Math.max(0, modWords.length - 1);
+    const heroAutoFit = resolveAutoFitScale({
+      charLength: heroCharLen,
+      fontSizePx: heroSize,
+      isUppercase: true,
+      isBehindSubject: false,
+    });
+    const modAutoFit = resolveAutoFitScale({
+      charLength: modCharLen,
+      fontSizePx: modifierSize,
+      isUppercase: false,
+      isBehindSubject: false,
+    });
+    const lockupScale = Math.min(heroAutoFit, modAutoFit);
+
     return (
       <div
         style={{
@@ -4507,6 +4563,8 @@ const HierarchicalAsymmetricLockupComposition: React.FC<{
           padding: 0,
           pointerEvents: "none",
           mixBlendMode: isDifference ? "difference" : undefined,
+          transform: lockupScale < 1.0 ? `scale(${lockupScale})` : undefined,
+          transformOrigin: "center center",
         }}
       >
         {isTopTucked && modifierBlock}
