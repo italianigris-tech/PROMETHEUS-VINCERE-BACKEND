@@ -199,7 +199,7 @@ jobs:
           cache: "pip"
 
       - name: Install Python deps
-        run: pip install --quiet boto3 requests
+        run: pip install --quiet boto3 requests pillow numpy
 
       - name: Install ffmpeg
         run: |

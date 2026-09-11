@@ -64,6 +64,107 @@ def extract_manifest_layers(manifest_or_props: Any) -> List[Dict[str, Any]]:
     return layers
 
 
+SAFE_MARGIN_X_PX: float = 130.0
+SAFE_MARGIN_Y_PX: float = 160.0
+CANVAS_WIDTH_PX: int = 1080
+CANVAS_HEIGHT_PX: int = 1920
+
+
+def measure_frame_text_pixel_bounds(
+    frame_path_or_rgb: Any,
+    safe_margin_x: float = SAFE_MARGIN_X_PX,
+    safe_margin_y: float = SAFE_MARGIN_Y_PX,
+    width: int = CANVAS_WIDTH_PX,
+    height: int = CANVAS_HEIGHT_PX,
+) -> Dict[str, Any]:
+    """Measure actual pixel bounding box and safe-margin edge bleed from rendered frame."""
+    try:
+        import numpy as np
+        from PIL import Image
+    except ImportError:
+        return {"status": "skipped", "reason": "numpy_or_pillow_unavailable", "detected": False}
+
+    if isinstance(frame_path_or_rgb, (str, Path)):
+        p = Path(frame_path_or_rgb)
+        if not p.exists():
+            return {"status": "skipped", "reason": f"file_not_found: {p}", "detected": False}
+        try:
+            img = Image.open(p).convert("RGB")
+            arr = np.array(img)
+        except Exception as err:
+            return {"status": "skipped", "reason": f"image_load_failed: {err}", "detected": False}
+    elif isinstance(frame_path_or_rgb, np.ndarray):
+        arr = frame_path_or_rgb
+    else:
+        return {"status": "skipped", "reason": "invalid_frame_data", "detected": False}
+
+    h, w = arr.shape[:2]
+    # Restrict vertical search zone to dialogue / graphics band [500, 1850]
+    y_start = min(h - 50, 500)
+    y_end = min(h, 1850)
+    sub = arr[y_start:y_end, :]
+
+    r = sub[:, :, 0].astype(float)
+    g = sub[:, :, 1].astype(float)
+    b = sub[:, :, 2].astype(float)
+    lum = 0.299 * r + 0.587 * g + 0.114 * b
+
+    # Text glyph mask: bright white, gold, cyan, or high-luminance foreground text
+    bright_text = lum > 70.0
+    cyan_text = (b > 130) & (g > 130) & (r < 110)
+    warm_text = (r > 160) & (g > 120) & (b < 90)
+    mask = bright_text | cyan_text | warm_text
+
+    col_counts = np.sum(mask, axis=0)
+    active_cols = np.where(col_counts > 3)[0]
+    if len(active_cols) == 0:
+        return {
+            "status": "passed",
+            "detected": False,
+            "edgeBleed": False,
+            "bleedSide": "none",
+            "leftClearancePx": float(w),
+            "rightClearancePx": float(w),
+            "bbox": None,
+        }
+
+    splits = np.where(np.diff(active_cols) > 35)[0]
+    segments = np.split(active_cols, splits + 1)
+    best_seg = max(segments, key=lambda s: len(s))
+    x_min = int(best_seg.min())
+    x_max = int(best_seg.max())
+
+    sub_col = mask[:, x_min : x_max + 1]
+    row_counts = np.sum(sub_col, axis=1)
+    active_rows = np.where(row_counts > 2)[0]
+    y_min = int(active_rows.min() + y_start) if len(active_rows) > 0 else y_start
+    y_max = int(active_rows.max() + y_start) if len(active_rows) > 0 else y_end
+
+    left_c = float(x_min)
+    right_c = float(w - x_max)
+    has_left_bleed = left_c < (safe_margin_x - 1.0)
+    has_right_bleed = right_c < (safe_margin_x - 1.0)
+    edge_bleed = has_left_bleed or has_right_bleed
+    bleed_side = "both" if (has_left_bleed and has_right_bleed) else ("left" if has_left_bleed else ("right" if has_right_bleed else "none"))
+
+    return {
+        "status": "passed" if not edge_bleed else "failed",
+        "detected": True,
+        "bbox": {
+            "xMin": x_min,
+            "xMax": x_max,
+            "yMin": y_min,
+            "yMax": y_max,
+            "width": x_max - x_min,
+            "height": y_max - y_min,
+        },
+        "leftClearancePx": left_c,
+        "rightClearancePx": right_c,
+        "edgeBleed": edge_bleed,
+        "bleedSide": bleed_side,
+    }
+
+
 def validate_safe_region_bounds(
     layers: Sequence[Dict[str, Any]],
     max_safe_width: float = MAX_SAFE_WIDTH_PX,
@@ -102,6 +203,101 @@ def validate_safe_region_bounds(
         "layersChecked": checked,
         "overflowCount": len(violations),
         "violations": violations,
+    }
+
+
+def validate_safe_region_bounds_with_frames(
+    layers: Sequence[Dict[str, Any]],
+    frames: Optional[Sequence[Dict[str, Any]]] = None,
+    chunks: Optional[Sequence[Dict[str, Any]]] = None,
+    max_safe_width: float = MAX_SAFE_WIDTH_PX,
+    safe_margin_x: float = SAFE_MARGIN_X_PX,
+) -> Dict[str, Any]:
+    """Validate safe region bounds combining manifest estimation and pixel truth side by side."""
+    manifest_eval = validate_safe_region_bounds(layers, max_safe_width=max_safe_width)
+
+    pixel_measurements: List[Dict[str, Any]] = []
+    side_by_side: List[Dict[str, Any]] = []
+    pixel_violations: List[str] = []
+
+    if frames:
+        for f in frames:
+            f_path = f.get("framePath")
+            ts = float(f.get("timestampSec", 0.0))
+            if not f_path:
+                continue
+            res = measure_frame_text_pixel_bounds(f_path, safe_margin_x=safe_margin_x)
+            f_meas = {
+                "timestampSec": ts,
+                "framePath": str(f_path),
+                "measurement": res,
+            }
+            pixel_measurements.append(f_meas)
+
+            # Find matching chunk at timestamp
+            matching_chunk = None
+            if chunks:
+                for c in chunks:
+                    start_sec = float(c.get("startMs", 0)) / 1000.0
+                    end_sec = float(c.get("endMs", 0)) / 1000.0
+                    if start_sec <= ts <= (end_sec + 0.15):
+                        matching_chunk = c
+                        break
+
+            chunk_text = matching_chunk.get("text", "") if matching_chunk else ""
+            chunk_idx = matching_chunk.get("chunkIndex", "?") if matching_chunk else "?"
+            chunk_layers = (
+                (matching_chunk.get("layers") or matching_chunk.get("rendered_layers") or [])
+                if matching_chunk else []
+            )
+            est_w = max((float(l.get("estimatedWidthPx") or l.get("est_width") or 0.0) for l in chunk_layers), default=0.0)
+
+            if res.get("edgeBleed"):
+                pixel_violations.append(
+                    f"Frame at {ts:.1f}s (Chunk {chunk_idx} '{chunk_text[:28]}'): "
+                    f"{res.get('bleedSide')} edge bleed detected (leftClearance={res.get('leftClearancePx'):.1f}px, "
+                    f"rightClearance={res.get('rightClearancePx'):.1f}px, safeMargin={safe_margin_x}px)"
+                )
+
+            side_by_side.append({
+                "timestampSec": ts,
+                "chunkIndex": chunk_idx,
+                "manifestEstimate": {
+                    "text": chunk_text,
+                    "estimatedWidthPx": est_w,
+                    "maxAllowedWidthPx": max_safe_width,
+                    "overflow": est_w > max_safe_width,
+                },
+                "pixelTruth": {
+                    "detected": res.get("detected", False),
+                    "boundingBox": res.get("bbox"),
+                    "leftClearancePx": res.get("leftClearancePx"),
+                    "rightClearancePx": res.get("rightClearancePx"),
+                    "safeMarginPx": safe_margin_x,
+                    "edgeBleedDetected": res.get("edgeBleed", False),
+                    "bleedSide": res.get("bleedSide", "none"),
+                },
+                "conformanceMatch": (not (est_w > max_safe_width)) and (not res.get("edgeBleed", False)),
+            })
+
+    pixel_status = "passed" if not pixel_violations else "failed"
+    if not frames:
+        pixel_status = "skipped"
+
+    overall_violations = manifest_eval["violations"] + pixel_violations
+    return {
+        "status": "passed" if not overall_violations else "failed",
+        "maxAllowedWidth": max_safe_width,
+        "manifestEstimate": manifest_eval,
+        "pixelTruth": {
+            "status": pixel_status,
+            "framesChecked": len(pixel_measurements),
+            "edgeBleedCount": len(pixel_violations),
+            "measurements": pixel_measurements,
+            "sideBySideComparisons": side_by_side,
+            "violations": pixel_violations,
+        },
+        "violations": overall_violations,
     }
 
 
@@ -352,15 +548,25 @@ def run_post_render_conformance_check(
     """Execute full post-render conformance check: safe-bounds, line-count, shadow/glow budget, look conformance, and frame extraction."""
     t_start = time.monotonic()
     layers = extract_manifest_layers(manifest_or_props)
-    safe_bounds = validate_safe_region_bounds(layers, max_safe_width=MAX_SAFE_WIDTH_PX)
-    line_wrap = validate_line_count_and_wrap(layers)
-    shadow_glow = validate_shadow_glow_budget(layers)
+    chunks = []
+    if isinstance(manifest_or_props, dict):
+        chunks = manifest_or_props.get("chunks") or (manifest_or_props.get("fontManifest") or {}).get("chunks", [])
 
     frame_result: Dict[str, Any]
     if extract_frames and video_path:
         frame_result = extract_conformance_frames(video_path, timestamps_sec, output_dir=output_dir)
     else:
         frame_result = {"status": "skipped", "reason": "extraction_not_requested" if not extract_frames else "no_video_path", "frames": []}
+
+    safe_bounds = validate_safe_region_bounds_with_frames(
+        layers,
+        frames=frame_result.get("frames"),
+        chunks=chunks,
+        max_safe_width=MAX_SAFE_WIDTH_PX,
+        safe_margin_x=SAFE_MARGIN_X_PX,
+    )
+    line_wrap = validate_line_count_and_wrap(layers)
+    shadow_glow = validate_shadow_glow_budget(layers)
 
     # Look policy and pixel A/B validation
     look_plan = None
