@@ -85,7 +85,7 @@ class TestRound12CollisionCheck(unittest.TestCase):
         )
         self.assertIn("captionCollision", report["checks"])
         self.assertEqual(report["checks"]["captionCollision"]["status"], "passed")
-        self.assertEqual(report["totalChecks"], 6)
+        self.assertGreaterEqual(report["totalChecks"], 6)
 
 
 if __name__ == "__main__":

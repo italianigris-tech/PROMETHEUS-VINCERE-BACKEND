@@ -586,20 +586,23 @@ def plan_subject_safe_placements(
             target_zone = None
             if force_rotation and not (speaker_needs_left and not right_flank_eligible) and not (speaker_needs_right and not left_flank_eligible):
                 if prev_zone == "flank_left_column":
-                    target_zone = "flank_right_column" if right_flank_eligible else "foreground_lower_deck"
+                    target_zone = "flank_right_column" if (c_idx % 2 == 0 and right_flank_eligible) else "foreground_lower_deck"
                 elif prev_zone == "flank_right_column":
-                    target_zone = "foreground_lower_deck"
+                    target_zone = "foreground_lower_deck" if (c_idx % 2 == 0) else ("flank_left_column" if left_flank_eligible else "foreground_lower_deck")
                 elif prev_zone == "foreground_lower_deck":
                     target_zone = "flank_left_column" if left_flank_eligible else ("flank_right_column" if right_flank_eligible else "foreground_lower_deck")
                 else:
                     target_zone = "flank_left_column" if left_flank_eligible else "foreground_lower_deck"
+            elif prev_zone == "cranial_crown" and not (speaker_needs_left or speaker_needs_right):
+                # After cranial crown, rotate into right flank or lower deck for visual rhythm
+                target_zone = "flank_right_column" if (c_idx % 2 == 1 and right_flank_eligible) else "foreground_lower_deck"
             else:
                 # Normal selection with bounded hysteresis (holds up to 3 chunks max)
-                if prev_zone == "flank_right_column" and right_flank_eligible and allow_hysteresis and not speaker_needs_left:
+                if prev_zone == "flank_right_column" and right_flank_eligible and allow_hysteresis and not speaker_needs_left and not wants_left:
                     target_zone = "flank_right_column"
-                elif prev_zone == "flank_left_column" and left_flank_eligible and allow_hysteresis and not speaker_needs_right:
+                elif prev_zone == "flank_left_column" and left_flank_eligible and allow_hysteresis and not speaker_needs_right and not wants_right:
                     target_zone = "flank_left_column"
-                elif prev_zone == "foreground_lower_deck" and allow_hysteresis and not (speaker_needs_left or speaker_needs_right):
+                elif prev_zone == "foreground_lower_deck" and allow_hysteresis and not (speaker_needs_left or speaker_needs_right or wants_left or wants_right):
                     target_zone = "foreground_lower_deck"
                 elif (speaker_needs_left or (wants_left and left_flank_eligible)) and not (speaker_needs_right and not wants_left):
                     target_zone = "flank_left_column"

@@ -6811,6 +6811,7 @@ export const PrometheusMinRun: React.FC<PrometheusMinRunProps> = ({
         });
 
         const renderChunkSequence = (chunk: CaptionChunk, idx: number) => {
+          // Allow caption sequence temporal overlap (Zero Stacking Lock):
           const startMs = chunk.startMs ?? chunk.outputStartMs ?? 0;
           const endMs = chunk.endMs ?? chunk.outputEndMs ?? startMs + 1500;
           const displayStartMs = chunk.displayStartMs ?? startMs;

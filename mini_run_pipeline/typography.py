@@ -3119,7 +3119,7 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
         # and wrapping flank chunks preferentially routed into the 2.5D archetype with gradient fade + grounding shadow
         is_chunk_overlap_candidate = not is_single_word and (
             is_descriptor_phrase(raw_text)
-            or is_wrapping_flank_chunk(chunk, prof, raw_text)
+            or is_wrapping_flank_chunk(chunk=chunk, prof=None, text=raw_text)
         )
         if is_chunk_overlap_candidate:
             overlap_profiles = [
