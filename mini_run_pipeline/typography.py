@@ -1263,14 +1263,14 @@ def preflight_and_fit_layer_widths(
         elif is_script:
             legibility_floor = 80
         elif is_hero:
-            legibility_floor = 80
+            legibility_floor = 104
         else:
-            legibility_floor = 50
+            legibility_floor = 64
             if len(layers_info) > 1:
                 hero_layer_ref = next((l for l in layers_info if l.get("is_hero_layer") or l.get("isHero")), None)
                 if hero_layer_ref:
-                    h_sz = float(hero_layer_ref.get("fontSizePx") or hero_layer_ref.get("font_size_px", 120))
-                    legibility_floor = max(legibility_floor, int(round(0.55 * h_sz)))
+                    h_sz = float(hero_layer_ref.get("fontSizePx") or hero_layer_ref.get("font_size_px", 104))
+                    legibility_floor = max(legibility_floor, int(round(h_sz / 1.618)))
 
         layer["legibility_floor"] = legibility_floor
         aspect = get_font_char_aspect(font, is_uppercase=is_upper)
@@ -3573,11 +3573,11 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                 layer_fx = hero_fx_preset
                 layer_overlay = overlay_fx
             else:
-                # Companion / secondary subtitle line (legible floor: 56px–78px; script floor: 80px)
+                # Companion / secondary subtitle line (legible floor: 64px–88px; script floor: 80px)
                 is_script = any(s in primary_font.lower() for s in ("exmouth", "champignon", "brotherhood", "bromello", "script", "cavas", "bucklane", "formale"))
                 is_spencerian = any(s in primary_font.lower() for s in ("exmouth", "champignon", "brotherhood"))
                 script_floor = 100 if is_spencerian else 80
-                target_font_size = max(script_floor if is_script else 56, min(110 if is_script else 78, int(base_size * 1.35 * max(0.6, relative_scale))))
+                target_font_size = max(script_floor if is_script else 64, min(110 if is_script else 88, int(base_size * 1.35 * max(0.6, relative_scale))))
                 resolved_weight = int(f_style.get("weight", 600))
                 layer_fx = _resolve_font_json_treatment(prof, layer_spec, is_hero=False, is_single_word=is_single_word, rng=rng, policy=policy, behind_subject=behind_subject)
                 layer_overlay = None
@@ -3589,12 +3589,12 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
             elif is_layer_behind:
                 legibility_floor = 140
             elif is_hero_layer:
-                legibility_floor = 80
+                legibility_floor = 104
             else:
-                legibility_floor = 50
+                legibility_floor = 64
                 hero_cand = next((l for l in rendered_layers if l.get("isHero")), None)
                 if hero_cand:
-                    legibility_floor = max(legibility_floor, int(round(0.55 * float(hero_cand.get("fontSizePx", 120)))))
+                    legibility_floor = max(legibility_floor, int(round(float(hero_cand.get("fontSizePx", 104)) / 1.618)))
 
             char_aspect = get_font_char_aspect(primary_font, is_uppercase=is_upper)
             # Enforce max horizontal text width clamp with per-font aspect table and legibility floor
@@ -3980,38 +3980,43 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                     if is_chunk_desc:
                         lockup_mod_floor = max(70.0, min(92.0, round(0.70 * hero_sz)))
                     else:
-                        lockup_mod_floor = max(55.0, round(0.55 * hero_sz))
+                        lockup_mod_floor = max(64.0, round(hero_sz / 1.618))
                     if l.get("fontSizePx", 0) < lockup_mod_floor:
                         l["fontSizePx"] = lockup_mod_floor
                         l["font_size_px"] = lockup_mod_floor
 
-        # Enforce relative proportional lockup scaling across all multi-layer chunks: companion floor >= 0.55 * heroFontSizePx
+        # Enforce golden-ratio (phi ~= 1.618) tier ladder across all multi-layer chunks:
+        # fontSize_hero >= fontSize_companion * 1.618, and companion floor >= 64px
         if len(rendered_layers) > 1:
             hero_layer_item = next((l for l in rendered_layers if l.get("isHero")), None)
             if hero_layer_item:
-                hero_sz = float(hero_layer_item.get("fontSizePx", 120))
-                min_comp_size = int(round(0.55 * hero_sz))
                 for l in rendered_layers:
                     if not l.get("isHero"):
-                        if l.get("fontSizePx", 0) < min_comp_size:
-                            l["fontSizePx"] = min_comp_size
-                            l["font_size_px"] = min_comp_size
+                        l["fontSizePx"] = max(64.0, float(l.get("fontSizePx", 64)))
+                        l["font_size_px"] = l["fontSizePx"]
+                max_comp_sz = max((float(l.get("fontSizePx", 64)) for l in rendered_layers if not l.get("isHero")), default=64.0)
+                min_hero_sz = int(round(max_comp_sz * 1.618))
+                if float(hero_layer_item.get("fontSizePx", 104)) < min_hero_sz:
+                    hero_layer_item["fontSizePx"] = min_hero_sz
+                    hero_layer_item["font_size_px"] = min_hero_sz
 
         # Chunk-level width preflight: largest-first shrink with legibility floors
-        # (companion floor 50px, hero floor 80px)
+        # (companion floor 64px, hero floor 104px)
         preflight_and_fit_layer_widths(rendered_layers, max_safe_width=max_safe_width)
 
-        # Re-enforce relative proportional lockup scaling after preflight
+        # Re-enforce golden-ratio tier ladder after preflight
         if len(rendered_layers) > 1:
             hero_layer_item = next((l for l in rendered_layers if l.get("isHero")), None)
             if hero_layer_item:
-                hero_sz = float(hero_layer_item.get("fontSizePx", 120))
-                min_comp_size = int(round(0.55 * hero_sz))
                 for l in rendered_layers:
                     if not l.get("isHero"):
-                        if l.get("fontSizePx", 0) < min_comp_size:
-                            l["fontSizePx"] = min_comp_size
-                            l["font_size_px"] = min_comp_size
+                        l["fontSizePx"] = max(64.0, float(l.get("fontSizePx", 64)))
+                        l["font_size_px"] = l["fontSizePx"]
+                max_comp_sz = max((float(l.get("fontSizePx", 64)) for l in rendered_layers if not l.get("isHero")), default=64.0)
+                min_hero_sz = int(round(max_comp_sz * 1.618))
+                if float(hero_layer_item.get("fontSizePx", 104)) < min_hero_sz:
+                    hero_layer_item["fontSizePx"] = min_hero_sz
+                    hero_layer_item["font_size_px"] = min_hero_sz
 
         # Resolve inter-layer stacking hierarchy, overlay depth shadows, and underlapping vertical linear gradients
         num_rend = len(rendered_layers)
