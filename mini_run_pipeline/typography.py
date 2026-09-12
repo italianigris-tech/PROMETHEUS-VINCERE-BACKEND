@@ -1266,6 +1266,11 @@ def preflight_and_fit_layer_widths(
             legibility_floor = 80
         else:
             legibility_floor = 50
+            if len(layers_info) > 1:
+                hero_layer_ref = next((l for l in layers_info if l.get("is_hero_layer") or l.get("isHero")), None)
+                if hero_layer_ref:
+                    h_sz = float(hero_layer_ref.get("fontSizePx") or hero_layer_ref.get("font_size_px", 120))
+                    legibility_floor = max(legibility_floor, int(round(0.55 * h_sz)))
 
         layer["legibility_floor"] = legibility_floor
         aspect = get_font_char_aspect(font, is_uppercase=is_upper)
@@ -3571,6 +3576,9 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                 legibility_floor = 80
             else:
                 legibility_floor = 50
+                hero_cand = next((l for l in rendered_layers if l.get("isHero")), None)
+                if hero_cand:
+                    legibility_floor = max(legibility_floor, int(round(0.55 * float(hero_cand.get("fontSizePx", 120)))))
 
             char_aspect = get_font_char_aspect(primary_font, is_uppercase=is_upper)
             # Enforce max horizontal text width clamp with per-font aspect table and legibility floor
@@ -3613,7 +3621,7 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                         font_size_px = max(70, min(92, round(0.70 * hero_size_ref)))
                         resolved_weight = 600
                     else:
-                        font_size_px = max(44, round(0.3 * hero_size_ref))
+                        font_size_px = max(55, round(0.55 * hero_size_ref))
                         resolved_weight = 300
                     letter_spacing = 0.005  # Tracking floor: prevents script ligature collision & Arabic-like glyph distortion
                     casing = "lowercase"
@@ -3948,13 +3956,38 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                     if is_chunk_desc:
                         lockup_mod_floor = max(70.0, min(92.0, round(0.70 * hero_sz)))
                     else:
-                        lockup_mod_floor = max(44.0, round(0.3 * hero_sz))
+                        lockup_mod_floor = max(55.0, round(0.55 * hero_sz))
                     if l.get("fontSizePx", 0) < lockup_mod_floor:
                         l["fontSizePx"] = lockup_mod_floor
+                        l["font_size_px"] = lockup_mod_floor
+
+        # Enforce relative proportional lockup scaling across all multi-layer chunks: companion floor >= 0.55 * heroFontSizePx
+        if len(rendered_layers) > 1:
+            hero_layer_item = next((l for l in rendered_layers if l.get("isHero")), None)
+            if hero_layer_item:
+                hero_sz = float(hero_layer_item.get("fontSizePx", 120))
+                min_comp_size = int(round(0.55 * hero_sz))
+                for l in rendered_layers:
+                    if not l.get("isHero"):
+                        if l.get("fontSizePx", 0) < min_comp_size:
+                            l["fontSizePx"] = min_comp_size
+                            l["font_size_px"] = min_comp_size
 
         # Chunk-level width preflight: largest-first shrink with legibility floors
         # (companion floor 50px, hero floor 80px)
         preflight_and_fit_layer_widths(rendered_layers, max_safe_width=max_safe_width)
+
+        # Re-enforce relative proportional lockup scaling after preflight
+        if len(rendered_layers) > 1:
+            hero_layer_item = next((l for l in rendered_layers if l.get("isHero")), None)
+            if hero_layer_item:
+                hero_sz = float(hero_layer_item.get("fontSizePx", 120))
+                min_comp_size = int(round(0.55 * hero_sz))
+                for l in rendered_layers:
+                    if not l.get("isHero"):
+                        if l.get("fontSizePx", 0) < min_comp_size:
+                            l["fontSizePx"] = min_comp_size
+                            l["font_size_px"] = min_comp_size
 
         # Resolve inter-layer stacking hierarchy, overlay depth shadows, and underlapping vertical linear gradients
         num_rend = len(rendered_layers)
