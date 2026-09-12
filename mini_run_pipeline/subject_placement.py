@@ -71,14 +71,38 @@ def _rect_from_center(region: Dict[str, Any]) -> Dict[str, float]:
     }
 
 
-def _clamp_safe_x_percent(x_val: Any, min_pct: float = 12.0, max_pct: float = 88.0) -> str:
-    """Clamp X percentage string or float within screen-safe bounds (130px margin = 12% to 88%)."""
+def _clamp_safe_x_percent(
+    x_val: Any,
+    est_width_px: float = 0.0,
+    min_safe_px: float = 130.0,
+    max_safe_px: float = 950.0,
+    canvas_w: float = 1080.0,
+) -> str:
+    """Clamp X percentage center within screen-safe bounds, width-aware.
+
+    Enforces:
+      x_center >= min_safe_px + est_width/2  and  x_center <= max_safe_px - est_width/2
+    When text width exceeds the available safe margin envelope (820px),
+    centers symmetrically at 50% to prevent asymmetric offscreen bleeds.
+    """
     try:
-        val = float(str(x_val).replace("%", "").strip())
-        val_clamped = max(min_pct, min(max_pct, val))
-        return f"{round(val_clamped, 1)}%"
+        raw_str = str(x_val).replace("%", "").strip()
+        val = float(raw_str)
+        center_px = val * canvas_w if val <= 1.0 else (val / 100.0) * canvas_w
     except Exception:
-        return str(x_val)
+        center_px = canvas_w / 2.0
+
+    half_w = max(0.0, float(est_width_px)) / 2.0
+    min_center_px = min_safe_px + half_w
+    max_center_px = max_safe_px - half_w
+
+    if min_center_px >= max_center_px:
+        clamped_px = canvas_w / 2.0
+    else:
+        clamped_px = max(min_center_px, min(max_center_px, center_px))
+
+    clamped_pct = (clamped_px / canvas_w) * 100.0
+    return f"{round(clamped_pct, 1)}%"
 
 
 def _padded_subject_rect(subject_box: Dict[str, Any]) -> Dict[str, float]:
@@ -509,6 +533,12 @@ def plan_subject_safe_placements(
         c_start = int(chunk.get("startMs", chunk.get("sourceStartMs", chunk.get("outputStartMs", 0))))
         c_end = int(chunk.get("endMs", chunk.get("sourceEndMs", chunk.get("outputEndMs", c_start + 1500))))
 
+        chunk_layers = chunk.get("layers") or []
+        chunk_est_w = max(
+            [float(l.get("estimatedWidthPx") or l.get("est_width") or 0.0) for l in chunk_layers],
+            default=0.0,
+        )
+
         cranial_analysis = analyze_chunk_temporal_cranial_space(c_start, c_end, observation)
         dom_zone = cranial_analysis.get("dominantZone", "foreground_lower_deck")
 
@@ -531,9 +561,10 @@ def plan_subject_safe_placements(
                 mwp_num = 50
             # Banned width shrinking: maxWidthPercent < 45% strictly forbidden on behind-subject layers
             safe_mwp = f"{max(45, mwp_num)}%"
+            safe_cranial_x = _clamp_safe_x_percent(cranial_analysis["xPercent"], est_width_px=chunk_est_w)
 
             planned.append({
-                "xPercent": cranial_analysis["xPercent"],
+                "xPercent": safe_cranial_x,
                 "yPercent": cranial_analysis["yPercent"],
                 "anchor": cranial_analysis.get("anchor", "center"),
                 "textAlign": cranial_analysis.get("textAlign", "center"),
@@ -639,7 +670,7 @@ def plan_subject_safe_placements(
                 chosen_anchor = (font_json or {}).get("anchor") or "left"
                 chosen_align = (font_json or {}).get("textAlign") or "left"
                 raw_x = (font_json or {}).get("xPercent") or (prev_x if (prev_zone == "flank_left_column" and prev_x) else f"{round(max(0.20, flank_left * 0.48) * 100, 1)}%")
-                chosen_x = _clamp_safe_x_percent(raw_x, min_pct=12.0, max_pct=88.0)
+                chosen_x = _clamp_safe_x_percent(raw_x, est_width_px=chunk_est_w)
 
                 # Inter-chunk hysteresis: clamp vertical stagger delta to <= 5% (e.g. ±0.03)
                 if prev_zone == "flank_left_column" and prev_fg_y is not None:
@@ -657,7 +688,7 @@ def plan_subject_safe_placements(
                 chosen_anchor = (font_json or {}).get("anchor") or "right"
                 chosen_align = (font_json or {}).get("textAlign") or "right"
                 raw_x = (font_json or {}).get("xPercent") or (prev_x if (prev_zone == "flank_right_column" and prev_x) else f"{round(min(0.80, (1.0 - flank_right) + flank_right * 0.52) * 100, 1)}%")
-                chosen_x = _clamp_safe_x_percent(raw_x, min_pct=12.0, max_pct=88.0)
+                chosen_x = _clamp_safe_x_percent(raw_x, est_width_px=chunk_est_w)
 
                 # Inter-chunk hysteresis: clamp vertical stagger delta to <= 5% (e.g. ±0.03)
                 if prev_zone == "flank_right_column" and prev_fg_y is not None:
@@ -672,14 +703,14 @@ def plan_subject_safe_placements(
             elif target_zone == "cranial_crown":
                 top_head = float(cranial_analysis.get("headroomRatio", 0.28))
                 if top_head >= 0.12:
-                    chosen_x = "50%"
+                    chosen_x = _clamp_safe_x_percent("50%", est_width_px=chunk_est_w)
                     chosen_y_float = round(max(0.20, min(0.28, top_head - 0.04)), 3)
                     chosen_zone = "cranial_crown"
                     chosen_anchor = "center"
                     chosen_align = (font_json or {}).get("textAlign", "center")
                     safe_id = "cranial_crown_headroom"
                 else:
-                    chosen_x = "50%"
+                    chosen_x = _clamp_safe_x_percent("50%", est_width_px=chunk_est_w)
                     chosen_y_float = 0.72
                     chosen_zone = "foreground_lower_deck"
                     chosen_anchor = "center"
@@ -695,7 +726,7 @@ def plan_subject_safe_placements(
                 base_stagger = 0.75 if (c_idx % 2 == 1) else 0.62
                 chosen_y_float = max(min_safe_y, min(0.78, base_stagger))
 
-                chosen_x = "50%"
+                chosen_x = _clamp_safe_x_percent("50%", est_width_px=chunk_est_w)
                 chosen_anchor = "center"
                 chosen_zone = "foreground_lower_deck"
                 chosen_align = (font_json or {}).get("textAlign", "center")
