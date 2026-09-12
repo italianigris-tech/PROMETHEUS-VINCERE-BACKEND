@@ -1311,7 +1311,7 @@ const KineticLayerRenderer: React.FC<{
         color: textColor,
         WebkitTextFillColor: textColor,
         WebkitTextStroke: customStroke || (isBehindSubject
-          ? "1.5px rgba(0, 0, 0, 0.9)"
+          ? "1.2px rgba(255, 255, 255, 0.85)"
           : (layer.fontStyle === "italic" || (layer.fontFamily && /script|brush|vibes|pinyon|alex/i.test(layer.fontFamily)) ? undefined : "1.0px rgba(0, 0, 0, 0.75)")),
         filter: bevelFilter || undefined,
       };
@@ -1330,7 +1330,7 @@ const KineticLayerRenderer: React.FC<{
       return layer.shadow === "none" ? undefined : layer.shadow;
     }
     return value || (isBehindSubject
-      ? "0 2px 10px rgba(0, 0, 0, 0.55)"
+      ? "0 0 2px rgba(255, 255, 255, 0.95), 0 0 8px rgba(255, 255, 255, 0.75), 0 4px 14px rgba(0, 0, 0, 0.75)"
       : "0 2px 10px rgba(0, 0, 0, 0.55)");
   };
 
@@ -6926,7 +6926,7 @@ export const PrometheusMinRun: React.FC<PrometheusMinRunProps> = ({
                       objectPosition: mediaStyle.objectPosition || "50% 50%",
                       transform: `${mediaStyle.transform || ""} ${hookTransform}`.trim(),
                       transformOrigin: mediaStyle.transformOrigin || "center center",
-                      filter: "brightness(0) blur(18px) opacity(0.45)",
+                      filter: "brightness(0) blur(8px) opacity(0.18)",
                       zIndex: 45,
                     }}
                   />

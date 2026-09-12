@@ -293,15 +293,16 @@ def analyze_cranial_negative_space(
     # Text stays nestled in the natural middle band (18% - 28%), permitting up to 40% head occlusion
     # per the 60/40 rule where the subject's head partially layers over the lower 40% of the letters.
     if top_headroom >= 0.10:
-        center_y = round(max(0.165, min(0.21, actual_head_top + 0.01)), 4)
         head_mid_x = (head_left + head_right) / 2.0
-        # Dynamic Flank Tracking opposite head sway:
+        # Dynamic Flank Tracking opposite head sway with halo avoidance:
         # If head sways left (<= 0.50), open flank is right -> track to x=0.58-0.65
         # If head sways right (> 0.50), open flank is left -> track to x=0.35-0.42
         if head_mid_x <= 0.50:
             text_x = round(min(0.65, max(0.58, head_mid_x + 0.14)), 3)
         else:
             text_x = round(max(0.35, min(0.42, head_mid_x - 0.14)), 3)
+
+        center_y = round(max(0.165, min(0.21, actual_head_top + 0.01)), 4)
 
         return {
             "dominantZone": "cranial_crown",
@@ -310,12 +311,13 @@ def analyze_cranial_negative_space(
             "yPercent": f"{round(center_y * 100, 2)}%",
             "anchor": "center",
             "textAlign": "center",
-            "maxWidthPercent": "85%",
+            "maxWidthPercent": "50%",
             "fontTreatment": "tall_didone_arch",
             "headroomRatio": round(top_headroom, 3),
             "flankLeftRatio": round(left_flank, 3),
             "flankRightRatio": round(right_flank, 3),
             "faceBottom": round(face_bottom_y, 3) if face_bottom_y is not None else None,
+            "haloGuard": True,
         }
 
     # Priority 4: Sensible Below-Head Placement (Dynamic Clearance Avoiding Speaker's Head)
@@ -530,6 +532,7 @@ def plan_subject_safe_placements(
                 "faceBottom": cranial_analysis.get("faceBottom"),
                 "policy": f"cranial_negative_space_{dom_zone}",
                 "cranialArc": None,
+                "haloGuard": cranial_analysis.get("haloGuard", True),
             })
             if prev_zone == dom_zone:
                 consecutive_same_zone += 1

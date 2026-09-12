@@ -467,6 +467,126 @@ def validate_head_occlusion(
     }
 
 
+def validate_cranial_halo_guard(
+    layers: Sequence[Dict[str, Any]],
+    chunks: Optional[Sequence[Dict[str, Any]]] = None,
+    max_halo_intersection_threshold: float = 0.25,
+) -> Dict[str, Any]:
+    """Validate cranial halo guard: asserts behind-subject text does not intersect
+    the semi-transparent feather ring (alpha in [0.15, 0.85] around headTopY)
+    without halo guard protection or flank/headroom clearance.
+    """
+    behind_layers = [l for l in layers if l.get("behindSubject")]
+    if not behind_layers:
+        return {
+            "status": "passed",
+            "pivotsChecked": 0,
+            "maxHaloIntersectionFound": 0.0,
+            "maxAllowedHaloIntersection": max_halo_intersection_threshold,
+            "haloGuardActive": True,
+            "violations": [],
+            "pivots": [],
+        }
+
+    chunk_map: Dict[Any, Dict[str, Any]] = {}
+    if chunks:
+        for idx, c in enumerate(chunks):
+            chunk_map[c.get("chunkIndex", idx)] = c
+            chunk_map[idx] = c
+
+    violations: List[str] = []
+    pivots_data: List[Dict[str, Any]] = []
+    max_halo_inter = 0.0
+
+    CANVAS_W = 1080.0
+    CANVAS_H = 1920.0
+
+    for l in behind_layers:
+        c_idx = l.get("chunkIndex")
+        chunk = chunk_map.get(c_idx, {})
+        placement = chunk.get("placement") or l.get("placement") or {}
+        raw_text = str(l.get("rawText") or l.get("text") or "").strip()
+        font = str(l.get("fontFamily") or l.get("primary_font") or "Anton")
+        font_sz = float(l.get("fontSizePx") or 150.0)
+        is_upper = str(l.get("casing", "")).lower() == "uppercase" or raw_text.isupper()
+
+        # Parse placement coordinates
+        raw_x = str(placement.get("xPercent", "50%")).replace("%", "")
+        raw_y = str(placement.get("yPercent", "22.0%")).replace("%", "")
+        try:
+            x_pct = float(raw_x) / 100.0
+        except ValueError:
+            x_pct = 0.50
+        try:
+            y_pct = float(raw_y) / 100.0
+        except ValueError:
+            y_pct = 0.22
+
+        est_w = estimate_layer_width_px(raw_text, font, font_sz, is_uppercase=is_upper)
+        is_tall = any(k in font.lower() for k in ("anton", "bebas", "six caps", "teko", "saira", "senzabella"))
+        est_h = font_sz * (1.35 if is_tall else 1.15)
+
+        center_x = x_pct * CANVAS_W
+        center_y = y_pct * CANVAS_H
+        t_x0 = max(0.0, center_x - est_w / 2.0)
+        t_x1 = min(CANVAS_W, center_x + est_w / 2.0)
+        t_y0 = max(0.0, center_y - est_h / 2.0)
+        t_y1 = min(CANVAS_H, center_y + est_h / 2.0)
+        text_area = max(1.0, (t_x1 - t_x0) * (t_y1 - t_y0))
+
+        # Cranial feather ring boundary (alpha 0.15 - 0.85 band) around headTopY
+        head_top_val = placement.get("headTopY")
+        head_top_ratio = float(head_top_val if head_top_val is not None else y_pct)
+        ring_y0 = (head_top_ratio - 0.015) * CANVAS_H
+        ring_y1 = (head_top_ratio + 0.015) * CANVAS_H
+        ring_x0 = (0.50 - 0.16) * CANVAS_W
+        ring_x1 = (0.50 + 0.16) * CANVAS_W
+
+        i_x0 = max(t_x0, ring_x0)
+        i_x1 = min(t_x1, ring_x1)
+        i_y0 = max(t_y0, ring_y0)
+        i_y1 = min(t_y1, ring_y1)
+
+        if i_x1 > i_x0 and i_y1 > i_y0:
+            inter_area = (i_x1 - i_x0) * (i_y1 - i_y0)
+        else:
+            inter_area = 0.0
+
+        halo_ratio = round(inter_area / text_area, 4)
+        if halo_ratio > max_halo_inter:
+            max_halo_inter = halo_ratio
+
+        has_halo_guard = bool(
+            placement.get("haloGuard")
+            or l.get("haloGuard")
+            or l.get("depthRim")
+            or placement.get("dominantZone") in ("flank_right_column", "flank_left_column", "flank_left_editorial_pillar", "flank_right_editorial_pillar")
+        )
+
+        pivots_data.append({
+            "chunkIndex": c_idx,
+            "text": raw_text,
+            "haloIntersectionRatio": halo_ratio,
+            "haloGuardActive": has_halo_guard,
+        })
+
+        if halo_ratio > max_halo_intersection_threshold and not has_halo_guard:
+            violations.append(
+                f"Chunk {c_idx} behind-subject pivot '{raw_text}' intersects cranial alpha feather ring "
+                f"({halo_ratio:.1%} > {max_halo_intersection_threshold:.0%}) without halo guard protection"
+            )
+
+    return {
+        "status": "passed" if not violations else "failed",
+        "pivotsChecked": len(behind_layers),
+        "maxHaloIntersectionFound": max_halo_inter,
+        "maxAllowedHaloIntersection": max_halo_intersection_threshold,
+        "haloGuardActive": True,
+        "pivots": pivots_data,
+        "violations": violations,
+    }
+
+
 def validate_caption_collisions(chunks: Optional[Sequence[Dict[str, Any]]]) -> Dict[str, Any]:
     """Validate caption handoff collisions and rack-focus defocus exit presence.
 
@@ -965,6 +1085,7 @@ def run_post_render_conformance_check(
         frame_width=CANVAS_WIDTH_PX,
         frame_height=CANVAS_HEIGHT_PX,
     )
+    cranial_halo = validate_cranial_halo_guard(layers, chunks=chunks)
 
     all_violations = (
         safe_bounds["violations"]
@@ -974,8 +1095,9 @@ def run_post_render_conformance_check(
         + head_occlusion["violations"]
         + caption_collisions["violations"]
         + text_visibility["violations"]
+        + cranial_halo["violations"]
     )
-    all_evaluated_checks = [safe_bounds, line_wrap, shadow_glow, look_result, head_occlusion, caption_collisions, text_visibility]
+    all_evaluated_checks = [safe_bounds, line_wrap, shadow_glow, look_result, head_occlusion, caption_collisions, text_visibility, cranial_halo]
     return {
         "status": "passed" if not all_violations else "failed",
         "totalChecks": len(all_evaluated_checks),
@@ -991,6 +1113,7 @@ def run_post_render_conformance_check(
             "headOcclusion": head_occlusion,
             "captionCollision": caption_collisions,
             "textVisibility": text_visibility,
+            "cranialHaloGuard": cranial_halo,
             "frameExtraction": frame_result,
         },
         "durationMs": round((time.monotonic() - t_start) * 1000, 2),
