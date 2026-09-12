@@ -490,6 +490,7 @@ def plan_subject_safe_placements(
     prev_fg_y: Optional[float] = None
     prev_zone: Optional[str] = None
     prev_x: Optional[str] = None
+    consecutive_same_zone: int = 0
 
     for chunk in chunks:
         layering = chunk.get("subjectLayering") or {}
@@ -530,6 +531,10 @@ def plan_subject_safe_placements(
                 "policy": f"cranial_negative_space_{dom_zone}",
                 "cranialArc": None,
             })
+            if prev_zone == dom_zone:
+                consecutive_same_zone += 1
+            else:
+                consecutive_same_zone = 1
             prev_zone = dom_zone
             prev_fg_y = None
             prev_x = None
@@ -571,11 +576,41 @@ def plan_subject_safe_placements(
             speaker_needs_left = (flank_left >= 0.38 and flank_left > flank_right + 0.10)
             speaker_needs_right = (flank_right >= 0.38 and flank_right > flank_left + 0.10)
 
-            # Hysteresis: maintain flank column if lateral clearance remains clear
-            hysteresis_left = (prev_zone == "flank_left_column" and left_flank_eligible and not wants_right)
-            hysteresis_right = (prev_zone == "flank_right_column" and right_flank_eligible and not wants_left)
+            # Placement Variety & Anti-Monoculture Rebalance:
+            # Cap consecutive placements in the same zone at <= 3.
+            # When consecutive_same_zone >= 3, break hysteresis and alternate between
+            # left flank, right flank, and lower deck (unless speaker position physically forces a side).
+            force_rotation = (consecutive_same_zone >= 3)
+            allow_hysteresis = (consecutive_same_zone < 3)
 
-            if (speaker_needs_left or (wants_left and left_flank_eligible) or hysteresis_left) and not (speaker_needs_right and not wants_left):
+            target_zone = None
+            if force_rotation and not (speaker_needs_left and not right_flank_eligible) and not (speaker_needs_right and not left_flank_eligible):
+                if prev_zone == "flank_left_column":
+                    target_zone = "flank_right_column" if right_flank_eligible else "foreground_lower_deck"
+                elif prev_zone == "flank_right_column":
+                    target_zone = "foreground_lower_deck"
+                elif prev_zone == "foreground_lower_deck":
+                    target_zone = "flank_left_column" if left_flank_eligible else ("flank_right_column" if right_flank_eligible else "foreground_lower_deck")
+                else:
+                    target_zone = "flank_left_column" if left_flank_eligible else "foreground_lower_deck"
+            else:
+                # Normal selection with bounded hysteresis (holds up to 3 chunks max)
+                if prev_zone == "flank_right_column" and right_flank_eligible and allow_hysteresis and not speaker_needs_left:
+                    target_zone = "flank_right_column"
+                elif prev_zone == "flank_left_column" and left_flank_eligible and allow_hysteresis and not speaker_needs_right:
+                    target_zone = "flank_left_column"
+                elif prev_zone == "foreground_lower_deck" and allow_hysteresis and not (speaker_needs_left or speaker_needs_right):
+                    target_zone = "foreground_lower_deck"
+                elif (speaker_needs_left or (wants_left and left_flank_eligible)) and not (speaker_needs_right and not wants_left):
+                    target_zone = "flank_left_column"
+                elif speaker_needs_right or (wants_right and right_flank_eligible):
+                    target_zone = "flank_right_column"
+                elif ideal_y > 0.83:
+                    target_zone = "cranial_crown"
+                else:
+                    target_zone = "foreground_lower_deck"
+
+            if target_zone == "flank_left_column":
                 chosen_zone = "flank_left_column"
                 safe_id = "flank_left_pillar"
                 chosen_anchor = (font_json or {}).get("anchor") or "left"
@@ -592,7 +627,7 @@ def plan_subject_safe_placements(
                 prev_fg_y = chosen_y_float
                 prev_x = chosen_x
 
-            elif speaker_needs_right or (wants_right and right_flank_eligible) or hysteresis_right:
+            elif target_zone == "flank_right_column":
                 chosen_zone = "flank_right_column"
                 safe_id = "flank_right_pillar"
                 chosen_anchor = (font_json or {}).get("anchor") or "right"
@@ -609,9 +644,7 @@ def plan_subject_safe_placements(
                 prev_fg_y = chosen_y_float
                 prev_x = chosen_x
 
-            elif ideal_y > 0.83:
-                # Speaker's chin is extraordinarily low (extreme close-up filling lower frame).
-                # To avoid platform UI, check cranial headroom
+            elif target_zone == "cranial_crown":
                 top_head = float(cranial_analysis.get("headroomRatio", 0.28))
                 if top_head >= 0.12:
                     chosen_x = "50%"
@@ -645,6 +678,10 @@ def plan_subject_safe_placements(
                 prev_fg_y = chosen_y_float
                 prev_x = chosen_x
 
+            if chosen_zone == prev_zone:
+                consecutive_same_zone += 1
+            else:
+                consecutive_same_zone = 1
             prev_zone = chosen_zone
             y_percent_str = f"{round(chosen_y_float * 100, 1)}%"
             if y_percent_str.endswith(".0%"):
