@@ -265,10 +265,18 @@ output_url = f"{PUBLIC_BASE}/{master_key}" if PUBLIC_BASE else f"r2://{PROCESSED
 print(f"[stitch] Master MP4 -> R2:{master_key}", flush=True)
 
 # 11. Write Full Receipt
+critical_checks = ["safeRegionBounds", "textVisibility", "captionCollision", "cranialHaloGuard", "headOcclusion"]
+failed_critical = [
+    k for k in critical_checks
+    if isinstance((policy_report.get("checks") or {}).get(k), dict)
+    and (policy_report.get("checks") or {}).get(k, {}).get("status") == "failed"
+]
+has_critical_failure = bool(policy_report.get("status") == "failed" or failed_critical)
+
 receipt = {
     **partial,
     "jobId": JOB_ID,
-    "status": "completed",
+    "status": "failed" if has_critical_failure else "completed",
     "backend": "github-actions",
     "outputPath": master_key,
     "outputUrl": output_url,
@@ -293,3 +301,13 @@ receipt_path = Path(f"/tmp/receipt_{JOB_ID}.json")
 receipt_path.write_text(json.dumps(receipt, indent=2))
 print(f"[stitch] Receipt written: {receipt_path}", flush=True)
 print(json.dumps(receipt, indent=2))
+
+# 12. Circuit Breaker Actuator (RULE 7 Commit 2)
+if has_critical_failure:
+    print(f"\n[stitch] ======================================================================", flush=True)
+    print(f"[stitch] CIRCUIT BREAKER TRIPPED: Stitch step failing due to policy check violations!", flush=True)
+    print(f"[stitch] Critical failing checks: {failed_critical or policy_report.get('status')}", flush=True)
+    for v in policy_report.get("violations", []):
+        print(f"[stitch]   - VIOLATION: {v}", flush=True)
+    print(f"[stitch] ======================================================================\n", flush=True)
+    sys.exit(1)

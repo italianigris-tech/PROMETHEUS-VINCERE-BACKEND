@@ -226,6 +226,7 @@ jobs:
         run: python .github/scripts/gha_stitch.py
 
       - name: Upload receipt artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: render-receipt-${{ needs.orchestrate.outputs.job_id }}
@@ -233,6 +234,7 @@ jobs:
           retention-days: 7
 
       - name: Upload master MP4 artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: render-master-${{ needs.orchestrate.outputs.job_id }}
