@@ -2211,7 +2211,7 @@ def schedule_caption_timing(chunks: List[Dict[str, Any]]) -> List[Dict[str, Any]
             if words_list else content_start_ms
         )
         fx = chunk.get("fxPreset") or (chunk.get("layers", [{}])[0].get("fxPreset") if chunk.get("layers") else "")
-        intrinsic_ms = INTRINSIC_ANIMATION_DURATIONS_MS.get(fx, 750)
+        intrinsic_ms = max(850, INTRINSIC_ANIMATION_DURATIONS_MS.get(fx, 850))
 
         # Inviolable Hold Law:
         elapsed = max(0, last_word_end_ms - content_start_ms)
@@ -3848,6 +3848,14 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
             if layer_fx == "canva_tall_glyph_stack" and not (layer_behind_subject or len(layer_words) <= 1):
                 layer_fx = "multi_word_slide_up_stagger" if not is_hero_layer else "dynamic_staggered_character_cascade"
 
+            # Long hero routing (Round 15 Commit 5): Long hero lines (>12 chars)
+            # must not pop in as monolithic blocks; route them to per-letter cascade
+            clean_hero_text = "".join(ch for ch in raw_layer_text if ch.isalnum() or ch.isspace()).strip()
+            if is_hero_layer and len(clean_hero_text) > 12:
+                # Do not override counter presets when numbers are present, or lockup treatments
+                if not (signal.get("hasNumber", 0.0) > 0 and "counter" in str(layer_fx)) and not is_lockup_treatment:
+                    layer_fx = "dynamic_staggered_character_cascade"
+
             # Strict Companion & Pivot Font Contract:
             if layer_behind_subject:
                 if primary_font not in TALL_MATTE_FONTS:
@@ -4074,6 +4082,7 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
             l_sz = float(l.get("fontSizePx", 60))
             l["estimatedWidthPx"] = int(round(len(l_clean) * l_sz * l_aspect))
 
+        chunk_fx = next((l.get("fxPreset") for l in rendered_layers if l.get("isHero")), hero_fx_preset)
         manifest_chunks.append({
             "chunkIndex": chunk.get("chunkIndex", idx + 1),
             "text": raw_text,
@@ -4083,13 +4092,13 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
             "pairedImage": prof.get("paired_image"),
             "paletteId": palette_id,
             "palette": chunk_palette,
-            "fxPreset": "air_frontal_optical_bloom" if wants_air_frontal else hero_fx_preset,
+            "fxPreset": "air_frontal_optical_bloom" if wants_air_frontal else chunk_fx,
             "frontalTreatment": "air_frontal_optical_bloom" if wants_air_frontal else None,
             "hookPlan": hook_plan,
             "selection": {
                 "profilePoolSize": len(profiles),
                 "profileCandidateCount": len(candidates_pool),
-                "primaryFx": hero_fx_preset,
+                "primaryFx": chunk_fx,
                 "overlayFx": overlay_fx,
                 "cadenceMs": round(signal["cadenceMs"]),
                 "salience": round(signal["salience"], 3),

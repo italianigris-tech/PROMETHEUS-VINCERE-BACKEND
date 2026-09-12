@@ -1279,7 +1279,7 @@ const KineticLayerRenderer: React.FC<{
     words: timedWords,
   });
   const entranceDuration = resolveEntranceDurationFrames({ fxPreset: fx, fps, totalFrames });
-  const wordEntranceDuration = Math.max(14, Math.min(24, Math.round(entranceDuration * 0.75)));
+  const wordEntranceDuration = Math.max(20, Math.min(30, entranceDuration));
   const overlayProgress = interpolate(frame - wordEntranceFrames[0], [0, entranceDuration], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
@@ -3150,10 +3150,10 @@ const KineticLayerRenderer: React.FC<{
     // Dynamic duration scaling: ensure animations finish in the first 55% of the chunk window,
     // guaranteeing no late words or characters get truncated on unmount.
     const durationFrames = Math.max(
-      4,
+      20,
       Math.min(
         Math.round((isRoyal ? 0.85 : 0.75) * fps),
-        Math.floor(totalFrames * 0.55)
+        Math.max(20, Math.floor(totalFrames * 0.70))
       )
     );
     const staggerFrames = Math.max(
@@ -3650,8 +3650,8 @@ const KineticLayerRenderer: React.FC<{
         {words.map((word, wIdx) => {
           const wordStart = wordEntranceFrames[wIdx] ?? 0;
           const localFrame = Math.max(0, frame - wordStart);
-          // Cinematic deblur rise ~0.6s on the reference expo-out curve.
-          const p = interpolate(localFrame, [0, 18], [0, 1], {
+          // Cinematic deblur rise floored at >= 20 frames on reference bezier curve
+          const p = interpolate(localFrame, [0, wordEntranceDuration], [0, 1], {
             extrapolateLeft: "clamp",
             extrapolateRight: "clamp",
             easing: Easing.bezier(0.16, 1.0, 0.3, 1.0),
