@@ -293,14 +293,15 @@ def analyze_cranial_negative_space(
     # Text stays nestled in the natural middle band (18% - 28%), permitting up to 40% head occlusion
     # per the 60/40 rule where the subject's head partially layers over the lower 40% of the letters.
     if top_headroom >= 0.10:
-        center_y = round(max(0.18, min(0.26, actual_head_top)), 4)
+        center_y = round(max(0.165, min(0.21, actual_head_top + 0.01)), 4)
         head_mid_x = (head_left + head_right) / 2.0
-        if head_mid_x < 0.44:
-            text_x = round(min(0.60, head_mid_x + 0.12), 3)
-        elif head_mid_x > 0.56:
-            text_x = round(max(0.40, head_mid_x - 0.12), 3)
+        # Dynamic Flank Tracking opposite head sway:
+        # If head sways left (<= 0.50), open flank is right -> track to x=0.58-0.65
+        # If head sways right (> 0.50), open flank is left -> track to x=0.35-0.42
+        if head_mid_x <= 0.50:
+            text_x = round(min(0.65, max(0.58, head_mid_x + 0.14)), 3)
         else:
-            text_x = 0.50
+            text_x = round(max(0.35, min(0.42, head_mid_x - 0.14)), 3)
 
         return {
             "dominantZone": "cranial_crown",

@@ -6865,27 +6865,6 @@ export const PrometheusMinRun: React.FC<PrometheusMinRunProps> = ({
 
       {/* 3. Foreground Subject Matte Cutout Layer (Z: 50) */}
       {matteSrc && (() => {
-        const hasBehindSubjectLayer = (chunks || []).some((chunk) => {
-          const startMs = chunk.startMs ?? chunk.outputStartMs ?? chunk.displayStartMs ?? 0;
-          const endMs = chunk.endMs ?? chunk.outputEndMs ?? chunk.displayEndMs ?? (startMs + 1500);
-          const s = Math.round((startMs / 1000) * fps);
-          const e = Math.round((endMs / 1000) * fps);
-          if (frame < s || frame >= e) return false;
-          const safeRegion = (chunk.placement as any)?.safeRegionId;
-          const domZone = (chunk.placement as any)?.dominantZone;
-          const isActuallyBehind =
-            safeRegion === "behind_subject_above_head" ||
-            domZone === "cranial_crown" ||
-            domZone === "flank_right_column" ||
-            domZone === "flank_left_column" ||
-            Boolean(safeRegion?.includes("flank")) ||
-            (chunk.placement as any)?.intersectsSubject === true;
-          if (!isActuallyBehind) return false;
-          const layers = chunk.layers || [];
-          return layers.some((layer) => layer.behindSubject);
-        });
-        if (!hasBehindSubjectLayer) return null;
-
         const state = resolveSceneVisualState(orchestration, frame, fps);
         const mediaStyle = resolvePanScanMediaStyle(state, 1.0);
         const {
