@@ -2685,6 +2685,27 @@ def plan_song_program(
         source_start = entry_calc["sourceStartMs"]
         available_runway_ms = max(1, track_dur_ms - source_start)
         timeline_end = min(duration_ms, timeline_start + available_runway_ms)
+
+        # Narrative-beat handoff trigger: for clips >= 20s, allow a track switch at the
+        # strongest storyboard beat boundary (hook -> body or body -> payoff)
+        handoff_gate = "song_runway_exhausted"
+        if duration_ms >= 20000 and len(events) == 0 and storyboard:
+            acts = storyboard.get("acts") or []
+            act1_end = acts[0].get("endMs", 8000) if len(acts) > 0 else 8000
+            act2_end = acts[1].get("endMs", int(duration_ms * 0.70)) if len(acts) > 1 else int(duration_ms * 0.70)
+
+            # Prefer body -> payoff boundary if tail runway >= 6s, else hook -> body
+            if (duration_ms - act2_end) >= 6000 and act2_end >= 12000:
+                beat_ms = act2_end
+            elif act1_end >= 5000 and (duration_ms - act1_end) >= 10000:
+                beat_ms = act1_end
+            else:
+                beat_ms = int(duration_ms * 0.65)
+
+            if beat_ms < timeline_end:
+                timeline_end = beat_ms
+                handoff_gate = "narrative_beat_transition"
+
         source_end = source_start + (timeline_end - timeline_start)
         entry_calc["sourceEndMs"] = source_end
 
@@ -2712,6 +2733,7 @@ def plan_song_program(
             "selectionEvidence": selected["evidence"],
             "pacingWps": speech_wps,
             "lookAffinity": look_id or None,
+            "handoffGate": handoff_gate,
             "approval": {
                 "renderAllowed": bool(track.get("renderAllowed", True)),
                 "commercialAllowed": bool(track.get("commercialAllowed", True)),
@@ -2730,7 +2752,7 @@ def plan_song_program(
                 "startMs": timeline_start,
                 "durationMs": overlap,
                 "compatibilityScore": round(_compatibility(previous_track or {}, track), 3),
-                "cause": {"gate": "song_runway_exhausted", "atMs": timeline_start},
+                "cause": {"gate": previous.get("handoffGate", "song_runway_exhausted"), "atMs": timeline_start},
             })
 
         events.append(event)
