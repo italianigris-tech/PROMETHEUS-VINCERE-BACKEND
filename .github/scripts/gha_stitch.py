@@ -252,7 +252,7 @@ try:
     from mini_run_pipeline import policy_check
     policy_report = policy_check.run_post_render_conformance_check(
         video_path=master_path,
-        manifest_or_props=props.get("fontManifest") or props,
+        manifest_or_props=props,
     )
     print(f"[stitch] Conformance check status: {policy_report.get('status')} ({len(policy_report.get('violations', []))} violations)", flush=True)
 except Exception as pol_err:
