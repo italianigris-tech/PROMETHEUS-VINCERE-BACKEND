@@ -4879,7 +4879,8 @@ const MultiLayerTypographyCard: React.FC<{
   contentStartFrame: number;
   endFrame: number;
   subjectMatteAvailable: boolean;
-}> = ({ chunk, contentStartFrame, endFrame, subjectMatteAvailable }) => {
+  nextChunkStartFrame?: number;
+}> = ({ chunk, contentStartFrame, endFrame, subjectMatteAvailable, nextChunkStartFrame }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
@@ -4909,28 +4910,27 @@ const MultiLayerTypographyCard: React.FC<{
             letterSpacingEm: 0.02,
             lineHeight: 1.05,
             isHero: true,
-            fxPreset: chunk.fxPreset || "apple_pro_display_hero_revealer",
-            gradient: "linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 40%, #E2E8F0 100%)",
-            glow: "0 0 24px rgba(255, 255, 255, 0.75)",
-            shadow: "0 6px 24px rgba(0, 0, 0, 0.98)",
-            textFillColor: "transparent",
-            hasGradient: true,
+            isOverlapping: false,
+            zIndex: 3,
+            focusPriority: 1,
+            fill: { type: "solid", color: "#FFFFFF" },
           },
         ];
-  const behindSubject = Boolean(subjectMatteAvailable && layers.some((layer) => layer.behindSubject));
-  const isBehindSubject = Boolean(
-    subjectMatteAvailable && (
-      behindSubject ||
-      chunk.placement?.safeRegionId === "upper_third" ||
-      chunk.placement?.anchor === "top_headroom" ||
-      layers.some((l) => l.behindSubject)
-    )
+
+  const behindSubject = Boolean(
+    (chunk.placement as any)?.safeRegionId === "behind_subject_above_head" ||
+    (chunk.placement as any)?.dominantZone === "cranial_crown" ||
+    (chunk.placement as any)?.dominantZone === "flank_right_column" ||
+    (chunk.placement as any)?.dominantZone === "flank_left_column" ||
+    Boolean((chunk.placement as any)?.safeRegionId?.includes("flank")) ||
+    (chunk.placement as any)?.intersectsSubject === true ||
+    layers.some((l) => l.behindSubject)
   );
 
-  // Multi-word group completion anchoring: layer entrance completes at last word's start frame
-  const chunkWords = chunk.words || [];
-  const lastWordStartMs = chunkWords.length > 0
-    ? chunkWords[chunkWords.length - 1].start_ms
+  // Stagger / anchor entrance calculation
+  const words = layers.flatMap((l) => l.words || []);
+  const lastWordStartMs = words.length > 0
+    ? Math.max(...words.map((w) => w.start_ms))
     : chunkStartMs;
   const lastWordRelativeMs = Math.max(0, lastWordStartMs - chunkStartMs);
   const lastWordStartFrame = contentStartFrame + Math.round((lastWordRelativeMs / 1000) * fps);
@@ -4943,18 +4943,35 @@ const MultiLayerTypographyCard: React.FC<{
     easing: Easing.bezier(0.16, 1.0, 0.3, 1.0),
   });
 
-  // Accelerated 5-frame scale/blur exit tween
-  const isAcceleratedExit = Boolean(chunk.acceleratedExit);
-  const exitFrames = 5;
+  // Rack-Focus Exit Gate (Round 12):
+  // Gate: collision > 0 -> blur-exit; gap >= 500ms -> clean hold, no exit.
+  // When chunk N+1 mounts inside chunk N's hold (nextChunkStartFrame < totalFrames),
+  // chunk N executes a 5-frame rack-focus exit: Gaussian blur 0 -> ~20px + opacity fade + scale-down,
+  // completing inside the collision window.
+  const hasIncomingCollision =
+    nextChunkStartFrame !== undefined &&
+    nextChunkStartFrame < totalFrames &&
+    nextChunkStartFrame >= 0;
 
-  const exitProgress = interpolate(frame, [Math.max(0, totalFrames - exitFrames), totalFrames], [0, 1], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-    easing: Easing.bezier(0.4, 0, 1, 1),
-  });
+  const rackFocusStartFrame = hasIncomingCollision ? nextChunkStartFrame : Math.max(0, totalFrames - 5);
+  const rackFocusDuration = 5;
+  const isRackFocusExiting = frame >= rackFocusStartFrame;
+
+  // Unmount cleanly once rack focus exit completes
+  if (hasIncomingCollision && frame >= rackFocusStartFrame + rackFocusDuration) {
+    return null;
+  }
+
+  const exitProgress = isRackFocusExiting
+    ? interpolate(frame, [rackFocusStartFrame, rackFocusStartFrame + rackFocusDuration], [0, 1], {
+        extrapolateLeft: "clamp",
+        extrapolateRight: "clamp",
+        easing: Easing.bezier(0.16, 1.0, 0.3, 1.0),
+      })
+    : 0;
 
   const chunkExit = 1 - exitProgress;
-  const exitBlur = exitProgress * 4;
+  const exitBlur = exitProgress * 20; // 0px -> 20px Gaussian defocus
   const exitScale = interpolate(exitProgress, [0, 1], [1.0, 0.94]);
 
   // Full-card hook & cinematic impact transforms
@@ -6810,6 +6827,22 @@ export const PrometheusMinRun: React.FC<PrometheusMinRunProps> = ({
             const relativeContentStartFrame = Math.max(0, contentStartFrame - startFrame);
             const durationFrames = Math.max(1, endFrame - startFrame);
 
+            // Next chunk entrance frame (relative to this chunk's sequence startFrame)
+            const nextChunk = chunks[idx + 1];
+            let relativeNextChunkStartFrame: number | undefined = undefined;
+            if (nextChunk) {
+              const nextStartMs = nextChunk.displayStartMs ?? nextChunk.startMs ?? nextChunk.outputStartMs ?? 0;
+              const nextContentStartF = Math.round((nextStartMs / 1000) * fps);
+              const nextLeadFrames = Math.max(
+                0,
+                ...(nextChunk.layers || []).map((l) =>
+                  Math.round((((l.effectiveEntryLeadMs ?? l.entryLeadMs) ?? (l.isHero ? 100 : 60)) / 1000) * fps)
+                )
+              );
+              const nextAbsoluteStartFrame = Math.max(0, Math.round((nextStartMs / 1000) * fps), nextContentStartF - nextLeadFrames);
+              relativeNextChunkStartFrame = nextAbsoluteStartFrame - startFrame;
+            }
+
             return (
               <Sequence
                 key={`chunk-${idx}-${startMs}`}
@@ -6821,6 +6854,7 @@ export const PrometheusMinRun: React.FC<PrometheusMinRunProps> = ({
                   contentStartFrame={relativeContentStartFrame}
                   endFrame={durationFrames}
                   subjectMatteAvailable={Boolean(matteSrc)}
+                  nextChunkStartFrame={relativeNextChunkStartFrame}
                 />
               </Sequence>
             );

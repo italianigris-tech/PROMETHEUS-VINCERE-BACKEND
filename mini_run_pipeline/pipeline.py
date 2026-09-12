@@ -610,6 +610,24 @@ def execute_pipeline_job(
             c_item["endMs"] = extended_display_end
             m_chunk["endMs"] = extended_display_end
 
+    # Rack-Focus Handoff Gate (Round 12):
+    # Gate: collision > 0 -> rack_focus_blur; gap >= 500ms -> clean_hold
+    for c_idx in range(len(chunked)):
+        c_cur = chunked[c_idx]
+        m_cur = font_manifest["chunks"][c_idx] if c_idx < len(font_manifest["chunks"]) else None
+        cur_disp_end = int(c_cur.get("displayEndMs", c_cur.get("endMs", 0)))
+        if c_idx + 1 < len(chunked):
+            next_start = int(chunked[c_idx + 1].get("displayStartMs", chunked[c_idx + 1].get("startMs", 0)))
+            collision_ms = max(0, cur_disp_end - next_start)
+        else:
+            collision_ms = 0
+        exit_treatment = "rack_focus_blur" if collision_ms > 0 else "clean_hold"
+        c_cur["collisionMs"] = collision_ms
+        c_cur["exitTreatment"] = exit_treatment
+        if m_cur is not None:
+            m_cur["collisionMs"] = collision_ms
+            m_cur["exitTreatment"] = exit_treatment
+
     manifest_file.write_text(json.dumps(font_manifest, indent=2))
     update("processing", 65)
 
