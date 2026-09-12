@@ -304,7 +304,7 @@ def analyze_cranial_negative_space(
         else:
             text_x = round(max(0.35, min(0.45, head_mid_x - 0.12)), 3)
 
-        center_y = round(max(0.16, min(0.22, actual_head_top * 0.85 + 0.02)), 4)
+        center_y = round(max(0.150, min(0.20, actual_head_top * 0.85 + 0.02)), 4)
 
         return {
             "dominantZone": "cranial_crown",
@@ -638,11 +638,11 @@ def plan_subject_safe_placements(
             wants_left = (fj_zone == "flank_left_column" or "left" in fj_align or "left" in fj_anchor)
             wants_right = (fj_zone == "flank_right_column" or "right" in fj_align or "right" in fj_anchor)
 
-            left_flank_eligible = flank_left >= 0.22
-            right_flank_eligible = flank_right >= 0.22
+            left_flank_eligible = flank_left >= 0.22 and chunk_est_w <= 550.0
+            right_flank_eligible = flank_right >= 0.22 and chunk_est_w <= 550.0
 
-            speaker_needs_left = (flank_left >= 0.38 and flank_left > flank_right + 0.10)
-            speaker_needs_right = (flank_right >= 0.38 and flank_right > flank_left + 0.10)
+            speaker_needs_left = (flank_left >= 0.38 and flank_left > flank_right + 0.10) and left_flank_eligible
+            speaker_needs_right = (flank_right >= 0.38 and flank_right > flank_left + 0.10) and right_flank_eligible
 
             # Placement Variety & Anti-Monoculture Rebalance:
             # Cap consecutive placements in the same zone at <= 3.

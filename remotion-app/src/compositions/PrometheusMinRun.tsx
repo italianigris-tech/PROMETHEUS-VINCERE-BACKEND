@@ -5254,7 +5254,7 @@ const MultiLayerTypographyCard: React.FC<{
   const topPosition = `${Math.max(minTopPercent, Math.min(rawTopPercent, maxTopPercent))}%`;
   const textAlign = (chunk.placement as any)?.textAlign || "center";
   const alignItems = textAlign === "left" ? "flex-start" : (textAlign === "right" ? "flex-end" : "center");
-  const maxWidthPercent = Number((chunk.placement as any)?.maxWidthPercent);
+  const maxWidthPercent = parseFloat((chunk.placement as any)?.maxWidthPercent);
   const deckMaxWidth = Number.isFinite(maxWidthPercent) && maxWidthPercent > 0
     ? `${Math.max(50, Math.min(100, maxWidthPercent))}%`
     : "980px";
@@ -5274,16 +5274,10 @@ const MultiLayerTypographyCard: React.FC<{
     (chunk.placement as any)?.dominantZone === "flank_left_column" ||
     Boolean((chunk.placement as any)?.safeRegionId?.includes("flank"));
 
-  const resolvedCardWidth = isFlankZone
-    ? "fit-content"
-    : (hasFlankingLayers || isLeftOrRightAlign)
+  const resolvedCardWidth = (isFlankZone || hasFlankingLayers || isLeftOrRightAlign)
     ? "fit-content"
     : "92%";
-  const resolvedMaxWidth = isFlankZone
-    ? "500px"
-    : (hasFlankingLayers || isLeftOrRightAlign)
-    ? "720px"
-    : deckMaxWidth;
+  const resolvedMaxWidth = deckMaxWidth;
 
   return (
     <div
