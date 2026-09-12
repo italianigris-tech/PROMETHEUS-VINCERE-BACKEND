@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from mini_run_pipeline.typography import estimate_layer_width_px
+from mini_run_pipeline.pipeline import resolve_chunk_zone
 
 DEFAULT_INSPECTION_TIMESTAMPS: Tuple[float, ...] = (1.8, 4.6, 8.6, 15.0, 22.5, 28.0)
 MAX_SAFE_WIDTH_PX: float = 820.0
@@ -617,19 +618,23 @@ def validate_caption_collisions(chunks: Optional[Sequence[Dict[str, Any]]]) -> D
         curr_end = int(curr.get("displayEndMs", curr.get("endMs", 0)))
         next_start = int(next_c.get("displayStartMs", next_c.get("startMs", 0)))
         collision_ms = max(0, curr_end - next_start)
+        cur_zone = resolve_chunk_zone(curr)
+        next_zone = resolve_chunk_zone(next_c)
+        is_same_zone = bool(cur_zone and next_zone and cur_zone == next_zone)
 
         exit_treatment = curr.get("exitTreatment")
-        if not exit_treatment and collision_ms == 0:
+        if not exit_treatment and (collision_ms == 0 or is_same_zone):
             exit_treatment = "clean_hold"
 
         if collision_ms > 0:
             collisions_count += 1
             if collision_ms > max_collision:
                 max_collision = collision_ms
-            if exit_treatment != "rack_focus_blur":
+            expected_treatment = "clean_hold" if is_same_zone else "rack_focus_blur"
+            if exit_treatment != expected_treatment:
                 violations.append(
                     f"Chunk {c_idx} collides with Chunk {next_idx} by {collision_ms}ms "
-                    f"but missing rack_focus_blur exitTreatment (found '{exit_treatment}')"
+                    f"but missing {expected_treatment} exitTreatment (found '{exit_treatment}')"
                 )
 
         boundaries.append({
@@ -637,6 +642,7 @@ def validate_caption_collisions(chunks: Optional[Sequence[Dict[str, Any]]]) -> D
             "incomingChunkIndex": next_idx,
             "collisionMs": collision_ms,
             "exitTreatment": exit_treatment,
+            "sameZone": is_same_zone,
         })
 
     return {

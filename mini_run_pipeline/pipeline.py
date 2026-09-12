@@ -342,6 +342,33 @@ def get_pipeline_job(job_id: str, queue_backend: Optional[Any] = None) -> Option
         row = store.get_job(job_id)
         if row:
             return {"id": job_id, "data": {}, "returnvalue": None, "_state": row.get("status")}
+def resolve_chunk_zone(chunk: Dict[str, Any]) -> str:
+    """Extract canonical spatial zone from chunk or its placement metadata."""
+    if not isinstance(chunk, dict):
+        return ""
+    placement = chunk.get("placement") or {}
+    zone = (
+        chunk.get("spatial_zone")
+        or chunk.get("spatialZone")
+        or placement.get("dominantZone")
+        or placement.get("zone")
+        or placement.get("safeRegionId")
+        or ""
+    )
+    zone_str = str(zone).lower()
+    if "flank_left" in zone_str or "left_pillar" in zone_str:
+        return "flank_left"
+    if "flank_right" in zone_str or "right_pillar" in zone_str:
+        return "flank_right"
+    if "cranial" in zone_str or "above_head" in zone_str or "crown" in zone_str:
+        return "cranial"
+    if "lower_deck" in zone_str or "lower" in zone_str or "bottom" in zone_str:
+        return "lower_deck"
+    if "center" in zone_str:
+        return "center"
+    return zone_str
+
+
 def finalize_manifest_and_exits(
     chunks: List[Dict[str, Any]],
     font_manifest: Optional[Dict[str, Any]] = None,
@@ -349,8 +376,8 @@ def finalize_manifest_and_exits(
     """Stamp collisionMs and exitTreatment onto chunks and font_manifest.
 
     Single authoritative source of truth for both local pipeline and GHA orchestration:
-    - collision > 0 -> rack_focus_blur
-    - collision == 0 -> clean_hold
+    - collision > 0 and different spatial zones -> rack_focus_blur
+    - collision == 0 or same spatial zone -> clean_hold (hard cut avoids same-zone double blur)
     """
     m_chunks = (font_manifest or {}).get("chunks") or []
     for c_idx in range(len(chunks)):
@@ -358,11 +385,17 @@ def finalize_manifest_and_exits(
         m_cur = m_chunks[c_idx] if c_idx < len(m_chunks) else None
         cur_disp_end = int(c_cur.get("displayEndMs", c_cur.get("endMs", 0)))
         if c_idx + 1 < len(chunks):
-            next_start = int(chunks[c_idx + 1].get("displayStartMs", chunks[c_idx + 1].get("startMs", 0)))
+            next_c = chunks[c_idx + 1]
+            next_start = int(next_c.get("displayStartMs", next_c.get("startMs", 0)))
             collision_ms = max(0, cur_disp_end - next_start)
+            cur_zone = resolve_chunk_zone(c_cur)
+            next_zone = resolve_chunk_zone(next_c)
+            is_same_zone = bool(cur_zone and next_zone and cur_zone == next_zone)
         else:
             collision_ms = 0
-        exit_treatment = "rack_focus_blur" if collision_ms > 0 else "clean_hold"
+            is_same_zone = False
+
+        exit_treatment = "rack_focus_blur" if (collision_ms > 0 and not is_same_zone) else "clean_hold"
         c_cur["collisionMs"] = collision_ms
         c_cur["exitTreatment"] = exit_treatment
         for lyr in c_cur.get("layers", []):
