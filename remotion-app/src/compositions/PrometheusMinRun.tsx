@@ -935,6 +935,16 @@ export const resolveTypographyZIndex = (
   return behindSubject ? 25 : 100;
 };
 
+export const resolveChunkBehindSubject = (
+  subjectMatteAvailable: boolean,
+  layers?: TypographyLayer[],
+  chunkPlacement?: any,
+): boolean => {
+  if (!subjectMatteAvailable || !layers) return false;
+  // Flank and cranial zones are foreground placements (z=100); only explicit pivot layers render under the matte (z=25).
+  return layers.some((l) => Boolean(l.behindSubject));
+};
+
 export const resolveSafeStageScaleX = (
   behindSubject: boolean,
   safeRegionId: string | undefined,
@@ -4924,15 +4934,7 @@ const MultiLayerTypographyCard: React.FC<{
           },
         ];
 
-  const behindSubject = Boolean(
-    (chunk.placement as any)?.safeRegionId === "behind_subject_above_head" ||
-    (chunk.placement as any)?.dominantZone === "cranial_crown" ||
-    (chunk.placement as any)?.dominantZone === "flank_right_column" ||
-    (chunk.placement as any)?.dominantZone === "flank_left_column" ||
-    Boolean((chunk.placement as any)?.safeRegionId?.includes("flank")) ||
-    (chunk.placement as any)?.intersectsSubject === true ||
-    layers.some((l) => l.behindSubject)
-  );
+  const behindSubject = resolveChunkBehindSubject(subjectMatteAvailable, layers, chunk.placement);
 
   // Stagger / anchor entrance calculation
   const words = layers.flatMap((l) => l.words || []);

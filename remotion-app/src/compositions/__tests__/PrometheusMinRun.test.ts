@@ -4,6 +4,7 @@ import {
   normalizeRuntimePreset,
   resolveBehindSubjectTypographyMetrics,
   resolveTypographyZIndex,
+  resolveChunkBehindSubject,
   resolveSafeStageScaleX,
   resolveChunkEntranceFrame,
   resolvePanScanMediaStyle,
@@ -71,6 +72,53 @@ describe("resolveTypographyZIndex", () => {
     expect(resolveTypographyZIndex(true, "lower_right")).toBe(25);
     expect(resolveTypographyZIndex(true, undefined)).toBe(25);
     expect(resolveTypographyZIndex(false, "foreground_center")).toBe(100);
+  });
+});
+
+describe("resolveChunkBehindSubject (Round 13 z-order conflation fix)", () => {
+  test("flank and cranial zone chunks with foreground layers evaluate to behindSubject: false and zIndex: 100", () => {
+    const flankPlacement = {
+      dominantZone: "flank_left_column",
+      safeRegionId: "flank_left_pillar",
+    };
+    const foregroundLayers = [
+      { layerIndex: 0, text: "Over", behindSubject: false } as TypographyLayer,
+      { layerIndex: 1, text: "THE LAST 12 MONTHS,", behindSubject: false } as TypographyLayer,
+    ];
+    const isBehind = resolveChunkBehindSubject(true, foregroundLayers, flankPlacement);
+    expect(isBehind).toBe(false);
+    expect(resolveTypographyZIndex(isBehind, flankPlacement.safeRegionId)).toBe(100);
+  });
+
+  test("flank_right_column chunks assert zIndex: 100", () => {
+    const rightFlankPlacement = {
+      dominantZone: "flank_right_column",
+      safeRegionId: "flank_right_pillar",
+    };
+    const layers = [{ layerIndex: 0, text: "12,000 physical products", behindSubject: false } as TypographyLayer];
+    const isBehind = resolveChunkBehindSubject(true, layers, rightFlankPlacement);
+    expect(isBehind).toBe(false);
+    expect(resolveTypographyZIndex(isBehind, rightFlankPlacement.safeRegionId)).toBe(100);
+  });
+
+  test("only explicit pivot layers with behindSubject: true evaluate to behindSubject: true and zIndex: 25", () => {
+    const pivotPlacement = {
+      dominantZone: "cranial_crown",
+      safeRegionId: "behind_subject_above_head",
+    };
+    const pivotLayers = [
+      { layerIndex: 0, text: "RESOLD", behindSubject: true } as TypographyLayer,
+    ];
+    const isBehind = resolveChunkBehindSubject(true, pivotLayers, pivotPlacement);
+    expect(isBehind).toBe(true);
+    expect(resolveTypographyZIndex(isBehind, pivotPlacement.safeRegionId)).toBe(25);
+  });
+
+  test("returns false when subjectMatteAvailable is false even if layer has behindSubject: true", () => {
+    const pivotLayers = [
+      { layerIndex: 0, text: "RESOLD", behindSubject: true } as TypographyLayer,
+    ];
+    expect(resolveChunkBehindSubject(false, pivotLayers)).toBe(false);
   });
 });
 
