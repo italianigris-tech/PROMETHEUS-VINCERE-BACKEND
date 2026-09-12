@@ -4383,8 +4383,9 @@ const HierarchicalAsymmetricLockupComposition: React.FC<{
                   lineHeight: 0.88,
                   backgroundImage: isDifference ? "none" : heroGradient,
                   WebkitBackgroundClip: isDifference ? "border-box" : "text",
+                  backgroundClip: isDifference ? "border-box" : "text",
                   WebkitTextFillColor: isDifference ? "#FFFFFF" : "transparent",
-                  color: isDifference ? "#FFFFFF" : undefined,
+                  color: isDifference ? "#FFFFFF" : (heroLayer?.color || "#FF453A"),
                   mixBlendMode: isDifference ? "difference" : undefined,
                   WebkitTextStroke: isDifference ? "0.85px rgba(255, 255, 255, 0.75)" : undefined,
                   textShadow: isDifference
@@ -4417,24 +4418,8 @@ const HierarchicalAsymmetricLockupComposition: React.FC<{
             })
           );
 
-          const charSpans = Array.from(displayText).map((char, cIdx) => {
-            const charOffset = cIdx - (displayText.length - 1) / 2;
-            const microStartX = charOffset * 0.12;
-            const microEndX = charOffset * -0.02;
-            const microX = microStartX + (microEndX - microStartX) * squeezeT;
-            return (
-              <span
-                key={`blm-char-${idx}-${cIdx}`}
-                style={{
-                  display: "inline-block",
-                  whiteSpace: "pre",
-                  transform: `translate3d(${microX.toFixed(3)}em, 0, 0)`,
-                }}
-              >
-                {char}
-              </span>
-            );
-          });
+          // Magnetic inward letter compression interpolated from wide (0.08em) to tight (-0.035em)
+          const magneticLetterSpacing = `${interpolate(squeezeT, [0, 1], [0.08, -0.035]).toFixed(3)}em`;
 
           const filterStyle = [
             blurY > 0.1 ? `blur(${blurY.toFixed(1)}px)` : "",
@@ -4460,12 +4445,13 @@ const HierarchicalAsymmetricLockupComposition: React.FC<{
                   fontSize: `${heroSize}px`,
                   fontWeight: 700,
                   fontStyle: isHeroItalic ? "italic" : "normal",
-                  letterSpacing: "-0.035em",
+                  letterSpacing: magneticLetterSpacing,
                   lineHeight: 0.88,
                   backgroundImage: isDifference ? "none" : heroGradient,
                   WebkitBackgroundClip: isDifference ? "border-box" : "text",
+                  backgroundClip: isDifference ? "border-box" : "text",
                   WebkitTextFillColor: isDifference ? "#FFFFFF" : "transparent",
-                  color: isDifference ? "#FFFFFF" : undefined,
+                  color: isDifference ? "#FFFFFF" : (heroLayer?.color || "#FF453A"),
                   mixBlendMode: isDifference ? "difference" : undefined,
                   WebkitTextStroke: isDifference ? "0.85px rgba(255, 255, 255, 0.75)" : undefined,
                   textShadow: isDifference
@@ -4473,7 +4459,7 @@ const HierarchicalAsymmetricLockupComposition: React.FC<{
                     : undefined,
                 }}
               >
-                {charSpans}
+                {displayText}
               </span>
             </span>
           );
@@ -4515,8 +4501,9 @@ const HierarchicalAsymmetricLockupComposition: React.FC<{
                   lineHeight: 0.88,
                   backgroundImage: isDifference ? "none" : heroGradient,
                   WebkitBackgroundClip: isDifference ? "border-box" : "text",
+                  backgroundClip: isDifference ? "border-box" : "text",
                   WebkitTextFillColor: isDifference ? "#FFFFFF" : "transparent",
-                  color: isDifference ? "#FFFFFF" : undefined,
+                  color: isDifference ? "#FFFFFF" : (heroLayer?.color || "#FF453A"),
                   mixBlendMode: isDifference ? "difference" : undefined,
                   WebkitTextStroke: isDifference ? "0.85px rgba(255, 255, 255, 0.75)" : undefined,
                   textShadow: isDifference
@@ -4565,8 +4552,9 @@ const HierarchicalAsymmetricLockupComposition: React.FC<{
                   lineHeight: 0.88,
                   backgroundImage: isDifference ? "none" : heroGradient,
                   WebkitBackgroundClip: isDifference ? "border-box" : "text",
+                  backgroundClip: isDifference ? "border-box" : "text",
                   WebkitTextFillColor: isDifference ? "#FFFFFF" : "transparent",
-                  color: isDifference ? "#FFFFFF" : undefined,
+                  color: isDifference ? "#FFFFFF" : (heroLayer?.color || "#FF453A"),
                   mixBlendMode: isDifference ? "difference" : undefined,
                   WebkitTextStroke: isDifference ? "0.85px rgba(255, 255, 255, 0.75)" : undefined,
                   textShadow: isDifference
@@ -4616,8 +4604,9 @@ const HierarchicalAsymmetricLockupComposition: React.FC<{
                   lineHeight: 0.88,
                   backgroundImage: isDifference ? "none" : heroGradient,
                   WebkitBackgroundClip: isDifference ? "border-box" : "text",
+                  backgroundClip: isDifference ? "border-box" : "text",
                   WebkitTextFillColor: isDifference ? "#FFFFFF" : "transparent",
-                  color: isDifference ? "#FFFFFF" : undefined,
+                  color: isDifference ? "#FFFFFF" : (heroLayer?.color || "#FF453A"),
                   mixBlendMode: isDifference ? "difference" : undefined,
                   WebkitTextStroke: isDifference ? "0.85px rgba(255, 255, 255, 0.75)" : undefined,
                   textShadow: isDifference
