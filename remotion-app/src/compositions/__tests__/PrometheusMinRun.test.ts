@@ -51,6 +51,8 @@ describe("normalizeRuntimePreset", () => {
     expect(normalizeRuntimePreset("canva_tall_glyph_stack")).toBe("canva_tall_glyph_stack");
     expect(normalizeRuntimePreset("cinematic_distance_convergence")).toBe("cinematic_distance_convergence");
     expect(normalizeRuntimePreset("cyber_acid_lime_glitch")).toBe("cyber_acid_lime_glitch");
+    expect(normalizeRuntimePreset("vj_kinetic_typography")).toBe("vj_kinetic_typography");
+    expect(normalizeRuntimePreset("vjkt")).toBe("vjkt");
   });
 
   test("falls back to the restrained reveal for unknown presets", () => {

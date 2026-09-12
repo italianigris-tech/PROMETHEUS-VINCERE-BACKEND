@@ -737,9 +737,8 @@ def validate_text_visibility_contrast(
         y2 = min(frame_height, y_center + box_h // 2)
 
         pre_ts = max(0.0, (start_ms - 150) / 1000.0)
-        mount_ts = (start_ms + 333) / 1000.0
-        if mount_ts * 1000.0 > end_ms:
-            mount_ts = (start_ms + end_ms) / 2000.0
+        # Sample contrast during stable mid-hold to ensure all staggered words/layers have mounted
+        mount_ts = (start_ms + end_ms) / 2000.0
 
         arr_pre = None
         arr_mount = None

@@ -987,6 +987,8 @@ export const RUNTIME_TREATMENT_IDS = new Set([
   "zora_mask_reveal",
   "blue_lantern_magnetic",
   "cyber_acid_lime_glitch",
+  "vj_kinetic_typography",
+  "vjkt",
   ...ALL_ARCHETYPE_FX_NAMES,
 ]);
 
@@ -1039,7 +1041,7 @@ const EXTENDED_ANIMA_TREATMENTS = new Set([
   "hightech_chromatic_brands", "kinetic_cyber_phrase_expansion", "kinetic_glow_sweep",
   "kinetic_word_fast_pulse", "kinetic_dynamic_slant", "kinetic_chromatic_typewriter",
   "metallic_chrome_counter", "apple_gaussian_chrome", "cinematic_apple_word_bounce",
-  "cyber_acid_lime_glitch",
+  "cyber_acid_lime_glitch", "vj_kinetic_typography", "vjkt",
 ]);
 
 const REALIZED_RUNTIME_TREATMENTS = new Set([
@@ -2890,6 +2892,50 @@ const KineticLayerRenderer: React.FC<{
                   rgbOffset > 0
                     ? `-${rgbOffset}px 0px rgba(255, 0, 50, 0.85), ${rgbOffset}px 0px rgba(0, 240, 255, 0.85), 0 0 12px ${limeColor}`
                     : `0 0 14px ${limeColor}, 0 4px 18px rgba(0,0,0,0.95)`
+                ),
+              }}
+            >
+              {word}
+            </span>
+          );
+        })}
+      </div>
+    );
+  }
+
+  // Dedicated M2: VJ Kinetic Typography (Strobe / High-Contrast Floor)
+  if (fx === "vj_kinetic_typography" || fx === "vjkt") {
+    const strobeColor = layer.color || "#FFFFFF";
+    return (
+      <div style={baseTextStyle}>
+        {words.map((word, wIdx) => {
+          const wordStart = wordEntranceFrames[wIdx] ?? 0;
+          const nextStart = wordEntranceFrames[wIdx + 1] ?? (totalFrames + 10);
+          const localFrame = Math.max(0, frame - wordStart);
+          const isActive = frame >= wordStart && frame < nextStart;
+          const p = interpolate(localFrame, [0, 6], [0, 1], {
+            extrapolateLeft: "clamp",
+            extrapolateRight: "clamp",
+            easing: Easing.out(Easing.quad),
+          });
+          // Strobe oscillation floored at >= 0.45 to guarantee contrast
+          const strobePulse = Math.sin(localFrame * 1.5 + wIdx);
+          const strobeOpacity = interpolate(strobePulse, [-1, 1], [0.45, 1.0]);
+          const effectiveOpacity = p * (isActive ? strobeOpacity : 0.85);
+
+          return (
+            <span
+              key={`vjkt-${wIdx}`}
+              style={{
+                display: "inline-block",
+                whiteSpace: "nowrap",
+                margin: "0 0.15em",
+                opacity: effectiveOpacity,
+                WebkitTextStroke: `1.5px ${strobeColor}`,
+                transform: `scale(${interpolate(p, [0, 1], [0.88, isActive ? 1.06 : 1.0])})`,
+                ...wordPaintStyle,
+                textShadow: kineticTextShadow(
+                  `0 0 16px ${strobeColor}, 0 0 32px rgba(255, 255, 255, 0.6), 0 4px 18px rgba(0,0,0,0.95)`
                 ),
               }}
             >
