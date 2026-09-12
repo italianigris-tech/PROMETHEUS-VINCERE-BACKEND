@@ -3440,6 +3440,13 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                 # Behind-subject pivot font contract: strictly draw ONLY from TALL_MATTE_FONTS
                 cands_tall = [c for c in candidates if c in TALL_MATTE_FONTS]
                 primary_font = cands_tall[0] if cands_tall else (rng.choice(TALL_MATTE_FONTS) if rng else "Anton")
+
+                # Round 15: Demote ultra-condensed faces (Six Caps, Saira Extra Condensed) for short pivot words (<= 5 chars)
+                # in favor of broad condensed faces (Anton, Bebas Neue) so bbox width hits >= 55% of headroom
+                clean_chars = "".join(ch for ch in raw_layer_text if ch.isalnum())
+                if len(clean_chars) <= 5 and primary_font in ("Six Caps", "Saira Extra Condensed"):
+                    broad_cands = [c for c in cands_tall if c in ("Anton", "Bebas Neue", "Pathway Extreme", "Oswald", "Big Shoulders Display")]
+                    primary_font = broad_cands[0] if broad_cands else "Anton"
                 accent_font = primary_font
             elif candidates:
                 primary_font = candidates[0]
@@ -3526,17 +3533,25 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                     layer_fx = _resolve_font_json_treatment(prof, layer_spec, is_hero=False, is_single_word=is_single_word, rng=rng, policy=policy, behind_subject=behind_subject)
                     layer_overlay = None
             elif is_layer_behind:
-                # Responsive behind-subject tall typography scale respecting character length (Round 14: 180-240px)
+                # Responsive behind-subject tall typography scale respecting character length and font aspect
                 clean_chars = "".join(ch for ch in raw_layer_text if ch.isalnum())
-                p_len = len(clean_chars)
+                p_len = max(1, len(clean_chars))
                 if p_len <= 4:
-                    target_font_size = 240
+                    base_font_size = 240
                 elif p_len <= 6:
-                    target_font_size = 210
+                    base_font_size = 210
                 elif p_len <= 8:
-                    target_font_size = 180
+                    base_font_size = 180
                 else:
-                    target_font_size = 140
+                    base_font_size = 140
+
+                # Round 15 Commit 3: Aspect-aware pivot sizing targeting pivot bbox width >= 55% of safe headroom (820px * 0.55 = 451px)
+                # Apply aspect compensation multiplier for condensed faces while preserving vertical headroom buffer (max 320px)
+                aspect = get_font_char_aspect(primary_font, is_uppercase=True)
+                aspect_multiplier = max(1.0, 0.40 / max(0.20, aspect))
+                target_font_size = int(round(base_font_size * aspect_multiplier))
+                target_font_size = min(320, max(180, target_font_size))
+
                 resolved_weight = 900
                 casing = "uppercase"
                 layer_fx = hero_fx_preset or "apple_pro_display_hero_revealer"
