@@ -1532,7 +1532,7 @@ const KineticLayerRenderer: React.FC<{
         : (layer.isUnderlapping
           ? 2
           : (layer.marginTopPx && layer.marginTopPx < 0 ? ((layer.layerIndex || 0) + 1) * 2 : (layer.layerIndex || 0) + 1)))),
-    maxWidth: isBehindSubject ? "880px" : "840px",
+    maxWidth: isBehindSubject ? "880px" : "800px",
     borderBottom: layer.doubleUnderline ? `3px double ${textColor}` : "none",
     paddingBottom: layer.doubleUnderline ? "6px" : "0px",
     paddingRight: "0.25em",
@@ -3503,7 +3503,7 @@ const KineticLayerRenderer: React.FC<{
                   display: "inline-block",
                   opacity: p,
                   transform: `translateY(${translateY}px) scale(${scale}) perspective(400px) rotateX(${rotateX}deg)`,
-                  padding: "0 0.02em",
+                  padding: "0 0.005em",
                   ...wordPaintStyle,
                   filter: composeFilter(blur),
                 }}
@@ -3519,7 +3519,7 @@ const KineticLayerRenderer: React.FC<{
               style={{
                 display: "inline-flex",
                 whiteSpace: "nowrap",
-                margin: "0 0.15em",
+                margin: "0 0.08em",
                 textShadow: kineticTextShadow("0 4px 18px rgba(0, 0, 0, 0.95), 0 2px 6px rgba(0, 0, 0, 0.90)"),
               }}
             >
@@ -4930,14 +4930,17 @@ const HierarchicalAsymmetricLockupComposition: React.FC<{
     });
     const lockupScale = Math.min(heroAutoFit, modAutoFit);
 
+    const isLowerDeck = (chunk.placement as any)?.dominantZone === "foreground_lower_deck";
+
     return (
       <div
         style={{
           position: "relative",
           display: "inline-flex",
           flexDirection: "column",
-          alignItems: "flex-start",
+          alignItems: isLowerDeck ? "center" : "flex-start",
           justifyContent: "center",
+          textAlign: isLowerDeck ? "center" : undefined,
           padding: 0,
           pointerEvents: "none",
           mixBlendMode: isDifference ? "difference" : undefined,
@@ -5262,9 +5265,11 @@ const MultiLayerTypographyCard: React.FC<{
   const textAlign = isLowerDeck ? "center" : ((chunk.placement as any)?.textAlign || "center");
   const alignItems = isLowerDeck ? "center" : (textAlign === "left" ? "flex-start" : (textAlign === "right" ? "flex-end" : "center"));
   const maxWidthPercent = parseFloat((chunk.placement as any)?.maxWidthPercent);
-  const deckMaxWidth = Number.isFinite(maxWidthPercent) && maxWidthPercent > 0
-    ? `${Math.max(50, Math.min(100, maxWidthPercent))}%`
-    : "980px";
+  const deckMaxWidth = isLowerDeck
+    ? "800px"
+    : (Number.isFinite(maxWidthPercent) && maxWidthPercent > 0
+        ? `${Math.max(50, Math.min(100, maxWidthPercent))}%`
+        : "820px");
 
   // Flanker / Satellite Layout containment:
   // When layers use asymmetric alignSelf ('flex-start' / 'flex-end', e.g. image 82 'have choose to' or image 97 'AT POINT, SOME'),
@@ -5281,7 +5286,7 @@ const MultiLayerTypographyCard: React.FC<{
     (chunk.placement as any)?.dominantZone === "flank_left_column" ||
     Boolean((chunk.placement as any)?.safeRegionId?.includes("flank"));
 
-  const resolvedCardWidth = (isFlankZone || hasFlankingLayers || isLeftOrRightAlign)
+  const resolvedCardWidth = (isLowerDeck || isFlankZone || hasFlankingLayers || isLeftOrRightAlign)
     ? "fit-content"
     : "92%";
   const resolvedMaxWidth = deckMaxWidth;

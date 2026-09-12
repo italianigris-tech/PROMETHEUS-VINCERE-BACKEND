@@ -1216,7 +1216,7 @@ def get_font_char_aspect(font_name: str, is_uppercase: bool = False) -> float:
         elif is_serif_font(font_name):
             base_aspect = 0.62
 
-    return round(base_aspect * (1.32 if is_uppercase else 1.0), 3)
+    return round(base_aspect * (1.44 if is_uppercase else 1.0), 3)
 
 
 def estimate_layer_width_px(text: str, font_name: str, font_size_px: float, is_uppercase: bool = False) -> float:
@@ -1229,7 +1229,7 @@ def estimate_layer_width_px(text: str, font_name: str, font_size_px: float, is_u
 
 def preflight_and_fit_layer_widths(
     layers_info: List[Dict[str, Any]],
-    max_safe_width: float = 820.0,
+    max_safe_width: float = 790.0,
 ) -> None:
     """Chunk-level width preflight: largest-first shrink with legibility floors.
 
@@ -3511,9 +3511,9 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
             is_wide_serif = any(k in primary_font.lower() for k in ("bodoni", "playfair", "cinzel", "prata", "cormorant", "didot", "caslon"))
             base_aspect = 0.40 if is_ultra_tall else (0.50 if is_script_aspect_font else (0.64 if is_wide_serif else 0.56))
             is_upper = str(casing).lower() == "uppercase" or str(f_style.get("casing", "")).lower() == "uppercase" or raw_layer_text.isupper()
-            char_aspect = base_aspect * (1.35 if is_upper else 1.0)
-            # Safe text margin: 820px on 1080 portrait gives rock-solid 130px margins on left and right
-            max_safe_width = 1500 if is_landscape else 820
+            char_aspect = base_aspect * (1.44 if is_upper else 1.0)
+            # Safe text margin: 790px on 1080 portrait gives rock-solid 145px margins on left and right
+            max_safe_width = 1500 if is_landscape else 790.0
 
             if is_landscape:
                 if is_layer_behind:
