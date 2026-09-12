@@ -71,6 +71,16 @@ def _rect_from_center(region: Dict[str, Any]) -> Dict[str, float]:
     }
 
 
+def _clamp_safe_x_percent(x_val: Any, min_pct: float = 12.0, max_pct: float = 88.0) -> str:
+    """Clamp X percentage string or float within screen-safe bounds (130px margin = 12% to 88%)."""
+    try:
+        val = float(str(x_val).replace("%", "").strip())
+        val_clamped = max(min_pct, min(max_pct, val))
+        return f"{round(val_clamped, 1)}%"
+    except Exception:
+        return str(x_val)
+
+
 def _padded_subject_rect(subject_box: Dict[str, Any]) -> Dict[str, float]:
     padding = 0.03
     return {
@@ -279,9 +289,9 @@ def analyze_cranial_negative_space(
     # When cranial headroom is compressed (< 0.10) and speaker is framed left of center,
     # the right flank offers an expansive vertical column of clear negative space.
     if right_flank >= 0.26 and right_flank >= (left_flank + 0.06):
-        safe_right_margin = 0.94
+        safe_right_margin = 0.88
         safe_left_bound = min(0.68, max(head_right, x + w) + 0.04)
-        col_x = round((safe_left_bound + safe_right_margin) / 2.0, 3)
+        col_x = round(max(0.12, min(0.88, (safe_left_bound + safe_right_margin) / 2.0)), 3)
         center_y = round(max(0.22, min(0.30, actual_head_top + 0.08)), 3)
         return {
             "dominantZone": "flank_right_column",
@@ -300,9 +310,9 @@ def analyze_cranial_negative_space(
 
     # Priority 3: Dominant Left Flank Provision (Speaker positioned right of center)
     if left_flank >= 0.26 and left_flank >= (right_flank + 0.06):
-        safe_left_margin = 0.06
+        safe_left_margin = 0.12
         safe_right_bound = max(0.32, min(head_left, x) - 0.04)
-        col_x = round((safe_left_margin + safe_right_bound) / 2.0, 3)
+        col_x = round(max(0.12, min(0.88, (safe_left_margin + safe_right_bound) / 2.0)), 3)
         center_y = round(max(0.22, min(0.30, actual_head_top + 0.08)), 3)
         return {
             "dominantZone": "flank_left_column",
@@ -628,7 +638,8 @@ def plan_subject_safe_placements(
                 safe_id = "flank_left_pillar"
                 chosen_anchor = (font_json or {}).get("anchor") or "left"
                 chosen_align = (font_json or {}).get("textAlign") or "left"
-                chosen_x = (font_json or {}).get("xPercent") or (prev_x if (prev_zone == "flank_left_column" and prev_x) else f"{round(max(0.20, flank_left * 0.48) * 100, 1)}%")
+                raw_x = (font_json or {}).get("xPercent") or (prev_x if (prev_zone == "flank_left_column" and prev_x) else f"{round(max(0.20, flank_left * 0.48) * 100, 1)}%")
+                chosen_x = _clamp_safe_x_percent(raw_x, min_pct=12.0, max_pct=88.0)
 
                 # Inter-chunk hysteresis: clamp vertical stagger delta to <= 5% (e.g. ±0.03)
                 if prev_zone == "flank_left_column" and prev_fg_y is not None:
@@ -645,7 +656,8 @@ def plan_subject_safe_placements(
                 safe_id = "flank_right_pillar"
                 chosen_anchor = (font_json or {}).get("anchor") or "right"
                 chosen_align = (font_json or {}).get("textAlign") or "right"
-                chosen_x = (font_json or {}).get("xPercent") or (prev_x if (prev_zone == "flank_right_column" and prev_x) else f"{round(min(0.80, (1.0 - flank_right) + flank_right * 0.52) * 100, 1)}%")
+                raw_x = (font_json or {}).get("xPercent") or (prev_x if (prev_zone == "flank_right_column" and prev_x) else f"{round(min(0.80, (1.0 - flank_right) + flank_right * 0.52) * 100, 1)}%")
+                chosen_x = _clamp_safe_x_percent(raw_x, min_pct=12.0, max_pct=88.0)
 
                 # Inter-chunk hysteresis: clamp vertical stagger delta to <= 5% (e.g. ±0.03)
                 if prev_zone == "flank_right_column" and prev_fg_y is not None:

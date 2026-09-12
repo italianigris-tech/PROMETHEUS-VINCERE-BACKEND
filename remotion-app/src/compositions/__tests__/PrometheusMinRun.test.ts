@@ -793,27 +793,27 @@ describe("Architectural Background Systems (5 Pillars)", () => {
     });
 
     test("scales down when phrase length exceeds max allowed width", () => {
-      // 25 characters at 90px uppercase = 25 * 90 * 0.74 = 1665px > 830px
+      // 18 characters at 70px uppercase = 18 * 70 * 0.74 = 932.4px > 830px (scale ~ 0.89 > 0.70 floor)
       const scale = resolveAutoFitScale({
-        charLength: 25,
-        fontSizePx: 90,
+        charLength: 18,
+        fontSizePx: 70,
         isUppercase: true,
       });
       expect(scale).toBeLessThan(1.0);
-      expect(scale).toBeCloseTo(830 / 1665, 2);
+      expect(scale).toBeCloseTo(830 / (18 * 70 * 0.74), 2);
     });
 
-    test("clamps autoFitScale to 0.35 floor even for exceptionally long text", () => {
+    test("clamps autoFitScale to 0.70 floor even for exceptionally long text", () => {
       const scale = resolveAutoFitScale({
         charLength: 80,
         fontSizePx: 120,
         isUppercase: true,
       });
-      expect(scale).toBe(0.35);
+      expect(scale).toBe(0.70);
     });
 
-    test("uses tighter 340px boundary for flank zone placement", () => {
-      // 10 chars at 60px lowercase = 10 * 60 * 0.54 = 324px <= 340px -> 1.0
+    test("uses 500px boundary for flank zone placement", () => {
+      // 10 chars at 60px lowercase = 10 * 60 * 0.54 = 324px <= 500px -> 1.0
       const fitsFlank = resolveAutoFitScale({
         charLength: 10,
         fontSizePx: 60,
@@ -821,14 +821,25 @@ describe("Architectural Background Systems (5 Pillars)", () => {
       });
       expect(fitsFlank).toBe(1.0);
 
-      // 18 chars at 60px lowercase = 18 * 60 * 0.54 = 583.2px > 340px -> scales down
+      // 18 chars at 60px lowercase = 18 * 60 * 0.54 = 583.2px > 500px -> scales down
       const overflowsFlank = resolveAutoFitScale({
         charLength: 18,
         fontSizePx: 60,
         isFlank: true,
       });
       expect(overflowsFlank).toBeLessThan(1.0);
-      expect(overflowsFlank).toBeCloseTo(340 / (18 * 60 * 0.54), 2);
+      expect(overflowsFlank).toBeCloseTo(500 / (18 * 60 * 0.54), 2);
+    });
+
+    test("uses estimatedWidthPx directly when provided", () => {
+      const scale = resolveAutoFitScale({
+        charLength: 20,
+        fontSizePx: 60,
+        estimatedWidthPx: 1000,
+        isFlank: false,
+      });
+      // maxAllowedWidth = 830, estimatedWidth = 1000 -> scale = 830 / 1000 = 0.83
+      expect(scale).toBeCloseTo(830 / 1000, 2);
     });
   });
 

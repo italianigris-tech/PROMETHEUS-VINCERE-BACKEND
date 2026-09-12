@@ -45,6 +45,7 @@ export type TypographyLayer = {
   fontWeight: number;
   fontStyle: string;
   fontSizePx: number;
+  estimatedWidthPx?: number;
   color: string;
   casing: string;
   letterSpacingEm: number;
@@ -1122,7 +1123,7 @@ export const resolveBehindSubjectMask = (isBehind: boolean): string | undefined 
 };
 
 // ---------------------------------------------------------------------------
-// Auto-Fit Scale Calculator (Clamp viewport-safe scale down to 0.35 floor)
+// Auto-Fit Scale Calculator (Clamp viewport-safe scale down to 0.70 floor)
 // ---------------------------------------------------------------------------
 export interface AutoFitScaleParams {
   charLength: number;
@@ -1133,6 +1134,7 @@ export interface AutoFitScaleParams {
   isBehindSubject?: boolean;
   behindSubjectScaleX?: number;
   isFlank?: boolean;
+  estimatedWidthPx?: number;
 }
 
 export const resolveAutoFitScale = ({
@@ -1144,17 +1146,20 @@ export const resolveAutoFitScale = ({
   isBehindSubject = false,
   behindSubjectScaleX = 1.0,
   isFlank = false,
+  estimatedWidthPx: explicitEstimatedWidth,
 }: AutoFitScaleParams): number => {
   const isDisplaySerif = Boolean(
     fontFamily && /paris|forbel|foglihten|playfair|bogart|parisian|canterbury|migra|editorial|ogg/i.test(fontFamily)
   );
-  const maxAllowedWidthPx = isFlank ? 340 : (isDisplaySerif || isBehindSubject ? 820 : 830);
+  const maxAllowedWidthPx = isFlank ? 500 : (isDisplaySerif || isBehindSubject ? 820 : 830);
   const baseAspect = isDisplaySerif ? 0.72 : 0.54;
   const charAspectEstimate = isUppercase ? (isDisplaySerif ? 0.82 : 0.74) : baseAspect;
   const effectiveFontSize = isScript ? Math.max(80, fontSizePx) : fontSizePx;
-  const estimatedWidthPx = charLength * effectiveFontSize * charAspectEstimate * (isBehindSubject ? behindSubjectScaleX : 1.0);
+  const estimatedWidthPx = explicitEstimatedWidth && explicitEstimatedWidth > 0
+    ? explicitEstimatedWidth * (isBehindSubject ? behindSubjectScaleX : 1.0)
+    : charLength * effectiveFontSize * charAspectEstimate * (isBehindSubject ? behindSubjectScaleX : 1.0);
   if (estimatedWidthPx > maxAllowedWidthPx) {
-    return Math.max(0.35, maxAllowedWidthPx / estimatedWidthPx);
+    return Math.max(0.70, maxAllowedWidthPx / estimatedWidthPx);
   }
   return 1.0;
 };
@@ -1463,6 +1468,7 @@ const KineticLayerRenderer: React.FC<{
     isBehindSubject,
     behindSubjectScaleX,
     isFlank,
+    estimatedWidthPx: layer.estimatedWidthPx,
   });
 
   const fitScale = (s: number = 1.0): number => (autoFitScale < 1.0 ? s * autoFitScale : s);
@@ -5228,7 +5234,7 @@ const MultiLayerTypographyCard: React.FC<{
     ? "fit-content"
     : "92%";
   const resolvedMaxWidth = isFlankZone
-    ? "360px"
+    ? "500px"
     : (hasFlankingLayers || isLeftOrRightAlign)
     ? "720px"
     : deckMaxWidth;
