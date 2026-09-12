@@ -1041,6 +1041,7 @@ export const resolveBehindSubjectTypographyMetrics = ({
 export interface AutoFitScaleParams {
   charLength: number;
   fontSizePx: number;
+  fontFamily?: string;
   isUppercase?: boolean;
   isScript?: boolean;
   isBehindSubject?: boolean;
@@ -1051,14 +1052,19 @@ export interface AutoFitScaleParams {
 export const resolveAutoFitScale = ({
   charLength,
   fontSizePx,
+  fontFamily,
   isUppercase = false,
   isScript = false,
   isBehindSubject = false,
   behindSubjectScaleX = 1.0,
   isFlank = false,
 }: AutoFitScaleParams): number => {
-  const maxAllowedWidthPx = isFlank ? 340 : (isBehindSubject ? 860 : 830);
-  const charAspectEstimate = isUppercase ? 0.74 : 0.54;
+  const isDisplaySerif = Boolean(
+    fontFamily && /paris|forbel|foglihten|playfair|bogart|parisian|canterbury|migra|editorial|ogg/i.test(fontFamily)
+  );
+  const maxAllowedWidthPx = isFlank ? 340 : (isDisplaySerif || isBehindSubject ? 820 : 830);
+  const baseAspect = isDisplaySerif ? 0.72 : 0.54;
+  const charAspectEstimate = isUppercase ? (isDisplaySerif ? 0.82 : 0.74) : baseAspect;
   const effectiveFontSize = isScript ? Math.max(80, fontSizePx) : fontSizePx;
   const estimatedWidthPx = charLength * effectiveFontSize * charAspectEstimate * (isBehindSubject ? behindSubjectScaleX : 1.0);
   if (estimatedWidthPx > maxAllowedWidthPx) {
@@ -1363,6 +1369,7 @@ const KineticLayerRenderer: React.FC<{
   const autoFitScale = resolveAutoFitScale({
     charLength,
     fontSizePx: rawSize,
+    fontFamily: layer.fontFamily,
     isUppercase,
     isScript: effectiveIsScript,
     isBehindSubject,

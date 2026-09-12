@@ -1167,12 +1167,24 @@ FONT_CHAR_ASPECT_TABLE: Dict[str, float] = {
     "antenna": 0.42,
     "senzabella": 0.44,
     "echelon": 0.42,
-    # Wide display serifs
-    "bodoni moda": 0.64,
-    "playfair display": 0.65,
+    # Wide display serifs (Paris Forbel, Foglihten, Playfair class)
+    "paris forbel": 0.74,
+    "forbel": 0.74,
+    "foglihten": 0.75,
+    "bogart": 0.72,
+    "parisian": 0.72,
+    "canterbury": 0.70,
+    "migra": 0.72,
+    "editorial new": 0.68,
+    "rogan": 0.68,
+    "reckless": 0.68,
+    "ogg": 0.70,
+    "bodoni moda": 0.68,
+    "playfair display": 0.68,
+    "playfair": 0.68,
     "cinzel": 0.66,
-    "abril fatface": 0.68,
-    "berylium": 0.58,
+    "abril fatface": 0.70,
+    "berylium": 0.60,
     # Classic / editorial serifs
     "apple garamond": 0.52,
     "cormorant garamond": 0.52,
@@ -1267,7 +1279,7 @@ def preflight_and_fit_layer_widths(
     while True:
         overflowing = [
             l for l in layers_info
-            if l.get("est_width", 0) > (1000.0 if l.get("behindSubject") else max_safe_width) and l["font_size_px"] > l["legibility_floor"]
+            if l.get("est_width", 0) > max_safe_width and l["font_size_px"] > l["legibility_floor"]
         ]
         if not overflowing:
             break
@@ -1275,8 +1287,7 @@ def preflight_and_fit_layer_widths(
         overflowing.sort(key=lambda l: l["font_size_px"], reverse=True)
         target = overflowing[0]
         # Calculate size needed to fit
-        target_limit = 1000.0 if target.get("behindSubject") else max_safe_width
-        needed_size = int(target_limit / (max(1, len(target.get("rawText", ""))) * target["char_aspect"]))
+        needed_size = int(max_safe_width / (max(1, len(target.get("rawText", ""))) * target["char_aspect"]))
         target["font_size_px"] = max(target["legibility_floor"], min(target["font_size_px"] - 1, needed_size))
         if "fontSizePx" in target:
             target["fontSizePx"] = target["font_size_px"]
