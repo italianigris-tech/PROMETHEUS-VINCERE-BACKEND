@@ -374,10 +374,30 @@ CINEMATIC_LOOKS: List[Dict[str, Any]] = [
     },
 ]
 
+NONE_LOOK: Dict[str, Any] = {
+    "id": "none",
+    "name": "Original Camera Natural",
+    "description": "Preserve original camera color grading without LUT or artificial color transformation.",
+    "mood": "natural, original, neutral, uncolored, raw, authentic",
+    "keywords": ["none", "original", "natural", "neutral", "uncolored", "raw", "passthrough"],
+    "policies": {
+        "intensityRange": [0.0, 1.0],
+        "recommendedIntensity": 0.0,
+        "bestFor": ["all", "talking head", "natural skin tones"],
+        "avoidFor": [],
+        "notes": "Pass-through original camera color profile.",
+    },
+    "params": {},
+}
+
+CINEMATIC_LOOKS.append(NONE_LOOK)
+
 _LOOKS_BY_ID = {look["id"]: look for look in CINEMATIC_LOOKS}
 
 def get_look(look_id: str) -> Optional[Dict[str, Any]]:
     """Return a look dict by its *id*, or None."""
+    if look_id in ("none", "original", "natural", "uncolored", "raw", "passthrough"):
+        return NONE_LOOK
     return _LOOKS_BY_ID.get(look_id)
 
 def list_looks() -> List[Dict[str, Any]]:
@@ -419,7 +439,7 @@ def select_look(
         3. ``metadata.mood`` keyword matching
         4. ``prompt`` text keyword matching
         5. ``design.mood`` keyword matching
-        6. Fallback to sci_netone_balanced
+        6. Fallback to none (original camera natural)
     """
     design = design or {}
     metadata = metadata or {}
@@ -436,6 +456,8 @@ def select_look(
     explicit_id = (design.get("lookId") or design.get("look")
                    or metadata.get("lookId") or metadata.get("look"))
     if isinstance(explicit_id, str):
+        if explicit_id.lower() in ("none", "original", "natural", "uncolored", "raw", "passthrough"):
+            return _build_manifest(NONE_LOOK, 0.0, "explicit_none", optical_override=optical_override, lut_path=custom_lut)
         look = get_look(explicit_id)
         if look is None:
             for candidate in CINEMATIC_LOOKS:
@@ -463,8 +485,8 @@ def select_look(
         if look is not None:
             intensity = float(design.get("lookIntensity", 1.0))
             return _build_manifest(look, intensity, "mood_keywords", optical_override=optical_override, lut_path=custom_lut)
-    fallback = get_look("kodak_2383_print") or get_look("sci_netone_balanced") or CINEMATIC_LOOKS[0]
-    intensity = float(design.get("lookIntensity", 1.0))
+    fallback = NONE_LOOK
+    intensity = 0.0
     return _build_manifest(fallback, intensity, "fallback_default", optical_override=optical_override, lut_path=custom_lut)
 
 def _build_manifest(
@@ -548,7 +570,8 @@ def build_look_filter_string(
     params = look_manifest.get("params", {})
     optical = look_manifest.get("opticalFinishing") or params.get("opticalFinishing") or {}
     intensity = look_manifest.get("intensity", 1.0)
-    if intensity <= 0:
+    look_id = str(look_manifest.get("lookId") or "").lower()
+    if intensity <= 0 or look_id in ("none", "original", "natural", "uncolored", "raw", "passthrough"):
         return ""
     filters: List[str] = []
 
@@ -818,6 +841,9 @@ def build_grade_filter(
     """Build the full ``-vf`` argument string for the look grade.
     Returns an empty string if no grade is needed."""
     if not look_manifest or look_manifest.get("intensity", 0) <= 0:
+        return ""
+    look_id = str(look_manifest.get("lookId") or "").lower()
+    if look_id in ("none", "original", "natural", "uncolored", "raw", "passthrough"):
         return ""
     return build_look_filter_string(look_manifest, width=video_width, height=video_height)
 

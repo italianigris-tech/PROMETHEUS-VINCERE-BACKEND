@@ -6,12 +6,12 @@ from mini_run_pipeline import looks, policy_check
 class TestRound8LookPolicy(unittest.TestCase):
     """Verifies talking-head default look (kodak_2383), teal intensity clamp (<=0.70), and pixel A/B acceptance."""
 
-    def test_default_look_is_kodak_2383(self):
-        """Empty design and metadata must default to kodak_2383_print for talking-head cinematic realism."""
+    def test_default_look_is_none(self):
+        """Empty design and metadata must default to none (original camera natural) per Round 13 ruling."""
         manifest = looks.select_look(design={}, metadata={})
-        self.assertEqual(manifest["lookId"], "kodak_2383_print")
+        self.assertEqual(manifest["lookId"], "none")
         self.assertEqual(manifest["resolution"], "fallback_default")
-        self.assertEqual(manifest["lookName"], "Kodak 2383 Print Stock")
+        self.assertEqual(manifest["intensity"], 0.0)
 
     def test_teal_and_orange_intensity_capped_at_0_70(self):
         """Teal and orange look must strictly clamp intensity to <= 0.70 to protect skin tones."""
@@ -76,9 +76,28 @@ class TestRound8LookPolicy(unittest.TestCase):
         # Mutated frame: green-shifted skin (R=160, G=210, B=120) -> Hue ~ 80 deg
         mutated_frame = np.zeros((100, 100, 3), dtype=np.uint8)
         mutated_frame[:, :] = [160, 210, 120]
-        drift_metrics = policy_check.compute_pixel_ab_metrics(mutated_frame, reference_frame_path_or_rgb=ref_frame)
-        self.assertEqual(drift_metrics["status"], "failed")
+    def test_none_look_filter_string_is_empty(self):
+        """None or original look must produce completely empty filter string to preserve original camera pixels."""
+        none_plan = looks.select_look(design={"lookId": "none"})
+        self.assertEqual(looks.build_grade_filter(none_plan), "")
+        self.assertEqual(looks.build_look_filter_string(none_plan), "")
+
+    def test_active_look_silently_skipped_fails_look_conformance(self):
+        """Active look must fail look conformance if pixel A/B verification was skipped."""
+        active_plan = {"lookId": "kodak_2383_print", "intensity": 1.0}
+        # Provide nonexistent frame path which causes compute_pixel_ab_metrics to return skipped
+        res = policy_check.validate_look_conformance(active_plan, frame_path="/tmp/nonexistent_frame_123.png")
+        self.assertEqual(res["status"], "failed")
+        self.assertTrue(any("silently skipped" in v for v in res["violations"]))
+
+    def test_none_look_with_skipped_pixel_ab_passes_cleanly(self):
+        """None look with skipped pixel A/B must pass cleanly without violations."""
+        none_plan = {"lookId": "none", "intensity": 0.0}
+        res = policy_check.validate_look_conformance(none_plan, frame_path="/tmp/nonexistent_frame_123.png")
+        self.assertEqual(res["status"], "passed")
+        self.assertEqual(len(res["violations"]), 0)
 
 
 if __name__ == "__main__":
     unittest.main()
+

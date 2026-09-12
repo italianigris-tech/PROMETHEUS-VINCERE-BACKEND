@@ -862,6 +862,10 @@ def validate_look_conformance(
         pixel_metrics = compute_pixel_ab_metrics(frame_path, reference_frame_path_or_rgb=reference_frame_path)
         if pixel_metrics.get("status") == "failed":
             violations.extend(pixel_metrics.get("violations", []))
+        elif pixel_metrics.get("status") == "skipped" and look_id.lower() not in ("none", "", "original", "natural", "uncolored", "raw", "passthrough"):
+            violations.append(
+                f"Pixel A/B verification required for active look '{look_id}' but was silently skipped: {pixel_metrics.get('reason')}"
+            )
 
     return {
         "status": "passed" if not violations else "failed",

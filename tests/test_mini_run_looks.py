@@ -50,9 +50,9 @@ class MiniRunLooksTests(unittest.TestCase):
 
     def test_fallback_default(self):
         plan = self._select()
-        self.assertEqual(plan["lookId"], "sci_netone_balanced")
+        self.assertEqual(plan["lookId"], "none")
         self.assertEqual(plan["resolution"], "fallback_default")
-        self.assertEqual(plan["intensity"], 1.0)
+        self.assertEqual(plan["intensity"], 0.0)
 
     def test_intensity_zero_yields_no_filter(self):
         from mini_run_pipeline import looks
