@@ -763,8 +763,14 @@ def validate_text_visibility_contrast(
         y2 = min(frame_height, y_center + box_h // 2)
 
         pre_ts = max(0.0, (start_ms - 150) / 1000.0)
-        # Sample contrast during stable mid-hold to ensure all staggered words/layers have mounted
-        mount_ts = (start_ms + end_ms) / 2000.0
+        # Sample contrast during stable mid-hold to ensure all staggered words/layers have mounted.
+        # Account for outgoing collision/rack-focus exit so sampling does not occur after defocus unmount.
+        collision_ms = int(chunk.get("collisionMs") or 0)
+        if collision_ms > 0:
+            effective_end_ms = max(start_ms + 200, end_ms - collision_ms)
+            mount_ts = (start_ms + effective_end_ms) / 2000.0
+        else:
+            mount_ts = (start_ms + end_ms) / 2000.0
 
         arr_pre = None
         arr_mount = None

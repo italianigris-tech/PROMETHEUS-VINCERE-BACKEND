@@ -731,7 +731,7 @@ def plan_subject_safe_placements(
                     chosen_y_float = 0.72
                     chosen_zone = "foreground_lower_deck"
                     chosen_anchor = "center"
-                    chosen_align = (font_json or {}).get("textAlign", "center")
+                    chosen_align = "center"
                     safe_id = "foreground_below_head_dynamic"
                 prev_fg_y = chosen_y_float
                 prev_x = chosen_x
@@ -746,7 +746,7 @@ def plan_subject_safe_placements(
                 chosen_x = _clamp_safe_x_percent("50%", est_width_px=chunk_est_w)
                 chosen_anchor = "center"
                 chosen_zone = "foreground_lower_deck"
-                chosen_align = (font_json or {}).get("textAlign", "center")
+                chosen_align = "center"
                 safe_id = "foreground_below_head_dynamic"
                 prev_fg_y = chosen_y_float
                 prev_x = chosen_x

@@ -1461,17 +1461,22 @@ const KineticLayerRenderer: React.FC<{
 
   const isUppercase = resolvedTextTransform === "uppercase" || layer.casing === "uppercase";
   const rawSize = isBehindSubject ? (layer.fontSizePx || behindSubjectFontSize) : layer.fontSizePx;
-  const autoFitScale = resolveAutoFitScale({
-    charLength,
-    fontSizePx: rawSize,
-    fontFamily: layer.fontFamily,
-    isUppercase,
-    isScript: effectiveIsScript,
-    isBehindSubject,
-    behindSubjectScaleX,
-    isFlank,
-    estimatedWidthPx: layer.estimatedWidthPx,
-  });
+  const manifestFitScale = typeof (layer as any).autoFitScale === "number" && (layer as any).autoFitScale > 0
+    ? (layer as any).autoFitScale
+    : (typeof (layer as any).fitScale === "number" && (layer as any).fitScale > 0 ? (layer as any).fitScale : undefined);
+  const autoFitScale = (manifestFitScale !== undefined && manifestFitScale < 1.0)
+    ? manifestFitScale
+    : resolveAutoFitScale({
+        charLength,
+        fontSizePx: rawSize,
+        fontFamily: layer.fontFamily,
+        isUppercase,
+        isScript: effectiveIsScript,
+        isBehindSubject,
+        behindSubjectScaleX,
+        isFlank,
+        estimatedWidthPx: layer.estimatedWidthPx,
+      });
 
   const fitScale = (s: number = 1.0): number => (autoFitScale < 1.0 ? s * autoFitScale : s);
   const fitTransform = (extraTransform: string): string => {
@@ -1485,6 +1490,9 @@ const KineticLayerRenderer: React.FC<{
     isBehindSubject ? (layer.fontSizePx || behindSubjectFontSize) : (layer.fontSizePx || 48),
     36,
   );
+  const renderedFontSizePx = (autoFitScale < 1.0 && !isBehindSubject)
+    ? Math.max(36, Math.round(effectiveFontSizePx * autoFitScale))
+    : effectiveFontSizePx;
 
   const stagger = layer.stagger;
   const staggerScaleX = (stagger?.scaleX ?? 1.0) * (stagger?.stretchRatio ?? 1.0);
@@ -1509,12 +1517,12 @@ const KineticLayerRenderer: React.FC<{
     fontFamily: `"${effectiveFontFamily}", "${layer.accentFont || "sans-serif"}", sans-serif`,
     fontWeight: isBehindSubject ? 900 : layer.fontWeight,
     fontStyle: layer.fontStyle as any,
-    fontSize: `${effectiveFontSizePx}px`,
+    fontSize: `${renderedFontSizePx}px`,
     textTransform: resolvedTextTransform as any,
     letterSpacing: currentLetterSpacing,
     lineHeight: isBehindSubject ? 0.85 : layer.lineHeight,
     marginTop: layer.marginTopPx !== undefined ? `${layer.marginTopPx}px` : undefined,
-    marginLeft: (layer as any).marginLeftPx !== undefined ? `${(layer as any).marginLeftPx}px` : undefined,
+    marginLeft: ((placement as any)?.dominantZone === "foreground_lower_deck") ? undefined : ((layer as any).marginLeftPx !== undefined ? `${(layer as any).marginLeftPx}px` : undefined),
     alignSelf: ((layer as any).alignSelf as any) || "center",
     position: "relative",
     zIndex: isPartialHeadClip ? 4 : (layer.zIndex !== undefined
@@ -1542,9 +1550,7 @@ const KineticLayerRenderer: React.FC<{
     WebkitTextFillColor: hasGrad ? undefined : textColor,
     transform: isBehindSubject
       ? `scaleY(${behindSubjectScaleY * staggerScaleY}) scaleX(${behindSubjectScaleX * autoFitScale * staggerScaleX}) ${staggerSkewX} ${staggerSkewY} ${staggerRot} ${staggerArc} translateZ(${layer.depthZPx || occlusionDepthZ || -100}px)`
-      : (autoFitScale < 1.0
-          ? `translateY(${tierExitY.toFixed(1)}px) scale(${autoFitScale * tierExitScale}) ${staggerTransforms} translate3d(${stagger?.dxPercent ? `${stagger.dxPercent}%` : "0px"}, ${stagger?.dyPercent ? `${stagger.dyPercent}%` : "0px"}, ${layer.depthZPx || occlusionDepthZ || (layer.isHero ? 140 : 0)}px)`
-          : `translateY(${tierExitY.toFixed(1)}px) scale(${tierExitScale.toFixed(3)}) ${staggerTransforms ? `${staggerTransforms} ` : ""}translate3d(${stagger?.dxPercent ? `${stagger.dxPercent}%` : "0px"}, ${stagger?.dyPercent ? `${stagger.dyPercent}%` : "0px"}, ${layer.depthZPx || occlusionDepthZ || (layer.isHero ? 140 : 0)}px)`),
+      : `translateY(${tierExitY.toFixed(1)}px) scale(${tierExitScale.toFixed(3)}) ${staggerTransforms ? `${staggerTransforms} ` : ""}translate3d(${stagger?.dxPercent ? `${stagger.dxPercent}%` : "0px"}, ${stagger?.dyPercent ? `${stagger.dyPercent}%` : "0px"}, ${layer.depthZPx || occlusionDepthZ || (layer.isHero ? 140 : 0)}px)`,
     transformStyle: "preserve-3d",
     opacity: (((!layer.isHero && !isBehindSubject) ? 0.92 : 1.0) * tierExitOpacity),
     filter: tierExitBlur > 0.1 ? `blur(${tierExitBlur.toFixed(1)}px)` : undefined,
@@ -5252,8 +5258,9 @@ const MultiLayerTypographyCard: React.FC<{
   const rawTopPercent = parseFloat(topPositionRaw) || 54;
   const minTopPercent = behindSubject ? 8 : 20;
   const topPosition = `${Math.max(minTopPercent, Math.min(rawTopPercent, maxTopPercent))}%`;
-  const textAlign = (chunk.placement as any)?.textAlign || "center";
-  const alignItems = textAlign === "left" ? "flex-start" : (textAlign === "right" ? "flex-end" : "center");
+  const isLowerDeck = (chunk.placement as any)?.dominantZone === "foreground_lower_deck";
+  const textAlign = isLowerDeck ? "center" : ((chunk.placement as any)?.textAlign || "center");
+  const alignItems = isLowerDeck ? "center" : (textAlign === "left" ? "flex-start" : (textAlign === "right" ? "flex-end" : "center"));
   const maxWidthPercent = parseFloat((chunk.placement as any)?.maxWidthPercent);
   const deckMaxWidth = Number.isFinite(maxWidthPercent) && maxWidthPercent > 0
     ? `${Math.max(50, Math.min(100, maxWidthPercent))}%`
