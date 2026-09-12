@@ -1045,6 +1045,12 @@ export const resolveBehindSubjectTypographyMetrics = ({
   return { fontSize, scaleX, scaleY, letterSpacing };
 };
 
+export const BEHIND_SUBJECT_BOTTOM_FADE_MASK = "linear-gradient(to bottom, rgba(0,0,0,1) 65%, rgba(0,0,0,0) 100%)";
+
+export const resolveBehindSubjectMask = (isBehind: boolean): string | undefined => {
+  return isBehind ? BEHIND_SUBJECT_BOTTOM_FADE_MASK : undefined;
+};
+
 // ---------------------------------------------------------------------------
 // Auto-Fit Scale Calculator (Clamp viewport-safe scale down to 0.35 floor)
 // ---------------------------------------------------------------------------
@@ -1375,7 +1381,7 @@ const KineticLayerRenderer: React.FC<{
     Boolean(placement?.safeRegionId?.includes("flank"));
 
   const isUppercase = resolvedTextTransform === "uppercase" || layer.casing === "uppercase";
-  const rawSize = isBehindSubject ? behindSubjectFontSize : layer.fontSizePx;
+  const rawSize = isBehindSubject ? (layer.fontSizePx || behindSubjectFontSize) : layer.fontSizePx;
   const autoFitScale = resolveAutoFitScale({
     charLength,
     fontSizePx: rawSize,
@@ -1396,7 +1402,7 @@ const KineticLayerRenderer: React.FC<{
   };
 
   const effectiveFontSizePx = Math.max(
-    isBehindSubject ? behindSubjectFontSize : (layer.fontSizePx || 48),
+    isBehindSubject ? (layer.fontSizePx || behindSubjectFontSize) : (layer.fontSizePx || 48),
     36,
   );
 
@@ -1463,6 +1469,8 @@ const KineticLayerRenderer: React.FC<{
     opacity: (((!layer.isHero && !isBehindSubject) ? 0.92 : 1.0) * tierExitOpacity),
     filter: tierExitBlur > 0.1 ? `blur(${tierExitBlur.toFixed(1)}px)` : undefined,
     mixBlendMode: isDiffMode ? undefined : (((layer as any).blendMode || undefined) as any),
+    maskImage: isBehindSubject ? BEHIND_SUBJECT_BOTTOM_FADE_MASK : undefined,
+    WebkitMaskImage: isBehindSubject ? BEHIND_SUBJECT_BOTTOM_FADE_MASK : undefined,
     clipPath: isPartialHeadClip
       ? "polygon(0 0, 100% 0, 100% 92%, 0 92%)"
       : (layer.treatmentOverlay === "cinematic_viewport_mask_sweep"
@@ -1662,7 +1670,7 @@ const KineticLayerRenderer: React.FC<{
       easing: Easing.bezier(0.16, 1.0, 0.3, 1.0),
     });
     const blur = interpolate(entranceP, [0, 0.7, 1], [32, 2, 0]);
-    const effectiveSize = isBehindSubject ? behindSubjectFontSize : layer.fontSizePx;
+    const effectiveSize = isBehindSubject ? (layer.fontSizePx || behindSubjectFontSize) : layer.fontSizePx;
     const effScaleY = isBehindSubject ? behindSubjectScaleY : 1.15;
     const effScaleX = isBehindSubject ? behindSubjectScaleX : 1.0;
     return (
@@ -1678,7 +1686,7 @@ const KineticLayerRenderer: React.FC<{
           flexWrap: "nowrap",
           opacity: entranceP,
           position: "relative",
-          maxWidth: "840px",
+          maxWidth: isBehindSubject ? "880px" : "840px",
           width: "auto",
           boxSizing: "border-box",
           padding: "0 8px",

@@ -18,6 +18,8 @@ import {
   unsupportedRuntimeTreatments,
   resolveAutoFitScale,
   resolveNumericCountUpValue,
+  resolveBehindSubjectMask,
+  BEHIND_SUBJECT_BOTTOM_FADE_MASK,
   type CaptionChunk,
   type TypographyLayer,
 } from "../PrometheusMinRun";
@@ -907,6 +909,19 @@ describe("Architectural Background Systems (5 Pillars)", () => {
           localFrame: 5,
         })
       ).toBe("than");
+    });
+  });
+
+  describe("resolveBehindSubjectMask (Round 14 Commit 3: Bottom Gradient Melt)", () => {
+    test("applies vertical linear gradient mask when isBehindSubject is true", () => {
+      const mask = resolveBehindSubjectMask(true);
+      expect(mask).toBe(BEHIND_SUBJECT_BOTTOM_FADE_MASK);
+      expect(mask).toBe("linear-gradient(to bottom, rgba(0,0,0,1) 65%, rgba(0,0,0,0) 100%)");
+    });
+
+    test("returns undefined when isBehindSubject is false", () => {
+      const mask = resolveBehindSubjectMask(false);
+      expect(mask).toBeUndefined();
     });
   });
 });
