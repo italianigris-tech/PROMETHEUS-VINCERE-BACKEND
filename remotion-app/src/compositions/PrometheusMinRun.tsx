@@ -2725,6 +2725,92 @@ const KineticLayerRenderer: React.FC<{
     );
   }
 
+  // Dedicated K2: Cursor Selection Reveal (Round 14 Commit 5: High-Tier Gradient Bevel & Animated Cursor)
+  if (fx === "cursor_selection_reveal") {
+    const sweepProgress = interpolate(frame, [0, entranceDuration], [0, 1], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+      easing: Easing.bezier(0.16, 1.0, 0.3, 1.0),
+    });
+    const cursorFade = interpolate(sweepProgress, [0, 0.85, 1], [1, 1, 0], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+    });
+    const bevelDepth = layer.bevel?.depthPx ?? 2.5;
+    const bevelShadow = `0 1px 1px rgba(255, 255, 255, 0.75), 0 ${bevelDepth}px ${bevelDepth * 2}px rgba(0, 0, 0, 0.85), 0 -1px 1px rgba(0, 0, 0, 0.6)`;
+    const selectGrad = layer.gradient || "linear-gradient(135deg, #FFFFFF 0%, #E2E8F0 45%, #94A3B8 100%)";
+
+    return (
+      <div style={{ ...baseTextStyle, position: "relative", display: "inline-flex", alignItems: "center" }}>
+        {/* Animated Background Selection Highlight Sweep */}
+        <div
+          style={{
+            position: "absolute",
+            left: 0,
+            top: "-4px",
+            bottom: "-4px",
+            width: `${sweepProgress * 100}%`,
+            background: "linear-gradient(90deg, rgba(59, 130, 246, 0.38) 0%, rgba(37, 99, 235, 0.28) 100%)",
+            border: "1.5px solid rgba(147, 197, 253, 0.65)",
+            boxShadow: "0 4px 16px rgba(59, 130, 246, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.4)",
+            borderRadius: "6px",
+            pointerEvents: "none",
+            zIndex: 1,
+            transition: "none",
+          }}
+        />
+
+        {/* Crisp OS-style Cursor Vector Dragging the Selection Edge */}
+        <svg
+          width="22"
+          height="22"
+          viewBox="0 0 24 24"
+          fill="none"
+          style={{
+            position: "absolute",
+            left: `calc(${sweepProgress * 100}% - 4px)`,
+            top: "50%",
+            transform: "translateY(-35%)",
+            opacity: cursorFade,
+            filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.75))",
+            pointerEvents: "none",
+            zIndex: 10,
+          }}
+        >
+          <path
+            d="M5.5 3.21V20.8c0 .45.54.67.85.35l4.86-4.86a.5.5 0 0 1 .35-.15h6.87c.45 0 .67-.54.35-.85L5.85 2.86a.5.5 0 0 0-.35.35Z"
+            fill="#FFFFFF"
+            stroke="#0F172A"
+            strokeWidth="1.5"
+            strokeLinejoin="round"
+          />
+        </svg>
+
+        {/* Text Spans with High-Tier Bevel & Gradient Materiality */}
+        <div style={{ position: "relative", zIndex: 2, display: "inline-flex", flexDirection: "row", flexWrap: "nowrap" }}>
+          {words.map((word, wIdx) => (
+            <span
+              key={`cursor-word-${wIdx}`}
+              style={{
+                display: "inline-block",
+                whiteSpace: "nowrap",
+                margin: "0 0.15em",
+                ...wordPaintStyle,
+                background: selectGrad,
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                textShadow: bevelShadow,
+                filter: layer.physicalFilter || undefined,
+              }}
+            >
+              {word}
+            </span>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   // Dedicated L: High-Tech Chromatic Brands & Phrase Expansion
   if (fx === "hightech_chromatic_brands" || fx === "kinetic_cyber_phrase_expansion") {
     return (

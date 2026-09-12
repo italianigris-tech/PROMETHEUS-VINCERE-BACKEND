@@ -1910,6 +1910,18 @@ SINGLE_WORD_HERO_PRESETS: set[str] = {
     "canva_tall_glyph_stack",
 }
 
+SIGNATURE_EFFECTS: set[str] = {
+    "cursor_selection_reveal",
+    "vercel_kinetic_highlight_box",
+    "cyber_matrix_text_scramble",
+    "liquid_gooey_ink_morph",
+    "refraction_shimmer_mask",
+    "kinetic_slot_character_reel",
+    "chiseled_prism_metallic",
+    "vj_kinetic_typography",
+    "air_frontal_optical_bloom",
+}
+
 ANIMA_OVERLAY_TREATMENTS = [
     "cinematic_viewport_mask_sweep",
     "refraction_shimmer_mask",
@@ -2566,6 +2578,10 @@ def _select_primary_treatment(
     pop_damp = 0.55
 
     def _treatment_weight(item: Dict[str, Any]) -> float:
+        # Signature Effects Quota (Round 14 Commit 5): Maximum 1 use per video
+        if item["id"] in SIGNATURE_EFFECTS and usage.get(item["id"], 0) >= 1:
+            return 0.0
+
         energy_gap = abs(item["energy"] - desired_energy)
         energy_factor = 1.0 / (1.0 + energy_gap * 2.0)
         if item["id"] in FLUID_FAMILY:
@@ -3172,15 +3188,23 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
             )
         elif wants_lockup or is_chunk_overlap_candidate:
             hero_fx_preset = "hierarchical_asymmetric_lockup"
-        elif is_special_ops_system and is_single_word and (preset_usage_counts.get("chiseled_prism_metallic", 0) < 2):
+        elif is_special_ops_system and is_single_word and (preset_usage_counts.get("chiseled_prism_metallic", 0) < 1):
             hero_fx_preset = "chiseled_prism_metallic"
-        elif is_special_ops_system and (signal["cadenceMs"] < 280 or policy["pacing"] == "fast") and preset_usage_counts.get("vj_kinetic_typography", 0) < 2:
+        elif is_special_ops_system and (signal["cadenceMs"] < 280 or policy["pacing"] == "fast") and preset_usage_counts.get("vj_kinetic_typography", 0) < 1:
             hero_fx_preset = "vj_kinetic_typography"
         else:
             hero_fx_preset = _select_primary_treatment(
                 rng, policy, signal, preset_usage_counts, recent_primary_fx,
                 is_single_word=is_single_word,
             )
+
+        # Signature Effects Quota Enforcer (Round 14 Commit 5: strictly <= 1 use per video)
+        if hero_fx_preset in SIGNATURE_EFFECTS and preset_usage_counts.get(hero_fx_preset, 0) >= 1:
+            hero_fx_preset = _select_primary_treatment(
+                rng, policy, signal, preset_usage_counts, recent_primary_fx,
+                is_single_word=is_single_word,
+            )
+
         preset_usage_counts[hero_fx_preset] = preset_usage_counts.get(hero_fx_preset, 0) + 1
         concept_ledger.claim_concept(idx, raw_text, hero_fx_preset)
         recent_primary_fx.append(hero_fx_preset)
