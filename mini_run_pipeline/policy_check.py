@@ -467,6 +467,68 @@ def validate_head_occlusion(
     }
 
 
+def validate_caption_collisions(chunks: Optional[Sequence[Dict[str, Any]]]) -> Dict[str, Any]:
+    """Validate caption handoff collisions and rack-focus defocus exit presence.
+
+    When adjacent chunks overlap temporally (collisionMs > 0), the outgoing chunk
+    must execute a rack-focus defocus exit treatment ('rack_focus_blur').
+    """
+    if not chunks or len(chunks) < 2:
+        return {
+            "status": "passed",
+            "boundariesChecked": 0,
+            "collisionsDetected": 0,
+            "maxCollisionMs": 0,
+            "violations": [],
+            "boundaries": [],
+        }
+
+    boundaries: List[Dict[str, Any]] = []
+    violations: List[str] = []
+    collisions_count = 0
+    max_collision = 0
+
+    for i in range(len(chunks) - 1):
+        curr = chunks[i]
+        next_c = chunks[i + 1]
+        c_idx = curr.get("chunkIndex", i + 1)
+        next_idx = next_c.get("chunkIndex", i + 2)
+
+        curr_end = int(curr.get("displayEndMs", curr.get("endMs", 0)))
+        next_start = int(next_c.get("displayStartMs", next_c.get("startMs", 0)))
+        collision_ms = max(0, curr_end - next_start)
+
+        exit_treatment = curr.get("exitTreatment")
+        if not exit_treatment:
+            exit_treatment = "rack_focus_blur" if collision_ms > 0 else "clean_hold"
+
+        if collision_ms > 0:
+            collisions_count += 1
+            if collision_ms > max_collision:
+                max_collision = collision_ms
+            if exit_treatment != "rack_focus_blur":
+                violations.append(
+                    f"Chunk {c_idx} collides with Chunk {next_idx} by {collision_ms}ms "
+                    f"but missing rack_focus_blur exitTreatment (found '{exit_treatment}')"
+                )
+
+        boundaries.append({
+            "outgoingChunkIndex": c_idx,
+            "incomingChunkIndex": next_idx,
+            "collisionMs": collision_ms,
+            "exitTreatment": exit_treatment,
+        })
+
+    return {
+        "status": "passed" if not violations else "failed",
+        "boundariesChecked": len(boundaries),
+        "collisionsDetected": collisions_count,
+        "maxCollisionMs": max_collision,
+        "violations": violations,
+        "boundaries": boundaries,
+    }
+
+
 def validate_shadow_glow_budget(layers: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
     """Validate single contact shadow and hero-only glow alpha <= 0.35."""
     amb_v, shd_v, comp_glow_v, hero_glow_v = [], [], [], []
@@ -711,14 +773,17 @@ def run_post_render_conformance_check(
     first_frame = (frame_result.get("frames") or [{}])[0].get("framePath") if frame_result.get("status") == "passed" else None
     look_result = validate_look_conformance(look_plan, frame_path=first_frame, reference_frame_path=reference_frame_path)
 
+    caption_collisions = validate_caption_collisions(chunks)
+
     all_violations = (
         safe_bounds["violations"]
         + line_wrap["violations"]
         + shadow_glow["violations"]
         + look_result["violations"]
         + head_occlusion["violations"]
+        + caption_collisions["violations"]
     )
-    all_evaluated_checks = [safe_bounds, line_wrap, shadow_glow, look_result, head_occlusion]
+    all_evaluated_checks = [safe_bounds, line_wrap, shadow_glow, look_result, head_occlusion, caption_collisions]
     return {
         "status": "passed" if not all_violations else "failed",
         "totalChecks": len(all_evaluated_checks),
@@ -732,6 +797,7 @@ def run_post_render_conformance_check(
             "shadowBudget": shadow_glow,
             "lookConformance": look_result,
             "headOcclusion": head_occlusion,
+            "captionCollision": caption_collisions,
             "frameExtraction": frame_result,
         },
         "durationMs": round((time.monotonic() - t_start) * 1000, 2),
