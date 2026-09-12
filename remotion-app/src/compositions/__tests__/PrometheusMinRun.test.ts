@@ -7,6 +7,7 @@ import {
   resolveChunkBehindSubject,
   resolveSafeStageScaleX,
   resolveChunkEntranceFrame,
+  resolveEntranceDurationFrames,
   resolvePanScanMediaStyle,
   resolveSceneVisualState,
   resolveTypographyContainerBlendMode,
@@ -63,9 +64,39 @@ describe("runtime treatment coverage", () => {
   });
 });
 
-describe("resolveChunkEntranceFrame", () => {
+describe("resolveChunkEntranceFrame (Round 14 Commit 4: Intrinsic Animation Durations)", () => {
   test("never emits a zero-length interpolation range for a caption with no lead-in", () => {
     expect(resolveChunkEntranceFrame(0, 1)).toBe(1);
+  });
+
+  test("binds entrance duration to intrinsic animation durations (20-30 frames) when runway is ample", () => {
+    // 60 frames = 2000ms at 30fps
+    const durDefault = resolveEntranceDurationFrames({ fps: 30, totalFrames: 60 });
+    expect(durDefault).toBeGreaterThanOrEqual(20);
+    expect(durDefault).toBeLessThanOrEqual(30);
+
+    const durSnap = resolveEntranceDurationFrames({ fxPreset: "kinetic_impact_snap", fps: 30, totalFrames: 60 });
+    expect(durSnap).toBe(20); // 750ms -> 20 frames
+
+    const durCyber = resolveEntranceDurationFrames({ fxPreset: "cyber_matrix_text_scramble", fps: 30, totalFrames: 60 });
+    expect(durCyber).toBe(30); // 1200ms -> capped at 30 frames
+
+    const durViewport = resolveEntranceDurationFrames({ fxPreset: "cinematic_viewport_mask_sweep", fps: 30, totalFrames: 60 });
+    expect(durViewport).toBe(23); // 850ms -> 23 frames
+  });
+
+  test("preserves hold floor >= 500ms (15 frames) when chunk totalFrames is constrained", () => {
+    // 25 frames total = 833ms at 30fps. 15 frames needed for 500ms hold -> max entrance is 10 frames
+    const clampedDur = resolveEntranceDurationFrames({
+      fxPreset: "cyber_matrix_text_scramble",
+      fps: 30,
+      totalFrames: 25,
+    });
+    expect(clampedDur).toBe(10);
+    expect(25 - clampedDur).toBe(15); // Exactly 500ms hold preserved
+
+    const chunkEntrance = resolveChunkEntranceFrame(0, 25, undefined, "cyber_matrix_text_scramble", 30);
+    expect(chunkEntrance).toBe(10);
   });
 });
 

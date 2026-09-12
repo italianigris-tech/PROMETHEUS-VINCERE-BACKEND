@@ -417,15 +417,85 @@ export const resolveWordEntranceFrames = ({
   contentStartFrame + Math.round(((word.start_ms - chunkStartMs) / 1000) * fps) - leadFrames,
 ));
 
+export const INTRINSIC_ANIMATION_DURATIONS_MS: Record<string, number> = {
+  cyber_matrix_text_scramble: 1200,
+  metallic_chrome_countup_hero: 1200,
+  metallic_chrome_counter: 1000,
+  refraction_shimmer_mask: 1100,
+  kinetic_slot_character_reel: 1100,
+  dynamic_staggered_character_cascade: 1000,
+  top_down_staggered_character_drop: 950,
+  cinematic_distance_convergence: 900,
+  liquid_gooey_ink_morph: 1100,
+  kinetic_chromatic_typewriter: 1000,
+  typewriter_cursor: 900,
+  typewriter_ghost_cursor: 900,
+  apple_keynote_headline_punch: 850,
+  apple_gaussian_chrome: 850,
+  gaussian_blur_reveal_sweep: 850,
+  cinematic_viewport_mask_sweep: 850,
+  cinematic_apple_word_bounce: 800,
+  chiseled_prism_metallic: 900,
+  prism_chisel_hard_bevel: 900,
+  vj_kinetic_typography: 850,
+  vjkt: 850,
+  air_frontal_optical_bloom: 850,
+  see_through_glass_letterform: 800,
+  hierarchical_asymmetric_lockup: 850,
+  spatial_push_spring: 800,
+  blue_lantern_magnetic: 800,
+  kinetic_impact_snap: 750,
+  stagger_blur_word_reveal: 800,
+  multi_word_slide_up_stagger: 850,
+  multiple_word_slide_up: 850,
+  cyber_acid_lime_glitch: 900,
+  cursor_selection_reveal: 800,
+  vercel_kinetic_highlight_box: 800,
+  horizontal_gradient_sweep_fade: 800,
+  quote_glow_reveal: 750,
+  canva_tall_glyph_stack: 850,
+  electric_blue_emoji_line_revealer: 850,
+  dotted_grid_elastic_word_pull: 800,
+};
+
+export const resolveEntranceDurationFrames = ({
+  fxPreset,
+  fps = 30,
+  totalFrames,
+}: {
+  fxPreset?: string;
+  fps?: number;
+  totalFrames?: number;
+}): number => {
+  const rawFx = fxPreset || "";
+  const normFx = fxPreset ? normalizeRuntimePreset(fxPreset) : "";
+  const intrinsicMs = INTRINSIC_ANIMATION_DURATIONS_MS[rawFx]
+    ?? INTRINSIC_ANIMATION_DURATIONS_MS[normFx]
+    ?? 800;
+  // Convert intrinsic ms to frames (20-30 frame range at 30fps)
+  const baseFrames = Math.max(20, Math.min(30, Math.round((intrinsicMs / 1000) * fps * 0.9)));
+
+  if (totalFrames !== undefined && totalFrames > 0) {
+    const holdFrames = Math.round((500 / 1000) * fps);
+    const maxEntranceFrames = Math.max(1, totalFrames - holdFrames);
+    return Math.min(baseFrames, maxEntranceFrames);
+  }
+
+  return baseFrames;
+};
+
 export const resolveChunkEntranceFrame = (
   contentStartFrame: number,
   totalFrames: number,
-  lastWordStartFrame?: number
+  lastWordStartFrame?: number,
+  fxPreset?: string,
+  fps: number = 30
 ): number => {
-  if (lastWordStartFrame !== undefined && lastWordStartFrame > 0) {
-    return Math.max(1, Math.min(lastWordStartFrame, totalFrames));
+  if (totalFrames <= 1) {
+    return 1;
   }
-  return Math.max(1, Math.min(contentStartFrame, totalFrames));
+  const entranceFrames = resolveEntranceDurationFrames({ fxPreset, fps, totalFrames });
+  return Math.max(1, Math.min(entranceFrames, totalFrames));
 };
 
 export type CaptionChunk = {
@@ -1201,10 +1271,12 @@ const KineticLayerRenderer: React.FC<{
     leadFrames,
     words: timedWords,
   });
-  const overlayProgress = interpolate(frame - wordEntranceFrames[0], [0, 12], [0, 1], {
+  const entranceDuration = resolveEntranceDurationFrames({ fxPreset: fx, fps, totalFrames });
+  const wordEntranceDuration = Math.max(14, Math.min(24, Math.round(entranceDuration * 0.75)));
+  const overlayProgress = interpolate(frame - wordEntranceFrames[0], [0, entranceDuration], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
-    easing: Easing.out(Easing.cubic),
+    easing: Easing.bezier(0.16, 1.0, 0.3, 1.0),
   });
 
   const isBehindSubject = Boolean(layer.behindSubject);
@@ -1664,7 +1736,7 @@ const KineticLayerRenderer: React.FC<{
 
   // Canva Tall Glyph Stack: Colossal, towering vertical display typography
   if (fx === "canva_tall_glyph_stack") {
-    const entranceP = interpolate(frame, [0, 16], [0, 1], {
+    const entranceP = interpolate(frame, [0, entranceDuration], [0, 1], {
       extrapolateLeft: "clamp",
       extrapolateRight: "clamp",
       easing: Easing.bezier(0.16, 1.0, 0.3, 1.0),
@@ -4953,7 +5025,7 @@ const MultiLayerTypographyCard: React.FC<{
   const lastWordStartFrame = contentStartFrame + Math.round((lastWordRelativeMs / 1000) * fps);
 
   // Overall chunk entrance & exit kinetic ease
-  const entranceFrame = resolveChunkEntranceFrame(contentStartFrame, totalFrames, lastWordStartFrame);
+  const entranceFrame = resolveChunkEntranceFrame(contentStartFrame, totalFrames, lastWordStartFrame, chunk.fxPreset, fps);
   const chunkEntrance = interpolate(frame, [0, entranceFrame], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
