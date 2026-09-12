@@ -3496,17 +3496,17 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                     layer_fx = _resolve_font_json_treatment(prof, layer_spec, is_hero=False, is_single_word=is_single_word, rng=rng, policy=policy, behind_subject=behind_subject)
                     layer_overlay = None
             elif is_layer_behind:
-                # Responsive behind-subject tall typography scale respecting character length
+                # Responsive behind-subject tall typography scale respecting character length (Round 14: 180-240px)
                 clean_chars = "".join(ch for ch in raw_layer_text if ch.isalnum())
                 p_len = len(clean_chars)
                 if p_len <= 4:
-                    target_font_size = 210
+                    target_font_size = 240
                 elif p_len <= 6:
-                    target_font_size = 175
+                    target_font_size = 210
                 elif p_len <= 8:
-                    target_font_size = 150
+                    target_font_size = 180
                 else:
-                    target_font_size = 120
+                    target_font_size = 140
                 resolved_weight = 900
                 casing = "uppercase"
                 layer_fx = hero_fx_preset or "apple_pro_display_hero_revealer"
@@ -3541,6 +3541,8 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                 legibility_floor = 115
             elif is_script:
                 legibility_floor = 80
+            elif is_layer_behind:
+                legibility_floor = 140
             elif is_hero_layer:
                 legibility_floor = 80
             else:

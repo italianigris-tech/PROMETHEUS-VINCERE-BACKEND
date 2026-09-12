@@ -242,67 +242,22 @@ def analyze_cranial_negative_space(
     right_flank = cranial_right_flank
     lower_deck = max(0.0, 1.0 - (y + h))
 
-    # Priority 1: Dominant Right Flank Provision (Speaker positioned left of center)
-    # When the speaker is framed left of center, the right flank offers an expansive vertical column
-    # of clear negative space beside the head and torso.
-    # Text is placed in the upper-flank negative space (Y ~ 22-28%) beside the head, safely clearing
-    # the sloping shoulder (Y ~ 42-50%) and strictly bounded within safe margins (<= 94% X, maxWidth <= 30%).
-    if right_flank >= 0.26 and right_flank >= (left_flank + 0.06):
-        safe_right_margin = 0.94
-        safe_left_bound = min(0.68, max(head_right, x + w) + 0.04)
-        col_x = round((safe_left_bound + safe_right_margin) / 2.0, 3)
-        center_y = round(max(0.22, min(0.30, actual_head_top + 0.08)), 3)
-        return {
-            "dominantZone": "flank_right_column",
-            "zoneId": "flank_right_editorial_pillar",
-            "xPercent": f"{int(round(col_x * 100)) if round(col_x * 100, 1).is_integer() else round(col_x * 100, 1)}%",
-            "yPercent": f"{int(round(center_y * 100)) if round(center_y * 100, 1).is_integer() else round(center_y * 100, 1)}%",
-            "anchor": "center",
-            "textAlign": "right",
-            "maxWidthPercent": "30%",
-            "fontTreatment": "editorial_column_stack",
-            "headroomRatio": round(top_headroom, 3),
-            "flankLeftRatio": round(left_flank, 3),
-            "flankRightRatio": round(right_flank, 3),
-            "faceBottom": round(face_bottom_y, 3) if face_bottom_y is not None else None,
-        }
-
-    # Priority 2: Dominant Left Flank Provision (Speaker positioned right of center)
-    if left_flank >= 0.26 and left_flank >= (right_flank + 0.06):
-        safe_left_margin = 0.06
-        safe_right_bound = max(0.32, min(head_left, x) - 0.04)
-        col_x = round((safe_left_margin + safe_right_bound) / 2.0, 3)
-        center_y = round(max(0.22, min(0.30, actual_head_top + 0.08)), 3)
-        return {
-            "dominantZone": "flank_left_column",
-            "zoneId": "flank_left_editorial_pillar",
-            "xPercent": f"{int(round(col_x * 100)) if round(col_x * 100, 1).is_integer() else round(col_x * 100, 1)}%",
-            "yPercent": f"{int(round(center_y * 100)) if round(center_y * 100, 1).is_integer() else round(center_y * 100, 1)}%",
-            "anchor": "center",
-            "textAlign": "left",
-            "maxWidthPercent": "30%",
-            "fontTreatment": "editorial_column_stack",
-            "headroomRatio": round(top_headroom, 3),
-            "flankLeftRatio": round(left_flank, 3),
-            "flankRightRatio": round(right_flank, 3),
-            "faceBottom": round(face_bottom_y, 3) if face_bottom_y is not None else None,
-        }
-
-    # Priority 3: Natural Cranial Composition Zone (Anti-Sequestering / 60-40 Rule)
-    # Never push behind-subject text into the ceiling (y < 15%) just to game 0% occlusion.
-    # Text stays nestled in the natural middle band (18% - 28%), permitting up to 40% head occlusion
-    # per the 60/40 rule where the subject's head partially layers over the lower 40% of the letters.
+    # Priority 1: Cranial Headroom Composition Zone (Reposition-First Headroom Solver)
+    # When cranial headroom is available (top_headroom >= 0.10), place behind-subject
+    # text nestled in the cranial crown negative space above/behind the head.
+    # Text is dynamically repositioned in Y (16% - 22%) and tracked opposite head sway
+    # to maximize legibility and headroom clearance without squeezing container width.
     if top_headroom >= 0.10:
         head_mid_x = (head_left + head_right) / 2.0
         # Dynamic Flank Tracking opposite head sway with halo avoidance:
-        # If head sways left (<= 0.50), open flank is right -> track to x=0.58-0.65
-        # If head sways right (> 0.50), open flank is left -> track to x=0.35-0.42
+        # If head sways left (<= 0.50), open flank is right -> track to x=0.55-0.65
+        # If head sways right (> 0.50), open flank is left -> track to x=0.35-0.45
         if head_mid_x <= 0.50:
-            text_x = round(min(0.65, max(0.58, head_mid_x + 0.14)), 3)
+            text_x = round(min(0.65, max(0.55, head_mid_x + 0.12)), 3)
         else:
-            text_x = round(max(0.35, min(0.42, head_mid_x - 0.14)), 3)
+            text_x = round(max(0.35, min(0.45, head_mid_x - 0.12)), 3)
 
-        center_y = round(max(0.165, min(0.21, actual_head_top + 0.01)), 4)
+        center_y = round(max(0.16, min(0.22, actual_head_top * 0.85 + 0.02)), 4)
 
         return {
             "dominantZone": "cranial_crown",
@@ -318,6 +273,50 @@ def analyze_cranial_negative_space(
             "flankRightRatio": round(right_flank, 3),
             "faceBottom": round(face_bottom_y, 3) if face_bottom_y is not None else None,
             "haloGuard": True,
+        }
+
+    # Priority 2: Dominant Right Flank Provision (Speaker positioned left of center)
+    # When cranial headroom is compressed (< 0.10) and speaker is framed left of center,
+    # the right flank offers an expansive vertical column of clear negative space.
+    if right_flank >= 0.26 and right_flank >= (left_flank + 0.06):
+        safe_right_margin = 0.94
+        safe_left_bound = min(0.68, max(head_right, x + w) + 0.04)
+        col_x = round((safe_left_bound + safe_right_margin) / 2.0, 3)
+        center_y = round(max(0.22, min(0.30, actual_head_top + 0.08)), 3)
+        return {
+            "dominantZone": "flank_right_column",
+            "zoneId": "flank_right_editorial_pillar",
+            "xPercent": f"{int(round(col_x * 100)) if round(col_x * 100, 1).is_integer() else round(col_x * 100, 1)}%",
+            "yPercent": f"{int(round(center_y * 100)) if round(center_y * 100, 1).is_integer() else round(center_y * 100, 1)}%",
+            "anchor": "center",
+            "textAlign": "right",
+            "maxWidthPercent": "50%",
+            "fontTreatment": "editorial_column_stack",
+            "headroomRatio": round(top_headroom, 3),
+            "flankLeftRatio": round(left_flank, 3),
+            "flankRightRatio": round(right_flank, 3),
+            "faceBottom": round(face_bottom_y, 3) if face_bottom_y is not None else None,
+        }
+
+    # Priority 3: Dominant Left Flank Provision (Speaker positioned right of center)
+    if left_flank >= 0.26 and left_flank >= (right_flank + 0.06):
+        safe_left_margin = 0.06
+        safe_right_bound = max(0.32, min(head_left, x) - 0.04)
+        col_x = round((safe_left_margin + safe_right_bound) / 2.0, 3)
+        center_y = round(max(0.22, min(0.30, actual_head_top + 0.08)), 3)
+        return {
+            "dominantZone": "flank_left_column",
+            "zoneId": "flank_left_editorial_pillar",
+            "xPercent": f"{int(round(col_x * 100)) if round(col_x * 100, 1).is_integer() else round(col_x * 100, 1)}%",
+            "yPercent": f"{int(round(center_y * 100)) if round(center_y * 100, 1).is_integer() else round(center_y * 100, 1)}%",
+            "anchor": "center",
+            "textAlign": "left",
+            "maxWidthPercent": "50%",
+            "fontTreatment": "editorial_column_stack",
+            "headroomRatio": round(top_headroom, 3),
+            "flankLeftRatio": round(left_flank, 3),
+            "flankRightRatio": round(right_flank, 3),
+            "faceBottom": round(face_bottom_y, 3) if face_bottom_y is not None else None,
         }
 
     # Priority 4: Sensible Below-Head Placement (Dynamic Clearance Avoiding Speaker's Head)
@@ -515,6 +514,14 @@ def plan_subject_safe_placements(
                     lyr["behindSubject"] = False
 
         if behind_subj:
+            raw_mwp = cranial_analysis.get("maxWidthPercent", "50%")
+            try:
+                mwp_num = int(str(raw_mwp).replace("%", "").strip())
+            except ValueError:
+                mwp_num = 50
+            # Banned width shrinking: maxWidthPercent < 45% strictly forbidden on behind-subject layers
+            safe_mwp = f"{max(45, mwp_num)}%"
+
             planned.append({
                 "xPercent": cranial_analysis["xPercent"],
                 "yPercent": cranial_analysis["yPercent"],
@@ -525,7 +532,7 @@ def plan_subject_safe_placements(
                 "faceCount": cranial_analysis.get("faceCount", 1),
                 "fontTreatment": cranial_analysis.get("fontTreatment", "tall_didone_arch"),
                 "safeRegionId": cranial_analysis.get("zoneId", "behind_subject_above_head"),
-                "maxWidthPercent": cranial_analysis.get("maxWidthPercent", "32%"),
+                "maxWidthPercent": safe_mwp,
                 "intersectsSubject": False,
                 "availableHeightRatio": cranial_analysis.get("headroomRatio", 0.15),
                 "headTopY": round(cranial_analysis.get("headroomRatio", 0.15), 4),
