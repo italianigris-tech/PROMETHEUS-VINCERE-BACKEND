@@ -619,8 +619,8 @@ def validate_caption_collisions(chunks: Optional[Sequence[Dict[str, Any]]]) -> D
         collision_ms = max(0, curr_end - next_start)
 
         exit_treatment = curr.get("exitTreatment")
-        if not exit_treatment:
-            exit_treatment = "rack_focus_blur" if collision_ms > 0 else "clean_hold"
+        if not exit_treatment and collision_ms == 0:
+            exit_treatment = "clean_hold"
 
         if collision_ms > 0:
             collisions_count += 1

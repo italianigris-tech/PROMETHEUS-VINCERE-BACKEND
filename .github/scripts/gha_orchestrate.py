@@ -379,6 +379,10 @@ def main():
         c_item["outputEndMs"] = extended_display_end
         c_item["endMs"] = extended_display_end
 
+    # 11b. Rack-Focus Handoff Stamping (Unified with pipeline.finalize_manifest_and_exits)
+    pipeline.finalize_manifest_and_exits(chunks, font_manifest=font_manifest)
+    print(f"[orchestrate] Stamped exitTreatments onto {len(chunks)} chunks (rack_focus_blur on collisions)", flush=True)
+
     # 12. Orchestration Manifest (Camera moves, waypoints, zooms, timed SFX)
     orchestration_manifest = None
     try:
