@@ -529,6 +529,186 @@ def validate_caption_collisions(chunks: Optional[Sequence[Dict[str, Any]]]) -> D
     }
 
 
+MIN_VISIBILITY_CONTRAST_DELTA: float = 3.5
+
+
+def validate_text_visibility_contrast(
+    chunks: Optional[Sequence[Dict[str, Any]]],
+    video_path: Optional[str | Path] = None,
+    frames: Optional[Sequence[Dict[str, Any]]] = None,
+    min_delta: float = MIN_VISIBILITY_CONTRAST_DELTA,
+    frame_width: int = CANVAS_WIDTH_PX,
+    frame_height: int = CANVAS_HEIGHT_PX,
+) -> Dict[str, Any]:
+    """Validate that mounted text chunks are actually visible in the rendered output.
+
+    For each chunk, evaluates its placement bounding box at mount+10 frames vs pre-mount.
+    If the bounding box region exhibits insufficient contrast/edge delta (mean delta < min_delta),
+    the chunk mounted but was occluded (e.g. buried under the subject matte) -> hard FAIL.
+    """
+    if not chunks:
+        return {
+            "status": "passed",
+            "chunksChecked": 0,
+            "visibleChunks": 0,
+            "invisibleChunks": 0,
+            "measurements": [],
+            "violations": [],
+        }
+
+    try:
+        import numpy as np
+        from PIL import Image
+    except ImportError:
+        return {"status": "skipped", "reason": "numpy_or_pillow_unavailable", "violations": []}
+
+    if not video_path and not frames:
+        return {
+            "status": "skipped",
+            "reason": "no_video_or_frames_provided",
+            "chunksChecked": 0,
+            "visibleChunks": 0,
+            "invisibleChunks": 0,
+            "measurements": [],
+            "violations": [],
+        }
+
+    measurements = []
+    violations = []
+    checked = 0
+    visible = 0
+    invisible = 0
+
+    ffmpeg_bin = shutil.which("ffmpeg")
+    scratch_dir = None
+    if video_path and Path(video_path).exists() and ffmpeg_bin:
+        v_path = Path(video_path)
+        scratch_dir = v_path.parent / f"visibility_samples_{v_path.stem}"
+        scratch_dir.mkdir(parents=True, exist_ok=True)
+
+    for i, chunk in enumerate(chunks):
+        c_idx = chunk.get("chunkIndex", i + 1)
+        raw_text = chunk.get("text") or " ".join(w.get("text", "") for w in chunk.get("words", []))
+        start_ms = int(chunk.get("displayStartMs", chunk.get("startMs", 0)))
+        end_ms = int(chunk.get("displayEndMs", chunk.get("endMs", start_ms + 1500)))
+
+        placement = chunk.get("placement") or {}
+        try:
+            x_str = str(placement.get("xPercent", "50%")).replace("%", "")
+            x_pct = float(x_str) / 100.0 if float(x_str) > 1.0 else float(x_str)
+        except Exception:
+            x_pct = 0.5
+        try:
+            y_str = str(placement.get("yPercent", "50%")).replace("%", "")
+            y_pct = float(y_str) / 100.0 if float(y_str) > 1.0 else float(y_str)
+        except Exception:
+            y_pct = 0.5
+
+        layers = chunk.get("layers") or []
+        max_layer_w = max([float(l.get("estimatedWidthPx", l.get("est_width", 380))) for l in layers], default=380.0)
+        box_w = int(min(frame_width * 0.85, max(280.0, max_layer_w)))
+        box_h = int(min(frame_height * 0.40, max(180.0, len(layers) * 120.0)))
+
+        x_center = int(x_pct * frame_width)
+        y_center = int(y_pct * frame_height)
+        x1 = max(0, x_center - box_w // 2)
+        x2 = min(frame_width, x_center + box_w // 2)
+        y1 = max(0, y_center - box_h // 2)
+        y2 = min(frame_height, y_center + box_h // 2)
+
+        pre_ts = max(0.0, (start_ms - 150) / 1000.0)
+        mount_ts = (start_ms + 333) / 1000.0
+        if mount_ts * 1000.0 > end_ms:
+            mount_ts = (start_ms + end_ms) / 2000.0
+
+        arr_pre = None
+        arr_mount = None
+
+        if frames:
+            for f in frames:
+                f_ts = float(f.get("timestampSec", 0.0))
+                f_p = Path(f.get("framePath", ""))
+                if not f_p.exists():
+                    continue
+                if abs(f_ts - pre_ts) < 0.20 and arr_pre is None:
+                    try:
+                        arr_pre = np.array(Image.open(f_p).convert("RGB"))
+                    except Exception:
+                        pass
+                if abs(f_ts - mount_ts) < 0.25 and arr_mount is None:
+                    try:
+                        arr_mount = np.array(Image.open(f_p).convert("RGB"))
+                    except Exception:
+                        pass
+
+        if scratch_dir and (arr_pre is None or arr_mount is None):
+            pre_file = scratch_dir / f"chunk_{c_idx}_pre_{pre_ts:.2f}s.png"
+            mount_file = scratch_dir / f"chunk_{c_idx}_mount_{mount_ts:.2f}s.png"
+            for ts, p in [(pre_ts, pre_file), (mount_ts, mount_file)]:
+                if not p.exists():
+                    subprocess.run(
+                        [ffmpeg_bin, "-y", "-loglevel", "error", "-ss", f"{ts:.3f}", "-i", str(video_path), "-vframes", "1", "-q:v", "2", str(p)],
+                        timeout=15,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                    )
+            if pre_file.exists() and mount_file.exists():
+                try:
+                    arr_pre = np.array(Image.open(pre_file).convert("RGB"))
+                    arr_mount = np.array(Image.open(mount_file).convert("RGB"))
+                except Exception:
+                    pass
+
+        if arr_pre is None or arr_mount is None:
+            continue
+
+        checked += 1
+        crop_pre = arr_pre[y1:y2, x1:x2].astype(float)
+        crop_mount = arr_mount[y1:y2, x1:x2].astype(float)
+
+        if crop_pre.size == 0 or crop_mount.size == 0 or crop_pre.shape != crop_mount.shape:
+            continue
+
+        diff = np.abs(crop_mount - crop_pre)
+        mean_delta = float(np.mean(diff))
+        max_delta = float(np.max(diff))
+        std_delta = float(np.std(crop_mount))
+
+        is_visible = mean_delta >= min_delta or (max_delta > 50.0 and std_delta > 15.0)
+
+        meas = {
+            "chunkIndex": c_idx,
+            "text": raw_text[:30],
+            "startMs": start_ms,
+            "mountTimestampSec": round(mount_ts, 3),
+            "bbox": {"x1": x1, "y1": y1, "x2": x2, "y2": y2},
+            "meanDelta": round(mean_delta, 2),
+            "maxDelta": round(max_delta, 2),
+            "visible": is_visible,
+        }
+        measurements.append(meas)
+
+        if is_visible:
+            visible += 1
+        else:
+            invisible += 1
+            violations.append(
+                f"Chunk {c_idx} ('{raw_text[:28]}') mounted at {start_ms}ms but produced insufficient visibility delta "
+                f"(meanDelta={mean_delta:.2f} < threshold {min_delta}) in placement bbox [{x1},{y1},{x2},{y2}] "
+                f"— text invisible or occluded by matte"
+            )
+
+    return {
+        "status": "passed" if not violations else "failed",
+        "chunksChecked": checked,
+        "visibleChunks": visible,
+        "invisibleChunks": invisible,
+        "minDeltaThreshold": min_delta,
+        "measurements": measurements,
+        "violations": violations,
+    }
+
+
 def validate_shadow_glow_budget(layers: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
     """Validate single contact shadow and hero-only glow alpha <= 0.35."""
     amb_v, shd_v, comp_glow_v, hero_glow_v = [], [], [], []
@@ -774,6 +954,13 @@ def run_post_render_conformance_check(
     look_result = validate_look_conformance(look_plan, frame_path=first_frame, reference_frame_path=reference_frame_path)
 
     caption_collisions = validate_caption_collisions(chunks)
+    text_visibility = validate_text_visibility_contrast(
+        chunks,
+        video_path=video_path,
+        frames=frame_result.get("frames"),
+        frame_width=CANVAS_WIDTH_PX,
+        frame_height=CANVAS_HEIGHT_PX,
+    )
 
     all_violations = (
         safe_bounds["violations"]
@@ -782,8 +969,9 @@ def run_post_render_conformance_check(
         + look_result["violations"]
         + head_occlusion["violations"]
         + caption_collisions["violations"]
+        + text_visibility["violations"]
     )
-    all_evaluated_checks = [safe_bounds, line_wrap, shadow_glow, look_result, head_occlusion, caption_collisions]
+    all_evaluated_checks = [safe_bounds, line_wrap, shadow_glow, look_result, head_occlusion, caption_collisions, text_visibility]
     return {
         "status": "passed" if not all_violations else "failed",
         "totalChecks": len(all_evaluated_checks),
@@ -798,6 +986,7 @@ def run_post_render_conformance_check(
             "lookConformance": look_result,
             "headOcclusion": head_occlusion,
             "captionCollision": caption_collisions,
+            "textVisibility": text_visibility,
             "frameExtraction": frame_result,
         },
         "durationMs": round((time.monotonic() - t_start) * 1000, 2),
