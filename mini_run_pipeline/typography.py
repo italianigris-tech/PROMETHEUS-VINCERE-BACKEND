@@ -4077,7 +4077,7 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
                         )
                         prev_layer["hasGradient"] = True
 
-        # Authoritative single width estimator: stamp estimatedWidthPx on all layers
+        # Authoritative single width estimator: stamp estimatedWidthPx and autoFitScale on all layers
         for l in rendered_layers:
             l_font = l.get("fontFamily", "Inter")
             l_text = l.get("text") or l.get("rawText", "")
@@ -4085,7 +4085,16 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
             l_upper = l.get("casing") == "uppercase" or l_clean.isupper()
             l_aspect = get_font_char_aspect(l_font, is_uppercase=l_upper)
             l_sz = float(l.get("fontSizePx", 60))
-            l["estimatedWidthPx"] = int(round(len(l_clean) * l_sz * l_aspect))
+            est = len(l_clean) * l_sz * l_aspect
+            l["estimatedWidthPx"] = int(round(est))
+            l["est_width"] = est
+            if est > max_safe_width:
+                auto_scale = round(max_safe_width / est, 4)
+                l["autoFitScale"] = auto_scale
+                l["fitScale"] = auto_scale
+            else:
+                l["autoFitScale"] = 1.0
+                l["fitScale"] = 1.0
 
         chunk_fx = next((l.get("fxPreset") for l in rendered_layers if l.get("isHero")), hero_fx_preset)
         manifest_chunks.append({
