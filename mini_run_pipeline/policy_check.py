@@ -77,6 +77,7 @@ def measure_frame_text_pixel_bounds(
     safe_margin_y: float = SAFE_MARGIN_Y_PX,
     width: int = CANVAS_WIDTH_PX,
     height: int = CANVAS_HEIGHT_PX,
+    expected_y_center: Optional[float] = None,
 ) -> Dict[str, Any]:
     """Measure actual pixel bounding box and safe-margin edge bleed from rendered frame."""
     try:
@@ -100,9 +101,13 @@ def measure_frame_text_pixel_bounds(
         return {"status": "skipped", "reason": "invalid_frame_data", "detected": False}
 
     h, w = arr.shape[:2]
-    # Restrict vertical search zone to dialogue / graphics band [500, 1850]
-    y_start = min(h - 50, 500)
-    y_end = min(h, 1850)
+    # Restrict vertical search zone: if expected_y_center is provided, focus on that text region
+    if expected_y_center is not None:
+        y_start = max(50, int(expected_y_center - 220))
+        y_end = min(h - 50, int(expected_y_center + 220))
+    else:
+        y_start = min(h - 50, 500)
+        y_end = min(h, 1850)
     sub = arr[y_start:y_end, :]
 
     r = sub[:, :, 0].astype(float)
@@ -110,14 +115,15 @@ def measure_frame_text_pixel_bounds(
     b = sub[:, :, 2].astype(float)
     lum = 0.299 * r + 0.587 * g + 0.114 * b
 
-    # Text glyph mask: bright white, gold, cyan, or high-luminance foreground text
-    bright_text = lum > 70.0
-    cyan_text = (b > 130) & (g > 130) & (r < 110)
-    warm_text = (r > 160) & (g > 120) & (b < 90)
+    # Text glyph mask: bright foreground text or vibrant colored text
+    # Excludes low-luminance skin tones and dark studio reflections
+    bright_text = lum > 115.0
+    cyan_text = (b > 125) & (g > 125) & (r < 110)
+    warm_text = (r > 160) & (g > 120) & (b < 80)
     mask = bright_text | cyan_text | warm_text
 
     col_counts = np.sum(mask, axis=0)
-    active_cols = np.where(col_counts > 3)[0]
+    active_cols = np.where(col_counts >= 6)[0]
     if len(active_cols) == 0:
         return {
             "status": "passed",
@@ -131,7 +137,7 @@ def measure_frame_text_pixel_bounds(
 
     splits = np.where(np.diff(active_cols) > 35)[0]
     segments = np.split(active_cols, splits + 1)
-    best_seg = max(segments, key=lambda s: len(s))
+    best_seg = max(segments, key=lambda s: np.sum(col_counts[s]))
     x_min = int(best_seg.min())
     x_max = int(best_seg.max())
 
@@ -227,13 +233,6 @@ def validate_safe_region_bounds_with_frames(
             ts = float(f.get("timestampSec", 0.0))
             if not f_path:
                 continue
-            res = measure_frame_text_pixel_bounds(f_path, safe_margin_x=safe_margin_x)
-            f_meas = {
-                "timestampSec": ts,
-                "framePath": str(f_path),
-                "measurement": res,
-            }
-            pixel_measurements.append(f_meas)
 
             # Find matching chunk at timestamp
             matching_chunk = None
@@ -244,6 +243,27 @@ def validate_safe_region_bounds_with_frames(
                     if start_sec <= ts <= (end_sec + 0.15):
                         matching_chunk = c
                         break
+
+            expected_y = None
+            if matching_chunk:
+                p = matching_chunk.get("placement") or {}
+                y_str = str(p.get("yPercent", "54%")).replace("%", "")
+                try:
+                    expected_y = (float(y_str) / 100.0 if float(y_str) > 1.0 else float(y_str)) * CANVAS_HEIGHT_PX
+                except Exception:
+                    expected_y = None
+
+            res = measure_frame_text_pixel_bounds(
+                f_path,
+                safe_margin_x=safe_margin_x,
+                expected_y_center=expected_y,
+            )
+            f_meas = {
+                "timestampSec": ts,
+                "framePath": str(f_path),
+                "measurement": res,
+            }
+            pixel_measurements.append(f_meas)
 
             chunk_text = matching_chunk.get("text", "") if matching_chunk else ""
             chunk_idx = matching_chunk.get("chunkIndex", "?") if matching_chunk else "?"

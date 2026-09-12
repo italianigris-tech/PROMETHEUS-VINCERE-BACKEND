@@ -77,29 +77,42 @@ def _clamp_safe_x_percent(
     min_safe_px: float = 130.0,
     max_safe_px: float = 950.0,
     canvas_w: float = 1080.0,
+    anchor: str = "center",
 ) -> str:
-    """Clamp X percentage center within screen-safe bounds, width-aware.
+    """Clamp X percentage within screen-safe bounds, width- and anchor-aware.
 
     Enforces:
-      x_center >= min_safe_px + est_width/2  and  x_center <= max_safe_px - est_width/2
+      For center anchor:
+        x_center >= min_safe_px + est_width/2  and  x_center <= max_safe_px - est_width/2
+      For left anchor:
+        x_pos >= min_safe_px  and  x_pos <= max_safe_px - est_width
+      For right anchor:
+        x_pos >= min_safe_px + est_width  and  x_pos <= max_safe_px
+
     When text width exceeds the available safe margin envelope (820px),
     centers symmetrically at 50% to prevent asymmetric offscreen bleeds.
     """
     try:
         raw_str = str(x_val).replace("%", "").strip()
         val = float(raw_str)
-        center_px = val * canvas_w if val <= 1.0 else (val / 100.0) * canvas_w
+        pos_px = val * canvas_w if val <= 1.0 else (val / 100.0) * canvas_w
     except Exception:
-        center_px = canvas_w / 2.0
+        pos_px = canvas_w / 2.0
 
-    half_w = max(0.0, float(est_width_px)) / 2.0
-    min_center_px = min_safe_px + half_w
-    max_center_px = max_safe_px - half_w
+    width = max(0.0, float(est_width_px))
+    available_envelope = max_safe_px - min_safe_px
 
-    if min_center_px >= max_center_px:
-        clamped_px = canvas_w / 2.0
+    if width >= available_envelope:
+        clamped_px = canvas_w / 2.0 if anchor == "center" else min_safe_px
+    elif anchor == "left":
+        clamped_px = max(min_safe_px, min(max_safe_px - width, pos_px))
+    elif anchor == "right":
+        clamped_px = max(min_safe_px + width, min(max_safe_px, pos_px))
     else:
-        clamped_px = max(min_center_px, min(max_center_px, center_px))
+        half_w = width / 2.0
+        min_center_px = min_safe_px + half_w
+        max_center_px = max_safe_px - half_w
+        clamped_px = max(min_center_px, min(max_center_px, pos_px))
 
     clamped_pct = (clamped_px / canvas_w) * 100.0
     return f"{round(clamped_pct, 1)}%"
@@ -538,6 +551,10 @@ def plan_subject_safe_placements(
             [float(l.get("estimatedWidthPx") or l.get("est_width") or 0.0) for l in chunk_layers],
             default=0.0,
         )
+        if chunk_est_w <= 0.0:
+            raw_text = str(chunk.get("text") or " ".join(w.get("text", "") for w in chunk.get("words", []))).strip()
+            if raw_text:
+                chunk_est_w = len(raw_text) * 72.0 * 0.52
 
         cranial_analysis = analyze_chunk_temporal_cranial_space(c_start, c_end, observation)
         dom_zone = cranial_analysis.get("dominantZone", "foreground_lower_deck")
