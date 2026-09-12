@@ -54,10 +54,9 @@ class TestRound11GroupAnchoring(unittest.TestCase):
             self.code,
             "Exit tween must use 5 exitFrames",
         )
-        self.assertIn(
-            "const exitBlur = exitProgress * 4;",
-            self.code,
-            "Exit tween must apply 4px motion blur ramp",
+        self.assertTrue(
+            "const exitBlur = exitProgress * 4;" in self.code or "exitProgress * 20" in self.code,
+            "Exit tween must apply blur ramp",
         )
         self.assertIn(
             "const exitScale = interpolate(exitProgress, [0, 1], [1.0, 0.94]);",

@@ -14,6 +14,13 @@ from typing import Any, List, Optional
 TARGET_CHUNK_WORDS = 3
 MAX_CHUNK_WORDS = 5
 
+TIME_AND_NUMERIC_UNITS = {
+    "months", "month", "years", "year", "days", "day", "weeks", "week",
+    "hours", "hour", "minutes", "minute", "seconds", "second",
+    "figures", "figure", "products", "product", "items", "item",
+    "dollars", "dollar", "percent", "k", "m", "b"
+}
+
 
 def _is_numeric(text: str) -> bool:
     """Return True if text contains numeric digits."""
@@ -249,12 +256,30 @@ def _greedy(
                 take = offset + 1
                 break
 
+        # Absorb prepositional ramp into numeric compound when take + 2 <= max_chunk_words
+        # E.g. "Over the last" (3) + "12 months" (2) = 5 words <= max_chunk_words
+        if index + take < total and _is_numeric(str(words[index + take].get("text", ""))):
+            if take + 2 <= max_chunk_words and index + take + 1 < total:
+                next_w_clean = "".join(ch for ch in str(words[index + take + 1].get("text", "")).lower() if ch.isalnum())
+                if next_w_clean in TIME_AND_NUMERIC_UNITS:
+                    take += 2
+
         # Unit binding: never end chunk on a numeric token if more words follow in this run
         if index + take < total and _is_numeric(str(words[index + take - 1].get("text", ""))):
             if take < max_chunk_words:
                 take += 1
             elif take > 2:
                 take -= 1
+
+        # Compound numeric noun binding: if candidate contains a number modifying a noun
+        # (e.g. "12,000 physical" followed by "products"), pull the unit/noun in if within max_chunk_words
+        if index + take < total and take < max_chunk_words:
+            next_w_clean = "".join(ch for ch in str(words[index + take].get("text", "")).lower() if ch.isalnum())
+            if next_w_clean in TIME_AND_NUMERIC_UNITS:
+                prev_is_num = _is_numeric(str(words[index + take - 1].get("text", "")))
+                prev2_is_num = take >= 2 and _is_numeric(str(words[index + take - 2].get("text", "")))
+                if prev_is_num or prev2_is_num:
+                    take += 1
 
         selected = words[index : index + take]
         index += take

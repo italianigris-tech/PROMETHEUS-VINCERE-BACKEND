@@ -4953,8 +4953,9 @@ const MultiLayerTypographyCard: React.FC<{
     nextChunkStartFrame < totalFrames &&
     nextChunkStartFrame >= 0;
 
-  const rackFocusStartFrame = hasIncomingCollision ? nextChunkStartFrame : Math.max(0, totalFrames - 5);
-  const rackFocusDuration = 5;
+  const exitFrames = 5;
+  const rackFocusStartFrame = hasIncomingCollision ? nextChunkStartFrame : Math.max(0, totalFrames - exitFrames);
+  const rackFocusDuration = exitFrames;
   const isRackFocusExiting = frame >= rackFocusStartFrame;
 
   // Unmount cleanly once rack focus exit completes

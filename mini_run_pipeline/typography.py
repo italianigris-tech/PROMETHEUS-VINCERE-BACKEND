@@ -3267,7 +3267,23 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
 
             mod_scale = 0.88 if is_micro_stopword else 0.30
 
-            if w0_clean in modifier_stopwords and word_count >= 3:
+            # Compound Numeric Atomicity:
+            # If chunk starts with a number: force [number, noun] to the HERO tier together;
+            # trailing words to modifier; never allow a numeric token to be isolated on a modifier layer.
+            w0_is_num = any(ch.isdigit() for ch in words[0])
+            if w0_is_num:
+                if word_count == 2:
+                    allocations = [
+                        {"layer": {"role": "hero", "font_style": {"weight": 900, "relative_scale": 1.0}}, "words": words, "is_hero": True},
+                    ]
+                    resolved_lockup_opt = "bottom_tucked"
+                else:
+                    allocations = [
+                        {"layer": {"role": "hero", "font_style": {"weight": 900, "relative_scale": 1.0}}, "words": words[:2], "is_hero": True},
+                        {"layer": {"role": "modifier", "font_style": {"weight": 600, "relative_scale": mod_scale}}, "words": words[2:], "is_hero": False},
+                    ]
+                    resolved_lockup_opt = "bottom_tucked"
+            elif w0_clean in modifier_stopwords and word_count >= 3:
                 split_idx = 1
                 while split_idx < word_count - 1 and "".join(ch for ch in words[split_idx].lower() if ch.isalnum()) in modifier_stopwords:
                     split_idx += 1
