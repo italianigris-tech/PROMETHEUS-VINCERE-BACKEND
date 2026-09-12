@@ -6711,10 +6711,11 @@ export const Spatial3DCameraRig: React.FC<{
   spatialCamera?: MiniRunOrchestration["spatialCamera3D"];
   frame: number;
   fps: number;
+  stageZIndex?: number;
   children: React.ReactNode;
-}> = ({ spatialCamera, frame, fps, children }) => {
+}> = ({ spatialCamera, frame, fps, stageZIndex = 100, children }) => {
   if (!spatialCamera?.enabled) {
-    return <AbsoluteFill style={{ pointerEvents: "none", zIndex: 25 }}>{children}</AbsoluteFill>;
+    return <AbsoluteFill style={{ pointerEvents: "none", zIndex: stageZIndex }}>{children}</AbsoluteFill>;
   }
 
   const { camX, camY, camZ, camPitch, camYaw, camRoll } = computeSpatial3DCameraTransform(
@@ -6732,7 +6733,7 @@ export const Spatial3DCameraRig: React.FC<{
         perspective: `${perspectivePx}px`,
         perspectiveOrigin: "50% 50%",
         transformStyle: "preserve-3d",
-        zIndex: 25,
+        zIndex: stageZIndex,
       }}
     >
       <div
@@ -6796,141 +6797,172 @@ export const PrometheusMinRun: React.FC<PrometheusMinRunProps> = ({
       {/* 1d. Transition Visual Effects Stage (Z: 8) — Film Burns, Flash Cuts, Whip Streaks */}
       <TransitionFXStage orchestration={orchestration} frame={frame} fps={fps} />
 
-      {/* 2. Multi-Layer Speech-Synchronized Kinetic Typography Chunks in Spatial 3D Camera Rig (Z: 10 / 100) */}
-      <Spatial3DCameraRig
-        spatialCamera={orchestration?.spatialCamera3D}
-        frame={frame}
-        fps={fps}
-      >
-        {(() => {
-          return chunks.map((chunk, idx) => {
-            // Frame-accurate source time synchronization (prioritize startMs from source audio)
-            const startMs = chunk.startMs ?? chunk.outputStartMs ?? 0;
-            const endMs = chunk.endMs ?? chunk.outputEndMs ?? startMs + 1500;
-            const displayStartMs = chunk.displayStartMs ?? startMs;
-            const displayEndMs = chunk.displayEndMs ?? endMs;
+      {/* 2. Kinetic Typography Partitioning for Inviolable Z-Stack: background (1) < behind-pivots (25) < matte (50) < foreground text (100) */}
+      {(() => {
+        const isMatteActive = Boolean(matteSrc);
+        const behindChunks: CaptionChunk[] = [];
+        const foregroundChunks: CaptionChunk[] = [];
+        (chunks || []).forEach((c) => {
+          if (resolveChunkBehindSubject(isMatteActive, c.layers, c.placement)) {
+            behindChunks.push(c);
+          } else {
+            foregroundChunks.push(c);
+          }
+        });
 
-            const contentStartFrame = Math.round((startMs / 1000) * fps);
-            const rawEndFrame = Math.round((displayEndMs / 1000) * fps);
-            const layers = chunk.layers || [];
-            const leadFrames = Math.max(
+        const renderChunkSequence = (chunk: CaptionChunk, idx: number) => {
+          const startMs = chunk.startMs ?? chunk.outputStartMs ?? 0;
+          const endMs = chunk.endMs ?? chunk.outputEndMs ?? startMs + 1500;
+          const displayStartMs = chunk.displayStartMs ?? startMs;
+          const displayEndMs = chunk.displayEndMs ?? endMs;
+
+          const contentStartFrame = Math.round((startMs / 1000) * fps);
+          const rawEndFrame = Math.round((displayEndMs / 1000) * fps);
+          const layers = chunk.layers || [];
+          const leadFrames = Math.max(
+            0,
+            ...layers.map((layer) =>
+              Math.round(
+                (((layer.effectiveEntryLeadMs ?? layer.entryLeadMs) ??
+                  (layer.isHero ? 100 : 60)) /
+                  1000) *
+                  fps
+              )
+            )
+          );
+
+          const startFrame = Math.max(
+            0,
+            Math.round((displayStartMs / 1000) * fps),
+            contentStartFrame - leadFrames
+          );
+          const endFrame = Math.max(startFrame + 1, rawEndFrame);
+
+          const relativeContentStartFrame = Math.max(0, contentStartFrame - startFrame);
+          const durationFrames = Math.max(1, endFrame - startFrame);
+
+          // Next chunk entrance frame (computed from overall chronological chunks list)
+          const overallIdx = (chunks || []).indexOf(chunk);
+          const nextChunk = overallIdx >= 0 && overallIdx < (chunks || []).length - 1 ? chunks[overallIdx + 1] : undefined;
+          let relativeNextChunkStartFrame: number | undefined = undefined;
+          if (nextChunk) {
+            const nextStartMs = nextChunk.displayStartMs ?? nextChunk.startMs ?? nextChunk.outputStartMs ?? 0;
+            const nextContentStartF = Math.round((nextStartMs / 1000) * fps);
+            const nextLeadFrames = Math.max(
               0,
-              ...layers.map((layer) =>
-                Math.round(
-                  (((layer.effectiveEntryLeadMs ?? layer.entryLeadMs) ??
-                    (layer.isHero ? 100 : 60)) /
-                    1000) *
-                    fps
-                )
+              ...(nextChunk.layers || []).map((l) =>
+                Math.round((((l.effectiveEntryLeadMs ?? l.entryLeadMs) ?? (l.isHero ? 100 : 60)) / 1000) * fps)
               )
             );
+            const nextAbsoluteStartFrame = Math.max(0, Math.round((nextStartMs / 1000) * fps), nextContentStartF - nextLeadFrames);
+            relativeNextChunkStartFrame = nextAbsoluteStartFrame - startFrame;
+          }
 
-            // Allow caption sequence temporal overlap (Zero Stacking Lock):
-            // Each chunk enters at its scheduled displayStartMs or lead-in frame
-            const startFrame = Math.max(
-              0,
-              Math.round((displayStartMs / 1000) * fps),
-              contentStartFrame - leadFrames
-            );
-            const endFrame = Math.max(startFrame + 1, rawEndFrame);
-
-            const relativeContentStartFrame = Math.max(0, contentStartFrame - startFrame);
-            const durationFrames = Math.max(1, endFrame - startFrame);
-
-            // Next chunk entrance frame (relative to this chunk's sequence startFrame)
-            const nextChunk = chunks[idx + 1];
-            let relativeNextChunkStartFrame: number | undefined = undefined;
-            if (nextChunk) {
-              const nextStartMs = nextChunk.displayStartMs ?? nextChunk.startMs ?? nextChunk.outputStartMs ?? 0;
-              const nextContentStartF = Math.round((nextStartMs / 1000) * fps);
-              const nextLeadFrames = Math.max(
-                0,
-                ...(nextChunk.layers || []).map((l) =>
-                  Math.round((((l.effectiveEntryLeadMs ?? l.entryLeadMs) ?? (l.isHero ? 100 : 60)) / 1000) * fps)
-                )
-              );
-              const nextAbsoluteStartFrame = Math.max(0, Math.round((nextStartMs / 1000) * fps), nextContentStartF - nextLeadFrames);
-              relativeNextChunkStartFrame = nextAbsoluteStartFrame - startFrame;
-            }
-
-            return (
-              <Sequence
-                key={`chunk-${idx}-${startMs}`}
-                from={startFrame}
-                durationInFrames={durationFrames}
-              >
-                <MultiLayerTypographyCard
-                  chunk={chunk}
-                  contentStartFrame={relativeContentStartFrame}
-                  endFrame={durationFrames}
-                  subjectMatteAvailable={Boolean(matteSrc)}
-                  nextChunkStartFrame={relativeNextChunkStartFrame}
-                />
-              </Sequence>
-            );
-          });
-        })()}
-      </Spatial3DCameraRig>
-
-      {/* 3. Foreground Subject Matte Cutout Layer (Z: 50) */}
-      {matteSrc && (() => {
-        const state = resolveSceneVisualState(orchestration, frame, fps);
-        const mediaStyle = resolvePanScanMediaStyle(state, 1.0);
-        const {
-          hookBlur,
-          hookBrightness,
-          hookContrast,
-          hookSaturate,
-          hookTransform,
-        } = resolveHookTransformState(macroHookPlan, frame, fps);
-        const combinedBlur = Math.min(24, hookBlur);
-        const filterParts = [
-          combinedBlur > 0.1 ? `blur(${combinedBlur.toFixed(1)}px)` : "",
-          hookBrightness !== 1.0 ? `brightness(${hookBrightness.toFixed(2)})` : "",
-          hookContrast !== 1.0 ? `contrast(${hookContrast.toFixed(2)})` : "",
-          hookSaturate !== 1.0 ? `saturate(${hookSaturate.toFixed(2)})` : "",
-        ]
-          .filter(Boolean)
-          .join(" ");
+          return (
+            <Sequence
+              key={`chunk-${idx}-${startMs}`}
+              from={startFrame}
+              durationInFrames={durationFrames}
+            >
+              <MultiLayerTypographyCard
+                chunk={chunk}
+                contentStartFrame={relativeContentStartFrame}
+                endFrame={durationFrames}
+                subjectMatteAvailable={isMatteActive}
+                nextChunkStartFrame={relativeNextChunkStartFrame}
+              />
+            </Sequence>
+          );
+        };
 
         return (
-          <AbsoluteFill style={{ zIndex: 45, pointerEvents: "none", overflow: "hidden" }}>
-            {/* Layer 2: Ambient Drop Shadow / Depth Occluder behind Subject (Z: 45) */}
-            <OffthreadVideo
-              src={resolveSourceUri(matteSrc)}
-              transparent
-              muted
-              style={{
-                position: "absolute",
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-                objectPosition: mediaStyle.objectPosition || "50% 50%",
-                transform: `${mediaStyle.transform || ""} ${hookTransform}`.trim(),
-                transformOrigin: mediaStyle.transformOrigin || "center center",
-                filter: "brightness(0) blur(18px) opacity(0.45)",
-                zIndex: 45,
-              }}
-            />
+          <>
+            {/* 2a. Behind-Subject Typography Stage (Z: 25) — True Pivots */}
+            {behindChunks.length > 0 && (
+              <Spatial3DCameraRig
+                spatialCamera={orchestration?.spatialCamera3D}
+                frame={frame}
+                fps={fps}
+                stageZIndex={25}
+              >
+                {behindChunks.map((chunk, idx) => renderChunkSequence(chunk, idx))}
+              </Spatial3DCameraRig>
+            )}
 
-            {/* Layer 3: Foreground Subject Matte Cutout Layer (Z: 50) */}
-            <OffthreadVideo
-              src={resolveSourceUri(matteSrc)}
-              transparent
-              muted
-              style={{
-                position: "absolute",
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-                objectPosition: mediaStyle.objectPosition || "50% 50%",
-                transform: `${mediaStyle.transform || ""} ${hookTransform}`.trim(),
-                transformOrigin: mediaStyle.transformOrigin || "center center",
-                filter: filterParts || undefined,
-                zIndex: 50,
-              }}
-            />
-          </AbsoluteFill>
+            {/* 3. Foreground Subject Matte Cutout Layer (Z: 50) */}
+            {matteSrc && (() => {
+              const state = resolveSceneVisualState(orchestration, frame, fps);
+              const mediaStyle = resolvePanScanMediaStyle(state, 1.0);
+              const {
+                hookBlur,
+                hookBrightness,
+                hookContrast,
+                hookSaturate,
+                hookTransform,
+              } = resolveHookTransformState(macroHookPlan, frame, fps);
+              const combinedBlur = Math.min(24, hookBlur);
+              const filterParts = [
+                combinedBlur > 0.1 ? `blur(${combinedBlur.toFixed(1)}px)` : "",
+                hookBrightness !== 1.0 ? `brightness(${hookBrightness.toFixed(2)})` : "",
+                hookContrast !== 1.0 ? `contrast(${hookContrast.toFixed(2)})` : "",
+                hookSaturate !== 1.0 ? `saturate(${hookSaturate.toFixed(2)})` : "",
+              ]
+                .filter(Boolean)
+                .join(" ");
+
+              return (
+                <AbsoluteFill style={{ zIndex: 50, pointerEvents: "none", overflow: "hidden" }}>
+                  {/* Layer 2: Ambient Drop Shadow / Depth Occluder behind Subject (Z: 45) */}
+                  <OffthreadVideo
+                    src={resolveSourceUri(matteSrc)}
+                    transparent
+                    muted
+                    style={{
+                      position: "absolute",
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      objectPosition: mediaStyle.objectPosition || "50% 50%",
+                      transform: `${mediaStyle.transform || ""} ${hookTransform}`.trim(),
+                      transformOrigin: mediaStyle.transformOrigin || "center center",
+                      filter: "brightness(0) blur(18px) opacity(0.45)",
+                      zIndex: 45,
+                    }}
+                  />
+
+                  {/* Layer 3: Foreground Subject Matte Cutout Layer (Z: 50) */}
+                  <OffthreadVideo
+                    src={resolveSourceUri(matteSrc)}
+                    transparent
+                    muted
+                    style={{
+                      position: "absolute",
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      objectPosition: mediaStyle.objectPosition || "50% 50%",
+                      transform: `${mediaStyle.transform || ""} ${hookTransform}`.trim(),
+                      transformOrigin: mediaStyle.transformOrigin || "center center",
+                      filter: filterParts || undefined,
+                      zIndex: 50,
+                    }}
+                  />
+                </AbsoluteFill>
+              );
+            })()}
+
+            {/* 4. Foreground Typography Stage (Z: 100) — Flank, Lower Deck, Titles */}
+            {foregroundChunks.length > 0 && (
+              <Spatial3DCameraRig
+                spatialCamera={orchestration?.spatialCamera3D}
+                frame={frame}
+                fps={fps}
+                stageZIndex={100}
+              >
+                {foregroundChunks.map((chunk, idx) => renderChunkSequence(chunk, idx))}
+              </Spatial3DCameraRig>
+            )}
+          </>
         );
       })()}
     </AbsoluteFill>
