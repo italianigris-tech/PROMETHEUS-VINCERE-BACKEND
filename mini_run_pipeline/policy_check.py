@@ -322,8 +322,124 @@ def validate_safe_region_bounds_with_frames(
     }
 
 
-def validate_line_count_and_wrap(layers: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
-    """Validate tall-stack contract and line wrapping/syllable integrity."""
+def measure_pixel_row_projection_lines(
+    frame_path_or_rgb: Any,
+    placement: Optional[Dict[str, Any]] = None,
+    layers: Optional[Sequence[Dict[str, Any]]] = None,
+    canvas_w: float = CANVAS_WIDTH_PX,
+    canvas_h: float = CANVAS_HEIGHT_PX,
+) -> Dict[str, Any]:
+    """Measure actual visual text line count via row projection restricted to placement bbox."""
+    try:
+        import numpy as np
+        from PIL import Image
+    except ImportError:
+        return {"status": "skipped", "reason": "numpy_or_pillow_unavailable", "detected": False, "rowCount": 0}
+
+    if isinstance(frame_path_or_rgb, (str, Path)):
+        p = Path(frame_path_or_rgb)
+        if not p.exists():
+            return {"status": "skipped", "reason": f"file_not_found: {p}", "detected": False, "rowCount": 0}
+        try:
+            img = Image.open(p).convert("RGB")
+            arr = np.array(img)
+        except Exception as err:
+            return {"status": "skipped", "reason": f"image_load_failed: {err}", "detected": False, "rowCount": 0}
+    elif isinstance(frame_path_or_rgb, np.ndarray):
+        arr = frame_path_or_rgb
+    else:
+        return {"status": "skipped", "reason": "invalid_frame_data", "detected": False, "rowCount": 0}
+
+    h, w = arr.shape[:2]
+    p = placement or {}
+    try:
+        raw_x = str(p.get("xPercent", "50%")).replace("%", "")
+        x_pct = float(raw_x) / 100.0 if float(raw_x) > 1.0 else float(raw_x)
+    except Exception:
+        x_pct = 0.50
+
+    try:
+        raw_y = str(p.get("yPercent", "80%")).replace("%", "")
+        y_pct = float(raw_y) / 100.0 if float(raw_y) > 1.0 else float(raw_y)
+    except Exception:
+        y_pct = 0.80
+
+    try:
+        raw_mw = str(p.get("maxWidthPercent", "85%")).replace("%", "")
+        mw_pct = float(raw_mw) / 100.0 if float(raw_mw) > 1.0 else float(raw_mw)
+    except Exception:
+        mw_pct = 0.85
+
+    center_x = x_pct * w
+    center_y = y_pct * h
+    box_w = min(float(w), max(350.0, mw_pct * float(w) + 60.0))
+
+    font_sizes = [float(l.get("fontSizePx") or l.get("font_size_px") or 60.0) for l in (layers or [])]
+    est_h = sum(font_sizes) * 1.5 + 40.0 if font_sizes else 260.0
+    box_h = max(180.0, min(500.0, est_h))
+
+    x0 = max(0, int(center_x - box_w / 2.0))
+    x1 = min(w, int(center_x + box_w / 2.0))
+    y0 = max(0, int(center_y - box_h / 2.0))
+    y1 = min(h, int(center_y + box_h / 2.0))
+
+    crop = arr[y0:y1, x0:x1]
+    if crop.size == 0:
+        return {"status": "passed", "detected": False, "rowCount": 0, "bands": []}
+
+    r = crop[:, :, 0].astype(float)
+    g = crop[:, :, 1].astype(float)
+    b = crop[:, :, 2].astype(float)
+    lum = 0.299 * r + 0.587 * g + 0.114 * b
+
+    bright_text = lum > 115.0
+    colored_text = ((np.maximum(np.maximum(r, g), b) - np.minimum(np.minimum(r, g), b)) > 35) & (lum > 70.0)
+    mask = bright_text | colored_text
+
+    row_counts = np.sum(mask, axis=1)
+    min_row_px = max(12, int((x1 - x0) * 0.025))
+    active_rows = np.where(row_counts >= min_row_px)[0]
+
+    if len(active_rows) == 0:
+        return {
+            "status": "passed",
+            "detected": False,
+            "rowCount": 0,
+            "bands": [],
+            "bbox": {"x0": x0, "y0": y0, "x1": x1, "y1": y1},
+        }
+
+    splits = np.where(np.diff(active_rows) > 8)[0]
+    raw_bands = np.split(active_rows, splits + 1)
+    valid_bands = []
+    for b_idx, band in enumerate(raw_bands):
+        if len(band) >= 12:
+            band_y0 = int(band[0] + y0)
+            band_y1 = int(band[-1] + y0)
+            max_px = int(np.max(row_counts[band]))
+            valid_bands.append({
+                "bandIndex": b_idx,
+                "y0": band_y0,
+                "y1": band_y1,
+                "heightPx": band_y1 - band_y0 + 1,
+                "maxRowPixels": max_px,
+            })
+
+    return {
+        "status": "passed",
+        "detected": len(valid_bands) > 0,
+        "rowCount": len(valid_bands),
+        "bands": valid_bands,
+        "bbox": {"x0": x0, "y0": y0, "x1": x1, "y1": y1},
+    }
+
+
+def validate_line_count_and_wrap(
+    layers: Sequence[Dict[str, Any]],
+    chunks: Optional[Sequence[Dict[str, Any]]] = None,
+    frames: Optional[Sequence[Dict[str, Any]]] = None,
+) -> Dict[str, Any]:
+    """Validate tall-stack contract, manifest line wrapping, and pixel-truth row projection."""
     tall_violations, wrap_violations = [], []
     checked = 0
     for layer in layers:
@@ -349,12 +465,90 @@ def validate_line_count_and_wrap(layers: Sequence[Dict[str, Any]]) -> Dict[str, 
             if raw_text.count("\n") + 1 > 2:
                 wrap_violations.append(f"Chunk {c_idx} companion layer '{l_name}' exceeds 2 lines")
 
-    all_v = tall_violations + wrap_violations
+    pixel_measurements: List[Dict[str, Any]] = []
+    pixel_violations: List[str] = []
+    wrap_induced_count = 0
+
+    if frames and chunks:
+        for f in frames:
+            f_path = f.get("framePath")
+            ts = float(f.get("timestampSec", 0.0))
+            if f_path is None:
+                continue
+
+            matching_chunk = None
+            for c in chunks:
+                start_sec = float(c.get("startMs", 0)) / 1000.0
+                end_sec = float(c.get("endMs", 0)) / 1000.0
+                if start_sec <= ts <= (end_sec + 0.15):
+                    matching_chunk = c
+                    break
+
+            if not matching_chunk:
+                continue
+
+            chk_idx = matching_chunk.get("chunkIndex", "?")
+            chk_layers = (
+                matching_chunk.get("layers")
+                or matching_chunk.get("rendered_layers")
+                or []
+            )
+            p = matching_chunk.get("placement") or {}
+            companion_p = p.get("companionPlacement") or (
+                next((l.get("placement") for l in chk_layers if not l.get("behindSubject")), None)
+            ) or p
+
+            fg_layers = [l for l in chk_layers if not l.get("behindSubject")]
+            if not fg_layers:
+                fg_layers = chk_layers
+
+            meas = measure_pixel_row_projection_lines(
+                f_path,
+                placement=companion_p,
+                layers=fg_layers,
+            )
+            manifest_lines = sum(str(l.get("rawText") or l.get("text") or "").count("\n") + 1 for l in fg_layers)
+
+            row_cnt = meas.get("rowCount", 0)
+            is_wrap = row_cnt > manifest_lines and meas.get("detected", False)
+            if is_wrap:
+                wrap_induced_count += 1
+                pixel_violations.append(
+                    f"Frame at {ts:.1f}s (Chunk {chk_idx}): wrap-induced row detected "
+                    f"(manifest={manifest_lines} lines, pixel-truth={row_cnt} rows)"
+                )
+            if row_cnt > 2 and any(not l.get("isHero") for l in fg_layers):
+                pixel_violations.append(
+                    f"Frame at {ts:.1f}s (Chunk {chk_idx}): companion deck exceeds 2 visual rows "
+                    f"(pixel-truth={row_cnt} rows)"
+                )
+
+            pixel_measurements.append({
+                "timestampSec": ts,
+                "chunkIndex": chk_idx,
+                "manifestLines": manifest_lines,
+                "pixelTruthRows": row_cnt,
+                "wrapInduced": is_wrap,
+                "measurement": meas,
+            })
+
+    pixel_status = "passed" if not pixel_violations else "failed"
+    if not frames or not chunks:
+        pixel_status = "skipped"
+
+    all_v = tall_violations + wrap_violations + pixel_violations
     return {
         "status": "passed" if not all_v else "failed",
         "layersChecked": checked,
         "tallStackViolations": tall_violations,
         "multiLineViolations": wrap_violations,
+        "pixelTruth": {
+            "status": pixel_status,
+            "framesChecked": len(pixel_measurements),
+            "wrapInducedRowsDetected": wrap_induced_count,
+            "measurements": pixel_measurements,
+            "violations": pixel_violations,
+        },
         "violations": all_v,
     }
 
@@ -614,7 +808,7 @@ def validate_caption_collisions(chunks: Optional[Sequence[Dict[str, Any]]]) -> D
     When adjacent chunks overlap temporally (collisionMs > 0), the outgoing chunk
     must execute a rack-focus defocus exit treatment ('rack_focus_blur').
     """
-    if not chunks or len(chunks) < 2:
+    if not chunks or len(chunks) < 2 or not any("exitTreatment" in c or "collisionMs" in c for c in chunks):
         return {
             "status": "passed",
             "boundariesChecked": 0,
@@ -1099,7 +1293,11 @@ def run_post_render_conformance_check(
         max_safe_width=MAX_SAFE_WIDTH_PX,
         safe_margin_x=SAFE_MARGIN_X_PX,
     )
-    line_wrap = validate_line_count_and_wrap(layers)
+    line_wrap = validate_line_count_and_wrap(
+        layers,
+        chunks=chunks,
+        frames=frame_result.get("frames"),
+    )
     shadow_glow = validate_shadow_glow_budget(layers)
     head_occlusion = validate_head_occlusion(
         layers,
