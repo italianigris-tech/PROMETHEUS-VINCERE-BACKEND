@@ -417,7 +417,7 @@ def validate_head_occlusion(
 
         # Bounding box of pivot text
         est_w = estimate_layer_width_px(raw_text, font, font_sz, is_uppercase=is_upper)
-        is_tall = any(k in font.lower() for k in ("anton", "bebas", "six caps", "teko", "saira", "senzabella"))
+        is_tall = any(k in font.lower() for k in ("anton", "bebas", "six caps", "teko", "saira", "senzabella", "league gothic", "pathway"))
         est_h = font_sz * (1.35 if is_tall else 1.15)
 
         center_x = x_pct * CANVAS_W
@@ -544,7 +544,7 @@ def validate_cranial_halo_guard(
             y_pct = 0.22
 
         est_w = estimate_layer_width_px(raw_text, font, font_sz, is_uppercase=is_upper)
-        is_tall = any(k in font.lower() for k in ("anton", "bebas", "six caps", "teko", "saira", "senzabella"))
+        is_tall = any(k in font.lower() for k in ("anton", "bebas", "six caps", "teko", "saira", "senzabella", "league gothic", "pathway"))
         est_h = font_sz * (1.35 if is_tall else 1.15)
 
         center_x = x_pct * CANVAS_W

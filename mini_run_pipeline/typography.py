@@ -1975,19 +1975,25 @@ def resolve_typography_policy(design_override: Optional[Dict[str, Any]] = None) 
     return resolved
 
 
-TALL_MATTE_FONTS = [
+PIVOT_FACE_WHITELIST = [
+    "League Gothic",
     "Anton",
     "Bebas Neue",
-    "Big Shoulders Display",
-    "Saira Extra Condensed",
-    "Six Caps",
-    "Teko",
     "Pathway Extreme",
-    "Oswald",
-    "League Gothic",
-    "Antonio",
-    "SenzaBella",
+    "Teko",
 ]
+
+# Prohibited ultra-condensed faces banned from pivot duty (Round 16 Commit 3)
+# These faces look tall-skinny and unreadable behind the subject
+BANNED_PIVOT_FONTS = {
+    "Six Caps",
+    "SenzaBella",
+    "Saira Extra Condensed",
+    "Antonio",
+    "Big Shoulders Display",
+}
+
+TALL_MATTE_FONTS = PIVOT_FACE_WHITELIST
 
 
 HIGH_TIER_SCREENSHOT_PROFILES = {
@@ -3437,16 +3443,10 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
             candidates = [c for c in candidates if c]
 
             if is_layer_behind:
-                # Behind-subject pivot font contract: strictly draw ONLY from TALL_MATTE_FONTS
-                cands_tall = [c for c in candidates if c in TALL_MATTE_FONTS]
-                primary_font = cands_tall[0] if cands_tall else (rng.choice(TALL_MATTE_FONTS) if rng else "Anton")
-
-                # Round 15: Demote ultra-condensed faces (Six Caps, Saira Extra Condensed) for short pivot words (<= 5 chars)
-                # in favor of broad condensed faces (Anton, Bebas Neue) so bbox width hits >= 55% of headroom
-                clean_chars = "".join(ch for ch in raw_layer_text if ch.isalnum())
-                if len(clean_chars) <= 5 and primary_font in ("Six Caps", "Saira Extra Condensed"):
-                    broad_cands = [c for c in cands_tall if c in ("Anton", "Bebas Neue", "Pathway Extreme", "Oswald", "Big Shoulders Display")]
-                    primary_font = broad_cands[0] if broad_cands else "Anton"
+                # Behind-subject pivot font contract (Round 16 Commit 3):
+                # Strictly draw ONLY from PIVOT_FACE_WHITELIST; explicitly reject banned ultra-condensed faces
+                cands_tall = [c for c in candidates if c in PIVOT_FACE_WHITELIST and c not in BANNED_PIVOT_FONTS]
+                primary_font = cands_tall[0] if cands_tall else (rng.choice(PIVOT_FACE_WHITELIST) if rng else "League Gothic")
                 accent_font = primary_font
             elif candidates:
                 primary_font = candidates[0]
@@ -3457,8 +3457,8 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
 
             # Strictly respect font JSON parents; only upgrade unstyled fallbacks and enforce anti-clash policy
             if is_layer_behind:
-                if primary_font not in TALL_MATTE_FONTS:
-                    primary_font = rng.choice(TALL_MATTE_FONTS) if rng else "Anton"
+                if primary_font not in PIVOT_FACE_WHITELIST or primary_font in BANNED_PIVOT_FONTS:
+                    primary_font = rng.choice(PIVOT_FACE_WHITELIST) if rng else "League Gothic"
                 accent_font = primary_font
             else:
                 primary_font = upgrade_font_candidate(primary_font, is_hero_layer, role=layer_spec.get("role", "body"), rng=rng, hero_font=chunk_hero_font)
@@ -3858,8 +3858,8 @@ def generate_font_manifest(chunks: List[Dict[str, Any]], design_override: Option
 
             # Strict Companion & Pivot Font Contract:
             if layer_behind_subject:
-                if primary_font not in TALL_MATTE_FONTS:
-                    primary_font = rng.choice(TALL_MATTE_FONTS) if rng else "Anton"
+                if primary_font not in PIVOT_FACE_WHITELIST or primary_font in BANNED_PIVOT_FONTS:
+                    primary_font = rng.choice(PIVOT_FACE_WHITELIST) if rng else "League Gothic"
                 accent_font = primary_font
                 casing = "uppercase"
                 resolved_weight = 900
