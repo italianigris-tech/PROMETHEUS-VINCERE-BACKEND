@@ -580,7 +580,7 @@ def plan_subject_safe_placements(
             safe_mwp = f"{max(45, mwp_num)}%"
             safe_cranial_x = _clamp_safe_x_percent(cranial_analysis["xPercent"], est_width_px=chunk_est_w)
 
-            planned.append({
+            cranial_placement = {
                 "xPercent": safe_cranial_x,
                 "yPercent": cranial_analysis["yPercent"],
                 "anchor": cranial_analysis.get("anchor", "center"),
@@ -598,13 +598,44 @@ def plan_subject_safe_placements(
                 "policy": f"cranial_negative_space_{dom_zone}",
                 "cranialArc": None,
                 "haloGuard": cranial_analysis.get("haloGuard", True),
-            })
+            }
+
+            # Layer-level placement (Round 16 Commit 2):
+            # Only the pivot layer goes cranial/behind; the companion layer stays in the deck zone (80% Y).
+            deck_companion_placement = {
+                "xPercent": "50%",
+                "yPercent": "80%",
+                "anchor": "center",
+                "textAlign": "center",
+                "dominantZone": "foreground_lower_deck",
+                "safeRegionId": "foreground_below_head_dynamic",
+                "maxWidthPercent": "85%",
+                "intersectsSubject": False,
+                "faceBottom": cranial_analysis.get("faceBottom"),
+                "policy": "deck_companion_anchor",
+            }
+
+            has_companion = False
+            for lyr in chunk_layers:
+                if isinstance(lyr, dict):
+                    if lyr.get("behindSubject"):
+                        lyr["placement"] = cranial_placement
+                    else:
+                        lyr["placement"] = deck_companion_placement
+                        has_companion = True
+
+            chunk_placement = dict(cranial_placement)
+            if has_companion:
+                chunk_placement["companionPlacement"] = deck_companion_placement
+                chunk_placement["hasSplitLayerPlacement"] = True
+
+            planned.append(chunk_placement)
             if prev_zone == dom_zone:
                 consecutive_same_zone += 1
             else:
                 consecutive_same_zone = 1
             prev_zone = dom_zone
-            prev_fg_y = None
+            prev_fg_y = 0.80 if has_companion else None
             prev_x = None
         else:
             # Foreground captions: NEVER OCCLUDE THE SPEAKER'S HEAD/FACE.
@@ -690,12 +721,13 @@ def plan_subject_safe_placements(
                 chosen_x = _clamp_safe_x_percent(raw_x, est_width_px=chunk_est_w)
 
                 # Inter-chunk hysteresis: clamp vertical stagger delta to <= 5% (e.g. ±0.03)
+                # Bounded so non-pivot transition to/from lower deck (80%) is <= 15% (i.e. y >= 0.65)
                 if prev_zone == "flank_left_column" and prev_fg_y is not None:
                     delta = 0.03 if (c_idx % 2 == 1) else -0.03
                     target_y = prev_fg_y + delta
-                    chosen_y_float = round(min(0.65, max(0.44, max(min_safe_y, target_y))), 3)
+                    chosen_y_float = round(min(0.72, max(0.65, max(min_safe_y, target_y))), 3)
                 else:
-                    chosen_y_float = round(min(0.65, max(0.44, ideal_y)), 3)
+                    chosen_y_float = round(min(0.72, max(0.65, ideal_y)), 3)
                 prev_fg_y = chosen_y_float
                 prev_x = chosen_x
 
@@ -708,12 +740,13 @@ def plan_subject_safe_placements(
                 chosen_x = _clamp_safe_x_percent(raw_x, est_width_px=chunk_est_w)
 
                 # Inter-chunk hysteresis: clamp vertical stagger delta to <= 5% (e.g. ±0.03)
+                # Bounded so non-pivot transition to/from lower deck (80%) is <= 15% (i.e. y >= 0.65)
                 if prev_zone == "flank_right_column" and prev_fg_y is not None:
                     delta = 0.03 if (c_idx % 2 == 1) else -0.03
                     target_y = prev_fg_y + delta
-                    chosen_y_float = round(min(0.65, max(0.44, max(min_safe_y, target_y))), 3)
+                    chosen_y_float = round(min(0.72, max(0.65, max(min_safe_y, target_y))), 3)
                 else:
-                    chosen_y_float = round(min(0.65, max(0.44, ideal_y)), 3)
+                    chosen_y_float = round(min(0.72, max(0.65, ideal_y)), 3)
                 prev_fg_y = chosen_y_float
                 prev_x = chosen_x
 
@@ -739,9 +772,9 @@ def plan_subject_safe_placements(
             else:
                 # Standard centered framing: dynamically staggered staging bands
                 # to prevent dialogue chunks from collapsing into a static, frozen 68% box.
-                # Alternate between lower-third baseline (75%) and mid-chest deck (62%)
-                base_stagger = 0.75 if (c_idx % 2 == 1) else 0.62
-                chosen_y_float = max(min_safe_y, min(0.78, base_stagger))
+                # Alternate between lower-third baseline (80%) and safe deck band (77%)
+                base_stagger = 0.80 if (c_idx % 2 == 1) else 0.77
+                chosen_y_float = max(min_safe_y, min(0.82, base_stagger))
 
                 chosen_x = _clamp_safe_x_percent("50%", est_width_px=chunk_est_w)
                 chosen_anchor = "center"

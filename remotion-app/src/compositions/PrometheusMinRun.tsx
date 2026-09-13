@@ -5280,13 +5280,21 @@ const MultiLayerTypographyCard: React.FC<{
     : "92%";
   const resolvedMaxWidth = deckMaxWidth;
 
+  // Block position tween (Round 16 Commit 2):
+  // Smoothly ease position entry over the entrance window to kill sudden teleportation
+  const entryYOffset = interpolate(chunkEntrance, [0, 1], [10, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: Easing.bezier(0.16, 1.0, 0.3, 1.0),
+  });
+
   return (
     <div
       style={{
         position: "absolute",
         left: leftPosition,
         top: topPosition,
-        transform: `translate(calc(-50% + ${hookTranslateX}px), -50%) scale(${interpolate(chunkEntrance, [0, 1], [0.94, 1.0]) * hookScale * exitScale})`,
+        transform: `translate(calc(-50% + ${hookTranslateX}px), calc(-50% + ${entryYOffset}px)) scale(${interpolate(chunkEntrance, [0, 1], [0.94, 1.0]) * hookScale * exitScale})`,
         opacity: Math.min(chunkEntrance, chunkExit),
         display: "flex",
         flexDirection: "column",
@@ -7016,7 +7024,43 @@ export const PrometheusMinRun: React.FC<PrometheusMinRunProps> = ({
         const behindChunks: CaptionChunk[] = [];
         const foregroundChunks: CaptionChunk[] = [];
         (chunks || []).forEach((c) => {
-          if (resolveChunkBehindSubject(isMatteActive, c.layers, c.placement)) {
+          const layers = c.layers || [];
+          const hasBehindLayer = layers.some((l) => Boolean(l.behindSubject));
+          const hasForegroundLayer = layers.some((l) => !Boolean(l.behindSubject));
+
+          if (hasBehindLayer && hasForegroundLayer && isMatteActive) {
+            // Layer-level pivot placement (Round 16 Commit 2):
+            // Only the pivot layer goes cranial/behind; the companion layer stays in the deck zone.
+            const behindLayers = layers.filter((l) => Boolean(l.behindSubject));
+            const foregroundLayers = layers.filter((l) => !Boolean(l.behindSubject));
+
+            const cranialPlacement = behindLayers[0]?.placement || c.placement;
+            const deckPlacement =
+              foregroundLayers[0]?.placement ||
+              (c.placement as any)?.companionPlacement || {
+                xPercent: "50%",
+                yPercent: "80%",
+                anchor: "center",
+                textAlign: "center",
+                dominantZone: "foreground_lower_deck",
+                safeRegionId: "foreground_below_head_dynamic",
+                maxWidthPercent: "85%",
+              };
+
+            behindChunks.push({
+              ...c,
+              layers: behindLayers,
+              placement: cranialPlacement,
+              subjectLayering: { ...(c.subjectLayering || {}), behindSubject: true },
+            });
+
+            foregroundChunks.push({
+              ...c,
+              layers: foregroundLayers,
+              placement: deckPlacement,
+              subjectLayering: { ...(c.subjectLayering || {}), behindSubject: false },
+            });
+          } else if (resolveChunkBehindSubject(isMatteActive, c.layers, c.placement)) {
             behindChunks.push(c);
           } else {
             foregroundChunks.push(c);
