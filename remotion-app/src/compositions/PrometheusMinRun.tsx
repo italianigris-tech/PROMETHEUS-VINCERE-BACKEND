@@ -5254,11 +5254,9 @@ const MultiLayerTypographyCard: React.FC<{
   const textAlign = isLowerDeck ? "center" : ((chunk.placement as any)?.textAlign || "center");
   const alignItems = isLowerDeck ? "center" : (textAlign === "left" ? "flex-start" : (textAlign === "right" ? "flex-end" : "center"));
   const maxWidthPercent = parseFloat((chunk.placement as any)?.maxWidthPercent);
-  const deckMaxWidth = isLowerDeck
-    ? "800px"
-    : (Number.isFinite(maxWidthPercent) && maxWidthPercent > 0
-        ? `${Math.max(50, Math.min(100, maxWidthPercent))}%`
-        : "820px");
+  const deckMaxWidth = Number.isFinite(maxWidthPercent) && maxWidthPercent > 0
+    ? `${Math.max(50, Math.min(100, maxWidthPercent))}%`
+    : (isLowerDeck ? "920px" : "820px");
 
   // Flanker / Satellite Layout containment:
   // When layers use asymmetric alignSelf ('flex-start' / 'flex-end', e.g. image 82 'have choose to' or image 97 'AT POINT, SOME'),

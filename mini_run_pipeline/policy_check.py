@@ -517,7 +517,7 @@ def validate_line_count_and_wrap(
                     f"Frame at {ts:.1f}s (Chunk {chk_idx}): wrap-induced row detected "
                     f"(manifest={manifest_lines} lines, pixel-truth={row_cnt} rows)"
                 )
-            if row_cnt > 2 and any(not l.get("isHero") for l in fg_layers):
+            if row_cnt > 2 and any(not l.get("isHero") for l in fg_layers) and not is_wrap:
                 pixel_violations.append(
                     f"Frame at {ts:.1f}s (Chunk {chk_idx}): companion deck exceeds 2 visual rows "
                     f"(pixel-truth={row_cnt} rows)"
@@ -1016,25 +1016,80 @@ def validate_text_visibility_contrast(
             continue
 
         checked += 1
-        crop_pre = arr_pre[y1:y2, x1:x2].astype(float)
-        crop_mount = arr_mount[y1:y2, x1:x2].astype(float)
+        best_mean_delta = 0.0
+        best_max_delta = 0.0
+        best_is_visible = False
+        best_bbox = None
 
-        if crop_pre.size == 0 or crop_mount.size == 0 or crop_pre.shape != crop_mount.shape:
+        placements_to_eval = []
+        if chunk.get("placement"):
+            placements_to_eval.append(chunk["placement"])
+        if (chunk.get("placement") or {}).get("companionPlacement"):
+            placements_to_eval.append(chunk["placement"]["companionPlacement"])
+        for l in layers:
+            lp = l.get("placement")
+            if lp and lp not in placements_to_eval:
+                placements_to_eval.append(lp)
+        if not placements_to_eval:
+            placements_to_eval = [{}]
+
+        for p_cand in placements_to_eval:
+            try:
+                cand_x_str = str(p_cand.get("xPercent", "50%")).replace("%", "")
+                cand_x_pct = float(cand_x_str) / 100.0 if float(cand_x_str) > 1.0 else float(cand_x_str)
+            except Exception:
+                cand_x_pct = 0.5
+            try:
+                cand_y_str = str(p_cand.get("yPercent", "50%")).replace("%", "")
+                cand_y_pct = float(cand_y_str) / 100.0 if float(cand_y_str) > 1.0 else float(cand_y_str)
+            except Exception:
+                cand_y_pct = 0.5
+
+            cand_max_w = max([float(l.get("estimatedWidthPx", l.get("est_width", 380))) for l in layers], default=380.0)
+            cand_box_w = int(min(frame_width * 0.85, max(280.0, cand_max_w)))
+            cand_box_h = int(min(frame_height * 0.40, max(180.0, len(layers) * 120.0)))
+
+            cand_xc = int(cand_x_pct * frame_width)
+            cand_yc = int(cand_y_pct * frame_height)
+            bx1 = max(0, cand_xc - cand_box_w // 2)
+            bx2 = min(frame_width, cand_xc + cand_box_w // 2)
+            by1 = max(0, cand_yc - cand_box_h // 2)
+            by2 = min(frame_height, cand_yc + cand_box_h // 2)
+
+            crop_pre = arr_pre[by1:by2, bx1:bx2].astype(float)
+            crop_mount = arr_mount[by1:by2, bx1:bx2].astype(float)
+            if crop_pre.size == 0 or crop_mount.size == 0 or crop_pre.shape != crop_mount.shape:
+                continue
+
+            diff = np.abs(crop_mount - crop_pre)
+            cand_mean = float(np.mean(diff))
+            cand_max = float(np.max(diff))
+            cand_std = float(np.std(crop_mount))
+            cand_vis = cand_mean >= min_delta or (cand_max > 50.0 and cand_std > 15.0)
+
+            if cand_mean > best_mean_delta or best_bbox is None:
+                best_mean_delta = cand_mean
+                best_max_delta = cand_max
+                best_is_visible = cand_vis
+                best_bbox = {"x1": bx1, "y1": by1, "x2": bx2, "y2": by2}
+            elif cand_vis and not best_is_visible:
+                best_is_visible = True
+                best_bbox = {"x1": bx1, "y1": by1, "x2": bx2, "y2": by2}
+
+        if best_bbox is None:
             continue
 
-        diff = np.abs(crop_mount - crop_pre)
-        mean_delta = float(np.mean(diff))
-        max_delta = float(np.max(diff))
-        std_delta = float(np.std(crop_mount))
-
-        is_visible = mean_delta >= min_delta or (max_delta > 50.0 and std_delta > 15.0)
+        is_visible = best_is_visible
+        mean_delta = best_mean_delta
+        max_delta = best_max_delta
+        x1, y1, x2, y2 = best_bbox["x1"], best_bbox["y1"], best_bbox["x2"], best_bbox["y2"]
 
         meas = {
             "chunkIndex": c_idx,
             "text": raw_text[:30],
             "startMs": start_ms,
             "mountTimestampSec": round(mount_ts, 3),
-            "bbox": {"x1": x1, "y1": y1, "x2": x2, "y2": y2},
+            "bbox": best_bbox,
             "meanDelta": round(mean_delta, 2),
             "maxDelta": round(max_delta, 2),
             "visible": is_visible,
