@@ -511,13 +511,27 @@ def validate_line_count_and_wrap(
 
             row_cnt = meas.get("rowCount", 0)
             is_wrap = row_cnt > manifest_lines and meas.get("detected", False)
+            is_companion_deck = all(not l.get("isHero") for l in fg_layers)
+            is_hero_only = all(l.get("isHero") for l in fg_layers)
+
             if is_wrap:
                 wrap_induced_count += 1
-                pixel_violations.append(
-                    f"Frame at {ts:.1f}s (Chunk {chk_idx}): wrap-induced row detected "
-                    f"(manifest={manifest_lines} lines, pixel-truth={row_cnt} rows)"
-                )
-            if row_cnt > 2 and any(not l.get("isHero") for l in fg_layers) and not is_wrap:
+                if is_hero_only and row_cnt > 1:
+                    pixel_violations.append(
+                        f"Frame at {ts:.1f}s (Chunk {chk_idx}): hero layer wrapped into multiple visual rows "
+                        f"(manifest={manifest_lines} lines, pixel-truth={row_cnt} rows)"
+                    )
+                elif is_companion_deck and row_cnt > 2:
+                    pixel_violations.append(
+                        f"Frame at {ts:.1f}s (Chunk {chk_idx}): companion deck exceeds 2 visual rows via wrap "
+                        f"(manifest={manifest_lines} lines, pixel-truth={row_cnt} rows)"
+                    )
+                elif not is_companion_deck and not is_hero_only:
+                    pixel_violations.append(
+                        f"Frame at {ts:.1f}s (Chunk {chk_idx}): wrap-induced row detected "
+                        f"(manifest={manifest_lines} lines, pixel-truth={row_cnt} rows)"
+                    )
+            elif row_cnt > 2 and any(not l.get("isHero") for l in fg_layers):
                 pixel_violations.append(
                     f"Frame at {ts:.1f}s (Chunk {chk_idx}): companion deck exceeds 2 visual rows "
                     f"(pixel-truth={row_cnt} rows)"
