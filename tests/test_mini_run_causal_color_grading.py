@@ -135,7 +135,7 @@ class CausalColorGradingTests(unittest.TestCase):
 
     def test_default_optical_finishing_enabled_on_all_looks(self):
         """Verify that default look resolution carries optical finishing for true filmic quality."""
-        plan = looks.select_look()
+        plan = looks.select_look(design={"lookId": "kodak_2383_print"})
         self.assertIn("opticalFinishing", plan)
         self.assertTrue(plan["opticalFinishing"].get("shoulderRollOff"))
         self.assertTrue(plan["opticalFinishing"].get("subtractiveSaturation"))

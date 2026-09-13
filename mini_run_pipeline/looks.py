@@ -394,11 +394,41 @@ CINEMATIC_LOOKS.append(NONE_LOOK)
 
 _LOOKS_BY_ID = {look["id"]: look for look in CINEMATIC_LOOKS}
 
+# Alias mapping for authentic camera profiles & film stocks (e.g. from changyun233/Lumix-V-log-LUTs)
+LOOK_ALIASES: Dict[str, str] = {
+    "vlog": "clean_log_to_rec709",
+    "v_log": "clean_log_to_rec709",
+    "vlog_to_v709": "clean_log_to_rec709",
+    "nicest_709": "sci_netone_balanced",
+    "nicest709": "sci_netone_balanced",
+    "varicam": "sci_netone_balanced",
+    "varicam_709": "sci_netone_balanced",
+    "koda5219": "kodak_2383_print",
+    "kodak5219": "kodak_2383_print",
+    "kodak_5219": "kodak_2383_print",
+    "vision3": "kodak_2383_print",
+    "vision_5219": "kodak_2383_print",
+    "dramatic_blockbuster": "teal_and_orange_blockbuster",
+    "blockbuster_33": "teal_and_orange_blockbuster",
+    "kodak_rg400": "vintage_film_emulation",
+    "kodak_um800": "vintage_film_emulation",
+    "vintage_35mm": "vintage_film_emulation",
+    "golden_hour": "golden_hour_warmth",
+    "warm_cinema": "golden_hour_warmth",
+    "steelblue": "urban_desaturated",
+    "steel_blue": "urban_desaturated",
+}
+
 def get_look(look_id: str) -> Optional[Dict[str, Any]]:
     """Return a look dict by its *id*, or None."""
     if look_id in ("none", "original", "natural", "uncolored", "raw", "passthrough"):
         return NONE_LOOK
-    return _LOOKS_BY_ID.get(look_id)
+    if look_id in _LOOKS_BY_ID:
+        return _LOOKS_BY_ID[look_id]
+    alias_target = LOOK_ALIASES.get(look_id.lower())
+    if alias_target and alias_target in _LOOKS_BY_ID:
+        return _LOOKS_BY_ID[alias_target]
+    return None
 
 def list_looks() -> List[Dict[str, Any]]:
     """Return all registered looks (with full metadata)."""
@@ -467,6 +497,18 @@ def select_look(
         if look is not None:
             intensity = float(design.get("lookIntensity", 1.0))
             return _build_manifest(look, intensity, "explicit", optical_override=optical_override, lut_path=custom_lut)
+        elif custom_lut:
+            custom_look = {
+                "id": explicit_id,
+                "name": explicit_id.replace("_", " ").title(),
+                "description": f"Custom 3D LUT look ({explicit_id})",
+                "mood": "custom",
+                "keywords": [explicit_id],
+                "policies": {"intensityRange": [0.0, 1.5], "recommendedIntensity": 1.0},
+                "params": {"lutPath": str(custom_lut)},
+            }
+            intensity = float(design.get("lookIntensity", 1.0))
+            return _build_manifest(custom_look, intensity, "custom_lut", optical_override=optical_override, lut_path=custom_lut)
     metadata_mood = metadata.get("mood", "")
     if isinstance(metadata_mood, str) and metadata_mood:
         look = match_look_by_keywords(metadata_mood)
@@ -680,11 +722,15 @@ def _resolve_lut_for_look(look_manifest: Dict[str, Any]) -> Optional[Path]:
     look_id = look_manifest.get("lookId", "")
     if not look_id:
         return None
-    candidate = LUT_DIR / f"{look_id}.cube"
+    canonical_id = LOOK_ALIASES.get(look_id.lower(), look_id)
+    candidate = LUT_DIR / f"{canonical_id}.cube"
     if candidate.is_file():
         return candidate
+    candidate_raw = LUT_DIR / f"{look_id}.cube"
+    if candidate_raw.is_file():
+        return candidate_raw
     for lut in discover_luts():
-        if look_id in lut["name"]:
+        if canonical_id in lut["name"] or look_id in lut["name"]:
             return Path(lut["path"])
     return None
 
