@@ -387,10 +387,24 @@ def finalize_manifest_and_exits(
         if c_idx + 1 < len(chunks):
             next_c = chunks[c_idx + 1]
             next_start = int(next_c.get("displayStartMs", next_c.get("startMs", 0)))
-            collision_ms = max(0, cur_disp_end - next_start)
             cur_zone = resolve_chunk_zone(c_cur)
             next_zone = resolve_chunk_zone(next_c)
             is_same_zone = bool(cur_zone and next_zone and cur_zone == next_zone)
+
+            if is_same_zone and cur_disp_end > next_start:
+                # True hard-cut for same-zone collisions (Round 16 Commit 1):
+                # Truncate outgoing window to nextMount - 30ms to eliminate visual double-stacking.
+                truncated_end = max(int(c_cur.get("startMs", 0)), next_start - 30)
+                c_cur["displayEndMs"] = truncated_end
+                c_cur["outputEndMs"] = truncated_end
+                c_cur["endMs"] = truncated_end
+                if m_cur is not None:
+                    m_cur["displayEndMs"] = truncated_end
+                    m_cur["outputEndMs"] = truncated_end
+                    m_cur["endMs"] = truncated_end
+                cur_disp_end = truncated_end
+
+            collision_ms = max(0, cur_disp_end - next_start)
         else:
             collision_ms = 0
             is_same_zone = False

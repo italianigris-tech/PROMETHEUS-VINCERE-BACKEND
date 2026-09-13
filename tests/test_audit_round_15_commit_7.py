@@ -35,11 +35,12 @@ class TestAuditRound15Commit7(unittest.TestCase):
 
         finalize_manifest_and_exits(chunks)
 
-        self.assertEqual(chunks[0]["collisionMs"], 250)
+        self.assertEqual(chunks[0]["collisionMs"], 0)
+        self.assertEqual(chunks[0]["displayEndMs"], 1720)
         self.assertEqual(
             chunks[0]["exitTreatment"],
             "clean_hold",
-            "Same-zone collision handoff (flank_left -> flank_left) must downgrade to clean_hold to prevent double blur",
+            "Same-zone collision handoff (flank_left -> flank_left) must execute true hard-cut clean_hold with zero overlap",
         )
         self.assertEqual(
             chunks[0]["layers"][0]["exitTreatment"],

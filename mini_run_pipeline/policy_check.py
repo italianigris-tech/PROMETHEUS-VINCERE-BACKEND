@@ -646,16 +646,24 @@ def validate_caption_collisions(chunks: Optional[Sequence[Dict[str, Any]]]) -> D
         if not exit_treatment and (collision_ms == 0 or is_same_zone):
             exit_treatment = "clean_hold"
 
-        if collision_ms > 0:
-            collisions_count += 1
-            if collision_ms > max_collision:
-                max_collision = collision_ms
-            expected_treatment = "clean_hold" if is_same_zone else "rack_focus_blur"
-            if exit_treatment != expected_treatment:
+        if is_same_zone:
+            # Round 16 Commit 1: Same-zone clean_hold handoffs require true hard-cut (overlap == 0)
+            if collision_ms > 0:
                 violations.append(
-                    f"Chunk {c_idx} collides with Chunk {next_idx} by {collision_ms}ms "
-                    f"but missing {expected_treatment} exitTreatment (found '{exit_treatment}')"
+                    f"Chunk {c_idx} has same-zone collision ({collision_ms}ms > 0) with Chunk {next_idx} "
+                    f"in zone '{cur_zone}'; same-zone clean_hold handoffs require a true hard-cut (overlap == 0)"
                 )
+        else:
+            if collision_ms > 0:
+                collisions_count += 1
+                if collision_ms > max_collision:
+                    max_collision = collision_ms
+                expected_treatment = "rack_focus_blur"
+                if exit_treatment != expected_treatment:
+                    violations.append(
+                        f"Chunk {c_idx} collides with Chunk {next_idx} by {collision_ms}ms "
+                        f"across different zones but missing {expected_treatment} exitTreatment (found '{exit_treatment}')"
+                    )
 
         boundaries.append({
             "outgoingChunkIndex": c_idx,
